@@ -14,15 +14,15 @@ If you'd prefer to explore the content locally, you can follow the instructions 
 
 ## 📄 Table of Contents
 
-- [📘 Introduction](#introduction)
-- [💻 Installation](#installation)
-    - [⚙️ Installing Rust and Cargo](#installing-rust-and-cargo)
-        - [🐧 On Linux](#on-linux)
-        - [🍏 On macOS](#on-macos)
-        - [🖥️ On Windows](#on-windows)
-    - [📦 Installing mdBook](#installing-mdbook)
-- [📖 Running the Book](#running-the-book)
-- [📚 Official mdBook Documentation](#official-mdbook-documentation)
+- [📘 Introduction](#-introduction)
+- [💻 Installation](#-installation)
+    - [⚙️ Installing Rust and Cargo](#-installing-rust-and-cargo)
+        - [🐧 On Linux](#-on-linux)
+        - [🍏 On macOS](#-on-macos)
+        - [🖥️ On Windows](#-on-windows)
+    - [📦 Installing mdBook](#-installing-mdbook)
+- [📖 Running the Book](#-running-the-book)
+- [📚 Official mdBook Documentation](#-official-mdbook-documentation)
 
 ---
 
