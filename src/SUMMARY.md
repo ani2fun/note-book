@@ -14,6 +14,7 @@
     - [🌍 Nginx Ingress Setup](./infrastructure/k3s-with-wireguard/7.nginx-setup.md)
     - [🔒 Securing Ingress with Cert-Manager](./infrastructure/k3s-with-wireguard/8.securing-ingress-cert-manager.md)
     - [❌ Uninstalling K3s](./infrastructure/k3s-with-wireguard/9.uninstalling-k3s.md)
+    - [🚧 ArgoCD Installation](./infrastructure/k3s-with-wireguard/10.argocd-installation.md)
 
 ## 💻 Computer Science
 - [💻 Computer Science](./computer-science/intro.md)
