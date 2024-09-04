@@ -22,6 +22,7 @@ If you'd prefer to explore the content locally, you can follow the instructions 
         - [🖥️ On Windows](#-on-windows)
     - [📦 Installing mdBook](#-installing-mdbook)
 - [📖 Running the Book](#-running-the-book)
+- [Building Docker Image](#building-docker-image)
 - [📚 Official mdBook Documentation](#-official-mdbook-documentation)
 
 ---
@@ -126,6 +127,23 @@ After installing `mdBook`, you can build and serve the book locally.
 3. Open your web browser and go to `http://localhost:3000` to view the book. 🌐
 
 The server will automatically reload as you make changes to the markdown files. 🔄
+
+## Building Docker Image
+
+1. **For Linux x86_64/amd64:**
+```bash
+docker build --platform linux/amd64 -t ani2fun/note-book:1.0.0 . 
+```
+
+2. **For Mac:**
+```bash
+docker build -t ani2fun/note-book:1.0.0 . 
+```
+
+3. **To Run** 
+```bash
+docker run -p 3000:3000 ani2fun/note-book:1.0.0 
+```
 
 ---
 
