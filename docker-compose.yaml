@@ -1,0 +1,12 @@
+services:
+  mdbook:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ALPINE_VERSION: 3.18
+    ports:
+      - "3000:3000"  # Expose the mdbook server on localhost:3000
+    volumes:
+      - .:/app  # Mount the current directory to /app inside the container for live updates
+    command: ["mdbook", "serve", "-n", "0.0.0.0"]  # Serve the book with mdbook
