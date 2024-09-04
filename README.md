@@ -4,7 +4,7 @@ Welcome to my personal knowledge base — a collection of guides, notes, and tut
 
 ---
 
-🔗 **You can access it here: [notebook.kakde.eu](https://notebook.kakde.eu)**
+🔗 **You can access it here: [https://notebook.kakde.eu](https://notebook.kakde.eu)**
 
 ⚠️ Heads up: I’m always tinkering with my homelab, so if the site’s down, there’s a good chance I broke something (again) 🤦‍♂️. Thanks for not losing your cool! 😅
 
