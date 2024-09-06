@@ -1,6 +1,11 @@
+## **Argocd Installation**
+
+### (WIP)
+
+Needs some work as there are some issues like TLS certificates management etc.
+
 https://argo-cd.readthedocs.io/en/stable/getting_started/
 
-Argocd setup needs some work as there are some issues with certificates management.
 
 ### Install Argo CD
 

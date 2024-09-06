@@ -1,4 +1,4 @@
-# 🌐 Nginx Setup:
+## 🌐 Nginx Setup:
 
 ## Configuration involving the
 `cloud-vm` with AlmaLinux 9, NGINX, Kubernetes, and the WireGuard tunnel configuration between `cloud-vm` and

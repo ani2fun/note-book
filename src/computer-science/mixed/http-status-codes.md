@@ -1,6 +1,6 @@
-# HTTP Status Codes
+## HTTP Status Codes
 
-## Categories
+### Categories
 
 - **1XX** status codes: Informational Requests
 - **2XX** status codes: Successful Requests

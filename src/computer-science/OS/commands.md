@@ -1,4 +1,4 @@
-# Commands
+## Commands
 
 - Remove specific Dir and it's sub-dir
     ```bash
@@ -13,6 +13,7 @@
     for file in *.java; do mv "$file" "${file%.java}.kt"; done
     ```
   
-- Squash all commits
+- Squash all commits and reset
     ```bash
+     git reset $(git commit-tree HEAD^{tree} -m "Initial Commit")
     ```

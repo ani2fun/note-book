@@ -8,9 +8,20 @@
 
 ## Table of content
 
+---
+
 - [Commands](./OS/commands.md)
+
+---
 
 - [Docker](./mixed/docker.md)
 
+---
+
 - [Regular Expression](./mixed/regular-expression.md)
 
+---
+
+- [Http Status Codes](./mixed/http-status-codes.md)
+
+---

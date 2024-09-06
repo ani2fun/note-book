@@ -1,4 +1,4 @@
-## **❌ **Uninstalling K3S****
+## **❌ Uninstalling K3S**
 
 If you want start again from scratch then uninstallation instructions are below to completely uninstall from all nodes.
 

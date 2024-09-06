@@ -1,11 +1,13 @@
-# Two-Node Kubernetes Cluster Setup Using k0s
+## 🚀 Setting Up a Kubernetes Cluster with 🦾 K0S and 🔐 WireGuard VPN Tunneling from Cloud VM
 
 Deploying a two-node Kubernetes cluster using k0s on AlmaLinux. The setup involves configuring two nodes as both control
 plane and worker nodes, along with detailed instructions for firewall and network configurations.
 
+---
+
 ## Prerequisites
 
-### Hardware and Network
+**Hardware and Network:**
 
 - **Two Nodes**: `master-01` and `worker-01`.
 - **Operating System**: AlmaLinux 9.4 (or any compatible RHEL-based distribution).
@@ -19,7 +21,7 @@ can update the documentation:
 
 ---
 
-## Environment Setup
+### 📊 Server Overview
 
 | Role                           | Hostname                  | IP Address                   |
 |--------------------------------|---------------------------|------------------------------|

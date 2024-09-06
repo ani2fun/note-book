@@ -1,4 +1,4 @@
-### Regular Expressions (Regex) Tutorial
+## Regular Expressions (Regex) Tutorial
 
 Regular expressions, or **regex**, are powerful tools for pattern matching in text. They are widely used in programming,
 text processing, and data extraction.
