@@ -1,6 +1,35 @@
 [book]
+title = "Note Book"
+description = "My personal knowledge base"
 authors = ["Aniket Kakde"]
 language = "en"
 multilingual = false
 src = "src"
-title = "Note Book"
+
+[rust]
+edition = "2021"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+smart-punctuation = true
+mathjax-support = true
+git-repository-url = "https://github.com/ani2fun/note-book/tree/main"
+#edit-url-template = "https://github.com/ani2fun/note-book/tree/main/{path}"
+
+[output.html.playground]
+editable = true
+copyable = true
+line-numbers = true
+
+[output.html.code.hidelines]
+python = "~"
+
+[output.html.search]
+limit-results = 20
+use-boolean-and = true
+boost-title = 2
+boost-hierarchy = 2
+boost-paragraph = 1
+expand = true
+heading-split-level = 2

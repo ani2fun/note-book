@@ -184,10 +184,11 @@ If you prefer using the CLI, you can also change the password using the followin
 To avoid specifying the server address with every ArgoCD command, you can configure the ArgoCD server URL in the CLI.
 
 ### **2.1 Temporary Login (Per Session)**
-Use this command to log into the ArgoCD server:
-```bash
-argocd login argocd.example.com --username admin --password <new-password> --insecure
-```
+
+- Use this command to log into the ArgoCD server:
+    ```bash
+    argocd login argocd.example.com --username admin --password <new-password> --insecure
+    ```
 
 ### **2.2 Permanent Configuration (Environment Variable)**
 
@@ -239,21 +240,21 @@ For improved security, it's a good practice to disable the `admin` account once 
 
 ### **3.2 🔐 **Set Up Role-Based Access Control (RBAC)** (RBAC)**
 
-To ensure users have only the permissions they need, configure ArgoCD's RBAC policies. Here's an example ConfigMap that creates a read-only role:
+- To ensure users have only the permissions they need, configure ArgoCD's RBAC policies. Here's an example ConfigMap that creates a read-only role:
 
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: argocd-rbac-cm
-  namespace: argocd
-data:
-  policy.csv: |
-    p, role:readonly, applications, get, */*, allow
-    p, role:readonly, clusters, get, */*, allow
-    p, role:readonly, repositories, get, */*, allow
-    g, <username>, role:readonly
-```
+    ```yaml
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: argocd-rbac-cm
+      namespace: argocd
+    data:
+      policy.csv: |
+        p, role:readonly, applications, get, */*, allow
+        p, role:readonly, clusters, get, */*, allow
+        p, role:readonly, repositories, get, */*, allow
+        g, <username>, role:readonly
+    ```
 
 This assigns a read-only role to the specified `username`. Adjust the permissions and roles based on your security needs.
 
@@ -271,27 +272,27 @@ If you haven’t already, ensure that ArgoCD is running behind a secure Ingress 
 
 Limit ArgoCD's resource consumption by setting CPU and memory requests/limits on the ArgoCD components.
 
-For example, edit the ArgoCD Helm chart or apply the following manifest to set resource limits:
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: argocd-server
-  namespace: argocd
-spec:
-  template:
+- For example, edit the ArgoCD Helm chart or apply the following manifest to set resource limits:
+ 
+    ```yaml
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: argocd-server
+      namespace: argocd
     spec:
-      containers:
-        - name: argocd-server
-          resources:
-            limits:
-              cpu: "500m"
-              memory: "512Mi"
-            requests:
-              cpu: "250m"
-              memory: "256Mi"
-```
+      template:
+        spec:
+          containers:
+            - name: argocd-server
+              resources:
+                limits:
+                  cpu: "500m"
+                  memory: "512Mi"
+                requests:
+                  cpu: "250m"
+                  memory: "256Mi"
+    ```
 
 ### **3.6 📊 **Enable Audit Logging****
 

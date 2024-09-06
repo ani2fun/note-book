@@ -4,17 +4,15 @@
 
 ## 🛠️ Infrastructure Setup
 - [Infrastructure](./infrastructure/infrastructure-introduction.md)
-  - [🚀 Kubernetes with K3S & Wireguard VPN](./infrastructure/k3s-with-wireguard/0.toc.md)
-    - [🚀 Introduction](./infrastructure/k3s-with-wireguard/1.introduction.md)
-    - [🌐 Infrastructure Overview](./infrastructure/k3s-with-wireguard/2.infrastructure-overview.md)
-    - [🛠️ Preparing the Environment](./infrastructure/k3s-with-wireguard/3.preparing-environment.md)
-    - [🔐 WireGuard Setup](./infrastructure/k3s-with-wireguard/4.wireguard-setup.md)
-    - [🦾 K3s Installation](./infrastructure/k3s-with-wireguard/5.k3s-installation.md)
-    - [⚖️ MetalLB Setup](./infrastructure/k3s-with-wireguard/6.metallb-setup.md)
-    - [🌍 Nginx Ingress Setup](./infrastructure/k3s-with-wireguard/7.nginx-setup.md)
-    - [🔒 Securing Ingress with Cert-Manager](./infrastructure/k3s-with-wireguard/8.securing-ingress-cert-manager.md)
-    - [❌ Uninstalling K3s](./infrastructure/k3s-with-wireguard/9.uninstalling-k3s.md)
-    - [🚧 ArgoCD Installation](./infrastructure/k3s-with-wireguard/10.argocd-installation.md)
+  - [🚀 Kubernetes with K3S & Wireguard VPN](./infrastructure/k3s-with-wireguard/toc.md)
+    - [🌐 Introduction](./infrastructure/k3s-with-wireguard/introduction.md)
+    - [🛠️ Preparing Environment](./infrastructure/k3s-with-wireguard/preparing-environment.md)
+    - [🔐 WireGuard Setup](./infrastructure/k3s-with-wireguard/wireguard-setup.md)
+    - [🦾 K3s Installation](./infrastructure/k3s-with-wireguard/k3s-installation.md)
+    - [🌍 MetalLB and Nginx Setup](./infrastructure/k3s-with-wireguard/metallb-and-nginx-setup.md)
+    - [🔒 Securing Ingress with Cert-Manager](./infrastructure/k3s-with-wireguard/securing-ingress-cert-manager.md)
+    - [❌ Uninstalling K3s](./infrastructure/k3s-with-wireguard/uninstalling-k3s.md)
+    - [🚧 ArgoCD Installation](./infrastructure/k3s-with-wireguard/argocd-installation.md)
 
 ## 💻 Computer Science
 - [💻 Computer Science](./computer-science/intro.md)

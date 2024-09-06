@@ -6,7 +6,7 @@ Welcome to my personal knowledge base — a collection of guides, notes, and tut
 
 🔗 **You can access it here: [https://notebook.kakde.eu](https://notebook.kakde.eu)**
 
-⚠️ Heads up: I’m always tinkering with my homelab, so if the site’s down, there’s a good chance I broke something (again) 🤦‍♂️. Thanks for not losing your cool! 😅
+⚠️ Heads up: I’m always tinkering with my homelab setup, so if the site’s down, there’s a good chance I broke something (again) 🤦‍♂️. Thanks for not losing your cool! 😅
 
 If you'd prefer to explore the content locally, you can follow the instructions below to set it up on your own machine. 🛠️
 
