@@ -5,11 +5,12 @@
 WireGuard will create a secure VPN mesh between the nodes, allowing them to communicate over private IP addresses.
 
 ---
+
 ### **⚙️ **1. Installing WireGuard****
 
 **Install WireGuard on all nodes:**
 
-- using **dnf** : 
+- using **dnf** :
   ```bash
   sudo dnf install epel-release -y
   sudo dnf install wireguard-tools -y
@@ -54,13 +55,15 @@ Generate the WireGuard keys on each node:
            wg genkey | tee /etc/wireguard/privatekey.worker-01-wg0 | wg pubkey | tee /etc/wireguard/publickey.worker-01-wg0
            sudo chmod 400 /etc/wireguard/privatekey.worker-01-wg0
         ```
+
 ---
 
 ### **🛠️ **3. Configuring WireGuard****
 
 - **Create the WireGuard configuration file `/etc/wireguard/wg0.conf` on each node.**
 
-- (Optional) To set **MTU** value, subtract 80 bytes from your network interface's MTU (e.g., for a 1500 MTU interface, use 1420). This allows for Wireguard encryption overhead. Usually this value is automatically detected and set.
+- (Optional) To set **MTU** value, subtract 80 bytes from your network interface's MTU (e.g., for a 1500 MTU interface,
+  use 1420). This allows for Wireguard encryption overhead. Usually this value is automatically detected and set.
 
 #### **Master-01**
 
@@ -84,6 +87,7 @@ Endpoint = <LOCAL_IP>:51820 # 192.168.5.4
 AllowedIPs = 10.0.1.0/24 # Allow entire 10.0.1.X subnet.
 PersistentKeepalive = 25
 ```
+
 ---
 
 #### **Worker-01**
@@ -157,6 +161,7 @@ sudo sysctl -p
 sudo systemctl start wg-quick@wg0
 sudo systemctl enable wg-quick@wg0
 ```
+
 ---
 
 ### **✅ **6. Verifying the VPN Mesh****
@@ -174,7 +179,8 @@ sudo systemctl enable wg-quick@wg0
     sudo firewall-cmd --reload
     ```
 
-- **Verify connectivity between the nodes using `ping`. **ssh** into the respective nodes and using ping verify packet transfer.**
+- **Verify connectivity between the nodes using `ping`. **ssh** into the respective nodes and using ping verify packet
+  transfer.**
 
 - **From cloud-vm TO** -->
     - master-01: `ping 10.0.0.1 -c 4`
@@ -191,3 +197,17 @@ sudo systemctl enable wg-quick@wg0
 **Make sure to not have any packet loss.**
 
 ---
+
+### Troubleshooting
+
+With this command you can enable the debug logging in WireGuard:
+
+```bash
+echo 'module wireguard +p' | sudo tee /sys/kernel/debug/dynamic_debug/control
+```
+
+And the same command with -p can disable it again:
+
+```bash
+echo 'module wireguard -p' | sudo tee /sys/kernel/debug/dynamic_debug/control
+```

@@ -1,4 +1,4 @@
-# **⚖️ **MetalLB and NGINX Ingress****
+## **⚖️ **MetalLB and NGINX Ingress****
 
 ---
 
@@ -146,7 +146,8 @@
   kuard-k8s-first             LoadBalancer   10.43.8.169     172.16.100.10   80:31375/TCP,443:30567/TCP   5h46m
   ```
 
-- **For `kuard-k8s-first` Service, there needs to External IP address assigned automatically by MetalLB.** It shows that MetalLB load balancer is working as expected.
+- **For `kuard-k8s-first` Service, there needs to External IP address assigned automatically by MetalLB.** It shows that
+  MetalLB load balancer is working as expected.
 
 ---
 
@@ -170,7 +171,8 @@
   Update Complete. ⎈Happy Helming!⎈
   ```
 
-- **Following command installs the Nginx Ingress Controller from the stable charts repository, names the Helm release nginx-ingress, and sets the publishService parameter to true.**
+- **Following command installs the Nginx Ingress Controller from the stable charts repository, names the Helm release
+  nginx-ingress, and sets the publishService parameter to true.**
   ```bash
   helm install nginx-ingress ingress-nginx/ingress-nginx --set controller.publishService.enabled=true
   ```
@@ -195,7 +197,8 @@
   kubectl --namespace default get services -o wide -w nginx-ingress-ingress-nginx-controller
   ```
 
-- **After some time has passed, MetalLB will assign a External IP address to the Service automatically for newly created Load Balancer:**
+- **After some time has passed, MetalLB will assign a External IP address to the Service automatically for newly created
+  Load Balancer:**
 
   **Expected output:**
   ```text
@@ -203,19 +206,22 @@
   nginx-ingress-ingress-nginx-controller   LoadBalancer   10.43.8.169   172.16.100.11   80:31375/TCP,443:30567/TCP   5h55m   app.kubernetes.io/component=controller,app.kubernetes.io/instance=nginx-ingress,app.kubernetes.io/name=ingress-nginx
   ```
 
-
 **When it is successful it means we are ready for our next steps.**
 
 ---
 
 ### **🔄 **2. Nginx as a Reverse Proxy on Cloud-VM****
 
-- The main purpose of this setup is to forward HTTP and HTTPS traffic for the domain **example.com** to the LoadBalancer service, specifically the **nginx-ingress-ingress-nginx-controller**.
+- The main purpose of this setup is to forward HTTP and HTTPS traffic for the domain **example.com** to the LoadBalancer
+  service, specifically the **nginx-ingress-ingress-nginx-controller**.
 - **CloudVM’s Public IP** is used for this traffic forwarding.
-- Make sure that in Cloudflare or your DNS provider, type `A` entry is added which points to public ip address of Cloud-VM. 
+- Make sure that in Cloudflare or your DNS provider, type `A` entry is added which points to public ip address of
+  Cloud-VM.
 - **Cloud-VM** serves as the entry point, and its IP is assigned in the DNS provider settings (using **Cloudflare**).
-- Since **master-01** and **worker-01** don’t have dedicated public IPs, they are behind a **NAT (Network Address Translation)** provided by the ISP router.
-- This means the public IP visible to the outside world is the router’s IP, not the IPs of **master-01** or **worker-01**.
+- Since **master-01** and **worker-01** don’t have dedicated public IPs, they are behind a **NAT (Network Address
+  Translation)** provided by the ISP router.
+- This means the public IP visible to the outside world is the router’s IP, not the IPs of **master-01** or **worker-01
+  **.
 
 - **First create a Nginx reverse proxy on cloud-vm:**
 
@@ -223,7 +229,8 @@
   dnf install nginx -y
   ```
 
-- **Verify that the directory `/etc/nginx/sites-available` exists. If it does not, create it using the following command:**
+- **Verify that the directory `/etc/nginx/sites-available` exists. If it does not, create it using the following
+  command:**
   ```bash
   sudo mkdir -p /etc/nginx/sites-available
   ```

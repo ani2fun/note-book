@@ -1,4 +1,4 @@
-# **🔐 **Securing the Ingress Using Cert-Manager****
+# **🔐 **Securing Ingress Using Cert-Manager****
 
 ---
 
@@ -21,7 +21,7 @@ Cert-Manager automates the management of TLS certificates.
     helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version v1.15.3 --set crds.enabled=true
     ```
 
-- **Expected output:** 
+- **Expected output:**
     ```text
     Output
     NAME: cert-manager
@@ -35,12 +35,12 @@ Cert-Manager automates the management of TLS certificates.
     ...
     ```
 
-- **The `NOTES` of the output (which has been truncated in the display above) states that you need to set up an Issuer to issue TLS certificates.**
+- **The `NOTES` of the output (which has been truncated in the display above) states that you need to set up an Issuer
+  to issue TLS certificates.**
 
 ---
 
 ### **🛠️ **2. Create a ClusterIssuer****
-
 
 - **Create an issuer called "prod-clusterissuer-http01.yaml":**
 
@@ -66,7 +66,9 @@ Cert-Manager automates the management of TLS certificates.
     EOF
     ```
 
-- This configuration defines a ClusterIssuer that contacts Let’s Encrypt in order to issue certificates. You’ll need to replace your_email_address with your email address to receive any notices regarding the security and expiration of your certificates.
+- This configuration defines a ClusterIssuer that contacts Let’s Encrypt in order to issue certificates. You’ll need to
+  replace your_email_address with your email address to receive any notices regarding the security and expiration of
+  your certificates.
 
 
 - **Roll out with kubectl:**
@@ -83,8 +85,8 @@ Cert-Manager automates the management of TLS certificates.
 
 - **Edit the previously created `kuard-ingress.yaml` file to include the ClusterIssuer information:**
 
-    The updated file should look something like this:
-    
+  The updated file should look something like this:
+
     ```bash
     cat <<EOF > prod-clusterissuer-http01.yaml
     apiVersion: networking.k8s.io/v1
@@ -113,7 +115,8 @@ Cert-Manager automates the management of TLS certificates.
     EOF
     ```
 
-- The tls block under spec defines what Secret will store the certificates for your sites (listed under hosts), which the letsencrypt-prod-http01 ClusterIssuer issues. The secretName must be different for every Ingress you create.
+- The tls block under spec defines what Secret will store the certificates for your sites (listed under hosts), which
+  the letsencrypt-prod-http01 ClusterIssuer issues. The secretName must be different for every Ingress you create.
 
 - **Roll out with kubectl:**
     ```bash
@@ -126,7 +129,8 @@ Cert-Manager automates the management of TLS certificates.
     ingress.networking.k8s.io/hello-kubernetes-ingress configured
     ```
 
-- Wait a few minutes for the Let’s Encrypt servers to issue a certificate for your domains. In the meantime, you can track progress by inspecting the output of the following command:
+- Wait a few minutes for the Let’s Encrypt servers to issue a certificate for your domains. In the meantime, you can
+  track progress by inspecting the output of the following command:
 
     ```bash
     kubectl describe certificate kuard-k8s-tls
@@ -146,7 +150,8 @@ Cert-Manager automates the management of TLS certificates.
     Normal  Issuing    2m7s   cert-manager-certificates-issuing          The certificate has been successfully issued
     ```
 
-- **When the last line of output reads The certificate has been successfully issued, you can exit by pressing CTRL + C.**
+- **When the last line of output reads The certificate has been successfully issued, you can exit by pressing CTRL + C.
+  **
 
 - **Now visit the website from your web browser https://kuard1.example.com**
 

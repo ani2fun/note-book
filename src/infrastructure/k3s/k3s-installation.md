@@ -53,12 +53,13 @@ Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
   ```
 
 - **If `kubectl` is not installed on the master-01 node then install it via:**
-  
+
   ```bash
    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
   ```
 
-- **Install kubectl: / [Installation documentation for `kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)**
+- **Install
+  kubectl: / [Installation documentation for `kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)**
   ```bash
   sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
   ```
@@ -114,9 +115,10 @@ Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
 
 - **Explanation of params:**
 
-  - --node-ip=10.0.1.1: Internal IP for worker-01.
-  - --node-ip=10.0.2.1: Internal IP for cloud-vm.
-  - --node-external-ip=<CLOUD_VM_PUBLIC_IP>: Specifies the public IP for cloud-vm, ensuring it can serve external traffic.
+    - --node-ip=10.0.1.1: Internal IP for worker-01.
+    - --node-ip=10.0.2.1: Internal IP for cloud-vm.
+    - --node-external-ip=<CLOUD_VM_PUBLIC_IP>: Specifies the public IP for cloud-vm, ensuring it can serve external
+      traffic.
 
 
 - **Verify the cluster nodes:**
@@ -209,11 +211,11 @@ Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
 
 3. **Verify Pod Deployment:**
 
-  Ensure all pods are running:
+Ensure all pods are running:
+
   ```bash
   kubectl get pods -o wide
   ```
-
 
 4. Check the connectivity between pods deployed on two different servers:
 
@@ -230,28 +232,41 @@ Successful pings confirm that the networking is functioning correctly across all
 
 **🔐 **Understanding and Configuring TLS SANs** (Subject Alternative Names)**
 
-TLS SANs (Subject Alternative Names) are a critical component in securing your Kubernetes cluster, particularly when you plan to access the Kubernetes API server or other services externally using a domain name.
+TLS SANs (Subject Alternative Names) are a critical component in securing your Kubernetes cluster, particularly when you
+plan to access the Kubernetes API server or other services externally using a domain name.
 
 1. What are TLS SANs?
 
-SANs are extensions to the X.509 specification that allow you to specify additional hostnames, IP addresses, or DNS names that should be included in the SSL/TLS certificate. When a client (e.g., kubectl, a browser, or another service) connects to a server, it checks whether the hostname or IP address it’s connecting to matches any of the SANs in the server’s certificate. If it doesn’t match, the connection is not considered secure.
+SANs are extensions to the X.509 specification that allow you to specify additional hostnames, IP addresses, or DNS
+names that should be included in the SSL/TLS certificate. When a client (e.g., kubectl, a browser, or another service)
+connects to a server, it checks whether the hostname or IP address it’s connecting to matches any of the SANs in the
+server’s certificate. If it doesn’t match, the connection is not considered secure.
 
 **Why --tls-san=*.example.com is Not Ideal**
-- Wildcard SAN Limitation: Including `--tls-san=*.example.com` might seem like it covers all subdomains, but it does not directly provide the precision needed for the API server. The API server needs to match the exact hostname or IP being accessed.
-- Client Connections: When clients (e.g., kubectl) connect to api.example.com, they expect the certificate to have that specific hostname in the SANs, not a wildcard.
+
+- Wildcard SAN Limitation: Including `--tls-san=*.example.com` might seem like it covers all subdomains, but it does not
+  directly provide the precision needed for the API server. The API server needs to match the exact hostname or IP being
+  accessed.
+- Client Connections: When clients (e.g., kubectl) connect to api.example.com, they expect the certificate to have that
+  specific hostname in the SANs, not a wildcard.
 
 **Why are TLS SANs ?**
 
 With cloud-vm being the entry point for external traffic and handling a domain like example.com, TLS SANs ensure that:
-- Secure Access to Kubernetes API: If you plan to access the Kubernetes API externally using a domain name like api.example.com, this domain needs to be included in the SANs of the certificate used by the API server.
-- Multiple Access Points: If your API server is accessible via multiple IPs, hostnames, or domain names (e.g., api.example.com, 10.0.0.1, etc.), all these should be covered by the SANs.
-- Cert-Manager and Ingress: When Cert-Manager issues certificates for your services, it will create certificates with SANs that match the hostnames specified in your Ingress resources.
+
+- Secure Access to Kubernetes API: If you plan to access the Kubernetes API externally using a domain name like
+  api.example.com, this domain needs to be included in the SANs of the certificate used by the API server.
+- Multiple Access Points: If your API server is accessible via multiple IPs, hostnames, or domain names (e.g.,
+  api.example.com, 10.0.0.1, etc.), all these should be covered by the SANs.
+- Cert-Manager and Ingress: When Cert-Manager issues certificates for your services, it will create certificates with
+  SANs that match the hostnames specified in your Ingress resources.
 
 **SAN Configuration for K3s API Server**
 
 Given current setup and the need for proper certificate management:
 Use Specific SANs:
---tls-san=api.example.com: Includes the domain name you will use to access the API server. This ensures that when you access the API server via api.example.com, the certificate matches.
+--tls-san=api.example.com: Includes the domain name you will use to access the API server. This ensures that when you
+access the API server via api.example.com, the certificate matches.
 --tls-san=<CLOUD_VM_PUBLIC_IP>: Include the public IP of cloud-vm if you need to access the API server via IP.
 --tls-san=10.0.2.1: Include the internal WireGuard IP if internal services or nodes access the API server using this IP.
 

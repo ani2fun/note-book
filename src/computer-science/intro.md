@@ -1,8 +1,6 @@
 # Computer Science Notes
 
-
 ## 🚧 Work in progress
-
 
 ```rust
 let mut name = String::new();

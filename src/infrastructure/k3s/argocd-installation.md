@@ -11,7 +11,8 @@
 
 2. **📦 **Install ArgoCD using Helm with ClusterIP Service****:
 
-   Since you only want to use your existing NGINX ingress for external access, we will install ArgoCD with a `ClusterIP` service and expose it via NGINX.
+   Since you only want to use your existing NGINX ingress for external access, we will install ArgoCD with a `ClusterIP`
+   service and expose it via NGINX.
 
    ```bash
    helm install argocd argo/argo-cd --namespace argocd --create-namespace \
@@ -23,11 +24,13 @@
      --set server.ingress.tls[0].secretName=argocd-example-tls
    ```
 
-   This installs ArgoCD with a `ClusterIP` service and configures an Ingress for external access at `https://argocd.example.com`, with SSL termination managed by NGINX.
+   This installs ArgoCD with a `ClusterIP` service and configures an Ingress for external access at
+   `https://argocd.example.com`, with SSL termination managed by NGINX.
 
 3. **🔧 **Configure Ingress for ArgoCD****:
 
-   To ensure proper HTTPS redirection and traffic handling, apply the following ingress configuration. This includes annotations to force SSL redirection and increase proxy body size.
+   To ensure proper HTTPS redirection and traffic handling, apply the following ingress configuration. This includes
+   annotations to force SSL redirection and increase proxy body size.
 
    ```yaml
    apiVersion: networking.k8s.io/v1
@@ -61,7 +64,8 @@
 
 4. **🔑 **Modify ArgoCD ConfigMap for SSL Termination****:
 
-   Since SSL is terminated at the NGINX ingress level, configure the ArgoCD `argocd-cm` ConfigMap to disable ArgoCD's internal HTTPS redirection. Edit the ConfigMap as follows:
+   Since SSL is terminated at the NGINX ingress level, configure the ArgoCD `argocd-cm` ConfigMap to disable ArgoCD's
+   internal HTTPS redirection. Edit the ConfigMap as follows:
 
    ```bash
    kubectl edit cm argocd-cm -n argocd
@@ -85,7 +89,8 @@
 
 6. **🖥️ **Access ArgoCD UI****:
 
-   Now you should be able to access ArgoCD via `https://argocd.example.com` and log in using the `admin` username and the retrieved password.
+   Now you should be able to access ArgoCD via `https://argocd.example.com` and log in using the `admin` username and
+   the retrieved password.
 
 ---
 
@@ -99,15 +104,16 @@
 ### ➡️ **Next Steps: GitHub Actions**
 
 With ArgoCD in place, we can now proceed to update the GitHub Actions workflow to:
+
 1. Automatically build and push new Docker images for `portfolio-app`.
 2. Trigger ArgoCD to deploy the new image version by updating the manifests in the `infra` repository.
-
 
 ---
 
 # **🔒 **ArgoCD Admin Password Change and Security Enhancements****
 
-Change the ArgoCD `admin` password, how to configure the ArgoCD CLI, and additional steps to secure your ArgoCD instance.
+Change the ArgoCD `admin` password, how to configure the ArgoCD CLI, and additional steps to secure your ArgoCD
+instance.
 
 ---
 
@@ -140,6 +146,7 @@ You can change the admin password either through the ArgoCD UI or using the CLI.
 If you prefer using the CLI, you can also change the password using the following steps:
 
 #### **1.2.1 Install the ArgoCD CLI**
+
 - Run the following command on your `master-01` node to install the ArgoCD CLI:
 
    ```bash
@@ -156,15 +163,18 @@ If you prefer using the CLI, you can also change the password using the followin
   You should see both the client and server versions of ArgoCD.
 
 #### **1.2.2 Login to ArgoCD Server**
+
 - To use the ArgoCD CLI, you must first log into your ArgoCD server:
 
    ```bash
    argocd login argocd.example.com --username admin --password <new-password> --insecure
    ```
 
-  Replace `<new-password>` with your current password. The `--insecure` flag allows login with untrusted certificates (e.g., self-signed or Let's Encrypt).
+  Replace `<new-password>` with your current password. The `--insecure` flag allows login with untrusted certificates (
+  e.g., self-signed or Let's Encrypt).
 
 #### **1.2.3 Change the Admin Password via CLI**
+
 - After logging in, change the password using the following command:
 
    ```bash
@@ -240,7 +250,8 @@ For improved security, it's a good practice to disable the `admin` account once 
 
 ### **3.2 🔐 **Set Up Role-Based Access Control (RBAC)** (RBAC)**
 
-- To ensure users have only the permissions they need, configure ArgoCD's RBAC policies. Here's an example ConfigMap that creates a read-only role:
+- To ensure users have only the permissions they need, configure ArgoCD's RBAC policies. Here's an example ConfigMap
+  that creates a read-only role:
 
     ```yaml
     apiVersion: v1
@@ -256,24 +267,28 @@ For improved security, it's a good practice to disable the `admin` account once 
         g, <username>, role:readonly
     ```
 
-This assigns a read-only role to the specified `username`. Adjust the permissions and roles based on your security needs.
+This assigns a read-only role to the specified `username`. Adjust the permissions and roles based on your security
+needs.
 
 ### **3.3 🔑 **Enable OAuth or SSO Authentication****
 
-Integrate ArgoCD with an Identity Provider like GitHub, GitLab, Google, or Okta for SSO. This setup can enforce stricter policies such as multi-factor authentication (MFA).
+Integrate ArgoCD with an Identity Provider like GitHub, GitLab, Google, or Okta for SSO. This setup can enforce stricter
+policies such as multi-factor authentication (MFA).
 
-You can enable OAuth through ArgoCD's configuration. Details on setting this up can be found in the [ArgoCD documentation](https://argo-cd.readthedocs.io/en/stable/operator-manual/user-management/#oauth2).
+You can enable OAuth through ArgoCD's configuration. Details on setting this up can be found in
+the [ArgoCD documentation](https://argo-cd.readthedocs.io/en/stable/operator-manual/user-management/#oauth2).
 
 ### **3.4 🔒 **Enable TLS for Secure Communication****
 
-If you haven’t already, ensure that ArgoCD is running behind a secure Ingress (e.g., NGINX) with TLS certificates managed by `cert-manager`. This ensures all communications with the ArgoCD server are encrypted.
+If you haven’t already, ensure that ArgoCD is running behind a secure Ingress (e.g., NGINX) with TLS certificates
+managed by `cert-manager`. This ensures all communications with the ArgoCD server are encrypted.
 
 ### **3.5 ⚖️ **Set Resource Limits and Quotas****
 
 Limit ArgoCD's resource consumption by setting CPU and memory requests/limits on the ArgoCD components.
 
 - For example, edit the ArgoCD Helm chart or apply the following manifest to set resource limits:
- 
+
     ```yaml
     apiVersion: apps/v1
     kind: Deployment
@@ -296,6 +311,7 @@ Limit ArgoCD's resource consumption by setting CPU and memory requests/limits on
 
 ### **3.6 📊 **Enable Audit Logging****
 
-Enabling audit logs can help track all actions performed by users in ArgoCD. This allows you to detect any suspicious activity or unauthorized actions.
+Enabling audit logs can help track all actions performed by users in ArgoCD. This allows you to detect any suspicious
+activity or unauthorized actions.
 
 ---

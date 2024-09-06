@@ -1,10 +1,11 @@
 ## **❌ **Uninstalling K3S****
 
-If you want start again from scratch then uninstallation instructions are below to completely uninstall from all nodes.  
+If you want start again from scratch then uninstallation instructions are below to completely uninstall from all nodes.
 
 ---
 
 ### **🛠️ **1. From Master****
+
 - **Uninstall K3s on master-01:**
   ```bash
   /usr/local/bin/k3s-uninstall.sh
@@ -34,13 +35,15 @@ If you want start again from scratch then uninstallation instructions are below 
   sudo systemctl status k3s-agent
   ```
 
-Both commands should return "Unit k3s.service could not be found" or similar messages indicating that the services are no longer present.
+Both commands should return "Unit k3s.service could not be found" or similar messages indicating that the services are
+no longer present.
 
 ---
 
 ### 🧹 **4. Clean Up Any Leftover Configuration (Optional)** (Optional)
 
-- If you wish to clean up any leftover configuration files or directories manually on their respective nodes, then you can remove them using:
+- If you wish to clean up any leftover configuration files or directories manually on their respective nodes, then you
+  can remove them using:
   ```bash
   rm -rf /usr/local/bin/k3s
   rm -rf /etc/rancher/k3s/

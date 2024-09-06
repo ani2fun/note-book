@@ -4,12 +4,13 @@
 
 ### **📦 **1. Updating System Packages****
 
-Before proceeding, update the system packages on all nodes:
+- Before proceeding, update the system packages on all nodes:
 
   ```bash
   sudo dnf update && sudo dnf upgrade -y
   sudo dnf install net-tools -y
   ```
+
 ---
 
 ### **🏷️ **2. Setting Hostnames****
@@ -38,39 +39,53 @@ Before proceeding, update the system packages on all nodes:
   sudo ssh-keygen -t ed25519 -C "<user-name>@<node-name>"
   ```
 
-- Copy your Jumpbox's public key e.g. `~/.ssh/id_ed25519.pub"` to the authorized keys `~/.ssh/authorized_keys` file on the remote nodes to enable passwordless SSH access. This will ease your access to machines from your jumpbox machine for ssh access:
+- Copy your Jumpbox's public key e.g. `~/.ssh/id_ed25519.pub"` to the authorized keys `~/.ssh/authorized_keys` file on
+  the remote nodes to enable passwordless SSH access. This will ease your access to machines from your jumpbox machine
+  for ssh access:
 
 - (Optional) If you want to enable a root access then:
-  - Edit the SSH configuration file: `nano /etc/ssh/sshd_config`
-  - Set `PermitRootLogin` to `yes` and restart the SSH service.
-  - Restart sshd : `systemctl restart sshd`
+    - Edit the SSH configuration file: `nano /etc/ssh/sshd_config`
+    - Set `PermitRootLogin` to `yes` and restart the SSH service.
+    - Restart sshd : `systemctl restart sshd`
 
 ---
 
 ### **🛡️ **4. Configuring SELinux****
-- Most documentation recommends setting SELinux to permissive or disabling it until all security policy concerns are addressed.
+
+- Most documentation recommends setting SELinux to permissive or disabling it until all security policy concerns are
+  addressed.
 - Edit the SELinux configuration file: `vi /etc/selinux/config` and set `SELINUX=permissive` or `SELINUX=disabled`.
 - If you modify the SELinux settings, reboot the system for the changes to take effect.
 
 ---
 
 ### **🌐 **5. Router Networking Setup****
-As Currently this is hybrid environment, where cloud-vm is VPS hosted in the Contabo cloud VPS server and my local home network, we need to take of certain networking scenarios. Local Home network is served with router of my internet provider. So it has different public ip assigned. Behind this router on my home network is created. The private ip addresses is assigned by my router. Better to assign static ip address for the machine master-01 and worker-01.
+
+As Currently this is hybrid environment, where cloud-vm is VPS hosted in the Contabo cloud VPS server and my local home
+network, we need to take of certain networking scenarios. Local Home network is served with router of my internet
+provider. So it has different public ip assigned. Behind this router on my home network is created. The private ip
+addresses is assigned by my router. Better to assign static ip address for the machine master-01 and worker-01.
 
 - Do **UDP** port forwarding from router ip port **51820** to machine's port **51820** for master-01 node for wireguard.
 - Do **UDP** port forwarding from router ip port **52820** to machine's port **51820** for worker-01 node for wireguard.
-- For example, if your Public IP address of router is: <ROUTER_PUBLIC_IP>, then open up different port and forward it to correct machines.
-  - <ROUTER_PUBLIC_IP>:**51820** forwarded to <PRIVATE_IP_MASTER_01>:51820
-  - <ROUTER_PUBLIC_IP>:**52820** forwarded to <PRIVATE_IP_WORKER_01>:51820
+- For example, if your Public IP address of router is: <ROUTER_PUBLIC_IP>, then open up different port and forward it to
+  correct machines.
+    - <ROUTER_PUBLIC_IP>:**51820** forwarded to <PRIVATE_IP_MASTER_01>:51820
+    - <ROUTER_PUBLIC_IP>:**52820** forwarded to <PRIVATE_IP_WORKER_01>:51820
 
 ---
 
 ### **🔥 **6. Setting Up Firewall Rules****
-To ensure secure and proper communication between the nodes, configure the firewall on each node. Some of the rules may not be needed please adjust as per your requirements.
+
+To ensure secure and proper communication between the nodes, configure the firewall on each node. Some of the rules may
+not be needed please adjust as per your requirements.
 
 Zone info: https://firewalld.org/documentation/zone/predefined-zones.html
-- **Public Zone:** This zone is for public-facing services and ports. Masquerading is enabled to ensure proper network address translation (NAT), which is essential for routing traffic from private to public networks.
-- **Trusted Zone:** This zone is for internal communication between trusted networks, such as your VPN and Kubernetes pod and service networks. It ensures that the necessary traffic can flow freely between nodes.
+
+- **Public Zone:** This zone is for public-facing services and ports. Masquerading is enabled to ensure proper network
+  address translation (NAT), which is essential for routing traffic from private to public networks.
+- **Trusted Zone:** This zone is for internal communication between trusted networks, such as your VPN and Kubernetes
+  pod and service networks. It ensures that the necessary traffic can flow freely between nodes.
 
 **Please configure it as per your need.**
 

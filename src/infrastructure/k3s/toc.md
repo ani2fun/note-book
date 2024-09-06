@@ -4,7 +4,6 @@
 
 ## Table of Content
 
-
 - [🌐 Introduction](introduction.md)
 
 - [🛠️ Preparing Environment](preparing-environment.md)
@@ -15,7 +14,7 @@
 
 - [🌍 MetalLB and Nginx Setup](metallb-and-nginx-setup.md)
 
-- [🔒 Securing Ingress with Cert-Manager](securing-ingress-cert-manager.md)
+- [🔒 Ingress with Cert-Manager](ingress-cert-manager.md)
 
 - [❌ Uninstalling K3s](uninstalling-k3s.md)
 
