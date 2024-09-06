@@ -2,8 +2,8 @@
 
 ---
 
-The goal is to set up a lightweight Kubernetes cluster using **K3S**, with secure communication across nodes via *
-*WireGuard VPN**, aimed for bare-metal or resource-constrained environments where you still want to enjoy the power and
+The goal is to set up a lightweight Kubernetes cluster using **K3S**, with secure communication across nodes via
+**WireGuard VPN**, aimed for bare-metal or resource-constrained environments where you still want to enjoy the power and
 flexibility of Kubernetes while experimenting and learning.
 
 ---
