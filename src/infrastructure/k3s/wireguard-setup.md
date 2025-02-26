@@ -1,16 +1,16 @@
 ## **🔐 **Setting Up WireGuard VPN****
 
+### Why Use WireGuard?
+- **Security**: Encrypts communication between nodes across the public internet, preventing unauthorized access or interception.
+- **Simplicity**: WireGuard is lightweight, fast, and easier to configure than alternatives like OpenVPN.
+
 ---
 
-WireGuard will create a secure VPN mesh between the nodes, allowing them to communicate over private IP addresses.
-
----
-
-### **⚙️ **1. Installing WireGuard****
+## **⚙️ **1. Installing WireGuard****
 
 **Install WireGuard on all nodes:**
 
-- using **dnf** :
+- using **dnf** or **yum** whichever suits your need:
   ```bash
   sudo dnf install epel-release -y
   sudo dnf install wireguard-tools -y
@@ -35,37 +35,30 @@ WireGuard will create a secure VPN mesh between the nodes, allowing them to comm
 
 ---
 
-### **🔑 **2. Generating WireGuard Keys****
+## **🔑 **2. Generating WireGuard Keys****
 
 Generate the WireGuard keys on each node:
 
-- **On each node, generate private and public keys.**
-    - On **cloud-vm**
-         ```bash
-            wg genkey | tee /etc/wireguard/privatekey.cloud-vm-wg0 | wg pubkey | tee /etc/wireguard/publickey.cloud-vm-wg0
-            sudo chmod 400 /etc/wireguard/privatekey.cloud-vm-wg0
-         ```
-    - On **master-01**
-        ```bash
-           wg genkey | tee /etc/wireguard/privatekey.master-01-wg0 | wg pubkey | tee /etc/wireguard/publickey.master-01-wg0
-           sudo chmod 400 /etc/wireguard/privatekey.master-01-wg0
-        ```
-    - On **worker-01**
-        ```bash
-           wg genkey | tee /etc/wireguard/privatekey.worker-01-wg0 | wg pubkey | tee /etc/wireguard/publickey.worker-01-wg0
-           sudo chmod 400 /etc/wireguard/privatekey.worker-01-wg0
-        ```
+- **Command** (run on each node, replacing `<node-name>` with `master-01`, `worker-01`, or `cloud-vm`):
+  ```bash
+  wg genkey | tee /etc/wireguard/privatekey.<node-name>-wg0 | wg pubkey | tee /etc/wireguard/publickey.<node-name>-wg0
+  sudo chmod 400 /etc/wireguard/privatekey.<node-name>-wg0
+  ```
+- **Why**: Generates a private/public key pair for each node. The private key secures the node’s VPN identity, and the public key is shared with peers. `chmod 400` restricts access to the private key for security.
 
 ---
 
-### **🛠️ **3. Configuring WireGuard****
+## **🛠️ **3. Configuring WireGuard****
 
-- **Create the WireGuard configuration file `/etc/wireguard/wg0.conf` on each node.**
-
+- **Action**: Create `/etc/wireguard/wg0.conf` on each node with the following configurations.
+- **Why**: Defines the VPN interface (`wg0`) and specifies how nodes connect to each other securely.
 - (Optional) To set **MTU** value, subtract 80 bytes from your network interface's MTU (e.g., for a 1500 MTU interface,
   use 1420). This allows for Wireguard encryption overhead. Usually this value is automatically detected and set.
 
-#### **Master-01**
+---
+### **Configurations**:
+
+#### **Master-01:**
 
 ```ini
 [Interface]
@@ -90,7 +83,7 @@ PersistentKeepalive = 25
 
 ---
 
-#### **Worker-01**
+#### **Worker-01:**
 
 ```ini
 [Interface]
@@ -115,7 +108,7 @@ PersistentKeepalive = 25
 
 ---
 
-#### **Cloud-vm**
+#### **Cloud-vm:**
 
 ```ini
 [Interface]
@@ -140,31 +133,38 @@ PersistentKeepalive = 25
 
 ---
 
-**PersistentKeepalive** field ensures that NAT mappings stay active, which is especially important for nodes behind NAT.
+#### **Explanation**:
+  - **Interface**: Defines the node’s VPN identity (private key), IP address (e.g., `10.0.0.1`), and listening port (`51820`).
+  - **Peer**: Specifies how to reach other nodes using their public keys and endpoints. `AllowedIPs` restricts traffic to specific ranges (e.g., `10.0.2.0/24` for `cloud-vm`).
+  - **PersistentKeepalive**: Sends a packet every 25 seconds to maintain the connection, crucial for nodes behind NAT (like home nodes).
+  - **Endpoints**: `cloud-vm` uses the router’s public IP with forwarded ports (`51820` for `master-01`, `52820` for `worker-01`). Home nodes use local IPs for each other.
+
 
 ---
 
-### **🔄 **4. Enabling IP Forwarding****
+## **🔄 **4. Enabling IP Forwarding****
 
-**Enable IP forwarding on all nodes:**
+- **Command** (run on all nodes):
+  ```bash
+  echo 'net.ipv4.ip_forward = 1' | sudo tee -a /etc/sysctl.conf
+  sudo sysctl -p
+  ```
+- **Why**: Enables nodes to forward VPN traffic, allowing communication between non-directly connected peers (e.g., `master-01` to `cloud-vm` via `worker-01`).
 
-```bash
-echo 'net.ipv4.ip_forward = 1' | sudo tee -a /etc/sysctl.conf
-sudo sysctl -p
-```
-
-### **🚀 **5. Starting WireGuard****
+## **🚀 **5. Starting WireGuard****
 
 **Start and Enable WireGuard on all nodes:**
 
-```bash
-sudo systemctl start wg-quick@wg0
-sudo systemctl enable wg-quick@wg0
-```
+- **Command** (run on all nodes):
+  ```bash
+  sudo systemctl start wg-quick@wg0
+  sudo systemctl enable wg-quick@wg0
+  ```
+- **Why**: Starts the WireGuard interface (`wg0`) and ensures it activates on boot for persistent connectivity.
 
 ---
 
-### **✅ **6. Verifying the VPN Mesh****
+## **✅ **6. Verifying the VPN Mesh****
 
 - **Check the handshake status on each node:**
     ```bash
@@ -179,22 +179,27 @@ sudo systemctl enable wg-quick@wg0
     sudo firewall-cmd --reload
     ```
 
-- **Verify connectivity between the nodes using `ping`. **ssh** into the respective nodes and using ping verify packet
+- **Verify VPN connectivity between the nodes using `ping`. **ssh** into the respective nodes and using ping verify packet
   transfer.**
 
-- **From cloud-vm TO** -->
-    - master-01: `ping 10.0.0.1 -c 4`
-    - worker-01: `ping 10.0.1.1 -c 4`
-
-- **From master-01 TO** -->
-    - worker-01: `ping 10.0.1.1 -c 4`
-    - cloud-vm: `ping 10.0.2.1 -c 4`
-
-- **From worker-01 TO** -->
-    - master-01: `ping 10.0.0.1 -c 4`
-    - cloud-vm: `ping 10.0.2.1 -c 4`
-
-**Make sure to not have any packet loss.**
+- **Commands**:
+  - From `cloud-vm`:
+    ```bash
+    ping 10.0.0.1 -c 4  # Ping master-01
+    ping 10.0.1.1 -c 4  # Ping worker-01
+    ```
+  - From `master-01`:
+    ```bash
+    ping 10.0.1.1 -c 4  # Ping worker-01
+    ping 10.0.2.1 -c 4  # Ping cloud-vm
+    ```
+  - From `worker-01`:
+    ```bash
+    ping 10.0.0.1 -c 4  # Ping master-01
+    ping 10.0.2.1 -c 4  # Ping cloud-vm
+    ```
+    
+- **Why**: Confirms that all nodes can communicate over the VPN, ensuring the tunnel is operational. **Make sure to not have any packet loss.**
 
 ---
 

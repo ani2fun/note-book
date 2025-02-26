@@ -1,61 +1,79 @@
-## 🚀 Setting Up a Kubernetes Cluster with 🦾 K3S, 🔐 WireGuard VPN, 🌐 Calico CNI, and ⚖️ MetalLB on Hybrid Infrastructure
+# Hybrid Kubernetes Cluster Setup with K3S, WireGuard, and AWS EC2 Reverse Proxy
+
+## Overview
+A lightweight hybrid Kubernetes cluster using **K3S**, secured by **WireGuard VPN**, and extended to the cloud via **AWS EC2** as a reverse proxy. Combines on-premises nodes with cloud resources for cost-efficiency and scalability.
+
+### Key Features
+- 🛠️ **3-Node Architecture**:
+  - `master-01`: On-prem control plane (home network)
+  - `worker-01`: On-prem worker node
+  - `cloud-vm`: **(AWS EC2)** Cloud worker + reverse proxy.
+- 🔐 **WireGuard VPN**: Encrypted full-mesh communication between all nodes
+- ☁️ **Hybrid Traffic Flow**: Public → AWS EC2 (NGINX reverse proxy) → WireGuard → Cluster
 
 ---
 
-The goal is to set up a lightweight Kubernetes cluster using **K3S**, with secure communication across nodes via
-**WireGuard VPN**, aimed for bare-metal or resource-constrained environments where you still want to enjoy the power and
-flexibility of Kubernetes while experimenting and learning.
+## Prerequisites
+
+### Infrastructure
+- **Nodes**:
+  - 2 on-prem machines (1 control-plane, 1 worker) with static LAN IPs
+  - 1 AWS EC2 instance (public IP, 2GB+ RAM)
+- **OS**: AlmaLinux/Fedora/CentOS (consistent across nodes)
+- **Network**:
+  - Port forwarding (HTTP/HTTPS) to AWS EC2 instance
+  - Domain with DNS control (e.g., `example.com`)
+
+### Tools
+- `dnf` package manager
+- `firewalld` (firewall config)
+- `kubectl` & `helm` (auto-installed with K3S)
 
 ---
 
-### 🌟Overview
+## Core Components
 
-- For the moment, in this setup there are three key nodes: **cloud-vm**, **master-01**, and **worker-01**.
-- Both **master-01** and **worker-01** are behind a home ISP router, which gives them private IP addresses. These IPs
-  can’t be accessed from the public internet, but the router itself has a public IP.
-- To enable secure communication between these nodes, **WireGuard VPN** is used to create a secure mesh network,
-  ensuring all traffic stays private and protected.
-- The third node, **cloud-vm**, is the gateway for all external traffic. It’s hosted on a cloud provider (like Contabo
-  or DigitalOcean) and has a public IP address, serving as the access point for traffic sent to **example.com** through
-  Cloudflare. (Of course, replace **example.com** with your own domain name)
-- All nodes are running on **💻 AlmaLinux 9.4**, an open source, solid, enterprise-grade OS that’s reliable and built for
-  long-term use.
+1. **WireGuard VPN**  
+   Encrypted tunnel between all nodes. AWS EC2 acts as public entry point while keeping cluster traffic private.
 
----
+2. **K3S**  
+   Lightweight Kubernetes (<100MB binary) with embedded components (containerd, Flannel).
 
-### 🛠️Technology Stack
+3. **Calico CNI**  
+   Replaces Flannel for advanced network policies and pod networking.
 
-- **[🔐 WireGuard VPN](https://www.wireguard.com)**:  
-  Ensures encrypted communication between **master-01**, **worker-01**, and **cloud-vm** through a full mesh network.
-  Each node connects directly with every other node, improving fault tolerance and security.
+4. **MetalLB**  
+   Assigns external IPs to services in bare-metal/on-prem environments.
 
-- **[🦾 K3s](https://docs.k3s.io/)**:  
-  A lightweight Kubernetes distribution, perfect for environments with limited resources. It’s quick to set up, uses
-  half the memory of regular Kubernetes, and is packaged in a binary under 100 MB.
+5. **NGINX Stack**:
+   - **Ingress Controller**: Routes internal HTTP/S traffic
+   - **Reverse Proxy (EC2)**: Public-facing proxy → WireGuard → Cluster
 
-- **[🌐 Calico CNI](https://docs.tigera.io/calico/latest/about/)**:  
-  Handles pod communication and enforces network policies, ensuring secure and efficient traffic within the Kubernetes
-  cluster.
+6. **Cert-Manager**  
+   Auto-provisions Let's Encrypt TLS certs via DNS01 challenges.
 
-- **[⚖️ MetalLB](https://metallb.universe.tf/)**:  
-  Provides external IPs and load balancing for services running in your bare-metal Kubernetes cluster.
-
-- **[🌍 NGINX Ingress Controller](https://docs.nginx.com/nginx-ingress-controller/overview/about/)**:  
-  Manages external access to Kubernetes services by routing HTTP/HTTPS traffic. It works with **Cert-Manager** to
-  automate SSL certificate issuance and renewal, keeping the traffic to your services secure.
-
-- **[☁️ Cloudflare DNS](https://developers.cloudflare.com/dns/concepts/)**:  
-  Directs traffic from the domain **example.com** to **cloud-vm**, which forwards it to the appropriate services in the
-  Kubernetes cluster.
-
-- **[🔄 NGINX on cloud-vm](https://docs.nginx.com/nginx/admin-guide/web-server/reverse-proxy/)**:  
-  Acts as a reverse proxy, routing traffic from the public internet to the Kubernetes cluster over the WireGuard VPN.
-  This ensures that all traffic is secure and properly directed to the right service.
-
-- **🚀[ArgoCD]()**
-  For continuous deployment
+7. **ArgoCD**  
+   GitOps-driven continuous deployment.
 
 ---
+
+## Architecture Flow
+
+```plaintext
+Public Internet
+     ↓
+[AWS EC2 Instance] ← WireGuard VPN → [On-Prem Nodes]
+     |_ NGINX Reverse Proxy (TCP/80,443)
+     |_ Cert-Manager Integration
+     ↓
+[K3S Cluster]
+     |_ MetalLB (LoadBalancer IPs)
+     |_ Calico (Network Policies)
+     |_ ArgoCD (App Deployment)
+```
+
+**Security Note**: All cross-node communication (including EC2↔on-prem) uses WireGuard encryption. Only HTTP/HTTPS ports exposed publicly on EC2.
+
 
 ### 📊 Server Overview
 

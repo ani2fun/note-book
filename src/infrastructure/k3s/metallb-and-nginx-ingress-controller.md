@@ -1,4 +1,10 @@
-## **⚖️ **MetalLB and NGINX Ingress****
+## **⚖️ **MetalLB and NGINX Ingress controller****
+
+---
+
+### Why Use MetalLB?
+- **Load Balancing**: In bare-metal or hybrid setups, there’s no cloud-provided load balancer. MetalLB fills this gap by assigning external IPs to services.
+- **External Access**: Essential for exposing applications outside the cluster (e.g., via Ingress).
 
 ---
 
@@ -10,7 +16,9 @@
     kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.8/config/manifests/metallb-native.yaml
     ```
 
-- **Check the status:**
+- **Why**: Deploys MetalLB’s controller (manages IP assignments) and speaker (advertises IPs) pods to enable load balancing.
+
+- **Check the status of the metalb deployment:**
   ```bash
   kubectl -n metallb-system get svc
   kubectl -n metallb-system get pods
@@ -39,10 +47,24 @@
 
 ---
 
-### **🛠️ **2. Configure MetalLB****
+### **🛠️ **2. Configure Configure IP Address Pool using MetalLB****
 
-- **Create an IP address pool:**
+- **Action**: Create a file named `first-pool.yaml` on `master-01`:
+  ```yaml
+  apiVersion: metallb.io/v1beta1
+  kind: IPAddressPool
+  metadata:
+    name: first-pool
+    namespace: metallb-system
+  spec:
+    addresses:
+      - 172.16.100.10-172.16.100.20
+  ```
+  
+- **Why**: Defines a range of IPs MetalLB can assign to `LoadBalancer` services, making them accessible externally.
+- **Explanation**: Choose a range outside your VPN (`10.0.0.0/16`) and local network (e.g., `192.168.1.0/24`) to avoid conflicts.
 
+- Quick way to create config in a single command:
   ```bash
   cat <<EOF > first-pool.yaml
   # first-pool.yaml
@@ -63,7 +85,24 @@
   kubectl create -f first-pool.yaml
   ```
 
-- **Create an L2 Advertisement:**
+---
+
+### 3. **Create an L2 Advertisement:**
+- **Action**: Create a file named `l2advertisement.yaml` on `master-01`:
+  ```yaml
+  apiVersion: metallb.io/v1beta1
+  kind: L2Advertisement
+  metadata:
+    name: homelab-l2
+    namespace: metallb-system
+  spec:
+    ipAddressPools:
+      - first-pool
+  ```
+
+- **Why**: Configures MetalLB to advertise the IP pool using Layer 2 (ARP), suitable for local or VPN-connected networks.
+
+- Quick way to create config in a single command: 
   ```bash
   cat <<EOF > l2advertisement.yaml
   # l2advertisement.yaml
@@ -83,6 +122,8 @@
   ```bash
   kubectl create -f l2advertisement.yaml
   ```
+
+### 4. **Check for the Metallb status:**
 
 - **Verify if the MetalLB is working as expected. To test, create a service of type LoadBalancer::**
 
@@ -151,18 +192,25 @@
 
 ---
 
-## **🌍 **Installing Nginx Ingress Controller Via Helm****
+
+
+## **5. 🌍 **Installing Nginx Ingress Controller Via Helm****
+
+### Why Use NGINX Ingress?
+- **Traffic Routing**: Directs external HTTP/HTTPS traffic to specific services based on hostnames or paths.
+- **TLS Termination**: Works with Cert-Manager to secure connections, offloading SSL handling from applications
 
 ---
 
-### **🚀 **1. Install Nginx Ingress Controller****
+### Install Nginx Ingress Controller 🚀
 
-- **Add Nginx Ingress Controller's repository to Helm:**
-
+#### 1. Add Helm Repository
+- **Commands** (run on `master-01`):
   ```bash
   helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
   helm repo update
   ```
+- **Why**: Adds the NGINX Ingress Helm chart repository and updates it, preparing for installation.
 
 - **Expected output:**
   ```text
@@ -171,11 +219,13 @@
   Update Complete. ⎈Happy Helming!⎈
   ```
 
-- **Following command installs the Nginx Ingress Controller from the stable charts repository, names the Helm release
-  nginx-ingress, and sets the publishService parameter to true.**
+#### 2. Install NGINX Ingress Controller
+- **Command** (run on `master-01`):
   ```bash
   helm install nginx-ingress ingress-nginx/ingress-nginx --set controller.publishService.enabled=true
   ```
+- **Why**: Deploys the NGINX Ingress Controller, which processes `Ingress` resources to route traffic.
+- **Explanation**: `publishService.enabled=true` allows the controller to expose its external IP via MetalLB.
 
 - **Expected output of the install command:**
 
@@ -191,124 +241,20 @@
   ...
   ```
 
-- **Run this command to watch `-w` the Load Balancer become available:**
-
+#### 3. Verify Installation
+- **Command** (run on `master-01`):
   ```bash
-  kubectl --namespace default get services -o wide -w nginx-ingress-ingress-nginx-controller
+  kubectl get services -namespace default -w nginx-ingress-ingress-nginx-controller
   ```
+- **Why**: Monitors the service until MetalLB assigns an external IP (e.g., `172.16.100.11`), confirming it’s ready to receive traffic.
 
-- **After some time has passed, MetalLB will assign a External IP address to the Service automatically for newly created
-  Load Balancer:**
-
-  **Expected output:**
+- **After some time has passed, MetalLB will assign a External IP address to the Service automatically for newly created Load Balancer:**
+- **Expected output would be something similar as follows:**
   ```text
   NAME                                     TYPE           CLUSTER-IP    EXTERNAL-IP     PORT(S)                      AGE     SELECTOR
   nginx-ingress-ingress-nginx-controller   LoadBalancer   10.43.8.169   172.16.100.11   80:31375/TCP,443:30567/TCP   5h55m   app.kubernetes.io/component=controller,app.kubernetes.io/instance=nginx-ingress,app.kubernetes.io/name=ingress-nginx
   ```
 
 **When it is successful it means we are ready for our next steps.**
-
----
-
-### **🔄 **2. Nginx as a Reverse Proxy on Cloud-VM****
-
-- The main purpose of this setup is to forward HTTP and HTTPS traffic for the domain **example.com** to the LoadBalancer
-  service, specifically the **nginx-ingress-ingress-nginx-controller**.
-- **CloudVM’s Public IP** is used for this traffic forwarding.
-- Make sure that in Cloudflare or your DNS provider, type `A` entry is added which points to public ip address of
-  Cloud-VM.
-- **Cloud-VM** serves as the entry point, and its IP is assigned in the DNS provider settings (using **Cloudflare**).
-- Since **master-01** and **worker-01** don’t have dedicated public IPs, they are behind a **NAT (Network Address
-  Translation)** provided by the ISP router.
-- This means the public IP visible to the outside world is the router’s IP, not the IPs of **master-01** or **worker-01
-  **.
-
-- **First create a Nginx reverse proxy on cloud-vm:**
-
-  ```bash
-  dnf install nginx -y
-  ```
-
-- **Verify that the directory `/etc/nginx/sites-available` exists. If it does not, create it using the following
-  command:**
-  ```bash
-  sudo mkdir -p /etc/nginx/sites-available
-  ```
-
-- **Next, create a file named `default` using the following command:**
-  ```bash
-  sudo tee /etc/nginx/sites-available/default <<EOF
-  # NGINX reverse proxy configuration on cloud-vm
-  
-  server {
-      listen 80;
-      server_name example.com *.example.com;
-  
-      location / {
-          proxy_pass http://172.16.100.11; # # Forward to LoadBalancer service `nginx-ingress-ingress-nginx-controller`.
-          proxy_set_header Host $host;
-          proxy_set_header X-Real-IP $remote_addr;
-          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-          proxy_set_header X-Forwarded-Proto $scheme;
-      }
-  }
-  
-  server {
-      listen 443 ssl;
-      server_name example.com *.example.com;
-  
-      # These directives will simply forward the SSL traffic to the Ingress Controller without terminating it
-      location / {
-          proxy_pass http://172.16.100.11; # Forward to LoadBalancer service `nginx-ingress-ingress-nginx-controller`.
-          proxy_set_header Host $host;
-          proxy_set_header X-Real-IP $remote_addr;
-          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-          proxy_set_header X-Forwarded-Proto $scheme;
-      }
-  }
-  EOF
-  ```
-
-- **Then verify and reload nginx:**
-
-  ```bash
-  sudo nginx -t
-  sudo systemctl nginx reload 
-  ```
-
-- **Create an Ingress resource to expose the Kuard application:**
-
-  ```bash
-  cat <<EOF > kuard-ingress.yaml
-  apiVersion: networking.k8s.io/v1
-  kind: Ingress
-  metadata:
-    name: kuard-k8s-ingress
-  spec:
-    ingressClassName: nginx
-    rules:
-      - host: "kuard1.example.com"
-        http:
-          paths:
-            - path: "/"
-              pathType: Prefix
-              backend:
-                service:
-                  name: kuard-k8s-first
-                  port:
-                    number: 80
-  EOF
-  ```
-
-- **Roll out:**
-  ```bash
-  kubectl create -f kuard-ingress.yaml
-  ```
-
----
-
-**Check in your browsers incognito mode to access it:**
-
-[http://kuard1.example.com](http://kuard1.example.com)
 
 ---

@@ -1,34 +1,38 @@
-# 📘 **Introduction**
+# Personal Technical Knowledge Base
 
-Welcome to my personal knowledge base — a collection of guides, notes, and tutorials across a range of technical topics.
-
-All the knowledge contained herein has been curated from various internet sources, books, and my own personal
-experiences.
-
-> Note: Certain portions of this notebook may have become obsolete by the time you come across them. Thus, it's
-> recommended to update the information in accordance with your specific requirements.
-
-## 📂 **Current Contents**
+Curated guides and notes from open resources, literature, and hands-on experience.  
+⚠️ **Note:** Some content may require validation/updates for your specific use case.
 
 ---
 
-### 🔧 **1. Infrastructure Notes**
+## Core Sections
 
-Guides on setting up Kubernetes clusters, VPNs, and hybrid infrastructures. Topics include Kubernetes (K3s), WireGuard
-VPN, MetalLB, NGINX Ingress Controller, and more.
+### 1. Infrastructure Engineering  
+**Hybrid Kubernetes Cluster Guide**:  
+- **AWS EC2 Reverse Proxy**: Public entry point for cluster traffic  
+- **Key Components**:  
+  - WireGuard VPN (encrypted node communication)  
+  - K3S lightweight Kubernetes  
+  - MetalLB (on-prem load balancing)  
+  - NGINX Stack (Ingress + EC2 reverse proxy)  
+  - Cert-Manager (auto-TLS via Let's Encrypt)  
+  - ArgoCD (GitOps deployment)  
+- Includes troubleshooting for common WireGuard/K3S integration issues  
+
+---
+
+### 2. Computer Science Fundamentals  
+**Essential Topics**:  
+- Algorithm design/analysis  
+- Data structure optimization  
+- System architecture patterns  
+- Concurrent programming  
 
 ---
 
-### 💻 **2. Computer Science**
+## Structure Philosophy  
+- **Modular Design**: Sections operate independently for easy updates  
+- **Progressive Expansion**: New domains added as curated/validated  
+- **Navigation**: Chapter-based organization with cross-linking  
 
-Notes and tutorials related to fundamental and advanced computer science topics. Topics will include data structures,
-algorithms, system design, and much more.
-
----
-
-This project will continue to grow, including notes from diverse fields as they are added. I aim to keep each section
-modular, with easy navigation for future additions.
-
-Please explore the contents by navigating through the chapters listed in the Summary!
-
----
+Use the sidebar/index to explore topics. Contributions welcome via PRs.

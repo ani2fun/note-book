@@ -2,6 +2,11 @@
 
 ---
 
+## Why Use K3s?
+- **Lightweight**: K3s is optimized for minimal resource usage, ideal for home servers and small cloud VMs.
+- **Versatility**: Supports both ARM (e.g., Raspberry Pi) and x86 architectures, fitting diverse hardware.
+---
+
 ### **⚙️ 1. Install K3s on the `master-01` node (Control Plane)**
 
 Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
@@ -20,7 +25,7 @@ Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
 - **Install K3s:**
 
     ```bash
-    curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server \
+    curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.30.4+k3s1 INSTALL_K3S_EXEC="server \
     --node-ip=10.0.0.1 \
     --flannel-backend=none \
     --disable-network-policy \
@@ -99,7 +104,7 @@ Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
 - **Install K3s on `worker-01`:**
 
   ```bash
-  curl -sfL https://get.k3s.io | K3S_URL=https://10.0.0.1:6443 K3S_TOKEN=<K3S_TOKEN> INSTALL_K3S_EXEC="agent \
+  curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.30.4+k3s1 K3S_URL=https://10.0.0.1:6443 K3S_TOKEN=<K3S_TOKEN> INSTALL_K3S_EXEC="agent \
   --node-ip=10.0.1.1 \
   --resolv-conf=/etc/k3s-resolv.conf" sh -
   ```
@@ -107,7 +112,7 @@ Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
 - **Install K3s on `cloud-vm`:**
 
   ```bash
-  curl -sfL https://get.k3s.io | K3S_URL=https://10.0.0.1:6443 K3S_TOKEN=<K3S_TOKEN> INSTALL_K3S_EXEC="agent \
+  curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.30.4+k3s1 K3S_URL=https://10.0.0.1:6443 K3S_TOKEN=<K3S_TOKEN> INSTALL_K3S_EXEC="agent \
   --node-ip=10.0.2.1 \
   --resolv-conf=/etc/k3s-resolv.conf \
   --node-external-ip=185.230.138.134" sh -

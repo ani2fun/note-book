@@ -44,13 +44,16 @@ no longer present.
 
 - If you wish to clean up any leftover configuration files or directories manually on their respective nodes, then you
   can remove them using:
-  ```bash
-  rm -rf /usr/local/bin/k3s
-  rm -rf /etc/rancher/k3s/
-  rm -rf /var/lib/rancher/k3s
-  rm -rf /etc/systemd/system/k3s.service
-  rm -rf /etc/systemd/system/k3s-agent.service
-  ```
+```bash
+systemctl stop k3s-agent
+systemctl disable k3s-agent
+rm -rf /usr/local/bin/k3s
+rm -rf /etc/rancher/k3s/
+rm -rf /var/lib/rancher/k3s
+rm -rf /etc/systemd/system/k3s.service
+rm -rf /etc/systemd/system/k3s-agent.service
+rm -rf /etc/rancher/node/password
+```
 
 After completing these steps, K3s should be fully uninstalled from your nodes.
 
