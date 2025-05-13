@@ -18,14 +18,14 @@
    helm install argocd argo/argo-cd --namespace argocd --create-namespace \
      --set server.service.type=ClusterIP \
      --set server.ingress.enabled=true \
-     --set server.ingress.hosts[0]=argocd.example.com \
+     --set server.ingress.hosts[0]=argocd.kakde.eu \
      --set server.ingress.ingressClassName=nginx \
-     --set server.ingress.tls[0].hosts[0]=argocd.example.com \
+     --set server.ingress.tls[0].hosts[0]=argocd.kakde.eu \
      --set server.ingress.tls[0].secretName=argocd-example-tls
    ```
 
    This installs ArgoCD with a `ClusterIP` service and configures an Ingress for external access at
-   `https://argocd.example.com`, with SSL termination managed by NGINX.
+   `https://argocd.kakde.eu`, with SSL termination managed by NGINX.
 
 3. **🔧 **Configure Ingress for ArgoCD****:
 
@@ -47,10 +47,10 @@
      ingressClassName: nginx
      tls:
        - hosts:
-         - argocd.example.com
+         - argocd.kakde.eu
          secretName: argocd-example-tls
      rules:
-       - host: argocd.example.com
+       - host: argocd.kakde.eu
          http:
            paths:
              - path: /
@@ -75,7 +75,7 @@
 
    ```yaml
    data:
-     url: https://argocd.example.com
+     url: https://argocd.kakde.eu
      server.insecure: "true"  # Allow NGINX to handle SSL termination.
    ```
 
@@ -89,7 +89,7 @@
 
 6. **🖥️ **Access ArgoCD UI****:
 
-   Now you should be able to access ArgoCD via `https://argocd.example.com` and log in using the `admin` username and
+   Now you should be able to access ArgoCD via `https://argocd.kakde.eu` and log in using the `admin` username and
    the retrieved password.
 
 ---
@@ -124,7 +124,7 @@ You can change the admin password either through the ArgoCD UI or using the CLI.
 ### **1.1 🌐 **Change the Password via ArgoCD Web UI****
 
 1. **Log in to the ArgoCD UI:**
-    - Open a browser and go to `https://argocd.example.com`.
+    - Open a browser and go to `https://argocd.kakde.eu`.
     - Use the default admin credentials:
         - Username: `admin`
         - Password: Run this command to retrieve the default password if you don’t have it:
@@ -167,7 +167,7 @@ If you prefer using the CLI, you can also change the password using the followin
 - To use the ArgoCD CLI, you must first log into your ArgoCD server:
 
    ```bash
-   argocd login argocd.example.com --username admin --password <new-password> --insecure
+   argocd login argocd.kakde.eu --username admin --password <new-password> --insecure
    ```
 
   Replace `<new-password>` with your current password. The `--insecure` flag allows login with untrusted certificates (
@@ -197,7 +197,7 @@ To avoid specifying the server address with every ArgoCD command, you can config
 
 - Use this command to log into the ArgoCD server:
     ```bash
-    argocd login argocd.example.com --username admin --password <new-password> --insecure
+    argocd login argocd.kakde.eu --username admin --password <new-password> --insecure
     ```
 
 ### **2.2 Permanent Configuration (Environment Variable)**
@@ -211,7 +211,7 @@ For convenience, you can set the ArgoCD server URL permanently by configuring it
 
 2. Add the following line:
    ```bash
-   export ARGOCD_SERVER=argocd.example.com
+   export ARGOCD_SERVER=argocd.kakde.eu
    ```
 
 3. Save the file and reload it:

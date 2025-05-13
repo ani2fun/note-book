@@ -163,7 +163,7 @@
             ports:
               - containerPort: 8080
         nodeSelector:
-          kubernetes.io/hostname: master-01.example.com
+          kubernetes.io/hostname: master-01.kakde.eu
   EOF
   ```
 

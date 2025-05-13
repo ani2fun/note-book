@@ -15,6 +15,7 @@ preferred-dark-theme = "navy"
 smart-punctuation = true
 mathjax-support = true
 git-repository-url = "https://github.com/ani2fun/note-book/tree/main"
+additional-css = ["./mdbook-admonish.css"]
 #edit-url-template = "https://github.com/ani2fun/note-book/tree/main/{path}"
 
 [output.html.playground]
@@ -33,3 +34,7 @@ boost-hierarchy = 2
 boost-paragraph = 1
 expand = true
 heading-split-level = 2
+
+[preprocessor.admonish]
+command = "mdbook-admonish"
+assets_version = "3.0.3" # do not edit: managed by `mdbook-admonish install`

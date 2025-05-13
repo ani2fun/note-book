@@ -5,11 +5,11 @@ A lightweight hybrid Kubernetes cluster using **K3S**, secured by **WireGuard VP
 
 ### Key Features
 - 🛠️ **3-Node Architecture**:
-  - `master-01`: On-prem control plane (home network)
-  - `worker-01`: On-prem worker node
+  - `master-01`: On-prem control plane (home network).
+  - `worker-01`: On-prem worker node (home network).
   - `cloud-vm`: **(AWS EC2)** Cloud worker + reverse proxy.
-- 🔐 **WireGuard VPN**: Encrypted full-mesh communication between all nodes
-- ☁️ **Hybrid Traffic Flow**: Public → AWS EC2 (NGINX reverse proxy) → WireGuard → Cluster
+- 🔐 **WireGuard VPN**: Encrypted full-mesh communication between all nodes.
+- ☁️ **Hybrid Traffic Flow**: Public → AWS EC2 (NGINX reverse proxy) → WireGuard → Cluster.
 
 ---
 
@@ -17,12 +17,16 @@ A lightweight hybrid Kubernetes cluster using **K3S**, secured by **WireGuard VP
 
 ### Infrastructure
 - **Nodes**:
-  - 2 on-prem machines (1 control-plane, 1 worker) with static LAN IPs
-  - 1 AWS EC2 instance (public IP, 2GB+ RAM)
-- **OS**: AlmaLinux/Fedora/CentOS (consistent across nodes)
+  - 2 on-prem machines (1 control-plane - 8GB RAM, 1 worker - 32GB RAM) with static LAN IPs.
+  - 1 AWS EC2 instance (public IP, t2.micro).
+- **OS**: AlmaLinux/Fedora/CentOS (consistent across nodes).
 - **Network**:
-  - Port forwarding (HTTP/HTTPS) to AWS EC2 instance
-  - Domain with DNS control (e.g., `example.com`)
+  - Port forwarding (HTTP/HTTPS) to AWS EC2 instance.
+  - Domain with DNS control (e.g., `kakde.eu`).
+
+```admonish
+Make sure to replace **kakde.eu** domain with your domain. 
+```
 
 ### Tools
 - `dnf` package manager

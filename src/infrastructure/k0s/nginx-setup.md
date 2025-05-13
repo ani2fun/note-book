@@ -51,7 +51,7 @@ Reference blog post
    ```
 2. **Issue the wildcard certificate** for your domain:
    ```bash
-   ./acme.sh --issue --dns dns_cf --ocsp-must-staple --keylength 4096 -d example.com -d '*.example.com'
+   ./acme.sh --issue --dns dns_cf --ocsp-must-staple --keylength 4096 -d kakde.eu -d '*.kakde.eu'
    ```
 
 ---
@@ -60,16 +60,16 @@ Reference blog post
 
 1. **Create a directory for the SSL certificates**:
    ```bash
-   mkdir -p /etc/nginx/ssl/example.com/
+   mkdir -p /etc/nginx/ssl/kakde.eu/
    ```
 2. **Generate the Diffie-Hellman key exchange file**:
    ```bash
-   openssl dhparam -out /etc/nginx/ssl/example.com/dhparams.pem -dsaparam 4096
+   openssl dhparam -out /etc/nginx/ssl/kakde.eu/dhparams.pem -dsaparam 4096
    ```
 
-   Copy all the certificates from .acme.sh to /etc/nginx/ssl/example.com/
+   Copy all the certificates from .acme.sh to /etc/nginx/ssl/kakde.eu/
     ```bash 
-    cp /root/.acme.sh/example.com/* /etc/nginx/ssl/example.com/
+    cp /root/.acme.sh/kakde.eu/* /etc/nginx/ssl/kakde.eu/
     ```
 
 3. **Edit the NGINX configuration**:
@@ -121,7 +121,7 @@ http {
     server {
         listen      80 default_server;
         listen [::]:80 default_server;
-        server_name *.example.com;
+        server_name *.kakde.eu;
         access_log  off;
         error_log   off;
         root        /var/www/html;
@@ -138,13 +138,13 @@ http {
         listen 443 ssl http2;
         listen [::]:443 ssl http2;
 
-        server_name *.example.com;
+        server_name *.kakde.eu;
 
         # SSL Configuration
-        ssl_trusted_certificate /etc/nginx/ssl/example.com/example.com.fullchain.cer;
-        ssl_certificate /etc/nginx/ssl/example.com/example.com.fullchain.cer;
-        ssl_certificate_key /etc/nginx/ssl/example.com/example.com.key;
-        ssl_dhparam /etc/nginx/ssl/example.com/dhparams.pem;
+        ssl_trusted_certificate /etc/nginx/ssl/kakde.eu/kakde.eu.fullchain.cer;
+        ssl_certificate /etc/nginx/ssl/kakde.eu/kakde.eu.fullchain.cer;
+        ssl_certificate_key /etc/nginx/ssl/kakde.eu/kakde.eu.key;
+        ssl_dhparam /etc/nginx/ssl/kakde.eu/dhparams.pem;
 
         ssl_session_timeout 1d;
         ssl_session_cache shared:NginxSSL:10m;
@@ -179,8 +179,8 @@ http {
             # proxy_set_header X-SSL-Issuer $ssl_client_i_dn;
         }
 
-        access_log /var/log/nginx/example.com_access.log;
-        error_log  /var/log/nginx/example.com_error.log;
+        access_log /var/log/nginx/kakde.eu_access.log;
+        error_log  /var/log/nginx/kakde.eu_error.log;
     }
 }
 ```
@@ -196,7 +196,7 @@ http {
 
 1. **Install your wildcard certificate** with `acme.sh`:
    ```bash
-   DOMAIN="example.com"
+   DOMAIN="kakde.eu"
    CONFIG_ROOT="/etc/nginx/ssl/${DOMAIN}"
    acme.sh -d "$DOMAIN" \
    --install-cert \
@@ -224,7 +224,7 @@ However, if the need arises, we can also do the manual TLS/SSL cert renewal. Her
 Encrypt DNS wildcard certificate:
 
 ```bash 
-./acme.sh --renew --force --dns dns_cf --ocsp-must-staple --keylength 4096 -d example.com -d '*.example.com'
+./acme.sh --renew --force --dns dns_cf --ocsp-must-staple --keylength 4096 -d kakde.eu -d '*.kakde.eu'
 ```
 
 ---
@@ -285,7 +285,7 @@ removing the need for manual intervention each time a certificate is renewed.
       #!/bin/bash
       user="your-ssh-username"  # Replace with your actual SSH username
       for i in worker-01; do
-          rsync -a --numeric-ids /etc/nginx/ssl/example.com/ ${user}@${i}:/etc/nginx/ssl/example.com
+          rsync -a --numeric-ids /etc/nginx/ssl/kakde.eu/ ${user}@${i}:/etc/nginx/ssl/kakde.eu
           ssh ${user}@${i} /bin/systemctl reload nginx
       done
       ```
@@ -297,7 +297,7 @@ removing the need for manual intervention each time a certificate is renewed.
 3. **Configure acme.sh to Use the Renewal Hook**:
     - Update the `acme.sh` configuration to use the newly created script as a renewal hook:
       ```bash
-      DOMAIN="example.com"
+      DOMAIN="kakde.eu"
       CONFIG_ROOT="/etc/nginx/ssl/${DOMAIN}"
       ./acme.sh -d "$DOMAIN" \
       --install-cert \
@@ -311,7 +311,7 @@ removing the need for manual intervention each time a certificate is renewed.
 4. **Testing the Setup**:
     - You can simulate a certificate renewal and ensure the hook works correctly by forcefully renewing the certificate:
       ```bash
-      ./acme.sh --renew --force --dns dns_cf --ocsp-must-staple --keylength 4096 -d example.com -d '*.example.com'
+      ./acme.sh --renew --force --dns dns_cf --ocsp-must-staple --keylength 4096 -d kakde.eu -d '*.kakde.eu'
       ```
     - Check that the certificates have been updated on the worker nodes and that NGINX was reloaded successfully.
 
@@ -391,7 +391,7 @@ Here’s how you can implement and utilize the `--pre-hook` and `--post-hook` op
       systemctl start nginx
       
       # Notify admin
-      echo "SSL Certificates have been renewed and NGINX restarted on $(hostname)" | mail -s "Certificate Renewal Notification" admin@example.com
+      echo "SSL Certificates have been renewed and NGINX restarted on $(hostname)" | mail -s "Certificate Renewal Notification" admin@kakde.eu
       ```
     - Save and make the script executable:
       ```bash
@@ -403,7 +403,7 @@ Here’s how you can implement and utilize the `--pre-hook` and `--post-hook` op
 After creating the `--pre-hook` and `--post-hook` scripts, you integrate them into the acme.sh process as follows:
 
 ```bash
-DOMAIN="example.com"
+DOMAIN="kakde.eu"
 CONFIG_ROOT="/etc/nginx/ssl/${DOMAIN}"
 ./acme.sh -d "$DOMAIN" \
 --install-cert \
@@ -439,7 +439,7 @@ production environments.
    tunnel.
 2. **Test the SSL configuration** using tools like: **SSL Labs** <https://www.ssllabs.com/ssltest/>
    ```bash
-   testssl.sh -- fast --parallel https://www.example.com/
+   testssl.sh -- fast --parallel https://www.kakde.eu/
    ```
 
 Qualys SSL Labs | https://www.ssllabs.com/projects/index.html | SSL Security Tools by Qualys
@@ -450,12 +450,12 @@ Qualys SSL Labs | https://www.ssllabs.com/projects/index.html | SSL Security Too
 
 1. **Monitor logs**:
    ```bash
-   tail -f /var/log/nginx/example.com_access.log
-   tail -f /var/log/nginx/example.com_error.log
+   tail -f /var/log/nginx/kakde.eu_access.log
+   tail -f /var/log/nginx/kakde.eu_error.log
    ```
 2. **Manual certificate renewal (if necessary)**:
    ```bash
-   acme.sh --renew --force --dns dns_cf --ocsp-must-staple --keylength 4096 -d example.com -d '*.example.com'
+   acme.sh --renew --force --dns dns_cf --ocsp-must-staple --keylength 4096 -d kakde.eu -d '*.kakde.eu'
    ```
 
 By following these instructions, you’ll set up a secure and automated system for managing SSL certificates with NGINX
@@ -477,17 +477,17 @@ WireGuard tunnel.
    #!/bin/bash
    # Script to delete NGINX logs older than 7 days
    LOG_DIR="/var/log/nginx"
-   ACCESS_LOG="${LOG_DIR}/example.com_access.log"
-   ERROR_LOG="${LOG_DIR}/example.com_error.log"
+   ACCESS_LOG="${LOG_DIR}/kakde.eu_access.log"
+   ERROR_LOG="${LOG_DIR}/kakde.eu_error.log"
 
    # Find and delete main access logs older than 7 days
    find "$LOG_DIR" -type f -name "access.log*" -mtime +7 -exec rm -f {} \;
    
    # Find and delete access logs older than 7 days
-   find "$LOG_DIR" -type f -name "example.com_access.log*" -mtime +7 -exec rm -f {} \;
+   find "$LOG_DIR" -type f -name "kakde.eu_access.log*" -mtime +7 -exec rm -f {} \;
 
    # Find and delete error logs older than 7 days
-   find "$LOG_DIR" -type f -name "example.com_error.log*" -mtime +7 -exec rm -f {} \;
+   find "$LOG_DIR" -type f -name "kakde.eu_error.log*" -mtime +7 -exec rm -f {} \;
    ```
 
 3. **Save and exit the editor**.

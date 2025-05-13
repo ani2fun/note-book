@@ -31,7 +31,7 @@ Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
     --disable-network-policy \
     --disable=traefik \
     --resolv-conf=/etc/k3s-resolv.conf \
-    --tls-san=api.example.com \
+    --tls-san=api.kakde.eu \
     --tls-san=10.0.2.1 \
     --advertise-address=10.0.0.1" sh -
     ```
@@ -43,7 +43,7 @@ Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
 - --disable-network-policy: Disables the default network policy controller.
 - --disable=traefik: Disables Traefik as NGINX Ingress Controller will be used.
 - --resolv-conf=/etc/resolv.conf: Ensures proper DNS settings.
-- --tls-san=api.example.com: Includes the API domain in the TLS SANs for secure access.
+- --tls-san=api.kakde.eu: Includes the API domain in the TLS SANs for secure access.
 - --tls-san=10.0.2.1: Includes the internal IP of cloud-vm to allow secure internal access.
 - --advertise-address=10.0.0.1: Advertises the internal IP of master-01 for the API server.
 
@@ -78,7 +78,7 @@ Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
   ```console
   [root@master-01 ~]# nodes
   NAME                 STATUS     ROLES                  AGE     VERSION        INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                         KERNEL-VERSION                 CONTAINER-RUNTIME
-  master-01.example.com   NotReady   control-plane,master   3m57s   v1.30.4+k3s1   10.0.0.1      <none>        AlmaLinux 9.4 (Seafoam Ocelot)   5.14.0-427.31.1.el9_4.x86_64   containerd://1.7.20-k3s1
+  master-01.kakde.eu   NotReady   control-plane,master   3m57s   v1.30.4+k3s1   10.0.0.1      <none>        AlmaLinux 9.4 (Seafoam Ocelot)   5.14.0-427.31.1.el9_4.x86_64   containerd://1.7.20-k3s1
   ```
 
 ### **🌐 Install Calico CNI on master-01**:
@@ -136,9 +136,9 @@ Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
 
   ```console
   NAME                 STATUS   ROLES                  AGE   VERSION        INTERNAL-IP   EXTERNAL-IP       OS-IMAGE                         KERNEL-VERSION                 CONTAINER-RUNTIME
-  cloud-vm.example.com    Ready    <none>                 46h   v1.30.4+k3s1   10.0.2.1      185.230.138.134   AlmaLinux 9.4 (Seafoam Ocelot)   5.14.0-427.31.1.el9_4.x86_64   containerd://1.7.20-k3s1
-  master-01.example.com   Ready    control-plane,master   46h   v1.30.4+k3s1   10.0.0.1      <none>            AlmaLinux 9.4 (Seafoam Ocelot)   5.14.0-427.31.1.el9_4.x86_64   containerd://1.7.20-k3s1
-  worker-01.example.com   Ready    <none>                 46h   v1.30.4+k3s1   10.0.1.1      <none>            AlmaLinux 9.4 (Seafoam Ocelot)   5.14.0-427.31.1.el9_4.x86_64   containerd://1.7.20-k3s1
+  cloud-vm.kakde.eu    Ready    <none>                 46h   v1.30.4+k3s1   10.0.2.1      185.230.138.134   AlmaLinux 9.4 (Seafoam Ocelot)   5.14.0-427.31.1.el9_4.x86_64   containerd://1.7.20-k3s1
+  master-01.kakde.eu   Ready    control-plane,master   46h   v1.30.4+k3s1   10.0.0.1      <none>            AlmaLinux 9.4 (Seafoam Ocelot)   5.14.0-427.31.1.el9_4.x86_64   containerd://1.7.20-k3s1
+  worker-01.kakde.eu   Ready    <none>                 46h   v1.30.4+k3s1   10.0.1.1      <none>            AlmaLinux 9.4 (Seafoam Ocelot)   5.14.0-427.31.1.el9_4.x86_64   containerd://1.7.20-k3s1
   ```
 
 - **Verify Pods Working as expected:**
@@ -156,8 +156,8 @@ Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
 - Add Taints to cloud-vm and worker-01
 
   ```bash
-  kubectl label node cloud-vm.example.com type=cloud-vm
-  kubectl label node worker-01.example.com type=worker-01
+  kubectl label node cloud-vm.kakde.eu type=cloud-vm
+  kubectl label node worker-01.kakde.eu type=worker-01
   ```
 
 - Create a file named `netshoot-pods.yaml` with the following content:
@@ -176,7 +176,7 @@ Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
       image: nicolaka/netshoot
       command: ["/bin/sh", "-c", "sleep infinity"]
     nodeSelector:
-      kubernetes.io/hostname: master-01.example.com
+      kubernetes.io/hostname: master-01.kakde.eu
   ---
   apiVersion: v1
   kind: Pod
@@ -190,7 +190,7 @@ Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
       image: nicolaka/netshoot
       command: ["/bin/sh", "-c", "sleep infinity"]
     nodeSelector:
-      kubernetes.io/hostname: worker-01.example.com
+      kubernetes.io/hostname: worker-01.kakde.eu
   ---
   apiVersion: v1
   kind: Pod
@@ -204,7 +204,7 @@ Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
       image: nicolaka/netshoot
       command: ["/bin/sh", "-c", "sleep infinity"]
     nodeSelector:
-      kubernetes.io/hostname: cloud-vm.example.com
+      kubernetes.io/hostname: cloud-vm.kakde.eu
   EOF
   ```
 
@@ -247,22 +247,22 @@ names that should be included in the SSL/TLS certificate. When a client (e.g., k
 connects to a server, it checks whether the hostname or IP address it’s connecting to matches any of the SANs in the
 server’s certificate. If it doesn’t match, the connection is not considered secure.
 
-**Why --tls-san=*.example.com is Not Ideal**
+**Why --tls-san=*.kakde.eu is Not Ideal**
 
-- Wildcard SAN Limitation: Including `--tls-san=*.example.com` might seem like it covers all subdomains, but it does not
+- Wildcard SAN Limitation: Including `--tls-san=*.kakde.eu` might seem like it covers all subdomains, but it does not
   directly provide the precision needed for the API server. The API server needs to match the exact hostname or IP being
   accessed.
-- Client Connections: When clients (e.g., kubectl) connect to api.example.com, they expect the certificate to have that
+- Client Connections: When clients (e.g., kubectl) connect to api.kakde.eu, they expect the certificate to have that
   specific hostname in the SANs, not a wildcard.
 
 **Why are TLS SANs ?**
 
-With cloud-vm being the entry point for external traffic and handling a domain like example.com, TLS SANs ensure that:
+With cloud-vm being the entry point for external traffic and handling a domain like kakde.eu, TLS SANs ensure that:
 
 - Secure Access to Kubernetes API: If you plan to access the Kubernetes API externally using a domain name like
-  api.example.com, this domain needs to be included in the SANs of the certificate used by the API server.
+  api.kakde.eu, this domain needs to be included in the SANs of the certificate used by the API server.
 - Multiple Access Points: If your API server is accessible via multiple IPs, hostnames, or domain names (e.g.,
-  api.example.com, 10.0.0.1, etc.), all these should be covered by the SANs.
+  api.kakde.eu, 10.0.0.1, etc.), all these should be covered by the SANs.
 - Cert-Manager and Ingress: When Cert-Manager issues certificates for your services, it will create certificates with
   SANs that match the hostnames specified in your Ingress resources.
 
@@ -270,8 +270,8 @@ With cloud-vm being the entry point for external traffic and handling a domain l
 
 Given current setup and the need for proper certificate management:
 Use Specific SANs:
---tls-san=api.example.com: Includes the domain name you will use to access the API server. This ensures that when you
-access the API server via api.example.com, the certificate matches.
+--tls-san=api.kakde.eu: Includes the domain name you will use to access the API server. This ensures that when you
+access the API server via api.kakde.eu, the certificate matches.
 --tls-san=<CLOUD_VM_PUBLIC_IP>: Include the public IP of cloud-vm if you need to access the API server via IP.
 --tls-san=10.0.2.1: Include the internal WireGuard IP if internal services or nodes access the API server using this IP.
 

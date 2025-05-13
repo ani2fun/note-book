@@ -13,7 +13,7 @@ Preparation ensures all nodes are updated, uniquely identifiable, securely acces
 - Log in to AWS Management Console and go to the EC2 dashboard.
 - Launch a new EC2 instance:
   - AMI: Use Amazon Linux 2023 (Free tier eligible) (or match your existing setup, e.g., AlmaLinux). 
-  - Instance Type: Choose t2.micro (1 vCPUs, 1 GiB RAM) or adjust as needed. 
+  - Instance Type: Choose t2.micro or adjust as needed. 
   - Key Pair: Select or create a key pair (e.g., ec2-key.pem) for SSH. 
   - Network: Use the default VPC and enable Auto-assign Public IP. 
   - Storage: Allocate a root volume (e.g., 30 GiB gp3). 
@@ -66,17 +66,17 @@ echo "<h1>Hello World from $(hostname -f) </h1>" > /var/www/html/index.html
 - **Commands**:
   - On `master-01`:
     ```bash
-    sudo hostnamectl set-hostname master-01.example.com
+    sudo hostnamectl set-hostname master-01.kakde.eu
     sudo systemctl restart systemd-hostnamed
     ```
   - On `worker-01`:
     ```bash
-    sudo hostnamectl set-hostname worker-01.example.com
+    sudo hostnamectl set-hostname worker-01.kakde.eu
     sudo systemctl restart systemd-hostnamed
     ```
   - On `cloud-vm`:
     ```bash
-    sudo hostnamectl set-hostname cloud-vm.example.com
+    sudo hostnamectl set-hostname cloud-vm.kakde.eu
     sudo systemctl restart systemd-hostnamed
     ```
 - **Why**: Unique hostnames make nodes easily identifiable in logs, `kubectl` outputs, and network configurations. Restarting `systemd-hostnamed` applies the change immediately.

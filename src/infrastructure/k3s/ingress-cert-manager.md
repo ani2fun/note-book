@@ -50,7 +50,7 @@
   spec:
     acme:
       # Email address used for ACME registration
-      email: your_email@example.com
+      email: your_email@kakde.eu
       server: https://acme-v02.api.letsencrypt.org/directory
       privateKeySecretRef:
         # Name of a secret used to store the ACME account private key
@@ -95,10 +95,10 @@
     ingressClassName: nginx
     tls:
       - hosts:
-          - kuard1.example.com
+          - kuard1.kakde.eu
         secretName: kuard-k8s-tls
     rules:
-      - host: "kuard1.example.com"
+      - host: "kuard1.kakde.eu"
         http:
           paths:
             - path: "/"
@@ -109,7 +109,7 @@
                   port:
                     number: 80
   ```
-- **Why**: Configures an `Ingress` resource to route traffic to a sample service (`kuard-k8s-first`) and requests a TLS certificate for `kuard1.example.com`.
+- **Why**: Configures an `Ingress` resource to route traffic to a sample service (`kuard-k8s-first`) and requests a TLS certificate for `kuard1.kakde.eu`.
 - **Explanation**: The `annotations` trigger Cert-Manager, and `tls` specifies the domain and secret for the certificate. The tls block under spec defines what Secret will store the certificates for your sites (listed under hosts), which
   the letsencrypt-prod-http01 ClusterIssuer issues. The secretName must be different for every Ingress you create.
 
@@ -152,6 +152,6 @@
 
 - **When the last line of output reads The certificate has been successfully issued, you can exit by pressing CTRL + C.**
 
-- **Now visit the website from your web browser: `https://kuard1.example.com`**
+- **Now visit the website from your web browser: `https://kuard1.kakde.eu`**
 
 ---

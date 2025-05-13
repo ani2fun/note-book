@@ -27,10 +27,10 @@ can update the documentation:
 |--------------------------------|---------------------------|------------------------------|
 | Jumpbox (MacOS/Windows/Linux)  | Jumpbox                   | PRIVATE_IP                   |
 | ------------------------------ | ------------------------- | ---------------------------- |
-| Control Plane                  | master-01.example.com     | PRIVATE_IP                   |
-| Worker Node                    | worker-01.example.com     | PRIVATE_IP                   |
+| Control Plane                  | master-01.kakde.eu     | PRIVATE_IP                   |
+| Worker Node                    | worker-01.kakde.eu     | PRIVATE_IP                   |
 | ------------------------------ | ------------------------- | ---------------------------- |
-| External Node                  | cloud-vm.example.com      | PUBLIC_IP                    |
+| External Node                  | cloud-vm.kakde.eu      | PUBLIC_IP                    |
 | ------------------------------ | ------------------------- | ---------------------------- |
 
 To update the documentation with the necessary `/etc/hosts` file information for `master-01` and `worker-01`, follow
@@ -41,14 +41,14 @@ configuration or as a dedicated step.
 
 ```bash
 # WIFI
-# 192.168.1.130 worker-01.example.com worker-01
-<PRIVATE_IP> master-01.example.com
+# 192.168.1.130 worker-01.kakde.eu worker-01
+<PRIVATE_IP> master-01.kakde.eu
 
 # enp171s0 ethernet ip address for worker-01
-<PRIVATE_IP> worker-01.example.com
+<PRIVATE_IP> worker-01.kakde.eu
 
 # Remote Gateway
-<PUBLIC_IP> cloud-vm.example.com
+<PUBLIC_IP> cloud-vm.kakde.eu
 ```
 
 #### **2. Node Configuration (master-01 and worker-01)**
@@ -58,11 +58,11 @@ configuration or as a dedicated step.
 Ensure that the `/etc/hosts` file on both `master-01` and `worker-01` includes the following entries for proper DNS
 resolution within the Kubernetes cluster:
 
-**On `master-01.example.com` and `worker-01.example.com`:**
+**On `master-01.kakde.eu` and `worker-01.kakde.eu`:**
 
 ```bash
-<PRIVATE_IP> master-01.example.com master-01
-<PRIVATE_IP>  worker-01.example.com worker-01
+<PRIVATE_IP> master-01.kakde.eu master-01
+<PRIVATE_IP>  worker-01.kakde.eu worker-01
 ```
 
 ---
@@ -113,8 +113,8 @@ resolution within the Kubernetes cluster:
 
 2. **Copy SSH Keys to Nodes**:
    ```bash
-   cat ~/.ssh/id_ed25519.pub | ssh root@master-01.example.com 'cat >> ~/.ssh/authorized_keys'
-   cat ~/.ssh/id_ed25519.pub | ssh root@worker-01.example.com 'cat >> ~/.ssh/authorized_keys'
+   cat ~/.ssh/id_ed25519.pub | ssh root@master-01.kakde.eu 'cat >> ~/.ssh/authorized_keys'
+   cat ~/.ssh/id_ed25519.pub | ssh root@worker-01.kakde.eu 'cat >> ~/.ssh/authorized_keys'
    ```
 
 
@@ -139,14 +139,14 @@ sudo sed -i '/^#Port 22/s/^#//;s/Port 22/Port 2024/; /^#PasswordAuthentication y
 On `master-01`:
 
 ```bash
-hostnamectl set-hostname master-01.example.com
+hostnamectl set-hostname master-01.kakde.eu
 systemctl restart systemd-hostnamed
 ```
 
 On `worker-01`:
 
 ```bash
-hostnamectl set-hostname worker-01.example.com
+hostnamectl set-hostname worker-01.kakde.eu
 systemctl restart systemd-hostnamed
 ```
 
@@ -257,13 +257,13 @@ spec:
   hosts:
     - role: controller
       ssh:
-        address: master-01.example.com
+        address: master-01.kakde.eu
         user: root
         port: 22
         keyPath: /path/to/your/ssh/key
     - role: worker
       ssh:
-        address: worker-01.example.com
+        address: worker-01.kakde.eu
         user: root
         port: 22
         keyPath: /path/to/your/ssh/key
@@ -293,8 +293,8 @@ This will deploy the k0s cluster on both nodes.
 To allow workloads to run on both controller nodes, remove the default taint:
 
 ```bash
-kubectl taint nodes master-01.example.com node-role.kubernetes.io/master:NoSchedule-
-kubectl taint nodes worker-01.example.com node-role.kubernetes.io/master:NoSchedule-
+kubectl taint nodes master-01.kakde.eu node-role.kubernetes.io/master:NoSchedule-
+kubectl taint nodes worker-01.kakde.eu node-role.kubernetes.io/master:NoSchedule-
 ```
 
 ### 5.2 Verify Node and Pod Status
@@ -376,7 +376,7 @@ You can test the deployment by creating an Nginx deployment:
     ```
 
 3. **Access the Nginx Service**:
-   Open your browser and navigate to `http://worker-01.example.com:30000/`.
+   Open your browser and navigate to `http://worker-01.kakde.eu:30000/`.
 
 Access the application by using the NodePort assigned to the nginx service.
 
