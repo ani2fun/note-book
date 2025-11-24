@@ -25,7 +25,7 @@ Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
 - **Install K3s:**
 
     ```bash
-    curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.30.4+k3s1 INSTALL_K3S_EXEC="server \
+    curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server \
     --node-ip=10.0.0.1 \
     --flannel-backend=none \
     --disable-network-policy \
@@ -35,6 +35,8 @@ Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
     --tls-san=10.0.2.1 \
     --advertise-address=10.0.0.1" sh -
     ```
+
+  (Optional: TOo install to a specific version you can run the following command: `curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=vX.Y.Z+k3s1 <EXISTING_K3S_ENV> sh -s - <EXISTING_K3S_ARGS>`)
 
 **Explanation of params:**
 
@@ -104,23 +106,35 @@ Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
 - **Install K3s on `worker-01`:**
 
   ```bash
-  curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.30.4+k3s1 K3S_URL=https://10.0.0.1:6443 K3S_TOKEN=<K3S_TOKEN> INSTALL_K3S_EXEC="agent \
+  curl -sfL https://get.k3s.io | K3S_URL=https://10.0.0.1:6443 K3S_TOKEN=<K3S_TOKEN> INSTALL_K3S_EXEC="agent \
   --node-ip=10.0.1.1 \
+  --resolv-conf=/etc/k3s-resolv.conf" sh -
+  ```
+
+- **Install K3s on `worker-02`:**
+
+  ```bash
+  curl -sfL https://get.k3s.io | K3S_URL=https://10.0.0.1:6443 K3S_TOKEN=<K3S_TOKEN> INSTALL_K3S_EXEC="agent \
+  --node-ip=10.0.3.1 \
   --resolv-conf=/etc/k3s-resolv.conf" sh -
   ```
 
 - **Install K3s on `cloud-vm`:**
 
   ```bash
-  curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.30.4+k3s1 K3S_URL=https://10.0.0.1:6443 K3S_TOKEN=<K3S_TOKEN> INSTALL_K3S_EXEC="agent \
+  curl -sfL https://get.k3s.io | K3S_URL=https://10.0.0.1:6443 K3S_TOKEN=<K3S_TOKEN> INSTALL_K3S_EXEC="agent \
   --node-ip=10.0.2.1 \
   --resolv-conf=/etc/k3s-resolv.conf \
-  --node-external-ip=185.230.138.134" sh -
+  --node-external-ip=35.181.57.127" sh -
   ```
+
 
 - **Explanation of params:**
 
+    - K3S_URL=https://10.0.0.1:6443: as Internal IP for master-01 is 10.0.0.1, we need to specify the API server URL as
+      https://10.0.0.1:6443.
     - --node-ip=10.0.1.1: Internal IP for worker-01.
+    - --node-ip=10.0.3.1: Internal IP for worker-02.
     - --node-ip=10.0.2.1: Internal IP for cloud-vm.
     - --node-external-ip=<CLOUD_VM_PUBLIC_IP>: Specifies the public IP for cloud-vm, ensuring it can serve external
       traffic.
@@ -135,10 +149,11 @@ Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
 - **Expected output:**
 
   ```console
-  NAME                 STATUS   ROLES                  AGE   VERSION        INTERNAL-IP   EXTERNAL-IP       OS-IMAGE                         KERNEL-VERSION                 CONTAINER-RUNTIME
-  cloud-vm.kakde.eu    Ready    <none>                 46h   v1.30.4+k3s1   10.0.2.1      185.230.138.134   AlmaLinux 9.4 (Seafoam Ocelot)   5.14.0-427.31.1.el9_4.x86_64   containerd://1.7.20-k3s1
-  master-01.kakde.eu   Ready    control-plane,master   46h   v1.30.4+k3s1   10.0.0.1      <none>            AlmaLinux 9.4 (Seafoam Ocelot)   5.14.0-427.31.1.el9_4.x86_64   containerd://1.7.20-k3s1
-  worker-01.kakde.eu   Ready    <none>                 46h   v1.30.4+k3s1   10.0.1.1      <none>            AlmaLinux 9.4 (Seafoam Ocelot)   5.14.0-427.31.1.el9_4.x86_64   containerd://1.7.20-k3s1
+  NAME        STATUS   ROLES                  AGE   VERSION        INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION              CONTAINER-RUNTIME
+cloud-vm    Ready    edge                   93d   v1.33.3+k3s1   10.0.2.1      <none>        Debian GNU/Linux 13 (trixie)   6.12.41+deb13-cloud-amd64   containerd://2.0.5-k3s2
+master-01   Ready    control-plane,master   93d   v1.33.5+k3s1   10.0.0.1      <none>        Debian GNU/Linux 13 (trixie)   6.12.38+deb13-amd64         containerd://2.1.4-k3s1
+worker-01   Ready    <none>                 92d   v1.33.5+k3s1   10.0.1.1      <none>        Debian GNU/Linux 13 (trixie)   6.12.57+deb13-amd64         containerd://2.1.4-k3s1
+worker-02   Ready    <none>                 16d   v1.33.5+k3s1   10.0.3.1      <none>        Debian GNU/Linux 13 (trixie)   6.12.48+deb13-amd64         containerd://2.1.4-k3s1
   ```
 
 - **Verify Pods Working as expected:**
@@ -156,8 +171,8 @@ Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
 - Add Taints to cloud-vm and worker-01
 
   ```bash
-  kubectl label node cloud-vm.kakde.eu type=cloud-vm
-  kubectl label node worker-01.kakde.eu type=worker-01
+  kubectl label node cloud-vm type=cloud-vm
+  kubectl label node worker-01 type=worker-01
   ```
 
 - Create a file named `netshoot-pods.yaml` with the following content:
@@ -204,7 +219,7 @@ Here **k3s-resolv.conf**  is added for appropriate DNS Resolution:
       image: nicolaka/netshoot
       command: ["/bin/sh", "-c", "sleep infinity"]
     nodeSelector:
-      kubernetes.io/hostname: cloud-vm.kakde.eu
+      kubernetes.io/hostname: cloud-vm
   EOF
   ```
 

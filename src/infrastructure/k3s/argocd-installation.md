@@ -45,7 +45,7 @@
        nginx.ingress.kubernetes.io/proxy-body-size: "512m"  # Increase upload size for ArgoCD
    spec:
      ingressClassName: nginx
-     tls:
+     tls: 
        - hosts:
          - argocd.kakde.eu
          secretName: argocd-example-tls

@@ -24,6 +24,15 @@
     - Master: `sudo journalctl -u k3s --no-pager`
     - Worker: `sudo journalctl -u k3s-agent --no-pager`
 
+- **Problem**: Worker node showing NotReady even though k3s agent installed correctly.
+- **Solution**:
+  - Remove the worker node : `k3s kubectl delete node worker-01.kakde.eu`
+  - Reinstall worker node
+- **Logs**:
+  - Master: `sudo journalctl -u k3s --no-pager`
+  - Worker: `sudo journalctl -u k3s-agent --no-pager`
+  - systemctl status k3s-agent
+
 ### NGINX Issues
 - **Problem**: Reverse proxy not forwarding traffic.
 - **Solution**:

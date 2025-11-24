@@ -252,7 +252,7 @@
 - **Expected output would be something similar as follows:**
   ```text
   NAME                                     TYPE           CLUSTER-IP    EXTERNAL-IP     PORT(S)                      AGE     SELECTOR
-  nginx-ingress-ingress-nginx-controller   LoadBalancer   10.43.8.169   172.16.100.11   80:31375/TCP,443:30567/TCP   5h55m   app.kubernetes.io/component=controller,app.kubernetes.io/instance=nginx-ingress,app.kubernetes.io/name=ingress-nginx
+  nginx-ingress-ingress-nginx-controller   LoadBalancer   10.43.8.169   172.16.100.10   80:31375/TCP,443:30567/TCP   5h55m   app.kubernetes.io/component=controller,app.kubernetes.io/instance=nginx-ingress,app.kubernetes.io/name=ingress-nginx
   ```
 
 **When it is successful it means we are ready for our next steps.**

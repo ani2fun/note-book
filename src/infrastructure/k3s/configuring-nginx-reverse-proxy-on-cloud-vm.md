@@ -31,7 +31,7 @@
       listen 80;
       server_name kakde.eu *.kakde.eu;
       location / {
-          proxy_pass http://172.16.100.11;  # NGINX Ingress IP from MetalLB. Forward to LoadBalancer service `nginx-ingress-ingress-nginx-controller`.
+          proxy_pass http://172.16.100.10;  # NGINX Ingress IP from MetalLB. Forward to LoadBalancer service `nginx-ingress-ingress-nginx-controller`.
           proxy_set_header Host $host;
           proxy_set_header X-Real-IP $remote_addr;
           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -42,7 +42,7 @@
       listen 443 ssl;
       server_name kakde.eu *.kakde.eu;
       location / {
-          proxy_pass http://172.16.100.11;  # Forward to Ingress (SSL terminated by Ingress). Forward to LoadBalancer service `nginx-ingress-ingress-nginx-controller`.
+          proxy_pass http://172.16.100.10;  # Forward to Ingress (SSL terminated by Ingress). Forward to LoadBalancer service `nginx-ingress-ingress-nginx-controller`.
           proxy_set_header Host $host;
           proxy_set_header X-Real-IP $remote_addr;
           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

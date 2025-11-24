@@ -2,3 +2,4 @@ book
 /.idea/
 .DS_Store
 **/.DS_Store
+/src/infrastructure/c4models/env/

@@ -7,17 +7,22 @@ A lightweight hybrid Kubernetes cluster using **K3S**, secured by **WireGuard VP
 - 🛠️ **3-Node Architecture**:
   - `master-01`: On-prem control plane (home network).
   - `worker-01`: On-prem worker node (home network).
+  - `worker-02`: On-prem worker node (home network).
   - `cloud-vm`: **(AWS EC2)** Cloud worker + reverse proxy.
 - 🔐 **WireGuard VPN**: Encrypted full-mesh communication between all nodes.
 - ☁️ **Hybrid Traffic Flow**: Public → AWS EC2 (NGINX reverse proxy) → WireGuard → Cluster.
 
 ---
 
+## Architecture Diagram
+Architecture diagrams based on C4 Model using Structurizr DSL: [Homelab](https://structurizr.kakde.eu/share/1).
+(Note: Use light theme for better readability.)
+
 ## Prerequisites
 
 ### Infrastructure
 - **Nodes**:
-  - 2 on-prem machines (1 control-plane - 8GB RAM, 1 worker - 32GB RAM) with static LAN IPs.
+  - 3 on-prem machines (1 control-plane - 8GB RAM, 1 worker - 32GB RAM and 8 GB RAM) with static LAN IPs.
   - 1 AWS EC2 instance (public IP, t2.micro).
 - **OS**: AlmaLinux/Fedora/CentOS (consistent across nodes).
 - **Network**:
@@ -28,11 +33,6 @@ A lightweight hybrid Kubernetes cluster using **K3S**, secured by **WireGuard VP
 Make sure to replace **kakde.eu** domain with your domain. 
 ```
 
-### Tools
-- `dnf` package manager
-- `firewalld` (firewall config)
-- `kubectl` & `helm` (auto-installed with K3S)
-
 ---
 
 ## Core Components
@@ -41,7 +41,7 @@ Make sure to replace **kakde.eu** domain with your domain.
    Encrypted tunnel between all nodes. AWS EC2 acts as public entry point while keeping cluster traffic private.
 
 2. **K3S**  
-   Lightweight Kubernetes (<100MB binary) with embedded components (containerd, Flannel).
+   Lightweight Kubernetes (<100MB binary).
 
 3. **Calico CNI**  
    Replaces Flannel for advanced network policies and pod networking.
@@ -84,13 +84,14 @@ Public Internet
 Below is a snapshot of the infrastructure layout, showcasing the roles of each node, their IP addresses, and how they
 fit into the broader architecture:
 
-| **📛 Node Name**            | **🎭 Role**                 | **🔐 Private IP Address**           | **🛡️ WireGuard IP** | **🌍 Public IP Address** | **📝 Notes**                                    |
-|-----------------------------|-----------------------------|-------------------------------------|----------------------|--------------------------|-------------------------------------------------|
-| `master-01`                 | Master Node (Control Plane) | 192.168.5.3 (Private, ISP-assigned) | 10.0.0.1             | HOME_ROUTER_PUBLIC_IP    | Located behind the ISP home router              |
-| `worker-01`                 | Worker Node                 | 192.168.5.4 (Private, ISP-assigned) | 10.0.1.1             | HOME_ROUTER_PUBLIC_IP    | Located behind the ISP home router              |
-| `cloud-vm`                  | Worker Node                 | 10.0.2.1                            | 10.0.2.1             | CLOUD_VM_PUBLIC_IP       | Hosted on a cloud provider (e.g., DigitalOcean) |
+| **📛 Node Name**            | **🎭 Role**                 | **🔐 Private IP Address**            | **🛡️ WireGuard IP** | **🌍 Public IP Address** | **📝 Notes**                               |
+|-----------------------------|-----------------------------|--------------------------------------|----------------------|--------------------------|--------------------------------------------|
+| `master-01`                 | Master Node (Control Plane) | 192.168.15.2 (Private, ISP-assigned) | 10.0.0.1             | HOME_ROUTER_PUBLIC_IP    | Located behind the ISP home router         |
+| `worker-01`                 | Worker Node                 | 192.168.15.3 (Private, ISP-assigned) | 10.0.1.1             | HOME_ROUTER_PUBLIC_IP    | Located behind the ISP home router         |
+| `worker-02`                 | Worker Node                 | 192.168.15.4 (Private, ISP-assigned) | 10.0.3.1             | HOME_ROUTER_PUBLIC_IP    | Located behind the ISP home router         |
+| `cloud-vm`                  | Worker Node                 | 10.0.2.1                             | 10.0.2.1             | CLOUD_VM_PUBLIC_IP       | Hosted on a cloud provider (e.g., AWS EC2) |
 | **Local Jumpbox Machine**   |
-| `Local (Mac/Linux/Windows)` | NONE                        | 192.168.5.5 (Private, ISP-assigned) | **NONE**             |                          |                                                 |
+| `Local (Mac/Linux/Windows)` | NONE                        | 192.168.5.5 (Private, ISP-assigned)  | **NONE**             |                          |                                            |
 
 (ISP = Internet Service Provider)
 
