@@ -3,7 +3,6 @@ title = "Note Book"
 description = "My personal knowledge base"
 authors = ["Aniket Kakde"]
 language = "en"
-multilingual = false
 src = "src"
 
 [rust]
