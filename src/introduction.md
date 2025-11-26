@@ -23,6 +23,7 @@ Curated guides and notes from open resources, literature, and hands-on experienc
 
 ### 2. Computer Science Fundamentals  
 **Essential Topics**:  
+- SQL  
 - Algorithm design/analysis  
 - Data structure optimization  
 - System architecture patterns  

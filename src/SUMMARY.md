@@ -2,6 +2,32 @@
 
 [Introduction](./introduction.md)
 
+## 💻 Computer Science
+
+- [SQL Notes]()
+    - [1. Introduction](./computer-science/sql-notes/1.introduction.md)
+      - [Examples & Sample Data](./computer-science/sql-notes/sample-data.md)
+        - [SELECT Query](./computer-science/sql-notes/1.1.sql-select-query.md)
+        - [Data Definition Language (DDL)](./computer-science/sql-notes/1.2.data-definition-ddl.md)
+        - [Data Manipulation (DML)](./computer-science/sql-notes/1.3.data-manipulation-dml.md)
+        - [Filtering Data](./computer-science/sql-notes/1.4.filtering-data.md)
+    - [2. JOIN And SET](./computer-science/sql-notes/2.joinsandsets-intro.md)
+      - [JOIN Query](./computer-science/sql-notes/2.1.joins-query-examples.md)
+      - [SET Query](./computer-science/sql-notes/2.1.sets-query-examples.md)
+    - [3. ROW Level Functions](./computer-science/sql-notes/3.row-level-functions-intro.md)
+      - [String Functions Examples](./computer-science/sql-notes/3.1.string-functions.md)
+      - [Number Functions Examples](./computer-science/sql-notes/3.2.number-functions.md)
+      - [Date and Time Functions Examples](./computer-science/sql-notes/3.3.date-and-time-functions.md)
+      - [Date and Time Formats Examples](./computer-science/sql-notes/3.4.date-and-time-format.md)
+      - [NULL Functions Examples](./computer-science/sql-notes/3.5.NULL-functions.md)
+      - [CASE Statements Examples](./computer-science/sql-notes/3.6.CASE-statements.md)
+    - [4. Aggregation Analytical Functions](./computer-science/sql-notes/4.Aggregation-Analytical-Functions-Intro.md)
+      - [Aggregate Functions](./computer-science/sql-notes/4.0.aggregate-functions.md)
+      - [Window Functions Basics Examples](./computer-science/sql-notes/4.1.Window-Functions-basics.md)
+      - [Window Aggregations Examples](./computer-science/sql-notes/4.2.Window-Aggregations-exmaples.md)
+      - [Window Ranking Functions Examples](./computer-science/sql-notes/4.3.Window-ranking-examples.md)
+      - [Window Value Functions Examples](./computer-science/sql-notes/4.4.Window-value-examples.md)
+
 ## 🛠️ Infrastructure Setup
 
 - [Infrastructure](./infrastructure/infrastructure-introduction.md)
@@ -21,17 +47,11 @@
         - [🌍wifi-setup](./infrastructure/k3s/always-on-wi-fi-server-setup.md)
         - [🌍Permanent-tunnel](./infrastructure/k3s/permanent-tunnel-macos-to-remote.md)
         - [🚧Troubleshooting](./infrastructure/k3s/troubleshooting.md)
-    - [🚀Kubernetes with K0S](./infrastructure/k0s/k0s-setup.md)
-        - [🌍 Nginx Setup](./infrastructure/k0s/nginx-setup.md)
-        - [🚧 Argo Setup (wip)](./infrastructure/k0s/argocd-setup.md)
 
-## 💻 Computer Science
-
-- [💻 Computer Science](./computer-science/intro.md)
-    - [OS]()
-        - [Commands](./computer-science/OS/commands.md)
-    - [Mixed]()
+    - [💻 Tech](./computer-science/intro.md)
+      - [Commands](./computer-science/OS/commands.md)
+      - [Mixed]()
         - [Docker](./computer-science/mixed/docker.md)
-        - [Http Status Codes](./computer-science/mixed/http-status-codes.md)
-        - [Regular Expressions](./computer-science/mixed/regular-expression.md)
-        - [Debian Setup](./computer-science/mixed/debian-setup.md)
+          - [Http Status Codes](./computer-science/mixed/http-status-codes.md)
+          - [Regular Expressions](./computer-science/mixed/regular-expression.md)
+          - [Debian Setup](./computer-science/mixed/debian-setup.md)
