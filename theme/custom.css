@@ -1,0 +1,29 @@
+/* PDF container */
+.pdf {
+    width: 100%;
+}
+
+/* Embedded PDF iframe */
+.pdf__frame {
+    display: block;          /* avoid inline gap */
+    width: 100%;             /* responsive width on all screens */
+    height: 80vh;            /* default height (desktop-ish) */
+    border: none;
+}
+
+/* "Open PDF" link – on larger screens */
+.pdf__link {
+    display: block;
+    margin-top: 0.75rem;
+}
+
+/* Small screens: adjust height + show link */
+@media (max-width: 768px) {
+    .pdf__frame {
+        height: 60vh;        /* slightly shorter on mobile */
+    }
+
+    .pdf__link {
+        display: block;      /* show "Open PDF" on mobile */
+    }
+}
