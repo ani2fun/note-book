@@ -63,7 +63,7 @@ By the end of Phase 4:
 
 * **ctb-edge-1** (public / Contabo)
 
-    * Public IP: `84.247.143.66`
+    * Public IP: `21.22.23.24`
     * WireGuard internal IP: `172.27.15.31`
     * Runs Traefik and binds host ports 80/443
 * **ms-1** (home LAN, K3s server)
@@ -363,11 +363,11 @@ This lets you test **public routing** even before DNS is fully propagated.
 
 ```bash
 # HTTP should redirect
-curl -sS -I --resolve whoami.kakde.eu:80:84.247.143.66 http://whoami.kakde.eu/
+curl -sS -I --resolve whoami.kakde.eu:80:21.22.23.24 http://whoami.kakde.eu/
 
 # HTTPS route (use -k until you have a real cert)
-curl -sS -k -I --resolve whoami.kakde.eu:443:84.247.143.66 https://whoami.kakde.eu/
-curl -sS -k --resolve whoami.kakde.eu:443:84.247.143.66 https://whoami.kakde.eu/ | head
+curl -sS -k -I --resolve whoami.kakde.eu:443:21.22.23.24 https://whoami.kakde.eu/
+curl -sS -k --resolve whoami.kakde.eu:443:21.22.23.24 https://whoami.kakde.eu/ | head
 ```
 
 ---
@@ -628,7 +628,7 @@ kubectl -n cert-manager logs deploy/cert-manager --tail=200
 
 ### Assumptions
 
-* DNS A record `whoami.kakde.eu → 84.247.143.66` exists.
+* DNS A record `whoami.kakde.eu → 21.22.23.24` exists.
 * cert-manager is allowed to update DNS records via Cloudflare token.
 * Traefik is configured to watch Ingress resources and use the relevant IngressClass.
 

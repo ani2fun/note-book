@@ -58,7 +58,7 @@ The cluster layout used here is:
 * `wk-1` → K3s agent → `172.27.15.11`
 * `wk-2` → K3s agent → `172.27.15.13`
 * `ctb-edge-1` → public edge node + K3s agent → `172.27.15.31`
-* public IP of `ctb-edge-1` → `84.247.143.66`
+* public IP of `ctb-edge-1` → `21.22.23.24`
 
 Networking assumptions:
 
@@ -652,8 +652,8 @@ Good looks like:
 External checks from another machine:
 
 ```bash
-curl -I http://84.247.143.66
-curl -vk https://84.247.143.66 2>&1 | head -n 40
+curl -I http://21.22.23.24
+curl -vk https://21.22.23.24 2>&1 | head -n 40
 
 getent ahosts kakde.eu | head
 curl -vk https://kakde.eu 2>&1 | head -n 60
@@ -662,9 +662,9 @@ curl -vk https://kakde.eu 2>&1 | head -n 60
 Also verify that blocked ports are not reachable:
 
 ```bash
-nc -vz -w 3 84.247.143.66 6443
-nc -vz -w 3 84.247.143.66 10250
-nc -vz -w 3 84.247.143.66 30080
+nc -vz -w 3 21.22.23.24 6443
+nc -vz -w 3 21.22.23.24 10250
+nc -vz -w 3 21.22.23.24 30080
 ```
 
 Good looks like:

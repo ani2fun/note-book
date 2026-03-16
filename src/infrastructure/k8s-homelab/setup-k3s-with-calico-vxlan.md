@@ -49,7 +49,7 @@ This homelab has 4 Ubuntu 24.04 nodes.
 
 ### Public edge node
 
-* `ctb-edge-1` = Contabo public edge, public IP `84.247.143.66`, WireGuard `172.27.15.31`
+* `ctb-edge-1` = Contabo public edge, public IP `21.22.23.24`, WireGuard `172.27.15.31`
 
 ### Overlay networking already verified before Phase 3
 
@@ -1006,7 +1006,7 @@ Linux kernel `rp_filter`: values `0`, `1`, and `2`; loose mode is recommended fo
 
 Paste this into the next chat when you are ready:
 
-> Phase 3 is complete and verified. K3s server is on ms-1 with flannel disabled, traefik disabled, and K3s default network policy disabled. Calico is installed via Tigera operator in VXLAN mode with MTU 1370 and nodeAddressAutodetectionV4 set to Kubernetes NodeInternalIP, so all nodes use their WireGuard IPs as INTERNAL-IP: wk-1=172.27.15.11, ms-1=172.27.15.12, wk-2=172.27.15.13, ctb-edge-1=172.27.15.31. Pod-to-pod ping works, CoreDNS resolves kubernetes.default.svc.cluster.local, and Calico/Tigera pods are healthy. ms-1 is tainted to avoid workloads, and ctb-edge-1 is tainted so only explicit edge workloads can run there. Host guardrail firewall rules are persisted using systemd oneshot services. Begin Phase 4: deploy Traefik only on ctb-edge-1, bind host ports 80/443, use strict scheduling constraints, keep no PROXY protocol, and add minimal edge firewall policy with external verification against 84.247.143.66 and kakde.eu.
+> Phase 3 is complete and verified. K3s server is on ms-1 with flannel disabled, traefik disabled, and K3s default network policy disabled. Calico is installed via Tigera operator in VXLAN mode with MTU 1370 and nodeAddressAutodetectionV4 set to Kubernetes NodeInternalIP, so all nodes use their WireGuard IPs as INTERNAL-IP: wk-1=172.27.15.11, ms-1=172.27.15.12, wk-2=172.27.15.13, ctb-edge-1=172.27.15.31. Pod-to-pod ping works, CoreDNS resolves kubernetes.default.svc.cluster.local, and Calico/Tigera pods are healthy. ms-1 is tainted to avoid workloads, and ctb-edge-1 is tainted so only explicit edge workloads can run there. Host guardrail firewall rules are persisted using systemd oneshot services. Begin Phase 4: deploy Traefik only on ctb-edge-1, bind host ports 80/443, use strict scheduling constraints, keep no PROXY protocol, and add minimal edge firewall policy with external verification against 21.22.23.24 and kakde.eu.
 
 If you want, I can also turn this into a shorter “commands-only runbook” version.
 

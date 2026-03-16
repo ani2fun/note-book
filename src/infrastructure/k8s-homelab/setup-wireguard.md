@@ -38,7 +38,7 @@
 **Home LAN (behind NAT/router)**
 
 * Router LAN: `192.168.15.1/24`
-* Public WAN IP: `82.123.119.181`
+* Public WAN IP: `121.122.123.124`
 * Nodes:
 
     * `ms-1` (K3s server): `192.168.15.2`
@@ -47,7 +47,7 @@
 
 **Public cloud edge (Contabo)**
 
-* `ctb-edge-1`: public IP `84.247.143.66`
+* `ctb-edge-1`: public IP `21.22.23.24`
 * Single public edge for `kakde.eu` + subdomains
 * In later phases: Traefik binds **host ports 80/443** on this node
 
@@ -62,9 +62,9 @@ Overlay subnet (WireGuard only): `172.27.15.0/24` but **each node uses a /32**
 
 ### Router UDP forwards (required for edge → home)
 
-* `82.123.119.181:51820 -> wk-1:51820`
-* `82.123.119.181:51821 -> ms-1:51820`
-* `82.123.119.181:51822 -> wk-2:51820`
+* `121.122.123.124:51820 -> wk-1:51820`
+* `121.122.123.124:51821 -> ms-1:51820`
+* `121.122.123.124:51822 -> wk-2:51820`
 
 ---
 
@@ -75,7 +75,7 @@ Overlay subnet (WireGuard only): `172.27.15.0/24` but **each node uses a /32**
 Home devices usually sit behind a router using **NAT** (Network Address Translation).
 That means the internet can’t directly “reach” home machines unless the router is told to forward traffic.
 
-Here we forward **UDP** ports from the router’s public IP (`82.123.119.181`) into each home node’s WireGuard port `51820`.
+Here we forward **UDP** ports from the router’s public IP (`121.122.123.124`) into each home node’s WireGuard port `51820`.
 
 ### WireGuard and wg-quick
 
@@ -283,19 +283,19 @@ SaveConfig = false
 # wk-1 (via router WAN port-forward 51820 -> wk-1:51820)
 PublicKey = <WK_1_PUB>
 AllowedIPs = 172.27.15.11/32
-Endpoint = 82.123.119.181:51820
+Endpoint = 121.122.123.124:51820
 
 [Peer]
 # ms-1 (via router WAN port-forward 51821 -> ms-1:51820)
 PublicKey = <MS_1_PUB>
 AllowedIPs = 172.27.15.12/32
-Endpoint = 82.123.119.181:51821
+Endpoint = 121.122.123.124:51821
 
 [Peer]
 # wk-2 (via router WAN port-forward 51822 -> wk-2:51820)
 PublicKey = <WK_2_PUB>
 AllowedIPs = 172.27.15.13/32
-Endpoint = 82.123.119.181:51822
+Endpoint = 121.122.123.124:51822
 ```
 
 Get the private key value for `<CTB_EDGE_1_PRIV>`:
@@ -338,7 +338,7 @@ SaveConfig = false
 # ctb-edge-1 (public)
 PublicKey = <CTB_EDGE_1_PUB>
 AllowedIPs = 172.27.15.31/32
-Endpoint = 84.247.143.66:51820
+Endpoint = 21.22.23.24:51820
 PersistentKeepalive = 25
 
 [Peer]
@@ -385,7 +385,7 @@ SaveConfig = false
 # ctb-edge-1 (public)
 PublicKey = <CTB_EDGE_1_PUB>
 AllowedIPs = 172.27.15.31/32
-Endpoint = 84.247.143.66:51820
+Endpoint = 21.22.23.24:51820
 PersistentKeepalive = 25
 
 [Peer]
@@ -428,7 +428,7 @@ SaveConfig = false
 # ctb-edge-1 (public)
 PublicKey = <CTB_EDGE_1_PUB>
 AllowedIPs = 172.27.15.31/32
-Endpoint = 84.247.143.66:51820
+Endpoint = 21.22.23.24:51820
 PersistentKeepalive = 25
 
 [Peer]

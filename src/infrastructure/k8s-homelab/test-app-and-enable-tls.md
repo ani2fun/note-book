@@ -232,9 +232,9 @@ kubectl -n apps get secret whoami-kakde-eu-tls
 From an external machine:
 
 ```bash
-curl -sS -I --resolve whoami.kakde.eu:80:84.247.143.66 http://whoami.kakde.eu/
-curl -sS -k -I --resolve whoami.kakde.eu:443:84.247.143.66 https://whoami.kakde.eu/
-curl -sS -k --resolve whoami.kakde.eu:443:84.247.143.66 https://whoami.kakde.eu/ | head
+curl -sS -I --resolve whoami.kakde.eu:80:21.22.23.24 http://whoami.kakde.eu/
+curl -sS -k -I --resolve whoami.kakde.eu:443:21.22.23.24 https://whoami.kakde.eu/
+curl -sS -k --resolve whoami.kakde.eu:443:21.22.23.24 https://whoami.kakde.eu/ | head
 
 curl -sS -I https://whoami.kakde.eu/
 curl -sS https://whoami.kakde.eu/ | head
