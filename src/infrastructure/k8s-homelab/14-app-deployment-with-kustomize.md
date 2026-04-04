@@ -1,54 +1,40 @@
 # Application Deployment Runbook using Kustomize
 
+> Current note
+> This is a detailed historical deep dive. For the current Kustomize and app deployment flow, start with [01-platform-overview.md](01-platform-overview.md) and [12-data-and-apps-step-by-step.md](12-data-and-apps-step-by-step.md).
+>
+> Current repo note: the maintained app manifests now live under `k8s-cluster/apps/`. If you see older path names later in this document, translate them to the current tree before applying anything.
+
 ## Notebook app fix, dev/prod namespace split, TLS troubleshooting, portfolio app pattern, and reusable template
 
 ## Table of contents
 
 1. [Overview](#overview)
-2. [What this chat accomplished](#what-this-chat-accomplished)
-3. [Cluster context used throughout this chat](#cluster-context-used-throughout-this-chat)
-4. [Key decisions made](#key-decisions-made)
-5. [Why the original dev/prod approach caused trouble](#why-the-original-devprod-approach-caused-trouble)
-6. [Final deployment pattern adopted in this chat](#final-deployment-pattern-adopted-in-this-chat)
-7. [Notebook app: final corrected design](#notebook-app-final-corrected-design)
-8. [Notebook app: exact file layout and manifest contents](#notebook-app-exact-file-layout-and-manifest-contents)
-9. [Notebook app: cleanup from old `apps` namespace](#notebook-app-cleanup-from-old-apps-namespace)
-10. [Notebook app: create namespaces and deploy](#notebook-app-create-namespaces-and-deploy)
-11. [Notebook app: verification steps](#notebook-app-verification-steps)
-12. [Production certificate failure: root cause and fix](#production-certificate-failure-root-cause-and-fix)
-13. [Portfolio app: cleanup and final deployment pattern](#portfolio-app-cleanup-and-final-deployment-pattern)
-14. [Reusable golden template: `dummy-app-template`](#reusable-golden-template-dummy-app-template)
-15. [Generic scripts for future app deployments](#generic-scripts-for-future-app-deployments)
-16. [Operational troubleshooting guide](#operational-troubleshooting-guide)
-17. [Commands reference by machine](#commands-reference-by-machine)
-18. [Important lessons learned](#important-lessons-learned)
-19. [Contradictions, assumptions, and unresolved gaps](#contradictions-assumptions-and-unresolved-gaps)
-20. [Glossary](#glossary)
-21. [Suggested next step](#suggested-next-step)
-22. [Official and high-quality learning links](#official-and-high-quality-learning-links)
+2. [Key decisions and patterns](#key-decisions-made)
+3. [Notebook app deployment](#notebook-app-final-corrected-design)
+4. [Certificate troubleshooting](#production-certificate-failure-root-cause-and-fix)
+5. [Portfolio app deployment](#portfolio-app-cleanup-and-final-deployment-pattern)
+6. [Reusable app template](#reusable-golden-template-dummy-app-template)
+7. [Troubleshooting guide](#operational-troubleshooting-guide)
+8. [Lessons learned](#important-lessons-learned)
+9. [Further learning](#official-and-high-quality-learning-links)
 
 ---
 
 ## Overview
 
-This document reconstructs the work done in the current chat for a beginner. It explains how the Homelab-0 Kubernetes application deployment pattern was corrected and standardized.
+The main focus of this document was:
 
-The main focus of this chat was:
-
-* fixing the **notebook app** deployment
 * separating **dev** and **prod** cleanly
 * resolving a **prod TLS certificate** issuance problem
 * applying the same model to a **portfolio app**
 * creating a **generic reusable template** for future apps
 * preparing a clean operational path for later services like PostgreSQL
-
-This is not a full cluster build document. It documents only what happened in this chat and the decisions made here.
-
 ---
 
-## What this chat accomplished
+## What this document accomplished
 
-By the end of the chat, the deployment model was standardized like this:
+By the end of the document, the deployment model was standardized like this:
 
 * **dev** apps live in namespace `apps-dev`
 * **prod** apps live in namespace `apps-prod`
@@ -67,11 +53,11 @@ By the end of the chat, the deployment model was standardized like this:
     * annotation `kubernetes.io/ingress.class: traefik`
     * annotation `traefik.ingress.kubernetes.io/router.tls: "true"`
 
-The chat also proved an important point: even though Kubernetes generally prefers `ingressClassName`, this particular cluster needed **both** the field and the older annotation for Traefik behavior to be reliable. Kubernetes documents `ingressClassName` as the newer mechanism, while older annotation-based behavior still exists in practice with some controllers and clusters. ([Kubernetes][1])
+The document also proved an important point: even though Kubernetes generally prefers `ingressClassName`, this particular cluster needed **both** the field and the older annotation for Traefik behavior to be reliable. Kubernetes documents `ingressClassName` as the newer mechanism, while older annotation-based behavior still exists in practice with some controllers and clusters. ([Kubernetes][1])
 
 ---
 
-## Cluster context used throughout this chat
+## Cluster context used throughout this document
 
 The following cluster facts were treated as already true:
 
@@ -143,7 +129,7 @@ For portfolio:
 
 ### 6. Prod may scale differently
 
-Example used in this chat:
+Example used in this document:
 
 * notebook prod replicas = 2
 * portfolio prod replicas = 2
@@ -176,7 +162,7 @@ This is much easier to reason about.
 
 ---
 
-## Final deployment pattern adopted in this chat
+## Final deployment pattern adopted in this document
 
 For every new app:
 
@@ -666,7 +652,7 @@ curl -k --resolve notebook.kakde.eu:443:127.0.0.1 https://notebook.kakde.eu/
 
 ## Production certificate failure: root cause and fix
 
-This was the most important troubleshooting event in the chat.
+This was the most important troubleshooting event in the document.
 
 ## Symptom
 
@@ -737,7 +723,7 @@ The issue was a **CAA-related certificate issuance failure** at Let’s Encrypt 
 
 A CAA record is a DNS record that says which certificate authorities are allowed to issue TLS certificates for a domain. Cloudflare documents CAA records this way, and Let’s Encrypt’s ecosystem uses them during issuance checks. ([Cloudflare Docs][4])
 
-The fix chosen in the chat was to add a CAA record in Cloudflare allowing Let’s Encrypt.
+The fix chosen in the document was to add a CAA record in Cloudflare allowing Let’s Encrypt.
 
 ## Cloudflare fix used
 
@@ -834,7 +820,7 @@ curl -k --resolve notebook.kakde.eu:443:127.0.0.1 https://notebook.kakde.eu/
 
 ## Safety note
 
-The chat also noted that repeated failed certificate attempts can run into Let’s Encrypt failed-validation limits. Let’s Encrypt documents validation and rate-limit behavior officially. ([letsencrypt.org][5])
+The document also noted that repeated failed certificate attempts can run into Let’s Encrypt failed-validation limits. Let’s Encrypt documents validation and rate-limit behavior officially. ([letsencrypt.org][5])
 
 ---
 
@@ -915,7 +901,7 @@ Because `kakde.eu` is the root domain, the portfolio prod Ingress becomes the ma
 
 ## Reusable golden template: `dummy-app-template`
 
-At the end of the chat, a generic template was created for future apps.
+At the end of the document, a generic template was created for future apps.
 
 ## Directory layout
 
@@ -1384,9 +1370,9 @@ At first, stable internal names looked like enough. Later, it became clear that 
 
 ## Unresolved gaps
 
-1. The final portfolio manifests still needed the real image and confirmed port when this chat ended.
-2. Database deployment had not yet begun; only a prompt for the next chat was prepared.
-3. This document covers only the current chat, not the earlier project history.
+1. The final portfolio manifests still needed the real image and confirmed port when this document ended.
+2. Database deployment had not yet begun; only a prompt for the next document was prepared.
+3. This document covers only the current document, not the earlier project history.
 
 ---
 
@@ -1438,7 +1424,7 @@ A DNS record that declares which certificate authorities are allowed to issue ce
 
 ## Suggested next step
 
-The next logical step prepared in the chat was to deploy an **internal PostgreSQL instance** with:
+The next logical step prepared in the document was to deploy an **internal PostgreSQL instance** with:
 
 * 80 GiB persistent storage
 * no public exposure
@@ -1447,13 +1433,13 @@ The next logical step prepared in the chat was to deploy an **internal PostgreSQ
 * no NodePort
 * internal-only Kubernetes access
 
-That work had not started yet in this chat, but the prompt was already prepared for a follow-up conversation.
+That work had not started yet in this document, but the prompt was already prepared for a follow-up conversation.
 
 ---
 
 ## Official and high-quality learning links
 
-These are useful references for the concepts used in this chat:
+These are useful references for the concepts used in this document:
 
 * **Kubernetes Ingress overview**: official Kubernetes docs on how Ingress works. ([Kubernetes][1])
 * **Kubernetes Ingress controllers and `ingressClassName`**: official Kubernetes docs on controller behavior and class selection. ([Kubernetes][6])
@@ -1470,7 +1456,7 @@ These are useful references for the concepts used in this chat:
 
 ## Final summary
 
-This chat standardized the Homelab-0 application deployment model.
+This document standardized the Homelab-0 application deployment model.
 
 The final model is:
 
@@ -1486,13 +1472,13 @@ The final model is:
 
 This is now the reference pattern for future internet-exposed apps in the cluster.
 
-[1]: https://kubernetes.io/docs/concepts/services-networking/ingress/?utm_source=chatgpt.com "Ingress"
-[2]: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_kustomize/?utm_source=chatgpt.com "kubectl kustomize"
-[3]: https://doc.traefik.io/traefik/providers/kubernetes-ingress/?utm_source=chatgpt.com "Traefik Kubernetes Ingress Documentation"
-[4]: https://developers.cloudflare.com/ssl/edge-certificates/caa-records/?utm_source=chatgpt.com "Add CAA records · Cloudflare SSL/TLS docs"
-[5]: https://letsencrypt.org/docs/rate-limits/?utm_source=chatgpt.com "Rate Limits"
-[6]: https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/?utm_source=chatgpt.com "Ingress Controllers"
-[7]: https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/?utm_source=chatgpt.com "Declarative Management of Kubernetes Objects Using ..."
-[8]: https://cert-manager.io/docs/usage/certificate/?utm_source=chatgpt.com "Certificate resource - cert-manager Documentation"
-[9]: https://cert-manager.io/docs/usage/ingress/?utm_source=chatgpt.com "Annotated Ingress resource - cert-manager Documentation"
-[10]: https://developers.cloudflare.com/ssl/reference/certificate-authorities/?utm_source=chatgpt.com "Certificate authorities - SSL/TLS"
+[1]: https://kubernetes.io/docs/concepts/services-networking/ingress/ "Ingress"
+[2]: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_kustomize/ "kubectl kustomize"
+[3]: https://doc.traefik.io/traefik/providers/kubernetes-ingress/ "Traefik Kubernetes Ingress Documentation"
+[4]: https://developers.cloudflare.com/ssl/edge-certificates/caa-records/ "Add CAA records · Cloudflare SSL/TLS docs"
+[5]: https://letsencrypt.org/docs/rate-limits/ "Rate Limits"
+[6]: https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/ "Ingress Controllers"
+[7]: https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/ "Declarative Management of Kubernetes Objects Using ..."
+[8]: https://cert-manager.io/docs/usage/certificate/ "Certificate resource - cert-manager Documentation"
+[9]: https://cert-manager.io/docs/usage/ingress/ "Annotated Ingress resource - cert-manager Documentation"
+[10]: https://developers.cloudflare.com/ssl/reference/certificate-authorities/ "Certificate authorities - SSL/TLS"

@@ -1,4 +1,7 @@
-## Harden public exposure on the edge node
+# Harden Public Exposure on the Edge Node
+
+> Current note
+> This is a supporting hardening runbook. For the main current build path, start with [06-platform-services-step-by-step.md](06-platform-services-step-by-step.md) and use [16-operations-and-recovery.md](16-operations-and-recovery.md) for day-2 checks.
 
 ### Purpose
 
@@ -72,10 +75,10 @@ Run on `ctb-edge-1`:
 apt-get update -y
 apt-get install -y nmap
 
-nmap -Pn -sT -p 22,80,443,6443,9345,10250 21.22.23.24
-nmap -Pn -sU -p 51820 21.22.23.24
-nmap -Pn -sT -p 22,80,443,6443,9345,10250 121.122.123.124
-nmap -Pn -sU -p 51820-51822 121.122.123.124
+nmap -Pn -sT -p 22,80,443,6443,9345,10250 198.51.100.25
+nmap -Pn -sU -p 51820 198.51.100.25
+nmap -Pn -sT -p 22,80,443,6443,9345,10250 203.0.113.10
+nmap -Pn -sU -p 51820-51822 203.0.113.10
 ```
 
 ### 3. Show why self-scan is not enough
@@ -83,13 +86,13 @@ nmap -Pn -sU -p 51820-51822 121.122.123.124
 On `ctb-edge-1`:
 
 ```bash
-ip route get 21.22.23.24
+ip route get 198.51.100.25
 ```
 
 Then confirm from `ms-1`:
 
 ```bash
-nmap -Pn -sT -p 22,80,443,10250 21.22.23.24
+nmap -Pn -sT -p 22,80,443,10250 198.51.100.25
 ```
 
 ### 4. Diagnose nftables and iptables interaction
@@ -186,7 +189,7 @@ systemctl enable --now nftables
 Validate from `ms-1`:
 
 ```bash
-nmap -Pn -sT -p 22,80,443,10250 21.22.23.24
+nmap -Pn -sT -p 22,80,443,10250 198.51.100.25
 ```
 
 Cancel rollback only after confirming a second SSH session still works:
@@ -207,8 +210,8 @@ tcpdump -ni eth0 tcp port 10250
 From `ms-1`:
 
 ```bash
-nc -vz -w 2 21.22.23.24 10250
-curl -vk --connect-timeout 2 https://21.22.23.24:10250/ 2>&1 | head -n 20
+nc -vz -w 2 198.51.100.25 10250
+curl -vk --connect-timeout 2 https://198.51.100.25:10250/ 2>&1 | head -n 20
 ```
 
 ### Expected result

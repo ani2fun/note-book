@@ -1,4 +1,8 @@
-##  Safety checks before touching anything
+# Safety Checks and Cleaning
+
+Use this document only when you are reusing machines or you strongly suspect old K3s, CNI, WireGuard, or firewall state is still present.
+
+## Safety checks before touching anything
 
 ### Purpose
 

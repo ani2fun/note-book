@@ -1,5 +1,8 @@
 # Argo CD Deployment Guide for This Homelab Cluster
 
+> Current note
+> This is a detailed historical deep dive. For the current Argo CD path, start with [01-platform-overview.md](01-platform-overview.md) and [06-platform-services-step-by-step.md](06-platform-services-step-by-step.md).
+
 ## Table of Contents
 
 1. [Overview](#overview)
@@ -7,40 +10,21 @@
 3. [Goal](#goal)
 4. [Current Cluster Context](#current-cluster-context)
 5. [Important Design Decisions](#important-design-decisions)
-6. [Why Argo CD Was Deployed This Way](#why-argo-cd-was-deployed-this-way)
-7. [Concepts Explained for Beginners](#concepts-explained-for-beginners)
-8. [Deployment Flow Summary](#deployment-flow-summary)
-9. [Step-by-Step Implementation](#step-by-step-implementation)
-
-    1. [Step 1: Verify the Cluster](#step-1-verify-the-cluster)
-    2. [Step 2: Label `wk-2` for Argo CD](#step-2-label-wk-2-for-argo-cd)
-    3. [Step 3: Install Argo CD](#step-3-install-argo-cd)
-    4. [Step 4: Pin Argo CD Workloads to `wk-2`](#step-4-pin-argo-cd-workloads-to-wk-2)
-    5. [Step 5: Disable Internal TLS on `argocd-server`](#step-5-disable-internal-tls-on-argocd-server)
-    6. [Step 6: Reuse the Existing Ingress Pattern](#step-6-reuse-the-existing-ingress-pattern)
-    7. [Step 7: Create the Argo CD Ingress](#step-7-create-the-argo-cd-ingress)
-    8. [Step 8: Verify Certificate and DNS](#step-8-verify-certificate-and-dns)
-    9. [Step 9: Access the Web UI](#step-9-access-the-web-ui)
-    10. [Step 10: Get the Initial Admin Password](#step-10-get-the-initial-admin-password)
-    11. [Step 11: CLI Access](#step-11-cli-access)
-10. [Commands Collected in One Place](#commands-collected-in-one-place)
-11. [Validation Checklist](#validation-checklist)
-12. [Troubleshooting](#troubleshooting)
-13. [Mistakes and Corrections Made During the Process](#mistakes-and-corrections-made-during-the-process)
-14. [Operational Notes](#operational-notes)
-15. [Security Notes](#security-notes)
-16. [Assumptions and Open Questions](#assumptions-and-open-questions)
-17. [Next Steps](#next-steps)
-18. [Glossary](#glossary)
-19. [Further Learning](#further-learning)
+6. [Concepts Explained for Beginners](#concepts-explained-for-beginners)
+7. [Step-by-Step Implementation](#step-by-step-implementation)
+8. [Validation Checklist](#validation-checklist)
+9. [Troubleshooting](#troubleshooting)
+10. [Mistakes and Corrections](#mistakes-and-corrections)
+11. [Operational and Security Notes](#operational-and-security-notes)
+12. [Next Steps](#next-steps)
+13. [Glossary](#glossary)
+14. [Further Learning](#further-learning)
 
 ---
 
 ## Overview
 
 This document explains how Argo CD was deployed on the current homelab Kubernetes cluster in a way that matches the cluster’s existing design patterns.
-
-The audience for this document is a beginner. It assumes the reader may not fully understand Kubernetes, Ingress, Traefik, TLS, cert-manager, or Argo CD.
 
 The deployment was not treated as a brand-new, generic Kubernetes tutorial. Instead, it was adapted to the cluster that already existed:
 
@@ -54,7 +38,7 @@ The deployment was not treated as a brand-new, generic Kubernetes tutorial. Inst
 
 ## What This Document Covers
 
-This document reconstructs the discussion and actions taken in the chat and turns them into a self-contained technical guide. It explains:
+This document reconstructs the discussion and actions taken in the document and turns them into a self-contained technical guide. It explains:
 
 * what was deployed
 * why those decisions were made
@@ -83,7 +67,7 @@ More specifically, the desired outcome was:
 
 ## Current Cluster Context
 
-The cluster context inferred from the chat is:
+The cluster context inferred from the document is:
 
 * Kubernetes distribution: **K3s**
 * `ms-1` is the main server node where `kubectl` commands were being run
@@ -330,7 +314,7 @@ Before changing anything, confirm the cluster is reachable and the nodes exist.
 ### Where to run
 
 Run on a machine that already has working `kubectl` access to the cluster.
-In the chat, commands were run from:
+In the document, commands were run from:
 
 * `ms-1`
 
@@ -849,137 +833,16 @@ The CLI authenticates successfully.
 
 ---
 
-## Commands Collected in One Place
+## Quick Reinstall Reference
 
-## Cluster and node verification
-
-```bash
-kubectl get nodes -o wide
-kubectl get pods -A
-```
-
-## Label `wk-2`
+If you need to reinstall Argo CD from scratch, the scripted path is:
 
 ```bash
-kubectl label node wk-2 workload=argocd --overwrite
-kubectl get nodes --show-labels | grep wk-2
+bash k8s-cluster/platform/argocd/install-argocd.sh
+bash k8s-cluster/platform/argocd/configure-argocd.sh
 ```
 
-## Install Argo CD
-
-```bash
-kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-kubectl -n argocd get deploy,statefulset,svc
-kubectl -n argocd get pods -o wide
-```
-
-## Patch workloads to `wk-2`
-
-```bash
-kubectl -n argocd patch deployment argocd-applicationset-controller --type merge -p '{"spec":{"template":{"spec":{"nodeSelector":{"workload":"argocd"}}}}}'
-kubectl -n argocd patch deployment argocd-dex-server --type merge -p '{"spec":{"template":{"spec":{"nodeSelector":{"workload":"argocd"}}}}}'
-kubectl -n argocd patch deployment argocd-notifications-controller --type merge -p '{"spec":{"template":{"spec":{"nodeSelector":{"workload":"argocd"}}}}}'
-kubectl -n argocd patch deployment argocd-redis --type merge -p '{"spec":{"template":{"spec":{"nodeSelector":{"workload":"argocd"}}}}}'
-kubectl -n argocd patch deployment argocd-repo-server --type merge -p '{"spec":{"template":{"spec":{"nodeSelector":{"workload":"argocd"}}}}}'
-kubectl -n argocd patch deployment argocd-server --type merge -p '{"spec":{"template":{"spec":{"nodeSelector":{"workload":"argocd"}}}}}'
-kubectl -n argocd patch statefulset argocd-application-controller --type merge -p '{"spec":{"template":{"spec":{"nodeSelector":{"workload":"argocd"}}}}}'
-```
-
-## Restart workloads
-
-```bash
-kubectl -n argocd rollout restart deployment argocd-applicationset-controller
-kubectl -n argocd rollout restart deployment argocd-dex-server
-kubectl -n argocd rollout restart deployment argocd-notifications-controller
-kubectl -n argocd rollout restart deployment argocd-redis
-kubectl -n argocd rollout restart deployment argocd-repo-server
-kubectl -n argocd rollout restart deployment argocd-server
-kubectl -n argocd rollout restart statefulset argocd-application-controller
-kubectl -n argocd get pods -o wide -w
-kubectl -n argocd get pods -o wide
-```
-
-## Disable internal TLS
-
-```bash
-kubectl -n argocd patch configmap argocd-cmd-params-cm --type merge -p '{"data":{"server.insecure":"true"}}'
-kubectl -n argocd rollout restart deployment argocd-server
-kubectl -n argocd rollout status deployment argocd-server
-kubectl -n argocd get cm argocd-cmd-params-cm -o yaml | grep server.insecure
-```
-
-## Inspect existing ingress pattern
-
-```bash
-kubectl -n apps-prod get ingress notebook-app -o yaml
-```
-
-## Create Argo CD ingress
-
-```bash
-cat > /root/deployment/argocd-ingress.yaml <<'EOF'
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: argocd-server
-  namespace: argocd
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod-dns01
-    kubernetes.io/ingress.class: traefik
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.tls: "true"
-spec:
-  ingressClassName: traefik
-  rules:
-    - host: argocd.kakde.eu
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: argocd-server
-                port:
-                  number: 80
-  tls:
-    - hosts:
-        - argocd.kakde.eu
-      secretName: argocd-kakde-eu-tls
-EOF
-
-kubectl apply -f /root/deployment/argocd-ingress.yaml
-kubectl -n argocd get ingress
-kubectl -n argocd describe ingress argocd-server
-```
-
-## Verify DNS and certificates
-
-```bash
-dig +short argocd.kakde.eu
-kubectl -n argocd get certificate,certificaterequest,order,challenge
-kubectl -n argocd get secret argocd-kakde-eu-tls
-curl -Ik https://argocd.kakde.eu
-```
-
-## Get admin password
-
-```bash
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d; echo
-```
-
-## CLI access
-
-```bash
-argocd login argocd.kakde.eu --grpc-web
-```
-
-Or:
-
-```bash
-kubectl -n argocd port-forward svc/argocd-server 8080:80
-argocd login localhost:8080 --insecure
-```
+Those two scripts cover everything the step-by-step section above explains manually: installation, node pinning, internal TLS disable, ingress, and Application objects.
 
 ---
 
@@ -1022,8 +885,6 @@ A beginner can use this checklist to confirm the deployment is truly complete.
 * browser opens Argo CD UI
 * initial admin password can be retrieved
 * CLI works through `--grpc-web` or port-forward
-
-The user confirmed the overall health checks passed.
 
 ---
 
@@ -1133,7 +994,7 @@ argocd login localhost:8080 --insecure
 
 ---
 
-## Mistakes and Corrections Made During the Process
+## Mistakes and Corrections
 
 This section is important because it teaches beginners that infrastructure work often involves small corrections.
 
@@ -1176,30 +1037,20 @@ That was expected after installation because node scheduling had not yet been co
 
 ---
 
-## Operational Notes
+## Operational and Security Notes
 
-* Argo CD is now part of the cluster and should be treated as a core platform service.
-* Future app deployments can be managed through Argo CD instead of only manual `kubectl apply`.
-* The hostname `argocd.kakde.eu` should remain stable because other tools or bookmarks may begin to depend on it.
+* Argo CD is a core platform service. The hostname `argocd.kakde.eu` should remain stable.
+* Future app deployments should be managed through Argo CD rather than manual `kubectl apply`.
 * If node labels are changed later, Argo CD scheduling may break.
-
----
-
-## Security Notes
-
-* public HTTPS is terminated at Traefik
-* Argo CD internal TLS is disabled on purpose, but only inside the cluster
-* certificate issuance is automated via cert-manager
-* the default `admin` password must be changed after first login
-* CLI access over port-forward is often safer for administrative use than depending only on public access
-
-For a homelab, this is a reasonable balance between usability and control.
+* Public HTTPS is terminated at Traefik. Argo CD internal TLS is disabled on purpose, but only inside the cluster.
+* The default `admin` password must be changed after first login.
+* CLI access over port-forward is often safer for administrative use than depending only on public access.
 
 ---
 
 ## Assumptions and Open Questions
 
-The following items were either assumed or not fully explored in the chat.
+The following items were either assumed or not fully explored in the document.
 
 ### Assumptions
 
@@ -1240,73 +1091,31 @@ A very practical next milestone would be:
 
 ## Glossary
 
+Terms specific to this Argo CD deployment. For standard Kubernetes terms, see the [official glossary](https://kubernetes.io/docs/reference/glossary/).
+
 ### Argo CD
 
-A GitOps tool for Kubernetes that syncs cluster state from Git.
+A GitOps continuous delivery tool for Kubernetes. It watches a Git repository and reconciles cluster state to match what is declared there.
 
-### GitOps
+### Application (Argo CD)
 
-An operational model where Git is the source of truth for deployments and configuration.
+A custom resource that tells Argo CD which Git repo path to watch and which cluster namespace to deploy into.
 
-### Namespace
+### ApplicationSet
 
-A logical grouping inside Kubernetes.
+An Argo CD CRD that generates multiple `Application` objects from a template. Used for managing many apps with a shared pattern.
 
-### Node
+### `server.insecure`
 
-A machine that runs Kubernetes workloads.
+A configuration flag in `argocd-cmd-params-cm` that disables internal TLS on `argocd-server`. Required in this homelab because Traefik terminates TLS at the edge; double TLS would cause connection failures.
 
-### Pod
+### `--grpc-web`
 
-The smallest deployable unit in Kubernetes. It usually runs one application container.
+A flag for the Argo CD CLI that tunnels gRPC over HTTP/1.1. Needed when connecting through a reverse proxy like Traefik that does not natively support HTTP/2 gRPC.
 
-### Deployment
+### nodeSelector (`workload: argocd`)
 
-A Kubernetes object used for managing stateless application pods.
-
-### StatefulSet
-
-A Kubernetes object used for stateful workloads that need stable identity.
-
-### Service
-
-A stable internal network endpoint that exposes pods inside the cluster.
-
-### Ingress
-
-A Kubernetes object that routes HTTP/HTTPS traffic into the cluster.
-
-### Ingress Controller
-
-A controller that watches Ingress resources and implements them. In this case: Traefik.
-
-### Traefik
-
-The ingress controller used in this homelab.
-
-### TLS
-
-Encryption used by HTTPS.
-
-### cert-manager
-
-A Kubernetes controller that automates certificate issuance and renewal.
-
-### Label
-
-A key-value tag attached to Kubernetes objects.
-
-### nodeSelector
-
-A pod scheduling rule that selects nodes by label.
-
-### Port-forward
-
-A temporary tunnel from a local machine to a Kubernetes resource.
-
-### gRPC
-
-A high-performance communication protocol used by Argo CD CLI behavior.
+The scheduling rule that pins all Argo CD pods to `wk-2`. This gives Argo CD predictable placement and keeps it off the edge node and the database worker.
 
 ---
 

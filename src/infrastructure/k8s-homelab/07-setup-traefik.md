@@ -1,36 +1,25 @@
 # Setup Traefik on the Edge Node
 
+> Current note
+> This is a detailed historical deep dive. For the current platform setup, start with [01-platform-overview.md](01-platform-overview.md) and [06-platform-services-step-by-step.md](06-platform-services-step-by-step.md).
+
 ## Table of Contents
 
-1. [What this document is](#what-this-document-is)
-2. [What this phase is trying to achieve](#what-this-phase-is-trying-to-achieve)
-3. [Architecture used in this phase](#architecture-used-in-this-phase)
-4. [Important concepts explained simply](#important-concepts-explained-simply)
-5. [Key design decisions](#key-design-decisions)
-6. [Prerequisites](#prerequisites)
-7. [Safe execution order](#safe-execution-order)
-8. [Step 1: Snapshot the edge node and verify ports](#step-1-snapshot-the-edge-node-and-verify-ports)
-9. [Step 2: Add the edge firewall guardrail](#step-2-add-the-edge-firewall-guardrail)
-10. [Step 3: Enforce strict edge-only scheduling](#step-3-enforce-strict-edge-only-scheduling)
-11. [Step 4: Deploy Traefik pinned to the edge node](#step-4-deploy-traefik-pinned-to-the-edge-node)
-12. [Step 5: Capture diagnostics if Traefik fails](#step-5-capture-diagnostics-if-traefik-fails)
-13. [Step 6: Fix privileged port binding](#step-6-fix-privileged-port-binding)
-14. [Step 7: Fix rollout deadlock caused by host ports](#step-7-fix-rollout-deadlock-caused-by-host-ports)
-15. [Step 8: Remove the unnecessary admin port 9000](#step-8-remove-the-unnecessary-admin-port-9000)
-16. [Step 9: Verify Traefik on the edge node](#step-9-verify-traefik-on-the-edge-node)
-17. [Validation checklist](#validation-checklist)
-18. [Troubleshooting guide](#troubleshooting-guide)
-19. [Contradictions resolved while merging](#contradictions-resolved-while-merging)
-20. [Next steps](#next-steps)
-21. [Glossary](#glossary)
+1. [Goal and architecture](#what-this-phase-is-trying-to-achieve)
+2. [Key concepts](#important-concepts-explained-simply)
+3. [Design decisions](#key-design-decisions)
+4. [Step-by-step deployment](#step-1-snapshot-the-edge-node-and-verify-ports)
+5. [Validation checklist](#validation-checklist)
+6. [Troubleshooting](#troubleshooting-guide)
+7. [Glossary](#glossary)
 
 ---
 
 ## What this document is
 
-This document combines and improves the original `setup-traefik.md` and `setup-traefik-2.md` into one clean guide for beginners. It reconstructs the Traefik deployment phase for the homelab cluster and keeps the final, corrected understanding instead of the earlier incomplete state. The first document stopped when Traefik was still crashing and the root cause was not yet confirmed, while the second documented the actual fix path: privileged port binding, rollout deadlock on host ports, and removal of the extra admin port.
+This deep-dive covers the full Traefik deployment on the homelab edge node, including the problems that were encountered and how they were solved: privileged port binding, rollout deadlock on host ports, and removal of the unnecessary admin port.
 
-This guide assumes the cluster is already running with WireGuard, K3s, and Calico, and that Traefik is being deployed manually as the edge-only ingress controller. The architecture notes also confirm that `ctb-edge-1` is the only public ingress node and that Traefik should bind host ports `80` and `443` there.
+This guide assumes the cluster is already running with WireGuard, K3s, and Calico, and that Traefik is being deployed as the edge-only ingress controller. `ctb-edge-1` is the only public ingress node. Traefik binds host ports `80` and `443` there.
 
 ---
 
@@ -58,7 +47,7 @@ The cluster layout used here is:
 * `wk-1` → K3s agent → `172.27.15.11`
 * `wk-2` → K3s agent → `172.27.15.13`
 * `ctb-edge-1` → public edge node + K3s agent → `172.27.15.31`
-* public IP of `ctb-edge-1` → `21.22.23.24`
+* public IP of `ctb-edge-1` → `198.51.100.25`
 
 Networking assumptions:
 
@@ -652,8 +641,8 @@ Good looks like:
 External checks from another machine:
 
 ```bash
-curl -I http://21.22.23.24
-curl -vk https://21.22.23.24 2>&1 | head -n 40
+curl -I http://198.51.100.25
+curl -vk https://198.51.100.25 2>&1 | head -n 40
 
 getent ahosts kakde.eu | head
 curl -vk https://kakde.eu 2>&1 | head -n 60
@@ -662,9 +651,9 @@ curl -vk https://kakde.eu 2>&1 | head -n 60
 Also verify that blocked ports are not reachable:
 
 ```bash
-nc -vz -w 3 21.22.23.24 6443
-nc -vz -w 3 21.22.23.24 10250
-nc -vz -w 3 21.22.23.24 30080
+nc -vz -w 3 198.51.100.25 6443
+nc -vz -w 3 198.51.100.25 10250
+nc -vz -w 3 198.51.100.25 30080
 ```
 
 Good looks like:
@@ -784,27 +773,6 @@ This does not always mean Traefik is broken. The architecture notes explicitly s
 * wrong TLS secret
 * overlay naming mismatch
 * missing resource in the active overlay.
-
----
-
-## Contradictions resolved while merging
-
-The main contradiction between the two original Traefik documents was this:
-
-* `setup-traefik.md` stopped with “Traefik is CrashLooping and the exact fix is unknown”
-* `setup-traefik-2.md` documented the real cause and the real fix path:
-
-    * Traefik could not bind privileged port `80`
-    * rollout deadlocked because host ports were already occupied
-    * port `9000` should be removed from the design.
-
-This merged document treats the later findings as the final truth.
-
-A second resolved contradiction was the edge taint model. The final intended state is:
-
-* keep `kakde.eu/edge=true`
-* keep `kakde.eu/edge=true:NoSchedule`
-* remove `homelab.kakde.eu/edge=true:NoSchedule`.
 
 ---
 

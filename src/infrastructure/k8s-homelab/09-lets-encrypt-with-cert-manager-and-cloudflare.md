@@ -1,31 +1,18 @@
 # Edge-only Traefik → whoami → Let’s Encrypt with cert-manager (Cloudflare DNS-01)
 
+> Current note
+> This is a detailed historical deep dive. For the current platform setup, start with [01-platform-overview.md](01-platform-overview.md) and [06-platform-services-step-by-step.md](06-platform-services-step-by-step.md).
+
 ## Table of Contents
 
 1. [Overview](#1-overview)
-2. [What we built (high-level)](#2-what-we-built-high-level)
-3. [Architecture (the pieces involved)](#3-architecture-the-pieces-involved)
-4. [Why certain decisions were made](#4-why-certain-decisions-were-made)
-5. [Phase 4 workflow (end-to-end)](#5-phase-4-workflow-end-to-end)
-
-    * [5.1 Verify Traefik on the edge](#51-verify-traefik-on-the-edge)
-    * [5.2 Fix Traefik rollout deadlock (what happened + how it was resolved)](#52-fix-traefik-rollout-deadlock-what-happened--how-it-was-resolved)
-    * [5.3 Deploy `whoami` (Deployment + Service + Ingress)](#53-deploy-whoami-deployment--service--ingress)
-    * [5.4 Internal tests on the edge (Host header)](#54-internal-tests-on-the-edge-host-header)
-    * [5.4.1 Fix: “Make whoami route on HTTPS (stop the 404)”](#541-fix-make-whoami-route-on-https-stop-the-404)
-    * [5.5 External tests (curl `--resolve`)](#55-external-tests-curl---resolve)
-    * [5.6 TLS: cert-manager + ClusterIssuer + Cloudflare DNS-01 (recommended)](#56-tls-cert-manager--clusterissuer--cloudflare-dns-01-recommended)
-    * [5.7 Install cert-manager](#57-install-cert-manager)
-    * [5.8 Create Cloudflare API token Secret](#58-create-cloudflare-api-token-secret)
-    * [5.9 Create ClusterIssuers (staging + prod)](#59-create-clusterissuers-staging--prod)
-    * [5.10 Issue a certificate for `whoami.kakde.eu` and attach it to the Ingress](#510-issue-a-certificate-for-whoamikakdeeu-and-attach-it-to-the-ingress)
-
-6. [Validation checklist (“good looks like”)](#6-validation-checklist-good-looks-like)
-7. [Troubleshooting and quick fixes](#7-troubleshooting-and-quick-fixes)
-8. [Decisions made, assumptions, and unresolved gaps](#8-decisions-made-assumptions-and-unresolved-gaps)
-9. [Glossary (simple definitions)](#9-glossary-simple-definitions)
-10. [Next phase preview + next-chat prompt](#10-next-phase-preview--next-chat-prompt)
-11. [Learning links (official / high-quality)](#11-learning-links-official--high-quality)
+2. [Architecture](#3-architecture-the-pieces-involved)
+3. [Design decisions](#4-why-certain-decisions-were-made)
+4. [Phase 4 workflow (end-to-end)](#5-phase-4-workflow-end-to-end)
+5. [Validation checklist](#6-validation-checklist-good-looks-like)
+6. [Troubleshooting](#7-troubleshooting-and-quick-fixes)
+7. [Glossary](#9-glossary-simple-definitions)
+8. [Learning links](#11-learning-links-official--high-quality)
 
 ---
 
@@ -33,7 +20,7 @@
 
 This document explains how the environment reached a stable **edge-only ingress** setup using **Traefik** on the public server (`ctb-edge-1`), how a test app (`whoami`) was published under `whoami.kakde.eu`, and how **production-grade TLS certificates** were issued using **cert-manager** and **Cloudflare DNS-01**.
 
-It is written for a beginner. Each step includes:
+Each step includes:
 
 * **Where to run commands** (which machine)
 * **What the commands do**
@@ -63,7 +50,7 @@ By the end of Phase 4:
 
 * **ctb-edge-1** (public / Contabo)
 
-    * Public IP: `21.22.23.24`
+    * Public IP: `198.51.100.25`
     * WireGuard internal IP: `172.27.15.31`
     * Runs Traefik and binds host ports 80/443
 * **ms-1** (home LAN, K3s server)
@@ -99,7 +86,7 @@ Both work, but cert-manager is often preferred because:
 * It standardizes TLS across the cluster (works with any Ingress Controller).
 * DNS-01 avoids problems with HTTP challenge routing, NAT, or port ownership.
 * It stores certs as Kubernetes Secrets (clean, auditable, GitOps-friendly).
-* It avoids Traefik ACME file permission issues (the chat observed “permission denied” on `/data/acme-*.json` when using Traefik ACME).
+* It avoids Traefik ACME file permission issues (the document observed “permission denied” on `/data/acme-*.json` when using Traefik ACME).
 
 ---
 
@@ -363,11 +350,11 @@ This lets you test **public routing** even before DNS is fully propagated.
 
 ```bash
 # HTTP should redirect
-curl -sS -I --resolve whoami.kakde.eu:80:21.22.23.24 http://whoami.kakde.eu/
+curl -sS -I --resolve whoami.kakde.eu:80:198.51.100.25 http://whoami.kakde.eu/
 
 # HTTPS route (use -k until you have a real cert)
-curl -sS -k -I --resolve whoami.kakde.eu:443:21.22.23.24 https://whoami.kakde.eu/
-curl -sS -k --resolve whoami.kakde.eu:443:21.22.23.24 https://whoami.kakde.eu/ | head
+curl -sS -k -I --resolve whoami.kakde.eu:443:198.51.100.25 https://whoami.kakde.eu/
+curl -sS -k --resolve whoami.kakde.eu:443:198.51.100.25 https://whoami.kakde.eu/ | head
 ```
 
 ---
@@ -628,7 +615,7 @@ kubectl -n cert-manager logs deploy/cert-manager --tail=200
 
 ### Assumptions
 
-* DNS A record `whoami.kakde.eu → 21.22.23.24` exists.
+* DNS A record `whoami.kakde.eu → 198.51.100.25` exists.
 * cert-manager is allowed to update DNS records via Cloudflare token.
 * Traefik is configured to watch Ingress resources and use the relevant IngressClass.
 
@@ -655,7 +642,7 @@ kubectl -n cert-manager logs deploy/cert-manager --tail=200
 
 ---
 
-## 10. Next phase preview + next-chat prompt
+## 10. Next phase preview + next-document prompt
 
 ### What “next phase” means here
 
@@ -673,7 +660,7 @@ The next phase is about **hardening** and **operational readiness**:
 * RBAC sanity checks
 * monitoring/backups/runbooks
 
-### Prompt for your next chat (copy/paste)
+### Prompt for your next document (copy/paste)
 
 Homelab-0 Phase 5: Traefik is stable edge-only on ctb-edge-1 (host ports 80/443). whoami.kakde.eu routes correctly and has a valid Let’s Encrypt certificate issued by cert-manager using Cloudflare DNS-01 ClusterIssuer. Next I want to harden and productionize the setup: (1) audit exposed ports and firewall rules on all 4 nodes, ensure only edge has 80/443 public, (2) restrict SSH to my admin IP(s), (3) ensure K3s API is not publicly exposed, (4) apply a baseline NetworkPolicy strategy (default deny + required allows), (5) set Pod Security Admission (baseline or restricted) per namespace, (6) quick observability (logs/metrics) and backup strategy. Please provide step-by-step commands with STOP/GO checkpoints, and verification for each change.
 

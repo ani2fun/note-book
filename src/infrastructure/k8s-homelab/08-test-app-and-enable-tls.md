@@ -1,4 +1,7 @@
-## Publish a test app and enable TLS
+# Publish a Test App and Enable TLS
+
+> Current note
+> This is a historical validation runbook for the test app path. For the current platform setup, start with [01-platform-overview.md](01-platform-overview.md) and [06-platform-services-step-by-step.md](06-platform-services-step-by-step.md).
 
 ### Purpose
 
@@ -232,9 +235,9 @@ kubectl -n apps get secret whoami-kakde-eu-tls
 From an external machine:
 
 ```bash
-curl -sS -I --resolve whoami.kakde.eu:80:21.22.23.24 http://whoami.kakde.eu/
-curl -sS -k -I --resolve whoami.kakde.eu:443:21.22.23.24 https://whoami.kakde.eu/
-curl -sS -k --resolve whoami.kakde.eu:443:21.22.23.24 https://whoami.kakde.eu/ | head
+curl -sS -I --resolve whoami.kakde.eu:80:198.51.100.25 http://whoami.kakde.eu/
+curl -sS -k -I --resolve whoami.kakde.eu:443:198.51.100.25 https://whoami.kakde.eu/
+curl -sS -k --resolve whoami.kakde.eu:443:198.51.100.25 https://whoami.kakde.eu/ | head
 
 curl -sS -I https://whoami.kakde.eu/
 curl -sS https://whoami.kakde.eu/ | head

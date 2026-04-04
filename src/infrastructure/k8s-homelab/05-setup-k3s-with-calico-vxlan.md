@@ -1,39 +1,24 @@
 # Setup Kubernetes
 
+> Current note
+> This is a detailed historical deep dive. For the current rebuild path, start with [01-platform-overview.md](01-platform-overview.md) and [02-rebuild-cluster-step-by-step.md](02-rebuild-cluster-step-by-step.md).
+
 ## Table of contents
 
 1. [What this document is](#what-this-document-is)
-2. [Current architecture](#current-architecture)
-3. [What Phase 3 is trying to achieve](#what-phase-3-is-trying-to-achieve)
-4. [Corrections made during the chat](#corrections-made-during-the-chat)
-5. [Concepts explained simply](#concepts-explained-simply)
-6. [Prerequisites and assumptions](#prerequisites-and-assumptions)
-7. [Phase 3 implementation steps](#phase-3-implementation-steps)
-
-    1. [Prepare resolver file for K3s on all nodes](#step-1-prepare-resolver-file-for-k3s-on-all-nodes)
-    2. [Install K3s server on ms-1](#step-2-install-k3s-server-on-ms-1)
-    3. [Install Calico with VXLAN on ms-1](#step-3-install-calico-with-vxlan-on-ms-1)
-    4. [Add edge host guardrails before joining ctb-edge-1](#step-4-add-edge-host-guardrails-before-joining-ctb-edge-1)
-    5. [Join the agents](#step-5-join-the-agents)
-    6. [Apply workload placement policy](#step-6-apply-workload-placement-policy)
-    7. [Verify the cluster](#step-7-verify-the-cluster)
-    8. [Smoke-test pod networking and DNS](#step-8-smoke-test-pod-networking-and-dns)
-8. [Make host firewall rules survive reboot](#make-host-firewall-rules-survive-reboot)
-9. [Expected healthy output](#expected-healthy-output)
-10. [Troubleshooting guide](#troubleshooting-guide)
-11. [Common mistakes](#common-mistakes)
-12. [Open questions and gaps](#open-questions-and-gaps)
-13. [Next step after this document](#next-step-after-this-document)
-14. [Official references](#official-references)
-15. [Prompt for the next chat](#prompt-for-the-next-chat)
+2. [Architecture](#current-architecture)
+3. [Concepts](#concepts-explained-simply)
+4. [Phase 3 implementation steps](#phase-3-implementation-steps)
+5. [Troubleshooting](#troubleshooting-guide)
+6. [Official references](#official-references)
 
 ---
 
 ## What this document is
 
-This document turns the current chat history into a clean Phase 3 runbook for a beginner. It explains what was decided, why it was decided, exactly which commands to run, where to run them, how to verify success, and what to watch out for.
+This document turns the current document history into a clean Phase 3 runbook for a beginner. It explains what was decided, why it was decided, exactly which commands to run, where to run them, how to verify success, and what to watch out for.
 
-This document covers only the material that exists in the current chat history. It does **not** invent later phases or assume any work that has not been discussed yet.
+This document covers only the material that exists in the current document history. It does **not** invent later phases or assume any work that has not been discussed yet.
 
 ---
 
@@ -49,11 +34,11 @@ This homelab has 4 Ubuntu 24.04 nodes.
 
 ### Public edge node
 
-* `ctb-edge-1` = Contabo public edge, public IP `21.22.23.24`, WireGuard `172.27.15.31`
+* `ctb-edge-1` = Contabo public edge, public IP `198.51.100.25`, WireGuard `172.27.15.31`
 
 ### Overlay networking already verified before Phase 3
 
-The chat established that a full-mesh WireGuard setup is already working, with peer `/32` routes and successful handshakes and pings across `172.27.15.0/24`. This Phase 3 runbook starts **after** that point.
+The document established that a full-mesh WireGuard setup is already working, with peer `/32` routes and successful handshakes and pings across `172.27.15.0/24`. This Phase 3 runbook starts **after** that point.
 
 ---
 
@@ -90,15 +75,15 @@ This keeps routing simpler for a homelab. Calico documents VXLAN as an overlay m
 
 ### 3. Use WireGuard IPs as node internal addresses
 
-The chat intentionally pinned each node to its WireGuard IP so Kubernetes node-to-node communication stays on the overlay.
+The document intentionally pinned each node to its WireGuard IP so Kubernetes node-to-node communication stays on the overlay.
 
 ### 4. Keep `ms-1` for control-plane duties only
 
-The chat decided that user workloads should avoid `ms-1` and instead go to the workers or edge.
+The document decided that user workloads should avoid `ms-1` and instead go to the workers or edge.
 
 ### 5. Make `ctb-edge-1` opt-in only
 
-The chat decided that public-edge workloads should run on `ctb-edge-1` only when explicitly requested using labels, taints, tolerations, and selectors.
+The document decided that public-edge workloads should run on `ctb-edge-1` only when explicitly requested using labels, taints, tolerations, and selectors.
 
 ### 6. Use a dedicated resolver file for K3s
 
@@ -106,13 +91,13 @@ All four nodes showed `/etc/resolv.conf` pointing to the systemd-resolved stub a
 
 ---
 
-## Corrections made during the chat
+## Corrections made during the document
 
 One important correction happened.
 
 ### `rp_filter`
 
-Earlier chat drafts used `rp_filter=0` in some places, and there was confusion about `1` versus `2`. The corrected recommendation is:
+Earlier document drafts used `rp_filter=0` in some places, and there was confusion about `1` versus `2`. The corrected recommendation is:
 
 * `0` = disabled
 * `1` = strict
@@ -162,13 +147,13 @@ The kernel docs recommend loose mode when routing is asymmetric or otherwise com
 
 ### Why is MTU discussed here?
 
-Overlay networking adds headers and reduces effective payload size. Calico documents that VXLAN has extra per-packet overhead and also supports setting the VXLAN MTU explicitly. In this chat, the chosen design was to set Calico MTU to **1370** because the underlay WireGuard interface is `1420` and the chat intentionally reserved headroom for VXLAN encapsulation. That exact `1370` value is a design choice from this chat, not a universal fixed value. ([docs.tigera.io][8])
+Overlay networking adds headers and reduces effective payload size. Calico documents that VXLAN has extra per-packet overhead and also supports setting the VXLAN MTU explicitly. In this document, the chosen design was to set Calico MTU to **1370** because the underlay WireGuard interface is `1420` and the document intentionally reserved headroom for VXLAN encapsulation. That exact `1370` value is a design choice from this document, not a universal fixed value. ([docs.tigera.io][8])
 
 ---
 
 ## Prerequisites and assumptions
 
-Before following this runbook, these things are assumed to already be true because they were established earlier in the chat:
+Before following this runbook, these things are assumed to already be true because they were established earlier in the document:
 
 * WireGuard full mesh works across all four nodes
 * Each node can reach the others on their `172.27.15.x` address
@@ -178,9 +163,9 @@ Before following this runbook, these things are assumed to already be true becau
     * `net.bridge.bridge-nf-call-iptables = 1`
 * Each node uses Ubuntu 24.04
 * SSH remains available on port 22
-* The chosen K3s version in the chat is `v1.35.1+k3s1`
+* The chosen K3s version in the document is `v1.35.1+k3s1`
 
-The resolver output captured in the chat showed all four nodes using the systemd-resolved stub:
+The resolver output captured in the document showed all four nodes using the systemd-resolved stub:
 
 * `/etc/resolv.conf -> /run/systemd/resolve/stub-resolv.conf`
 * `nameserver 127.0.0.53`
@@ -195,7 +180,7 @@ That is why this runbook uses a dedicated K3s resolver symlink and `--resolv-con
 
 ### Why this step exists
 
-K3s checks `/etc/resolv.conf` and `/run/systemd/resolve/resolv.conf` for unusable loopback, multicast, or link-local nameservers. If needed, you can explicitly point it at a suitable file with `--resolv-conf`. The chat’s node outputs showed the normal `/etc/resolv.conf` on all nodes pointing at `127.0.0.53`, so this step is necessary here. ([docs.k3s.io][4])
+K3s checks `/etc/resolv.conf` and `/run/systemd/resolve/resolv.conf` for unusable loopback, multicast, or link-local nameservers. If needed, you can explicitly point it at a suitable file with `--resolv-conf`. The document’s node outputs showed the normal `/etc/resolv.conf` on all nodes pointing at `127.0.0.53`, so this step is necessary here. ([docs.k3s.io][4])
 
 ### Run on
 
@@ -355,7 +340,7 @@ kubectl create -f /root/calico-custom-resources.yaml
 
 ### Why `kubectl create` is used here
 
-The chat used `create`, and Calico documentation notes that large CRD bundles can exceed request limits with `apply`; Calico docs recommend `create` or `replace` in those cases. ([docs.tigera.io][10])
+The document used `create`, and Calico documentation notes that large CRD bundles can exceed request limits with `apply`; Calico docs recommend `create` or `replace` in those cases. ([docs.tigera.io][10])
 
 ### Why `nodeAddressAutodetectionV4: kubernetes: NodeInternalIP`
 
@@ -386,7 +371,7 @@ ip -d link show vxlan.calico 2>/dev/null | egrep 'vxlan|mtu' || true
 
 `ctb-edge-1` is public. The cluster should not expose kubelet, VXLAN, or NodePort ranges to the internet on the public interface.
 
-The port choices here come directly from the chat design:
+The port choices here come directly from the document design:
 
 * block `10250/tcp` on public interface
 * block `4789/udp` on public interface
@@ -539,7 +524,7 @@ All four nodes appear and eventually become `Ready`, with INTERNAL-IP equal to t
 
 ### Why this step exists
 
-This enforces the placement policy discussed in the chat:
+This enforces the placement policy discussed in the document:
 
 * `ms-1` should not carry normal workloads
 * `ctb-edge-1` should accept workloads only if they explicitly opt in
@@ -659,14 +644,14 @@ This quick test proves pod networking works, but because both pods are unschedul
 
 ### Why this section exists
 
-Rules added with `iptables` are **not** persistent by default across reboot. The chat explicitly asked about this.
+Rules added with `iptables` are **not** persistent by default across reboot. The document explicitly asked about this.
 
 Also, K3s and Calico will rebuild their **own** rules at startup. What needs persistence here are only the custom host guardrail rules created for:
 
 * `ms-1`
 * `ctb-edge-1`
 
-The chosen approach in the chat was a **systemd oneshot service** that reapplies only the small custom guardrail set. This avoids flushing tables and avoids stepping on K3s/Calico state.
+The chosen approach in the document was a **systemd oneshot service** that reapplies only the small custom guardrail set. This avoids flushing tables and avoids stepping on K3s/Calico state.
 
 ---
 
@@ -779,7 +764,7 @@ If the public interface is not `eth0`, replace `eth0` before using this script.
 
 ## Expected healthy output
 
-The chat included a concrete example of what “healthy” Phase 3 output should look like. In plain English, it looked like this:
+The document included a concrete example of what “healthy” Phase 3 output should look like. In plain English, it looked like this:
 
 ### 1. Pod networking works
 
@@ -805,7 +790,7 @@ all in `Running` state.
 
 ### 4. All nodes are Ready
 
-A healthy `kubectl get nodes -o wide` in the chat showed:
+A healthy `kubectl get nodes -o wide` in the document showed:
 
 * `ctb-edge-1` Ready, INTERNAL-IP `172.27.15.31`
 * `ms-1` Ready, INTERNAL-IP `172.27.15.12`
@@ -946,7 +931,7 @@ kubectl get nodes --show-labels
 
 ## Open questions and gaps
 
-These are the things still left open or intentionally deferred in the chat:
+These are the things still left open or intentionally deferred in the document:
 
 1. **Traefik deployment is not part of this phase.**
    The design decision is clear, but the actual deployment belongs to Phase 4.
@@ -954,7 +939,7 @@ These are the things still left open or intentionally deferred in the chat:
 2. **Public interface name on ctb-edge-1 must be confirmed.**
    The firewall examples use `eth0`, but the real name may differ.
 
-3. **The exact Calico MTU value is an intentional design choice from this chat.**
+3. **The exact Calico MTU value is an intentional design choice from this document.**
    It is conservative and reasonable for `wg0=1420`, but it should still be verified in practice using actual traffic tests.
 
 4. **A stronger cross-node pod test can be added later.**
@@ -1002,24 +987,24 @@ Linux kernel `rp_filter`: values `0`, `1`, and `2`; loose mode is recommended fo
 
 ---
 
-## Prompt for the next chat
+## Prompt for the next document
 
-Paste this into the next chat when you are ready:
+Paste this into the next document when you are ready:
 
-> Phase 3 is complete and verified. K3s server is on ms-1 with flannel disabled, traefik disabled, and K3s default network policy disabled. Calico is installed via Tigera operator in VXLAN mode with MTU 1370 and nodeAddressAutodetectionV4 set to Kubernetes NodeInternalIP, so all nodes use their WireGuard IPs as INTERNAL-IP: wk-1=172.27.15.11, ms-1=172.27.15.12, wk-2=172.27.15.13, ctb-edge-1=172.27.15.31. Pod-to-pod ping works, CoreDNS resolves kubernetes.default.svc.cluster.local, and Calico/Tigera pods are healthy. ms-1 is tainted to avoid workloads, and ctb-edge-1 is tainted so only explicit edge workloads can run there. Host guardrail firewall rules are persisted using systemd oneshot services. Begin Phase 4: deploy Traefik only on ctb-edge-1, bind host ports 80/443, use strict scheduling constraints, keep no PROXY protocol, and add minimal edge firewall policy with external verification against 21.22.23.24 and kakde.eu.
+> Phase 3 is complete and verified. K3s server is on ms-1 with flannel disabled, traefik disabled, and K3s default network policy disabled. Calico is installed via Tigera operator in VXLAN mode with MTU 1370 and nodeAddressAutodetectionV4 set to Kubernetes NodeInternalIP, so all nodes use their WireGuard IPs as INTERNAL-IP: wk-1=172.27.15.11, ms-1=172.27.15.12, wk-2=172.27.15.13, ctb-edge-1=172.27.15.31. Pod-to-pod ping works, CoreDNS resolves kubernetes.default.svc.cluster.local, and Calico/Tigera pods are healthy. ms-1 is tainted to avoid workloads, and ctb-edge-1 is tainted so only explicit edge workloads can run there. Host guardrail firewall rules are persisted using systemd oneshot services. Begin Phase 4: deploy Traefik only on ctb-edge-1, bind host ports 80/443, use strict scheduling constraints, keep no PROXY protocol, and add minimal edge firewall policy with external verification against 198.51.100.25 and kakde.eu.
 
 If you want, I can also turn this into a shorter “commands-only runbook” version.
 
 [1]: https://docs.k3s.io/installation/packaged-components "Managing Packaged Components | K3s"
 [2]: https://docs.tigera.io/calico/latest/getting-started/kubernetes/k3s/multi-node-install "K3s multi-node install | Calico Documentation"
-[3]: https://docs.tigera.io/calico/latest/networking/configuring/vxlan-ipip?utm_source=chatgpt.com "Overlay networking - Calico Documentation - Tigera.io"
+[3]: https://docs.tigera.io/calico/latest/networking/configuring/vxlan-ipip "Overlay networking - Calico Documentation - Tigera.io"
 [4]: https://docs.k3s.io/advanced "Advanced Options / Configuration | K3s"
 [5]: https://docs.kernel.org/networking/ip-sysctl.html "IP Sysctl — The Linux Kernel  documentation"
 [6]: https://docs.k3s.io/networking/basic-network-options "Basic Network Options | K3s"
 [7]: https://docs.tigera.io/calico/latest/reference/installation/api "Installation reference | Calico Documentation"
-[8]: https://docs.tigera.io/calico/latest/reference/felix/configuration?utm_source=chatgpt.com "Configuring Felix"
+[8]: https://docs.tigera.io/calico/latest/reference/felix/configuration "Configuring Felix"
 [9]: https://docs.k3s.io/cli/server "server | K3s"
-[10]: https://docs.tigera.io/calico/latest/getting-started/kubernetes/nftables?utm_source=chatgpt.com "Data plane guide: nftables - Calico Documentation"
+[10]: https://docs.tigera.io/calico/latest/getting-started/kubernetes/nftables "Data plane guide: nftables - Calico Documentation"
 [11]: https://docs.tigera.io/calico/latest/networking/ipam/ip-autodetection "Configure IP autodetection | Calico Documentation"
 [12]: https://docs.k3s.io/cli/agent "agent | K3s"
 [13]: https://docs.k3s.io/networking/networking-services "Networking Services | K3s"

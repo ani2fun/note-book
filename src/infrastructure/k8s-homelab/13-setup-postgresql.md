@@ -1,23 +1,20 @@
 # PostgreSQL: Beginner-Friendly Deployment and Operations Guide
 
+> Current note
+> This is a detailed historical deep dive. For the current data-service path, start with [01-platform-overview.md](01-platform-overview.md) and [12-data-and-apps-step-by-step.md](12-data-and-apps-step-by-step.md).
+
 ## Table of Contents
 
 1. [Overview](#overview)
 2. [What was built](#what-was-built)
-3. [Why this design was chosen](#why-this-design-was-chosen)
-4. [Final architecture](#final-architecture)
-5. [Files used in the deployment](#files-used-in-the-deployment)
-6. [Important decisions and lessons learned](#important-decisions-and-lessons-learned)
-7. [Step-by-step deployment](#step-by-step-deployment)
-8. [Exact manifest files](#exact-manifest-files)
-9. [Validation and testing](#validation-and-testing)
-10. [Troubleshooting that happened in this chat](#troubleshooting-that-happened-in-this-chat)
-11. [How to connect from a Mac](#how-to-connect-from-a-mac)
-12. [Backup and restore basics](#backup-and-restore-basics)
-13. [Full cleanup and fresh redeploy](#full-cleanup-and-fresh-redeploy)
-14. [Open questions and future improvements](#open-questions-and-future-improvements)
-15. [Glossary](#glossary)
-16. [Official learning links](#official-learning-links)
+3. [Design decisions](#why-this-design-was-chosen)
+4. [Step-by-step deployment](#step-by-step-deployment)
+5. [Manifest reference](#exact-manifest-files)
+6. [Validation and testing](#validation-and-testing)
+7. [Troubleshooting](#troubleshooting-that-happened-in-this-document)
+8. [Connecting from a Mac](#how-to-connect-from-a-mac)
+9. [Backup and restore](#backup-and-restore-basics)
+10. [Further learning](#official-learning-links)
 
 ---
 
@@ -27,7 +24,7 @@ This document explains how a single internal PostgreSQL database was deployed in
 
 The audience for this document is a beginner. That means the guide explains not just **what** to run, but also **why** each step exists and what success looks like.
 
-This guide is based only on the current chat and the final working YAML manifests that were uploaded in this conversation. The final manifest set includes a namespace, secret, bootstrap ConfigMap, services, network policies, and a StatefulSet with an 80Gi persistent volume.
+The manifest set includes a namespace, secret, bootstrap ConfigMap, services, network policies, and a StatefulSet with an 80Gi persistent volume.
 
 ---
 
@@ -88,7 +85,7 @@ Kubernetes NetworkPolicies are designed for exactly this kind of traffic restric
 
 ### Cluster context
 
-This chat assumed this existing cluster context:
+It is assumed this existing cluster context:
 
 * 4 Ubuntu 24.04 nodes
 * `ms-1` = K3s server
@@ -189,7 +186,7 @@ at the pod level.
 
 ### 2. The bootstrap script only matters on first initialization
 
-The bootstrap ConfigMap creates the application role and application database on **first initialization of the data directory**. If the PVC already contains a PostgreSQL data directory, changing the ConfigMap or Secret later does not recreate the database automatically. That behavior matches the PostgreSQL container’s first-init model. The application setup in this chat relied on `/docker-entrypoint-initdb.d` for first-run initialization.
+The bootstrap ConfigMap creates the application role and application database on **first initialization of the data directory**. If the PVC already contains a PostgreSQL data directory, changing the ConfigMap or Secret later does not recreate the database automatically. That behavior matches the PostgreSQL container’s first-init model. The application setup in this document relied on `/docker-entrypoint-initdb.d` for first-run initialization.
 
 ### 3. Secret changes do not automatically change the live PostgreSQL password
 
@@ -255,7 +252,7 @@ Before applying the manifests, make sure:
 
 ### Where to run the commands
 
-All Kubernetes commands below should be run on a machine that has working `kubectl` access to the cluster. In this chat, that machine was `ms-1`.
+All Kubernetes commands below should be run on a machine that has working `kubectl` access to the cluster. In this document, that machine was `ms-1`.
 
 ---
 
@@ -403,7 +400,7 @@ Good looks like:
 
 ## Exact manifest files
 
-These are the final corrected manifests reflected in this chat and the uploaded files. The structure and values below match the manifest set that was verified as correct.
+These are the final corrected manifests. The structure and values below match the manifest set under `k8s-cluster/platform/postgresql/`.
 
 ### `1-namespace.yaml`
 
@@ -813,7 +810,7 @@ Good looks like:
 
 ---
 
-## Troubleshooting that happened in this chat
+## Troubleshooting that happened in this document
 
 ## Problem 1: Pod crashlooped immediately after startup
 
@@ -872,12 +869,12 @@ The live PostgreSQL role password did not match the Secret value anymore. The bo
 
 Repair the role and database explicitly using `psql`.
 
-The chat settled on a safer method:
+The document settled on a safer method:
 
 * create SQL files on `ms-1`
 * pipe them into `psql` running inside the pod
 
-### Repair SQL used in this chat
+### Repair SQL used in this document
 
 Create the file on `ms-1`:
 
@@ -989,7 +986,7 @@ Keep that terminal open, then connect from another Mac terminal.
 
 ## How to connect from a Mac
 
-There are two practical methods described in this chat.
+There are two practical methods described in this document.
 
 ## Method 1: direct `kubectl port-forward` from the Mac
 
@@ -1155,12 +1152,12 @@ kubectl -n databases-prod logs postgresql-0 | tail -n 80
 
 ## Open questions and future improvements
 
-This chat intentionally kept the setup simple. Some future improvements were mentioned or implied:
+It is intentionally kept the setup simple. Some future improvements were mentioned or implied:
 
 1. **Better day-to-day access from the Mac without port-forward**
 
     * likely through a private WireGuard-based admin path
-    * not implemented in this chat
+    * not implemented in this document
 
 2. **More resilient storage**
 
@@ -1175,7 +1172,7 @@ This chat intentionally kept the setup simple. Some future improvements were men
 4. **Automated backups**
 
     * backups were described manually
-    * scheduled jobs were not added in this chat
+    * scheduled jobs were not added in this document
 
 ---
 
@@ -1240,10 +1237,10 @@ These are good official or high-quality places to learn the concepts used in thi
 
 If you want this next as a downloadable `README.md` or a longer runbook format with a “copy/paste commands only” appendix, I can format it that way.
 
-[1]: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/?utm_source=chatgpt.com "StatefulSets"
-[2]: https://kubernetes.io/docs/concepts/services-networking/service/?utm_source=chatgpt.com "Service"
-[3]: https://docs.k3s.io/add-ons/storage?utm_source=chatgpt.com "Volumes and Storage"
-[4]: https://kubernetes.io/docs/concepts/services-networking/network-policies/?utm_source=chatgpt.com "Network Policies"
-[5]: https://docs.k3s.io/?utm_source=chatgpt.com "K3s - Lightweight Kubernetes | K3s"
-[6]: https://kubernetes.io/docs/tutorials/kubernetes-basics/expose/expose-intro/?utm_source=chatgpt.com "Using a Service to Expose Your App"
-[7]: https://kubernetes.io/docs/concepts/services-networking/?utm_source=chatgpt.com "Services, Load Balancing, and Networking"
+[1]: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/ "StatefulSets"
+[2]: https://kubernetes.io/docs/concepts/services-networking/service/ "Service"
+[3]: https://docs.k3s.io/add-ons/storage "Volumes and Storage"
+[4]: https://kubernetes.io/docs/concepts/services-networking/network-policies/ "Network Policies"
+[5]: https://docs.k3s.io/ "K3s - Lightweight Kubernetes | K3s"
+[6]: https://kubernetes.io/docs/tutorials/kubernetes-basics/expose/expose-intro/ "Using a Service to Expose Your App"
+[7]: https://kubernetes.io/docs/concepts/services-networking/ "Services, Load Balancing, and Networking"

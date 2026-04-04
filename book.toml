@@ -15,6 +15,7 @@ smart-punctuation = true
 mathjax-support = true
 git-repository-url = "https://github.com/ani2fun/note-book/tree/main"
 additional-css = ["./mdbook-admonish.css", "theme/custom.css"]
+additional-js = ["theme/mermaid-init.js"]
 
 [output.html.playground]
 editable = true

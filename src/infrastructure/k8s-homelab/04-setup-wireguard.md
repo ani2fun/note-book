@@ -1,33 +1,16 @@
 # Setup Wireguard Mesh
 
 ## Table of contents
+
+> Jump to [Phase 2 implementation](#phase-2-wireguard-implementation) if you already understand the concepts.
+
 - [Architecture](#architecture)
 - [Concepts explained from scratch](#concepts-explained-from-scratch)
-
-    * [NAT and port forwarding](#nat-and-port-forwarding)
-    * [WireGuard and wg-quick](#wireguard-and-wg-quick)
-    * [AllowedIPs and /32 routes](#allowedips-and-32-routes)
-    * [PersistentKeepalive](#persistentkeepalive)
-    * [rp_filter and why it breaks “handshake ok but ping fails”](#rp_filter-and-why-it-breaks-handshake-ok-but-ping-fails)
-    * [MTU basics](#mtu-basics)
 - [Safety rules](#safety-rules)
-- [Phased workflow](#phased-workflow)
-- [Phase 1 (wipe) status + verification](#phase-1-wipe-status--verification)
 - [Phase 2 (WireGuard) implementation](#phase-2-wireguard-implementation)
-
-    * [2.0 STOP/GO pre-checks](#20-stopgo-pre-checks)
-    * [2.1 Install WireGuard](#21-install-wireguard)
-    * [2.2 Generate keys](#22-generate-keys)
-    * [2.3 Set rp_filter safely](#23-set-rp_filter-safely)
-    * [2.4 Create wg-quick configs (per node)](#24-create-wg-quick-configs-per-node)
-    * [2.5 Verification checklist](#25-verification-checklist)
-    * [2.6 Debug playbook](#26-debug-playbook)
-    * [2.7 Run-all scripts](#27-run-all-scripts)
-- [Design decisions + trade-offs](#design-decisions--trade-offs)
-- [Open questions / assumptions](#open-questions--assumptions)
-- [Next steps (Phase 3 preview)](#next-steps-phase-3-preview)
+- [Design decisions and trade-offs](#design-decisions--trade-offs)
 - [Glossary](#glossary)
-- [Further learning links (official / high-quality)](#further-learning-links-official--high-quality)
+- [Further learning](#further-learning-links-official--high-quality)
 
 ---
 
@@ -38,7 +21,7 @@
 **Home LAN (behind NAT/router)**
 
 * Router LAN: `192.168.15.1/24`
-* Public WAN IP: `121.122.123.124`
+* Public WAN IP: `203.0.113.10`
 * Nodes:
 
     * `ms-1` (K3s server): `192.168.15.2`
@@ -47,7 +30,7 @@
 
 **Public cloud edge (Contabo)**
 
-* `ctb-edge-1`: public IP `21.22.23.24`
+* `ctb-edge-1`: public IP `198.51.100.25`
 * Single public edge for `kakde.eu` + subdomains
 * In later phases: Traefik binds **host ports 80/443** on this node
 
@@ -62,9 +45,9 @@ Overlay subnet (WireGuard only): `172.27.15.0/24` but **each node uses a /32**
 
 ### Router UDP forwards (required for edge → home)
 
-* `121.122.123.124:51820 -> wk-1:51820`
-* `121.122.123.124:51821 -> ms-1:51820`
-* `121.122.123.124:51822 -> wk-2:51820`
+* `203.0.113.10:51820 -> wk-1:51820`
+* `203.0.113.10:51821 -> ms-1:51820`
+* `203.0.113.10:51822 -> wk-2:51820`
 
 ---
 
@@ -75,7 +58,7 @@ Overlay subnet (WireGuard only): `172.27.15.0/24` but **each node uses a /32**
 Home devices usually sit behind a router using **NAT** (Network Address Translation).
 That means the internet can’t directly “reach” home machines unless the router is told to forward traffic.
 
-Here we forward **UDP** ports from the router’s public IP (`121.122.123.124`) into each home node’s WireGuard port `51820`.
+Here we forward **UDP** ports from the router’s public IP (`203.0.113.10`) into each home node’s WireGuard port `51820`.
 
 ### WireGuard and wg-quick
 
@@ -283,19 +266,19 @@ SaveConfig = false
 # wk-1 (via router WAN port-forward 51820 -> wk-1:51820)
 PublicKey = <WK_1_PUB>
 AllowedIPs = 172.27.15.11/32
-Endpoint = 121.122.123.124:51820
+Endpoint = 203.0.113.10:51820
 
 [Peer]
 # ms-1 (via router WAN port-forward 51821 -> ms-1:51820)
 PublicKey = <MS_1_PUB>
 AllowedIPs = 172.27.15.12/32
-Endpoint = 121.122.123.124:51821
+Endpoint = 203.0.113.10:51821
 
 [Peer]
 # wk-2 (via router WAN port-forward 51822 -> wk-2:51820)
 PublicKey = <WK_2_PUB>
 AllowedIPs = 172.27.15.13/32
-Endpoint = 121.122.123.124:51822
+Endpoint = 203.0.113.10:51822
 ```
 
 Get the private key value for `<CTB_EDGE_1_PRIV>`:
@@ -338,7 +321,7 @@ SaveConfig = false
 # ctb-edge-1 (public)
 PublicKey = <CTB_EDGE_1_PUB>
 AllowedIPs = 172.27.15.31/32
-Endpoint = 21.22.23.24:51820
+Endpoint = 198.51.100.25:51820
 PersistentKeepalive = 25
 
 [Peer]
@@ -385,7 +368,7 @@ SaveConfig = false
 # ctb-edge-1 (public)
 PublicKey = <CTB_EDGE_1_PUB>
 AllowedIPs = 172.27.15.31/32
-Endpoint = 21.22.23.24:51820
+Endpoint = 198.51.100.25:51820
 PersistentKeepalive = 25
 
 [Peer]
@@ -428,7 +411,7 @@ SaveConfig = false
 # ctb-edge-1 (public)
 PublicKey = <CTB_EDGE_1_PUB>
 AllowedIPs = 172.27.15.31/32
-Endpoint = 21.22.23.24:51820
+Endpoint = 198.51.100.25:51820
 PersistentKeepalive = 25
 
 [Peer]
