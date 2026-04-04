@@ -46,8 +46,11 @@
 
 - [💻 Tech](./computer-science/intro.md)
  - [Commands](./computer-science/OS/commands.md)
+ - [Python Tutorials](./computer-science/python/toc.md)
+   - [Python Basics](./computer-science/python/01-basics.md)
+   - [Collections and Loops](./computer-science/python/02-collections-and-loops.md)
+   - [Functions and Modules](./computer-science/python/03-functions-and-modules.md)
  - [Docker](./computer-science/mixed/docker.md)
  - [Http Status Codes](./computer-science/mixed/http-status-codes.md)
  - [Regular Expressions](./computer-science/mixed/regular-expression.md)
  - [Debian Setup](./computer-science/mixed/debian-setup.md)
-

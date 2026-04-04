@@ -32,3 +32,81 @@
     margin: 1.5rem 0;
     text-align: center;
 }
+
+.python-playground .buttons {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.python-playground .play-button.is-loading {
+    opacity: 0.7;
+}
+
+.python-playground .result {
+    display: block;
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    white-space: pre-wrap;
+    background: var(--quote-bg);
+}
+
+.python-playground .result.result-error {
+    border-left: 4px solid #c2410c;
+}
+
+.python-playground .result.result-no-output {
+    opacity: 0.8;
+}
+
+.sql-playground .buttons {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.sql-playground .result {
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    background: var(--quote-bg);
+    overflow-x: auto;
+}
+
+.sql-playground .result.result-error {
+    border-left: 4px solid #c2410c;
+    white-space: pre-wrap;
+}
+
+.sql-playground .result.result-no-output {
+    opacity: 0.8;
+}
+
+.sql-playground .result-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.sql-playground .result-table:first-child {
+    margin-top: 0;
+}
+
+.sql-playground .result-table th,
+.sql-playground .result-table td {
+    border: 1px solid var(--table-border-color);
+    padding: 0.4rem 0.55rem;
+    text-align: left;
+    vertical-align: top;
+}
+
+.sql-playground .result-table th {
+    background: var(--table-header-bg);
+}
+
+.sql-playground .result-label {
+    display: inline-block;
+    margin-bottom: 0.4rem;
+    font-size: 0.85rem;
+    opacity: 0.8;
+}

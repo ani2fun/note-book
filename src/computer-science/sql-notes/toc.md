@@ -1,5 +1,9 @@
 # SQL Notes
 
+> Browser execution note:
+> Most `SELECT` queries in this section can now run directly in the browser against an in-memory SQLite database with preloaded sample data such as `customers`, `orders`, and `Sales.*` tables.
+> SQL Server setup scripts and T-SQL-specific syntax are still reference-only. That includes commands and features like `GO`, `USE`, `CREATE DATABASE`, `ALTER DATABASE`, `DROP DATABASE`, and some SQL Server-only functions such as `FORMAT()`.
+
 ## Table of Content
 
 - [Introduction](./1.introduction.md)

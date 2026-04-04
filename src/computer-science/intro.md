@@ -14,6 +14,10 @@
 
 ---
 
+- [Python Tutorials](./python/toc.md)
+
+---
+
 - [Docker](./mixed/docker.md)
 
 ---
