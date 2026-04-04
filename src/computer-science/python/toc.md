@@ -1,17 +1,17 @@
-# Python Tutorials
+# Python and DSA
 
-This section includes runnable Python examples directly in the browser.
+This section is now split into two tracks:
 
-## How to use these examples
+- `language/`: Python syntax and core language tools you will keep using in problem solving.
+- `dsa/`: data structures and algorithms explained with Python implementations.
 
-- Click the play button to execute a snippet.
-- Edit the code and run it again to see a different result.
-- Use `Ctrl+Enter` inside the editor to run quickly.
+## Recommended order
 
-> The first run downloads the Python runtime in the browser, so it can take a moment to start.
+1. Start with the Python language track if you want to get comfortable with the syntax.
+2. Move to the DSA track for the core interview and fundamentals material.
+3. Use the runnable snippets to experiment with edge cases and build intuition.
 
-## Chapters
+## Tracks
 
-- [Python Basics](./01-basics.md)
-- [Collections and Loops](./02-collections-and-loops.md)
-- [Functions and Modules](./03-functions-and-modules.md)
+- [Python Language Track](./language/toc.md)
+- [DSA in Python Track](./dsa/toc.md)

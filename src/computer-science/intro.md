@@ -14,7 +14,9 @@
 
 ---
 
-- [Python Tutorials](./python/toc.md)
+- [Python and DSA](./python/toc.md)
+- [Python Language Track](./python/language/toc.md)
+- [DSA in Python Track](./python/dsa/toc.md)
 
 ---
 
