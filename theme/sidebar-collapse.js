@@ -75,22 +75,6 @@
                 toggleSection(titleItem, sectionList, toggle, key, state);
             });
 
-            titleLink.addEventListener("click", function (event) {
-                if (
-                    event.defaultPrevented ||
-                    event.metaKey ||
-                    event.ctrlKey ||
-                    event.shiftKey ||
-                    event.altKey ||
-                    event.button !== 0
-                ) {
-                    return;
-                }
-
-                event.preventDefault();
-                toggleSection(titleItem, sectionList, toggle, key, state);
-            });
-
             sectionList.dataset.collapsibleEnhanced = "true";
         });
     }
