@@ -1,0 +1,13 @@
+.git
+book
+target
+node_modules
+.idea
+.claude
+.vscode
+.github
+.DS_Store
+**/.DS_Store
+README.md
+debianbased-Dockerfile
+docker-compose.yaml

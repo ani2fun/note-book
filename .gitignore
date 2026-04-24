@@ -1,0 +1,9 @@
+book
+/.idea/
+.DS_Store
+**/.DS_Store
+/src/infrastructure/c4models/env/
+/.claude/
+/.vscode/
+CLAUDE.md
+AGENTS.md

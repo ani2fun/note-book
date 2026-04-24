@@ -1,0 +1,97 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json
+services:
+  mdbook:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: mdbook-tools
+    working_dir: /app
+    environment:
+      MDBOOK_OUTPUT__HTML__SITE_URL: /
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: ["sh", "-lc", "mdbook serve -n 0.0.0.0 --watcher poll"]
+
+  piston:
+    image: ghcr.io/engineer-man/piston:latest
+    container_name: note-book-piston
+    privileged: true
+    ports:
+      - "2000:2000"
+    environment:
+      PISTON_CORS_ORIGIN: "http://localhost:3000,http://127.0.0.1:3000"
+    command:
+      - /bin/bash
+      - -lc
+      - >-
+        CGROUP_FS=/sys/fs/cgroup &&
+        [ -e "$$CGROUP_FS" ] &&
+        [ ! -e "$$CGROUP_FS/unified" ] &&
+        [ -e "$$CGROUP_FS/cgroup.subtree_control" ] &&
+        cd "$$CGROUP_FS" &&
+        mkdir -p isolate &&
+        { echo 1 > isolate/cgroup.procs || true; } &&
+        { echo '+cpuset +cpu +io +memory +pids' > cgroup.subtree_control || true; } &&
+        cd isolate &&
+        mkdir -p init &&
+        { echo 1 > init/cgroup.procs || true; } &&
+        { echo '+cpuset +memory' > cgroup.subtree_control || true; } &&
+        echo "Initialized cgroup" &&
+        chown -R piston:piston /piston &&
+        su -- piston -c 'ulimit -n 65536 && node /piston_api/src' &
+        api_pid=$$! &&
+        node -e "
+        const http = require('http');
+        const request = (method, path, body) => new Promise((resolve, reject) => {
+          const req = http.request(
+            {
+              hostname: '127.0.0.1',
+              port: 2000,
+              path,
+              method,
+              headers: body ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } : {}
+            },
+            (res) => {
+              let data = '';
+              res.on('data', (chunk) => data += chunk);
+              res.on('end', () => resolve({ status: res.statusCode, data }));
+            }
+          );
+          req.on('error', reject);
+          if (body) req.write(body);
+          req.end();
+        });
+        (async () => {
+          for (let i = 0; i < 60; i += 1) {
+            try {
+              const packages = await request('GET', '/api/v2/packages');
+              if (packages.status === 200) {
+                const list = JSON.parse(packages.data);
+                const rustInstalled = list.some((pkg) => pkg.language === 'rust' && pkg.installed);
+                if (!rustInstalled) {
+                  const install = await request('POST', '/api/v2/packages', JSON.stringify({ language: 'rust', version: '*' }));
+                  if (install.status < 200 || install.status >= 300) {
+                    throw new Error('Rust install failed: ' + install.status + ' ' + install.data);
+                  }
+                }
+                return;
+              }
+            } catch (_) {}
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
+          throw new Error('Timed out waiting for the Piston API to become ready');
+        })().catch((error) => {
+          console.error(error.message || error);
+          process.exit(1);
+        });
+        " &&
+        wait "$$api_pid"
+    volumes:
+      - piston-packages:/piston/packages
+
+volumes:
+  piston-packages:
