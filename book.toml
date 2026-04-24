@@ -14,9 +14,10 @@ preferred-dark-theme = "navy"
 smart-punctuation = true
 mathjax-support = true
 git-repository-url = "https://github.com/ani2fun/note-book/tree/main"
-additional-css = ["theme/custom.css"]
+additional-css = ["theme/custom.css", "theme/extra-themes.css"]
 additional-js = [
   "theme/mermaid-init.js",
+  "theme/extra-themes.js",
   "theme/lang-tabs.js",
   "theme/python-playground.js",
   "theme/sql-playground.js",

@@ -1,0 +1,287 @@
+/* =========================================================
+   Extra themes — color variables only.
+   Each rule mirrors mdbook's built-in theme variables so the
+   rest of the UI (sidebar, code blocks, links, etc.) Just Works.
+   ========================================================= */
+
+/* ---------- Polar Night (Nord, dark) ---------- */
+.polar-night {
+    --bg: #2e3440;
+    --fg: #d8dee9;
+
+    --sidebar-bg: #272b35;
+    --sidebar-fg: #d8dee9;
+    --sidebar-non-existant: #4c566a;
+    --sidebar-active: #88c0d0;
+    --sidebar-spacer: #3b4252;
+
+    --scrollbar: #4c566a;
+
+    --icons: #4c566a;
+    --icons-hover: #d8dee9;
+
+    --links: #88c0d0;
+
+    --inline-code-color: #b48ead;
+
+    --theme-popup-bg: #3b4252;
+    --theme-popup-border: #434c5e;
+    --theme-hover: #434c5e;
+
+    --quote-bg: #3b4252;
+    --quote-border: #81a1c1;
+
+    --warning-border: #ebcb8b;
+
+    --table-border-color: #434c5e;
+    --table-header-bg: #434c5e;
+    --table-alternate-bg: #353b48;
+
+    --searchbar-border-color: #434c5e;
+    --searchbar-bg: #3b4252;
+    --searchbar-fg: #d8dee9;
+    --searchbar-shadow-color: #000;
+    --searchresults-header-fg: #81a1c1;
+    --searchresults-border-color: #434c5e;
+    --searchresults-li-bg: #3b4252;
+    --search-mark-bg: #ebcb8b;
+
+    --color-scheme: dark;
+
+    --code-block-bg: #3b4252;
+}
+
+/* ---------- Snow Storm (Nord, light) ---------- */
+.snow-storm {
+    --bg: #eceff4;
+    --fg: #2e3440;
+
+    --sidebar-bg: #e5e9f0;
+    --sidebar-fg: #2e3440;
+    --sidebar-non-existant: #aab1be;
+    --sidebar-active: #5e81ac;
+    --sidebar-spacer: #d8dee9;
+
+    --scrollbar: #aab1be;
+
+    --icons: #4c566a;
+    --icons-hover: #2e3440;
+
+    --links: #5e81ac;
+
+    --inline-code-color: #b48ead;
+
+    --theme-popup-bg: #e5e9f0;
+    --theme-popup-border: #d8dee9;
+    --theme-hover: #d8dee9;
+
+    --quote-bg: #e5e9f0;
+    --quote-border: #81a1c1;
+
+    --warning-border: #d08770;
+
+    --table-border-color: #d8dee9;
+    --table-header-bg: #e5e9f0;
+    --table-alternate-bg: #e9ecf2;
+
+    --searchbar-border-color: #d8dee9;
+    --searchbar-bg: #eceff4;
+    --searchbar-fg: #2e3440;
+    --searchbar-shadow-color: #aaa;
+    --searchresults-header-fg: #4c566a;
+    --searchresults-border-color: #d8dee9;
+    --searchresults-li-bg: #eceff4;
+    --search-mark-bg: #ebcb8b;
+
+    --color-scheme: light;
+
+    --code-block-bg: #e5e9f0;
+}
+
+/* ---------- Dracula ---------- */
+.dracula {
+    --bg: #282a36;
+    --fg: #f8f8f2;
+
+    --sidebar-bg: #21222c;
+    --sidebar-fg: #f8f8f2;
+    --sidebar-non-existant: #6272a4;
+    --sidebar-active: #bd93f9;
+    --sidebar-spacer: #44475a;
+
+    --scrollbar: #6272a4;
+
+    --icons: #6272a4;
+    --icons-hover: #f8f8f2;
+
+    --links: #8be9fd;
+
+    --inline-code-color: #ff79c6;
+
+    --theme-popup-bg: #21222c;
+    --theme-popup-border: #44475a;
+    --theme-hover: #44475a;
+
+    --quote-bg: #44475a;
+    --quote-border: #bd93f9;
+
+    --warning-border: #ffb86c;
+
+    --table-border-color: #44475a;
+    --table-header-bg: #44475a;
+    --table-alternate-bg: #2d2f3b;
+
+    --searchbar-border-color: #44475a;
+    --searchbar-bg: #21222c;
+    --searchbar-fg: #f8f8f2;
+    --searchbar-shadow-color: #000;
+    --searchresults-header-fg: #6272a4;
+    --searchresults-border-color: #44475a;
+    --searchresults-li-bg: #21222c;
+    --search-mark-bg: #f1fa8c;
+
+    --color-scheme: dark;
+
+    --code-block-bg: #21222c;
+}
+
+/* ---------- Solarized Light ---------- */
+.solarized-light {
+    --bg: #fdf6e3;
+    --fg: #586e75;
+
+    --sidebar-bg: #eee8d5;
+    --sidebar-fg: #586e75;
+    --sidebar-non-existant: #93a1a1;
+    --sidebar-active: #268bd2;
+    --sidebar-spacer: #d6cfb6;
+
+    --scrollbar: #93a1a1;
+
+    --icons: #93a1a1;
+    --icons-hover: #586e75;
+
+    --links: #268bd2;
+
+    --inline-code-color: #d33682;
+
+    --theme-popup-bg: #eee8d5;
+    --theme-popup-border: #d6cfb6;
+    --theme-hover: #d6cfb6;
+
+    --quote-bg: #eee8d5;
+    --quote-border: #93a1a1;
+
+    --warning-border: #cb4b16;
+
+    --table-border-color: #d6cfb6;
+    --table-header-bg: #eee8d5;
+    --table-alternate-bg: #f5efdc;
+
+    --searchbar-border-color: #d6cfb6;
+    --searchbar-bg: #fdf6e3;
+    --searchbar-fg: #586e75;
+    --searchbar-shadow-color: #aaa;
+    --searchresults-header-fg: #657b83;
+    --searchresults-border-color: #d6cfb6;
+    --searchresults-li-bg: #fdf6e3;
+    --search-mark-bg: #b58900;
+
+    --color-scheme: light;
+
+    --code-block-bg: #eee8d5;
+}
+
+/* ---------- Solarized Dark ---------- */
+.solarized-dark {
+    --bg: #002b36;
+    --fg: #93a1a1;
+
+    --sidebar-bg: #00212b;
+    --sidebar-fg: #93a1a1;
+    --sidebar-non-existant: #586e75;
+    --sidebar-active: #2aa198;
+    --sidebar-spacer: #073642;
+
+    --scrollbar: #586e75;
+
+    --icons: #586e75;
+    --icons-hover: #93a1a1;
+
+    --links: #2aa198;
+
+    --inline-code-color: #d33682;
+
+    --theme-popup-bg: #00212b;
+    --theme-popup-border: #073642;
+    --theme-hover: #073642;
+
+    --quote-bg: #073642;
+    --quote-border: #586e75;
+
+    --warning-border: #cb4b16;
+
+    --table-border-color: #073642;
+    --table-header-bg: #073642;
+    --table-alternate-bg: #022b35;
+
+    --searchbar-border-color: #073642;
+    --searchbar-bg: #00212b;
+    --searchbar-fg: #93a1a1;
+    --searchbar-shadow-color: #000;
+    --searchresults-header-fg: #586e75;
+    --searchresults-border-color: #073642;
+    --searchresults-li-bg: #00212b;
+    --search-mark-bg: #b58900;
+
+    --color-scheme: dark;
+
+    --code-block-bg: #073642;
+}
+
+/* ---------- Gruvbox Dark ---------- */
+.gruvbox-dark {
+    --bg: #282828;
+    --fg: #ebdbb2;
+
+    --sidebar-bg: #1d2021;
+    --sidebar-fg: #ebdbb2;
+    --sidebar-non-existant: #928374;
+    --sidebar-active: #fabd2f;
+    --sidebar-spacer: #3c3836;
+
+    --scrollbar: #928374;
+
+    --icons: #928374;
+    --icons-hover: #ebdbb2;
+
+    --links: #83a598;
+
+    --inline-code-color: #fb4934;
+
+    --theme-popup-bg: #1d2021;
+    --theme-popup-border: #3c3836;
+    --theme-hover: #3c3836;
+
+    --quote-bg: #3c3836;
+    --quote-border: #d79921;
+
+    --warning-border: #fe8019;
+
+    --table-border-color: #3c3836;
+    --table-header-bg: #3c3836;
+    --table-alternate-bg: #32302f;
+
+    --searchbar-border-color: #3c3836;
+    --searchbar-bg: #1d2021;
+    --searchbar-fg: #ebdbb2;
+    --searchbar-shadow-color: #000;
+    --searchresults-header-fg: #928374;
+    --searchresults-border-color: #3c3836;
+    --searchresults-li-bg: #1d2021;
+    --search-mark-bg: #d79921;
+
+    --color-scheme: dark;
+
+    --code-block-bg: #1d2021;
+}
