@@ -1,4 +1,22 @@
-# 8. Pattern: Previous closest occurrence
+# 8. Pattern: Previous Closest Occurrence
+
+## The Hook
+
+Stocks. Yesterday's closing price was $48. Today's is $52. You want to know — *for every day in the entire trading history* — **the most recent earlier day whose price was higher**. That's the "previous greater" problem, and the brute-force solution is `for each day, walk backwards looking for a higher price` — O(N²) work that doesn't scale past a few thousand days.
+
+But here's the trick. Once you encounter a *higher* price on day `i`, **every previous day with a price ≤ today's is now irrelevant** for future queries. Why? Because today's price *also* exceeds them, and today is more recent — any future day looking for a "previous greater" will hit today's price before ever reaching theirs. We can throw those obsolete prices away. **Forever.**
+
+That "throw away dominated prices" rule is enforced by a **monotonic stack** — a stack whose values stay in decreasing order from bottom to top. Each element is pushed once, popped at most once, so the total work across all N elements is O(N). The same algorithm computes:
+
+- *Previous greater element* — the most recent earlier value that's strictly bigger.
+- *Previous smaller element* — the most recent earlier value that's strictly smaller.
+- *Stock span* — for each day, how many consecutive previous days had price ≤ today's.
+- *Largest rectangle in histogram* (with both previous- and next-smaller).
+- *Daily temperatures*, *next greater element*, half the trick questions in any FAANG interview...
+
+This is **monotonic-stack** territory, and once you internalise the *"the stack stores candidates that haven't been disqualified yet"* mental model, a startling number of problems open up. This lesson covers four variants — superior (greater), inferior (smaller), and both with circular arrays — with complete 10-language implementations.
+
+---
 
 ## Table of contents
 
@@ -13,780 +31,271 @@
 
 # Understanding the previous closest occurrence pattern
 
-Some problems require us to find, for each item in a sequence, the closest occurrence of a greater or smaller item. One way to solve this problem would be to use nested loops to traverse backward from each item in the sequence until the required greater or smaller item is found. Consider the example below, where we must find the previous greater item for each item in the array.
+The pattern: for each index `i`, find the *closest preceding* index `j < i` whose value satisfies some predicate (`> arr[i]`, `< arr[i]`, etc.). The naive nested loop is O(N²). The monotonic-stack solution is O(N).
 
-// Diagram: Finding the previous greater item for all items in a sequence.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph IN["arr"]
+        I0["3"] --- I1["5"] --- I2["1"] --- I3["6"] --- I4["8"] --- I5["7"]
+    end
+    subgraph OUT["previous greater (PGE)"]
+        O0["−1"] --- O1["−1"] --- O2["5"] --- O3["−1"] --- O4["−1"] --- O5["8"]
+    end
+    NOTE["e.g. arr[2]=1: closest earlier value > 1 is 5"] -.-> O2
+```
 
-Even though the solution is correct, it requires expensive nested loops that makes the overall performance poor. We can leverage the LIFO (Last in, first out) property of a stack to solve this problem in a single pass without any nested loops using the closest occurrence technique.
-
-The previous closest occurrence pattern is a classification of problems that can be solved using the previous closest occurrence technique using a stack.
+<p align="center"><strong>Previous-greater-element (PGE) for an array — for every position, the most recent strictly-greater value to its left, or −1 if none exists. The brute force is O(N²); the monotonic-stack solution is O(N).</strong></p>
 
 ## The previous closest occurrence technique
 
-Consider we have an array of **unique** integers `arr` and we need to find the previous greater integer for all items in the array. It is important to note that not all items in the array may have a previous greater integer.
+Walk the array left to right. Maintain a **monotonic decreasing stack** of values seen so far (top = smallest, bottom = largest). For each new element `x`:
 
-// Diagram: Find the previous greater item for all items in an array arr.
+1. **Pop** every value `≤ x` from the top of the stack. These values can never again be a "previous greater" for any future element — `x` itself is between them and any future query, and `x ≥ them`.
+2. **The new top** (if any) is `x`'s **previous greater** — the closest earlier value that's still strictly greater. If the stack is empty, no such value exists; record `-1`.
+3. **Push `x`** so it's a candidate for elements to come.
 
-We can solve the problem by traversing the array from start to end and maintaining a chain of previous greater items starting from the previous item. We will learn more about the proof of correctness of this technique later in this lesson.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    R["read arr[i] = x"] --> POP["while stack.top() ≤ x:<br/>pop"]
+    POP --> CHK{"stack empty?"}
+    CHK -->|"yes"| W1["PGE[i] = -1"]
+    CHK -->|"no"| W2["PGE[i] = stack.top()"]
+    W1 --> PUSH["push x"]
+    W2 --> PUSH
+    PUSH --> R
+```
 
-We create a stack of integers `stack` to hold this chain and an array `result` that is initialized with a sentinal value (-1) to store the closest previous greater item for each item in the array `arr`. We traverse the array `arr` from start to end, and in each iteration, repeatedly pop the items from the `stack` until the value at the top becomes greater than the current item.
+<p align="center"><strong>Monotonic-stack core loop — pop everything that's been "dominated" by the current element, then the new top is the answer. Each value enters the stack at most once and leaves at most once → total work is O(N).</strong></p>
 
-We then assign the value at the top of the stack as the closest previous greater item for the current item in the `result` array and push the current item at the top of the `stack`. This process is then repeated for the next item in `arr`. Because we only remove items smaller than the current item from the stack before adding the current item, the chain of previous greater items is always maintained. 
+## Why is this O(N)?
 
-At the end of the traversal, the `result` array will have the previous greater item for all items in the array `arr` that have a solution, and for all other items, it will have the sentinal (-1) value.
+The operations look unbounded — there's a `while` loop nested inside the `for` loop — but the **amortised analysis** says otherwise. Across the entire run, every array element is **pushed exactly once** and **popped at most once**. Total stack operations: at most 2N. The outer loop runs N times. Total work: O(N).
 
-// Diagram: Find the previous greater item for all items in an array
-
-## Proof of Correctness
-
-Now consider for any item `arr[j]` in a sequence `arr`, its closest previous greater item is `arr[in]`, whose closest previous greater item is `arr[in-1]`, and so on till `arr[i]` where `arr[i]` does not have any previous greater item such that `i1 < i2 ... < in-1 < in < j`. We maintain this chain of previous greater items as a list `chain`.
-
-We can prove that if we correctly maintain the list `chain` at all steps, as we traverse the sequence, we can use it to find the closest previous greater item for all items in the sequence.
-
-// Diagram: We maintain a chain of previous greater items for the item at index j in chain.
-
-Now, to find the closest previous greater item for `arr[j+1]` there can be two cases.
-
-### 1\. arr\[j+1\] < arr\[j\]
-
-In this case, we simply assign `arr[j]` as the closest previous item for `arr[j+1].` We also add `arr[j+1]` to the list `chain` to ensure it is correct for the next iteration considering `arr[j+2]`.
-
-// Diagram: We can mark the item at index j as the previous greater item for item at index j+1.
-
-### 2\. arr\[j+1\] > arr\[j\]
-
-In this case, we need to look at all items before `arr[j+1]` to find the previous greater item for `arr[j]`. However, since we know looking at `chain` that the closest previous greater item for `arr[j+1]` is `arr[in],` we can ignore all items between indices `in` and `j`.
-
-// Diagram: We can ignore all items in the array between index in and j.
-
-We can similarly continue going back following the closest previous greater item successively in `chain` skipping all array items in between until we find an item that is greater than `arr[j+1].` Consider for this example that `arr[i1] > arr[j+1];` once we reach `arr[i1],` we can mark it as the closest previous greater item for `arr[j+1]`.
-
-// Diagram: We can ignore all items in the array until the index i1.
-
-Finally, we remove all the items from the `chain` until `arr[i1]` and add `arr[j+1]` to ensure the chain of closest previous greater items is correct and start from the previous item as we move to `arr[j+2]` in the next iteration.
-
-// Diagram: We remove all items until arr\[i1\] from the chain for the next iteration.
-
-When we start with the first item in the sequence, the chain `l` is empty as the first item does not have any previous closest greater item. We proved we can find the solution for the `j+1` item if the list `l` holds the chain of the closest previous greater items starting from `j` by following the steps above. Hence it is proved by induction that the solution is correct.
+This is one of the most beautiful amortised arguments in algorithms — a nested `while` masquerading as O(N²) but actually O(N) when you count operations across the whole input rather than per iteration.
 
 ## Algorithm
 
-The algorithm given below outlines the technique to find the previous greater item for all items in an array `arr`.
-
-> **Algorithm**
+> **Algorithm — previous greater element (PGE)**
 >
-> -   **Step 1:** Create an array \`previousGreater\` to store the closest previous greater items for all items in array and initialize it with -1 as a sentinal value
-> -   **Step 2:** Initialize a stack \`stack\` to store the chain of closest previous greater items
-> -   **Step 3:** Iterate in \`arr\` from start to end and in each iteration do the following:
->     -   **Step 3.1:** Pop the items from the top of the \`stack\` while the stack is not empty and the current item is greater than the item at the top of the \`stack\`
->     -   **Step 3.2:** If \`stack\` is not empty, store the item at the top of the \`stack\` as closest previous greater item of the current item in \`previousGreater\` array.
->     -   **Step 3.3:** Push the current item in \`arr\` to the top of the stack \`stack\`
-> -   **Step 4:** The \`previousGreater\` array has the closest previous greater item for items in \`arr\` that have a solution
+> -   **Step 1:** Initialise an empty stack and a result array `pge[0..n-1]` filled with `-1`.
+> -   **Step 2:** For `i` from 0 to n−1:
+>     -   While the stack is non-empty and `stack.top() <= arr[i]`: pop.
+>     -   If the stack is non-empty: `pge[i] = stack.top()`.
+>     -   Push `arr[i]`.
+> -   **Step 3:** Return `pge`.
 
-## Implementation
+For **previous smaller element (PSE)**, swap the comparison: pop while `stack.top() >= arr[i]`.
 
-Given below is the generic code implementation to find the previous greater item for all items in an integer array.
+## Implementation — generic PGE walker
 
-C++
+<div class="lang-tabs">
 
-```cpp
-vector<int> previousGreaterOccurrence(vector<int> &arr)
-{
-    // Array to store the previous greater elements for arr
-    vector<int> previousGreater(arr.size(), -1);
-
-    // Stack to hold the chain of previous greater items
-    stack<int> stack;
-
-    // Iterate over the array
-    for (int i=0; i<arr.size(); i++) {
-        // Keep popping elements from the stack
-        // until we find an item greater than the current item
-        while (!stack.empty() && stack.top() < arr[i]) {
-            stack.pop();
-        }
-
-        // If the stack is not empty, the top item is the previous greater item
-        if (!stack.empty()) {
-            previousGreater[i] = stack.top();
-        }
-
-        // Push the current element onto the stack
-        stack.push(arr[i]);
-    }
-
-    return previousGreater;
-}
-```
-
-Java
-
-```java
-class previousGreaterOccurrence {
-    public List<Integer> previousGreaterOccurrence(List<Integer> arr) {
-
-        // Array to store the previous greater elements for arr
-        List<Integer> previousGreater = new ArrayList<>();
-        for (int i = 0; i < arr.size(); i++) {
-            previousGreater.add(-1);
-        }
-
-        // Stack to hold the chain of previous greater items
-        Stack<Integer> stack = new Stack<>();
-
-        // Iterate over the array
-        for (int i = 0; i < arr.size(); i++) {
-            // Keep popping elements from the stack
-            // until we find an item greater than the current item
-            while (!stack.isEmpty() && stack.peek() < arr.get(i)) {
-                stack.pop();
-            }
-
-            // If the stack is not empty, the top item is the previous greater item
-            if (!stack.isEmpty()) {
-                previousGreater.set(i, stack.peek());
-            }
-
-            // Push the current element onto the stack
-            stack.push(arr.get(i));
-        }
-
-        return previousGreater;
-    }
-```
-
-Typescript
-
-```typescript
-function previousGreaterOccurrence(arr: number[]): number[] {
-  // Array to store the previous greater elements for arr
-  const previousGreater: number[] = new Array(arr.length).fill(-1);
-
-  // Stack to hold the chain of previous greater items
-  const stack: number[] = [];
-
-  // Iterate over the array
-  for (let i = 0; i < arr.length; i++) {
-    // Keep popping elements from the stack
-    // until we find an item greater than the current item
-    while (stack.length > 0 && stack[stack.length - 1] < arr[i]) {
-      stack.pop();
-    }
-
-    // If the stack is not empty, the top item is the previous greater item
-    if (stack.length > 0) {
-      previousGreater[i] = stack[stack.length - 1];
-    }
-
-    // Push the current element onto the stack
-    stack.push(arr[i]);
-  }
-
-  return previousGreater;
-}
-```
-
-Javascript
-
-```javascript
-function previousGreaterOccurrence(arr) {
-  // Array to store the previous greater elements for arr
-  const previousGreater = new Array(arr.length).fill(-1);
-
-  // Stack to hold the chain of previous greater items
-  const stack = [];
-
-  // Iterate over the array
-  for (let i = 0; i < arr.length; i++) {
-    // Keep popping elements from the stack
-    // until we find an item greater than the current item
-    while (stack.length > 0 && stack[stack.length - 1] < arr[i]) {
-      stack.pop();
-    }
-
-    // If the stack is not empty, the top item is the previous greater item
-    if (stack.length > 0) {
-      previousGreater[i] = stack[stack.length - 1];
-    }
-
-    // Push the current element onto the stack
-    stack.push(arr[i]);
-  }
-
-  return previousGreater;
-}
-```
-
-Python
-
-```python
-def previous_greater_occurrence(arr: List[int]) -> List[int]:
-    """
-    Find the previous smaller occurrence for each element in the array.
-
-    :param arr: A list of integers.
-    :return: A list of integers where each element represents the previous smaller element
-             in the input array, or -1 if no such element exists.
-    """
-    # List to store the previous greater elements for arr
-    previous_greater: List[int] = [-1] * len(arr)
-
-    # Stack to hold the chain of previous greater items
-    stack: List[int] = []
-
-    # Iterate over the array
-    for i in range(len(arr)):
-        # Keep popping elements from the stack
-        # until we find an item greater than the current item
-        while stack and stack[-1] < arr[i]:
+```python,editable
+def previous_greater(arr: list) -> list:
+    """For each i, the closest earlier value > arr[i]; -1 if none."""
+    pge = [-1] * len(arr)
+    stack = []
+    for i, x in enumerate(arr):
+        # Pop everything that current x has dominated
+        while stack and stack[-1] <= x:
             stack.pop()
-
-        # If the stack is not empty, the top item is the previous greater item
         if stack:
-            previous_greater[i] = stack[-1]
+            pge[i] = stack[-1]
+        stack.append(x)
+    return pge
 
-        # Push the current element onto the stack
-        stack.append(arr[i])
-
-    return previous_greater
+print(previous_greater([3, 5, 1, 6, 8, 7]))   # [-1, -1, 5, -1, -1, 8]
 ```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static int[] previousGreater(int[] arr) {
+        int n = arr.length;
+        int[] pge = new int[n]; Arrays.fill(pge, -1);
+        Deque<Integer> st = new ArrayDeque<>();
+        for (int i = 0; i < n; i++) {
+            while (!st.isEmpty() && st.peek() <= arr[i]) st.pop();
+            if (!st.isEmpty()) pge[i] = st.peek();
+            st.push(arr[i]);
+        }
+        return pge;
+    }
+    public static void main(String[] args) {
+        System.out.println(Arrays.toString(previousGreater(new int[]{3,5,1,6,8,7})));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+void previous_greater(int *arr, int n, int *pge) {
+    int st[256]; int top = -1;
+    for (int i = 0; i < n; i++) pge[i] = -1;
+    for (int i = 0; i < n; i++) {
+        while (top >= 0 && st[top] <= arr[i]) top--;
+        if (top >= 0) pge[i] = st[top];
+        st[++top] = arr[i];
+    }
+}
+int main() {
+    int a[] = {3,5,1,6,8,7}; int pge[6];
+    previous_greater(a, 6, pge);
+    for (int i = 0; i < 6; i++) printf("%d ", pge[i]); printf("\n");
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <stack>
+#include <vector>
+
+std::vector<int> previousGreater(const std::vector<int> &arr) {
+    int n = (int)arr.size();
+    std::vector<int> pge(n, -1);
+    std::stack<int> st;
+    for (int i = 0; i < n; i++) {
+        while (!st.empty() && st.top() <= arr[i]) st.pop();
+        if (!st.empty()) pge[i] = st.top();
+        st.push(arr[i]);
+    }
+    return pge;
+}
+int main() {
+    auto r = previousGreater({3,5,1,6,8,7});
+    for (int x : r) std::cout << x << " "; std::cout << "\n";
+}
+```
+
+```scala,editable
+import scala.collection.mutable
+
+def previousGreater(arr: Array[Int]): Array[Int] = {
+  val pge = Array.fill(arr.length)(-1)
+  val st = mutable.Stack[Int]()
+  for (i <- arr.indices) {
+    while (st.nonEmpty && st.top <= arr(i)) st.pop()
+    if (st.nonEmpty) pge(i) = st.top
+    st.push(arr(i))
+  }
+  pge
+}
+object Main extends App {
+  println(previousGreater(Array(3,5,1,6,8,7)).mkString(", "))
+}
+```
+
+```javascript,editable
+function previousGreater(arr) {
+    const pge = new Array(arr.length).fill(-1);
+    const st = [];
+    for (let i = 0; i < arr.length; i++) {
+        while (st.length && st[st.length-1] <= arr[i]) st.pop();
+        if (st.length) pge[i] = st[st.length-1];
+        st.push(arr[i]);
+    }
+    return pge;
+}
+console.log(previousGreater([3,5,1,6,8,7]));
+```
+
+```typescript,editable
+function previousGreater(arr: number[]): number[] {
+    const pge = new Array(arr.length).fill(-1);
+    const st: number[] = [];
+    for (let i = 0; i < arr.length; i++) {
+        while (st.length && st[st.length-1] <= arr[i]) st.pop();
+        if (st.length) pge[i] = st[st.length-1];
+        st.push(arr[i]);
+    }
+    return pge;
+}
+console.log(previousGreater([3,5,1,6,8,7]));
+```
+
+```go,editable
+package main
+import "fmt"
+func previousGreater(arr []int) []int {
+    n := len(arr); pge := make([]int, n); for i := range pge { pge[i] = -1 }
+    st := []int{}
+    for i := 0; i < n; i++ {
+        for len(st) > 0 && st[len(st)-1] <= arr[i] { st = st[:len(st)-1] }
+        if len(st) > 0 { pge[i] = st[len(st)-1] }
+        st = append(st, arr[i])
+    }
+    return pge
+}
+func main() { fmt.Println(previousGreater([]int{3,5,1,6,8,7})) }
+```
+
+```kotlin,editable
+fun previousGreater(arr: IntArray): IntArray {
+    val pge = IntArray(arr.size) { -1 }
+    val st = ArrayDeque<Int>()
+    for (i in arr.indices) {
+        while (st.isNotEmpty() && st.last() <= arr[i]) st.removeLast()
+        if (st.isNotEmpty()) pge[i] = st.last()
+        st.addLast(arr[i])
+    }
+    return pge
+}
+fun main() { println(previousGreater(intArrayOf(3,5,1,6,8,7)).toList()) }
+```
+
+```rust,editable
+fn previous_greater(arr: &[i32]) -> Vec<i32> {
+    let mut pge = vec![-1; arr.len()];
+    let mut st: Vec<i32> = Vec::new();
+    for i in 0..arr.len() {
+        while let Some(&top) = st.last() { if top <= arr[i] { st.pop(); } else { break; } }
+        if let Some(&top) = st.last() { pge[i] = top; }
+        st.push(arr[i]);
+    }
+    pge
+}
+fn main() { println!("{:?}", previous_greater(&[3,5,1,6,8,7])); }
+```
+
+</div>
 
 ## Complexity Analysis
 
-The algorithm's time and space complexity is easy to understand. We traverse the sequence from start to end once in any case, and in each iteration, pop one or more items from the stack. Since the stack will only hold all items in the array once, a total of **N** push operations and at max **N** pop operations are done throughout the traversal where each operation is constant **O(1)** time. We may update up to **N** items into the solution array where each operation is constant **O(1)** time. This results in an overall linear **O(N)** time complexity.
-
-We create a result array to store the result which is of the same size as the input contributing **O(N)** space. We copy all the data items to the stack as we traverse the array. When the input sequence is ordered in increasing order of value, all items are accumulated in the stack, leading to **O(N)** space for the stack. In the other case, when the sequence is ordered in the decreasing order of value, the stack will only have 1 item at any time, leading to constant **O(1)** space for the stack, but the result array still contributes to linear **O(N)** space.
-
-And so, in any case, the overall space complexity will be linear **O(N)**.
-
-> **Best Case -**
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case -**
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
-
-Later in the course, we will examine techniques for identifying problems that can be solved using the previous closest occurrence technique and walk through an example to better understand it.
+> **All cases** — Time: **O(N)** amortised | Space: **O(N)** for the stack and result.
 
 ***
 
 # Identifying the previous closest occurrence pattern
 
-The previous closest occurrence technique can only solve some specific problems. These are generally **medium**or **hard** problems involving linear data structures like arrays, strings, or linked lists where we need to find the previous greater or smaller item in the sequence. Most problems under this pattern can be solved by directly applying the previous closest occurrence technique, while some may require additional steps.
+The pattern fits whenever the answer for each position depends on **the closest earlier position satisfying some monotone condition** (greater than, smaller than, equal to, …). The decision rule for the stack:
 
-If the problem statement or its solution follows the generic template below, it can be solved by applying the closest occurrence technique.
-
-**Template:**Given a sequential data structure, find the  closest greater or smaller item in the sequence.
-
-## Example
-
-Let's consider the following problem as an example to better understand how to identify and solve a problem using the closest occurrence technique.
-
-> **Problem statement:** Given two arrays \`arr1\` and \`arr2\` such that \`arr2\` is a subset of \`arr1\` and all items in \`arr1\` are unique, for each item in \`arr2\` find the previous closest greater item in \`arr1\`. If an item does not have a previous greater value, use -1 for it.
-
-// Diagram: Find the previous greater items for items in arr2 in arr1.
-
-## Brute force
-
-The brute-force solution to this problem is to use a loop and iterate in `arr2` and for each item we iterate forward in `arr1` until we find the same item in `arr1`. We initialize a variable `previousGreater` with a sentinal value (-1), and as we iterate through `arr1`, we keep track of the most recent item that is greater than the current item in `arr2` in `previousGreater`. When we find the current value in `arr1`, we use the value `previousGreater` as its previous greater value.
-
-// Diagram: Find the previous greater item for all items in arr2 in arr1
-
-The implementation of the brute force solution is given as follows.
-
-C++
-
-```cpp
-#include <stack>
-#include <unordered_map>
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    vector<int> precedingSuperiorElement(
-        vector<int> &arr1,
-        vector<int> &arr2
-    ) {
-
-        // Array to store the previous greater elements for arr1
-        vector<int> previousGreater(arr1.size(), -1);
-
-        // Map to store the last index of each element in arr1
-        unordered_map<int, int> indexMap;
-
-        // Stack to help find the previous greater element efficiently
-        stack<int> stack;
-
-        // Step 1: Build the previous greater elements array for arr1
-        for (int i = 0; i < arr1.size(); i++) {
-            int num = arr1[i];
-
-            // Remove elements from the stack that are smaller than or
-            // equal to the current element
-            while (!stack.empty() && stack.top() <= num) {
-                stack.pop();
-            }
-
-            // If the stack is not empty, set the previous greater
-            // element
-            if (!stack.empty()) {
-                previousGreater[i] = stack.top();
-            }
-
-            // Push the current element onto the stack for future
-            // elements
-            stack.push(num);
-
-            // Store the index of the current element in the index map
-            indexMap[num] = i;
-        }
-
-        // Step 2: Process arr2 to generate the result
-        vector<int> result;
-        for (int num : arr2) {
-
-            // Push the previous greater element if found, otherwise -1
-            result.push_back(
-                indexMap.count(num) ? previousGreater[indexMap[num]] : -1
-            );
-        }
-
-        return result;
-    }
-};
-```
-
-Java
-
-```java
-public class PrecedingSuperiorElement {
-
-    public List<Integer> precedingSuperiorElement(
-        List<Integer> arr1,
-        List<Integer> arr2) {
-
-        // List to store the previous greater elements for arr2
-        List<Integer> result = new ArrayList<>();
-        for (int i = 0; i < arr2.size(); i++) {
-            result.add(-1);
-        }
-
-        // Iterate through each element in arr2
-        for (int i = 0; i < arr2.size(); i++) {
-            // Variable to store the latest greater value in arr1
-            int previousGreater = -1;
-
-            // Iterate through arr1 to find the preceding superior element
-            for (int j = 0; j < arr1.size(); j++) {
-                // Update previousGreater with the latest value in arr1
-                // greater than the current item in arr2
-                if (arr1.get(j) > arr2.get(i)) {
-                    previousGreater = arr1.get(j);
-                }
-                // If we find the current item in arr1, use the latest
-                // greater value found as the preceding superior element
-                else if (arr1.get(j).equals(arr2.get(i))) {
-                    result.set(i, previousGreater);
-                }
-        return result;
-    }
-```
-
-Typescript
-
-```typescript
-function precedingSuperiorElement(arr1: number[], arr2: number[]): number[] {
-  // Array to store the previous greater elements for arr2
-  const result: number[] = new Array(arr2.length).fill(-1);
-
-  for (let i = 0; i < arr2.length; i++) {
-    // Find the index of this item in arr1
-    let previousGreater = -1;
-    for (let j = 0; j < arr1.length; j++) {
-      // Always keep the latest value in arr1 greater than
-      // current item in arr2
-      if (arr1[j] > arr2[i]) {
-        previousGreater = arr1[j];
-      }
-      // If we find the current item in arr1, use the
-      // latest greater value found as previous greater
-      else if (arr1[j] === arr2[i]) {
-        result[i] = previousGreater;
-      }
-  return result;
-}
-```
-
-Javascript
-
-```javascript
-function precedingSuperiorElement(arr1, arr2) {
-  // Array to store the previous greater elements for arr2
-  const result = new Array(arr2.length).fill(-1);
-
-  for (let i = 0; i < arr2.length; i++) {
-    // Find the index of this item in arr1
-    let previousGreater = -1;
-    for (let j = 0; j < arr1.length; j++) {
-      // Always keep the latest value in arr1 greater than
-      // current item in arr2
-      if (arr1[j] > arr2[i]) {
-        previousGreater = arr1[j];
-      }
-      // If we find the current item in arr1, use the
-      // latest greater value found as previous greater
-      else if (arr1[j] === arr2[i]) {
-        result[i] = previousGreater;
-      }
-  return result;
-}
-```
-
-Python
-
-```python
-def preceding_superior_element(arr1: List[int], arr2: List[int]) -> List[int]:
-    # List to store the previous greater elements for arr2
-    result: List[int] = [-1] * len(arr2)
-
-    for i in range(len(arr2)):
-        # Find the index of this item in arr1
-        previous_greater = -1
-        for j in range(len(arr1)):
-            # Always keep the latest value in arr1 greater than
-            # current item in arr2
-            if arr1[j] > arr2[i]:
-                previous_greater = arr1[j]
-            # If we find the current item in arr1, use the
-            # latest greater value found as previous greater
-            elif arr1[j] == arr2[i]:
-                result[i] = previous_greater
-
-    return result
-```
-
-Though the solution is correct, it requires nested loops and has a time complexity of **O(N^2)** in the worst case when the array items are arranged in increasing order of value in `arr1`.
-
-## The previous closest occurrence technique
-
-We can easily solve this problem by finding the  closest greater item for all items in `arr1` and then only selecting the results for items in `arr2`. The problem description fits the template for the  closest occurrence pattern, as given below.
+- Looking for **previous greater**? Maintain a **decreasing** stack; pop while top `≤` current.
+- Looking for **previous smaller**? Maintain an **increasing** stack; pop while top `≥` current.
 
 **Template:**
-
-Given a sequential data structure (`arr1`), find the previous closest greater item in the sequence.
-
-We can now directly apply the previous closest occurrence technique we learned earlier. We initialize astack of integers `stack` and an array `previousGreater` initialized with a sentinal value (-1) to store the results. We also create a hash map `indexMap` to map values in `arr1` with their indices. We will use this map later to find indices of values in `arr2` in `arr1`.
-
-We traverse the array `arr1` from start to end, and in each iteration, repeatedly pop the items from the `stack` until the value at the top becomes greater than the current item. We then assign the value at the top of the stack as the previous greater item for the current item in the `greaterElements` array and push the current item at the top of the `stack`. Finally we map the current value with its index `arr1` in `indexMap` to be used later. This process is then repeated for the next item in `arr1`.
-
-At the end of the traversal, the `greaterElements` will have the previous greater item for all items in `arr1` that have a solution.
-
-// Diagram: Find the previous greater item for all items in arr1
-
-We create a `result` array, traverse in `arr2` and use the `indexMap` to fill the previous greater items for all items in `arr2` in the `result` array.
-
-// Diagram: Use indexMap to find results for arr2
-
-The implementation of the previous closest occurrence technique is given below.
-
-C++
-
-```cpp
-#include <stack>
-#include <unordered_map>
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    vector<int> precedingSuperiorElement(
-        vector<int> &arr1,
-        vector<int> &arr2
-    ) {
-
-        // Array to store the previous greater elements for arr1
-        vector<int> previousGreater(arr1.size(), -1);
-
-        // Map to store the last index of each element in arr1
-        unordered_map<int, int> indexMap;
-
-        // Stack to help find the previous greater element efficiently
-        stack<int> stack;
-
-        // Step 1: Build the previous greater elements array for arr1
-        for (int i = 0; i < arr1.size(); i++) {
-            int num = arr1[i];
-
-            // Remove elements from the stack that are smaller than or
-            // equal to the current element
-            while (!stack.empty() && stack.top() <= num) {
-                stack.pop();
-            }
-
-            // If the stack is not empty, set the previous greater
-            // element
-            if (!stack.empty()) {
-                previousGreater[i] = stack.top();
-            }
-
-            // Push the current element onto the stack for future
-            // elements
-            stack.push(num);
-
-            // Store the index of the current element in the index map
-            indexMap[num] = i;
-        }
-
-        // Step 2: Process arr2 to generate the result
-        vector<int> result;
-        for (int num : arr2) {
-
-            // Push the previous greater element if found, otherwise -1
-            result.push_back(
-                indexMap.count(num) ? previousGreater[indexMap[num]] : -1
-            );
-        }
-
-        return result;
-    }
-};
-```
-
-Java
-
-```java
-import java.util.*;
-
-class Solution {
-    public int[] precedingSuperiorElement(int[] arr1, int[] arr2) {
-
-        // Array to store the previous greater elements for arr1
-        int[] previousGreater = new int[arr1.length];
-        Arrays.fill(previousGreater, -1);
-
-        // Map to store the last index of each element in arr1
-        Map<Integer, Integer> indexMap = new HashMap<>();
-
-        // Stack to help find the previous greater element efficiently
-        Stack<Integer> stack = new Stack<>();
-
-        // Step 1: Build the previous greater elements array for arr1
-        for (int i = 0; i < arr1.length; i++) {
-            int num = arr1[i];
-
-            // Remove elements from the stack that are smaller than or
-            // equal to the current element
-            while (!stack.isEmpty() && stack.peek() <= num) {
-                stack.pop();
-            }
-
-            // If the stack is not empty, set the previous greater
-            // element
-            if (!stack.isEmpty()) {
-                previousGreater[i] = stack.peek();
-            }
-
-            // Push the current element onto the stack for future
-            // elements
-            stack.push(num);
-
-            // Store the index of the current element in the index map
-            indexMap.put(num, i);
-        }
-
-        // Step 2: Process arr2 to generate the result
-        int[] result = new int[arr2.length];
-        for (int i = 0; i < arr2.length; i++) {
-            int num = arr2[i];
-
-            // Push the previous greater element if found, otherwise -1
-            result[i] =
-                indexMap.containsKey(num)
-                    ? previousGreater[indexMap.get(num)]
-                    : -1;
-        }
-
-        return result;
-    }
-```
-
-Typescript
-
-```typescript
-export class Solution {
-    precedingSuperiorElement(arr1: number[], arr2: number[]): number[] {
-
-        // Array to store the previous greater elements for arr1
-        const previousGreater: number[] = Array(arr1.length).fill(-1);
-
-        // Map to store the last index of each element in arr1
-        const indexMap: Map<number, number> = new Map();
-
-        // Stack to help find the previous greater element efficiently
-        const stack: number[] = [];
-
-        // Step 1: Build the previous greater elements array for arr1
-        for (let i = 0; i < arr1.length; i++) {
-            const num = arr1[i];
-
-            // Remove elements from the stack that are smaller than or
-            // equal to the current element
-            while (stack.length > 0 && stack[stack.length - 1] <= num) {
-                stack.pop();
-            }
-
-            // If the stack is not empty, set the previous greater
-            // element
-            if (stack.length > 0) {
-                previousGreater[i] = stack[stack.length - 1];
-            }
-
-            // Push the current element onto the stack for future
-            // elements
-            stack.push(num);
-
-            // Store the index of the current element in the index map
-            indexMap.set(num, i);
-        }
-
-        // Step 2: Process arr2 to generate the result
-        const result: number[] = [];
-        for (const num of arr2) {
-
-            // Push the previous greater element if found, otherwise -1
-            result.push(
-                indexMap.has(num)
-                    ? previousGreater[indexMap.get(num)!]
-                    : -1
-            );
-        }
-
-        return result;
-    }
-```
-
-Javascript
-
-```javascript
-export class Solution {
-    precedingSuperiorElement(arr1, arr2) {
-
-        // Array to store the previous greater elements for arr1
-        const previousGreater = Array(arr1.length).fill(-1);
-
-        // Map to store the last index of each element in arr1
-        const indexMap = new Map();
-
-        // Stack to help find the previous greater element efficiently
-        const stack = [];
-
-        // Step 1: Build the previous greater elements array for arr1
-        for (let i = 0; i < arr1.length; i++) {
-            const num = arr1[i];
-
-            // Remove elements from the stack that are smaller than or
-            // equal to the current element
-            while (stack.length > 0 && stack[stack.length - 1] <= num) {
-                stack.pop();
-            }
-
-            // If the stack is not empty, set the previous greater
-            // element
-            if (stack.length > 0) {
-                previousGreater[i] = stack[stack.length - 1];
-            }
-
-            // Push the current element onto the stack for future
-            // elements
-            stack.push(num);
-
-            // Store the index of the current element in the index map
-            indexMap.set(num, i);
-        }
-
-        // Step 2: Process arr2 to generate the result
-        const result = [];
-        for (const num of arr2) {
-
-            // Push the previous greater element if found, otherwise -1
-            result.push(
-                indexMap.has(num)
-                    ? previousGreater[indexMap.get(num)]
-                    : -1
-            );
-        }
-
-        return result;
-    }
-```
-
-Python
-
-```python
-from typing import List
-
-class Solution:
-    def preceding_superior_element(
-        self, arr1: List[int], arr2: List[int]
-    ) -> List[int]:
-
-        # Array to store the previous greater elements for arr1
-        previous_greater = [-1] * len(arr1)
-
-        # Map to store the last index of each element in arr1
-        index_map = {}
-
-        # Stack to help find the previous greater element efficiently
-        stack = []
-
-        # Step 1: Build the previous greater elements array for arr1
-        for i, num in enumerate(arr1):
-
-            # Remove elements from the stack that are smaller than or
-            # equal to the current element
-            while stack and stack[-1] <= num:
-                stack.pop()
-
-            # If the stack is not empty, set the previous greater element
-            if stack:
-                previous_greater[i] = stack[-1]
-
-            # Push the current element onto the stack for future elements
-            stack.append(num)
-
-            # Store the index of the current element in the index map
-            index_map[num] = i
-
-        # Step 2: Process arr2 to generate the result
-        result = []
-        for num in arr2:
-
-            # Push the previous greater element if found, otherwise -1
-            result.append(
-                previous_greater[index_map[num]]
-                if num in index_map
-                else -1
-            )
-
-        return result
-```
-
-The previous closest occurrence technique solves the problem in a single pass and linear **O(N)** time.
-
-## Example problems
-
-Most problems in this category are **medium** or **hard**; a list of a few is given below.
-
-> -   **[Preceding superior element](https://www.codeintuition.io/courses/stack/TInEND-V_9_upubzDQwk2)**
-> -   **[Preceding inferior element](https://www.codeintuition.io/courses/stack/wg19uEWxcOAUB8Msutu06)**
-> -   **[Preceding superior element II](https://www.codeintuition.io/courses/stack/uV1EYrYYf8JyrU7TE5Mmj)**
-> -   **[Preceding inferior element II](https://www.codeintuition.io/courses/stack/B8FHC7X4w6OVIfmONnT_S)**
-
-We will now solve these problems to understand the previous closest occurrence technique better.
+> Walk the array; maintain a monotonic stack of un-disqualified candidates; for each new element, pop the dominated ones; the new top is the answer.
 
 ***
 
@@ -794,93 +303,248 @@ We will now solve these problems to understand the previous closest occurrence t
 
 ## Problem Statement
 
-Given two arrays, **arr1**, and **arr2**, such that arr2 is a subset of arr1. Write a function to return a new array containing the preceding superior element of each element present in arr2 from arr1. If there is no superior element for a value, then the answer to that query is `-1.`
-
-The **preceding superior element** of some element **X** in an array is the **first greater element to the left of X** in the same array.
-
-It is guaranteed that all elements in the input arrays will be unique.
+Given two arrays `arr1` and `arr2` (where `arr2` is a subset of `arr1` and all elements are unique), return for each value in `arr2` its **preceding superior element** in `arr1` — the first strictly-greater element to its left in `arr1`. Return `-1` for values with no preceding superior.
 
 ### Example 1
-
-> -   **Input:** arr1 = \[3, 5, 1, 6, 8, 7\], arr2 = \[3, 1, 8, 7\]
-> -   **Output:** \[-1, 5, -1, 8\]
-> -   **Explanation:** Preceding superior element for each element of arr1 in arr2 is given below:
-> -   arr2\[0\] = 3, there is no superior element for this value in arr1, so the result is -1
-> -   arr2\[1\] = 1, superior element for this value in arr1 = 5
-> -   arr2\[2\] = 8, there is no superior element for this value in arr1, so the result is -1
-> -   arr2\[3\] = 7, there is no superior element for this value in arr1, so the result = 8
+> -   **Input:** `arr1 = [3, 5, 1, 6, 8, 7]`, `arr2 = [3, 1, 8, 7]`
+> -   **Output:** `[-1, 5, -1, 8]`
 
 ### Example 2
+> -   **Input:** `arr1 = [5, 9, 7, 8, 1]`, `arr2 = [5, 9, 7]`
+> -   **Output:** `[-1, -1, 9]`
 
-> -   **Input:** arr1 = \[5, 9, 7, 8, 1\], arr2 = \[5, 9, 7\]
-> -   **Output:** \[-1, -1, 9\]
-> -   **Explanation:** Preceding superior element for each element of arr1 in arr2 is given below:
-> -   arr2\[0\] = 5, there is no superior element for this value in arr1, so the result is -1
-> -   arr2\[1\] = 9, there is no superior element for this value in arr1, so the result is -1
-> -   arr2\[2\] = 7, superior element for this value in arr1 = 9
+## Approach
+
+Two passes:
+
+1. Compute the previous-greater-element array `pge` for `arr1` using the monotonic stack (O(N)).
+2. Build a `value → index` map for `arr1`. Then for each query in `arr2`, look up its index and read `pge[index]`.
+
+Total: O(N + M) time, O(N) space.
 
 ## Solution
 
-```cpp
+<div class="lang-tabs">
+
+```python,editable
+def preceding_superior_element(arr1: list, arr2: list) -> list:
+    n = len(arr1)
+    pge = [-1] * n
+    st = []
+    for i, x in enumerate(arr1):
+        while st and st[-1] <= x: st.pop()
+        if st: pge[i] = st[-1]
+        st.append(x)
+    index_of = {x: i for i, x in enumerate(arr1)}
+    return [pge[index_of[v]] if v in index_of else -1 for v in arr2]
+
+print(preceding_superior_element([3,5,1,6,8,7], [3,1,8,7]))   # [-1, 5, -1, 8]
+print(preceding_superior_element([5,9,7,8,1], [5,9,7]))       # [-1, -1, 9]
+```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static int[] precedingSuperiorElement(int[] arr1, int[] arr2) {
+        int n = arr1.length;
+        int[] pge = new int[n]; Arrays.fill(pge, -1);
+        Deque<Integer> st = new ArrayDeque<>();
+        Map<Integer, Integer> idx = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            while (!st.isEmpty() && st.peek() <= arr1[i]) st.pop();
+            if (!st.isEmpty()) pge[i] = st.peek();
+            st.push(arr1[i]);
+            idx.put(arr1[i], i);
+        }
+        int[] out = new int[arr2.length];
+        for (int j = 0; j < arr2.length; j++) {
+            Integer i = idx.get(arr2[j]);
+            out[j] = (i == null) ? -1 : pge[i];
+        }
+        return out;
+    }
+    public static void main(String[] args) {
+        System.out.println(Arrays.toString(precedingSuperiorElement(new int[]{3,5,1,6,8,7}, new int[]{3,1,8,7})));
+        System.out.println(Arrays.toString(precedingSuperiorElement(new int[]{5,9,7,8,1}, new int[]{5,9,7})));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+void preceding_superior_element(int *arr1, int n, int *arr2, int m, int *out) {
+    int pge[256]; int st[256]; int top = -1;
+    for (int i = 0; i < n; i++) pge[i] = -1;
+    int idx_keys[256], idx_vals[256], idx_n = 0;
+    for (int i = 0; i < n; i++) {
+        while (top >= 0 && st[top] <= arr1[i]) top--;
+        if (top >= 0) pge[i] = st[top];
+        st[++top] = arr1[i];
+        idx_keys[idx_n] = arr1[i]; idx_vals[idx_n] = i; idx_n++;
+    }
+    for (int j = 0; j < m; j++) {
+        int found = -1;
+        for (int k = 0; k < idx_n; k++) if (idx_keys[k] == arr2[j]) { found = pge[idx_vals[k]]; break; }
+        out[j] = found;
+    }
+}
+
+int main() {
+    int a[] = {3,5,1,6,8,7}; int q[] = {3,1,8,7}; int r[4];
+    preceding_superior_element(a, 6, q, 4, r);
+    for (int i = 0; i < 4; i++) printf("%d ", r[i]); printf("\n");
+}
+```
+
+```cpp,editable
+#include <iostream>
 #include <stack>
 #include <unordered_map>
+#include <vector>
 
-using namespace std;
-
-class Solution {
-public:
-    vector<int> precedingSuperiorElement(
-        vector<int> &arr1,
-        vector<int> &arr2
-    ) {
-
-        // Array to store the previous greater elements for arr1
-        vector<int> previousGreater(arr1.size(), -1);
-
-        // Map to store the last index of each element in arr1
-        unordered_map<int, int> indexMap;
-
-        // Stack to help find the previous greater element efficiently
-        stack<int> stack;
-
-        // Step 1: Build the previous greater elements array for arr1
-        for (int i = 0; i < arr1.size(); i++) {
-            int num = arr1[i];
-
-            // Remove elements from the stack that are smaller than or
-            // equal to the current element
-            while (!stack.empty() && stack.top() <= num) {
-                stack.pop();
-            }
-
-            // If the stack is not empty, set the previous greater
-            // element
-            if (!stack.empty()) {
-                previousGreater[i] = stack.top();
-            }
-
-            // Push the current element onto the stack for future
-            // elements
-            stack.push(num);
-
-            // Store the index of the current element in the index map
-            indexMap[num] = i;
-        }
-
-        // Step 2: Process arr2 to generate the result
-        vector<int> result;
-        for (int num : arr2) {
-
-            // Push the previous greater element if found, otherwise -1
-            result.push_back(
-                indexMap.count(num) ? previousGreater[indexMap[num]] : -1
-            );
-        }
-
-        return result;
+std::vector<int> precedingSuperiorElement(std::vector<int> &arr1, std::vector<int> &arr2) {
+    int n = (int)arr1.size();
+    std::vector<int> pge(n, -1);
+    std::stack<int> st;
+    std::unordered_map<int, int> idx;
+    for (int i = 0; i < n; i++) {
+        while (!st.empty() && st.top() <= arr1[i]) st.pop();
+        if (!st.empty()) pge[i] = st.top();
+        st.push(arr1[i]);
+        idx[arr1[i]] = i;
     }
-};
+    std::vector<int> out;
+    for (int v : arr2) {
+        auto it = idx.find(v);
+        out.push_back(it == idx.end() ? -1 : pge[it->second]);
+    }
+    return out;
+}
+
+int main() {
+    std::vector<int> a = {3,5,1,6,8,7}, q = {3,1,8,7};
+    auto r = precedingSuperiorElement(a, q);
+    for (int x : r) std::cout << x << " "; std::cout << "\n";
+}
 ```
+
+```scala,editable
+import scala.collection.mutable
+
+def precedingSuperiorElement(arr1: Array[Int], arr2: Array[Int]): Array[Int] = {
+  val pge = Array.fill(arr1.length)(-1)
+  val st  = mutable.Stack[Int]()
+  val idx = mutable.Map[Int, Int]()
+  for (i <- arr1.indices) {
+    while (st.nonEmpty && st.top <= arr1(i)) st.pop()
+    if (st.nonEmpty) pge(i) = st.top
+    st.push(arr1(i)); idx(arr1(i)) = i
+  }
+  arr2.map(v => idx.get(v).map(pge(_)).getOrElse(-1))
+}
+object Main extends App {
+  println(precedingSuperiorElement(Array(3,5,1,6,8,7), Array(3,1,8,7)).mkString(", "))
+  println(precedingSuperiorElement(Array(5,9,7,8,1), Array(5,9,7)).mkString(", "))
+}
+```
+
+```javascript,editable
+function precedingSuperiorElement(arr1, arr2) {
+    const n = arr1.length;
+    const pge = new Array(n).fill(-1);
+    const st = [];
+    const idx = new Map();
+    for (let i = 0; i < n; i++) {
+        while (st.length && st[st.length-1] <= arr1[i]) st.pop();
+        if (st.length) pge[i] = st[st.length-1];
+        st.push(arr1[i]); idx.set(arr1[i], i);
+    }
+    return arr2.map(v => idx.has(v) ? pge[idx.get(v)] : -1);
+}
+console.log(precedingSuperiorElement([3,5,1,6,8,7], [3,1,8,7]));
+console.log(precedingSuperiorElement([5,9,7,8,1], [5,9,7]));
+```
+
+```typescript,editable
+function precedingSuperiorElement(arr1: number[], arr2: number[]): number[] {
+    const n = arr1.length;
+    const pge = new Array(n).fill(-1);
+    const st: number[] = [];
+    const idx = new Map<number, number>();
+    for (let i = 0; i < n; i++) {
+        while (st.length && st[st.length-1] <= arr1[i]) st.pop();
+        if (st.length) pge[i] = st[st.length-1];
+        st.push(arr1[i]); idx.set(arr1[i], i);
+    }
+    return arr2.map(v => idx.has(v) ? pge[idx.get(v)!] : -1);
+}
+console.log(precedingSuperiorElement([3,5,1,6,8,7], [3,1,8,7]));
+```
+
+```go,editable
+package main
+import "fmt"
+func precedingSuperiorElement(arr1, arr2 []int) []int {
+    n := len(arr1); pge := make([]int, n); for i := range pge { pge[i] = -1 }
+    st := []int{}
+    idx := make(map[int]int)
+    for i, x := range arr1 {
+        for len(st) > 0 && st[len(st)-1] <= x { st = st[:len(st)-1] }
+        if len(st) > 0 { pge[i] = st[len(st)-1] }
+        st = append(st, x); idx[x] = i
+    }
+    out := make([]int, len(arr2))
+    for j, v := range arr2 {
+        if i, ok := idx[v]; ok { out[j] = pge[i] } else { out[j] = -1 }
+    }
+    return out
+}
+func main() {
+    fmt.Println(precedingSuperiorElement([]int{3,5,1,6,8,7}, []int{3,1,8,7}))
+    fmt.Println(precedingSuperiorElement([]int{5,9,7,8,1}, []int{5,9,7}))
+}
+```
+
+```kotlin,editable
+fun precedingSuperiorElement(arr1: IntArray, arr2: IntArray): IntArray {
+    val pge = IntArray(arr1.size) { -1 }
+    val st = ArrayDeque<Int>()
+    val idx = HashMap<Int, Int>()
+    for (i in arr1.indices) {
+        while (st.isNotEmpty() && st.last() <= arr1[i]) st.removeLast()
+        if (st.isNotEmpty()) pge[i] = st.last()
+        st.addLast(arr1[i]); idx[arr1[i]] = i
+    }
+    return IntArray(arr2.size) { j -> idx[arr2[j]]?.let { pge[it] } ?: -1 }
+}
+fun main() {
+    println(precedingSuperiorElement(intArrayOf(3,5,1,6,8,7), intArrayOf(3,1,8,7)).toList())
+    println(precedingSuperiorElement(intArrayOf(5,9,7,8,1), intArrayOf(5,9,7)).toList())
+}
+```
+
+```rust,editable
+use std::collections::HashMap;
+fn preceding_superior_element(arr1: &[i32], arr2: &[i32]) -> Vec<i32> {
+    let n = arr1.len();
+    let mut pge = vec![-1; n];
+    let mut st: Vec<i32> = Vec::new();
+    let mut idx: HashMap<i32, usize> = HashMap::new();
+    for i in 0..n {
+        while let Some(&t) = st.last() { if t <= arr1[i] { st.pop(); } else { break; } }
+        if let Some(&t) = st.last() { pge[i] = t; }
+        st.push(arr1[i]); idx.insert(arr1[i], i);
+    }
+    arr2.iter().map(|v| idx.get(v).map(|&i| pge[i]).unwrap_or(-1)).collect()
+}
+fn main() {
+    println!("{:?}", preceding_superior_element(&[3,5,1,6,8,7], &[3,1,8,7]));
+    println!("{:?}", preceding_superior_element(&[5,9,7,8,1], &[5,9,7]));
+}
+```
+
+</div>
 
 ***
 
@@ -888,93 +552,227 @@ public:
 
 ## Problem Statement
 
-Given two arrays, **arr1**, and **arr1**, such that arr2 is a subset of arr1. Write a function to return a new array containing the preceding inferior element of each element present in arr2 from arr1. If there is no inferior element for a value, then the answer to that query is `-1.`
-
-The **preceding** inferior **element** of some element **X** in an array is the **first smaller element to the left of X** in the same array.
-
-It is guaranteed that all elements in the input array are unique.
+Same as above but **inferior** = strictly smaller. Maintain an *increasing* monotonic stack; pop while top `≥` current.
 
 ### Example 1
-
-> -   **Input:** arr1 = \[3, 5, 1, 6, 8, 2\], arr2 = \[3, 1, 8, 2\]
-> -   **Output:** \[-1, -1, 6, 1\]
-> -   **Explanation:** Preceding inferior element for each element of arr1 in arr2 is given below:
-> -   arr2\[0\] = 3, there is no inferior element for this value in arr1, so the result is -1
-> -   arr2\[1\] = 1, there is no inferior element for this value in arr1, so the result is -1
-> -   arr2\[2\] = 8, inferior element for this value in arr1 = 6
-> -   arr2\[3\] = 2, inferior element for this value in arr1 = 1
+> -   **Input:** `arr1 = [3, 5, 1, 6, 8, 2]`, `arr2 = [3, 1, 8, 2]`
+> -   **Output:** `[-1, -1, 6, 1]`
 
 ### Example 2
-
-> -   **Input:** arr1 = \[5, 9, 7, 8, 1\], arr2 = \[5, 9, 7\]
-> -   **Output:** \[-1, 5, 5\]
-> -   **Explanation:** Preceding inferior element for each element of arr1 in arr2 is given below:
-> -   arr2\[0\] = 5, there is no inferior element for this value in arr1 so, the result is -1
-> -   arr2\[1\] = 9, inferior element for this value in arr1 = 5
-> -   arr2\[2\] = 7, inferior element for this value in arr1 = 5
+> -   **Input:** `arr1 = [5, 9, 7, 8, 1]`, `arr2 = [5, 9, 7]`
+> -   **Output:** `[-1, 5, 5]`
 
 ## Solution
 
-```cpp
+<div class="lang-tabs">
+
+```python,editable
+def preceding_inferior_element(arr1: list, arr2: list) -> list:
+    n = len(arr1)
+    pse = [-1] * n
+    st = []
+    for i, x in enumerate(arr1):
+        while st and st[-1] >= x: st.pop()    # increasing monotonic
+        if st: pse[i] = st[-1]
+        st.append(x)
+    idx = {x: i for i, x in enumerate(arr1)}
+    return [pse[idx[v]] if v in idx else -1 for v in arr2]
+
+print(preceding_inferior_element([3,5,1,6,8,2], [3,1,8,2]))   # [-1, -1, 6, 1]
+print(preceding_inferior_element([5,9,7,8,1], [5,9,7]))       # [-1, 5, 5]
+```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static int[] precedingInferiorElement(int[] arr1, int[] arr2) {
+        int n = arr1.length;
+        int[] pse = new int[n]; Arrays.fill(pse, -1);
+        Deque<Integer> st = new ArrayDeque<>();
+        Map<Integer, Integer> idx = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            while (!st.isEmpty() && st.peek() >= arr1[i]) st.pop();
+            if (!st.isEmpty()) pse[i] = st.peek();
+            st.push(arr1[i]); idx.put(arr1[i], i);
+        }
+        int[] out = new int[arr2.length];
+        for (int j = 0; j < arr2.length; j++) {
+            Integer i = idx.get(arr2[j]);
+            out[j] = (i == null) ? -1 : pse[i];
+        }
+        return out;
+    }
+    public static void main(String[] args) {
+        System.out.println(Arrays.toString(precedingInferiorElement(new int[]{3,5,1,6,8,2}, new int[]{3,1,8,2})));
+        System.out.println(Arrays.toString(precedingInferiorElement(new int[]{5,9,7,8,1}, new int[]{5,9,7})));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+void preceding_inferior_element(int *arr1, int n, int *arr2, int m, int *out) {
+    int pse[256], st[256]; int top = -1;
+    for (int i = 0; i < n; i++) pse[i] = -1;
+    int kk[256], vv[256], nn = 0;
+    for (int i = 0; i < n; i++) {
+        while (top >= 0 && st[top] >= arr1[i]) top--;
+        if (top >= 0) pse[i] = st[top];
+        st[++top] = arr1[i];
+        kk[nn] = arr1[i]; vv[nn] = i; nn++;
+    }
+    for (int j = 0; j < m; j++) {
+        int found = -1;
+        for (int k = 0; k < nn; k++) if (kk[k] == arr2[j]) { found = pse[vv[k]]; break; }
+        out[j] = found;
+    }
+}
+int main() {
+    int a[] = {3,5,1,6,8,2}; int q[] = {3,1,8,2}; int r[4];
+    preceding_inferior_element(a, 6, q, 4, r);
+    for (int i = 0; i < 4; i++) printf("%d ", r[i]); printf("\n");
+}
+```
+
+```cpp,editable
+#include <iostream>
 #include <stack>
 #include <unordered_map>
+#include <vector>
 
-using namespace std;
-
-class Solution {
-public:
-    vector<int> precedingInferiorElement(
-        vector<int> &arr1,
-        vector<int> &arr2
-    ) {
-
-        // Array to store the previous smaller elements for arr1
-        vector<int> previousSmaller(arr1.size(), -1);
-
-        // Map to store the last index of each element in arr1
-        unordered_map<int, int> indexMap;
-
-        // Stack to help find the previous smaller element efficiently
-        stack<int> stack;
-
-        // Step 1: Build the previous smaller elements array for arr1
-        for (int i = 0; i < arr1.size(); i++) {
-            int num = arr1[i];
-
-            // Remove elements from the stack that are greater than or
-            // equal to the current element
-            while (!stack.empty() && stack.top() >= num) {
-                stack.pop();
-            }
-
-            // If the stack is not empty, set the previous smaller
-            // element
-            if (!stack.empty()) {
-                previousSmaller[i] = stack.top();
-            }
-
-            // Push the current element onto the stack for future
-            // elements
-            stack.push(num);
-
-            // Store the index of the current element in the index map
-            indexMap[num] = i;
-        }
-
-        // Step 2: Process arr2 to generate the result
-        vector<int> result;
-        for (int num : arr2) {
-
-            // Push the previous smaller element if found, otherwise -1
-            result.push_back(
-                indexMap.count(num) ? previousSmaller[indexMap[num]] : -1
-            );
-        }
-
-        return result;
+std::vector<int> precedingInferiorElement(std::vector<int> &arr1, std::vector<int> &arr2) {
+    int n = (int)arr1.size();
+    std::vector<int> pse(n, -1);
+    std::stack<int> st;
+    std::unordered_map<int, int> idx;
+    for (int i = 0; i < n; i++) {
+        while (!st.empty() && st.top() >= arr1[i]) st.pop();
+        if (!st.empty()) pse[i] = st.top();
+        st.push(arr1[i]); idx[arr1[i]] = i;
     }
-};
+    std::vector<int> out;
+    for (int v : arr2) {
+        auto it = idx.find(v);
+        out.push_back(it == idx.end() ? -1 : pse[it->second]);
+    }
+    return out;
+}
+int main() {
+    std::vector<int> a = {3,5,1,6,8,2}, q = {3,1,8,2};
+    auto r = precedingInferiorElement(a, q);
+    for (int x : r) std::cout << x << " "; std::cout << "\n";
+}
 ```
+
+```scala,editable
+import scala.collection.mutable
+def precedingInferiorElement(arr1: Array[Int], arr2: Array[Int]): Array[Int] = {
+  val pse = Array.fill(arr1.length)(-1)
+  val st  = mutable.Stack[Int]()
+  val idx = mutable.Map[Int, Int]()
+  for (i <- arr1.indices) {
+    while (st.nonEmpty && st.top >= arr1(i)) st.pop()
+    if (st.nonEmpty) pse(i) = st.top
+    st.push(arr1(i)); idx(arr1(i)) = i
+  }
+  arr2.map(v => idx.get(v).map(pse(_)).getOrElse(-1))
+}
+object Main extends App {
+  println(precedingInferiorElement(Array(3,5,1,6,8,2), Array(3,1,8,2)).mkString(", "))
+  println(precedingInferiorElement(Array(5,9,7,8,1), Array(5,9,7)).mkString(", "))
+}
+```
+
+```javascript,editable
+function precedingInferiorElement(arr1, arr2) {
+    const n = arr1.length;
+    const pse = new Array(n).fill(-1);
+    const st = [], idx = new Map();
+    for (let i = 0; i < n; i++) {
+        while (st.length && st[st.length-1] >= arr1[i]) st.pop();
+        if (st.length) pse[i] = st[st.length-1];
+        st.push(arr1[i]); idx.set(arr1[i], i);
+    }
+    return arr2.map(v => idx.has(v) ? pse[idx.get(v)] : -1);
+}
+console.log(precedingInferiorElement([3,5,1,6,8,2], [3,1,8,2]));
+console.log(precedingInferiorElement([5,9,7,8,1], [5,9,7]));
+```
+
+```typescript,editable
+function precedingInferiorElement(arr1: number[], arr2: number[]): number[] {
+    const n = arr1.length;
+    const pse = new Array(n).fill(-1);
+    const st: number[] = []; const idx = new Map<number, number>();
+    for (let i = 0; i < n; i++) {
+        while (st.length && st[st.length-1] >= arr1[i]) st.pop();
+        if (st.length) pse[i] = st[st.length-1];
+        st.push(arr1[i]); idx.set(arr1[i], i);
+    }
+    return arr2.map(v => idx.has(v) ? pse[idx.get(v)!] : -1);
+}
+console.log(precedingInferiorElement([3,5,1,6,8,2], [3,1,8,2]));
+```
+
+```go,editable
+package main
+import "fmt"
+func precedingInferiorElement(arr1, arr2 []int) []int {
+    n := len(arr1); pse := make([]int, n); for i := range pse { pse[i] = -1 }
+    st := []int{}; idx := make(map[int]int)
+    for i, x := range arr1 {
+        for len(st) > 0 && st[len(st)-1] >= x { st = st[:len(st)-1] }
+        if len(st) > 0 { pse[i] = st[len(st)-1] }
+        st = append(st, x); idx[x] = i
+    }
+    out := make([]int, len(arr2))
+    for j, v := range arr2 { if i, ok := idx[v]; ok { out[j] = pse[i] } else { out[j] = -1 } }
+    return out
+}
+func main() {
+    fmt.Println(precedingInferiorElement([]int{3,5,1,6,8,2}, []int{3,1,8,2}))
+    fmt.Println(precedingInferiorElement([]int{5,9,7,8,1}, []int{5,9,7}))
+}
+```
+
+```kotlin,editable
+fun precedingInferiorElement(arr1: IntArray, arr2: IntArray): IntArray {
+    val pse = IntArray(arr1.size) { -1 }
+    val st = ArrayDeque<Int>(); val idx = HashMap<Int, Int>()
+    for (i in arr1.indices) {
+        while (st.isNotEmpty() && st.last() >= arr1[i]) st.removeLast()
+        if (st.isNotEmpty()) pse[i] = st.last()
+        st.addLast(arr1[i]); idx[arr1[i]] = i
+    }
+    return IntArray(arr2.size) { j -> idx[arr2[j]]?.let { pse[it] } ?: -1 }
+}
+fun main() {
+    println(precedingInferiorElement(intArrayOf(3,5,1,6,8,2), intArrayOf(3,1,8,2)).toList())
+    println(precedingInferiorElement(intArrayOf(5,9,7,8,1), intArrayOf(5,9,7)).toList())
+}
+```
+
+```rust,editable
+use std::collections::HashMap;
+fn preceding_inferior_element(arr1: &[i32], arr2: &[i32]) -> Vec<i32> {
+    let n = arr1.len();
+    let mut pse = vec![-1; n];
+    let mut st: Vec<i32> = Vec::new();
+    let mut idx: HashMap<i32, usize> = HashMap::new();
+    for i in 0..n {
+        while let Some(&t) = st.last() { if t >= arr1[i] { st.pop(); } else { break; } }
+        if let Some(&t) = st.last() { pse[i] = t; }
+        st.push(arr1[i]); idx.insert(arr1[i], i);
+    }
+    arr2.iter().map(|v| idx.get(v).map(|&i| pse[i]).unwrap_or(-1)).collect()
+}
+fn main() {
+    println!("{:?}", preceding_inferior_element(&[3,5,1,6,8,2], &[3,1,8,2]));
+    println!("{:?}", preceding_inferior_element(&[5,9,7,8,1], &[5,9,7]));
+}
+```
+
+</div>
 
 ***
 
@@ -982,78 +780,236 @@ public:
 
 ## Problem Statement
 
-Given a circular array **arr**, write a function to return a new array containing the precedingsuperior element of each element present in arr. Since the array is circular, to find the preceding superior element, you could look circularly to the right until you find an element or reach the same element. If there is no superior element for a value, then the answer to that query is `-1`.
-
-The **preceding superior element** of some element **X** in an array is the **first greater element to the left of X** in the same array.
+Same as preceding superior element, but the array is **circular** — when looking for a "preceding greater" you may wrap around past the start to the end of the array. If no greater exists even after a full circle, return `-1`.
 
 ### Example 1
-
-> -   **Input:** arr = \[2, 5, 1, 6, 10, 3\]
-> -   **Output:** \[3, 10, 5, 10, -1, 10\]
-> -   **Explanation:** Preceding superior element for each element of arr is given below:
-> -   arr\[0\] = 2, after visiting the array circularly, we find the superior element for this value in arr = 3
-> -   arr\[1\] = 5, after visiting the array circularly, we find the superior element for this value in arr = 10
-> -   arr\[2\] = 1, superior element for this value in arr = 5
-> -   arr\[3\] = 6, after visiting the array circularly, we find the superior element for this value in arr = 10
-> -   arr\[4\] = 10, there is no superior element for this value in arr, even after circularly visiting the array, so the result is -1
-> -   arr\[5\] = 3, superior element for this value in arr = 10
+> -   **Input:** `arr = [2, 5, 1, 6, 10, 3]`
+> -   **Output:** `[3, 10, 5, 10, -1, 10]`
 
 ### Example 2
+> -   **Input:** `arr = [6, 7, 8, 9, 8]`
+> -   **Output:** `[8, 8, 9, -1, 9]`
 
-> -   **Input:** arr = \[6, 7, 8, 9, 8\]
-> -   **Output:** \[8, 8, 9, -1, 9\]
-> -   **Explanation:** Preceding superior element for each element of arr is given below:
-> -   arr\[0\] = 6, after visiting the array circularly, we find the superior element for this value in arr = 8
-> -   arr\[1\] = 7, after visiting the array circularly, we find the superior element for this value in arr = 8
-> -   arr\[2\] = 8, after visiting the array circularly, we find the superior element for this value in arr = 9
-> -   arr\[3\] = 9, there is no superior element for this value in arr, even after circularly visiting the array, so the result is -1
-> -   arr\[4\] = 8, superior element for this value in arr = 9
+## Approach — the doubled-array trick
+
+A circular array can be linearised by **iterating over `2n` indices**, mapping each index `i` to `i % n`. Each element gets two chances at finding its preceding greater — once on the "natural" pass and once with the wrap-around in play. Because every original element is processed twice, the time is still O(N).
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["arr = [2, 5, 1, 6, 10, 3]"] -->|"iterate 2n with i % n"| B["effective sequence:<br/>2 5 1 6 10 3 | 2 5 1 6 10 3"]
+    B --> C["normal monotonic-stack walk on the doubled stream;<br/>only update result[i % n] if not yet set"]
+    C --> R["result: [3, 10, 5, 10, -1, 10]"]
+    style R fill:#dcfce7,stroke:#22c55e
+```
+
+<p align="center"><strong>Doubled-array trick — iterate <code>2n</code> times with <code>i % n</code> indexing. The first pass establishes most answers; the second pass catches values whose "previous greater" is on the other side of the wrap. Result is O(N) with O(N) extra space.</strong></p>
 
 ## Solution
 
-```cpp
-#include <stack>
+<div class="lang-tabs">
 
-using namespace std;
+```python,editable
+def preceding_superior_element_ii(arr: list) -> list:
+    n = len(arr)
+    res = [-1] * n
+    st = []                                  # holds VALUES
+    for i in range(2 * n):
+        idx = i % n
+        while st and st[-1] <= arr[idx]: st.pop()
+        if st and res[idx] == -1: res[idx] = st[-1]
+        st.append(arr[idx])
+    return res
 
-class Solution {
-public:
-    vector<int> precedingSuperiorElementII(vector<int> &arr) {
-        int n = arr.size();
-
-        // Initialize result with -1
-        vector<int> result(n, -1);
-
-        // Stack to store indices of elements
-        stack<int> stack;
-
-        // Iterate twice through the array (circularly)
-        for (int i = 0; i < 2 * n; i++) {
-
-            // Circular index
-            int index = i % n;
-            int num = arr[index];
-
-            // Check if we can pop elements from the stack
-            // (i.e., find the preceding greater element)
-            while (!stack.empty() && stack.top() <= num) {
-                stack.pop();
-            }
-
-            // If stack is not empty, the top element is the preceding
-            // superior element
-            if (!stack.empty()) {
-                result[index] = stack.top();
-            }
-
-            // Always push the element to the stack
-            stack.push(num);
-        }
-
-        return result;
-    }
-};
+print(preceding_superior_element_ii([2,5,1,6,10,3]))   # [3, 10, 5, 10, -1, 10]
+print(preceding_superior_element_ii([6,7,8,9,8]))      # [8, 8, 9, -1, 9]
 ```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static int[] precedingSuperiorElementII(int[] arr) {
+        int n = arr.length;
+        int[] res = new int[n]; Arrays.fill(res, -1);
+        Deque<Integer> st = new ArrayDeque<>();
+        for (int i = 0; i < 2 * n; i++) {
+            int idx = i % n;
+            while (!st.isEmpty() && st.peek() <= arr[idx]) st.pop();
+            if (!st.isEmpty() && res[idx] == -1) res[idx] = st.peek();
+            st.push(arr[idx]);
+        }
+        return res;
+    }
+    public static void main(String[] args) {
+        System.out.println(Arrays.toString(precedingSuperiorElementII(new int[]{2,5,1,6,10,3})));
+        System.out.println(Arrays.toString(precedingSuperiorElementII(new int[]{6,7,8,9,8})));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+void preceding_superior_element_ii(int *arr, int n, int *res) {
+    int st[512]; int top = -1;
+    for (int i = 0; i < n; i++) res[i] = -1;
+    for (int i = 0; i < 2 * n; i++) {
+        int idx = i % n;
+        while (top >= 0 && st[top] <= arr[idx]) top--;
+        if (top >= 0 && res[idx] == -1) res[idx] = st[top];
+        st[++top] = arr[idx];
+    }
+}
+int main() {
+    int a[] = {2,5,1,6,10,3}; int r[6];
+    preceding_superior_element_ii(a, 6, r);
+    for (int i = 0; i < 6; i++) printf("%d ", r[i]); printf("\n");
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <stack>
+#include <vector>
+std::vector<int> precedingSuperiorElementII(std::vector<int> &arr) {
+    int n = (int)arr.size();
+    std::vector<int> res(n, -1);
+    std::stack<int> st;
+    for (int i = 0; i < 2 * n; i++) {
+        int idx = i % n;
+        while (!st.empty() && st.top() <= arr[idx]) st.pop();
+        if (!st.empty() && res[idx] == -1) res[idx] = st.top();
+        st.push(arr[idx]);
+    }
+    return res;
+}
+int main() {
+    std::vector<int> a = {2,5,1,6,10,3};
+    for (int x : precedingSuperiorElementII(a)) std::cout << x << " "; std::cout << "\n";
+}
+```
+
+```scala,editable
+import scala.collection.mutable
+def precedingSuperiorElementII(arr: Array[Int]): Array[Int] = {
+  val n = arr.length
+  val res = Array.fill(n)(-1)
+  val st = mutable.Stack[Int]()
+  for (i <- 0 until 2 * n) {
+    val idx = i % n
+    while (st.nonEmpty && st.top <= arr(idx)) st.pop()
+    if (st.nonEmpty && res(idx) == -1) res(idx) = st.top
+    st.push(arr(idx))
+  }
+  res
+}
+object Main extends App {
+  println(precedingSuperiorElementII(Array(2,5,1,6,10,3)).mkString(", "))
+  println(precedingSuperiorElementII(Array(6,7,8,9,8)).mkString(", "))
+}
+```
+
+```javascript,editable
+function precedingSuperiorElementII(arr) {
+    const n = arr.length;
+    const res = new Array(n).fill(-1);
+    const st = [];
+    for (let i = 0; i < 2 * n; i++) {
+        const idx = i % n;
+        while (st.length && st[st.length-1] <= arr[idx]) st.pop();
+        if (st.length && res[idx] === -1) res[idx] = st[st.length-1];
+        st.push(arr[idx]);
+    }
+    return res;
+}
+console.log(precedingSuperiorElementII([2,5,1,6,10,3]));
+console.log(precedingSuperiorElementII([6,7,8,9,8]));
+```
+
+```typescript,editable
+function precedingSuperiorElementII(arr: number[]): number[] {
+    const n = arr.length;
+    const res = new Array(n).fill(-1);
+    const st: number[] = [];
+    for (let i = 0; i < 2 * n; i++) {
+        const idx = i % n;
+        while (st.length && st[st.length-1] <= arr[idx]) st.pop();
+        if (st.length && res[idx] === -1) res[idx] = st[st.length-1];
+        st.push(arr[idx]);
+    }
+    return res;
+}
+console.log(precedingSuperiorElementII([2,5,1,6,10,3]));
+```
+
+```go,editable
+package main
+import "fmt"
+func precedingSuperiorElementII(arr []int) []int {
+    n := len(arr); res := make([]int, n); for i := range res { res[i] = -1 }
+    st := []int{}
+    for i := 0; i < 2*n; i++ {
+        idx := i % n
+        for len(st) > 0 && st[len(st)-1] <= arr[idx] { st = st[:len(st)-1] }
+        if len(st) > 0 && res[idx] == -1 { res[idx] = st[len(st)-1] }
+        st = append(st, arr[idx])
+    }
+    return res
+}
+func main() {
+    fmt.Println(precedingSuperiorElementII([]int{2,5,1,6,10,3}))
+    fmt.Println(precedingSuperiorElementII([]int{6,7,8,9,8}))
+}
+```
+
+```kotlin,editable
+fun precedingSuperiorElementII(arr: IntArray): IntArray {
+    val n = arr.size
+    val res = IntArray(n) { -1 }
+    val st = ArrayDeque<Int>()
+    for (i in 0 until 2 * n) {
+        val idx = i % n
+        while (st.isNotEmpty() && st.last() <= arr[idx]) st.removeLast()
+        if (st.isNotEmpty() && res[idx] == -1) res[idx] = st.last()
+        st.addLast(arr[idx])
+    }
+    return res
+}
+fun main() {
+    println(precedingSuperiorElementII(intArrayOf(2,5,1,6,10,3)).toList())
+    println(precedingSuperiorElementII(intArrayOf(6,7,8,9,8)).toList())
+}
+```
+
+```rust,editable
+fn preceding_superior_element_ii(arr: &[i32]) -> Vec<i32> {
+    let n = arr.len();
+    let mut res = vec![-1; n];
+    let mut st: Vec<i32> = Vec::new();
+    for i in 0..(2 * n) {
+        let idx = i % n;
+        while let Some(&t) = st.last() { if t <= arr[idx] { st.pop(); } else { break; } }
+        if !st.is_empty() && res[idx] == -1 { res[idx] = *st.last().unwrap(); }
+        st.push(arr[idx]);
+    }
+    res
+}
+fn main() {
+    println!("{:?}", preceding_superior_element_ii(&[2,5,1,6,10,3]));
+    println!("{:?}", preceding_superior_element_ii(&[6,7,8,9,8]));
+}
+```
+
+</div>
 
 ***
 
@@ -1061,75 +1017,220 @@ public:
 
 ## Problem Statement
 
-Given a circular array **arr**, write a function to return a new array containing the preceding inferior element of each element present in arr. Since the array is circular, to find the preceding inferior element, you could look circularly to the right until you find an element or reach the same element. If there is no inferior element for a value, then the answer to that query is `-1`.
-
-The **preceding inferior element** of some element **X** in an array is the **first smaller element that is to the left of X** in the same array.
+Circular variant of preceding inferior. Same approach with the comparison flipped.
 
 ### Example 1
-
-> -   **Input:** arr = \[2, 5, 1, 6, 10, 3\]
-> -   **Output:** \[1, 2, -1, 1, 6, 1\]
-> -   **Explanation:** Preceding inferior element for each element of arr is given below:
-> -   arr\[0\] = 2, after visiting the array circularly, we find the inferior element for this value in arr = 1
-> -   arr\[1\] = 5, after visiting the array circularly, we find the inferior element for this value in arr = 2
-> -   arr\[2\] = 1, there is no inferior element for this value in arr even after circularly visiting the array, so the result is -1
-> -   arr\[3\] = 6, inferior element for this value in arr = 1
-> -   arr\[4\] = 10, inferior element for this value in arr = 6
-> -   arr\[5\] = 3, inferior element for this value in arr = 1
+> -   **Input:** `arr = [2, 5, 1, 6, 10, 3]`
+> -   **Output:** `[1, 2, -1, 1, 6, 1]`
 
 ### Example 2
-
-> -   **Input:** arr = \[6, 7, 8, 9, 8\]
-> -   **Output:** \[-1, 6, 7, 8, 7\]
-> -   **Explanation:** Preceding inferior element for each element of arr is given below:
-> -   arr\[0\] = 6, there is no inferior element for this value in arr, even after circularly visiting the array, so the result is -1
-> -   arr\[1\] = 7, inferior element for this value in arr = 6
-> -   arr\[2\] = 8, inferior element for this value in arr = 7
-> -   arr\[3\] = 9, inferior element for this value in arr = 8
-> -   arr\[4\] = 8, inferior element for this value in arr = 7
+> -   **Input:** `arr = [6, 7, 8, 9, 8]`
+> -   **Output:** `[-1, 6, 7, 8, 7]`
 
 ## Solution
 
-```cpp
-#include <stack>
+<div class="lang-tabs">
 
-using namespace std;
+```python,editable
+def preceding_inferior_element_ii(arr: list) -> list:
+    n = len(arr)
+    res = [-1] * n
+    st = []
+    for i in range(2 * n):
+        idx = i % n
+        while st and st[-1] >= arr[idx]: st.pop()
+        if st and res[idx] == -1: res[idx] = st[-1]
+        st.append(arr[idx])
+    return res
 
-class Solution {
-public:
-    vector<int> precedingInferiorElementII(vector<int> &arr) {
-        int n = arr.size();
-
-        // Initialize result with -1
-        vector<int> result(n, -1);
-
-        // Stack to store indices of elements
-        stack<int> stack;
-
-        // Iterate twice through the array (circularly)
-        for (int i = 0; i < 2 * n; i++) {
-
-            // Circular index
-            int index = i % n;
-            int num = arr[index];
-
-            // Check if we can pop elements from the stack
-            // (i.e., find the preceding smaller element)
-            while (!stack.empty() && stack.top() >= num) {
-                stack.pop();
-            }
-
-            // If stack is not empty, the top element is the preceding
-            // inferior element
-            if (!stack.empty()) {
-                result[index] = stack.top();
-            }
-
-            // Always push the element to the stack
-            stack.push(num);
-        }
-
-        return result;
-    }
-};
+print(preceding_inferior_element_ii([2,5,1,6,10,3]))    # [1, 2, -1, 1, 6, 1]
+print(preceding_inferior_element_ii([6,7,8,9,8]))       # [-1, 6, 7, 8, 7]
 ```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static int[] precedingInferiorElementII(int[] arr) {
+        int n = arr.length;
+        int[] res = new int[n]; Arrays.fill(res, -1);
+        Deque<Integer> st = new ArrayDeque<>();
+        for (int i = 0; i < 2 * n; i++) {
+            int idx = i % n;
+            while (!st.isEmpty() && st.peek() >= arr[idx]) st.pop();
+            if (!st.isEmpty() && res[idx] == -1) res[idx] = st.peek();
+            st.push(arr[idx]);
+        }
+        return res;
+    }
+    public static void main(String[] args) {
+        System.out.println(Arrays.toString(precedingInferiorElementII(new int[]{2,5,1,6,10,3})));
+        System.out.println(Arrays.toString(precedingInferiorElementII(new int[]{6,7,8,9,8})));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+void preceding_inferior_element_ii(int *arr, int n, int *res) {
+    int st[512]; int top = -1;
+    for (int i = 0; i < n; i++) res[i] = -1;
+    for (int i = 0; i < 2 * n; i++) {
+        int idx = i % n;
+        while (top >= 0 && st[top] >= arr[idx]) top--;
+        if (top >= 0 && res[idx] == -1) res[idx] = st[top];
+        st[++top] = arr[idx];
+    }
+}
+int main() {
+    int a[] = {2,5,1,6,10,3}; int r[6];
+    preceding_inferior_element_ii(a, 6, r);
+    for (int i = 0; i < 6; i++) printf("%d ", r[i]); printf("\n");
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <stack>
+#include <vector>
+std::vector<int> precedingInferiorElementII(std::vector<int> &arr) {
+    int n = (int)arr.size();
+    std::vector<int> res(n, -1);
+    std::stack<int> st;
+    for (int i = 0; i < 2 * n; i++) {
+        int idx = i % n;
+        while (!st.empty() && st.top() >= arr[idx]) st.pop();
+        if (!st.empty() && res[idx] == -1) res[idx] = st.top();
+        st.push(arr[idx]);
+    }
+    return res;
+}
+int main() {
+    std::vector<int> a = {2,5,1,6,10,3};
+    for (int x : precedingInferiorElementII(a)) std::cout << x << " "; std::cout << "\n";
+}
+```
+
+```scala,editable
+import scala.collection.mutable
+def precedingInferiorElementII(arr: Array[Int]): Array[Int] = {
+  val n = arr.length
+  val res = Array.fill(n)(-1)
+  val st = mutable.Stack[Int]()
+  for (i <- 0 until 2 * n) {
+    val idx = i % n
+    while (st.nonEmpty && st.top >= arr(idx)) st.pop()
+    if (st.nonEmpty && res(idx) == -1) res(idx) = st.top
+    st.push(arr(idx))
+  }
+  res
+}
+object Main extends App {
+  println(precedingInferiorElementII(Array(2,5,1,6,10,3)).mkString(", "))
+  println(precedingInferiorElementII(Array(6,7,8,9,8)).mkString(", "))
+}
+```
+
+```javascript,editable
+function precedingInferiorElementII(arr) {
+    const n = arr.length;
+    const res = new Array(n).fill(-1);
+    const st = [];
+    for (let i = 0; i < 2 * n; i++) {
+        const idx = i % n;
+        while (st.length && st[st.length-1] >= arr[idx]) st.pop();
+        if (st.length && res[idx] === -1) res[idx] = st[st.length-1];
+        st.push(arr[idx]);
+    }
+    return res;
+}
+console.log(precedingInferiorElementII([2,5,1,6,10,3]));
+console.log(precedingInferiorElementII([6,7,8,9,8]));
+```
+
+```typescript,editable
+function precedingInferiorElementII(arr: number[]): number[] {
+    const n = arr.length;
+    const res = new Array(n).fill(-1);
+    const st: number[] = [];
+    for (let i = 0; i < 2 * n; i++) {
+        const idx = i % n;
+        while (st.length && st[st.length-1] >= arr[idx]) st.pop();
+        if (st.length && res[idx] === -1) res[idx] = st[st.length-1];
+        st.push(arr[idx]);
+    }
+    return res;
+}
+console.log(precedingInferiorElementII([2,5,1,6,10,3]));
+```
+
+```go,editable
+package main
+import "fmt"
+func precedingInferiorElementII(arr []int) []int {
+    n := len(arr); res := make([]int, n); for i := range res { res[i] = -1 }
+    st := []int{}
+    for i := 0; i < 2*n; i++ {
+        idx := i % n
+        for len(st) > 0 && st[len(st)-1] >= arr[idx] { st = st[:len(st)-1] }
+        if len(st) > 0 && res[idx] == -1 { res[idx] = st[len(st)-1] }
+        st = append(st, arr[idx])
+    }
+    return res
+}
+func main() {
+    fmt.Println(precedingInferiorElementII([]int{2,5,1,6,10,3}))
+    fmt.Println(precedingInferiorElementII([]int{6,7,8,9,8}))
+}
+```
+
+```kotlin,editable
+fun precedingInferiorElementII(arr: IntArray): IntArray {
+    val n = arr.size
+    val res = IntArray(n) { -1 }
+    val st = ArrayDeque<Int>()
+    for (i in 0 until 2 * n) {
+        val idx = i % n
+        while (st.isNotEmpty() && st.last() >= arr[idx]) st.removeLast()
+        if (st.isNotEmpty() && res[idx] == -1) res[idx] = st.last()
+        st.addLast(arr[idx])
+    }
+    return res
+}
+fun main() {
+    println(precedingInferiorElementII(intArrayOf(2,5,1,6,10,3)).toList())
+    println(precedingInferiorElementII(intArrayOf(6,7,8,9,8)).toList())
+}
+```
+
+```rust,editable
+fn preceding_inferior_element_ii(arr: &[i32]) -> Vec<i32> {
+    let n = arr.len();
+    let mut res = vec![-1; n];
+    let mut st: Vec<i32> = Vec::new();
+    for i in 0..(2 * n) {
+        let idx = i % n;
+        while let Some(&t) = st.last() { if t >= arr[idx] { st.pop(); } else { break; } }
+        if !st.is_empty() && res[idx] == -1 { res[idx] = *st.last().unwrap(); }
+        st.push(arr[idx]);
+    }
+    res
+}
+fn main() {
+    println!("{:?}", preceding_inferior_element_ii(&[2,5,1,6,10,3]));
+    println!("{:?}", preceding_inferior_element_ii(&[6,7,8,9,8]));
+}
+```
+
+</div>
+
+***
+
+## Final Takeaway
+
+Three lessons:
+
+1. **A monotonic stack stores un-disqualified candidates.** The moment a new element arrives that "dominates" something on the stack (greater or smaller, depending on the variant), the dominated value is no longer a viable answer for any future query. Pop it. The stack stays clean.
+2. **Amortised O(N) is the magic.** A nested `while` looks like O(N²) but each element enters and leaves the stack at most once, capping total stack ops at 2N.
+3. **Circular arrays double the iteration, not the memory.** Iterate `2*n` times with `i % n` indexing; the second pass catches answers that need to wrap around the start.
+
+> *Coming up — same machinery, opposite direction. **Lesson 9** does **next-closest** — for each element, find the closest <em>later</em> element satisfying the condition. Two ways to set this up: scan right-to-left with the same stack rules as previous-closest, or scan left-to-right and resolve answers retroactively when an element pops. The latter is more elegant; the former is more straightforward. Both come up in interviews.*

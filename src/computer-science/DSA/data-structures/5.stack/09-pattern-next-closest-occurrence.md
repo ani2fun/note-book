@@ -1,8 +1,21 @@
-# 9. Pattern: Next closest occurrence
+# 9. Pattern: Next Closest Occurrence
+
+## The Hook
+
+Same idea as the previous lesson, mirrored in time. Instead of "the closest **earlier** element greater than me", it's "the closest **later** element greater than me". Daily-temperatures, stock-span, monotonic-queue scheduling, water-trapping, the largest rectangle in a histogram — all of them are next-closest queries with a monotonic stack at their core.
+
+There are two equally clean ways to implement next-closest. Each way is the inverse of the other:
+
+- **Scan right-to-left** with the same monotonic-stack rule as previous-closest. The "previous" of the reversed array *is* the "next" of the original.
+- **Scan left-to-right**, but **resolve answers retroactively** when an element pops. While walking forward, the current element is everyone's potential "next greater"; whenever it dominates something on the stack, that something's answer is *the current element*. The element you're holding **fills in answers for old elements** as it climbs the stack.
+
+The second style is more elegant and is the one you'll see in real codebases — it's the same pattern that powers the "largest rectangle in histogram" closing-bracket flush, the "trapping rain water" two-bar reduction, and the linked-list-flavoured next-greater problem. This lesson covers seven problems building on it: the basic four (next greater, next smaller, both circular variants), one linked-list variant, and two classic monotonic-stack puzzles — *retained rainwater* and *largest rectangle in a histogram*.
+
+---
 
 ## Table of contents
 
-1. [Understanding the next closest occurrence](#understanding-the-next-closest-occurrence-pattern)
+1. [Understanding the next closest occurrence pattern](#understanding-the-next-closest-occurrence-pattern)
 2. [Identifying the next closest occurrence pattern](#identifying-the-next-closest-occurrence-pattern)
 3. [Succeeding superior element](#succeeding-superior-element)
 4. [Succeeding inferior element](#succeeding-inferior-element)
@@ -16,926 +29,265 @@
 
 # Understanding the next closest occurrence pattern
 
-Some problems require us to find, for each item in a sequence, the next closest occurrence of a data item that is greater than or smaller than it. One way to solve this problem would be to use nested loops to traverse forward from each item in the sequence until the required greater or smaller item is found. Consider the example below where we need to find the next greater item for each item in the array.
+Two equivalent algorithms.
 
-// Diagram: Finding the next greater item for all items in a sequence.
+## Approach 1 — right-to-left scan (mirror of previous-closest)
 
-Even though the solution is correct, it requires expensive nested loops that makes the overall performance poor. We can leverage the LIFO (Last in, first out) property of a stack to solve this problem in a single pass without any nested loops using the closest occurrence technique.
+Walk the array from right to left, maintaining a monotonic decreasing stack. For each `arr[i]`:
 
-The next closest occurrence pattern is a classification of problems that can be solved using the next closest occurrence technique using a stack.
+1. Pop all stack values `≤ arr[i]`.
+2. The new top (if any) is `arr[i]`'s **next greater**.
+3. Push `arr[i]`.
 
-## Using the previous closest occurrence technique
+This is *literally the previous-closest algorithm with the loop reversed*. Same proof of correctness, same O(N) cost.
 
-Consider we are given an array of unique integers `arr` and we need to find the next greater integer for all items in the array. It is important to note that not all items in the array may have a next greater integer.
+## Approach 2 — left-to-right with retroactive resolution
 
-// Diagram: The previous greater items in the reverse direction of traversal is the same as next greater in the forward direction.
+Walk left to right with a monotonic decreasing stack of **indices**. For each `arr[i]`:
 
-We can traverse the array in the reverse direction (end to start) and use the previous closest occurrence technique to find the previous greater item for each item. The previous greater item in the reverse direction would be the next greater item in the forward direction. 
+1. While the stack is non-empty and `arr[stack.top()] < arr[i]`: the current element `arr[i]` is the **next greater** for `arr[stack.top()]`. Record `result[stack.top()] = arr[i]` and pop.
+2. Push `i`.
 
-The technique, algorithm and complexity analysis was explained in detail earlier and so will not be explained here.
+Anyone left on the stack at end-of-input has *no* next-greater — leave their answer as `-1`.
 
-// Diagram: Find the previous greater item for all items in an array in reverse
-
-### Implementation
-
-Given below is the generic code implementation to find the next greater item for all items in an integer array.
-
-C++
-
-```cpp
-vector<int> nextGreaterElement(vector<int> &arr) {
-    // Array to store the next greater elements for arr
-    vector<int> nextGreater(arr.size(), -1);
-
-    // Stack to help find the next greater element efficiently
-    stack<int> stack;
-
-    // Step 1: Build the next greater elements array for arr (Traverse in reverse order)
-    for (int i = arr.size() - 1; i >= 0; i--) {
-        int num = arr[i];
-
-        // Remove elements from the stack that are smaller than or equal to the current element
-        while (!stack.empty() && stack.top() <= num) {
-            stack.pop();
-        }
-
-        // If the stack is not empty, set the next greater element
-        if (!stack.empty()) {
-            nextGreater[i] = stack.top();
-        }
-
-        // Push the current element onto the stack for future elements
-        stack.push(num);
-    }
-
-    return nextGreater;
-}
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    R["read arr[i]"] --> POP["while top < arr[i]:<br/>result[top] = arr[i]<br/>pop"]
+    POP --> PUSH["push i"]
+    PUSH --> R
+    R -->|"end of input"| FL["leftover stack indices → result = -1"]
 ```
 
-Java
+<p align="center"><strong>Left-to-right next-greater — the current element <em>resolves the answers</em> of old elements as it climbs the stack. Each index is pushed once and popped at most once → O(N) total.</strong></p>
 
-```java
+This is the more idiomatic style. Most production monotonic-stack code uses left-to-right with retroactive resolution because it generalises better to "find the next position where some predicate flips" without having to first reverse the array.
 
-class NextGreaterElement {
-    public List<Integer> nextGreaterElement(List<Integer> arr) {
-        // List to store the next greater elements for arr
-        List<Integer> nextGreater = new ArrayList<>();
-        for (int i = 0; i < arr.size(); i++) {
-            nextGreater.add(-1);
-        }
+## Walkthrough — `arr = [3, 5, 1, 6, 8, 7]` (left-to-right NGE)
 
-        // Stack to help find the next greater element efficiently
-        Stack<Integer> stack = new Stack<>();
-
-        // Step 1: Build the next greater elements list for arr (Traverse in reverse order)
-        for (int i = arr.size() - 1; i >= 0; i--) {
-            int num = arr.get(i);
-
-            // Remove elements from the stack that are smaller than or equal to the current element
-            while (!stack.isEmpty() && stack.peek() <= num) {
-                stack.pop();
-            }
-
-            // If the stack is not empty, set the next greater element
-            if (!stack.isEmpty()) {
-                nextGreater.set(i, stack.peek());
-            }
-
-            // Push the current element onto the stack for future elements
-            stack.push(num);
-        }
-
-        return nextGreater;
-    }
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    S0["i=0: 3<br/>push 0<br/>stack: [0]"] --> S1["i=1: 5<br/>arr[0]=3 < 5 → res[0]=5, pop<br/>push 1<br/>stack: [1]"]
+    S1 --> S2["i=2: 1<br/>arr[1]=5 ≥ 1 (no pop)<br/>push 2<br/>stack: [1, 2]"]
+    S2 --> S3["i=3: 6<br/>arr[2]=1 < 6 → res[2]=6, pop<br/>arr[1]=5 < 6 → res[1]=6, pop<br/>push 3<br/>stack: [3]"]
+    S3 --> S4["i=4: 8<br/>arr[3]=6 < 8 → res[3]=8, pop<br/>push 4<br/>stack: [4]"]
+    S4 --> S5["i=5: 7<br/>arr[4]=8 ≥ 7 (no pop)<br/>push 5<br/>stack: [4, 5]"]
+    S5 --> END["EOF: indices 4, 5 left → res[4]=res[5]=-1"]
+    END --> R["result: [5, 6, 6, 8, -1, -1]"]
+    style R fill:#dcfce7,stroke:#22c55e
 ```
 
-Typescript
+<p align="center"><strong>Left-to-right NGE on <code>[3, 5, 1, 6, 8, 7]</code> — when 5 arrives, it resolves index 0; when 6 arrives, it resolves indices 2 and 1; when 8 arrives, it resolves index 3. Indices 4 and 5 never get resolved → their NGE is -1.</strong></p>
 
-```typescript
-function nextGreaterElement(arr: number[]): number[] {
-  // Array to store the next greater elements for arr
-  const nextGreater: number[] = new Array(arr.length).fill(-1);
+## Algorithm
 
-  // Stack to help find the next greater element efficiently
-  const stack: number[] = [];
-
-  // Step 1: Build the next greater elements array for arr (Traverse in reverse order)
-  for (let i = arr.length - 1; i >= 0; i--) {
-    const num = arr[i];
-
-    // Remove elements from the stack that are smaller than or equal to the current element
-    while (stack.length > 0 && stack[stack.length - 1] <= num) {
-      stack.pop();
-    }
-
-    // If the stack is not empty, set the next greater element
-    if (stack.length > 0) {
-      nextGreater[i] = stack[stack.length - 1];
-    }
-
-    // Push the current element onto the stack for future elements
-    stack.push(num);
-  }
-
-  return nextGreater;
-}
-```
-
-Javascript
-
-```javascript
-function nextGreaterElement(arr) {
-  // Array to store the next greater elements for arr
-  const nextGreater = new Array(arr.length).fill(-1);
-
-  // Stack to help find the next greater element efficiently
-  const stack = [];
-
-  // Step 1: Build the next greater elements array for arr (Traverse in reverse order)
-  for (let i = arr.length - 1; i >= 0; i--) {
-    const num = arr[i];
-
-    // Remove elements from the stack that are smaller than or equal to the current element
-    while (stack.length > 0 && stack[stack.length - 1] <= num) {
-      stack.pop();
-    }
-
-    // If the stack is not empty, set the next greater element
-    if (stack.length > 0) {
-      nextGreater[i] = stack[stack.length - 1];
-    }
-
-    // Push the current element onto the stack for future elements
-    stack.push(num);
-  }
-
-  return nextGreater;
-}
-```
-
-Python
-
-```python
-def next_greater_element(arr: List[int]) -> List[int]:
-
-    # List to store the next greater elements for arr
-    next_greater: List[int] = [-1] * len(arr)
-
-    # Stack to help find the next greater element efficiently
-    stack: List[int] = []
-
-    # Step 1: Build the next greater elements array for arr (Traverse in reverse order)
-    for i in range(len(arr) - 1, -1, -1):
-        num = arr[i]
-
-        # Remove elements from the stack that are smaller than or equal to the current element
-        while stack and stack[-1] <= num:
-            stack.pop()
-
-        # If the stack is not empty, set the next greater element
-        if stack:
-            next_greater[i] = stack[-1]
-
-        # Push the current element onto the stack for future elements
-        stack.append(num)
-
-    return next_greater
-```
-
-## The next closest occurrence technique
-
-In case we cannot traverse a sequence in the reverse direction, we can use the next closest occurrence technique to find the next greater item.
-
-Consider we are given an array of unique integers `arr` and we need to find the next greater integer for all items in the array and we cannot traverse the array from end to start.
-
-// Diagram: Find the next greater item for all items in a sequence where reverse traversal is not possible.
-
-We can solve the problem by traversing the array from start to end while maintaining a sorted list of all items seen so far whose next greater item has not been found in the decreasing order of value. We will learn more about the proof of correctness of this technique later in this lesson.
-
-We create a stack `stack` to hold pairs of integers where one integer is the value of the data item and the other integer is its index in the array `arr`. We also create an array `nextGreater` and initialize it with a sentinal value (-1) to store the next greater item for each item in `arr`.
-
-We traverse the array `arr` from start to end, and in each iteration, we repeatedly pop the items from the top of the `stack` until the current item is greater than the value of the item at the top and make the current item their next greater item in `nextGreater` using the index stored in the pair. We then push the current item and its index to the top of the stack and repeat the process for the next item in `arr`. Because we start from an empty stack and remove all items smaller than the current item before adding it to the stack, the values in the stack are always sorted in decreasing order of value from bottom to top as we move to the next item.
-
-At the end of the traversal, the `nextGreater` array will have the next greater item for all items in the array `arr` that have a solution, and for all other items, it will have the sentinal (-1) value.
-
-// Diagram: Find the next greater item for all items in an array
-
-### Algorithm
-
-The algorithm given below outlines the technique to find the next greater item for all items in an array `arr`.
-
-> **Algorithm**
+> **Algorithm — next greater element (NGE), left-to-right with retroactive resolution**
 >
-> -   **Step 1:** Create ann array \`nextGreater\` to store the closest next greater item for all items in \`arr\` and initialize it with -1 as a sentinal value.
-> -   **Step 2:** Initialize a stack \`stack\` to hold pair of integers to store the sorted list of unresolved values and their indices in \`arr\`.
-> -   **Step 3:** Iterate in the array \`arr\` from start to end and in each iteration do the following:
->     -   **Step 3.1:** Repeat the following steps till \`stack\` is not empty and current item in \`arr\` is greater than value of item at top of \`stack\`:
->         -   **Step 3.1.1:** Use the index of the item at top of the \`stack\` to store the current item as its next greater item in \`nextGreater\` array.
->         -   **Step 3.1.2:** Pop the top of the stack
->     -   **Step 3.2:** Push the current item and its index to the top of the \`stack\`
-> -   **Step 4:** The \`nextGreater\` array has the closest next greater item for items in \`arr\` that have a solution.
+> -   **Step 1:** Initialise an empty stack and `nge[0..n-1] = -1`.
+> -   **Step 2:** For `i` from 0 to n−1:
+>     -   While stack non-empty and `arr[stack.top()] < arr[i]`: `nge[stack.pop()] = arr[i]`.
+>     -   Push `i`.
+> -   **Step 3:** Return `nge`.
 
-### Implementation
+For **next smaller**, swap the comparison: `arr[stack.top()] > arr[i]`.
 
-Given below is the generic code implementation to find the next greater item for all items in an integer array.
+## Implementation — generic NGE walker
 
-C++
+<div class="lang-tabs">
 
-```cpp
-vector<int> nextGreaterElement(vector<int> &arr) {
-    // Array to store the next greater elements for arr
-    vector<int> nextGreater(arr.size(), -1);
+```python,editable
+def next_greater(arr: list) -> list:
+    n = len(arr)
+    nge = [-1] * n
+    stack = []                                  # stack of INDICES
+    for i in range(n):
+        while stack and arr[stack[-1]] < arr[i]:
+            nge[stack.pop()] = arr[i]            # retroactive resolution
+        stack.append(i)
+    return nge
 
-    // Stack to help find the next greater element efficiently
-    stack<int> stack;
+print(next_greater([3, 5, 1, 6, 8, 7]))   # [5, 6, 6, 8, -1, -1]
+```
 
-    // Step 1: Build the next greater elements array for arr (Traverse in reverse order)
-    for (int i = arr.size() - 1; i >= 0; i--) {
-        int num = arr[i];
-
-        // Remove elements from the stack that are smaller than or equal to the current element
-        while (!stack.empty() && stack.top() <= num) {
-            stack.pop();
+```java,editable
+import java.util.*;
+public class Main {
+    static int[] nextGreater(int[] arr) {
+        int n = arr.length;
+        int[] nge = new int[n]; Arrays.fill(nge, -1);
+        Deque<Integer> st = new ArrayDeque<>();
+        for (int i = 0; i < n; i++) {
+            while (!st.isEmpty() && arr[st.peek()] < arr[i]) nge[st.pop()] = arr[i];
+            st.push(i);
         }
-
-        // If the stack is not empty, set the next greater element
-        if (!stack.empty()) {
-            nextGreater[i] = stack.top();
-        }
-
-        // Push the current element onto the stack for future elements
-        stack.push(num);
+        return nge;
     }
-
-    return nextGreater;
+    public static void main(String[] args) {
+        System.out.println(Arrays.toString(nextGreater(new int[]{3,5,1,6,8,7})));
+    }
 }
 ```
 
-Java
-
-```java
-
-class NextGreaterElement {
-    public List<Integer> nextGreaterElement(List<Integer> arr) {
-        // List to store the next greater elements for arr
-        List<Integer> nextGreater = new ArrayList<>();
-        for (int i = 0; i < arr.size(); i++) {
-            nextGreater.add(-1);
-        }
-
-        // Stack to help find the next greater element efficiently
-        Stack<Integer> stack = new Stack<>();
-
-        // Step 1: Build the next greater elements list for arr (Traverse in reverse order)
-        for (int i = arr.size() - 1; i >= 0; i--) {
-            int num = arr.get(i);
-
-            // Remove elements from the stack that are smaller than or equal to the current element
-            while (!stack.isEmpty() && stack.peek() <= num) {
-                stack.pop();
-            }
-
-            // If the stack is not empty, set the next greater element
-            if (!stack.isEmpty()) {
-                nextGreater.set(i, stack.peek());
-            }
-
-            // Push the current element onto the stack for future elements
-            stack.push(num);
-        }
-
-        return nextGreater;
+```c,editable
+#include <stdio.h>
+void next_greater(int *arr, int n, int *nge) {
+    int st[256]; int top = -1;
+    for (int i = 0; i < n; i++) nge[i] = -1;
+    for (int i = 0; i < n; i++) {
+        while (top >= 0 && arr[st[top]] < arr[i]) nge[st[top--]] = arr[i];
+        st[++top] = i;
     }
+}
+int main() {
+    int a[] = {3,5,1,6,8,7}; int r[6];
+    next_greater(a, 6, r);
+    for (int i = 0; i < 6; i++) printf("%d ", r[i]); printf("\n");
+}
 ```
 
-Typescript
-
-```typescript
-function nextGreaterElement(arr: number[]): number[] {
-  // Array to store the next greater elements for arr
-  const nextGreater: number[] = new Array(arr.length).fill(-1);
-
-  // Stack to help find the next greater element efficiently
-  const stack: number[] = [];
-
-  // Step 1: Build the next greater elements array for arr (Traverse in reverse order)
-  for (let i = arr.length - 1; i >= 0; i--) {
-    const num = arr[i];
-
-    // Remove elements from the stack that are smaller than or equal to the current element
-    while (stack.length > 0 && stack[stack.length - 1] <= num) {
-      stack.pop();
+```cpp,editable
+#include <iostream>
+#include <stack>
+#include <vector>
+std::vector<int> nextGreater(const std::vector<int> &arr) {
+    int n = (int)arr.size();
+    std::vector<int> nge(n, -1);
+    std::stack<int> st;
+    for (int i = 0; i < n; i++) {
+        while (!st.empty() && arr[st.top()] < arr[i]) { nge[st.top()] = arr[i]; st.pop(); }
+        st.push(i);
     }
+    return nge;
+}
+int main() {
+    auto r = nextGreater({3,5,1,6,8,7});
+    for (int x : r) std::cout << x << " "; std::cout << "\n";
+}
+```
 
-    // If the stack is not empty, set the next greater element
-    if (stack.length > 0) {
-      nextGreater[i] = stack[stack.length - 1];
-    }
-
-    // Push the current element onto the stack for future elements
-    stack.push(num);
+```scala,editable
+import scala.collection.mutable
+def nextGreater(arr: Array[Int]): Array[Int] = {
+  val nge = Array.fill(arr.length)(-1)
+  val st  = mutable.Stack[Int]()
+  for (i <- arr.indices) {
+    while (st.nonEmpty && arr(st.top) < arr(i)) nge(st.pop()) = arr(i)
+    st.push(i)
   }
-
-  return nextGreater;
+  nge
 }
+object Main extends App { println(nextGreater(Array(3,5,1,6,8,7)).mkString(", ")) }
 ```
 
-Javascript
-
-```javascript
-function nextGreaterElement(arr) {
-  // Array to store the next greater elements for arr
-  const nextGreater = new Array(arr.length).fill(-1);
-
-  // Stack to help find the next greater element efficiently
-  const stack = [];
-
-  // Step 1: Build the next greater elements array for arr (Traverse in reverse order)
-  for (let i = arr.length - 1; i >= 0; i--) {
-    const num = arr[i];
-
-    // Remove elements from the stack that are smaller than or equal to the current element
-    while (stack.length > 0 && stack[stack.length - 1] <= num) {
-      stack.pop();
+```javascript,editable
+function nextGreater(arr) {
+    const n = arr.length;
+    const nge = new Array(n).fill(-1);
+    const st = [];
+    for (let i = 0; i < n; i++) {
+        while (st.length && arr[st[st.length-1]] < arr[i]) nge[st.pop()] = arr[i];
+        st.push(i);
     }
-
-    // If the stack is not empty, set the next greater element
-    if (stack.length > 0) {
-      nextGreater[i] = stack[stack.length - 1];
-    }
-
-    // Push the current element onto the stack for future elements
-    stack.push(num);
-  }
-
-  return nextGreater;
+    return nge;
 }
+console.log(nextGreater([3,5,1,6,8,7]));
 ```
 
-Python
-
-```python
-def next_greater_element(arr: List[int]) -> List[int]:
-
-    # List to store the next greater elements for arr
-    next_greater: List[int] = [-1] * len(arr)
-
-    # Stack to help find the next greater element efficiently
-    stack: List[int] = []
-
-    # Step 1: Build the next greater elements array for arr (Traverse in reverse order)
-    for i in range(len(arr) - 1, -1, -1):
-        num = arr[i]
-
-        # Remove elements from the stack that are smaller than or equal to the current element
-        while stack and stack[-1] <= num:
-            stack.pop()
-
-        # If the stack is not empty, set the next greater element
-        if stack:
-            next_greater[i] = stack[-1]
-
-        # Push the current element onto the stack for future elements
-        stack.append(num)
-
-    return next_greater
+```typescript,editable
+function nextGreater(arr: number[]): number[] {
+    const n = arr.length;
+    const nge = new Array(n).fill(-1);
+    const st: number[] = [];
+    for (let i = 0; i < n; i++) {
+        while (st.length && arr[st[st.length-1]] < arr[i]) nge[st.pop()!] = arr[i];
+        st.push(i);
+    }
+    return nge;
+}
+console.log(nextGreater([3,5,1,6,8,7]));
 ```
 
-### Complexity Analysis
+```go,editable
+package main
+import "fmt"
+func nextGreater(arr []int) []int {
+    n := len(arr); nge := make([]int, n); for i := range nge { nge[i] = -1 }
+    st := []int{}
+    for i := 0; i < n; i++ {
+        for len(st) > 0 && arr[st[len(st)-1]] < arr[i] {
+            nge[st[len(st)-1]] = arr[i]; st = st[:len(st)-1]
+        }
+        st = append(st, i)
+    }
+    return nge
+}
+func main() { fmt.Println(nextGreater([]int{3,5,1,6,8,7})) }
+```
 
-The algorithm's time and space complexity is easy to understand. We traverse the sequence from start to end once in any case, and in each iteration, pop one or more items from the stack. Since the stack will only hold all items in the array once, a total of **N** push operations and at max **N** pop operations are done throughout the traversal where each operation is constant **O(1)** time. We may update up to **N** items into the solution array where each operation is constant **O(1)** time. This results in an overall linear **O(N)** time complexity.
+```kotlin,editable
+fun nextGreater(arr: IntArray): IntArray {
+    val nge = IntArray(arr.size) { -1 }
+    val st = ArrayDeque<Int>()
+    for (i in arr.indices) {
+        while (st.isNotEmpty() && arr[st.last()] < arr[i]) nge[st.removeLast()] = arr[i]
+        st.addLast(i)
+    }
+    return nge
+}
+fun main() { println(nextGreater(intArrayOf(3,5,1,6,8,7)).toList()) }
+```
 
-We create a result array to store the result which is of the same size as the input contributing **O(N)** space. We copy all the data items to the stack as we traverse the array. When the input sequence is ordered in decreasing order of value, all items are accumulated in the stack, leading to **O(N)** space for the stack. In the other case, when the sequence is ordered in the increasing order of value, the stack will only have 1 item at any time, leading to constant **O(1)** space for the stack, but the result array still contributes to linear **O(N)** space.
+```rust,editable
+fn next_greater(arr: &[i32]) -> Vec<i32> {
+    let n = arr.len();
+    let mut nge = vec![-1; n];
+    let mut st: Vec<usize> = Vec::new();
+    for i in 0..n {
+        while let Some(&top) = st.last() {
+            if arr[top] < arr[i] { nge[top] = arr[i]; st.pop(); } else { break; }
+        }
+        st.push(i);
+    }
+    nge
+}
+fn main() { println!("{:?}", next_greater(&[3,5,1,6,8,7])); }
+```
 
-And so, in any case, the overall space complexity will be linear **O(N)**.
+</div>
 
-> **Best Case -**
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case -**
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
+## Complexity Analysis
 
-Later in the course, we will examine techniques for identifying problems that can be solved using the next closest occurrence technique and walk through an example to better understand it.
+> **All cases** — Time: **O(N)** | Space: **O(N)**.
 
 ***
 
 # Identifying the next closest occurrence pattern
 
-The next closest occurrence technique can only solve some specific problems. These are generally **medium**or **hard** problems involving linear data structures like arrays, strings, or linked lists where we need to find the next greater or smaller item in the sequence. Most problems under this pattern can be solved by directly applying the next closest occurrence technique, while some may require additional steps.
-
-If the problem statement or its solution follows the generic template below, it can be solved by applying the closest occurrence technique.
-
-**Template:**Given a sequential data structure, find the next closest greater or smaller item in the sequence.
-
-## Example
-
-Let's consider the following problem as an example to better understand how to identify and solve a problem using the closest occurrence technique.
-
-> **Problem statement:** Given two arrays \`arr1\` and \`arr2\` such that \`arr2\` is a subset of \`arr1\` and all items in \`arr1\` are unique, for each item in \`arr2\` find the next closest greater item in \`arr1\`. If an items does not have a next greater item, use -1 for it.
-
-// Diagram: Find the next greater items for items in arr2 in arr1.
-
-## Brute force
-
-The brute-force solution to this problem is to use a loop and iterate in `arr2` and for each item we iterate backwards in `arr1` until we find the same item in `arr1`. We initialize a variable `nextGreater` with a sentinal value (-1), and as we iterate through `arr1`, we keep track of the most recent item that is greater than the current item in `arr2` in `nextGreater`. When we find the current value in `arr1`, we use the value `nextGreater` as its next greater value.
-
-// Diagram: Find the next greater item for all items in arr2 in arr1
-
-The implementation of the brute force solution is given as follows.
-
-C++
-
-```cpp
-#include <stack>
-#include <unordered_map>
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    vector<int> succeedingSuperiorElement(
-        vector<int> &arr1,
-        vector<int> &arr2
-    ) {
-
-        // Array to store the next greater elements for arr1
-        vector<int> nextGreater(arr1.size(), -1);
-
-        // Map to store the last index of each element in arr1
-        unordered_map<int, int> indexMap;
-
-        // Stack to help find the next greater element efficiently
-        stack<int> stack;
-
-        // Step 1: Build the next greater elements array for arr1
-        // (Traverse in reverse order)
-        for (int i = arr1.size() - 1; i >= 0; i--) {
-            int num = arr1[i];
-
-            // Remove elements from the stack that are smaller than or
-            // equal to the current element
-            while (!stack.empty() && stack.top() <= num) {
-                stack.pop();
-            }
-
-            // If the stack is not empty, set the next greater element
-            if (!stack.empty()) {
-                nextGreater[i] = stack.top();
-            }
-
-            // Push the current element onto the stack for future
-            // elements
-            stack.push(num);
-
-            // Store the index of the current element in the index map
-            indexMap[num] = i;
-        }
-
-        // Step 2: Process arr2 to generate the result
-        vector<int> result;
-        for (int num : arr2) {
-
-            // Push the next greater element if found, otherwise -1
-            result.push_back(
-                indexMap.count(num) ? nextGreater[indexMap[num]] : -1
-            );
-        }
-
-        return result;
-    }
-};
-```
-
-Java
-
-```java
-public class SucceedingSuperiorElement {
-
-    public List<Integer> succeedingSuperiorElement(List<Integer> arr1, List<Integer> arr2) {
-        // List to store the next greater elements for arr1
-        List<Integer> result = new ArrayList<>();
-        for (int i = 0; i < arr2.size(); i++) {
-            result.add(-1);
-        }
-
-        for (int i = 0; i < arr2.size(); i++) {
-            // Find the index of this item in arr1
-            int nextGreater = -1;
-            for (int j = arr1.size() - 1; j >= 0; j--) {
-                // Always keep the latest value in arr1 greater than
-                // current item in arr2
-                if (arr1.get(j) > arr2.get(i)) {
-                    nextGreater = arr1.get(j);
-                }
-                // If we find the current item in arr1, use the
-                // latest greater value found as the next greater
-                else if (arr1.get(j).equals(arr2.get(i))) {
-                    result.set(i, nextGreater);
-                    break;
-                }
-        return result;
-    }
-```
-
-Typescript
-
-```typescript
-function succeedingSuperiorElement(arr1: number[], arr2: number[]): number[] {
-  // Array to store the next greater elements for arr1
-  const result: number[] = new Array(arr2.length).fill(-1);
-
-  for (let i = 0; i < arr2.length; i++) {
-    // Find the index of this item in arr1
-    let nextGreater = -1;
-    for (let j = arr1.length - 1; j >= 0; j--) {
-      // Always keep the latest value in arr1 greater than
-      // the current item in arr2
-      if (arr1[j] > arr2[i]) {
-        nextGreater = arr1[j];
-      }
-      // If we find the current item in arr1, use the
-      // latest greater value found as next greater
-      else if (arr1[j] === arr2[i]) {
-        result[i] = nextGreater;
-        break;
-      }
-
-  return result;
-}
-```
-
-Javascript
-
-```javascript
-function succeedingSuperiorElement(arr1, arr2) {
-  // Array to store the next greater elements for arr1
-  const result = new Array(arr2.length).fill(-1);
-
-  for (let i = 0; i < arr2.length; i++) {
-    // Find the index of this item in arr1
-    let nextGreater = -1;
-    for (let j = arr1.length - 1; j >= 0; j--) {
-      // Always keep the latest value in arr1 greater than
-      // the current item in arr2
-      if (arr1[j] > arr2[i]) {
-        nextGreater = arr1[j];
-      }
-      // If we find the current item in arr1, use the
-      // latest greater value found as next greater
-      else if (arr1[j] === arr2[i]) {
-        result[i] = nextGreater;
-        break;
-      }
-
-  return result;
-}
-```
-
-Python
-
-```python
-
-def succeeding_superior_element(arr1: List[int], arr2: List[int]) -> List[int]:
-    # List to store the next greater elements for arr2
-    result: List[int] = [-1] * len(arr2)
-
-    for i in range(len(arr2)):
-        # Variable to store the next greater value
-        next_greater = -1
-
-        # Traverse arr1 in reverse to find the next greater element for arr2[i]
-        for j in range(len(arr1) - 1, -1, -1):
-            # Always keep the latest value in arr1 greater than the current item in arr2
-            if arr1[j] > arr2[i]:
-                next_greater = arr1[j]
-            # If we find the current item in arr1, use the latest greater value found
-            elif arr1[j] == arr2[i]:
-                result[i] = next_greater
-
-    return result
-```
-
-Though the solution is correct, it requires nested loops and has a time complexity of **O(N^2)** in the worst case when the array items are arranged in increasing order of value in `arr1`.
-
-## The next closest occurrence technique
-
-We can easily solve this problem by finding the next closest greater item for all items in `arr1` and then only selecting the results for items in `arr2`. The problem description fits the template for the next closest occurrence pattern, as given below.
+Anywhere the answer for each position depends on **the closest later position** satisfying a monotonic predicate, this pattern fits.
 
 **Template:**
-
-Given a sequential data structure (`arr1`), find the next closest greater item in the sequence.
-
-We can now directly apply the next closest occurrence technique we learned earlier. We initialize astack of integers `stack` and an array `nextGreater` initialized with a sentinal value (-1) to store the results. We also create a hash map`indexMap`to map values in`arr1`with their indices. We will use this map later to find indices of values in`arr2`in`arr1`.
-
-We traverse the array `arr1` from start to end, and in each iteration, repeatedly pop the items from the`stack`until the value at the top becomes greater than the current item. Each time we pop an item, we take note of the index stored in it and assign the current item as the next greater item for the value at that in index in `arr1` in the `nextGreater` array. We then push the current item and its index to the top of the stack and repeat the process for the next item in arr1.
-
-At the end of the traversal, the `nextGreater` array will have the previous greater item for all items in`arr1`.
-
-// Diagram: Find the next greater item for all items in arr1
-
-We create a`result`array, traverse in`arr2`and use the`indexMap`to fill the next greater items for all items in`arr2`in the`result`array.
-
-// Diagram: Use indexMap to find results for arr2
-
-The implementation of the next closest occurrence technique is given below.
-
-C++
-
-```cpp
-#include <stack>
-#include <unordered_map>
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    vector<int> succeedingSuperiorElement(
-        vector<int> &arr1,
-        vector<int> &arr2
-    ) {
-
-        // Array to store the next greater elements for arr1
-        vector<int> nextGreater(arr1.size(), -1);
-
-        // Map to store the last index of each element in arr1
-        unordered_map<int, int> indexMap;
-
-        // Stack to help find the next greater element efficiently
-        stack<int> stack;
-
-        // Step 1: Build the next greater elements array for arr1
-        // (Traverse in reverse order)
-        for (int i = arr1.size() - 1; i >= 0; i--) {
-            int num = arr1[i];
-
-            // Remove elements from the stack that are smaller than or
-            // equal to the current element
-            while (!stack.empty() && stack.top() <= num) {
-                stack.pop();
-            }
-
-            // If the stack is not empty, set the next greater element
-            if (!stack.empty()) {
-                nextGreater[i] = stack.top();
-            }
-
-            // Push the current element onto the stack for future
-            // elements
-            stack.push(num);
-
-            // Store the index of the current element in the index map
-            indexMap[num] = i;
-        }
-
-        // Step 2: Process arr2 to generate the result
-        vector<int> result;
-        for (int num : arr2) {
-
-            // Push the next greater element if found, otherwise -1
-            result.push_back(
-                indexMap.count(num) ? nextGreater[indexMap[num]] : -1
-            );
-        }
-
-        return result;
-    }
-};
-```
-
-Java
-
-```java
-import java.util.*;
-
-class Solution {
-    public int[] succeedingSuperiorElement(int[] arr1, int[] arr2) {
-
-        // Array to store the next greater elements for arr1
-        int[] nextGreater = new int[arr1.length];
-        Arrays.fill(nextGreater, -1);
-
-        // Map to store the last index of each element in arr1
-        Map<Integer, Integer> indexMap = new HashMap<>();
-
-        // Stack to help find the next greater element efficiently
-        Stack<Integer> stack = new Stack<>();
-
-        // Step 1: Build the next greater elements array for arr1
-        // (Traverse in reverse order)
-        for (int i = arr1.length - 1; i >= 0; i--) {
-            int num = arr1[i];
-
-            // Remove elements from the stack that are smaller than or
-            // equal to the current element
-            while (!stack.isEmpty() && stack.peek() <= num) {
-                stack.pop();
-            }
-
-            // If the stack is not empty, set the next greater element
-            if (!stack.isEmpty()) {
-                nextGreater[i] = stack.peek();
-            }
-
-            // Push the current element onto the stack for future
-            // elements
-            stack.push(num);
-
-            // Store the index of the current element in the index map
-            indexMap.put(num, i);
-        }
-
-        // Step 2: Process arr2 to generate the result
-        int[] result = new int[arr2.length];
-        for (int i = 0; i < arr2.length; i++) {
-            int num = arr2[i];
-
-            // Push the next greater element if found, otherwise -1
-            result[i] =
-                indexMap.containsKey(num)
-                    ? nextGreater[indexMap.get(num)]
-                    : -1;
-        }
-
-        return result;
-    }
-```
-
-Typescript
-
-```typescript
-export class Solution {
-    succeedingSuperiorElement(arr1: number[], arr2: number[]): number[] {
-
-        // Array to store the next greater elements for arr1
-        const nextGreater: number[] = Array(arr1.length).fill(-1);
-
-        // Map to store the last index of each element in arr1
-        const indexMap: Map<number, number> = new Map();
-
-        // Stack to help find the next greater element efficiently
-        const stack: number[] = [];
-
-        // Step 1: Build the next greater elements array for arr1
-        // (Traverse in reverse order)
-        for (let i = arr1.length - 1; i >= 0; i--) {
-            const num = arr1[i];
-
-            // Remove elements from the stack that are smaller than or
-            // equal to the current element
-            while (stack.length > 0 && stack[stack.length - 1] <= num) {
-                stack.pop();
-            }
-
-            // If the stack is not empty, set the next greater element
-            if (stack.length > 0) {
-                nextGreater[i] = stack[stack.length - 1];
-            }
-
-            // Push the current element onto the stack for future
-            // elements
-            stack.push(num);
-
-            // Store the index of the current element in the index map
-            indexMap.set(num, i);
-        }
-
-        // Step 2: Process arr2 to generate the result
-        const result: number[] = [];
-        for (const num of arr2) {
-
-            // Push the next greater element if found, otherwise -1
-            result.push(
-                indexMap.has(num) ? nextGreater[indexMap.get(num)!] : -1
-            );
-        }
-
-        return result;
-    }
-```
-
-Javascript
-
-```javascript
-export class Solution {
-    succeedingSuperiorElement(arr1, arr2) {
-
-        // Array to store the next greater elements for arr1
-        const nextGreater = Array(arr1.length).fill(-1);
-
-        // Map to store the last index of each element in arr1
-        const indexMap = new Map();
-
-        // Stack to help find the next greater element efficiently
-        const stack = [];
-
-        // Step 1: Build the next greater elements array for arr1
-        // (Traverse in reverse order)
-        for (let i = arr1.length - 1; i >= 0; i--) {
-            const num = arr1[i];
-
-            // Remove elements from the stack that are smaller than or
-            // equal to the current element
-            while (stack.length > 0 && stack[stack.length - 1] <= num) {
-                stack.pop();
-            }
-
-            // If the stack is not empty, set the next greater element
-            if (stack.length > 0) {
-                nextGreater[i] = stack[stack.length - 1];
-            }
-
-            // Push the current element onto the stack for future
-            // elements
-            stack.push(num);
-
-            // Store the index of the current element in the index map
-            indexMap.set(num, i);
-        }
-
-        // Step 2: Process arr2 to generate the result
-        const result = [];
-        for (const num of arr2) {
-
-            // Push the next greater element if found, otherwise -1
-            result.push(
-                indexMap.has(num) ? nextGreater[indexMap.get(num)] : -1
-            );
-        }
-
-        return result;
-    }
-```
-
-Python
-
-```python
-from typing import List
-
-class Solution:
-    def succeeding_superior_element(
-        self, arr1: List[int], arr2: List[int]
-    ) -> List[int]:
-
-        # Array to store the next greater elements for arr1
-        next_greater = [-1] * len(arr1)
-
-        # Map to store the last index of each element in arr1
-        index_map = {}
-
-        # Stack to help find the next greater element efficiently
-        stack = []
-
-        # Step 1: Build the next greater elements array for arr1
-        # (Traverse in reverse order)
-        for i in range(len(arr1) - 1, -1, -1):
-            num = arr1[i]
-
-            # Remove elements from the stack that are smaller than or
-            # equal to the current element
-            while stack and stack[-1] <= num:
-                stack.pop()
-
-            # If the stack is not empty, set the next greater element
-            if stack:
-                next_greater[i] = stack[-1]
-
-            # Push the current element onto the stack for future elements
-            stack.append(num)
-
-            # Store the index of the current element in the index map
-            index_map[num] = i
-
-        # Step 2: Process arr2 to generate the result
-        result = []
-        for num in arr2:
-
-            # Push the next greater element if found, otherwise -1
-            result.append(
-                next_greater[index_map[num]] if num in index_map else -1
-            )
-
-        return result
-```
-
-The next closest occurrence technique solves the problem in a single pass and linear **O(N)** time.
-
-## Example problems
-
-Most problems in this category are **medium** or **hard**; a list of a few is given below.
-
-> -   **[Succeeding superior element](https://www.codeintuition.io/courses/stack/oLMmgGj4YiTXIXD7Q2Vj1)**
-> -   **[Succeeding inferior element](https://www.codeintuition.io/courses/stack/yTr941Ac-vQCjpXLaXbSa)**
-> -   **[Succeeding superior element II](https://www.codeintuition.io/courses/stack/sc-7lvVkdPW7LZgAs014U)**
-> -   **[Succeeding inferior element II](https://www.codeintuition.io/courses/stack/qdEbeeDGbzXWNbnQ7-3yM)**
-> -   **[Succeeding superior nodes](https://www.codeintuition.io/courses/stack/6XrrKUDk37rN1fevp6zTD)**
-> -   **[Retained rainwater](https://www.codeintuition.io/courses/stack/6mcNRniMnQnd70Q3S5eGE)**
-> -   **[Largest rectangle area](https://www.codeintuition.io/courses/stack/qlFt6gZkbzWHUfXDHH_tM)**
-
-We will now solve these problems to understand the next closest occurrence technique better.
+> Walk the array left-to-right; maintain a monotonic stack of indices; on each new element, pop from the stack any index whose value is "dominated" and record the current value as that index's answer. Indices left on the stack at end-of-input have no answer (record `-1` or sentinel).
 
 ***
 
@@ -943,93 +295,217 @@ We will now solve these problems to understand the next closest occurrence techn
 
 ## Problem Statement
 
-Given two arrays, **arr1**, and **arr2**, such that arr2 is a subset of arr1. Write a function to return a new array containing the succeeding superior element of each element present in arr2 from arr1. If there is no superior element for a value, then the answer to that query is `-1.`
-
-The **succeeding superior element** of some element **X** in an array is the **first greater element to the right of X** in the same array.
-
-It is guaranteed that all elements in the input arrays will be unique.
+Given two arrays `arr1` and `arr2` (where `arr2` is a subset of `arr1` and all elements are unique), return for each value in `arr2` its **succeeding superior element** in `arr1` — the first strictly-greater element to its right. Return `-1` if none.
 
 ### Example 1
-
-> -   **Input:** arr1 = \[3, 5, 1, 6, 8, 7\], arr2 = \[3, 1, 8, 7\]
-> -   **Output:** \[5, 6, -1, -1\]
-> -   **Explanation:** Succeeding superior element for each element of arr1 in arr2 is given below:
-> -   arr2\[0\] = 3, superior element for this value in arr1 = 5
-> -   arr2\[1\] = 1, superior element for this value in arr1 = 6
-> -   arr2\[2\] = 8, there is no superior element for this value in arr1 so the result is -1
-> -   arr2\[3\] = 7, there is no superior element for this value in arr1 so the result is -1
+> -   **Input:** `arr1 = [3, 5, 1, 6, 8, 7]`, `arr2 = [3, 1, 8, 7]`
+> -   **Output:** `[5, 6, -1, -1]`
 
 ### Example 2
-
-> -   **Input:** arr1 = \[5, 9, 7, 8, 1\], arr2 = \[5, 9, 7\]
-> -   **Output:** \[9, -1, 8\]
-> -   **Explanation:** Succeeding superior element for each element of arr1 in arr2 is given below:
-> -   arr2\[0\] = 5, superior element for this value in arr1 = 9
-> -   arr2\[1\] = 9, there is no superior element for this value in arr1 so the result is -1
-> -   arr2\[2\] = 7, superior element for this value in arr1 = 8
+> -   **Input:** `arr1 = [5, 9, 7, 8, 1]`, `arr2 = [5, 9, 7]`
+> -   **Output:** `[9, -1, 8]`
 
 ## Solution
 
-```cpp
+<div class="lang-tabs">
+
+```python,editable
+def succeeding_superior_element(arr1: list, arr2: list) -> list:
+    n = len(arr1)
+    nge = [-1] * n
+    st = []
+    for i in range(n):
+        while st and arr1[st[-1]] < arr1[i]:
+            nge[st.pop()] = arr1[i]
+        st.append(i)
+    idx = {v: i for i, v in enumerate(arr1)}
+    return [nge[idx[v]] if v in idx else -1 for v in arr2]
+
+print(succeeding_superior_element([3,5,1,6,8,7], [3,1,8,7]))   # [5, 6, -1, -1]
+print(succeeding_superior_element([5,9,7,8,1], [5,9,7]))       # [9, -1, 8]
+```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static int[] succeedingSuperiorElement(int[] arr1, int[] arr2) {
+        int n = arr1.length;
+        int[] nge = new int[n]; Arrays.fill(nge, -1);
+        Deque<Integer> st = new ArrayDeque<>();
+        Map<Integer, Integer> idx = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            while (!st.isEmpty() && arr1[st.peek()] < arr1[i]) nge[st.pop()] = arr1[i];
+            st.push(i); idx.put(arr1[i], i);
+        }
+        int[] out = new int[arr2.length];
+        for (int j = 0; j < arr2.length; j++) {
+            Integer i = idx.get(arr2[j]);
+            out[j] = (i == null) ? -1 : nge[i];
+        }
+        return out;
+    }
+    public static void main(String[] args) {
+        System.out.println(Arrays.toString(succeedingSuperiorElement(new int[]{3,5,1,6,8,7}, new int[]{3,1,8,7})));
+        System.out.println(Arrays.toString(succeedingSuperiorElement(new int[]{5,9,7,8,1}, new int[]{5,9,7})));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+void succeeding_superior_element(int *arr1, int n, int *arr2, int m, int *out) {
+    int nge[256], st[256]; int top = -1;
+    for (int i = 0; i < n; i++) nge[i] = -1;
+    int kk[256], vv[256], nn = 0;
+    for (int i = 0; i < n; i++) {
+        while (top >= 0 && arr1[st[top]] < arr1[i]) nge[st[top--]] = arr1[i];
+        st[++top] = i;
+        kk[nn] = arr1[i]; vv[nn] = i; nn++;
+    }
+    for (int j = 0; j < m; j++) {
+        int found = -1;
+        for (int k = 0; k < nn; k++) if (kk[k] == arr2[j]) { found = nge[vv[k]]; break; }
+        out[j] = found;
+    }
+}
+int main() {
+    int a[] = {3,5,1,6,8,7}; int q[] = {3,1,8,7}; int r[4];
+    succeeding_superior_element(a, 6, q, 4, r);
+    for (int i = 0; i < 4; i++) printf("%d ", r[i]); printf("\n");
+}
+```
+
+```cpp,editable
+#include <iostream>
 #include <stack>
 #include <unordered_map>
-
-using namespace std;
-
-class Solution {
-public:
-    vector<int> succeedingSuperiorElement(
-        vector<int> &arr1,
-        vector<int> &arr2
-    ) {
-
-        // Array to store the next greater elements for arr1
-        vector<int> nextGreater(arr1.size(), -1);
-
-        // Map to store the last index of each element in arr1
-        unordered_map<int, int> indexMap;
-
-        // Stack to help find the next greater element efficiently
-        stack<int> stack;
-
-        // Step 1: Build the next greater elements array for arr1
-        // (Traverse in reverse order)
-        for (int i = arr1.size() - 1; i >= 0; i--) {
-            int num = arr1[i];
-
-            // Remove elements from the stack that are smaller than or
-            // equal to the current element
-            while (!stack.empty() && stack.top() <= num) {
-                stack.pop();
-            }
-
-            // If the stack is not empty, set the next greater element
-            if (!stack.empty()) {
-                nextGreater[i] = stack.top();
-            }
-
-            // Push the current element onto the stack for future
-            // elements
-            stack.push(num);
-
-            // Store the index of the current element in the index map
-            indexMap[num] = i;
-        }
-
-        // Step 2: Process arr2 to generate the result
-        vector<int> result;
-        for (int num : arr2) {
-
-            // Push the next greater element if found, otherwise -1
-            result.push_back(
-                indexMap.count(num) ? nextGreater[indexMap[num]] : -1
-            );
-        }
-
-        return result;
+#include <vector>
+std::vector<int> succeedingSuperiorElement(std::vector<int> &arr1, std::vector<int> &arr2) {
+    int n = (int)arr1.size();
+    std::vector<int> nge(n, -1);
+    std::stack<int> st;
+    std::unordered_map<int, int> idx;
+    for (int i = 0; i < n; i++) {
+        while (!st.empty() && arr1[st.top()] < arr1[i]) { nge[st.top()] = arr1[i]; st.pop(); }
+        st.push(i); idx[arr1[i]] = i;
     }
-};
+    std::vector<int> out;
+    for (int v : arr2) {
+        auto it = idx.find(v);
+        out.push_back(it == idx.end() ? -1 : nge[it->second]);
+    }
+    return out;
+}
+int main() {
+    std::vector<int> a = {3,5,1,6,8,7}, q = {3,1,8,7};
+    auto r = succeedingSuperiorElement(a, q);
+    for (int x : r) std::cout << x << " "; std::cout << "\n";
+}
 ```
+
+```scala,editable
+import scala.collection.mutable
+def succeedingSuperiorElement(arr1: Array[Int], arr2: Array[Int]): Array[Int] = {
+  val nge = Array.fill(arr1.length)(-1)
+  val st = mutable.Stack[Int]()
+  val idx = mutable.Map[Int, Int]()
+  for (i <- arr1.indices) {
+    while (st.nonEmpty && arr1(st.top) < arr1(i)) nge(st.pop()) = arr1(i)
+    st.push(i); idx(arr1(i)) = i
+  }
+  arr2.map(v => idx.get(v).map(nge(_)).getOrElse(-1))
+}
+object Main extends App {
+  println(succeedingSuperiorElement(Array(3,5,1,6,8,7), Array(3,1,8,7)).mkString(", "))
+  println(succeedingSuperiorElement(Array(5,9,7,8,1), Array(5,9,7)).mkString(", "))
+}
+```
+
+```javascript,editable
+function succeedingSuperiorElement(arr1, arr2) {
+    const n = arr1.length;
+    const nge = new Array(n).fill(-1);
+    const st = []; const idx = new Map();
+    for (let i = 0; i < n; i++) {
+        while (st.length && arr1[st[st.length-1]] < arr1[i]) nge[st.pop()] = arr1[i];
+        st.push(i); idx.set(arr1[i], i);
+    }
+    return arr2.map(v => idx.has(v) ? nge[idx.get(v)] : -1);
+}
+console.log(succeedingSuperiorElement([3,5,1,6,8,7], [3,1,8,7]));
+console.log(succeedingSuperiorElement([5,9,7,8,1], [5,9,7]));
+```
+
+```typescript,editable
+function succeedingSuperiorElement(arr1: number[], arr2: number[]): number[] {
+    const n = arr1.length;
+    const nge = new Array(n).fill(-1);
+    const st: number[] = []; const idx = new Map<number, number>();
+    for (let i = 0; i < n; i++) {
+        while (st.length && arr1[st[st.length-1]] < arr1[i]) nge[st.pop()!] = arr1[i];
+        st.push(i); idx.set(arr1[i], i);
+    }
+    return arr2.map(v => idx.has(v) ? nge[idx.get(v)!] : -1);
+}
+console.log(succeedingSuperiorElement([3,5,1,6,8,7], [3,1,8,7]));
+```
+
+```go,editable
+package main
+import "fmt"
+func succeedingSuperiorElement(arr1, arr2 []int) []int {
+    n := len(arr1); nge := make([]int, n); for i := range nge { nge[i] = -1 }
+    st := []int{}; idx := make(map[int]int)
+    for i, x := range arr1 {
+        for len(st) > 0 && arr1[st[len(st)-1]] < x { nge[st[len(st)-1]] = x; st = st[:len(st)-1] }
+        st = append(st, i); idx[x] = i
+    }
+    out := make([]int, len(arr2))
+    for j, v := range arr2 { if i, ok := idx[v]; ok { out[j] = nge[i] } else { out[j] = -1 } }
+    return out
+}
+func main() {
+    fmt.Println(succeedingSuperiorElement([]int{3,5,1,6,8,7}, []int{3,1,8,7}))
+    fmt.Println(succeedingSuperiorElement([]int{5,9,7,8,1}, []int{5,9,7}))
+}
+```
+
+```kotlin,editable
+fun succeedingSuperiorElement(arr1: IntArray, arr2: IntArray): IntArray {
+    val nge = IntArray(arr1.size) { -1 }
+    val st = ArrayDeque<Int>(); val idx = HashMap<Int, Int>()
+    for (i in arr1.indices) {
+        while (st.isNotEmpty() && arr1[st.last()] < arr1[i]) nge[st.removeLast()] = arr1[i]
+        st.addLast(i); idx[arr1[i]] = i
+    }
+    return IntArray(arr2.size) { j -> idx[arr2[j]]?.let { nge[it] } ?: -1 }
+}
+fun main() {
+    println(succeedingSuperiorElement(intArrayOf(3,5,1,6,8,7), intArrayOf(3,1,8,7)).toList())
+    println(succeedingSuperiorElement(intArrayOf(5,9,7,8,1), intArrayOf(5,9,7)).toList())
+}
+```
+
+```rust,editable
+use std::collections::HashMap;
+fn succeeding_superior_element(arr1: &[i32], arr2: &[i32]) -> Vec<i32> {
+    let n = arr1.len();
+    let mut nge = vec![-1; n];
+    let mut st: Vec<usize> = Vec::new();
+    let mut idx: HashMap<i32, usize> = HashMap::new();
+    for i in 0..n {
+        while let Some(&t) = st.last() { if arr1[t] < arr1[i] { nge[t] = arr1[i]; st.pop(); } else { break; } }
+        st.push(i); idx.insert(arr1[i], i);
+    }
+    arr2.iter().map(|v| idx.get(v).map(|&i| nge[i]).unwrap_or(-1)).collect()
+}
+fn main() {
+    println!("{:?}", succeeding_superior_element(&[3,5,1,6,8,7], &[3,1,8,7]));
+    println!("{:?}", succeeding_superior_element(&[5,9,7,8,1], &[5,9,7]));
+}
+```
+
+</div>
 
 ***
 
@@ -1037,93 +513,217 @@ public:
 
 ## Problem Statement
 
-Given two arrays, **arr1**, and **arr2**, such that arr2 is a subset of arr1. Write a function to return a new array containing the succeeding inferior element of each element present in arr2 from arr1. If there is no inferior element for a value, then the answer to that query is `-1.`
-
-The **succeeding inferior element** of some element **X** in an array is the **first smaller element to the right of X** in the same array.
-
-It is guaranteed that all elements in the input arrays will be unique.
+Same as above but **strictly smaller**. Maintain an *increasing* monotonic stack; resolve when current value is *smaller* than the stack's top.
 
 ### Example 1
-
-> -   **Input:** arr1 = \[3, 5, 1, 6, 8, 9\], arr2 = \[3, 1, 8, 9\]
-> -   **Output:** \[1, -1, -1, -1\]
-> -   **Explanation:** Succeeding inferior element for each element of arr1 in arr2 is given below:
-> -   arr2\[0\] = 3, inferior element for this value in arr1 = 1
-> -   arr2\[1\] = 1, there is no inferior element for this value in arr1 so the result is -1
-> -   arr2\[2\] = 8, inferior element for this value in arr1 = -1
-> -   arr2\[3\] = 9, there is no inferior element for this value in arr1 so the result is -1
+> -   **Input:** `arr1 = [3, 5, 1, 6, 8, 2]`, `arr2 = [3, 1, 8, 2]`
+> -   **Output:** `[1, -1, 2, -1]`
 
 ### Example 2
-
-> -   **Input:** arr1 = \[5, 9, 7, 8, 1\], arr2 = \[5, 9, 7\]
-> -   **Output:** \[1, 7, 1\]
-> -   **Explanation:** Succeeding inferior element for each element of arr1 in arr2 is given below:
-> -   arr2\[0\] = 5, inferior element for this value in arr1 = 1
-> -   arr2\[1\] = 9, inferior element for this value in arr1 = 7
-> -   arr2\[2\] = 7, inferior element for this value in arr1 = 1
+> -   **Input:** `arr1 = [5, 9, 7, 8, 1]`, `arr2 = [5, 9, 7]`
+> -   **Output:** `[1, 7, 1]`
 
 ## Solution
 
-```cpp
+<div class="lang-tabs">
+
+```python,editable
+def succeeding_inferior_element(arr1: list, arr2: list) -> list:
+    n = len(arr1)
+    nse = [-1] * n
+    st = []
+    for i in range(n):
+        while st and arr1[st[-1]] > arr1[i]:
+            nse[st.pop()] = arr1[i]
+        st.append(i)
+    idx = {v: i for i, v in enumerate(arr1)}
+    return [nse[idx[v]] if v in idx else -1 for v in arr2]
+
+print(succeeding_inferior_element([3,5,1,6,8,2], [3,1,8,2]))   # [1, -1, 2, -1]
+print(succeeding_inferior_element([5,9,7,8,1], [5,9,7]))       # [1, 7, 1]
+```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static int[] succeedingInferiorElement(int[] arr1, int[] arr2) {
+        int n = arr1.length;
+        int[] nse = new int[n]; Arrays.fill(nse, -1);
+        Deque<Integer> st = new ArrayDeque<>();
+        Map<Integer, Integer> idx = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            while (!st.isEmpty() && arr1[st.peek()] > arr1[i]) nse[st.pop()] = arr1[i];
+            st.push(i); idx.put(arr1[i], i);
+        }
+        int[] out = new int[arr2.length];
+        for (int j = 0; j < arr2.length; j++) {
+            Integer i = idx.get(arr2[j]);
+            out[j] = (i == null) ? -1 : nse[i];
+        }
+        return out;
+    }
+    public static void main(String[] args) {
+        System.out.println(Arrays.toString(succeedingInferiorElement(new int[]{3,5,1,6,8,2}, new int[]{3,1,8,2})));
+        System.out.println(Arrays.toString(succeedingInferiorElement(new int[]{5,9,7,8,1}, new int[]{5,9,7})));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+void succeeding_inferior_element(int *arr1, int n, int *arr2, int m, int *out) {
+    int nse[256], st[256]; int top = -1;
+    for (int i = 0; i < n; i++) nse[i] = -1;
+    int kk[256], vv[256], nn = 0;
+    for (int i = 0; i < n; i++) {
+        while (top >= 0 && arr1[st[top]] > arr1[i]) nse[st[top--]] = arr1[i];
+        st[++top] = i;
+        kk[nn] = arr1[i]; vv[nn] = i; nn++;
+    }
+    for (int j = 0; j < m; j++) {
+        int found = -1;
+        for (int k = 0; k < nn; k++) if (kk[k] == arr2[j]) { found = nse[vv[k]]; break; }
+        out[j] = found;
+    }
+}
+int main() {
+    int a[] = {3,5,1,6,8,2}; int q[] = {3,1,8,2}; int r[4];
+    succeeding_inferior_element(a, 6, q, 4, r);
+    for (int i = 0; i < 4; i++) printf("%d ", r[i]); printf("\n");
+}
+```
+
+```cpp,editable
+#include <iostream>
 #include <stack>
 #include <unordered_map>
-
-using namespace std;
-
-class Solution {
-public:
-    vector<int> succeedingInferiorElement(
-        vector<int> &arr1,
-        vector<int> &arr2
-    ) {
-
-        // Array to store the next smaller elements for arr1
-        vector<int> nextSmaller(arr1.size(), -1);
-
-        // Map to store the last index of each element in arr1
-        unordered_map<int, int> indexMap;
-
-        // Stack to help find the next smaller element efficiently
-        stack<int> stack;
-
-        // Step 1: Build the next smaller elements array for arr1
-        // (Traverse in reverse order)
-        for (int i = arr1.size() - 1; i >= 0; i--) {
-            int num = arr1[i];
-
-            // Remove elements from the stack that are greater than or
-            // equal to the current element
-            while (!stack.empty() && stack.top() >= num) {
-                stack.pop();
-            }
-
-            // If the stack is not empty, set the next smaller element
-            if (!stack.empty()) {
-                nextSmaller[i] = stack.top();
-            }
-
-            // Push the current element onto the stack for future
-            // elements
-            stack.push(num);
-
-            // Store the index of the current element in the index map
-            indexMap[num] = i;
-        }
-
-        // Step 2: Process arr2 to generate the result
-        vector<int> result;
-        for (int num : arr2) {
-
-            // Push the next smaller element if found, otherwise -1
-            result.push_back(
-                indexMap.count(num) ? nextSmaller[indexMap[num]] : -1
-            );
-        }
-
-        return result;
+#include <vector>
+std::vector<int> succeedingInferiorElement(std::vector<int> &arr1, std::vector<int> &arr2) {
+    int n = (int)arr1.size();
+    std::vector<int> nse(n, -1);
+    std::stack<int> st;
+    std::unordered_map<int, int> idx;
+    for (int i = 0; i < n; i++) {
+        while (!st.empty() && arr1[st.top()] > arr1[i]) { nse[st.top()] = arr1[i]; st.pop(); }
+        st.push(i); idx[arr1[i]] = i;
     }
-};
+    std::vector<int> out;
+    for (int v : arr2) {
+        auto it = idx.find(v);
+        out.push_back(it == idx.end() ? -1 : nse[it->second]);
+    }
+    return out;
+}
+int main() {
+    std::vector<int> a = {3,5,1,6,8,2}, q = {3,1,8,2};
+    auto r = succeedingInferiorElement(a, q);
+    for (int x : r) std::cout << x << " "; std::cout << "\n";
+}
 ```
+
+```scala,editable
+import scala.collection.mutable
+def succeedingInferiorElement(arr1: Array[Int], arr2: Array[Int]): Array[Int] = {
+  val nse = Array.fill(arr1.length)(-1)
+  val st = mutable.Stack[Int]()
+  val idx = mutable.Map[Int, Int]()
+  for (i <- arr1.indices) {
+    while (st.nonEmpty && arr1(st.top) > arr1(i)) nse(st.pop()) = arr1(i)
+    st.push(i); idx(arr1(i)) = i
+  }
+  arr2.map(v => idx.get(v).map(nse(_)).getOrElse(-1))
+}
+object Main extends App {
+  println(succeedingInferiorElement(Array(3,5,1,6,8,2), Array(3,1,8,2)).mkString(", "))
+  println(succeedingInferiorElement(Array(5,9,7,8,1), Array(5,9,7)).mkString(", "))
+}
+```
+
+```javascript,editable
+function succeedingInferiorElement(arr1, arr2) {
+    const n = arr1.length;
+    const nse = new Array(n).fill(-1);
+    const st = []; const idx = new Map();
+    for (let i = 0; i < n; i++) {
+        while (st.length && arr1[st[st.length-1]] > arr1[i]) nse[st.pop()] = arr1[i];
+        st.push(i); idx.set(arr1[i], i);
+    }
+    return arr2.map(v => idx.has(v) ? nse[idx.get(v)] : -1);
+}
+console.log(succeedingInferiorElement([3,5,1,6,8,2], [3,1,8,2]));
+console.log(succeedingInferiorElement([5,9,7,8,1], [5,9,7]));
+```
+
+```typescript,editable
+function succeedingInferiorElement(arr1: number[], arr2: number[]): number[] {
+    const n = arr1.length;
+    const nse = new Array(n).fill(-1);
+    const st: number[] = []; const idx = new Map<number, number>();
+    for (let i = 0; i < n; i++) {
+        while (st.length && arr1[st[st.length-1]] > arr1[i]) nse[st.pop()!] = arr1[i];
+        st.push(i); idx.set(arr1[i], i);
+    }
+    return arr2.map(v => idx.has(v) ? nse[idx.get(v)!] : -1);
+}
+console.log(succeedingInferiorElement([3,5,1,6,8,2], [3,1,8,2]));
+```
+
+```go,editable
+package main
+import "fmt"
+func succeedingInferiorElement(arr1, arr2 []int) []int {
+    n := len(arr1); nse := make([]int, n); for i := range nse { nse[i] = -1 }
+    st := []int{}; idx := make(map[int]int)
+    for i, x := range arr1 {
+        for len(st) > 0 && arr1[st[len(st)-1]] > x { nse[st[len(st)-1]] = x; st = st[:len(st)-1] }
+        st = append(st, i); idx[x] = i
+    }
+    out := make([]int, len(arr2))
+    for j, v := range arr2 { if i, ok := idx[v]; ok { out[j] = nse[i] } else { out[j] = -1 } }
+    return out
+}
+func main() {
+    fmt.Println(succeedingInferiorElement([]int{3,5,1,6,8,2}, []int{3,1,8,2}))
+    fmt.Println(succeedingInferiorElement([]int{5,9,7,8,1}, []int{5,9,7}))
+}
+```
+
+```kotlin,editable
+fun succeedingInferiorElement(arr1: IntArray, arr2: IntArray): IntArray {
+    val nse = IntArray(arr1.size) { -1 }
+    val st = ArrayDeque<Int>(); val idx = HashMap<Int, Int>()
+    for (i in arr1.indices) {
+        while (st.isNotEmpty() && arr1[st.last()] > arr1[i]) nse[st.removeLast()] = arr1[i]
+        st.addLast(i); idx[arr1[i]] = i
+    }
+    return IntArray(arr2.size) { j -> idx[arr2[j]]?.let { nse[it] } ?: -1 }
+}
+fun main() {
+    println(succeedingInferiorElement(intArrayOf(3,5,1,6,8,2), intArrayOf(3,1,8,2)).toList())
+    println(succeedingInferiorElement(intArrayOf(5,9,7,8,1), intArrayOf(5,9,7)).toList())
+}
+```
+
+```rust,editable
+use std::collections::HashMap;
+fn succeeding_inferior_element(arr1: &[i32], arr2: &[i32]) -> Vec<i32> {
+    let n = arr1.len();
+    let mut nse = vec![-1; n];
+    let mut st: Vec<usize> = Vec::new();
+    let mut idx: HashMap<i32, usize> = HashMap::new();
+    for i in 0..n {
+        while let Some(&t) = st.last() { if arr1[t] > arr1[i] { nse[t] = arr1[i]; st.pop(); } else { break; } }
+        st.push(i); idx.insert(arr1[i], i);
+    }
+    arr2.iter().map(|v| idx.get(v).map(|&i| nse[i]).unwrap_or(-1)).collect()
+}
+fn main() {
+    println!("{:?}", succeeding_inferior_element(&[3,5,1,6,8,2], &[3,1,8,2]));
+    println!("{:?}", succeeding_inferior_element(&[5,9,7,8,1], &[5,9,7]));
+}
+```
+
+</div>
 
 ***
 
@@ -1131,80 +731,204 @@ public:
 
 ## Problem Statement
 
-Given a circular array **arr**, write a function to return a new array containing the succeeding superior element of each element present in arr. Since the array is circular, to find the succeeding superior element, you could look circularly to the right until you find an element or reach the same element. If there is no superior element for a value, then the answer to that query is `-1`.
-
-The **succeeding superior element** of some element **X** in an array is the **first greater element that is to the right of X** in the same array.
+Circular variant — `arr` is treated as a ring; for each element find the next strictly-greater element, allowing one wrap-around to the start of the array.
 
 ### Example 1
-
-> -   **Input:** arr = \[2, 5, 1, 6, 10, 3\]
-> -   **Output:** \[5, 6, 6, 10, -1, 5\]
-> -   **Explanation:** Succeeding superior element for each element of arr is given below:
-> -   arr\[0\] = 2, superior element for this value in arr = 5
-> -   arr\[1\] = 5, superior element for this value in arr = 6
-> -   arr\[2\] = 1, superior element for this value in arr = 6
-> -   arr\[3\] = 6, superior element for this value in arr = 10
-> -   arr\[4\] = 10, there is no superior element for this value in arr, even after circularly visiting the array, so the result is -1
-> -   arr\[5\] = 3, after visiting the array circularly, we find the superior element for this value in arr = 5
+> -   **Input:** `arr = [2, 5, 1, 6, 10, 3]` → **Output:** `[5, 6, 6, 10, -1, 5]`
 
 ### Example 2
+> -   **Input:** `arr = [6, 7, 8, 9, 8]` → **Output:** `[7, 8, 9, -1, 9]`
 
-> -   **Input:** arr = \[6, 7, 8, 9, 8\]
-> -   **Output:** \[7, 8, 9, -1, 9\]
-> -   **Explanation:** Succeeding superior element for each element of arr is given below:
-> -   arr\[0\] = 6, superior element for this value in arr = 7
-> -   arr\[1\] = 7, superior element for this value in arr = 8
-> -   arr\[2\] = 8, superior element for this value in arr = 9
-> -   arr\[3\] = 9, there is no superior element for this value in arr, even after circularly visiting the array, so the result is -1
-> -   arr\[4\] = 8, after visiting the array circularly, we find the superior element for this value in arr = 9
+## Approach
+
+Same doubled-array trick from the previous lesson — iterate `2n` indices using `i % n`. Each element gets two passes; the second one resolves answers that depend on wrap-around.
 
 ## Solution
 
-```cpp
-#include <stack>
+<div class="lang-tabs">
 
-using namespace std;
+```python,editable
+def succeeding_superior_element_ii(arr: list) -> list:
+    n = len(arr)
+    res = [-1] * n
+    st = []
+    for i in range(2 * n):
+        idx = i % n
+        while st and arr[st[-1]] < arr[idx]:
+            res[st.pop()] = arr[idx]
+        if i < n: st.append(idx)        # only push during first pass
+    return res
 
-class Solution {
-public:
-    vector<int> succeedingSuperiorElementII(vector<int> &arr) {
-
-        int n = arr.size();
-
-        // Initialize result with -1
-        vector<int> result(n, -1);
-
-        // Stack to store indices of elements
-        stack<int> stack;
-
-        // Iterate twice through the array in reverse order (circularly)
-        for (int i = 2 * n - 1; i >= 0; i--) {
-
-            // Circular index
-            int index = i % n;
-            int num = arr[index];
-
-            // Check if we can pop elements from the stack
-            // (i.e., find the succeeding greater element for those
-            // elements)
-            while (!stack.empty() && stack.top() <= num) {
-                stack.pop();
-            }
-
-            // If stack is not empty, the top element is the succeeding
-            // superior element
-            if (!stack.empty()) {
-                result[index] = stack.top();
-            }
-
-            // Always push the element to the stack
-            stack.push(num);
-        }
-
-        return result;
-    }
-};
+print(succeeding_superior_element_ii([2,5,1,6,10,3]))   # [5, 6, 6, 10, -1, 5]
+print(succeeding_superior_element_ii([6,7,8,9,8]))      # [7, 8, 9, -1, 9]
 ```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static int[] succeedingSuperiorElementII(int[] arr) {
+        int n = arr.length;
+        int[] res = new int[n]; Arrays.fill(res, -1);
+        Deque<Integer> st = new ArrayDeque<>();
+        for (int i = 0; i < 2 * n; i++) {
+            int idx = i % n;
+            while (!st.isEmpty() && arr[st.peek()] < arr[idx]) res[st.pop()] = arr[idx];
+            if (i < n) st.push(idx);
+        }
+        return res;
+    }
+    public static void main(String[] args) {
+        System.out.println(Arrays.toString(succeedingSuperiorElementII(new int[]{2,5,1,6,10,3})));
+        System.out.println(Arrays.toString(succeedingSuperiorElementII(new int[]{6,7,8,9,8})));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+void succeeding_superior_element_ii(int *arr, int n, int *res) {
+    int st[512]; int top = -1;
+    for (int i = 0; i < n; i++) res[i] = -1;
+    for (int i = 0; i < 2 * n; i++) {
+        int idx = i % n;
+        while (top >= 0 && arr[st[top]] < arr[idx]) res[st[top--]] = arr[idx];
+        if (i < n) st[++top] = idx;
+    }
+}
+int main() {
+    int a[] = {2,5,1,6,10,3}; int r[6];
+    succeeding_superior_element_ii(a, 6, r);
+    for (int i = 0; i < 6; i++) printf("%d ", r[i]); printf("\n");
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <stack>
+#include <vector>
+std::vector<int> succeedingSuperiorElementII(std::vector<int> &arr) {
+    int n = (int)arr.size();
+    std::vector<int> res(n, -1);
+    std::stack<int> st;
+    for (int i = 0; i < 2 * n; i++) {
+        int idx = i % n;
+        while (!st.empty() && arr[st.top()] < arr[idx]) { res[st.top()] = arr[idx]; st.pop(); }
+        if (i < n) st.push(idx);
+    }
+    return res;
+}
+int main() {
+    std::vector<int> a = {2,5,1,6,10,3};
+    for (int x : succeedingSuperiorElementII(a)) std::cout << x << " "; std::cout << "\n";
+}
+```
+
+```scala,editable
+import scala.collection.mutable
+def succeedingSuperiorElementII(arr: Array[Int]): Array[Int] = {
+  val n = arr.length
+  val res = Array.fill(n)(-1)
+  val st = mutable.Stack[Int]()
+  for (i <- 0 until 2 * n) {
+    val idx = i % n
+    while (st.nonEmpty && arr(st.top) < arr(idx)) res(st.pop()) = arr(idx)
+    if (i < n) st.push(idx)
+  }
+  res
+}
+object Main extends App {
+  println(succeedingSuperiorElementII(Array(2,5,1,6,10,3)).mkString(", "))
+  println(succeedingSuperiorElementII(Array(6,7,8,9,8)).mkString(", "))
+}
+```
+
+```javascript,editable
+function succeedingSuperiorElementII(arr) {
+    const n = arr.length;
+    const res = new Array(n).fill(-1);
+    const st = [];
+    for (let i = 0; i < 2 * n; i++) {
+        const idx = i % n;
+        while (st.length && arr[st[st.length-1]] < arr[idx]) res[st.pop()] = arr[idx];
+        if (i < n) st.push(idx);
+    }
+    return res;
+}
+console.log(succeedingSuperiorElementII([2,5,1,6,10,3]));
+console.log(succeedingSuperiorElementII([6,7,8,9,8]));
+```
+
+```typescript,editable
+function succeedingSuperiorElementII(arr: number[]): number[] {
+    const n = arr.length;
+    const res = new Array(n).fill(-1);
+    const st: number[] = [];
+    for (let i = 0; i < 2 * n; i++) {
+        const idx = i % n;
+        while (st.length && arr[st[st.length-1]] < arr[idx]) res[st.pop()!] = arr[idx];
+        if (i < n) st.push(idx);
+    }
+    return res;
+}
+console.log(succeedingSuperiorElementII([2,5,1,6,10,3]));
+```
+
+```go,editable
+package main
+import "fmt"
+func succeedingSuperiorElementII(arr []int) []int {
+    n := len(arr); res := make([]int, n); for i := range res { res[i] = -1 }
+    st := []int{}
+    for i := 0; i < 2*n; i++ {
+        idx := i % n
+        for len(st) > 0 && arr[st[len(st)-1]] < arr[idx] { res[st[len(st)-1]] = arr[idx]; st = st[:len(st)-1] }
+        if i < n { st = append(st, idx) }
+    }
+    return res
+}
+func main() {
+    fmt.Println(succeedingSuperiorElementII([]int{2,5,1,6,10,3}))
+    fmt.Println(succeedingSuperiorElementII([]int{6,7,8,9,8}))
+}
+```
+
+```kotlin,editable
+fun succeedingSuperiorElementII(arr: IntArray): IntArray {
+    val n = arr.size
+    val res = IntArray(n) { -1 }
+    val st = ArrayDeque<Int>()
+    for (i in 0 until 2 * n) {
+        val idx = i % n
+        while (st.isNotEmpty() && arr[st.last()] < arr[idx]) res[st.removeLast()] = arr[idx]
+        if (i < n) st.addLast(idx)
+    }
+    return res
+}
+fun main() {
+    println(succeedingSuperiorElementII(intArrayOf(2,5,1,6,10,3)).toList())
+    println(succeedingSuperiorElementII(intArrayOf(6,7,8,9,8)).toList())
+}
+```
+
+```rust,editable
+fn succeeding_superior_element_ii(arr: &[i32]) -> Vec<i32> {
+    let n = arr.len();
+    let mut res = vec![-1; n];
+    let mut st: Vec<usize> = Vec::new();
+    for i in 0..(2 * n) {
+        let idx = i % n;
+        while let Some(&t) = st.last() { if arr[t] < arr[idx] { res[t] = arr[idx]; st.pop(); } else { break; } }
+        if i < n { st.push(idx); }
+    }
+    res
+}
+fn main() {
+    println!("{:?}", succeeding_superior_element_ii(&[2,5,1,6,10,3]));
+    println!("{:?}", succeeding_superior_element_ii(&[6,7,8,9,8]));
+}
+```
+
+</div>
 
 ***
 
@@ -1212,79 +936,200 @@ public:
 
 ## Problem Statement
 
-Given a circular array **arr**, write a function to return a new array containing the succeeding inferior element of each element present in arr. Since the array is circular, to find the succeeding inferior element, you could look circularly to the right until you find an element or reach the same element. If there is no inferior element for a value, then the answer to that query is `-1`.
-
-The **succeeding inferior element** of some element **X** in an array is the **first smaller element to the right of X** in the same array.
+Circular next-smaller. Mirror of the previous problem with the comparison flipped.
 
 ### Example 1
-
-> -   **Input:** arr = \[2, 5, 1, 6, 10, 3\]
-> -   **Output:** \[1, 1, -1, 3, 3, 2\]
-> -   **Explanation:** Succeeding inferior element for each element of arr is given below:
-> -   arr\[0\] = 2, inferior element for this value in arr = 1
-> -   arr\[1\] = 5, inferior element for this value in arr = 1
-> -   arr\[2\] = 1, there is no inferior element for this value in arr, even after circularly visiting the arra,y so the result is -1
-> -   arr\[3\] = 6, inferior element for this value in arr = 3
-> -   arr\[4\] = 10, inferior element for this value in arr = 3
-> -   arr\[5\] = 3, after visiting the array circularly, we find the inferior element for this value in arr = 2
+> -   **Input:** `arr = [2, 5, 1, 6, 10, 3]` → **Output:** `[1, 1, -1, 3, 3, 2]`
 
 ### Example 2
-
-> -   **Input:** arr = \[6, 7, 8, 9, 8\]
-> -   **Output:** \[-1, 6, 6, 8, 6\]
-> -   **Explanation:** Succeeding inferior element for each element of arr is given below:
-> -   arr\[0\] = 6, there is no inferior element for this value in arr, even after circularly visiting the arra,y so the result is -1
-> -   arr\[1\] = 7, after visiting the array circularly, we find the inferior element for this value in arr = 6
-> -   arr\[2\] = 8, after visiting the array circularly, we find the inferior element for this value in arr = 6
-> -   arr\[3\] = 9, inferior element for this value in arr = 8
-> -   arr\[4\] = 8, after visiting the array circularly we find the inferior element for this value in arr = 6
+> -   **Input:** `arr = [6, 7, 8, 9, 8]` → **Output:** `[-1, 6, 6, 8, 6]`
 
 ## Solution
 
-```cpp
-#include <stack>
+<div class="lang-tabs">
 
-using namespace std;
+```python,editable
+def succeeding_inferior_element_ii(arr: list) -> list:
+    n = len(arr)
+    res = [-1] * n
+    st = []
+    for i in range(2 * n):
+        idx = i % n
+        while st and arr[st[-1]] > arr[idx]:
+            res[st.pop()] = arr[idx]
+        if i < n: st.append(idx)
+    return res
 
-class Solution {
-public:
-    vector<int> succeedingInferiorElementII(vector<int> &arr) {
-        int n = arr.size();
-
-        // Initialize result with -1
-        vector<int> result(n, -1);
-
-        // Stack to store indices of elements
-        stack<int> stack;
-
-        // Iterate twice through the array in reverse order (circularly)
-        for (int i = 2 * n - 1; i >= 0; i--) {
-
-            // Circular index
-            int index = i % n;
-            int num = arr[index];
-
-            // Check if we can pop elements from the stack
-            // (i.e., find the succeeding smaller element for those
-            // elements)
-            while (!stack.empty() && stack.top() >= num) {
-                stack.pop();
-            }
-
-            // If stack is not empty, the top element is the succeeding
-            // inferior element
-            if (!stack.empty()) {
-                result[index] = stack.top();
-            }
-
-            // Always push the element to the stack
-            stack.push(num);
-        }
-
-        return result;
-    }
-};
+print(succeeding_inferior_element_ii([2,5,1,6,10,3]))   # [1, 1, -1, 3, 3, 2]
+print(succeeding_inferior_element_ii([6,7,8,9,8]))      # [-1, 6, 6, 8, 6]
 ```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static int[] succeedingInferiorElementII(int[] arr) {
+        int n = arr.length;
+        int[] res = new int[n]; Arrays.fill(res, -1);
+        Deque<Integer> st = new ArrayDeque<>();
+        for (int i = 0; i < 2 * n; i++) {
+            int idx = i % n;
+            while (!st.isEmpty() && arr[st.peek()] > arr[idx]) res[st.pop()] = arr[idx];
+            if (i < n) st.push(idx);
+        }
+        return res;
+    }
+    public static void main(String[] args) {
+        System.out.println(Arrays.toString(succeedingInferiorElementII(new int[]{2,5,1,6,10,3})));
+        System.out.println(Arrays.toString(succeedingInferiorElementII(new int[]{6,7,8,9,8})));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+void succeeding_inferior_element_ii(int *arr, int n, int *res) {
+    int st[512]; int top = -1;
+    for (int i = 0; i < n; i++) res[i] = -1;
+    for (int i = 0; i < 2 * n; i++) {
+        int idx = i % n;
+        while (top >= 0 && arr[st[top]] > arr[idx]) res[st[top--]] = arr[idx];
+        if (i < n) st[++top] = idx;
+    }
+}
+int main() {
+    int a[] = {2,5,1,6,10,3}; int r[6];
+    succeeding_inferior_element_ii(a, 6, r);
+    for (int i = 0; i < 6; i++) printf("%d ", r[i]); printf("\n");
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <stack>
+#include <vector>
+std::vector<int> succeedingInferiorElementII(std::vector<int> &arr) {
+    int n = (int)arr.size();
+    std::vector<int> res(n, -1);
+    std::stack<int> st;
+    for (int i = 0; i < 2 * n; i++) {
+        int idx = i % n;
+        while (!st.empty() && arr[st.top()] > arr[idx]) { res[st.top()] = arr[idx]; st.pop(); }
+        if (i < n) st.push(idx);
+    }
+    return res;
+}
+int main() {
+    std::vector<int> a = {2,5,1,6,10,3};
+    for (int x : succeedingInferiorElementII(a)) std::cout << x << " "; std::cout << "\n";
+}
+```
+
+```scala,editable
+import scala.collection.mutable
+def succeedingInferiorElementII(arr: Array[Int]): Array[Int] = {
+  val n = arr.length
+  val res = Array.fill(n)(-1)
+  val st = mutable.Stack[Int]()
+  for (i <- 0 until 2 * n) {
+    val idx = i % n
+    while (st.nonEmpty && arr(st.top) > arr(idx)) res(st.pop()) = arr(idx)
+    if (i < n) st.push(idx)
+  }
+  res
+}
+object Main extends App {
+  println(succeedingInferiorElementII(Array(2,5,1,6,10,3)).mkString(", "))
+  println(succeedingInferiorElementII(Array(6,7,8,9,8)).mkString(", "))
+}
+```
+
+```javascript,editable
+function succeedingInferiorElementII(arr) {
+    const n = arr.length;
+    const res = new Array(n).fill(-1);
+    const st = [];
+    for (let i = 0; i < 2 * n; i++) {
+        const idx = i % n;
+        while (st.length && arr[st[st.length-1]] > arr[idx]) res[st.pop()] = arr[idx];
+        if (i < n) st.push(idx);
+    }
+    return res;
+}
+console.log(succeedingInferiorElementII([2,5,1,6,10,3]));
+console.log(succeedingInferiorElementII([6,7,8,9,8]));
+```
+
+```typescript,editable
+function succeedingInferiorElementII(arr: number[]): number[] {
+    const n = arr.length;
+    const res = new Array(n).fill(-1);
+    const st: number[] = [];
+    for (let i = 0; i < 2 * n; i++) {
+        const idx = i % n;
+        while (st.length && arr[st[st.length-1]] > arr[idx]) res[st.pop()!] = arr[idx];
+        if (i < n) st.push(idx);
+    }
+    return res;
+}
+console.log(succeedingInferiorElementII([2,5,1,6,10,3]));
+```
+
+```go,editable
+package main
+import "fmt"
+func succeedingInferiorElementII(arr []int) []int {
+    n := len(arr); res := make([]int, n); for i := range res { res[i] = -1 }
+    st := []int{}
+    for i := 0; i < 2*n; i++ {
+        idx := i % n
+        for len(st) > 0 && arr[st[len(st)-1]] > arr[idx] { res[st[len(st)-1]] = arr[idx]; st = st[:len(st)-1] }
+        if i < n { st = append(st, idx) }
+    }
+    return res
+}
+func main() {
+    fmt.Println(succeedingInferiorElementII([]int{2,5,1,6,10,3}))
+    fmt.Println(succeedingInferiorElementII([]int{6,7,8,9,8}))
+}
+```
+
+```kotlin,editable
+fun succeedingInferiorElementII(arr: IntArray): IntArray {
+    val n = arr.size
+    val res = IntArray(n) { -1 }
+    val st = ArrayDeque<Int>()
+    for (i in 0 until 2 * n) {
+        val idx = i % n
+        while (st.isNotEmpty() && arr[st.last()] > arr[idx]) res[st.removeLast()] = arr[idx]
+        if (i < n) st.addLast(idx)
+    }
+    return res
+}
+fun main() {
+    println(succeedingInferiorElementII(intArrayOf(2,5,1,6,10,3)).toList())
+    println(succeedingInferiorElementII(intArrayOf(6,7,8,9,8)).toList())
+}
+```
+
+```rust,editable
+fn succeeding_inferior_element_ii(arr: &[i32]) -> Vec<i32> {
+    let n = arr.len();
+    let mut res = vec![-1; n];
+    let mut st: Vec<usize> = Vec::new();
+    for i in 0..(2 * n) {
+        let idx = i % n;
+        while let Some(&t) = st.last() { if arr[t] > arr[idx] { res[t] = arr[idx]; st.pop(); } else { break; } }
+        if i < n { st.push(idx); }
+    }
+    res
+}
+fn main() {
+    println!("{:?}", succeeding_inferior_element_ii(&[2,5,1,6,10,3]));
+    println!("{:?}", succeeding_inferior_element_ii(&[6,7,8,9,8]));
+}
+```
+
+</div>
 
 ***
 
@@ -1292,89 +1137,292 @@ public:
 
 ## Problem Statement
 
-You are given the **head** of a linked list with N nodes. For each node in the list, find the value of the succeding superior node. For a given node, the succeeding superior node is the first node next to it and has a strictly larger value than it. Your function should return an integer array as an answer where the value at the index `i` is the value of the next superior node of the ith node (1-indexed). If the ith node does not have a next superior node, set it to `0`.
+Given the head of a singly-linked list, return an array where `result[i]` is the value of the next node strictly greater than node `i` (1-indexed). Use `0` if no such node exists.
 
 ### Example 1
-
-> -   **Input:** head = \[2, 1, 5\]
-> -   **Output:** \[5, 5, 0\]
-> -   **Explanation:** The next superior node for 2 is 5, 1 is 5 and as 5 does not have any next superior node answer will be 0.
+> -   **Input:** `head = [2, 1, 5]` → **Output:** `[5, 5, 0]`
 
 ### Example 2
+> -   **Input:** `head = [2, 7, 4, 3, 5]` → **Output:** `[7, 0, 5, 5, 0]`
 
-> -   **Input:** head = \[2, 7, 4, 3, 5\]
-> -   **Output:** \[7, 0, 5, 5, 0\]
-> -   **Explanation:** The next superior for 2 is 7, since 7 does not have any next superior its answer will be 0, the next superior for 4 and 3 is 5, and 5 does not have any next superior its answer will be 0.
+## Approach
+
+Same algorithm — but the data source is a linked list, so we walk it once with a pointer, tracking each node's index. Stack stores `(index, value)` pairs; on each new value, pop and resolve as before.
 
 ## Solution
 
-```cpp
-#include <stack>
+<div class="lang-tabs">
 
-/**
- * Definition for singly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *next;
- *     ListNode() : val(0), next(nullptr) {}
- *     ListNode(int val) : val(val), next(nullptr) {}
- * };
- */
+```python,editable
+class _Node:
+    def __init__(self, val): self.val, self.next = val, None
 
-using namespace std;
+def succeeding_superior_nodes(head):
+    """head is a _Node-style linked list."""
+    res = []
+    stack = []                                 # stack of (index, value)
+    i = 0
+    while head is not None:
+        res.append(0)
+        while stack and head.val > stack[-1][1]:
+            idx, _ = stack.pop()
+            res[idx] = head.val
+        stack.append((i, head.val))
+        i += 1
+        head = head.next
+    return res
 
-// Struct to store index and value of each node
-struct NodeInfo {
-    int index;
-    int value;
-};
+# Demo: build [2, 7, 4, 3, 5]
+def make(values):
+    dummy = _Node(0); cur = dummy
+    for v in values: cur.next = _Node(v); cur = cur.next
+    return dummy.next
 
-class Solution {
-public:
-    vector<int> succeedingSuperiorNodes(ListNode *head) {
-
-        // Stores the next larger elements
-        vector<int> result;
-
-        // Stores the elements in a stack along with their indices
-        stack<NodeInfo> stack;
-
-        // Keeps track of the current index
-        int index = 0;
-
-        while (head != nullptr) {
-
-            // Initialize the result for the current node as 0
-            result.push_back(0);
-
-            // While the stack is not empty and the value of the current
-            // node is greater than the value of the element at the top
-            // of the stack
-            while (!stack.empty() && head->val > stack.top().value) {
-
-                // Get the element at the top of the stack
-                NodeInfo top = stack.top();
-
-                // Remove the element from the stack
-                stack.pop();
-
-                // Set the result at the index of the top element to the
-                // value of the current node
-                result[top.index] = head->val;
-            }
-
-            // Push the current node's index and value to the stack
-            stack.push({index++, head->val});
-
-            // Move to the next node
-            head = head->next;
-        }
-
-        // Return the vector containing the next larger elements
-        return result;
-    }
-};
+print(succeeding_superior_nodes(make([2, 1, 5])))         # [5, 5, 0]
+print(succeeding_superior_nodes(make([2, 7, 4, 3, 5])))   # [7, 0, 5, 5, 0]
 ```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static class ListNode { int val; ListNode next; ListNode(int v){val = v;} }
+
+    static int[] succeedingSuperiorNodes(ListNode head) {
+        List<Integer> res = new ArrayList<>();
+        Deque<int[]> st = new ArrayDeque<>();    // {index, value}
+        int i = 0;
+        while (head != null) {
+            res.add(0);
+            while (!st.isEmpty() && head.val > st.peek()[1]) {
+                int[] top = st.pop();
+                res.set(top[0], head.val);
+            }
+            st.push(new int[]{i++, head.val});
+            head = head.next;
+        }
+        return res.stream().mapToInt(Integer::intValue).toArray();
+    }
+    public static void main(String[] args) {
+        ListNode a = new ListNode(2); a.next = new ListNode(1); a.next.next = new ListNode(5);
+        System.out.println(Arrays.toString(succeedingSuperiorNodes(a)));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct ListNode { int val; struct ListNode *next; } ListNode;
+
+void succeeding_superior_nodes(ListNode *head, int *res, int *n) {
+    int st_idx[256], st_val[256]; int top = -1; int i = 0;
+    while (head) {
+        res[i] = 0;
+        while (top >= 0 && head->val > st_val[top]) { res[st_idx[top]] = head->val; top--; }
+        st_idx[++top] = i; st_val[top] = head->val;
+        i++; head = head->next;
+    }
+    *n = i;
+}
+
+ListNode* make(int *vals, int n) {
+    ListNode *dummy = malloc(sizeof(ListNode)); dummy->next = NULL;
+    ListNode *cur = dummy;
+    for (int i = 0; i < n; i++) { ListNode *n = malloc(sizeof(ListNode)); n->val = vals[i]; n->next = NULL; cur->next = n; cur = n; }
+    return dummy->next;
+}
+
+int main() {
+    int v[] = {2, 7, 4, 3, 5};
+    ListNode *head = make(v, 5);
+    int res[5]; int n;
+    succeeding_superior_nodes(head, res, &n);
+    for (int i = 0; i < n; i++) printf("%d ", res[i]); printf("\n");
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <stack>
+#include <vector>
+
+struct ListNode { int val; ListNode *next; ListNode(int v):val(v),next(nullptr){} };
+
+std::vector<int> succeedingSuperiorNodes(ListNode *head) {
+    std::vector<int> res;
+    std::stack<std::pair<int, int>> st;        // (index, value)
+    int i = 0;
+    while (head) {
+        res.push_back(0);
+        while (!st.empty() && head->val > st.top().second) {
+            res[st.top().first] = head->val; st.pop();
+        }
+        st.push({i++, head->val});
+        head = head->next;
+    }
+    return res;
+}
+
+int main() {
+    ListNode *h = new ListNode(2); h->next = new ListNode(7); h->next->next = new ListNode(4);
+    h->next->next->next = new ListNode(3); h->next->next->next->next = new ListNode(5);
+    for (int x : succeedingSuperiorNodes(h)) std::cout << x << " "; std::cout << "\n";
+}
+```
+
+```scala,editable
+import scala.collection.mutable
+
+class ListNode(var v: Int, var next: ListNode = null)
+
+def succeedingSuperiorNodes(head: ListNode): List[Int] = {
+  val res = mutable.ArrayBuffer[Int]()
+  val st = mutable.Stack[(Int, Int)]()
+  var i = 0; var cur = head
+  while (cur != null) {
+    res.append(0)
+    while (st.nonEmpty && cur.v > st.top._2) {
+      val (idx, _) = st.pop(); res(idx) = cur.v
+    }
+    st.push((i, cur.v)); i += 1
+    cur = cur.next
+  }
+  res.toList
+}
+object Main extends App {
+  val h = new ListNode(2, new ListNode(7, new ListNode(4, new ListNode(3, new ListNode(5)))))
+  println(succeedingSuperiorNodes(h))
+}
+```
+
+```javascript,editable
+class ListNode { constructor(v){ this.val = v; this.next = null; } }
+
+function succeedingSuperiorNodes(head) {
+    const res = [];
+    const st = [];           // [index, value]
+    let i = 0;
+    while (head) {
+        res.push(0);
+        while (st.length && head.val > st[st.length-1][1]) {
+            const [idx] = st.pop(); res[idx] = head.val;
+        }
+        st.push([i++, head.val]);
+        head = head.next;
+    }
+    return res;
+}
+
+const h = new ListNode(2); h.next = new ListNode(7); h.next.next = new ListNode(4);
+h.next.next.next = new ListNode(3); h.next.next.next.next = new ListNode(5);
+console.log(succeedingSuperiorNodes(h));   // [7, 0, 5, 5, 0]
+```
+
+```typescript,editable
+class ListNode { val: number; next: ListNode | null;
+    constructor(v: number) { this.val = v; this.next = null; }
+}
+function succeedingSuperiorNodes(head: ListNode | null): number[] {
+    const res: number[] = [];
+    const st: [number, number][] = [];
+    let i = 0;
+    while (head) {
+        res.push(0);
+        while (st.length && head.val > st[st.length-1][1]) {
+            const [idx] = st.pop()!; res[idx] = head.val;
+        }
+        st.push([i++, head.val]);
+        head = head.next;
+    }
+    return res;
+}
+const h = new ListNode(2); h.next = new ListNode(7); h.next.next = new ListNode(4);
+h.next.next.next = new ListNode(3); h.next.next.next.next = new ListNode(5);
+console.log(succeedingSuperiorNodes(h));
+```
+
+```go,editable
+package main
+import "fmt"
+
+type ListNode struct { Val int; Next *ListNode }
+
+func succeedingSuperiorNodes(head *ListNode) []int {
+    res := []int{}
+    type pair struct{ i, v int }
+    st := []pair{}
+    i := 0
+    for head != nil {
+        res = append(res, 0)
+        for len(st) > 0 && head.Val > st[len(st)-1].v {
+            res[st[len(st)-1].i] = head.Val; st = st[:len(st)-1]
+        }
+        st = append(st, pair{i, head.Val}); i++
+        head = head.Next
+    }
+    return res
+}
+
+func main() {
+    h := &ListNode{Val:2, Next:&ListNode{Val:7, Next:&ListNode{Val:4, Next:&ListNode{Val:3, Next:&ListNode{Val:5}}}}}
+    fmt.Println(succeedingSuperiorNodes(h))
+}
+```
+
+```kotlin,editable
+class ListNode(var v: Int, var next: ListNode? = null)
+
+fun succeedingSuperiorNodes(head: ListNode?): List<Int> {
+    val res = mutableListOf<Int>()
+    val st = ArrayDeque<Pair<Int, Int>>()
+    var i = 0; var cur = head
+    while (cur != null) {
+        res.add(0)
+        while (st.isNotEmpty() && cur.v > st.last().second) {
+            val (idx, _) = st.removeLast(); res[idx] = cur.v
+        }
+        st.addLast(i to cur.v); i++
+        cur = cur.next
+    }
+    return res
+}
+fun main() {
+    val h = ListNode(2, ListNode(7, ListNode(4, ListNode(3, ListNode(5)))))
+    println(succeedingSuperiorNodes(h))
+}
+```
+
+```rust,editable
+struct ListNode { val: i32, next: Option<Box<ListNode>> }
+
+fn succeeding_superior_nodes(head: Option<Box<ListNode>>) -> Vec<i32> {
+    let mut res: Vec<i32> = Vec::new();
+    let mut st: Vec<(usize, i32)> = Vec::new();
+    let mut cur = head;
+    let mut i = 0usize;
+    while let Some(node) = cur {
+        res.push(0);
+        while let Some(&(idx, v)) = st.last() {
+            if node.val > v { res[idx] = node.val; st.pop(); } else { break; }
+        }
+        st.push((i, node.val));
+        i += 1;
+        cur = node.next;
+    }
+    res
+}
+fn main() {
+    let h = Some(Box::new(ListNode { val: 2, next:
+        Some(Box::new(ListNode { val: 7, next:
+            Some(Box::new(ListNode { val: 4, next:
+                Some(Box::new(ListNode { val: 3, next:
+                    Some(Box::new(ListNode { val: 5, next: None })) })) })) })) }));
+    println!("{:?}", succeeding_superior_nodes(h));
+}
+```
+
+</div>
 
 ***
 
@@ -1382,61 +1430,266 @@ public:
 
 ## Problem Statement
 
-Given an array **heights** that contains non-negative integers representing an elevation map where the width of each bar is **`1`**, write a function to compute and return how much water it can trap after rain.
+Given an array `heights` of non-negative integers representing an elevation map (each bar has width 1), compute how much water can be trapped after rain.
 
 ### Example
+> -   **Input:** `heights = [0, 2, 4, 3, 0, 3, 5, 2, 0, 4, 3, 0, 2]`
+> -   **Output:** `14`
 
-> -   **Input:** heights = \[0, 2, 4, 3, 0, 3, 5, 2, 0, 4, 3, 0, 2\]
-> -   **Output:** 14
-> -   **Explanation:** In the above elevation map (represented by grey) color, 14 units of rainwater can be trapped (represented by blue).
+## Approach
+
+The water trapped above each "valley" is bounded by the heights of the **left and right walls**. The monotonic-stack approach: maintain a *decreasing* stack of bar indices. When a new taller bar arrives, it forms a *right wall* for everything popped off the stack; the *new top of the stack* (after popping) is the *left wall*. The trapped water on top of the popped bar is `(min(left, right) − popped_height) × (right_index − left_index − 1)`.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    R["new bar arrives at index i"] --> POP["while top exists and<br/>heights[top] < heights[i]:<br/>pop, compute trapped strip"]
+    POP --> EMPTY{"stack empty<br/>after pop?"}
+    EMPTY -->|"yes"| BREAK["no left wall → break"]
+    EMPTY -->|"no"| STRIP["width = i - new_top - 1<br/>height = min(heights[i], heights[new_top]) - popped_height<br/>add to total"]
+    STRIP --> POP
+    POP -->|"done"| PUSH["push i"]
+```
+
+<p align="center"><strong>Trapping rain water — pop the "valley" bar, the new top is the left wall, the current bar is the right wall, and the area trapped on top is one strip. Sum the strips.</strong></p>
 
 ## Solution
 
-```cpp
-#include <algorithm>
-#include <stack>
+<div class="lang-tabs">
 
-using namespace std;
+```python,editable
+def retained_rainwater(heights: list) -> int:
+    st = []                                  # decreasing stack of indices
+    water = 0
+    for i, h in enumerate(heights):
+        while st and heights[st[-1]] < h:
+            popped = st.pop()                # the "valley"
+            if not st: break                  # no left wall
+            left = st[-1]
+            width  = i - left - 1
+            height = min(heights[i], heights[left]) - heights[popped]
+            water += width * height
+        st.append(i)
+    return water
 
-class Solution {
-public:
-    int retainedRainwater(vector<int> &heights) {
-        int n = heights.size();
-        stack<int> stack;
-        int waterTrapped = 0;
-
-        for (int i = 0; i < n; ++i) {
-
-            // While the stack is not empty and the current height is
-            // greater than the height of the bar at the top of the stack
-            while (!stack.empty() && heights[i] > heights[stack.top()]) {
-                int top = stack.top();
-                stack.pop();
-
-                // No left boundary for trapping water
-                if (stack.empty()) {
-                    break;
-                }
-
-                // Calculate the width of the trapped water
-                int width = i - stack.top() - 1;
-
-                // Calculate the height of the trapped water
-                // (min of left and right boundary minus the current
-                // height)
-                int height =
-                    min(heights[i], heights[stack.top()]) - heights[top];
-                waterTrapped += width * height;
-            }
-
-            // Push the current bar index to the stack
-            stack.push(i);
-        }
-
-        return waterTrapped;
-    }
-};
+print(retained_rainwater([0,2,4,3,0,3,5,2,0,4,3,0,2]))   # 14
 ```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static int retainedRainwater(int[] h) {
+        Deque<Integer> st = new ArrayDeque<>();
+        int water = 0;
+        for (int i = 0; i < h.length; i++) {
+            while (!st.isEmpty() && h[st.peek()] < h[i]) {
+                int popped = st.pop();
+                if (st.isEmpty()) break;
+                int left = st.peek();
+                int width = i - left - 1;
+                int height = Math.min(h[i], h[left]) - h[popped];
+                water += width * height;
+            }
+            st.push(i);
+        }
+        return water;
+    }
+    public static void main(String[] args) {
+        System.out.println(retainedRainwater(new int[]{0,2,4,3,0,3,5,2,0,4,3,0,2}));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+int retained_rainwater(int *h, int n) {
+    int st[256]; int top = -1; int water = 0;
+    for (int i = 0; i < n; i++) {
+        while (top >= 0 && h[st[top]] < h[i]) {
+            int popped = st[top--];
+            if (top < 0) break;
+            int left = st[top];
+            int width = i - left - 1;
+            int height = (h[i] < h[left] ? h[i] : h[left]) - h[popped];
+            water += width * height;
+        }
+        st[++top] = i;
+    }
+    return water;
+}
+int main() {
+    int h[] = {0,2,4,3,0,3,5,2,0,4,3,0,2};
+    printf("%d\n", retained_rainwater(h, 13));
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <stack>
+#include <vector>
+#include <algorithm>
+int retainedRainwater(std::vector<int> &h) {
+    std::stack<int> st;
+    int water = 0;
+    for (int i = 0; i < (int)h.size(); i++) {
+        while (!st.empty() && h[st.top()] < h[i]) {
+            int popped = st.top(); st.pop();
+            if (st.empty()) break;
+            int left = st.top();
+            int width = i - left - 1;
+            int height = std::min(h[i], h[left]) - h[popped];
+            water += width * height;
+        }
+        st.push(i);
+    }
+    return water;
+}
+int main() {
+    std::vector<int> h = {0,2,4,3,0,3,5,2,0,4,3,0,2};
+    std::cout << retainedRainwater(h) << "\n";
+}
+```
+
+```scala,editable
+import scala.collection.mutable
+def retainedRainwater(h: Array[Int]): Int = {
+  val st = mutable.Stack[Int]()
+  var water = 0
+  for (i <- h.indices) {
+    var done = false
+    while (st.nonEmpty && h(st.top) < h(i) && !done) {
+      val popped = st.pop()
+      if (st.isEmpty) done = true
+      else {
+        val left = st.top
+        val width = i - left - 1
+        val height = math.min(h(i), h(left)) - h(popped)
+        water += width * height
+      }
+    }
+    st.push(i)
+  }
+  water
+}
+object Main extends App {
+  println(retainedRainwater(Array(0,2,4,3,0,3,5,2,0,4,3,0,2)))
+}
+```
+
+```javascript,editable
+function retainedRainwater(h) {
+    const st = [];
+    let water = 0;
+    for (let i = 0; i < h.length; i++) {
+        while (st.length && h[st[st.length-1]] < h[i]) {
+            const popped = st.pop();
+            if (!st.length) break;
+            const left = st[st.length-1];
+            const width = i - left - 1;
+            const height = Math.min(h[i], h[left]) - h[popped];
+            water += width * height;
+        }
+        st.push(i);
+    }
+    return water;
+}
+console.log(retainedRainwater([0,2,4,3,0,3,5,2,0,4,3,0,2]));
+```
+
+```typescript,editable
+function retainedRainwater(h: number[]): number {
+    const st: number[] = [];
+    let water = 0;
+    for (let i = 0; i < h.length; i++) {
+        while (st.length && h[st[st.length-1]] < h[i]) {
+            const popped = st.pop()!;
+            if (!st.length) break;
+            const left = st[st.length-1];
+            const width = i - left - 1;
+            const height = Math.min(h[i], h[left]) - h[popped];
+            water += width * height;
+        }
+        st.push(i);
+    }
+    return water;
+}
+console.log(retainedRainwater([0,2,4,3,0,3,5,2,0,4,3,0,2]));
+```
+
+```go,editable
+package main
+import "fmt"
+func retainedRainwater(h []int) int {
+    st := []int{}; water := 0
+    for i := 0; i < len(h); i++ {
+        for len(st) > 0 && h[st[len(st)-1]] < h[i] {
+            popped := st[len(st)-1]; st = st[:len(st)-1]
+            if len(st) == 0 { break }
+            left := st[len(st)-1]
+            width := i - left - 1
+            min := h[i]; if h[left] < min { min = h[left] }
+            water += width * (min - h[popped])
+        }
+        st = append(st, i)
+    }
+    return water
+}
+func main() { fmt.Println(retainedRainwater([]int{0,2,4,3,0,3,5,2,0,4,3,0,2})) }
+```
+
+```kotlin,editable
+fun retainedRainwater(h: IntArray): Int {
+    val st = ArrayDeque<Int>()
+    var water = 0
+    for (i in h.indices) {
+        while (st.isNotEmpty() && h[st.last()] < h[i]) {
+            val popped = st.removeLast()
+            if (st.isEmpty()) break
+            val left = st.last()
+            val width = i - left - 1
+            val height = minOf(h[i], h[left]) - h[popped]
+            water += width * height
+        }
+        st.addLast(i)
+    }
+    return water
+}
+fun main() { println(retainedRainwater(intArrayOf(0,2,4,3,0,3,5,2,0,4,3,0,2))) }
+```
+
+```rust,editable
+fn retained_rainwater(h: &[i32]) -> i32 {
+    let mut st: Vec<usize> = Vec::new();
+    let mut water = 0;
+    for i in 0..h.len() {
+        while let Some(&top) = st.last() {
+            if h[top] < h[i] {
+                let popped = st.pop().unwrap();
+                if let Some(&left) = st.last() {
+                    let width  = (i - left - 1) as i32;
+                    let height = h[i].min(h[left]) - h[popped];
+                    water += width * height;
+                } else { break; }
+            } else { break; }
+        }
+        st.push(i);
+    }
+    water
+}
+fn main() { println!("{}", retained_rainwater(&[0,2,4,3,0,3,5,2,0,4,3,0,2])); }
+```
+
+</div>
 
 ***
 
@@ -1444,67 +1697,294 @@ public:
 
 ## Problem Statement
 
-Given an array **histrogram** containing positive integers representing the histogram's bar height where the width of each bar is `1`, write a function to return the area of the largest rectangle formed in the histogram.
+Given an array `histogram` of positive integers (heights of bars of unit width), return the area of the largest rectangle that can be formed.
 
 ### Example
+> -   **Input:** `histogram = [2, 4, 3, 3, 5, 2, 4, 3, 2]` → **Output:** `18`
 
-> -   **Input:** histrogram = \[2, 4, 3, 3, 5, 2, 4, 3, 2\]
-> -   **Output:** 18
-> -   **Explanation:** In the above histogram (represented by grey) colour, the largest rectangle area is 18 (represented by green).
+## Approach
+
+For each bar, the largest rectangle whose *height equals this bar's height* extends from one past the **previous shorter bar** to one before the **next shorter bar**. Using a monotonic *increasing* stack of indices:
+
+- When a new bar arrives that's shorter than the top, the top bar's "right boundary" is the new bar.
+- Pop the top, look at the new top — that's the "left boundary".
+- Width = `i − left − 1` (or `i` if the stack is empty after popping).
+- Update the max area.
+
+After the main loop, **flush** the stack as if a "0" bar appeared at index `n` — those bars extend all the way to the end.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    POP["pop top h<br/>(height of rectangle)"] --> WIDTH["width =<br/>stack empty ? i : i - new_top - 1"]
+    WIDTH --> AREA["area = h * width"]
+    AREA --> MAX["maxArea = max(maxArea, area)"]
+```
+
+<p align="center"><strong>When the increasing-stack invariant is broken, every popped bar represents a rectangle whose height is the popped value and whose horizontal extent runs from one past the new top to one before the current bar. Each pop is one candidate rectangle; the global max wins.</strong></p>
 
 ## Solution
 
-```cpp
-#include <algorithm>
-#include <stack>
+<div class="lang-tabs">
 
-using namespace std;
+```python,editable
+def largest_rectangle_area(histogram: list) -> int:
+    n = len(histogram)
+    st = []
+    max_area = 0
+    for i in range(n):
+        while st and histogram[i] < histogram[st[-1]]:
+            h = histogram[st.pop()]
+            width = i if not st else i - st[-1] - 1
+            max_area = max(max_area, h * width)
+        st.append(i)
+    # Flush remaining bars as if a 0-height bar appeared at index n
+    while st:
+        h = histogram[st.pop()]
+        width = n if not st else n - st[-1] - 1
+        max_area = max(max_area, h * width)
+    return max_area
 
-class Solution {
-public:
-    int largestRectangleArea(vector<int> &histogram) {
-        int n = histogram.size();
-
-        // Stack to store indices of bars
-        stack<int> stack;
-
-        // To keep track of the maximum area
-        int maxArea = 0;
-
-        // Iterate over all the bars in the histogram
-        for (int i = 0; i < n; ++i) {
-
-            // While the stack is not empty and the current height is
-            // smaller than the height of the bar at the top of the stack
-            while (!stack.empty() &&
-                   histogram[i] < histogram[stack.top()]) {
-                int h = histogram[stack.top()];
-                stack.pop();
-
-                // Calculate the width
-                int width = stack.empty() ? i : i - stack.top() - 1;
-
-                // Update the maximum area
-                maxArea = max(maxArea, h * width);
-            }
-
-            // Push the current bar index to the stack
-            stack.push(i);
-        }
-
-        // After the loop, process any remaining bars in the stack
-        while (!stack.empty()) {
-            int h = histogram[stack.top()];
-            stack.pop();
-
-            // Calculate the width
-            int width = stack.empty() ? n : n - stack.top() - 1;
-
-            // Update the maximum area
-            maxArea = max(maxArea, h * width);
-        }
-
-        return maxArea;
-    }
-};
+print(largest_rectangle_area([2,4,3,3,5,2,4,3,2]))   # 18
 ```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static int largestRectangleArea(int[] h) {
+        int n = h.length, max = 0;
+        Deque<Integer> st = new ArrayDeque<>();
+        for (int i = 0; i < n; i++) {
+            while (!st.isEmpty() && h[i] < h[st.peek()]) {
+                int height = h[st.pop()];
+                int width  = st.isEmpty() ? i : i - st.peek() - 1;
+                max = Math.max(max, height * width);
+            }
+            st.push(i);
+        }
+        while (!st.isEmpty()) {
+            int height = h[st.pop()];
+            int width  = st.isEmpty() ? n : n - st.peek() - 1;
+            max = Math.max(max, height * width);
+        }
+        return max;
+    }
+    public static void main(String[] args) {
+        System.out.println(largestRectangleArea(new int[]{2,4,3,3,5,2,4,3,2}));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+int largest_rectangle_area(int *h, int n) {
+    int st[256]; int top = -1; int max = 0;
+    for (int i = 0; i < n; i++) {
+        while (top >= 0 && h[i] < h[st[top]]) {
+            int height = h[st[top--]];
+            int width = top < 0 ? i : i - st[top] - 1;
+            int area = height * width;
+            if (area > max) max = area;
+        }
+        st[++top] = i;
+    }
+    while (top >= 0) {
+        int height = h[st[top--]];
+        int width = top < 0 ? n : n - st[top] - 1;
+        int area = height * width;
+        if (area > max) max = area;
+    }
+    return max;
+}
+int main() {
+    int h[] = {2,4,3,3,5,2,4,3,2};
+    printf("%d\n", largest_rectangle_area(h, 9));
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <stack>
+#include <vector>
+#include <algorithm>
+int largestRectangleArea(std::vector<int> &h) {
+    int n = (int)h.size(), maxA = 0;
+    std::stack<int> st;
+    for (int i = 0; i < n; i++) {
+        while (!st.empty() && h[i] < h[st.top()]) {
+            int height = h[st.top()]; st.pop();
+            int width  = st.empty() ? i : i - st.top() - 1;
+            maxA = std::max(maxA, height * width);
+        }
+        st.push(i);
+    }
+    while (!st.empty()) {
+        int height = h[st.top()]; st.pop();
+        int width  = st.empty() ? n : n - st.top() - 1;
+        maxA = std::max(maxA, height * width);
+    }
+    return maxA;
+}
+int main() {
+    std::vector<int> h = {2,4,3,3,5,2,4,3,2};
+    std::cout << largestRectangleArea(h) << "\n";
+}
+```
+
+```scala,editable
+import scala.collection.mutable
+def largestRectangleArea(h: Array[Int]): Int = {
+  val n = h.length; val st = mutable.Stack[Int](); var max = 0
+  for (i <- 0 until n) {
+    while (st.nonEmpty && h(i) < h(st.top)) {
+      val height = h(st.pop())
+      val width  = if (st.isEmpty) i else i - st.top - 1
+      max = math.max(max, height * width)
+    }
+    st.push(i)
+  }
+  while (st.nonEmpty) {
+    val height = h(st.pop())
+    val width  = if (st.isEmpty) n else n - st.top - 1
+    max = math.max(max, height * width)
+  }
+  max
+}
+object Main extends App {
+  println(largestRectangleArea(Array(2,4,3,3,5,2,4,3,2)))
+}
+```
+
+```javascript,editable
+function largestRectangleArea(h) {
+    const n = h.length, st = []; let max = 0;
+    for (let i = 0; i < n; i++) {
+        while (st.length && h[i] < h[st[st.length-1]]) {
+            const height = h[st.pop()];
+            const width  = st.length === 0 ? i : i - st[st.length-1] - 1;
+            max = Math.max(max, height * width);
+        }
+        st.push(i);
+    }
+    while (st.length) {
+        const height = h[st.pop()];
+        const width  = st.length === 0 ? n : n - st[st.length-1] - 1;
+        max = Math.max(max, height * width);
+    }
+    return max;
+}
+console.log(largestRectangleArea([2,4,3,3,5,2,4,3,2]));
+```
+
+```typescript,editable
+function largestRectangleArea(h: number[]): number {
+    const n = h.length; const st: number[] = []; let max = 0;
+    for (let i = 0; i < n; i++) {
+        while (st.length && h[i] < h[st[st.length-1]]) {
+            const height = h[st.pop()!];
+            const width  = st.length === 0 ? i : i - st[st.length-1] - 1;
+            max = Math.max(max, height * width);
+        }
+        st.push(i);
+    }
+    while (st.length) {
+        const height = h[st.pop()!];
+        const width  = st.length === 0 ? n : n - st[st.length-1] - 1;
+        max = Math.max(max, height * width);
+    }
+    return max;
+}
+console.log(largestRectangleArea([2,4,3,3,5,2,4,3,2]));
+```
+
+```go,editable
+package main
+import "fmt"
+func largestRectangleArea(h []int) int {
+    n := len(h); st := []int{}; max := 0
+    for i := 0; i < n; i++ {
+        for len(st) > 0 && h[i] < h[st[len(st)-1]] {
+            height := h[st[len(st)-1]]; st = st[:len(st)-1]
+            width := i; if len(st) > 0 { width = i - st[len(st)-1] - 1 }
+            if a := height * width; a > max { max = a }
+        }
+        st = append(st, i)
+    }
+    for len(st) > 0 {
+        height := h[st[len(st)-1]]; st = st[:len(st)-1]
+        width := n; if len(st) > 0 { width = n - st[len(st)-1] - 1 }
+        if a := height * width; a > max { max = a }
+    }
+    return max
+}
+func main() { fmt.Println(largestRectangleArea([]int{2,4,3,3,5,2,4,3,2})) }
+```
+
+```kotlin,editable
+fun largestRectangleArea(h: IntArray): Int {
+    val n = h.size; val st = ArrayDeque<Int>(); var max = 0
+    for (i in 0 until n) {
+        while (st.isNotEmpty() && h[i] < h[st.last()]) {
+            val height = h[st.removeLast()]
+            val width  = if (st.isEmpty()) i else i - st.last() - 1
+            max = maxOf(max, height * width)
+        }
+        st.addLast(i)
+    }
+    while (st.isNotEmpty()) {
+        val height = h[st.removeLast()]
+        val width  = if (st.isEmpty()) n else n - st.last() - 1
+        max = maxOf(max, height * width)
+    }
+    return max
+}
+fun main() { println(largestRectangleArea(intArrayOf(2,4,3,3,5,2,4,3,2))) }
+```
+
+```rust,editable
+fn largest_rectangle_area(h: &[i32]) -> i32 {
+    let n = h.len();
+    let mut st: Vec<usize> = Vec::new();
+    let mut max = 0i32;
+    for i in 0..n {
+        while let Some(&top) = st.last() {
+            if h[i] < h[top] {
+                let popped = st.pop().unwrap();
+                let width = if let Some(&t) = st.last() { (i - t - 1) as i32 } else { i as i32 };
+                max = max.max(h[popped] * width);
+            } else { break; }
+        }
+        st.push(i);
+    }
+    while let Some(popped) = st.pop() {
+        let width = if let Some(&t) = st.last() { (n - t - 1) as i32 } else { n as i32 };
+        max = max.max(h[popped] * width);
+    }
+    max
+}
+fn main() { println!("{}", largest_rectangle_area(&[2,4,3,3,5,2,4,3,2])); }
+```
+
+</div>
+
+***
+
+## Final Takeaway
+
+Three lessons:
+
+1. **Left-to-right with retroactive resolution is the idiomatic style.** When a new element arrives and dominates indices on the stack, *those* indices' answers are *the new element*. The algorithm fills in the answer table as it goes; anything left on the stack at end-of-input has no answer.
+2. **Indices, not values, on the stack.** Storing indices lets you compute widths (rainwater, histogram), look up arbitrary fields of the original record, and resolve answers retroactively.
+3. **The same monotonic-stack skeleton powers a vast family of problems.** Next-greater, next-smaller, daily temperatures, stock span, trapping rain water, histogram rectangles, sum-of-subarray-minimums, score-of-parentheses — all variations on "pop while dominated, resolve answers, push current index". Recognise the family and the implementation almost writes itself.
+
+> *Coming up — **sequence validation**. The next pattern uses a stack as a "matching memory" — push opening symbols, pop on closing ones, and check that everything pairs up. The canonical applications are bracket matching, palindrome checking, and a few delightful permutation-validation puzzles.*

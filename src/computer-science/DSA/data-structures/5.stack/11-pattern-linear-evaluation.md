@@ -1,11 +1,21 @@
-# 11. Pattern: Linear evaluation
+# 11. Pattern: Linear Evaluation
+
+## The Hook
+
+You're parsing a UNIX path like `/a/./b/../c/d`. The brain processing it does a single left-to-right scan: push `a`, ignore `.`, push `b`, see `..` → pop `b`, push `c`, push `d` → final path `/a/c/d`. The decoder for `2[ab3[c]]` in a string-expansion problem? Same thing: push characters, on `]` pop until `[`, multiply by the number before `[`, push the expanded string. A chemical formula `H(N(KO)2)3`? Same again: push atoms/groups, on `)` flatten the group, multiply by the trailing number, push back.
+
+The unifying pattern: **as you scan, you build up sub-results on a stack; whenever a "closer" event fires, you pop a chunk, transform it, and push the transformation back as a new single unit on top of the stack.** The stack holds *partial answers in progress*; closer events trigger *evaluation* of one partial answer; the final stack contents (read top-to-bottom or bottom-to-top depending on the problem) is the answer.
+
+This is the **linear evaluation** pattern. It's the most general of the stack patterns and the one that shows up in every interpreter, every nested-format parser, and every "decode this weird notation" interview question. Four problems below take you from the simplest case (path simplification with a single delimiter) to the most subtle (chemical-formula parsing with nested groups and multipliers).
+
+---
 
 ## Table of contents
 
-1. [Understanding the linear evaluation pattern](#identifying-the-linear-evaluation-pattern)
+1. [Understanding the evaluation pattern](#understanding-the-evaluation-pattern)
 2. [Identifying the linear evaluation pattern](#identifying-the-linear-evaluation-pattern)
 3. [Canonicalise path](#canonicalise-path)
-4. [Bracketed reversal](#bracketed-reversal)
+4. [Bracketed Reversal](#bracketed-reversal)
 5. [String expansion](#string-expansion)
 6. [Formula parsing](#formula-parsing)
 
@@ -13,401 +23,57 @@
 
 # Understanding the evaluation pattern
 
-There are some problems where we are given a sequence of data, and we need to evaluate it based on some rules. When dealing with such sequences, the evaluation may require storing contextual information and deferring evaluation until certain triggers are hit. In most cases, to evaluate the sequence, we must move through the sequence, keeping track of several data items and performing some operation on some of these data items on hitting a trigger. The triggers may themselves be of different types, each with its own set of rules for evaluation. Each evaluation may either add, remove, or update data items from the sequence and subsequent triggers operate on the previously evaluated results.
+Three primitive operations:
 
-An example of a sequence with data and triggers is given below.
+- **Push** a token (operand, marker, or partial result) onto the stack.
+- **Trigger** evaluation when a "closer" event fires (e.g., `]`, `)`, `..`, end-of-token).
+- **Combine** the popped chunk into a single new value and push it back onto the stack.
 
-// Diagram: A sequence with data and triggers,
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    R["read token"] --> Q{"closer event?"}
+    Q -->|"no"| P["push token<br/>(or accumulate into top)"]
+    Q -->|"yes"| TRIG["pop until matching opener<br/>(or condition)"]
+    TRIG --> EVAL["combine popped pieces<br/>into one new value"]
+    EVAL --> PUSH["push the combined value"]
+    P --> R
+    PUSH --> R
+```
 
-The evaluation technique uses the LIFO property of a stack to solve such problems by storing data items in the stack, maintaining the most to least recent order, and incrementally evaluating the results using this data when certain triggers are hit.
-
-The evaluation pattern is a classification of problems that can be solved using the linear evaluation technique using a stack.
-
-## The linear evaluation technique
-
-To understand the linear evaluation technique, consider we are given a sequence of data represented by numbers`1, 2, 3, 4 ... N`. The sequence also contains various triggers denoted by `T1, T2, T3 ... TN` interleaved with the data. Each trigger type `Ti` may have specific rules that govern the evaluation of some data items before it. To evaluate a sequence, we traverse it from start to end, and when hitting a trigger, we apply its evaluation rules, which may either remove, add, or update the data items in the sequence traversed so far. We continue the traversal and the evaluated sequence becomes the input for the next trigger.
-
-// Diagram: Evaluate a linear sequence of data with triggers
-
-To evaluate the sequence, we create a stack`stack`to hold all the data items in LIFO order and iterate through the sequence. In each iteration, we check whether the current item is a data item or a trigger. If it is a data item, we push it to the top of the stack. Otherwise, if it is a trigger, we use the specific rule for that trigger to evaluate the remaining sequence in the stack, which may either add, update, or remove items from the stack.
-
-At the end of all iterations, the stack will have the final evaluated result.
-
-// Diagram: Evaluate a linear sequence of data with triggers
-
-Note that we only learned the generic evaluation technique in this lesson. However, actual problems may also requiring maintaining some state variables that may be used in tandem with the data in the stack to evaluate the sequence.
+<p align="center"><strong>Linear evaluation — every input token either pushes a new partial result or triggers a "fold" of recently pushed parts into one combined result. The stack always holds a list of partial answers; the closer event collapses some of them.</strong></p>
 
 ## Algorithm
 
-The algorithm below outlines the generic linear evaluation technique using a stack.
-
 > **Algorithm**
 >
-> -   **Step 1:** Create a stack \`stack\` to hold all data items
-> -   **Step 2:** Iterate in the sequence from start to end, and in each iteration, do the following:
->     -   **Step 2.1:** If the current item is a data item, push it to the top of the \`stack\`
->     -   **Step 2.2:** If the current item is a trigger, evaluate the sequence in the stack using the rules for this trigger
-> -   **Step 3:** The evaluated result is in the stack.
-
-## Implementation
-
-Given below is the generic code implementation to evaluate a linear sequence with data and triggers using a stack.
-
-C++
-
-```cpp
-vector<string> linearEvaluation(vector<string> &arr)
-{
-    // Create a stack to store data items
-    stack<string> stack;
-
-    // Iterate through each item in the input sequence
-    for (auto& item: arr ) {
-        if (isDataItem(item)) {
-            // Push the data item to the stack
-            stack.push(item);
-        } else {
-            // If this is a trigger, use specific rules for
-            // this trigger to evalute results sotred in stack
-
-            // This may add, update or remove multiple data items
-            // in the stack
-            evaluateTrigger(item, stack);
-        }
-    // The data items remaining in the stack
-    // from bottom to top make up the evaluated sequence
-    vector<string> result;
-
-    while(!stack.empty()) {
-      result.push_back(stack.top());
-      stack.pop();
-    }
-
-    // Since popping from stack produces data in LIFO order
-    // appending to result creates evaluated results in reverse
-    // so we reverse it to get the correct bottom to top order of stack
-    reverse(result.begin(), result.end());
-
-    return result;
-}
-```
-
-Java
-
-```java
-public class LinearEvaluator {
-
-    public List<String> linearEvaluation(List<String> arr) {
-        // Create a stack to store data items
-        Stack<String> stack = new Stack<>();
-
-        // Iterate through each item in the input sequence
-        for (String item : arr) {
-            if (isDataItem(item)) {
-                // Push the data item to the stack
-                stack.push(item);
-            } else {
-                // If this is a trigger, use specific rules for
-                // this trigger to evaluate results stored in stack
-
-                // This may add, update or remove multiple data items
-                // in the stack
-                evaluateTrigger(item, stack);
-            }
-
-        // The data items remaining in the stack
-        // from bottom to top make up the evaluated sequence
-        List<String> result = new ArrayList<>();
-        while (!stack.isEmpty()) {
-            result.add(stack.pop());
-        }
-
-        // Since popping from stack produces data in LIFO order
-        // appending to result creates evaluated results in reverse
-        // so we reverse it to get the correct bottom to top order of stack
-        Collections.reverse(result);
-
-        return result;
-    }
-```
-
-Typescript
-
-```typescript
-vector<string> linearEvaluation(vector<string> &arr)
-```
-
-Javascript
-
-```javascript
-function linearEvaluation(arr) {
-  // Create a stack to store data items
-  const stack = [];
-
-  // Iterate through each item in the input sequence
-  for (const item of arr) {
-    if (isDataItem(item)) {
-      // Push the data item to the stack
-      stack.push(item);
-    } else {
-      // If this is a trigger, use specific rules for
-      // this trigger to evaluate results stored in stack
-
-      // This may add, update, or remove multiple data items
-      // in the stack
-      evaluateTrigger(item, stack);
-    }
-
-  // The data items remaining in the stack
-  // from bottom to top make up the evaluated sequence
-  const result = [];
-  while (stack.length > 0) {
-    result.push(stack.pop());
-  }
-
-  // Since popping from stack produces data in LIFO order
-  // appending to result creates evaluated results in reverse
-  // so we reverse it to get the correct bottom-to-top order of stack
-  result.reverse();
-
-  return result;
-}
-```
-
-Python
-
-```python
-vector<string> linearEvaluation(vector<string> &arr)
-```
-
-## Complexity Analysis
-
-The algorithm's time and space complexity depends on the problem. However, in most cases, we traverse the sequence from start to end once in any case, and in each iteration, we either push the current item to the stack or pop a few items from the stack for evaluation. Since each data item is pushed exactly once onto the stack and may be popped at most once for evaluation, the worst-case time complexity for these operations is linear **O(N)**, considering the evaluation itself is a constant time **O(1)** operation. In any case, we need to traverse the entire sequence to evaluate the result, so the time complexity in any case is linear **O(N)**.
-
-We create a stack to hold the data items, and in the worst case, if the sequence does not have any triggers, the stack will have all the items of the sequence, leading to a linear **O(N)** space complexity. In the best case, there may be no data items and only triggers in the sequence, so the stack will be empty all the time, leading to a constant **O(1)** space complexity.
-
-> **Best Case -** Only triggers in the sequence
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case -** Only data items in the sequence
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
-
-Later in the course, we will examine techniques for identifying problems that can be solved using the linear evaluation technique and walk through an example to better understand it.
+> -   **Step 1:** Initialise an empty stack.
+> -   **Step 2:** For each token in the input:
+>     -   Decide its kind (operand, opener, closer, multiplier, …).
+>     -   Push directly, or pop-and-combine, depending on the kind.
+> -   **Step 3:** After the scan, the stack holds the answer (often joined or summed across remaining elements).
 
 ***
 
 # Identifying the linear evaluation pattern
 
-The linear evaluation technique we learned earlier can only solve certain types of sequence evaluation problems. These are generally easy or medium problems where we are given a sequence of data items and triggers and certain rules dictating how to evaluate results when we hit a trigger. The sequence must not have any form of nesting, and triggers should always only use data either exclusively before or after them.
+Look for problems with all three of these:
 
-If the problem statement or its solution follows the generic template below, it can be solved by using the linear evaluation technique using a stack.
+1. **Single linear scan over a string or sequence.**
+2. **Nesting** — sub-expressions can contain sub-sub-expressions, recursively.
+3. **A "closer" token** that triggers reducing a chunk of the stack into one result.
 
-**Template:** 
-
-Given a sequence of data items and triggers without any nesting and a set of evaluation rules on hitting a trigger, evaluate the sequence.
-
-## Exaxmple
-
-Let's consider the following problem as an example to better understand how to identify and solve a problem using the linear evaluation technique.
-
-> **Problem statement:** Given a string \`path\` that contains the absolute path (starting with a /) to a directory in UNIX style. Write a function to simplify the path to make it a canonical path.
->
-> The following rules govern the simplification:
->
-> -   . (dot) refers to the current directory
-> -   .. (double-dot) refers to the directory up a level
-> -   // (multiple slashes) is treated as a single slash
-> -   All other items are treated as directories
-
-// Diagram: Simplify the linux path
-
-## The linear evaluation technique
-
-We are given a sequence of data and the following triggers, which have specific rules for evaluation that adhere to the Linux path syntax.
-
-1.  1`/` - Means we are jumping to a subdirectory so we can ignore it as we don't need any evaluation
-2.  2`.` - This means the current directory and so we can ignore it as we don't need any evaluation
-3.  3`..` - This means the previous directory meaning we need to remove the previous directory from the path to get the evaluated result
-
-The problem description fits the template for the linear evaluation pattern, as given below.
-
-**Template:** 
-
-Given a sequence of data items and triggers without any nesting and a set of evaluation rules on hitting a trigger, evaluate the sequence.
-
-We create a stack `stack` of strings to hold all the data items in LIFO order as we iterate through the sequence. It is important to note that we are **not** given an array of strings with data items and triggers separated but a string of characters. And so, we also need to parse the data items and triggers as we traverse the sequence before adding them to the stack.
-
-We traverse the string from start to end and, in each iteration, parse the entire word until the next `/` in a variable dir. We then check if the current word is a data item or a trigger. If it is a data item, we push it to the top of the stack. Otherwise, if it is a trigger, we apply the rules defined above to evaluate data items from the stack. The rules are as follows:
-
-1.  1`/` - We ignore this trigger
-2.  2`.` - We ignore this trigger
-3.  3`..` - We pop an item from the top of the stack
-
-At the end of all iterations, the stack will have the simplified Linux path with all directory names in the correct order from bottom to top.
-
-// Diagram: Simplify the linux path
-
-We create a string `result` to construct the simplified path from the evaluated result. If the stack is empty, we set `result` to `/` to indicate the root directory. Otherwise, we pop items from the top of the stack until it is empty and **prepend** them to `result` with a `/` for separating directories to get the simplified path in `result`.
-
-Note that we **prepend** data items to the string instead of appending. This is because we want data in the order of insertion in the stack (from bottom to top), but popping data from the stack produces data in LIFO order, which is the reverse order of insertion.
-
-// Diagram: Simplify the linux path
-
-The implementation of the linear evaluation technique is given below.
-
-C++
-
-```cpp
-#include <sstream>
-#include <stack>
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    string canonicalisePath(string path) {
-        stack<string> stack;
-        stringstream ss(path);
-        string token;
-
-        // Split the path by '/'
-        while (getline(ss, token, '/')) {
-
-            // Skip empty or current directory ('.') components
-            if (token == "" || token == ".") {
-                continue;
-            }
-
-            // Push the valid directory name onto the stack
-            else if (token != "..") {
-                stack.push(token);
-            }
-
-            // Go up one directory if the current directory is '..' and
-            // the stack is not empty
-            else if (!stack.empty()) {
-                stack.pop();
-            }
-
-        // If the stack is empty, return "/"
-        if (stack.empty()) {
-            return "/";
-        }
-
-        // Construct the simplified path by popping the stack
-        string result = "";
-        while (!stack.empty()) {
-
-            // Prepend the directory name to the result
-            result = "/" + stack.top() + result;
-            stack.pop();
-        }
-
-        return result;
-    }
-};
-```
-
-Java
-
-```java
-#include <sstream>
-```
-
-Typescript
-
-```typescript
-export class Solution {
-    canonicalisePath(path: string): string {
-
-        // Stack to store valid directory names
-        const stack: string[] = [];
-
-        // Split the path by '/' and iterate over components
-        for (const token of path.split("/")) {
-
-            // Skip empty or current directory ('.') components
-            if (token === "" || token === ".") {
-                continue;
-            }
-
-            // Push the valid directory name onto the stack
-            else if (token !== "..") {
-                stack.push(token);
-            }
-
-            // Go up one directory if the current directory is '..' and
-            // the stack is not empty
-            else if (stack.length > 0) {
-                stack.pop();
-            }
-
-        // If the stack is empty, return "/"
-        if (stack.length === 0) {
-            return "/";
-        }
-
-        // Construct the simplified path by joining stack elements
-        return "/" + stack.join("/");
-    }
-```
-
-Javascript
-
-```javascript
-#include <sstream>
-```
-
-Python
-
-```python
-from typing import List
-
-class Solution:
-    def canonicalise_path(self, path: str) -> str:
-
-        # Stack to store valid directory names
-        stack: List[str] = []
-
-        # Split the path by '/' and iterate over components
-        for token in path.split('/'):
-
-            # Skip empty or current directory ('.') components
-            if token == "" or token == ".":
-
-            # Push the valid directory name onto the stack
-            elif token != "..":
-                stack.append(token)
-
-            # Go up one directory if the current directory is '..' and
-            # the stack is not empty
-            elif stack:
-                stack.pop()
-
-        # If the stack is empty, return "/"
-        if not stack:
-            return "/"
-
-        # Construct the simplified path by joining stack elements
-        return "/" + "/".join(stack)
-```
-
-The sequence validation technique solves the problem in a single pass and linear**O(N)**time.
-
-## Example problems
-
-Most problems in this category are **easy** or **medium**; a list of a few is given below.
-
-> -   **[Canonicalise path](https://www.codeintuition.io/courses/stack/WsTielQEJ1AnEq-zb31AC)**
-> -   **[Bracketed reversal](https://www.codeintuition.io/courses/stack/el4HjKWYsIDL1o7r4BadI)**
-> -   **[String expansion](https://www.codeintuition.io/courses/stack/PATNY86Ee5N1DGdt41znJ)**
-> -   **[Formula parsing](https://www.codeintuition.io/courses/stack/EhQOCTCTCDkCclszb41H7)**
-
-We will now solve these problems to understand the linear evaluation technique better.
+If the input is a flat list with no nesting, you don't need this pattern. But anywhere brackets, paths, encoded substrings, or grouping operators appear, the linear-evaluation stack lights up.
 
 ***
 
@@ -415,91 +81,276 @@ We will now solve these problems to understand the linear evaluation technique b
 
 ## Problem Statement
 
-Given a string **path** that contains the absolutepath (starting with a `/`) to a directory in UNIX style. Write a function to simplify the path to make it a canonical path. Below are the rules for this simplification:
+Given an absolute UNIX-style path string, return its canonical form.
 
-> -   **.** (dot) refers to the current directory
-> -   **..** (double-dot) refers to the directory up a level
-> -   **//** (multiple slashes) is treated as a single slash
-> -   All other items are treated as directories
+> -   `.` (dot) → current directory, ignored.
+> -   `..` (double-dot) → parent directory, removes the last directory.
+> -   `//` (multiple slashes) → treated as a single slash.
+> -   Anything else is a directory name.
 
-The simplified path must follow the rules below:
-
-> -   The path must begin with a single slash **/**.
-> -   Directories within the path must separated by a single slash **/**.
-> -   The path must not end with a slash **/**, unless it's the root directory.
-> -   The path must not have any **.** or **..** used to denote current or parent directories.
+The output must:
+- Begin with exactly one `/`.
+- Have single-slash separators.
+- Have no trailing slash (except for the root `/`).
+- Have no `.` or `..`.
 
 ### Example 1
-
-> -   **Input:** s = /a/b/../c
-> -   **Output:** /a/c
-> -   **Explanation:** Above is the simplified UNIX path.
+> -   **Input:** `/a/b/../c` → **Output:** `/a/c`
 
 ### Example 2
-
-> -   **Input:** s = /a/./../c
-> -   **Output:** /c
-> -   **Explanation:** Above is the simplified UNIX path.
+> -   **Input:** `/a/./../c` → **Output:** `/c`
 
 ### Example 3
+> -   **Input:** `/a//b/c/../` → **Output:** `/a/b`
 
-> -   **Input:** s = /a//b/c/../
-> -   **Output:** /a/b
-> -   **Explanation:** Above is the simplified UNIX path.
+## Approach
+
+Split on `/`. Each non-empty token is one of three things:
+
+- `.` → ignore.
+- `..` → pop the stack (move up one directory). If empty, do nothing (already at root).
+- anything else → push as a directory name.
+
+Final path = `/` + `'/'.join(stack)` (or just `/` if empty).
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["/a/b/../c"] -->|"split"| B["[a, b, .., c]"]
+    B --> C["scan tokens"]
+    C --> S1["push 'a' → [a]"]
+    S1 --> S2["push 'b' → [a, b]"]
+    S2 --> S3["'..' → pop → [a]"]
+    S3 --> S4["push 'c' → [a, c]"]
+    S4 --> R["join → '/a/c'"]
+    style R fill:#dcfce7,stroke:#22c55e
+```
+
+<p align="center"><strong>Canonicalise path — each token decides its action: push, pop, or skip. The final stack <em>is</em> the path's directory list, joined with slashes.</strong></p>
 
 ## Solution
 
-```cpp
-#include <sstream>
-#include <stack>
+<div class="lang-tabs">
 
-using namespace std;
+```python,editable
+def canonicalise_path(path: str) -> str:
+    stack = []
+    for token in path.split('/'):
+        if token == '' or token == '.':
+            continue                           # skip empty or "."
+        if token == '..':
+            if stack: stack.pop()              # parent directory
+        else:
+            stack.append(token)
+    return '/' + '/'.join(stack)
 
-class Solution {
-public:
-    string canonicalisePath(string path) {
-        stack<string> stack;
-        stringstream ss(path);
-        string token;
-
-        // Split the path by '/'
-        while (getline(ss, token, '/')) {
-
-            // Skip empty or current directory ('.') components
-            if (token == "" || token == ".") {
-                continue;
-            }
-
-            // Push the valid directory name onto the stack
-            else if (token != "..") {
-                stack.push(token);
-            }
-
-            // Go up one directory if the current directory is '..' and
-            // the stack is not empty
-            else if (!stack.empty()) {
-                stack.pop();
-            }
-        }
-
-        // If the stack is empty, return "/"
-        if (stack.empty()) {
-            return "/";
-        }
-
-        // Construct the simplified path by popping the stack
-        string result;
-        while (!stack.empty()) {
-
-            // Prepend the directory name to the result
-            result = "/" + stack.top() + result;
-            stack.pop();
-        }
-
-        return result;
-    }
-};
+print(canonicalise_path("/a/b/../c"))      # /a/c
+print(canonicalise_path("/a/./../c"))       # /c
+print(canonicalise_path("/a//b/c/../"))     # /a/b
 ```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static String canonicalisePath(String path) {
+        Deque<String> st = new ArrayDeque<>();
+        for (String token : path.split("/")) {
+            if (token.isEmpty() || token.equals(".")) continue;
+            if (token.equals("..")) { if (!st.isEmpty()) st.pop(); }
+            else st.push(token);
+        }
+        StringBuilder out = new StringBuilder();
+        Iterator<String> it = st.descendingIterator();
+        while (it.hasNext()) { out.append('/').append(it.next()); }
+        return out.length() == 0 ? "/" : out.toString();
+    }
+    public static void main(String[] args) {
+        System.out.println(canonicalisePath("/a/b/../c"));
+        System.out.println(canonicalisePath("/a/./../c"));
+        System.out.println(canonicalisePath("/a//b/c/../"));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+void canonicalise_path(const char *path, char *out) {
+    char *st[256]; int top = -1;
+    char buf[1024]; strncpy(buf, path, sizeof(buf)-1); buf[sizeof(buf)-1]=0;
+    char *tok = strtok(buf, "/");
+    while (tok) {
+        if (strcmp(tok, ".") == 0) { /* skip */ }
+        else if (strcmp(tok, "..") == 0) { if (top >= 0) top--; }
+        else st[++top] = tok;
+        tok = strtok(NULL, "/");
+    }
+    if (top < 0) { strcpy(out, "/"); return; }
+    int o = 0;
+    for (int i = 0; i <= top; i++) { out[o++] = '/'; int l = (int)strlen(st[i]); memcpy(out+o, st[i], l); o += l; }
+    out[o] = 0;
+}
+
+int main() {
+    char buf[256];
+    canonicalise_path("/a/b/../c", buf);    printf("%s\n", buf);
+    canonicalise_path("/a/./../c", buf);    printf("%s\n", buf);
+    canonicalise_path("/a//b/c/../", buf);  printf("%s\n", buf);
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <sstream>
+#include <vector>
+#include <string>
+
+std::string canonicalisePath(const std::string &path) {
+    std::vector<std::string> st;
+    std::stringstream ss(path); std::string tok;
+    while (std::getline(ss, tok, '/')) {
+        if (tok.empty() || tok == ".") continue;
+        if (tok == "..") { if (!st.empty()) st.pop_back(); }
+        else st.push_back(tok);
+    }
+    if (st.empty()) return "/";
+    std::string out;
+    for (auto &d : st) { out += "/" + d; }
+    return out;
+}
+
+int main() {
+    std::cout << canonicalisePath("/a/b/../c")    << "\n";
+    std::cout << canonicalisePath("/a/./../c")    << "\n";
+    std::cout << canonicalisePath("/a//b/c/../")  << "\n";
+}
+```
+
+```scala,editable
+import scala.collection.mutable
+def canonicalisePath(path: String): String = {
+  val st = mutable.ArrayBuffer[String]()
+  for (tok <- path.split("/")) {
+    if (tok.isEmpty || tok == ".") {}
+    else if (tok == "..") { if (st.nonEmpty) st.remove(st.length - 1) }
+    else st.append(tok)
+  }
+  if (st.isEmpty) "/" else "/" + st.mkString("/")
+}
+object Main extends App {
+  println(canonicalisePath("/a/b/../c"))
+  println(canonicalisePath("/a/./../c"))
+  println(canonicalisePath("/a//b/c/../"))
+}
+```
+
+```javascript,editable
+function canonicalisePath(path) {
+    const st = [];
+    for (const tok of path.split('/')) {
+        if (tok === '' || tok === '.') continue;
+        if (tok === '..') { if (st.length) st.pop(); }
+        else st.push(tok);
+    }
+    return '/' + st.join('/');
+}
+console.log(canonicalisePath("/a/b/../c"));
+console.log(canonicalisePath("/a/./../c"));
+console.log(canonicalisePath("/a//b/c/../"));
+```
+
+```typescript,editable
+function canonicalisePath(path: string): string {
+    const st: string[] = [];
+    for (const tok of path.split('/')) {
+        if (tok === '' || tok === '.') continue;
+        if (tok === '..') { if (st.length) st.pop(); }
+        else st.push(tok);
+    }
+    return '/' + st.join('/');
+}
+console.log(canonicalisePath("/a/b/../c"));
+console.log(canonicalisePath("/a/./../c"));
+console.log(canonicalisePath("/a//b/c/../"));
+```
+
+```go,editable
+package main
+import (
+    "fmt"
+    "strings"
+)
+func canonicalisePath(path string) string {
+    st := []string{}
+    for _, tok := range strings.Split(path, "/") {
+        switch tok {
+            case "", ".": continue
+            case "..": if len(st) > 0 { st = st[:len(st)-1] }
+            default: st = append(st, tok)
+        }
+    }
+    if len(st) == 0 { return "/" }
+    return "/" + strings.Join(st, "/")
+}
+func main() {
+    fmt.Println(canonicalisePath("/a/b/../c"))
+    fmt.Println(canonicalisePath("/a/./../c"))
+    fmt.Println(canonicalisePath("/a//b/c/../"))
+}
+```
+
+```kotlin,editable
+fun canonicalisePath(path: String): String {
+    val st = ArrayDeque<String>()
+    for (tok in path.split("/")) {
+        when (tok) {
+            "", "." -> { /* skip */ }
+            ".."    -> { if (st.isNotEmpty()) st.removeLast() }
+            else    -> st.addLast(tok)
+        }
+    }
+    return if (st.isEmpty()) "/" else "/" + st.joinToString("/")
+}
+fun main() {
+    println(canonicalisePath("/a/b/../c"))
+    println(canonicalisePath("/a/./../c"))
+    println(canonicalisePath("/a//b/c/../"))
+}
+```
+
+```rust,editable
+fn canonicalise_path(path: &str) -> String {
+    let mut st: Vec<&str> = Vec::new();
+    for tok in path.split('/') {
+        match tok {
+            "" | "." => continue,
+            ".." => { st.pop(); }
+            _ => st.push(tok),
+        }
+    }
+    if st.is_empty() { "/".to_string() }
+    else { format!("/{}", st.join("/")) }
+}
+fn main() {
+    println!("{}", canonicalise_path("/a/b/../c"));
+    println!("{}", canonicalise_path("/a/./../c"));
+    println!("{}", canonicalise_path("/a//b/c/../"));
+}
+```
+
+</div>
 
 ***
 
@@ -507,90 +358,292 @@ public:
 
 ## Problem Statement
 
-Given a string **s** consisting of lowercase and uppercase letters, square brackets `[` and`]`, write a function to reverse the substrings inside each pair of brackets and return the updated string.
+Given a string of letters and `[`/`]` brackets, **reverse the substring inside each pair of brackets** and return the result. Brackets nest.
 
 ### Example 1
-
-> -   **Input:** s = a\[bcd\]e
-> -   **Output:** adcbe
-> -   **Explanation:** Above is the string after reversing the substring in the square brackets.
+> -   **Input:** `s = "a[bcd]e"` → **Output:** `"adcbe"`
 
 ### Example 2
-
-> -   **Input:** s = abcd\[ef\[gh\]i\]j
-> -   **Output:** abcdihgfej
-> -   **Explanation:** Above is the string after reversing the substring in the square brackets.
+> -   **Input:** `s = "abcd[ef[gh]i]j"` → **Output:** `"abcdihgfej"`
 
 ### Example 3
+> -   **Input:** `s = "abcdefghij"` → **Output:** `"abcdefghij"`
 
-> -   **Input:** s = abcdefghij
-> -   **Output:** abcdefghij
-> -   **Explanation:** There are no square brackets, so there is nothing to reverse.
+## Approach
+
+Push characters and `[` onto a stack. On `]`, pop characters until you hit `[` — but **append them as you pop**, which builds the reversed substring naturally. Pop the `[`, push the reversed substring back as a single string token. Final answer = concatenate the stack bottom-to-top.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    R["read char"] --> Q{"type?"}
+    Q -->|"letter or '['"| P["push as string"]
+    Q -->|"']'"| EVAL["pop chars until '['<br/>(append as you pop = reversed)<br/>discard '['<br/>push reversed string"]
+    P --> R; EVAL --> R
+    R -->|"end"| OUT["concatenate stack bottom-to-top"]
+```
+
+<p align="center"><strong>Bracketed reversal — popping while appending naturally builds the reversed substring (the topmost char comes out first and goes to the front of the result).</strong></p>
 
 ## Solution
 
-```cpp
-#include <stack>
+<div class="lang-tabs">
 
-using namespace std;
+```python,editable
+def bracketed_reversal(s: str) -> str:
+    stack = []
+    for ch in s:
+        if ch == ']':
+            reversed_str = ""
+            while stack and stack[-1] != '[':
+                reversed_str += stack.pop()    # pop = top first → reversed
+            if stack: stack.pop()              # discard '['
+            stack.append(reversed_str)
+        else:
+            stack.append(ch)
+    return ''.join(stack)
 
-class Solution {
-public:
-    string bracketedReversal(string s) {
-
-        // Stack to store characters and decoded parts
-        stack<string> stack;
-
-        for (int i = 0; i < s.length(); i++) {
-
-            // If the character is '[' or a letter, push it as a string
-            if (s[i] == '[' || isalpha(s[i])) {
-                stack.push(string(1, s[i]));
-            }
-
-            // If the character is ']', it indicates the end of a
-            // bracketed section
-            else {
-
-                // Variable to store the substring inside the brackets
-                string reversedStr = "";
-
-                // Pop elements from the stack until we reach '['
-                while (!stack.empty() && stack.top() != "[") {
-
-                    // Build substring in reversed order
-                    reversedStr += stack.top();
-
-                    // Remove the top element from the stack
-                    stack.pop();
-                }
-
-                // Remove the '[' from the stack
-                if (!stack.empty()) {
-                    stack.pop();
-                }
-
-                // Push the reversed substring back onto the stack
-                stack.push(reversedStr);
-            }
-        }
-
-        // Collect the final result by popping from the stack
-        string result;
-        while (!stack.empty()) {
-
-            // Prepend the elements to the result string
-            result = stack.top() + result;
-
-            // Remove the element from the stack
-            stack.pop();
-        }
-
-        // Return the final decoded string
-        return result;
-    }
-};
+print(bracketed_reversal("a[bcd]e"))         # adcbe
+print(bracketed_reversal("abcd[ef[gh]i]j"))  # abcdihgfej
+print(bracketed_reversal("abcdefghij"))      # abcdefghij
 ```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static String bracketedReversal(String s) {
+        Deque<String> st = new ArrayDeque<>();
+        for (char ch : s.toCharArray()) {
+            if (ch == ']') {
+                StringBuilder rev = new StringBuilder();
+                while (!st.isEmpty() && !st.peek().equals("[")) rev.append(st.pop());
+                if (!st.isEmpty()) st.pop();
+                st.push(rev.toString());
+            } else st.push(String.valueOf(ch));
+        }
+        StringBuilder out = new StringBuilder();
+        Iterator<String> it = st.descendingIterator();
+        while (it.hasNext()) out.append(it.next());
+        return out.toString();
+    }
+    public static void main(String[] args) {
+        System.out.println(bracketedReversal("a[bcd]e"));
+        System.out.println(bracketedReversal("abcd[ef[gh]i]j"));
+        System.out.println(bracketedReversal("abcdefghij"));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+char *bracketed_reversal(const char *s) {
+    char *st[256]; int top = -1;
+    for (; *s; s++) {
+        if (*s == ']') {
+            char *rev = malloc(256); int r = 0;
+            while (top >= 0 && strcmp(st[top], "[") != 0) {
+                int l = (int)strlen(st[top]);
+                for (int k = l-1; k >= 0; k--) rev[r++] = st[top][k];
+                free(st[top]); top--;
+            }
+            rev[r] = 0;
+            if (top >= 0) { free(st[top]); top--; }
+            st[++top] = rev;
+        } else {
+            char *cs = malloc(2); cs[0] = *s; cs[1] = 0;
+            st[++top] = cs;
+        }
+    }
+    int total = 0;
+    for (int i = 0; i <= top; i++) total += (int)strlen(st[i]);
+    char *out = malloc(total + 1); int o = 0;
+    for (int i = 0; i <= top; i++) {
+        int l = (int)strlen(st[i]);
+        memcpy(out + o, st[i], l); o += l;
+        free(st[i]);
+    }
+    out[o] = 0;
+    return out;
+}
+
+int main() {
+    char *r;
+    r = bracketed_reversal("a[bcd]e"); printf("%s\n", r); free(r);
+    r = bracketed_reversal("abcd[ef[gh]i]j"); printf("%s\n", r); free(r);
+    r = bracketed_reversal("abcdefghij"); printf("%s\n", r); free(r);
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <stack>
+#include <string>
+
+std::string bracketedReversal(const std::string &s) {
+    std::stack<std::string> st;
+    for (char ch : s) {
+        if (ch == ']') {
+            std::string rev;
+            while (!st.empty() && st.top() != "[") { rev += st.top(); st.pop(); }
+            if (!st.empty()) st.pop();
+            st.push(rev);
+        } else st.push(std::string(1, ch));
+    }
+    std::string out;
+    while (!st.empty()) { out = st.top() + out; st.pop(); }
+    return out;
+}
+int main() {
+    std::cout << bracketedReversal("a[bcd]e")        << "\n";
+    std::cout << bracketedReversal("abcd[ef[gh]i]j") << "\n";
+    std::cout << bracketedReversal("abcdefghij")     << "\n";
+}
+```
+
+```scala,editable
+import scala.collection.mutable
+def bracketedReversal(s: String): String = {
+  val st = mutable.Stack[String]()
+  for (ch <- s) {
+    if (ch == ']') {
+      val rev = new StringBuilder
+      while (st.nonEmpty && st.top != "[") rev.append(st.pop())
+      if (st.nonEmpty) st.pop()
+      st.push(rev.toString)
+    } else st.push(ch.toString)
+  }
+  st.reverseIterator.mkString
+}
+object Main extends App {
+  println(bracketedReversal("a[bcd]e"))
+  println(bracketedReversal("abcd[ef[gh]i]j"))
+  println(bracketedReversal("abcdefghij"))
+}
+```
+
+```javascript,editable
+function bracketedReversal(s) {
+    const st = [];
+    for (const ch of s) {
+        if (ch === ']') {
+            let rev = "";
+            while (st.length && st[st.length-1] !== '[') rev += st.pop();
+            if (st.length) st.pop();
+            st.push(rev);
+        } else st.push(ch);
+    }
+    return st.join('');
+}
+console.log(bracketedReversal("a[bcd]e"));
+console.log(bracketedReversal("abcd[ef[gh]i]j"));
+console.log(bracketedReversal("abcdefghij"));
+```
+
+```typescript,editable
+function bracketedReversal(s: string): string {
+    const st: string[] = [];
+    for (const ch of s) {
+        if (ch === ']') {
+            let rev = "";
+            while (st.length && st[st.length-1] !== '[') rev += st.pop();
+            if (st.length) st.pop();
+            st.push(rev);
+        } else st.push(ch);
+    }
+    return st.join('');
+}
+console.log(bracketedReversal("a[bcd]e"));
+console.log(bracketedReversal("abcd[ef[gh]i]j"));
+console.log(bracketedReversal("abcdefghij"));
+```
+
+```go,editable
+package main
+import "fmt"
+import "strings"
+func bracketedReversal(s string) string {
+    st := []string{}
+    for i := 0; i < len(s); i++ {
+        ch := s[i]
+        if ch == ']' {
+            var sb strings.Builder
+            for len(st) > 0 && st[len(st)-1] != "[" {
+                sb.WriteString(st[len(st)-1]); st = st[:len(st)-1]
+            }
+            if len(st) > 0 { st = st[:len(st)-1] }
+            st = append(st, sb.String())
+        } else {
+            st = append(st, string(ch))
+        }
+    }
+    return strings.Join(st, "")
+}
+func main() {
+    fmt.Println(bracketedReversal("a[bcd]e"))
+    fmt.Println(bracketedReversal("abcd[ef[gh]i]j"))
+    fmt.Println(bracketedReversal("abcdefghij"))
+}
+```
+
+```kotlin,editable
+fun bracketedReversal(s: String): String {
+    val st = ArrayDeque<String>()
+    for (ch in s) {
+        if (ch == ']') {
+            val rev = StringBuilder()
+            while (st.isNotEmpty() && st.last() != "[") rev.append(st.removeLast())
+            if (st.isNotEmpty()) st.removeLast()
+            st.addLast(rev.toString())
+        } else st.addLast(ch.toString())
+    }
+    return st.joinToString("")
+}
+fun main() {
+    println(bracketedReversal("a[bcd]e"))
+    println(bracketedReversal("abcd[ef[gh]i]j"))
+    println(bracketedReversal("abcdefghij"))
+}
+```
+
+```rust,editable
+fn bracketed_reversal(s: &str) -> String {
+    let mut st: Vec<String> = Vec::new();
+    for ch in s.chars() {
+        if ch == ']' {
+            let mut rev = String::new();
+            while let Some(top) = st.last() {
+                if top == "[" { break; }
+                rev.push_str(&st.pop().unwrap());
+            }
+            if st.last().map(|s| s.as_str()) == Some("[") { st.pop(); }
+            st.push(rev);
+        } else {
+            st.push(ch.to_string());
+        }
+    }
+    st.join("")
+}
+fn main() {
+    println!("{}", bracketed_reversal("a[bcd]e"));
+    println!("{}", bracketed_reversal("abcd[ef[gh]i]j"));
+    println!("{}", bracketed_reversal("abcdefghij"));
+}
+```
+
+</div>
 
 ***
 
@@ -598,121 +651,373 @@ public:
 
 ## Problem Statement
 
-// Diagram: Given an encoded string s, write a function to return its decoded form. The encoding rule is defined below
-
-The encoding is called **k-encoding**. For a given encoding **k\[sting\]**, the string inside the square bracket is concatenated to itself **k** times.
+Given a string encoded with `k[substring]` notation (k a positive integer, substring possibly nested), return the decoded string. The encoding repeats the substring `k` times.
 
 ### Example 1
-
-> -   **Input:** s = 2\[ab3\[c\]\]
-> -   **Output:** abcccabccc
-> -   **Explanation:** Above is the decoded string.
+> -   **Input:** `"2[ab3[c]]"` → **Output:** `"abcccabccc"`
 
 ### Example 2
-
-> -   **Input:** s = 3\[a\]2\[bc\]
-> -   **Output:** aaabcbc
-> -   **Explanation:** Above is the decoded string.
+> -   **Input:** `"3[a]2[bc]"` → **Output:** `"aaabcbc"`
 
 ### Example 3
+> -   **Input:** `"2[abc]3[cd]ef"` → **Output:** `"abcabccdcdcdef"`
 
-> -   **Input:** s = 2\[abc\]3\[cd\]ef
-> -   **Output:** abcabccdcdcdef
-> -   **Explanation:** Above is the decoded string.
+## Approach
+
+Same shape as bracketed reversal but the closer triggers a *repeat*, not a reverse. Push numbers (as strings), letters, and `[`. On `]`, pop the inner substring, pop the `[`, pop the repeat count (which is just before `[`), expand, push back.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    R["read char"] --> Q{"type?"}
+    Q -->|"digit"| ND["push number<br/>(handle multi-digit)"]
+    Q -->|"letter or '['"| P["push as string"]
+    Q -->|"']'"| EVAL["pop chars until '['<br/>discard '['<br/>pop repeat count k<br/>push (substring × k)"]
+    ND --> R; P --> R; EVAL --> R
+```
+
+<p align="center"><strong>String expansion — closer fires the substring×k folding. Multi-digit numbers (e.g. 12[ab]) are handled by reading consecutive digits before pushing the count as one string.</strong></p>
 
 ## Solution
 
-```cpp
-#include <stack>
+<div class="lang-tabs">
 
-using namespace std;
+```python,editable
+def string_expansion(s: str) -> str:
+    stack = []
+    i = 0
+    while i < len(s):
+        if s[i].isdigit():
+            j = i
+            while j < len(s) and s[j].isdigit(): j += 1
+            stack.append(s[i:j])
+            i = j
+        elif s[i] == ']':
+            inner = ""
+            while stack and stack[-1] != '[':
+                inner = stack.pop() + inner       # build in original order
+            if stack: stack.pop()                  # discard '['
+            k = int(stack.pop())                   # the repeat count
+            stack.append(inner * k)
+            i += 1
+        else:
+            stack.append(s[i]); i += 1
+    return ''.join(stack)
 
-class Solution {
-public:
-    string stringExpansion(string s) {
-
-        // Stack to store characters, numbers, and decoded parts
-        stack<string> stack;
-
-        for (int i = 0; i < s.length(); i++) {
-
-            // If the current character is a digit, extract the full
-            // number
-            if (isdigit(s[i])) {
-                int start = i;
-
-                // Extract the full number (handles multi-digit numbers)
-                while (i < s.length() && isdigit(s[i])) {
-                    i++;
-                }
-
-                // Push the number as a string to the stack
-                stack.push(s.substr(start, i - start));
-
-                // Adjust index because loop will increment i
-                i--;
-            }
-
-            // If the character is '[' or a letter, push it to the stack
-            else if (s[i] == '[' || isalpha(s[i])) {
-
-                // Push characters and '[' directly to the stack
-                stack.push(string(1, s[i]));
-            }
-
-            // If the character is ']', it indicates the end of an
-            // encoded section
-            else if (s[i] == ']') {
-
-                // Variable to store the decoded part inside the brackets
-                string decodedStr = "";
-
-                // Pop characters from the stack until we reach '['
-                while (!stack.empty() && stack.top() != "[") {
-
-                    // Prepend the characters to decodedStr
-                    decodedStr = stack.top() + decodedStr;
-                    stack.pop();
-                }
-
-                // Remove the '[' from the stack
-                stack.pop();
-
-                // Get the repeat count (the number just before '[')
-                int repeatCount = stoi(stack.top());
-
-                // Remove the repeat count from the stack
-                stack.pop();
-
-                // Expand the string by repeating it 'repeatCount' times
-                string expandedStr = "";
-                while (repeatCount--) {
-
-                    // Append the decoded string repeatedly
-                    expandedStr += decodedStr;
-                }
-
-                // Push the expanded string back to the stack
-                stack.push(expandedStr);
-            }
-        }
-
-        // Collect the final result by popping from the stack
-        string result;
-        while (!stack.empty()) {
-
-            // Prepend the elements to the result string
-            result = stack.top() + result;
-
-            // Remove the element from the stack
-            stack.pop();
-        }
-
-        // Return the final decoded string
-        return result;
-    }
-};
+print(string_expansion("2[ab3[c]]"))      # abcccabccc
+print(string_expansion("3[a]2[bc]"))      # aaabcbc
+print(string_expansion("2[abc]3[cd]ef"))  # abcabccdcdcdef
 ```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static String stringExpansion(String s) {
+        Deque<String> st = new ArrayDeque<>();
+        int i = 0;
+        while (i < s.length()) {
+            char ch = s.charAt(i);
+            if (Character.isDigit(ch)) {
+                int j = i;
+                while (j < s.length() && Character.isDigit(s.charAt(j))) j++;
+                st.push(s.substring(i, j));
+                i = j;
+            } else if (ch == ']') {
+                StringBuilder inner = new StringBuilder();
+                while (!st.isEmpty() && !st.peek().equals("[")) inner.insert(0, st.pop());
+                if (!st.isEmpty()) st.pop();
+                int k = Integer.parseInt(st.pop());
+                StringBuilder expanded = new StringBuilder();
+                for (int t = 0; t < k; t++) expanded.append(inner);
+                st.push(expanded.toString());
+                i++;
+            } else {
+                st.push(String.valueOf(ch));
+                i++;
+            }
+        }
+        StringBuilder out = new StringBuilder();
+        Iterator<String> it = st.descendingIterator();
+        while (it.hasNext()) out.append(it.next());
+        return out.toString();
+    }
+    public static void main(String[] args) {
+        System.out.println(stringExpansion("2[ab3[c]]"));
+        System.out.println(stringExpansion("3[a]2[bc]"));
+        System.out.println(stringExpansion("2[abc]3[cd]ef"));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
+
+char *string_expansion(const char *s) {
+    char *st[256]; int top = -1; int n = (int)strlen(s);
+    for (int i = 0; i < n; ) {
+        char ch = s[i];
+        if (isdigit((unsigned char)ch)) {
+            int j = i; while (j < n && isdigit((unsigned char)s[j])) j++;
+            char *num = malloc(j - i + 1); memcpy(num, s+i, j-i); num[j-i] = 0;
+            st[++top] = num; i = j;
+        } else if (ch == ']') {
+            char inner[1024]; int p = 0;
+            char *parts[256]; int pn = 0;
+            while (top >= 0 && strcmp(st[top], "[") != 0) parts[pn++] = st[top--];
+            for (int k = pn - 1; k >= 0; k--) { int l = (int)strlen(parts[k]); memcpy(inner+p, parts[k], l); p += l; free(parts[k]); }
+            inner[p] = 0;
+            if (top >= 0) { free(st[top]); top--; }
+            int kk = atoi(st[top]); free(st[top--]);
+            char *exp = malloc(p * kk + 1); int eo = 0;
+            for (int t = 0; t < kk; t++) { memcpy(exp+eo, inner, p); eo += p; }
+            exp[eo] = 0;
+            st[++top] = exp;
+            i++;
+        } else {
+            char *cs = malloc(2); cs[0] = ch; cs[1] = 0; st[++top] = cs; i++;
+        }
+    }
+    int total = 0; for (int i = 0; i <= top; i++) total += (int)strlen(st[i]);
+    char *out = malloc(total + 1); int o = 0;
+    for (int i = 0; i <= top; i++) { int l = (int)strlen(st[i]); memcpy(out+o, st[i], l); o += l; free(st[i]); }
+    out[o] = 0; return out;
+}
+
+int main() {
+    char *r;
+    r = string_expansion("2[ab3[c]]"); printf("%s\n", r); free(r);
+    r = string_expansion("3[a]2[bc]"); printf("%s\n", r); free(r);
+    r = string_expansion("2[abc]3[cd]ef"); printf("%s\n", r); free(r);
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <stack>
+#include <string>
+#include <cctype>
+
+std::string stringExpansion(const std::string &s) {
+    std::stack<std::string> st;
+    for (size_t i = 0; i < s.size(); ) {
+        char ch = s[i];
+        if (isdigit((unsigned char)ch)) {
+            size_t j = i; while (j < s.size() && isdigit((unsigned char)s[j])) j++;
+            st.push(s.substr(i, j - i));
+            i = j;
+        } else if (ch == ']') {
+            std::string inner;
+            while (!st.empty() && st.top() != "[") { inner = st.top() + inner; st.pop(); }
+            if (!st.empty()) st.pop();
+            int k = std::stoi(st.top()); st.pop();
+            std::string exp; for (int t = 0; t < k; t++) exp += inner;
+            st.push(exp);
+            i++;
+        } else { st.push(std::string(1, ch)); i++; }
+    }
+    std::string out;
+    while (!st.empty()) { out = st.top() + out; st.pop(); }
+    return out;
+}
+int main() {
+    std::cout << stringExpansion("2[ab3[c]]")     << "\n";
+    std::cout << stringExpansion("3[a]2[bc]")     << "\n";
+    std::cout << stringExpansion("2[abc]3[cd]ef") << "\n";
+}
+```
+
+```scala,editable
+import scala.collection.mutable
+def stringExpansion(s: String): String = {
+  val st = mutable.Stack[String]()
+  var i = 0
+  while (i < s.length) {
+    val ch = s(i)
+    if (ch.isDigit) {
+      var j = i; while (j < s.length && s(j).isDigit) j += 1
+      st.push(s.substring(i, j)); i = j
+    } else if (ch == ']') {
+      val inner = new StringBuilder
+      while (st.nonEmpty && st.top != "[") inner.insert(0, st.pop())
+      if (st.nonEmpty) st.pop()
+      val k = st.pop().toInt
+      val exp = new StringBuilder
+      for (_ <- 0 until k) exp.append(inner)
+      st.push(exp.toString); i += 1
+    } else { st.push(ch.toString); i += 1 }
+  }
+  st.reverseIterator.mkString
+}
+object Main extends App {
+  println(stringExpansion("2[ab3[c]]"))
+  println(stringExpansion("3[a]2[bc]"))
+  println(stringExpansion("2[abc]3[cd]ef"))
+}
+```
+
+```javascript,editable
+function stringExpansion(s) {
+    const st = [];
+    let i = 0;
+    while (i < s.length) {
+        const ch = s[i];
+        if (/\d/.test(ch)) {
+            let j = i; while (j < s.length && /\d/.test(s[j])) j++;
+            st.push(s.slice(i, j)); i = j;
+        } else if (ch === ']') {
+            let inner = "";
+            while (st.length && st[st.length-1] !== '[') inner = st.pop() + inner;
+            if (st.length) st.pop();
+            const k = parseInt(st.pop(), 10);
+            st.push(inner.repeat(k));
+            i++;
+        } else { st.push(ch); i++; }
+    }
+    return st.join('');
+}
+console.log(stringExpansion("2[ab3[c]]"));
+console.log(stringExpansion("3[a]2[bc]"));
+console.log(stringExpansion("2[abc]3[cd]ef"));
+```
+
+```typescript,editable
+function stringExpansion(s: string): string {
+    const st: string[] = [];
+    let i = 0;
+    while (i < s.length) {
+        const ch = s[i];
+        if (/\d/.test(ch)) {
+            let j = i; while (j < s.length && /\d/.test(s[j])) j++;
+            st.push(s.slice(i, j)); i = j;
+        } else if (ch === ']') {
+            let inner = "";
+            while (st.length && st[st.length-1] !== '[') inner = st.pop()! + inner;
+            if (st.length) st.pop();
+            const k = parseInt(st.pop()!, 10);
+            st.push(inner.repeat(k));
+            i++;
+        } else { st.push(ch); i++; }
+    }
+    return st.join('');
+}
+console.log(stringExpansion("2[ab3[c]]"));
+console.log(stringExpansion("3[a]2[bc]"));
+console.log(stringExpansion("2[abc]3[cd]ef"));
+```
+
+```go,editable
+package main
+import (
+    "fmt"
+    "strconv"
+    "strings"
+    "unicode"
+)
+func stringExpansion(s string) string {
+    st := []string{}
+    i := 0
+    for i < len(s) {
+        ch := rune(s[i])
+        if unicode.IsDigit(ch) {
+            j := i
+            for j < len(s) && unicode.IsDigit(rune(s[j])) { j++ }
+            st = append(st, s[i:j]); i = j
+        } else if ch == ']' {
+            inner := ""
+            for len(st) > 0 && st[len(st)-1] != "[" { inner = st[len(st)-1] + inner; st = st[:len(st)-1] }
+            if len(st) > 0 { st = st[:len(st)-1] }
+            k, _ := strconv.Atoi(st[len(st)-1]); st = st[:len(st)-1]
+            st = append(st, strings.Repeat(inner, k))
+            i++
+        } else { st = append(st, string(ch)); i++ }
+    }
+    return strings.Join(st, "")
+}
+func main() {
+    fmt.Println(stringExpansion("2[ab3[c]]"))
+    fmt.Println(stringExpansion("3[a]2[bc]"))
+    fmt.Println(stringExpansion("2[abc]3[cd]ef"))
+}
+```
+
+```kotlin,editable
+fun stringExpansion(s: String): String {
+    val st = ArrayDeque<String>()
+    var i = 0
+    while (i < s.length) {
+        val ch = s[i]
+        when {
+            ch.isDigit() -> {
+                var j = i; while (j < s.length && s[j].isDigit()) j++
+                st.addLast(s.substring(i, j)); i = j
+            }
+            ch == ']' -> {
+                var inner = ""
+                while (st.isNotEmpty() && st.last() != "[") inner = st.removeLast() + inner
+                if (st.isNotEmpty()) st.removeLast()
+                val k = st.removeLast().toInt()
+                st.addLast(inner.repeat(k))
+                i++
+            }
+            else -> { st.addLast(ch.toString()); i++ }
+        }
+    }
+    return st.joinToString("")
+}
+fun main() {
+    println(stringExpansion("2[ab3[c]]"))
+    println(stringExpansion("3[a]2[bc]"))
+    println(stringExpansion("2[abc]3[cd]ef"))
+}
+```
+
+```rust,editable
+fn string_expansion(s: &str) -> String {
+    let bytes = s.as_bytes();
+    let mut st: Vec<String> = Vec::new();
+    let mut i = 0;
+    while i < bytes.len() {
+        let ch = bytes[i] as char;
+        if ch.is_ascii_digit() {
+            let mut j = i;
+            while j < bytes.len() && (bytes[j] as char).is_ascii_digit() { j += 1; }
+            st.push(s[i..j].to_string()); i = j;
+        } else if ch == ']' {
+            let mut inner = String::new();
+            while let Some(top) = st.last() {
+                if top == "[" { break; }
+                let popped = st.pop().unwrap();
+                inner = popped + &inner;
+            }
+            if st.last().map(|s| s.as_str()) == Some("[") { st.pop(); }
+            let k: usize = st.pop().unwrap().parse().unwrap();
+            st.push(inner.repeat(k));
+            i += 1;
+        } else { st.push(ch.to_string()); i += 1; }
+    }
+    st.join("")
+}
+fn main() {
+    println!("{}", string_expansion("2[ab3[c]]"));
+    println!("{}", string_expansion("3[a]2[bc]"));
+    println!("{}", string_expansion("2[abc]3[cd]ef"));
+}
+```
+
+</div>
 
 ***
 
@@ -720,149 +1025,474 @@ public:
 
 ## Problem Statement
 
-You are given a valid chemical **formula** as a string. The formula consists of:
+Given a chemical formula consisting of single-uppercase atoms (e.g. `H`, `O`), positive-integer multipliers, and parentheses for grouping, return a string of `ATOM:COUNT` separated by spaces, in order of first appearance.
 
-> -   **Atoms**: Each atom is represented by a single uppercase letter \`A–Z\`.
-> -   **Numbers**: A positive integer may follow an atom or a group of atoms inside parentheses. This number indicates how many times the atom or group repeats. If no number follows, the count is considered 1.
-> -   **Parentheses**: Parentheses can be nested and may be followed by a number, which multiplies the counts of all atoms inside that group.
-
-You can assume the following about the input:
-
-> -   All atoms in the input are represented by a single uppercase character. For example, there will be no atoms like \`Na\` or \`Cl\`.
-> -   Each atom appears at most once in the input string, i.e. there are no repeated atoms.
-
-Write a function to parse the formula and return a string representing the total count of each atom in the formula. The output must be in the format below.
-
-> -   Output the result as a space-separated string.
-> -   Each atom should be written as \`ATOM:COUNT\`.
-> -   Atoms must appear in the order of their first appearance in the formula.
+> Single-uppercase atoms only (no `Na`, no `Cl` — atoms here are one character each), and no atom appears twice in the input.
 
 ### Example 1
-
-> -   **Input:** formula = (HO)2
-> -   **Output:** H:2 O:2
-> -   **Explanation:** Above represents the parsed formula, showing each atom and its count in the format demonstrated above.
+> -   **Input:** `"(HO)2"` → **Output:** `"H:2 O:2"`
 
 ### Example 2
-
-> -   **Input:** formula = H(N(KO)2)3
-> -   **Output:** H:1 N:3 K:6 O:6
-> -   **Explanation:** Above represents the parsed formula, showing each atom and its count in the format demonstrated above.
+> -   **Input:** `"H(N(KO)2)3"` → **Output:** `"H:1 N:3 K:6 O:6"`
 
 ### Example 3
+> -   **Input:** `"KH"` → **Output:** `"K:1 H:1"`
 
-> -   **Input:** formula = KH
-> -   **Output:** K:1 H:1
-> -   **Explanation:** Above represents the parsed formula, showing each atom and its count in the format demonstrated above.
+## Approach
+
+Stack of `(name, count)` records, plus a special `(` marker. On `(`: push a marker. On atom: read its trailing count (default 1) and push. On `)`: read the multiplier, pop everything down to the `(` marker, multiply each popped count by the multiplier, push back.
+
+The "first appearance order" requirement is satisfied because we never re-order: by tracking each atom's earliest index in a separate map, we can sort the final stack by that.
 
 ## Solution
 
-```cpp
-#include <stack>
+<div class="lang-tabs">
 
-using namespace std;
+```python,editable
+def formula_parsing(formula: str) -> str:
+    stack = [('(', -1)]                  # sentinel; never used
+    stack.pop()                          # ... actually keep it clean
+    i = 0; n = len(formula)
+    first_seen = {}                       # atom → order of first appearance
+    order_counter = 0
+    while i < n:
+        ch = formula[i]
+        if ch == '(':
+            stack.append(('(', -1)); i += 1
+        elif ch == ')':
+            i += 1
+            mult = 0
+            while i < n and formula[i].isdigit():
+                mult = mult * 10 + int(formula[i]); i += 1
+            if mult == 0: mult = 1
+            group = []
+            while stack and stack[-1][0] != '(':
+                group.append(stack.pop())
+            if stack: stack.pop()         # discard '('
+            for atom, cnt in reversed(group):
+                stack.append((atom, cnt * mult))
+        elif ch.isupper():
+            atom = ch; i += 1
+            cnt = 0
+            while i < n and formula[i].isdigit():
+                cnt = cnt * 10 + int(formula[i]); i += 1
+            if cnt == 0: cnt = 1
+            if atom not in first_seen:
+                first_seen[atom] = order_counter; order_counter += 1
+            stack.append((atom, cnt))
+        else: i += 1
+    # Aggregate (input guarantees each atom appears once before grouping, but
+    # multiplications may accumulate the same atom across the stack)
+    totals = {}
+    for atom, cnt in stack:
+        totals[atom] = totals.get(atom, 0) + cnt
+    parts = sorted(totals.items(), key=lambda kv: first_seen[kv[0]])
+    return ' '.join(f"{a}:{c}" for a, c in parts)
 
-// Define a structure to hold atom information
-struct Atom {
-    char name;
-    int count;
-};
-
-class Solution {
-public:
-    string formulaParsing(string formula) {
-
-        // Stack to store atoms, counts, and group markers
-        stack<Atom> stack;
-
-        for (int i = 0; i < formula.length(); i++) {
-
-            // If the current character is '(', push it to mark the start
-            // of a group
-            if (formula[i] == '(') {
-                stack.push(Atom{'(', -1});
-            }
-
-            // If the current character is ')', process the group
-            else if (formula[i] == ')') {
-
-                // Move past ')', check for multiplier
-                i++;
-
-                // Read multiplier (if any)
-                int multiplier = 0;
-                while (i < formula.length() && isdigit(formula[i])) {
-                    multiplier = multiplier * 10 + (formula[i] - '0');
-                    i++;
-                }
-
-                // If no multiplier, default to 1
-                if (multiplier == 0) {
-                    multiplier = 1;
-                }
-
-                // adjust index because for loop will increment
-                i--;
-
-                // Collect atoms in the group
-                vector<Atom> group;
-                while (!stack.empty() && stack.top().name != '(') {
-                    group.push_back(stack.top());
-                    stack.pop();
-                }
-
-                // Remove the '(' from the stack
-                if (!stack.empty() && stack.top().name == '(') {
-                    stack.pop();
-                }
-
-                // Multiply counts and push back
-                for (int j = group.size() - 1; j >= 0; j--) {
-                    Atom atom = group[j];
-                    stack.push(Atom{atom.name, atom.count * multiplier});
-                }
-            }
-
-            // If the character is an uppercase atom
-            else if (isupper(formula[i])) {
-
-                char atomName = formula[i++];
-
-                // Read count (if any)
-                int count = 0;
-                while (i < formula.length() && isdigit(formula[i])) {
-                    count = count * 10 + (formula[i] - '0');
-                    i++;
-                }
-
-                // If no count, default to 1
-                if (count == 0) {
-                    count = 1;
-                }
-
-                // adjust index because for loop will increment
-                i--;
-
-                // Push atom with count as string
-                stack.push(Atom{atomName, count});
-            }
-        }
-
-        // Collect the final result from the stack
-        string result;
-        while (!stack.empty()) {
-            Atom atom = stack.top();
-            result = string(1, atom.name) + ":" + to_string(atom.count) +
-                     " " + result;
-            stack.pop();
-        }
-
-        // Remove trailing space
-        if (!result.empty()) {
-            result.pop_back();
-        }
-
-        return result;
-    }
-};
+print(formula_parsing("(HO)2"))         # H:2 O:2
+print(formula_parsing("H(N(KO)2)3"))    # H:1 N:3 K:6 O:6
+print(formula_parsing("KH"))             # K:1 H:1
 ```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static String formulaParsing(String formula) {
+        Deque<int[]> st = new ArrayDeque<>();   // [atomCharCode (-1 for marker), count]
+        Map<Character, Integer> firstSeen = new LinkedHashMap<>();
+        int n = formula.length(), i = 0;
+        while (i < n) {
+            char ch = formula.charAt(i);
+            if (ch == '(') { st.push(new int[]{-1, -1}); i++; }
+            else if (ch == ')') {
+                i++;
+                int mult = 0;
+                while (i < n && Character.isDigit(formula.charAt(i))) { mult = mult * 10 + (formula.charAt(i) - '0'); i++; }
+                if (mult == 0) mult = 1;
+                List<int[]> group = new ArrayList<>();
+                while (!st.isEmpty() && st.peek()[0] != -1) group.add(st.pop());
+                if (!st.isEmpty()) st.pop();
+                for (int j = group.size() - 1; j >= 0; j--) {
+                    int[] a = group.get(j); st.push(new int[]{a[0], a[1] * mult});
+                }
+            } else if (Character.isUpperCase(ch)) {
+                char atom = ch; i++;
+                int cnt = 0;
+                while (i < n && Character.isDigit(formula.charAt(i))) { cnt = cnt * 10 + (formula.charAt(i) - '0'); i++; }
+                if (cnt == 0) cnt = 1;
+                firstSeen.putIfAbsent(atom, firstSeen.size());
+                st.push(new int[]{atom, cnt});
+            } else i++;
+        }
+        Map<Character, Integer> totals = new HashMap<>();
+        for (int[] e : st) totals.merge((char)e[0], e[1], Integer::sum);
+        StringBuilder out = new StringBuilder();
+        for (Character a : firstSeen.keySet()) {
+            if (out.length() > 0) out.append(' ');
+            out.append(a).append(':').append(totals.get(a));
+        }
+        return out.toString();
+    }
+    public static void main(String[] args) {
+        System.out.println(formulaParsing("(HO)2"));
+        System.out.println(formulaParsing("H(N(KO)2)3"));
+        System.out.println(formulaParsing("KH"));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#include <stdlib.h>
+
+typedef struct { char name; int count; } Atom;
+
+void formula_parsing(const char *f, char *out) {
+    Atom st[1024]; int top = -1;
+    char order[64]; int order_n = 0;
+    int seen[256] = {0};
+    int total[256] = {0};
+    int n = (int)strlen(f); int i = 0;
+    while (i < n) {
+        char ch = f[i];
+        if (ch == '(') { st[++top] = (Atom){'(', -1}; i++; }
+        else if (ch == ')') {
+            i++;
+            int mult = 0;
+            while (i < n && isdigit((unsigned char)f[i])) { mult = mult*10 + (f[i] - '0'); i++; }
+            if (mult == 0) mult = 1;
+            int gtop = top; int gstart = top;
+            while (gstart >= 0 && st[gstart].name != '(') gstart--;
+            for (int k = gstart + 1; k <= top; k++) st[k].count *= mult;
+            // remove the '(' marker
+            for (int k = gstart; k < top; k++) st[k] = st[k+1];
+            top--;
+        } else if (isupper((unsigned char)ch)) {
+            char atom = ch; i++;
+            int cnt = 0;
+            while (i < n && isdigit((unsigned char)f[i])) { cnt = cnt*10 + (f[i] - '0'); i++; }
+            if (cnt == 0) cnt = 1;
+            if (!seen[(int)atom]) { seen[(int)atom] = 1; order[order_n++] = atom; }
+            st[++top] = (Atom){atom, cnt};
+        } else i++;
+    }
+    for (int k = 0; k <= top; k++) total[(int)st[k].name] += st[k].count;
+    int o = 0;
+    for (int k = 0; k < order_n; k++) {
+        if (k > 0) out[o++] = ' ';
+        o += sprintf(out + o, "%c:%d", order[k], total[(int)order[k]]);
+    }
+    out[o] = 0;
+}
+
+int main() {
+    char buf[256];
+    formula_parsing("(HO)2", buf);       printf("%s\n", buf);
+    formula_parsing("H(N(KO)2)3", buf);  printf("%s\n", buf);
+    formula_parsing("KH", buf);          printf("%s\n", buf);
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <stack>
+#include <vector>
+#include <map>
+#include <cctype>
+
+struct Atom { char name; int count; };
+
+std::string formulaParsing(const std::string &f) {
+    std::stack<Atom> st;
+    std::vector<char> order;
+    std::map<char, bool> seen;
+    int n = (int)f.size(), i = 0;
+    while (i < n) {
+        char ch = f[i];
+        if (ch == '(') { st.push({'(', -1}); i++; }
+        else if (ch == ')') {
+            i++;
+            int mult = 0;
+            while (i < n && isdigit((unsigned char)f[i])) { mult = mult*10 + (f[i]-'0'); i++; }
+            if (mult == 0) mult = 1;
+            std::vector<Atom> group;
+            while (!st.empty() && st.top().name != '(') { group.push_back(st.top()); st.pop(); }
+            if (!st.empty()) st.pop();
+            for (auto it = group.rbegin(); it != group.rend(); ++it) st.push({it->name, it->count * mult});
+        } else if (isupper((unsigned char)ch)) {
+            char atom = ch; i++;
+            int cnt = 0;
+            while (i < n && isdigit((unsigned char)f[i])) { cnt = cnt*10 + (f[i]-'0'); i++; }
+            if (cnt == 0) cnt = 1;
+            if (!seen[atom]) { seen[atom] = true; order.push_back(atom); }
+            st.push({atom, cnt});
+        } else i++;
+    }
+    std::map<char, int> total;
+    while (!st.empty()) { total[st.top().name] += st.top().count; st.pop(); }
+    std::string out;
+    for (char c : order) { if (!out.empty()) out += ' '; out += c; out += ':'; out += std::to_string(total[c]); }
+    return out;
+}
+int main() {
+    std::cout << formulaParsing("(HO)2")      << "\n";
+    std::cout << formulaParsing("H(N(KO)2)3") << "\n";
+    std::cout << formulaParsing("KH")          << "\n";
+}
+```
+
+```scala,editable
+import scala.collection.mutable
+def formulaParsing(f: String): String = {
+  val st = mutable.Stack[(Char, Int)]()
+  val order = mutable.ArrayBuffer[Char]()
+  val seen  = mutable.Set[Char]()
+  var i = 0
+  while (i < f.length) {
+    val ch = f(i)
+    if (ch == '(') { st.push(('(', -1)); i += 1 }
+    else if (ch == ')') {
+      i += 1
+      var mult = 0
+      while (i < f.length && f(i).isDigit) { mult = mult * 10 + (f(i) - '0'); i += 1 }
+      if (mult == 0) mult = 1
+      val grp = mutable.ArrayBuffer[(Char, Int)]()
+      while (st.nonEmpty && st.top._1 != '(') grp.append(st.pop())
+      if (st.nonEmpty) st.pop()
+      for (j <- grp.indices.reverse) { val (a, c) = grp(j); st.push((a, c * mult)) }
+    } else if (ch.isUpper) {
+      val atom = ch; i += 1
+      var cnt = 0
+      while (i < f.length && f(i).isDigit) { cnt = cnt * 10 + (f(i) - '0'); i += 1 }
+      if (cnt == 0) cnt = 1
+      if (!seen(atom)) { seen.add(atom); order.append(atom) }
+      st.push((atom, cnt))
+    } else i += 1
+  }
+  val total = mutable.Map[Char, Int]().withDefaultValue(0)
+  while (st.nonEmpty) { val (a, c) = st.pop(); total(a) += c }
+  order.map(a => s"$a:${total(a)}").mkString(" ")
+}
+object Main extends App {
+  println(formulaParsing("(HO)2"))
+  println(formulaParsing("H(N(KO)2)3"))
+  println(formulaParsing("KH"))
+}
+```
+
+```javascript,editable
+function formulaParsing(f) {
+    const st = [];                // [atom_name | '(', count]
+    const order = []; const seen = new Set();
+    let i = 0, n = f.length;
+    while (i < n) {
+        const ch = f[i];
+        if (ch === '(') { st.push(['(', -1]); i++; }
+        else if (ch === ')') {
+            i++;
+            let mult = 0;
+            while (i < n && /\d/.test(f[i])) { mult = mult*10 + Number(f[i]); i++; }
+            if (mult === 0) mult = 1;
+            const grp = [];
+            while (st.length && st[st.length-1][0] !== '(') grp.push(st.pop());
+            if (st.length) st.pop();
+            for (let j = grp.length - 1; j >= 0; j--) {
+                const [a, c] = grp[j]; st.push([a, c * mult]);
+            }
+        } else if (/[A-Z]/.test(ch)) {
+            const atom = ch; i++;
+            let cnt = 0;
+            while (i < n && /\d/.test(f[i])) { cnt = cnt*10 + Number(f[i]); i++; }
+            if (cnt === 0) cnt = 1;
+            if (!seen.has(atom)) { seen.add(atom); order.push(atom); }
+            st.push([atom, cnt]);
+        } else i++;
+    }
+    const total = new Map();
+    for (const [a, c] of st) total.set(a, (total.get(a) || 0) + c);
+    return order.map(a => `${a}:${total.get(a)}`).join(' ');
+}
+console.log(formulaParsing("(HO)2"));
+console.log(formulaParsing("H(N(KO)2)3"));
+console.log(formulaParsing("KH"));
+```
+
+```typescript,editable
+function formulaParsing(f: string): string {
+    const st: [string, number][] = [];
+    const order: string[] = []; const seen = new Set<string>();
+    let i = 0, n = f.length;
+    while (i < n) {
+        const ch = f[i];
+        if (ch === '(') { st.push(['(', -1]); i++; }
+        else if (ch === ')') {
+            i++;
+            let mult = 0;
+            while (i < n && /\d/.test(f[i])) { mult = mult*10 + Number(f[i]); i++; }
+            if (mult === 0) mult = 1;
+            const grp: [string, number][] = [];
+            while (st.length && st[st.length-1][0] !== '(') grp.push(st.pop()!);
+            if (st.length) st.pop();
+            for (let j = grp.length - 1; j >= 0; j--) {
+                const [a, c] = grp[j]; st.push([a, c * mult]);
+            }
+        } else if (/[A-Z]/.test(ch)) {
+            const atom = ch; i++;
+            let cnt = 0;
+            while (i < n && /\d/.test(f[i])) { cnt = cnt*10 + Number(f[i]); i++; }
+            if (cnt === 0) cnt = 1;
+            if (!seen.has(atom)) { seen.add(atom); order.push(atom); }
+            st.push([atom, cnt]);
+        } else i++;
+    }
+    const total = new Map<string, number>();
+    for (const [a, c] of st) total.set(a, (total.get(a) || 0) + c);
+    return order.map(a => `${a}:${total.get(a)}`).join(' ');
+}
+console.log(formulaParsing("(HO)2"));
+console.log(formulaParsing("H(N(KO)2)3"));
+console.log(formulaParsing("KH"));
+```
+
+```go,editable
+package main
+import (
+    "fmt"
+    "strconv"
+    "unicode"
+    "strings"
+)
+type entry struct { name byte; count int }
+func formulaParsing(f string) string {
+    st := []entry{}
+    order := []byte{}; seen := make(map[byte]bool)
+    n := len(f); i := 0
+    for i < n {
+        ch := f[i]
+        if ch == '(' { st = append(st, entry{'(', -1}); i++
+        } else if ch == ')' {
+            i++; mult := 0
+            for i < n && unicode.IsDigit(rune(f[i])) { mult = mult*10 + int(f[i] - '0'); i++ }
+            if mult == 0 { mult = 1 }
+            grp := []entry{}
+            for len(st) > 0 && st[len(st)-1].name != '(' { grp = append(grp, st[len(st)-1]); st = st[:len(st)-1] }
+            if len(st) > 0 { st = st[:len(st)-1] }
+            for j := len(grp) - 1; j >= 0; j-- { st = append(st, entry{grp[j].name, grp[j].count * mult}) }
+        } else if ch >= 'A' && ch <= 'Z' {
+            atom := ch; i++; cnt := 0
+            for i < n && unicode.IsDigit(rune(f[i])) { cnt = cnt*10 + int(f[i] - '0'); i++ }
+            if cnt == 0 { cnt = 1 }
+            if !seen[atom] { seen[atom] = true; order = append(order, atom) }
+            st = append(st, entry{atom, cnt})
+        } else { i++ }
+    }
+    total := make(map[byte]int)
+    for _, e := range st { total[e.name] += e.count }
+    parts := []string{}
+    for _, a := range order { parts = append(parts, fmt.Sprintf("%c:%d", a, total[a])) }
+    return strings.Join(parts, " ")
+    _ = strconv.Atoi
+}
+func main() {
+    fmt.Println(formulaParsing("(HO)2"))
+    fmt.Println(formulaParsing("H(N(KO)2)3"))
+    fmt.Println(formulaParsing("KH"))
+}
+```
+
+```kotlin,editable
+fun formulaParsing(f: String): String {
+    data class Entry(val name: Char, val count: Int)
+    val st = ArrayDeque<Entry>()
+    val order = mutableListOf<Char>(); val seen = mutableSetOf<Char>()
+    var i = 0; val n = f.length
+    while (i < n) {
+        val ch = f[i]
+        when {
+            ch == '(' -> { st.addLast(Entry('(', -1)); i++ }
+            ch == ')' -> {
+                i++; var mult = 0
+                while (i < n && f[i].isDigit()) { mult = mult * 10 + (f[i] - '0'); i++ }
+                if (mult == 0) mult = 1
+                val grp = mutableListOf<Entry>()
+                while (st.isNotEmpty() && st.last().name != '(') grp.add(st.removeLast())
+                if (st.isNotEmpty()) st.removeLast()
+                for (j in grp.indices.reversed()) st.addLast(Entry(grp[j].name, grp[j].count * mult))
+            }
+            ch.isUpperCase() -> {
+                val atom = ch; i++; var cnt = 0
+                while (i < n && f[i].isDigit()) { cnt = cnt * 10 + (f[i] - '0'); i++ }
+                if (cnt == 0) cnt = 1
+                if (atom !in seen) { seen.add(atom); order.add(atom) }
+                st.addLast(Entry(atom, cnt))
+            }
+            else -> i++
+        }
+    }
+    val total = HashMap<Char, Int>()
+    for (e in st) total[e.name] = (total[e.name] ?: 0) + e.count
+    return order.joinToString(" ") { "$it:${total[it]}" }
+}
+fun main() {
+    println(formulaParsing("(HO)2"))
+    println(formulaParsing("H(N(KO)2)3"))
+    println(formulaParsing("KH"))
+}
+```
+
+```rust,editable
+use std::collections::HashMap;
+fn formula_parsing(f: &str) -> String {
+    let bytes = f.as_bytes();
+    let mut st: Vec<(char, i32)> = Vec::new();
+    let mut order: Vec<char> = Vec::new();
+    let mut seen: std::collections::HashSet<char> = std::collections::HashSet::new();
+    let n = bytes.len(); let mut i = 0;
+    while i < n {
+        let ch = bytes[i] as char;
+        if ch == '(' { st.push(('(', -1)); i += 1; }
+        else if ch == ')' {
+            i += 1; let mut mult = 0;
+            while i < n && (bytes[i] as char).is_ascii_digit() { mult = mult*10 + (bytes[i] - b'0') as i32; i += 1; }
+            if mult == 0 { mult = 1; }
+            let mut grp: Vec<(char, i32)> = Vec::new();
+            while let Some(&(a, c)) = st.last() {
+                if a == '(' { break; }
+                grp.push((a, c)); st.pop();
+            }
+            if st.last().map(|x| x.0) == Some('(') { st.pop(); }
+            for j in (0..grp.len()).rev() { st.push((grp[j].0, grp[j].1 * mult)); }
+        } else if ch.is_ascii_uppercase() {
+            let atom = ch; i += 1; let mut cnt = 0;
+            while i < n && (bytes[i] as char).is_ascii_digit() { cnt = cnt*10 + (bytes[i] - b'0') as i32; i += 1; }
+            if cnt == 0 { cnt = 1; }
+            if !seen.contains(&atom) { seen.insert(atom); order.push(atom); }
+            st.push((atom, cnt));
+        } else { i += 1; }
+    }
+    let mut total: HashMap<char, i32> = HashMap::new();
+    for (a, c) in st { *total.entry(a).or_insert(0) += c; }
+    order.iter().map(|a| format!("{}:{}", a, total[a])).collect::<Vec<_>>().join(" ")
+}
+fn main() {
+    println!("{}", formula_parsing("(HO)2"));
+    println!("{}", formula_parsing("H(N(KO)2)3"));
+    println!("{}", formula_parsing("KH"));
+}
+```
+
+</div>
+
+***
+
+## Final Takeaway
+
+Three lessons:
+
+1. **The stack holds partial answers in progress.** Whenever a closer event fires, you collapse a chunk of the stack into a single combined value and push that back. The result keeps growing until the next closer or end of input.
+2. **Indices, characters, strings, or records — push whatever the problem needs.** Path tokens for path simplification; characters for bracket reversal; (atom, count) records for chemical formulas. The container shape adapts; the stack discipline doesn't.
+3. **Multi-digit numbers and multi-character tokens need a sub-loop.** Inside the main scan, slurp consecutive digits or letters before pushing — otherwise `12[a]` will push `1`, `2`, `[`, `a`, `]` and you'll lose the multiplier.
+
+> *Coming up — the **design** lesson. We've built five problem patterns; the final lesson takes the stack interface and asks: <em>what would it take to extend it with one extra O(1) operation, like <code>min()</code>?</em> Two classic interview questions — Min Stack (push, pop, top, min — all O(1)) and Stack Using Queues — close out the section by demonstrating how to <em>compose stacks with auxiliary structures</em> to add new functionality without losing the original O(1) guarantees.*

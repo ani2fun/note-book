@@ -1,5 +1,15 @@
 # 7. Pattern: Reversal
 
+## The Hook
+
+A stack is a *natural reverser*. Push five things in, pop them out, and the order is exactly reversed — for free, no extra logic. The whole trick is built into the LIFO contract: the *last* thing you push is the *first* thing you pop. That single property is enough to reverse a string, an array, a linked list of words, the order of items in another stack — anything you can iterate.
+
+Yes, you could reverse with two pointers, or with a recursive call (which uses the *call* stack — same trick in disguise), or with `arr[::-1]` in Python. But understanding **why a stack reverses** is the gateway to recognising the deeper pattern: *anytime the answer depends on processing items in reverse order of arrival*, a stack is your tool. Reversal is the simplest member of that family. The next four lessons will progressively layer more sophistication on top — previous-closest, next-closest, sequence validation, linear evaluation — and every one of them is "the stack remembers things until later".
+
+This lesson is short and punchy. Four problems, all on the easy end, each demonstrating one face of the reversal pattern: invert a stack, reverse a string, reverse an array in place, reverse the *word order* of a sentence (without reversing the words themselves).
+
+---
+
 ## Table of contents
 
 1. [Understanding the reversal pattern](#understanding-the-reversal-pattern)
@@ -13,251 +23,210 @@
 
 # Understanding the reversal pattern
 
-We can access data items anywhere in sequential data structures like arrays and linked lists either via random access or traversal. However, inserting and accessing data in a stack is only restricted to one end in the stack giving it its unique LIFO (Last in first out) property.
+Push everything in. Pop everything out. Done.
 
-The reversal technique leverages the LIFO property of a stack to reverse any sequence of data by inserting all the items into the stack and then retrieving them one at a time from the top. This way, the resulting sequence from the retrieved items will be in reverse order. Almost all sequences that can be reversed using a stack can also be reversed using another technique. 
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph IN["push order"]
+        I1["A"] --> I2["B"] --> I3["C"] --> I4["D"]
+    end
+    IN --> ST["stack:<br/>top → D, C, B, A ← bot"]
+    ST --> OUT["pop order"]
+    subgraph OUT["pop order"]
+        O1["D"] --> O2["C"] --> O3["B"] --> O4["A"]
+    end
+```
 
-The reversal pattern is a classification of problems that can be solved using the reversal technique using a stack.
-
-// Diagram: The reversal technique uses a stack to reverse a sequence.
+<p align="center"><strong>The reversal technique — every push goes onto the top; every pop comes off the top; the resulting pop sequence is the input sequence backwards. The stack does the reversal "for free".</strong></p>
 
 ## The reversal technique
 
-The reversal technique is quite simple and easy to understand. Consider we are given an array of data items `arr` that we need to reverse.
+Two passes:
 
-We create a stack `stack` that will hold the data items in `arr`. We then iterate in the array `arr` from start to end and in each iteration, push the current item on top of the stack. At the end of all iterations, all items in the array `arr` will be copied to the stack, with the last item at the top. We then iterate in the array `arr` again from start to end, and in each iteration, pop the item from the top of the stack and overwrite the current item in `arr` with it. At the end of all iterations, the stack `stack` will be empty, and the array `arr` will be reversed.
+1. **Pass 1 — load the stack.** Iterate the input from start to end; push each element. After this pass, the stack holds the input with the last element on top.
+2. **Pass 2 — unload into the destination.** Pop the stack until empty; write each popped element into the next slot of the result. After this pass, the destination is the input reversed.
 
-Reverse an array using a stack.
+For *in-place* reversal of an array, the destination is the same array — pass 2 overwrites positions 0, 1, 2, ... in order with stack pops, and the array ends up reversed.
 
 ## Algorithm
 
-The algorithm given below outlines the reversal technique using a stack to reverse an array.
-
 > **Algorithm**
 >
-> -   **Step 1:** Initialize a stack \`stack\` to store the data items of the array \`arr\`
-> -   **Step 2:** Iterate in the array \`arr\` from start to end and push each item to the top of the stack \`stack\`.
-> -   **Step 3:** Iterate in the array \`arr\` from start to end, pop the item from the top of the stack \`stack\` and overwrite the current item in\`arr\` with it.
+> -   **Step 1:** Initialise an empty stack.
+> -   **Step 2:** Iterate over the input; push each element.
+> -   **Step 3:** Iterate over the output positions (or write to the result); for each, pop the stack and write the popped value.
 
-## Implementation
+## Implementation — generic array reverser
 
-Given below is the generic code implementation to reverse an array of integers using a stack.
+<div class="lang-tabs">
 
-// Diagram: Loading code editor
+```python,editable
+def reverse_via_stack(arr: list) -> list:
+    stack = []
+    for x in arr: stack.append(x)         # pass 1
+    for i in range(len(arr)):              # pass 2
+        arr[i] = stack.pop()
+    return arr
+
+print(reverse_via_stack([1, 2, 3, 4, 5]))   # [5, 4, 3, 2, 1]
+```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static int[] reverse(int[] arr) {
+        Deque<Integer> st = new ArrayDeque<>();
+        for (int x : arr) st.push(x);
+        for (int i = 0; i < arr.length; i++) arr[i] = st.pop();
+        return arr;
+    }
+    public static void main(String[] args) {
+        int[] r = reverse(new int[]{1,2,3,4,5});
+        System.out.println(Arrays.toString(r));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+void reverse_via_stack(int *arr, int n) {
+    int st[256]; int top = -1;
+    for (int i = 0; i < n; i++) st[++top] = arr[i];
+    for (int i = 0; i < n; i++) arr[i] = st[top--];
+}
+int main() {
+    int a[] = {1,2,3,4,5};
+    reverse_via_stack(a, 5);
+    for (int i = 0; i < 5; i++) printf("%d ", a[i]); printf("\n");
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <stack>
+#include <vector>
+
+void reverseViaStack(std::vector<int> &arr) {
+    std::stack<int> st;
+    for (int x : arr) st.push(x);
+    for (size_t i = 0; i < arr.size(); i++) { arr[i] = st.top(); st.pop(); }
+}
+int main() {
+    std::vector<int> a = {1,2,3,4,5};
+    reverseViaStack(a);
+    for (int x : a) std::cout << x << " "; std::cout << "\n";
+}
+```
+
+```scala,editable
+import scala.collection.mutable
+def reverseViaStack(arr: Array[Int]): Array[Int] = {
+  val st = mutable.Stack[Int]()
+  for (x <- arr) st.push(x)
+  for (i <- arr.indices) arr(i) = st.pop()
+  arr
+}
+object Main extends App {
+  println(reverseViaStack(Array(1,2,3,4,5)).mkString(", "))
+}
+```
+
+```javascript,editable
+function reverseViaStack(arr) {
+    const st = [];
+    for (const x of arr) st.push(x);
+    for (let i = 0; i < arr.length; i++) arr[i] = st.pop();
+    return arr;
+}
+console.log(reverseViaStack([1,2,3,4,5]));
+```
+
+```typescript,editable
+function reverseViaStack(arr: number[]): number[] {
+    const st: number[] = [];
+    for (const x of arr) st.push(x);
+    for (let i = 0; i < arr.length; i++) arr[i] = st.pop()!;
+    return arr;
+}
+console.log(reverseViaStack([1,2,3,4,5]));
+```
+
+```go,editable
+package main
+import "fmt"
+func reverseViaStack(arr []int) {
+    st := make([]int, 0, len(arr))
+    for _, x := range arr { st = append(st, x) }
+    for i := 0; i < len(arr); i++ {
+        arr[i] = st[len(st)-1]; st = st[:len(st)-1]
+    }
+}
+func main() {
+    a := []int{1,2,3,4,5}
+    reverseViaStack(a)
+    fmt.Println(a)
+}
+```
+
+```kotlin,editable
+fun reverseViaStack(arr: IntArray): IntArray {
+    val st = ArrayDeque<Int>()
+    for (x in arr) st.addLast(x)
+    for (i in arr.indices) arr[i] = st.removeLast()
+    return arr
+}
+fun main() {
+    println(reverseViaStack(intArrayOf(1,2,3,4,5)).toList())
+}
+```
+
+```rust,editable
+fn reverse_via_stack(arr: &mut [i32]) {
+    let mut st: Vec<i32> = Vec::with_capacity(arr.len());
+    for &x in arr.iter() { st.push(x); }
+    for i in 0..arr.len() { arr[i] = st.pop().unwrap(); }
+}
+fn main() {
+    let mut a = [1,2,3,4,5];
+    reverse_via_stack(&mut a);
+    println!("{:?}", a);
+}
+```
+
+</div>
 
 ## Complexity Analysis
 
-The algorithm's time and space complexity is easy to understand. We traverse the sequence from start to end twice, in any case, and since adding an item to the top of the stack is a constant time operation, the runtime complexity is linear **O(N)**.
-
-We copy all the data items to the stack in the first iteration, essentially duplicating the data before clearing it in the second iteration. Hence, the space complexity for the algorithm is linear **O(N)**.
-
-> **Best Case -**
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case -**
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
-
-Later in the course, we will examine techniques for identifying problems that can be solved using the reversal technique and walk through an example to better understand it.
+> **All cases** — Time: **O(N)** | Space: **O(N)** (the stack holds a copy of the input)
 
 ***
 
 # Identifying the reversal pattern
 
-The reversal technique can be applied to all problems where we need to reverse a sequential data structure. These are generally **easy** problems where reversal is only a subproblem of the bigger problem. If the problem statement or its solution follows the generic template below, it can be solved using the reversal technique.
+Anywhere the problem says — implicitly or explicitly — *"give me this back in the opposite order"*, the reversal pattern fits.
 
 **Template:**
+> Given a sequence (string, array, list, words), produce its reverse using a stack.
 
-// Diagram: Reverse a sequential data structure
+The pattern is *the* canonical use of a stack as a reverser. In the problems below it shows up four ways:
 
-## Example
+- **Stack inversion** — reverse the contents of one stack into another stack.
+- **Reverse the string** — reverse a character sequence.
+- **Reverse an array** — reverse an integer sequence in place.
+- **Reverse word order** — reverse the *order of words*, leaving each word's internal letters intact.
 
-To better understand the problems that can be solved using the reversal technique, let's consider the following problem and see how we can identify it as a direct application of the two-pointer technique.
-
-> **Problem statement**: Given a string \`s\` return its reversed string.
-
-// Diagram: Reverse a string
-
-## Reversal using stack
-
-The problem statement fits the generic template we learned earlier.
-
-// Diagram: Reverse a sequential data structure (string s)
-
-We create a stack of characters `stack` to hold the characters in the string `s`. We then iterate in string `s` from start to end, and in each iteration, push the current character to the top of the stack. At the end of all iterations, all items in the string `s` will be copied to the stack, with the last item at the top.
-
-We then create an empty string `result`, pop items from the stack, and append them to the string `result` until the stack is empty. At the end of all iterations `result` will hold the reversed string of `s`.
-
-// Diagram: Reverse a string using a stack
-
-The implementation of the reversal technique using stack is given below.
-
-C++
-
-```cpp
-#include <stack>
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    string reverseTheString(string s) {
-
-        // Create a stack to store characters
-        stack<char> stack;
-
-        // Create an empty string to store the reversed string
-        string result;
-
-        // Push each character into the stack
-        for (char ch : s) {
-            stack.push(ch);
-        }
-
-        // Pop characters from the stack to form the reversed string
-        while (!stack.empty()) {
-
-            // Append the top character to the result string
-            result += stack.top();
-            stack.pop();
-        }
-
-        // Return the reversed string
-        return result;
-    }
-};
-```
-
-Java
-
-```java
-import java.util.*;
-
-class Solution {
-    public String reverseTheString(String s) {
-
-        // Create a stack to store characters
-        Stack<Character> stack = new Stack<>();
-
-        // Create an empty string to store the reversed string
-        StringBuilder result = new StringBuilder();
-
-        // Push each character into the stack
-        for (char ch : s.toCharArray()) {
-            stack.push(ch);
-        }
-
-        // Pop characters from the stack to form the reversed string
-        while (!stack.empty()) {
-
-            // Append the top character to the result string
-            result.append(stack.pop());
-        }
-
-        // Return the reversed string
-        return result.toString();
-    }
-```
-
-Typescript
-
-```typescript
-export class Solution {
-    reverseTheString(s: string): string {
-
-        // Create a stack to store characters
-        const stack: string[] = [];
-
-        // Create an empty string to store the reversed string
-        let result: string = "";
-
-        // Push each character into the stack
-        for (const ch of s) {
-            stack.push(ch);
-        }
-
-        // Pop characters from the stack to form the reversed string
-        while (stack.length > 0) {
-
-            // Append the top character to the result string
-            result += stack.pop();
-        }
-
-        // Return the reversed string
-        return result;
-    }
-```
-
-Javascript
-
-```javascript
-export class Solution {
-    reverseTheString(s) {
-
-        // Create a stack to store characters
-        const stack = [];
-
-        // Create an empty string to store the reversed string
-        let result = "";
-
-        // Push each character into the stack
-        for (const ch of s) {
-            stack.push(ch);
-        }
-
-        // Pop characters from the stack to form the reversed string
-        while (stack.length > 0) {
-
-            // Append the top character to the result string
-            result += stack.pop();
-        }
-
-        // Return the reversed string
-        return result;
-    }
-```
-
-Python
-
-```python
-from typing import List
-
-class Solution:
-    def reverse_the_string(self, s: str) -> str:
-
-        # Create a stack to store characters
-        stack: List[str] = []
-
-        # Create an empty string to store the reversed string
-        result: str = ""
-
-        # Push each character into the stack
-        for ch in s:
-            stack.append(ch)
-
-        # Pop characters from the stack to form the reversed string
-        while stack:
-
-            # Append the top character to the result string
-            result += stack.pop()
-
-        # Return the reversed string
-        return result
-```
-
-## Example problems
-
-Most problems that fall under this category are**easy**problems; a list of a few is given below.
-
-> -   **[Stack inversion](https://www.codeintuition.io/courses/stack/OKiemileoITxeb1dzad7n)**
-> -   **[Reverse the string](https://www.codeintuition.io/courses/stack/7GV2qQH7l8O7VWjDf3gJh)**
-> -   **[Reverse an array](https://www.codeintuition.io/courses/stack/lXukTGYnlC7uLI5boRBAP)**
-> -   **[Reverse word order](https://www.codeintuition.io/courses/stack/m5Q62NeArW9t-7ZPQqSIJ)**
-
-We will now solve these problems to understand the reversal technique using stack better.
+The fourth is the most subtle: the stack stores *complete words*, not characters. The unit of reversal is whatever you push.
 
 ***
 
@@ -265,44 +234,196 @@ We will now solve these problems to understand the reversal technique using stac
 
 ## Problem Statement
 
-Given a stack **s**, write a function to return a new stack that contains all the elements of this stack but in reversed order.
+Given a stack `s`, return a new stack containing the same elements in *reversed* order.
 
 ### Example
+> -   **Input:** `s = [9, 5, 1, 2]` (top is `2`)
+> -   **Output:** `[2, 1, 5, 9]` (top is `9`)
 
-> -   **Input:** s = \[9, 5, 1, 2\]
-> -   **Output:** \[2, 1, 5, 9\]
-> -   **Explanation:** Above is the diagram to show the reversed stack.
+## Approach
+
+Two stacks. Pop everything from the input and push onto the output — *that single transfer reverses the order, because the topmost element of the input is pushed first onto the output, ending up at the bottom*.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph IN["input stack (top=2)"]
+        direction TB
+        I1["2 ← top"]
+        I2["1"]
+        I3["5"]
+        I4["9 ← bot"]
+    end
+    IN -->|"pop, push"| OUT
+    subgraph OUT["output stack (top=9)"]
+        direction TB
+        O1["9 ← top"]
+        O2["5"]
+        O3["1"]
+        O4["2 ← bot"]
+    end
+```
+
+<p align="center"><strong>Stack inversion — pop the input top, push to output. The first popped item lands at the bottom of the output, which is exactly where it started in the input. The whole stack flips.</strong></p>
 
 ## Solution
 
-```cpp
+<div class="lang-tabs">
+
+```python,editable
+def stack_inversion(s: list) -> list:
+    """s is a list used as a stack (last element is the top)."""
+    out = []
+    while s:
+        out.append(s.pop())     # transfer top → top, but flipped order
+    return out
+
+# Demo: input represented as list, top = last element
+print(stack_inversion([9, 5, 1, 2]))   # [2, 1, 5, 9]
+```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static Deque<Integer> stackInversion(Deque<Integer> s) {
+        Deque<Integer> out = new ArrayDeque<>();
+        while (!s.isEmpty()) out.push(s.pop());
+        return out;
+    }
+    public static void main(String[] args) {
+        Deque<Integer> s = new ArrayDeque<>();
+        // bottom-first push so 2 ends up on top
+        for (int x : new int[]{9, 5, 1, 2}) s.push(x);
+        Deque<Integer> r = stackInversion(s);
+        // print top-to-bottom
+        while (!r.isEmpty()) System.out.print(r.pop() + " ");
+        System.out.println();
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+void stack_inversion(int *src, int *src_top, int *dst, int *dst_top) {
+    while (*src_top >= 0) dst[++(*dst_top)] = src[(*src_top)--];
+}
+int main() {
+    int src[] = {9, 5, 1, 2}; int src_top = 3;
+    int dst[16]; int dst_top = -1;
+    stack_inversion(src, &src_top, dst, &dst_top);
+    for (int i = dst_top; i >= 0; i--) printf("%d ", dst[i]);
+    printf("\n");
+}
+```
+
+```cpp,editable
+#include <iostream>
 #include <stack>
 
-using namespace std;
-
-class Solution {
-public:
-    stack<int> stackInversion(stack<int> &s) {
-        stack<int> reversedStack;
-
-        // Transfer elements from original stack to reversed stack
-        while (!s.empty()) {
-
-            // Get the top element from the original stack
-            int top = s.top();
-
-            // Remove the top element from the original stack
-            s.pop();
-
-            // Push the element onto the reversed stack
-            reversedStack.push(top);
-        }
-
-        // Return the reversed stack
-        return reversedStack;
-    }
-};
+std::stack<int> stackInversion(std::stack<int> s) {
+    std::stack<int> out;
+    while (!s.empty()) { out.push(s.top()); s.pop(); }
+    return out;
+}
+int main() {
+    std::stack<int> s;
+    for (int x : {9, 5, 1, 2}) s.push(x);
+    auto r = stackInversion(s);
+    while (!r.empty()) { std::cout << r.top() << " "; r.pop(); }
+    std::cout << "\n";
+}
 ```
+
+```scala,editable
+import scala.collection.mutable
+def stackInversion(s: mutable.Stack[Int]): mutable.Stack[Int] = {
+  val out = mutable.Stack[Int]()
+  while (s.nonEmpty) out.push(s.pop())
+  out
+}
+object Main extends App {
+  val s = mutable.Stack[Int](); for (x <- Array(9,5,1,2)) s.push(x)
+  val r = stackInversion(s)
+  while (r.nonEmpty) print(s"${r.pop()} ")
+  println()
+}
+```
+
+```javascript,editable
+function stackInversion(s) {
+    const out = [];
+    while (s.length) out.push(s.pop());
+    return out;
+}
+const s = [9, 5, 1, 2];   // top = last element = 2
+console.log(stackInversion(s));   // [2, 1, 5, 9] (top = last = 9)
+```
+
+```typescript,editable
+function stackInversion(s: number[]): number[] {
+    const out: number[] = [];
+    while (s.length) out.push(s.pop()!);
+    return out;
+}
+const s = [9, 5, 1, 2];
+console.log(stackInversion(s));
+```
+
+```go,editable
+package main
+import "fmt"
+
+func stackInversion(s []int) []int {
+    out := make([]int, 0, len(s))
+    for len(s) > 0 {
+        out = append(out, s[len(s)-1])
+        s = s[:len(s)-1]
+    }
+    return out
+}
+func main() {
+    fmt.Println(stackInversion([]int{9, 5, 1, 2}))
+}
+```
+
+```kotlin,editable
+fun stackInversion(s: ArrayDeque<Int>): ArrayDeque<Int> {
+    val out = ArrayDeque<Int>()
+    while (s.isNotEmpty()) out.addLast(s.removeLast())
+    return out
+}
+fun main() {
+    val s = ArrayDeque<Int>()
+    for (x in intArrayOf(9, 5, 1, 2)) s.addLast(x)
+    println(stackInversion(s))
+}
+```
+
+```rust,editable
+fn stack_inversion(s: &mut Vec<i32>) -> Vec<i32> {
+    let mut out: Vec<i32> = Vec::with_capacity(s.len());
+    while let Some(v) = s.pop() { out.push(v); }
+    out
+}
+fn main() {
+    let mut s = vec![9, 5, 1, 2];
+    println!("{:?}", stack_inversion(&mut s));
+}
+```
+
+</div>
+
+> **Complexity** — Time: **O(N)** | Space: **O(N)**.
 
 ***
 
@@ -310,55 +431,172 @@ public:
 
 ## Problem Statement
 
-Given a string **s** containing alphanumeric characters, write a function to reverse this string using stack and return the reversed string. 
+Given a string `s`, return its reverse using a stack.
 
 ### Example 1
-
-> -   **Input:** s = abcdefgh
-> -   **Output:** hgfedcba
-> -   **Explanation:** Above is the reversed string.
+> -   **Input:** `s = "abcdefgh"` → **Output:** `"hgfedcba"`
 
 ### Example 2
-
-> -   **Input:** s = c
-> -   **Output:** c
-> -   **Explanation:** Above is the reversed string.
+> -   **Input:** `s = "c"` → **Output:** `"c"`
 
 ## Solution
 
-```cpp
-#include <stack>
+The textbook two-pass: push every character, then pop until empty into a result string.
 
-using namespace std;
+<div class="lang-tabs">
 
-class Solution {
-public:
-    string reverseTheString(string s) {
+```python,editable
+def reverse_string(s: str) -> str:
+    stack = []
+    for ch in s: stack.append(ch)         # pass 1: push every char
+    out = []
+    while stack: out.append(stack.pop())  # pass 2: pop into result
+    return ''.join(out)
 
-        // Create a stack to store characters
-        stack<char> stack;
-
-        // Create an empty string to store the reversed string
-        string result;
-
-        // Push each character into the stack
-        for (char ch : s) {
-            stack.push(ch);
-        }
-
-        // Pop characters from the stack to form the reversed string
-        while (!stack.empty()) {
-
-            // Append the top character to the result string
-            result += stack.top();
-            stack.pop();
-        }
-
-        // Return the reversed string
-        return result;
-    }
-};
+print(reverse_string("abcdefgh"))   # hgfedcba
+print(reverse_string("c"))          # c
 ```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static String reverseString(String s) {
+        Deque<Character> st = new ArrayDeque<>();
+        for (char ch : s.toCharArray()) st.push(ch);
+        StringBuilder out = new StringBuilder();
+        while (!st.isEmpty()) out.append(st.pop());
+        return out.toString();
+    }
+    public static void main(String[] args) {
+        System.out.println(reverseString("abcdefgh"));
+        System.out.println(reverseString("c"));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <string.h>
+
+void reverse_string(const char *s, char *out) {
+    int n = (int)strlen(s);
+    char st[1024]; int top = -1;
+    for (int i = 0; i < n; i++) st[++top] = s[i];
+    int o = 0;
+    while (top >= 0) out[o++] = st[top--];
+    out[o] = 0;
+}
+
+int main() {
+    char buf[16];
+    reverse_string("abcdefgh", buf); printf("%s\n", buf);
+    reverse_string("c", buf);        printf("%s\n", buf);
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <stack>
+#include <string>
+
+std::string reverseString(const std::string &s) {
+    std::stack<char> st;
+    for (char ch : s) st.push(ch);
+    std::string out;
+    while (!st.empty()) { out += st.top(); st.pop(); }
+    return out;
+}
+int main() {
+    std::cout << reverseString("abcdefgh") << "\n";
+    std::cout << reverseString("c")        << "\n";
+}
+```
+
+```scala,editable
+import scala.collection.mutable
+def reverseString(s: String): String = {
+  val st = mutable.Stack[Char]()
+  for (ch <- s) st.push(ch)
+  val out = new StringBuilder
+  while (st.nonEmpty) out.append(st.pop())
+  out.toString
+}
+object Main extends App {
+  println(reverseString("abcdefgh"))
+  println(reverseString("c"))
+}
+```
+
+```javascript,editable
+function reverseString(s) {
+    const st = [];
+    for (const ch of s) st.push(ch);
+    let out = "";
+    while (st.length) out += st.pop();
+    return out;
+}
+console.log(reverseString("abcdefgh"));
+console.log(reverseString("c"));
+```
+
+```typescript,editable
+function reverseString(s: string): string {
+    const st: string[] = [];
+    for (const ch of s) st.push(ch);
+    let out = "";
+    while (st.length) out += st.pop();
+    return out;
+}
+console.log(reverseString("abcdefgh"));
+console.log(reverseString("c"));
+```
+
+```go,editable
+package main
+import "fmt"
+
+func reverseString(s string) string {
+    st := []byte{}
+    for i := 0; i < len(s); i++ { st = append(st, s[i]) }
+    out := make([]byte, 0, len(s))
+    for len(st) > 0 { out = append(out, st[len(st)-1]); st = st[:len(st)-1] }
+    return string(out)
+}
+func main() {
+    fmt.Println(reverseString("abcdefgh"))
+    fmt.Println(reverseString("c"))
+}
+```
+
+```kotlin,editable
+fun reverseString(s: String): String {
+    val st = ArrayDeque<Char>()
+    for (ch in s) st.addLast(ch)
+    val out = StringBuilder()
+    while (st.isNotEmpty()) out.append(st.removeLast())
+    return out.toString()
+}
+fun main() {
+    println(reverseString("abcdefgh"))
+    println(reverseString("c"))
+}
+```
+
+```rust,editable
+fn reverse_string(s: &str) -> String {
+    let mut st: Vec<char> = Vec::new();
+    for ch in s.chars() { st.push(ch); }
+    let mut out = String::new();
+    while let Some(ch) = st.pop() { out.push(ch); }
+    out
+}
+fn main() {
+    println!("{}", reverse_string("abcdefgh"));
+    println!("{}", reverse_string("c"));
+}
+```
+
+</div>
 
 ***
 
@@ -366,50 +604,146 @@ public:
 
 ## Problem Statement
 
-Given an array **arr** containing integers, write a function to reverse the elements of this array using a stack. Your function should not return a new array but modify the input array itself.
+Given an integer array `arr`, reverse its elements **in place** using a stack. Don't return a new array — mutate the input.
 
 ### Example 1
-
-> -   **Input:** arr = \[1, 2, 3, 4, 5, 6\]
-> -   **Output:** \[6, 5, 4, 3, 2, 1\]
-> -   **Explanation:** Above is the reversed array.
+> -   **Input:** `arr = [1, 2, 3, 4, 5, 6]` → after the call `arr = [6, 5, 4, 3, 2, 1]`
 
 ### Example 2
-
-> -   **Input:** arr = \[\]
-> -   **Output:** \[\]
-> -   **Explanation:** Above is the reversed array.
+> -   **Input:** `arr = []` → still `[]`
 
 ## Solution
 
-```cpp
-#include <stack>
+Same recipe; the destination is the input array itself. Pass 1 pushes; pass 2 overwrites positions 0..n−1 with stack pops.
 
-using namespace std;
+<div class="lang-tabs">
 
-class Solution {
-public:
-    void reverseAnArray(vector<int> &arr) {
+```python,editable
+def reverse_array(arr: list) -> None:
+    stack = list(arr)                  # pass 1: copy in (push order)
+    for i in range(len(arr)):          # pass 2: overwrite in pop order
+        arr[i] = stack.pop()
 
-        // Create a stack to store elements of arr
-        stack<int> stack;
-
-        // Pushing elements of arr into the stack
-        for (int i = 0; i < arr.size(); i++) {
-            stack.push(arr[i]);
-        }
-
-        int counter = 0;
-
-        // Popping elements from the stack and storing them back into arr
-        // in reverse order
-        while (!stack.empty()) {
-            arr[counter++] = stack.top();
-            stack.pop();
-        }
-    }
-};
+a = [1, 2, 3, 4, 5, 6]; reverse_array(a); print(a)   # [6, 5, 4, 3, 2, 1]
+b = [];                  reverse_array(b); print(b)   # []
 ```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static void reverseArray(int[] arr) {
+        Deque<Integer> st = new ArrayDeque<>();
+        for (int x : arr) st.push(x);
+        for (int i = 0; i < arr.length; i++) arr[i] = st.pop();
+    }
+    public static void main(String[] args) {
+        int[] a = {1,2,3,4,5,6}; reverseArray(a);
+        System.out.println(Arrays.toString(a));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+void reverse_array(int *arr, int n) {
+    int st[256]; int top = -1;
+    for (int i = 0; i < n; i++) st[++top] = arr[i];
+    for (int i = 0; i < n; i++) arr[i] = st[top--];
+}
+int main() {
+    int a[] = {1,2,3,4,5,6};
+    reverse_array(a, 6);
+    for (int i = 0; i < 6; i++) printf("%d ", a[i]); printf("\n");
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <stack>
+#include <vector>
+
+void reverseArray(std::vector<int> &arr) {
+    std::stack<int> st;
+    for (int x : arr) st.push(x);
+    for (size_t i = 0; i < arr.size(); i++) { arr[i] = st.top(); st.pop(); }
+}
+int main() {
+    std::vector<int> a = {1,2,3,4,5,6};
+    reverseArray(a);
+    for (int x : a) std::cout << x << " "; std::cout << "\n";
+}
+```
+
+```scala,editable
+import scala.collection.mutable
+def reverseArray(arr: Array[Int]): Unit = {
+  val st = mutable.Stack[Int]()
+  for (x <- arr) st.push(x)
+  for (i <- arr.indices) arr(i) = st.pop()
+}
+object Main extends App {
+  val a = Array(1,2,3,4,5,6); reverseArray(a)
+  println(a.mkString(", "))
+}
+```
+
+```javascript,editable
+function reverseArray(arr) {
+    const st = [];
+    for (const x of arr) st.push(x);
+    for (let i = 0; i < arr.length; i++) arr[i] = st.pop();
+}
+const a = [1,2,3,4,5,6]; reverseArray(a); console.log(a);
+const b = [];             reverseArray(b); console.log(b);
+```
+
+```typescript,editable
+function reverseArray(arr: number[]): void {
+    const st: number[] = [];
+    for (const x of arr) st.push(x);
+    for (let i = 0; i < arr.length; i++) arr[i] = st.pop()!;
+}
+const a = [1,2,3,4,5,6]; reverseArray(a); console.log(a);
+```
+
+```go,editable
+package main
+import "fmt"
+func reverseArray(arr []int) {
+    st := make([]int, 0, len(arr))
+    for _, x := range arr { st = append(st, x) }
+    for i := 0; i < len(arr); i++ {
+        arr[i] = st[len(st)-1]; st = st[:len(st)-1]
+    }
+}
+func main() {
+    a := []int{1,2,3,4,5,6}; reverseArray(a); fmt.Println(a)
+}
+```
+
+```kotlin,editable
+fun reverseArray(arr: IntArray) {
+    val st = ArrayDeque<Int>()
+    for (x in arr) st.addLast(x)
+    for (i in arr.indices) arr[i] = st.removeLast()
+}
+fun main() {
+    val a = intArrayOf(1,2,3,4,5,6); reverseArray(a); println(a.toList())
+}
+```
+
+```rust,editable
+fn reverse_array(arr: &mut [i32]) {
+    let mut st: Vec<i32> = Vec::with_capacity(arr.len());
+    for &x in arr.iter() { st.push(x); }
+    for i in 0..arr.len() { arr[i] = st.pop().unwrap(); }
+}
+fn main() {
+    let mut a = [1,2,3,4,5,6]; reverse_array(&mut a); println!("{:?}", a);
+}
+```
+
+</div>
 
 ***
 
@@ -417,84 +751,223 @@ public:
 
 ## Problem Statement
 
-Given a string **s** containing multiple words, write a function to reverse the string without reversing the actual words in the string and return the updated string.
+Given a string `s` containing multiple space-separated words, reverse the **order of words** without reversing the letters within each word.
 
 ### Example 1
-
-> -   **Input:** s = This is a string
-> -   **Output:** string a is This
-> -   **Explanation:** Above is the reversed string.
+> -   **Input:** `s = "This is a string"` → **Output:** `"string a is This"`
 
 ### Example 2
+> -   **Input:** `s = "abc"` → **Output:** `"abc"`
 
-> -   **Input:** s = abc
-> -   **Output:** abc
-> -   **Explanation:** Above is the reversed string.
+## Approach
+
+Same reversal pattern, **but the unit is a word, not a character**. Tokenise on spaces, push each word, pop into a result with single-space separators. The trailing-space cleanup at the end is the only fiddly part.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    S["s = 'This is a string'"] -->|"split on spaces"| W["words: [This, is, a, string]"]
+    W -->|"push each"| ST["stack:<br/>top → string, a, is, This ← bot"]
+    ST -->|"pop, join with ' '"| R["'string a is This'"]
+    style R fill:#dcfce7,stroke:#22c55e
+```
+
+<p align="center"><strong>Reverse word order — push <em>whole words</em>, not characters; the stack reverses their order, while each word's internal letters are untouched. The unit of reversal is whatever you push.</strong></p>
 
 ## Solution
 
-```cpp
-#include <algorithm>
-#include <stack>
+<div class="lang-tabs">
 
-using namespace std;
+```python,editable
+def reverse_word_order(s: str) -> str:
+    stack = s.split()                  # tokenise on whitespace
+    out = []
+    while stack: out.append(stack.pop())
+    return ' '.join(out)
 
-class Solution {
-public:
-    stack<string> buildStackOfWords(string s) {
-
-        // Create a stack to store words
-        stack<string> stack;
-
-        // Variable to store each word
-        string word;
-
-        // Iterate through each character in the input string
-        for (char ch : s) {
-
-            // If the character is not a space, add it to the word
-            if (ch != ' ') {
-                word += ch;
-            }
-
-            // If a space is encountered and the word is not empty
-            // Push the word onto the stack
-            else if (!word.empty()) {
-                stack.push(word);
-
-                // Reset the word
-                word = "";
-            }
-        }
-
-        // Push the last word onto the stack if it's not empty
-        if (!word.empty()) {
-            stack.push(word);
-        }
-
-        return stack;
-    }
-
-    string reverseWordOrder(string s) {
-        stack<string> stackOfWords = buildStackOfWords(s);
-
-        // Variable to store the reversed string
-        string reversedString;
-
-        // Pop words from the stack and append them to the reversedString
-        while (!stackOfWords.empty()) {
-            reversedString += stackOfWords.top() + " ";
-            stackOfWords.pop();
-        }
-
-        // Remove the trailing space at the end
-        if (!reversedString.empty()) {
-
-            reversedString.pop_back();
-        }
-
-        // Return the reversed string without reversing the words
-        return reversedString;
-    }
-};
+print(reverse_word_order("This is a string"))   # string a is This
+print(reverse_word_order("abc"))                # abc
 ```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static String reverseWordOrder(String s) {
+        String[] words = s.trim().split("\\s+");
+        Deque<String> st = new ArrayDeque<>();
+        for (String w : words) st.push(w);
+        StringBuilder out = new StringBuilder();
+        while (!st.isEmpty()) {
+            out.append(st.pop());
+            if (!st.isEmpty()) out.append(' ');
+        }
+        return out.toString();
+    }
+    public static void main(String[] args) {
+        System.out.println(reverseWordOrder("This is a string"));
+        System.out.println(reverseWordOrder("abc"));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <string.h>
+
+void reverse_word_order(const char *s, char *out) {
+    char buf[256]; strncpy(buf, s, sizeof(buf)-1); buf[sizeof(buf)-1]=0;
+    char *words[64]; int top = -1;
+    char *tok = strtok(buf, " ");
+    while (tok) { words[++top] = tok; tok = strtok(NULL, " "); }
+    int o = 0;
+    while (top >= 0) {
+        int len = (int)strlen(words[top]);
+        memcpy(out + o, words[top], len); o += len;
+        if (top > 0) out[o++] = ' ';
+        top--;
+    }
+    out[o] = 0;
+}
+
+int main() {
+    char buf[128];
+    reverse_word_order("This is a string", buf); printf("%s\n", buf);
+    reverse_word_order("abc", buf);              printf("%s\n", buf);
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <sstream>
+#include <stack>
+#include <string>
+
+std::string reverseWordOrder(const std::string &s) {
+    std::stack<std::string> st;
+    std::istringstream iss(s); std::string w;
+    while (iss >> w) st.push(w);
+    std::string out;
+    while (!st.empty()) {
+        out += st.top(); st.pop();
+        if (!st.empty()) out += ' ';
+    }
+    return out;
+}
+int main() {
+    std::cout << reverseWordOrder("This is a string") << "\n";
+    std::cout << reverseWordOrder("abc")              << "\n";
+}
+```
+
+```scala,editable
+import scala.collection.mutable
+def reverseWordOrder(s: String): String = {
+  val st = mutable.Stack[String]()
+  for (w <- s.trim.split("\\s+")) st.push(w)
+  val out = new StringBuilder
+  while (st.nonEmpty) {
+    out.append(st.pop())
+    if (st.nonEmpty) out.append(' ')
+  }
+  out.toString
+}
+object Main extends App {
+  println(reverseWordOrder("This is a string"))
+  println(reverseWordOrder("abc"))
+}
+```
+
+```javascript,editable
+function reverseWordOrder(s) {
+    const st = s.trim().split(/\s+/);
+    const out = [];
+    while (st.length) out.push(st.pop());
+    return out.join(' ');
+}
+console.log(reverseWordOrder("This is a string"));
+console.log(reverseWordOrder("abc"));
+```
+
+```typescript,editable
+function reverseWordOrder(s: string): string {
+    const st = s.trim().split(/\s+/);
+    const out: string[] = [];
+    while (st.length) out.push(st.pop()!);
+    return out.join(' ');
+}
+console.log(reverseWordOrder("This is a string"));
+console.log(reverseWordOrder("abc"));
+```
+
+```go,editable
+package main
+import (
+    "fmt"
+    "strings"
+)
+func reverseWordOrder(s string) string {
+    words := strings.Fields(s)
+    st := append([]string(nil), words...)
+    out := make([]string, 0, len(st))
+    for len(st) > 0 {
+        out = append(out, st[len(st)-1]); st = st[:len(st)-1]
+    }
+    return strings.Join(out, " ")
+}
+func main() {
+    fmt.Println(reverseWordOrder("This is a string"))
+    fmt.Println(reverseWordOrder("abc"))
+}
+```
+
+```kotlin,editable
+fun reverseWordOrder(s: String): String {
+    val words = s.trim().split(Regex("\\s+"))
+    val st = ArrayDeque<String>()
+    for (w in words) st.addLast(w)
+    val out = mutableListOf<String>()
+    while (st.isNotEmpty()) out.add(st.removeLast())
+    return out.joinToString(" ")
+}
+fun main() {
+    println(reverseWordOrder("This is a string"))
+    println(reverseWordOrder("abc"))
+}
+```
+
+```rust,editable
+fn reverse_word_order(s: &str) -> String {
+    let mut st: Vec<&str> = s.split_whitespace().collect();
+    let mut out: Vec<&str> = Vec::with_capacity(st.len());
+    while let Some(w) = st.pop() { out.push(w); }
+    out.join(" ")
+}
+fn main() {
+    println!("{}", reverse_word_order("This is a string"));
+    println!("{}", reverse_word_order("abc"));
+}
+```
+
+</div>
+
+***
+
+## Final Takeaway
+
+Three lessons:
+
+1. **A stack is a free reverser.** Push N items in, pop N items out, and the order is inverted with no extra logic — it's the LIFO contract doing the work.
+2. **The unit of reversal is whatever you push.** Push characters → reverses characters. Push words → reverses word order without disturbing letters. Push entire sub-arrays → reverses chunk order. The same algorithm reshapes itself by changing what counts as one item.
+3. **Reversal alone is rarely the *whole* problem.** It's almost always a sub-step inside something bigger: reverse the operator part of a string, reverse a path in a tree, reverse the order in which items get processed. Recognise reversal as a *building block*, not an answer.
+
+> *Coming up — the reversal pattern was the gentlest stack pattern. The next four progressively get harder by combining "remember the most recent thing not yet resolved" with one or two extra constraints. Lesson 8 — **previous closest occurrence** — uses a stack to find, for each element, the nearest earlier element that satisfies some condition (e.g. the previous greater element). It's the canonical "monotonic stack" problem and powers stock-span calculations, histogram problems, and a hundred interview questions.*

@@ -1,2536 +1,1385 @@
-# 3. Linked list implementation of stacks
+# 3. Linked-List Implementation of Stacks
+
+## The Hook
+
+Imagine the array-backed stack from the last lesson, but instead of pre-allocating a fixed-size buffer, every push *creates a brand-new node on the fly* and links it onto the front of a singly-linked list. The "top of the stack" is whatever the `head` pointer is currently pointing at. Push? Allocate a new node, point it at the old head, swing the head to the new node — three pointer moves, all O(1). Pop? Read the head's value, swing the head to `head.next`, free the old node — three pointer moves, all O(1).
+
+There's no fixed capacity. There's no resize cost. There's no "stack overflow" until the operating system itself runs out of memory. Every push is the same constant-time work; every pop is the same constant-time work; the asymptotics are *identical* to the array version, but the trade-offs are different in ways that matter on real hardware:
+
+- **No upfront allocation** — a million-capacity array reserves a million slots even if you only ever push five. A linked list grows one node at a time.
+- **No resize spikes** — array stacks that grow by doubling pay an occasional O(N) cost; linked-list stacks pay O(1) every time, predictably.
+- **But: no cache locality** — every node is a separate heap allocation, scattered across RAM. The CPU can't prefetch the "next" item on pop because it doesn't know where it lives until it dereferences `head.next`.
+
+This lesson builds the linked-list stack end-to-end in 10 languages — same five operations, same O(1) cost, but a completely different memory model. The kind of trade-off you make consciously in production code: array stacks for speed-on-known-workloads, linked-list stacks for unbounded-or-bursty-workloads.
+
+---
 
 ## Table of contents
 
-1. [Structure of a linked list based stack](#structure-of-a-linked-list-based-stack)
-2. [Implementing the stack class using linked list](#implementing-the-stack-class-using-a-linked-list)
+1. [Structure of a linked-list-based stack](#structure-of-a-linked-list-based-stack)
+2. [Implementing the stack class using a linked list](#implementing-the-stack-class-using-a-linked-list)
 3. [Determining the size of the stack](#determining-the-size-of-the-stack)
 4. [Checking if the stack is empty](#checking-if-the-stack-is-empty)
 5. [Accessing the top of the stack](#accessing-the-top-of-the-stack)
 6. [Pushing an item onto the stack](#pushing-an-item-onto-the-stack)
-7. [Popping an item from the top of the stack](#popping-an-item-from-the-top-of-the-stack)
+7. [Popping an item from the stack](#popping-an-item-from-the-stack)
 8. [Design a stack using a linked list](#design-a-stack-using-a-linked-list)
 
 ***
 
-# Structure of a linked list based stack
+# Structure of a linked-list-based stack
 
-Going back to the definition of a stack, it is a linear data structure that only supports push and pop operations to add and remove data items from **one** end of the stack. Like an array, a linked list is another data structure that is the perfect candidate for implementing a stack. Unlike arrays, which have a fixed size and are used to implement **bounded** stacks, linked lists can be as big as the computer memory permits, so they can be used to implement an **unbounded** stack. 
+A linked-list stack stores its top at the **head** of a singly linked list. Three fields wrap that list:
 
-// Diagram: Implementation of a stack using a linked list
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph CLS["Stack (linked-list-backed)"]
+        direction TB
+        H["head: pointer to top node (null if empty)"]
+        S["currentSize: number of nodes"]
+        C["capacity: max nodes allowed"]
+    end
+    H --> N1["val: 9<br/>next: ●"]
+    N1 --> N2["val: 7<br/>next: ●"]
+    N2 --> N3["val: 5<br/>next: null"]
+    style N1 fill:#fef9c3,stroke:#f59e0b
+```
+
+<p align="center"><strong>Linked-list stack — <code>head</code> always points at the top. To push, allocate a new node and make it the new head; to pop, advance head to <code>head.next</code> and free the old head. Both are O(1) regardless of the stack's depth.</strong></p>
 
 ## State information
 
-Like the array implementation, when implementing a stack using a linked list, we need to hold and keep updated certain **state information** alongside the linked list that holds all the data items to ensure all stack operations work as desired. Let us look at all the state information we need to maintain.
-
 ### Top
 
-Unlike in the array implementation, where we had to use the `topIndex` to store the index of the top item in the array, in the linked list implementation, we can use the `head` or `tail` of the list as a reference to the top. If we restrict inserting data items only at the beginning of the list, the `head` of the list is also becomes the top of the stack. On the other hand, if we restrict inserting data items only at the end of the list, the `tail` becomes the top of the stack. In this course, we will use a linked list implementation that only allows insertion at the beginning of the list and hence the `head`  will be at the top of the stack.
+In the array version, "top" was an index. Here, it's a **pointer**. `head` references the most-recently-pushed node, or is `null` if the stack is empty. Every operation that touches the top — `push`, `pop`, `top()` — does so through this pointer.
 
-// Diagram: The head is also the top of the stack
+> *Why is the top at the* head *of the list and not the tail?*
+>
+> Because head insertion and head deletion are O(1) — no traversal required. Tail insertion and tail deletion are O(N) without a tail pointer (you'd have to walk the list to find the second-to-last node before you could re-link). For a stack, where every operation is on the top, putting the top at the head is the only choice that keeps the implementation O(1).
 
-### Current Size
+### Current size
 
-Unlike the array implementation of a stack, where we derive the stack size using the value stored in the `topIndex` variable, the linked list implementation has no `topIndex` variable. To always know the current size of the stack, we need to store this information in a `currentSize` variable. Every time data is pushed onto or popped from the stack, the value of `currentSize` variable is incremented or decremented by 1.
-
-// Diagram: The current size of the linked list used to implement a stack is stored in a variable
+A linked list doesn't know its own length unless someone counts. We could compute size by walking the list — that's O(N). Or we maintain an integer `currentSize` that's incremented on push and decremented on pop. We'll do the latter — `size()` becomes O(1).
 
 ### Capacity
 
-The linked list implementation of a stack can be used to implement both **bounded** and **unbounded** stacks. Since unbounded stacks have unlimited capacity, we don't need to store the maximum limit in any variable. However, when implementing a bounded stack using linked lists, we store that maximum limit in a `capacity`variable similar to the array implementation. Whenever we add a data item to the stack, we must ensure that the queue size doesn't exceed the stack's capacity. 
+`capacity` is the maximum allowed size. A *bounded* linked-list stack rejects pushes when `currentSize == capacity`; an *unbounded* one ignores capacity entirely. We'll build the bounded version to mirror the array stack's interface — same contract, different storage.
 
-// Diagram: We will only learn the linked list implementation of a bounded stack in this course
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    E["empty<br/>head = null<br/>size = 0"] -->|"push(3)"| A["[3]<br/>head → 3<br/>size = 1"]
+    A -->|"push(5)"| B["[3, 5]<br/>head → 5 → 3<br/>size = 2"]
+    B -->|"pop() → 5"| C["[3]<br/>head → 3<br/>size = 1"]
+```
+
+<p align="center"><strong>Lifecycle — every push prepends a node at the head and bumps size; every pop removes the head and drops size. The list grows and shrinks at the same end, perfectly mirroring the LIFO contract.</strong></p>
 
 ***
 
 # Implementing the stack class using a linked list
 
-Like arrays, a class can **encapsulate** all the state information needed to implement a stack using a linked list, along with the linked list itself and all the operations that can be performed on a stack. The fundamental idea is the same. However, the implementation is different.
-
-// Diagram: Representation of linked list implementation of an bounded stack encapsulated in a class
+Two pieces: a tiny `ListNode` type for the chain, and the `Stack` class that wraps it.
 
 ## Linked list node
 
-Unlike the array implementation of the stack, where the data type of the items in the stack is the data type of the internal array, in the linked list implementation, we also need to define the **node** type for the internal linked list.
+A node holds a value and a pointer to the next node. That's the entire definition. The first lesson of the linked-list section already covered this, so we'll keep it minimal.
 
-As you can see below, the node structure for the internal linked list is the same as that of a generic singly linked list.
-
-// Diagram: Linked list node for implementing a stack
-
-C++
-
-```cpp
-/**
- * Definition for singly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *next;
- *     ListNode() : val(0), next(nullptr) {}
- *     ListNode(int val) : val(val), next(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Stack {
-public:
-
-    // Pointer to the head of the stack
-    ListNode *head;
-
-    // Maximum capacity of the stack
-    int capacity;
-
-    // Current number of elements in the stack
-    int currentSize;
-
-// Diagram: Stack(int capacity) {
-
-        // Initialize the capacity of the stack
-        this->capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this->currentSize = 0;
-
-        // Initialize the head pointer to null
-        this->head = nullptr;
-    }
-
-// Diagram: int size() {}
-
-// Diagram: bool empty() {}
-
-// Diagram: int top() {}
-
-// Diagram: bool push(int val) {}
-
-    int pop() {}
-};
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph N["ListNode"]
+        direction LR
+        V["val<br/>(int)"] --- NX["next<br/>(pointer)"]
+    end
 ```
 
-Java
+<p align="center"><strong>The chain node — one value plus one pointer. Push allocates one of these; pop frees one.</strong></p>
 
-```java
-// Definition for singly-linked list.
-class ListNode {
-    int val;
-    ListNode next;
-    ListNode() {}
-    ListNode(int val) { this.val = val; }
-};
-```
+## Stack class — skeleton
 
-Typescript
+The class encapsulates `head`, `currentSize`, and `capacity`, exposing the same five operations as the array version.
 
-```typescript
-// Definition for singly-linked list.
-class ListNode {
-    val: number
-    next: ListNode | null
-    constructor(val?: number, next?: ListNode | null) {
-        this.val = (val===undefined ? 0 : val)
-        this.next = (next===undefined ? null : next)
-    }
-```
+<div class="lang-tabs">
 
-Javascript
-
-```javascript
-// Definition for singly-linked list.
-function ListNode(val, next) {
-    this.val = (val===undefined ? 0 : val)
-    this.next = (next===undefined ? null : next)
-}
-```
-
-Python
-
-```python
-# Definition for singly-linked list.
-class ListNode:
+```python,editable
+class _ListNode:
+    __slots__ = ('val', 'next')
     def __init__(self, val):
-        self.val = val
-        self.next = None
-```
-
-## Stack class
-
-Like in the array implementation of a stack, a stack class can be implemented by defining a class where all the data members are private to the class, and the operations are exposed to users as functions that manipulate the data members. We do not need a parameterized constructor in the linked list implementation of the stack class when implementing an **unbounded** stack. However, since we are implementing a **bounded** stack, we define a parameterized constructor to set the `capacity` of the stack at the time of its creation.
-
-C++
-
-```cpp
-/**
- * Definition for singly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *next;
- *     ListNode() : val(0), next(nullptr) {}
- *     ListNode(int val) : val(val), next(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Stack {
-public:
-
-    // Pointer to the head of the stack
-    ListNode *head;
-
-    // Maximum capacity of the stack
-    int capacity;
-
-    // Current number of elements in the stack
-    int currentSize;
-
-// Diagram: Stack(int capacity) {
-
-        // Initialize the capacity of the stack
-        this->capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this->currentSize = 0;
-
-        // Initialize the head pointer to null
-        this->head = nullptr;
-    }
-
-// Diagram: int size() {}
-
-// Diagram: bool empty() {}
-
-// Diagram: int top() {}
-
-// Diagram: bool push(int val) {}
-
-    int pop() {}
-};
-```
-
-Java
-
-```java
-/**
- * Definition for singly-linked list.
- * class ListNode {
- *     int val;
- *     ListNode next;
- *     ListNode() {}
- *     ListNode(int val) { this.val = val; }
- * };
- */
-
-// Diagram: class Stack {
-
-    // Reference to the head of the stack
-    public ListNode head;
-
-    // Maximum capacity of the stack
-    public int capacity;
-
-    // Current number of elements in the stack
-    public int currentSize;
-
-// Diagram: public Stack(int capacity) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
-    }
-
-// Diagram: public int size() {}
-
-// Diagram: public boolean empty() {}
-
-// Diagram: public int top() {}
-
-// Diagram: public boolean push(int val) {}
-
-    public int pop() {}
-}
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for singly-linked list.
- * class ListNode {
- *     val: number
- *     next: ListNode | null
- *     constructor(val?: number, next?: ListNode | null) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.next = (next===undefined ? null : next)
- *     }
- * }
- */
-
-// Diagram: export class Stack {
-
-    // Reference to the head of the stack
-    head: ListNode | null;
-
-    // Maximum capacity of the stack
-    capacity: number;
-
-    // Current number of elements in the stack
-    currentSize: number;
-
-// Diagram: constructor(capacity: number) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
-    }
-
-// Diagram: size(): number {}
-
-// Diagram: empty(): boolean {}
-
-// Diagram: top(): number {}
-
-// Diagram: push(val: number): boolean {}
-
-    pop(): number {}
-}
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for singly-linked list.
- * function ListNode(val, next) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.next = (next===undefined ? null : next)
- * }
- */
-
-// Diagram: export class Stack {
-
-    // Reference to the head of the stack
-    head;
-
-    // Maximum capacity of the stack
-    capacity;
-
-    // Current number of elements in the stack
-    currentSize;
-
-// Diagram: constructor(capacity) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
-    }
-
-    size() {}
-
-    empty() {}
-
-    top() {}
-
-// Diagram: push(val) {}
-
-    pop() {}
-}
-```
-
-Python
-
-```python
-from typing import Optional
-
-"""
-Definition for singly-linked list.
-class ListNode:
-    def __init__(self, val):
-        self.val = val
-        self.next = None
-"""
+        self.val, self.next = val, None
 
 class Stack:
     def __init__(self, capacity: int):
+        self.capacity     = capacity
+        self.head         = None    # pointer to top node
+        self.current_size = 0
 
-        # Reference to the head of the stack
-        self.head: Optional[ListNode] = None
+    def size(self):  pass
+    def empty(self): pass
+    def top(self):   pass
+    def push(self, val): pass
+    def pop(self):   pass
 
-        # Maximum capacity of the stack
-        self.capacity: int = capacity
-
-        # Current number of elements in the stack
-        self.current_size: int = 0
-
-    def size(self) -> int:
-        pass
-
-    def empty(self) -> bool:
-        pass
-
-    def top(self) -> int:
-        pass
-
-    def push(self, val: int) -> bool:
-        pass
-
-    def pop(self) -> int:
-        pass
+s = Stack(4); print("created stack with capacity 4")
 ```
 
-## Using the stack class
+```java,editable
+public class Main {
+    static class ListNode {
+        int      val;
+        ListNode next;
+        ListNode(int v) { val = v; }
+    }
+    static class Stack {
+        private ListNode head;            // top of stack
+        private int      currentSize;
+        private int      capacity;
+        Stack(int capacity) { this.capacity = capacity; }
 
-The stack class abstracts away the implementation details in a class. Anyone who wants to use the stack data structure can instantiate an object of the stack class we defined earlier and operate upon it by calling the exposed public functions in the class. 
+        int     size()  { return 0;     }
+        boolean empty() { return true;  }
+        int     top()   { return -1;    }
+        boolean push(int val) { return false; }
+        int     pop()   { return -1;    }
+    }
+    public static void main(String[] args) {
+        Stack s = new Stack(4);
+        System.out.println("created stack with capacity 4");
+    }
+}
+```
 
-C++
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
-```cpp
-/**
- * Definition for singly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *next;
- *     ListNode() : val(0), next(nullptr) {}
- *     ListNode(int val) : val(val), next(nullptr) {}
- * };
- */
+typedef struct ListNode {
+    int               val;
+    struct ListNode  *next;
+} ListNode;
 
-// Diagram: using namespace std;
+typedef struct {
+    ListNode *head;
+    int       capacity;
+    int       currentSize;
+} Stack;
+
+Stack* stack_create(int capacity) {
+    Stack *s = malloc(sizeof(Stack));
+    s->head = NULL; s->capacity = capacity; s->currentSize = 0;
+    return s;
+}
+
+int  stack_size (Stack *s)              { return 0; }
+bool stack_empty(Stack *s)              { return true; }
+int  stack_top  (Stack *s)              { return -1; }
+bool stack_push (Stack *s, int val)     { return false; }
+int  stack_pop  (Stack *s)              { return -1; }
+
+int main() { Stack *s = stack_create(4); printf("created stack with capacity %d\n", s->capacity); free(s); }
+```
+
+```cpp,editable
+#include <iostream>
+
+struct ListNode {
+    int       val;
+    ListNode *next;
+    ListNode(int v) : val(v), next(nullptr) {}
+};
 
 class Stack {
+    ListNode *head        = nullptr;
+    int       currentSize = 0;
+    int       capacity;
 public:
+    Stack(int cap) : capacity(cap) {}
 
-    // Pointer to the head of the stack
-    ListNode *head;
-
-    // Maximum capacity of the stack
-    int capacity;
-
-    // Current number of elements in the stack
-    int currentSize;
-
-// Diagram: Stack(int capacity) {
-
-        // Initialize the capacity of the stack
-        this->capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this->currentSize = 0;
-
-        // Initialize the head pointer to null
-        this->head = nullptr;
-    }
-
-// Diagram: int size() {}
-
-// Diagram: bool empty() {}
-
-// Diagram: int top() {}
-
-// Diagram: bool push(int val) {}
-
-    int pop() {}
+    int  size()  { return 0;     }
+    bool empty() { return true;  }
+    int  top()   { return -1;    }
+    bool push(int val) { return false; }
+    int  pop()   { return -1;    }
 };
+
+int main() { Stack s(4); std::cout << "created stack with capacity 4\n"; }
 ```
 
-Java
+```scala,editable
+class ListNode(var v: Int, var next: ListNode = null)
 
-```java
-/**
- * Definition for singly-linked list.
- * class ListNode {
- *     int val;
- *     ListNode next;
- *     ListNode() {}
- *     ListNode(int val) { this.val = val; }
- * };
- */
+class Stack(val capacity: Int) {
+  protected var head: ListNode = null
+  protected var currentSize    = 0
 
-// Diagram: class Stack {
+  def size:  Int     = 0
+  def empty: Boolean = true
+  def top:   Int     = -1
+  def push(v: Int): Boolean = false
+  def pop:   Int     = -1
+}
 
-    // Reference to the head of the stack
-    public ListNode head;
-
-    // Maximum capacity of the stack
-    public int capacity;
-
-    // Current number of elements in the stack
-    public int currentSize;
-
-// Diagram: public Stack(int capacity) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
-    }
-
-// Diagram: public int size() {}
-
-// Diagram: public boolean empty() {}
-
-// Diagram: public int top() {}
-
-// Diagram: public boolean push(int val) {}
-
-    public int pop() {}
+object Main extends App {
+  val s = new Stack(4); println("created stack with capacity 4")
 }
 ```
 
-Typescript
-
-```typescript
-/**
- * Definition for singly-linked list.
- * class ListNode {
- *     val: number
- *     next: ListNode | null
- *     constructor(val?: number, next?: ListNode | null) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.next = (next===undefined ? null : next)
- *     }
- * }
- */
-
-// Diagram: export class Stack {
-
-    // Reference to the head of the stack
-    head: ListNode | null;
-
-    // Maximum capacity of the stack
-    capacity: number;
-
-    // Current number of elements in the stack
-    currentSize: number;
-
-// Diagram: constructor(capacity: number) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
+```javascript,editable
+class ListNode {
+    constructor(val) { this.val = val; this.next = null; }
+}
+class Stack {
+    constructor(capacity) {
+        this.capacity    = capacity;
+        this.head        = null;
         this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
     }
+    size()  { return 0; }
+    empty() { return true; }
+    top()   { return -1; }
+    push(val) { return false; }
+    pop()   { return -1; }
+}
+const s = new Stack(4);
+console.log("created stack with capacity 4");
+```
 
-// Diagram: size(): number {}
+```typescript,editable
+class ListNode {
+    val: number; next: ListNode | null;
+    constructor(val: number) { this.val = val; this.next = null; }
+}
+class Stack {
+    protected capacity: number;
+    protected head: ListNode | null = null;
+    protected currentSize = 0;
+    constructor(capacity: number) { this.capacity = capacity; }
 
-// Diagram: empty(): boolean {}
+    size():  number  { return 0; }
+    empty(): boolean { return true; }
+    top():   number  { return -1; }
+    push(val: number): boolean { return false; }
+    pop():   number  { return -1; }
+}
+const s = new Stack(4);
+console.log("created stack with capacity 4");
+```
 
-// Diagram: top(): number {}
+```go,editable
+package main
+import "fmt"
 
-// Diagram: push(val: number): boolean {}
+type ListNode struct {
+    Val  int
+    Next *ListNode
+}
 
-    pop(): number {}
+type Stack struct {
+    head        *ListNode
+    capacity    int
+    currentSize int
+}
+
+func NewStack(capacity int) *Stack { return &Stack{capacity: capacity} }
+func (s *Stack) Size()  int  { return 0 }
+func (s *Stack) Empty() bool { return true }
+func (s *Stack) Top()   int  { return -1 }
+func (s *Stack) Push(val int) bool { return false }
+func (s *Stack) Pop()   int  { return -1 }
+
+func main() {
+    s := NewStack(4)
+    fmt.Printf("created stack with capacity %d\n", s.capacity)
 }
 ```
 
-Javascript
+```kotlin,editable
+class ListNode(var v: Int, var next: ListNode? = null)
 
-```javascript
-/**
- * Definition for singly-linked list.
- * function ListNode(val, next) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.next = (next===undefined ? null : next)
- * }
- */
+open class Stack(protected val capacity: Int) {
+    protected var head: ListNode? = null
+    protected var currentSize     = 0
 
-// Diagram: export class Stack {
+    open fun size():  Int     = 0
+    open fun empty(): Boolean = true
+    open fun top():   Int     = -1
+    open fun push(v: Int): Boolean = false
+    open fun pop():   Int     = -1
+}
 
-    // Reference to the head of the stack
-    head;
+fun main() { val s = Stack(4); println("created stack with capacity 4") }
+```
 
-    // Maximum capacity of the stack
-    capacity;
+```rust,editable
+// A pedagogical singly-linked-stack using Box for ownership.
+struct ListNode { val: i32, next: Option<Box<ListNode>> }
 
-    // Current number of elements in the stack
-    currentSize;
+pub struct Stack {
+    head:         Option<Box<ListNode>>,
+    capacity:     usize,
+    current_size: usize,
+}
 
-// Diagram: constructor(capacity) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
+impl Stack {
+    pub fn new(capacity: usize) -> Self {
+        Stack { head: None, capacity, current_size: 0 }
     }
+    pub fn size(&self)  -> i32  { 0 }
+    pub fn empty(&self) -> bool { true }
+    pub fn top(&self)   -> i32  { -1 }
+    pub fn push(&mut self, _v: i32) -> bool { false }
+    pub fn pop(&mut self) -> i32 { -1 }
+}
 
-    size() {}
-
-    empty() {}
-
-    top() {}
-
-// Diagram: push(val) {}
-
-    pop() {}
+fn main() {
+    let s = Stack::new(4);
+    println!("created stack with capacity {}", s.capacity);
 }
 ```
 
-Python
-
-```python
-from typing import Optional
-
-"""
-Definition for singly-linked list.
-class ListNode:
-    def __init__(self, val):
-        self.val = val
-        self.next = None
-"""
-
-class Stack:
-    def __init__(self, capacity: int):
-
-        # Reference to the head of the stack
-        self.head: Optional[ListNode] = None
-
-        # Maximum capacity of the stack
-        self.capacity: int = capacity
-
-        # Current number of elements in the stack
-        self.current_size: int = 0
-
-    def size(self) -> int:
-        pass
-
-    def empty(self) -> bool:
-        pass
-
-    def top(self) -> int:
-        pass
-
-    def push(self, val: int) -> bool:
-        pass
-
-    def pop(self) -> int:
-        pass
-```
-
-Let's examine what happens when the code is executed to better understand how encapsulating all the data and state information needed to implement a stack, along with the linked list and all the operations in a class, is useful.
-
-// Diagram: Execution of code using an instance (object) of the stack class
-
-Now that we know what a stack's linked list implementation looks like and how it functions, we will learn more about the implementation of each function in the coming lessons.
+</div>
 
 ***
 
 # Determining the size of the stack
 
-The size operation tells the caller about the current size of the stack. Unlike in the array implementation, where we have the `topIndex` which we use to get the size of the stack, the linked list implementation does not have a `topIndex`. The only way to calculate the size of a linked list is to traverse it, which is very expensive. For this reason, we store a `currentSize` variable in the stack class, which keeps track of the current size of the stack.
+We maintain `currentSize` as a counter that's bumped on push and dropped on pop, so `size()` is a single integer read.
 
-// Diagram: Size of the stack is stored in a member variable of the stack class
-
-## Algorithm
-
-// Diagram: The size operation in a stack class implemented using a linked list can be summarized as the following algorithm
-
-> **Algorithm:**
+> *Why a counter and not a list walk?*
 >
-> -   **Step 1:** Return the value of \`currentSize\`.
+> Walking the list is O(N). Maintaining a counter is O(1) per mutation, O(1) per query. The extra integer is a tiny memory cost for a huge speed win — and it lets us cheaply check capacity on every push.
+
+> **Algorithm**
+>
+> -   **Step 1:** Return `currentSize`.
 
 ## Implementation
 
-The implementation is a quite simple one-line statement returning the value of the `currentSize` variable.
+<div class="lang-tabs">
 
-C++
+```python,editable
+class _ListNode:
+    def __init__(self, v): self.val, self.next = v, None
+class Stack:
+    def __init__(self, capacity):
+        self.capacity, self.head, self.current_size = capacity, None, 0
+    def size(self): return self.current_size
 
-```cpp
-/**
- * Definition for singly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *next;
- *     ListNode() : val(0), next(nullptr) {}
- *     ListNode(int val) : val(val), next(nullptr) {}
- * };
- */
+print(Stack(4).size())   # 0
+```
 
-// Diagram: using namespace std;
+```java,editable
+public class Main {
+    static class ListNode { int val; ListNode next; ListNode(int v){ val = v; } }
+    static class Stack {
+        private ListNode head; private int currentSize, capacity;
+        Stack(int c){ capacity = c; }
+        int size() { return currentSize; }
+    }
+    public static void main(String[] args){ System.out.println(new Stack(4).size()); }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+typedef struct ListNode { int val; struct ListNode *next; } ListNode;
+typedef struct { ListNode *head; int capacity, currentSize; } Stack;
+Stack* stack_create(int c){ Stack *s = malloc(sizeof(*s)); s->head=NULL; s->capacity=c; s->currentSize=0; return s; }
+int    stack_size  (Stack *s){ return s->currentSize; }
+
+int main(){ Stack *s = stack_create(4); printf("%d\n", stack_size(s)); free(s); }
+```
+
+```cpp,editable
+#include <iostream>
+struct ListNode { int val; ListNode *next; ListNode(int v):val(v),next(nullptr){} };
 
 class Stack {
+    ListNode *head = nullptr; int currentSize = 0; int capacity;
 public:
-
-    // Pointer to the head of the stack
-    ListNode *head;
-
-    // Maximum capacity of the stack
-    int capacity;
-
-    // Current number of elements in the stack
-    int currentSize;
-
-// Diagram: Stack(int capacity) {
-
-        // Initialize the capacity of the stack
-        this->capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this->currentSize = 0;
-
-        // Initialize the head pointer to null
-        this->head = nullptr;
-    }
-
-// Diagram: int size() {
-
-        // Return the current number of elements in the stack
-        return currentSize;
-    }
+    Stack(int c) : capacity(c) {}
+    int size() { return currentSize; }
 };
+
+int main(){ std::cout << Stack(4).size() << "\n"; }
 ```
 
-Java
-
-```java
-/**
- * Definition for singly-linked list.
- * class ListNode {
- *     int val;
- *     ListNode next;
- *     ListNode() {}
- *     ListNode(int val) { this.val = val; }
- * };
- */
-
-// Diagram: class Stack {
-
-    // Reference to the head of the stack
-    public ListNode head;
-
-    // Maximum capacity of the stack
-    public int capacity;
-
-    // Current number of elements in the stack
-    public int currentSize;
-
-// Diagram: public Stack(int capacity) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
-    }
-
-// Diagram: public int size() {
-
-        // Return the current number of elements in the stack
-        return currentSize;
-    }
+```scala,editable
+class ListNode(var v: Int, var next: ListNode = null)
+class Stack(val capacity: Int) {
+  protected var head: ListNode = null
+  protected var currentSize    = 0
+  def size: Int = currentSize
+}
+object Main extends App { println(new Stack(4).size) }
 ```
 
-Typescript
-
-```typescript
-/**
- * Definition for singly-linked list.
- * class ListNode {
- *     val: number
- *     next: ListNode | null
- *     constructor(val?: number, next?: ListNode | null) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.next = (next===undefined ? null : next)
- *     }
- * }
- */
-
-// Diagram: export class Stack {
-
-    // Reference to the head of the stack
-    head: ListNode | null;
-
-    // Maximum capacity of the stack
-    capacity: number;
-
-    // Current number of elements in the stack
-    currentSize: number;
-
-// Diagram: constructor(capacity: number) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
-    }
-
-// Diagram: size(): number {
-
-        // Return the current number of elements in the stack
-        return this.currentSize;
-    }
+```javascript,editable
+class ListNode { constructor(v){ this.val = v; this.next = null; } }
+class Stack {
+    constructor(c){ this.capacity = c; this.head = null; this.currentSize = 0; }
+    size(){ return this.currentSize; }
+}
+console.log(new Stack(4).size());
 ```
 
-Javascript
-
-```javascript
-/**
- * Definition for singly-linked list.
- * function ListNode(val, next) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.next = (next===undefined ? null : next)
- * }
- */
-
-// Diagram: export class Stack {
-
-    // Reference to the head of the stack
-    head;
-
-    // Maximum capacity of the stack
-    capacity;
-
-    // Current number of elements in the stack
-    currentSize;
-
-// Diagram: constructor(capacity) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
-    }
-
-    size() {
-
-        // Return the current number of elements in the stack
-        return this.currentSize;
-    }
+```typescript,editable
+class ListNode { val: number; next: ListNode | null; constructor(v: number){ this.val = v; this.next = null; } }
+class Stack {
+    protected capacity: number; protected head: ListNode | null = null; protected currentSize = 0;
+    constructor(c: number){ this.capacity = c; }
+    size(): number { return this.currentSize; }
+}
+console.log(new Stack(4).size());
 ```
 
-Python
-
-```python
-from typing import Optional
-
-"""
-Definition for singly-linked list.
-class ListNode:
-    def __init__(self, val):
-        self.val = val
-        self.next = None
-"""
-
-class Stack:
-    def __init__(self, capacity: int):
-
-        # Reference to the head of the stack
-        self.head: Optional[ListNode] = None
-
-        # Maximum capacity of the stack
-        self.capacity: int = capacity
-
-        # Current number of elements in the stack
-        self.current_size: int = 0
-
-    def size(self) -> int:
-
-        # Return the current number of elements in the stack
-        return self.current_size
+```go,editable
+package main
+import "fmt"
+type ListNode struct{ Val int; Next *ListNode }
+type Stack struct{ head *ListNode; capacity, currentSize int }
+func NewStack(c int) *Stack { return &Stack{capacity: c} }
+func (s *Stack) Size() int { return s.currentSize }
+func main(){ fmt.Println(NewStack(4).Size()) }
 ```
+
+```kotlin,editable
+class ListNode(var v: Int, var next: ListNode? = null)
+open class Stack(protected val capacity: Int) {
+    protected var head: ListNode? = null; protected var currentSize = 0
+    open fun size() = currentSize
+}
+fun main(){ println(Stack(4).size()) }
+```
+
+```rust,editable
+struct ListNode { val: i32, next: Option<Box<ListNode>> }
+pub struct Stack { head: Option<Box<ListNode>>, capacity: usize, current_size: usize }
+impl Stack {
+    pub fn new(c: usize) -> Self { Stack { head: None, capacity: c, current_size: 0 } }
+    pub fn size(&self) -> usize { self.current_size }
+}
+fn main(){ println!("{}", Stack::new(4).size()); }
+```
+
+</div>
 
 ## Complexity Analysis
 
-Since we only return the value of the variable `currentSize`. Both the space and time complexities are constant.
-
-> **Best Case**
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
->
-> **Worst Case**
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> **All cases** — Time: **O(1)** | Space: **O(1)**
 
 ***
 
 # Checking if the stack is empty
 
-As the name suggests, this operation tells the caller if the stack is empty or if some items are already in it. It will return `true` if the stack is empty and `false` otherwise. The implementation is the same as that in the array implementation of a stack. We check if the stack's size is equal to 0.
+Same approach as before — directly compare against the size counter, or equivalently check whether `head == null`. Either works; the counter check is more uniform.
 
-// Diagram: Operation to check if the stack is empty
-
-## Algorithm
-
-The empty operation in a stack class implemented using a linked list can be summarized as the following algorithm.
-
-> **Algorithm:**
+> **Algorithm**
 >
-> -   **Step 1:** Return \`true\` if the size of the stack is equal to \`0\`, otherwise, return \`false\`.
+> -   **Step 1:** Return `currentSize == 0` (equivalently, `head == null`).
 
 ## Implementation
 
-// Diagram: The implementation is quite a simple one-line statement returning true if size() == 0, false otherwise
+<div class="lang-tabs">
 
-C++
-
-```cpp
-/**
- * Definition for singly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *next;
- *     ListNode() : val(0), next(nullptr) {}
- *     ListNode(int val) : val(val), next(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Stack {
-public:
-
-    // Pointer to the head of the stack
-    ListNode *head;
-
-    // Maximum capacity of the stack
-    int capacity;
-
-    // Current number of elements in the stack
-    int currentSize;
-
-// Diagram: Stack(int capacity) {
-
-        // Initialize the capacity of the stack
-        this->capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this->currentSize = 0;
-
-        // Initialize the head pointer to null
-        this->head = nullptr;
-    }
-
-// Diagram: int size() {
-
-        // Return the current number of elements in the stack
-        return currentSize;
-    }
-
-// Diagram: bool empty() {
-
-        // Return true if the stack is empty, false otherwise
-        return currentSize == 0;
-    }
-};
-```
-
-Java
-
-```java
-/**
- * Definition for singly-linked list.
- * class ListNode {
- *     int val;
- *     ListNode next;
- *     ListNode() {}
- *     ListNode(int val) { this.val = val; }
- * };
- */
-
-// Diagram: class Stack {
-
-    // Reference to the head of the stack
-    public ListNode head;
-
-    // Maximum capacity of the stack
-    public int capacity;
-
-    // Current number of elements in the stack
-    public int currentSize;
-
-// Diagram: public Stack(int capacity) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
-    }
-
-// Diagram: public int size() {
-
-        // Return the current number of elements in the stack
-        return currentSize;
-    }
-
-// Diagram: public boolean empty() {
-
-        // Return true if the stack is empty, false otherwise
-        return currentSize == 0;
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for singly-linked list.
- * class ListNode {
- *     val: number
- *     next: ListNode | null
- *     constructor(val?: number, next?: ListNode | null) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.next = (next===undefined ? null : next)
- *     }
- * }
- */
-
-// Diagram: export class Stack {
-
-    // Reference to the head of the stack
-    head: ListNode | null;
-
-    // Maximum capacity of the stack
-    capacity: number;
-
-    // Current number of elements in the stack
-    currentSize: number;
-
-// Diagram: constructor(capacity: number) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
-    }
-
-// Diagram: size(): number {
-
-        // Return the current number of elements in the stack
-        return this.currentSize;
-    }
-
-// Diagram: empty(): boolean {
-
-        // Return true if the stack is empty, false otherwise
-        return this.currentSize === 0;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for singly-linked list.
- * function ListNode(val, next) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.next = (next===undefined ? null : next)
- * }
- */
-
-// Diagram: export class Stack {
-
-    // Reference to the head of the stack
-    head;
-
-    // Maximum capacity of the stack
-    capacity;
-
-    // Current number of elements in the stack
-    currentSize;
-
-// Diagram: constructor(capacity) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
-    }
-
-    size() {
-
-        // Return the current number of elements in the stack
-        return this.currentSize;
-    }
-
-    empty() {
-
-        // Return true if the stack is empty, false otherwise
-        return this.currentSize === 0;
-    }
-```
-
-Python
-
-```python
-from typing import Optional
-
-"""
-Definition for singly-linked list.
-class ListNode:
-    def __init__(self, val):
-        self.val = val
-        self.next = None
-"""
-
+```python,editable
 class Stack:
-    def __init__(self, capacity: int):
+    def __init__(self, c): self.capacity, self.head, self.current_size = c, None, 0
+    def empty(self): return self.current_size == 0
 
-        # Reference to the head of the stack
-        self.head: Optional[ListNode] = None
-
-        # Maximum capacity of the stack
-        self.capacity: int = capacity
-
-        # Current number of elements in the stack
-        self.current_size: int = 0
-
-    def size(self) -> int:
-
-        # Return the current number of elements in the stack
-        return self.current_size
-
-    def empty(self) -> bool:
-
-        # Return True if the stack is empty, False otherwise
-        return self.current_size == 0
+print(Stack(4).empty())    # True
 ```
+
+```java,editable
+public class Main {
+    static class ListNode { int val; ListNode next; ListNode(int v){ val = v; } }
+    static class Stack {
+        private ListNode head; private int currentSize, capacity;
+        Stack(int c){ capacity = c; }
+        boolean empty() { return currentSize == 0; }
+    }
+    public static void main(String[] args){ System.out.println(new Stack(4).empty()); }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+typedef struct ListNode { int val; struct ListNode *next; } ListNode;
+typedef struct { ListNode *head; int capacity, currentSize; } Stack;
+Stack* stack_create(int c){ Stack *s = malloc(sizeof(*s)); s->head=NULL; s->capacity=c; s->currentSize=0; return s; }
+bool   stack_empty (Stack *s){ return s->currentSize == 0; }
+
+int main(){ Stack *s = stack_create(4); printf("%d\n", stack_empty(s)); free(s); }
+```
+
+```cpp,editable
+#include <iostream>
+struct ListNode { int val; ListNode *next; ListNode(int v):val(v),next(nullptr){} };
+class Stack {
+    ListNode *head = nullptr; int currentSize = 0; int capacity;
+public:
+    Stack(int c) : capacity(c) {}
+    bool empty() { return currentSize == 0; }
+};
+int main(){ std::cout << Stack(4).empty() << "\n"; }
+```
+
+```scala,editable
+class ListNode(var v: Int, var next: ListNode = null)
+class Stack(val capacity: Int) {
+  protected var head: ListNode = null; protected var currentSize = 0
+  def empty: Boolean = currentSize == 0
+}
+object Main extends App { println(new Stack(4).empty) }
+```
+
+```javascript,editable
+class ListNode { constructor(v){ this.val=v; this.next=null; } }
+class Stack {
+    constructor(c){ this.capacity=c; this.head=null; this.currentSize=0; }
+    empty(){ return this.currentSize === 0; }
+}
+console.log(new Stack(4).empty());
+```
+
+```typescript,editable
+class ListNode { val: number; next: ListNode | null; constructor(v: number){ this.val=v; this.next=null; } }
+class Stack {
+    protected capacity: number; protected head: ListNode|null = null; protected currentSize = 0;
+    constructor(c: number){ this.capacity = c; }
+    empty(): boolean { return this.currentSize === 0; }
+}
+console.log(new Stack(4).empty());
+```
+
+```go,editable
+package main
+import "fmt"
+type ListNode struct{ Val int; Next *ListNode }
+type Stack struct{ head *ListNode; capacity, currentSize int }
+func NewStack(c int) *Stack { return &Stack{capacity: c} }
+func (s *Stack) Empty() bool { return s.currentSize == 0 }
+func main(){ fmt.Println(NewStack(4).Empty()) }
+```
+
+```kotlin,editable
+class ListNode(var v: Int, var next: ListNode? = null)
+open class Stack(protected val capacity: Int) {
+    protected var head: ListNode? = null; protected var currentSize = 0
+    open fun empty() = currentSize == 0
+}
+fun main(){ println(Stack(4).empty()) }
+```
+
+```rust,editable
+struct ListNode { val: i32, next: Option<Box<ListNode>> }
+pub struct Stack { head: Option<Box<ListNode>>, capacity: usize, current_size: usize }
+impl Stack {
+    pub fn new(c: usize) -> Self { Stack { head: None, capacity: c, current_size: 0 } }
+    pub fn empty(&self) -> bool { self.current_size == 0 }
+}
+fn main(){ println!("{}", Stack::new(4).empty()); }
+```
+
+</div>
 
 ## Complexity Analysis
 
-The function internally calls the `size()` function and returns a value based on the result, so the complexity is the same as that of the `size()` function i.e **O(1)**.
-
-> **Best Case**
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
->
-> **Worst Case**
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> **All cases** — Time: **O(1)** | Space: **O(1)**
 
 ***
 
 # Accessing the top of the stack
 
-The top operation returns the value stored at the **top** of the stack. In the linked list implementation of a stack, the top item in the stack is the head of the linked list. The algorithm to get to the top of the stack is very simple. We have two cases to consider here.
+`head` *is* the top, so reading it is one pointer dereference. Two cases:
 
-## 1\. Stack is empty
+## 1. Stack is empty
 
-We can return `-1` to indicate that there are no items in the stack. Ideally, we should be throwing an error, but for the sake of simplicity here, we return `-1`
+`head == null`. There's no top to return — return `-1`.
 
-// Diagram: Empty stack does not have a top element
+## 2. Stack is not empty
+
+Return `head.val`. The list and head pointer are unchanged.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    Q["top()"] --> E{"head == null?"}
+    E -->|"yes"| R1["return -1"]
+    E -->|"no"|  R2["return head.val"]
+```
+
+<p align="center"><strong>Top — peek through the head pointer. The list itself is untouched, so back-to-back <code>top()</code> calls are idempotent.</strong></p>
 
 > **Algorithm**
 >
-> -   **Step 1:** If the stack is empty, return \`-1\` to indicate that there is no top element.
-
-## 2\. Stack is not empty
-
-If the stack is not empty, we need to return the data value of the **head** node. Since we always insert it at the beginning, it holds the first element in the linked list or the last element added to the list.
-
-// Diagram: The first node in the linked list is the top of the stack
-
-// Diagram: The top operation in a stack class implemented using a linked list can be summarized as the following algorithm
-
-> **Algorithm**
->
-> -   **Step 1:** If the stack is not empty, return the value stored in the \`head\` node of the internal linked list.
+> -   **Step 1:** If `empty()`, return `-1`.
+> -   **Step 2:** Return `head.val`.
 
 ## Implementation
 
-The implementation is quite simple. We write all the cases in conditional blocks to implement the top operation.
+<div class="lang-tabs">
 
-C++
+```python,editable
+class Stack:
+    def __init__(self, c): self.capacity, self.head, self.current_size = c, None, 0
+    def empty(self): return self.current_size == 0
+    def top(self):   return -1 if self.empty() else self.head.val
+```
 
-```cpp
-/**
- * Definition for singly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *next;
- *     ListNode() : val(0), next(nullptr) {}
- *     ListNode(int val) : val(val), next(nullptr) {}
- * };
- */
+```java,editable
+public class Main {
+    static class ListNode { int val; ListNode next; ListNode(int v){val=v;} }
+    static class Stack {
+        private ListNode head; private int currentSize, capacity;
+        Stack(int c){ capacity = c; }
+        boolean empty() { return currentSize == 0; }
+        int top()       { return empty() ? -1 : head.val; }
+    }
+}
+```
 
-// Diagram: using namespace std;
+```c,editable
+#include <stdio.h>
+typedef struct ListNode { int val; struct ListNode *next; } ListNode;
+typedef struct { ListNode *head; int capacity, currentSize; } Stack;
+int stack_top(Stack *s){ return s->currentSize == 0 ? -1 : s->head->val; }
+```
 
+```cpp,editable
+struct ListNode { int val; ListNode *next; ListNode(int v):val(v),next(nullptr){} };
 class Stack {
+    ListNode *head = nullptr; int currentSize = 0; int capacity;
 public:
-
-    // Pointer to the head of the stack
-    ListNode *head;
-
-    // Maximum capacity of the stack
-    int capacity;
-
-    // Current number of elements in the stack
-    int currentSize;
-
-// Diagram: Stack(int capacity) {
-
-        // Initialize the capacity of the stack
-        this->capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this->currentSize = 0;
-
-        // Initialize the head pointer to null
-        this->head = nullptr;
-    }
-
-// Diagram: int size() {
-
-        // Return the current number of elements in the stack
-        return currentSize;
-    }
-
-// Diagram: bool empty() {
-
-        // Return true if the stack is empty, false otherwise
-        return currentSize == 0;
-    }
-
-    int top() {
-        if (empty()) {
-
-            // If the stack is empty, return -1 (an invalid value)
-            return -1;
-        }
-
-        // Return the value of the element at the top of the stack
-        return head->val;
-    }
+    Stack(int c) : capacity(c) {}
+    bool empty() { return currentSize == 0; }
+    int  top()   { return empty() ? -1 : head->val; }
 };
 ```
 
-Java
-
-```java
-/**
- * Definition for singly-linked list.
- * class ListNode {
- *     int val;
- *     ListNode next;
- *     ListNode() {}
- *     ListNode(int val) { this.val = val; }
- * };
- */
-
-// Diagram: class Stack {
-
-    // Reference to the head of the stack
-    public ListNode head;
-
-    // Maximum capacity of the stack
-    public int capacity;
-
-    // Current number of elements in the stack
-    public int currentSize;
-
-// Diagram: public Stack(int capacity) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
-    }
-
-// Diagram: public int size() {
-
-        // Return the current number of elements in the stack
-        return currentSize;
-    }
-
-// Diagram: public boolean empty() {
-
-        // Return true if the stack is empty, false otherwise
-        return currentSize == 0;
-    }
-
-    public int top() {
-        if (empty()) {
-
-            // If the stack is empty, return -1 (an invalid value)
-            return -1;
-        }
-
-        // Return the value of the element at the top of the stack
-        return head.val;
-    }
+```scala,editable
+class ListNode(var v: Int, var next: ListNode = null)
+class Stack(val capacity: Int) {
+  protected var head: ListNode = null; protected var currentSize = 0
+  def empty: Boolean = currentSize == 0
+  def top:   Int     = if (empty) -1 else head.v
+}
 ```
 
-Typescript
-
-```typescript
-/**
- * Definition for singly-linked list.
- * class ListNode {
- *     val: number
- *     next: ListNode | null
- *     constructor(val?: number, next?: ListNode | null) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.next = (next===undefined ? null : next)
- *     }
- * }
- */
-
-// Diagram: export class Stack {
-
-    // Reference to the head of the stack
-    head: ListNode | null;
-
-    // Maximum capacity of the stack
-    capacity: number;
-
-    // Current number of elements in the stack
-    currentSize: number;
-
-// Diagram: constructor(capacity: number) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
-    }
-
-// Diagram: size(): number {
-
-        // Return the current number of elements in the stack
-        return this.currentSize;
-    }
-
-// Diagram: empty(): boolean {
-
-        // Return true if the stack is empty, false otherwise
-        return this.currentSize === 0;
-    }
-
-    top(): number {
-        if (this.empty()) {
-
-            // If the stack is empty, return -1 (an invalid value)
-            return -1;
-        }
-
-        // Return the value of the element at the top of the stack
-        return this.head!.val;
-    }
+```javascript,editable
+class ListNode { constructor(v){ this.val=v; this.next=null; } }
+class Stack {
+    constructor(c){ this.capacity=c; this.head=null; this.currentSize=0; }
+    empty(){ return this.currentSize === 0; }
+    top(){ return this.empty() ? -1 : this.head.val; }
+}
 ```
 
-Javascript
-
-```javascript
-/**
- * Definition for singly-linked list.
- * function ListNode(val, next) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.next = (next===undefined ? null : next)
- * }
- */
-
-// Diagram: export class Stack {
-
-    // Reference to the head of the stack
-    head;
-
-    // Maximum capacity of the stack
-    capacity;
-
-    // Current number of elements in the stack
-    currentSize;
-
-// Diagram: constructor(capacity) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
-    }
-
-    size() {
-
-        // Return the current number of elements in the stack
-        return this.currentSize;
-    }
-
-    empty() {
-
-        // Return true if the stack is empty, false otherwise
-        return this.currentSize === 0;
-    }
-
-    top() {
-        if (this.empty()) {
-
-            // If the stack is empty, return -1 (an invalid value)
-            return -1;
-        }
-
-        // Return the value of the element at the top of the stack
-        return this.head.val;
-    }
+```typescript,editable
+class ListNode { val: number; next: ListNode | null; constructor(v: number){ this.val=v; this.next=null; } }
+class Stack {
+    protected capacity: number; protected head: ListNode|null = null; protected currentSize = 0;
+    constructor(c: number){ this.capacity=c; }
+    empty(): boolean { return this.currentSize === 0; }
+    top():   number  { return this.empty() ? -1 : this.head!.val; }
+}
 ```
 
-Python
-
-```python
-from typing import Optional
-
-"""
-Definition for singly-linked list.
-class ListNode:
-    def __init__(self, val):
-        self.val = val
-        self.next = None
-"""
-
-class Stack:
-    def __init__(self, capacity: int):
-
-        # Reference to the head of the stack
-        self.head: Optional[ListNode] = None
-
-        # Maximum capacity of the stack
-        self.capacity: int = capacity
-
-        # Current number of elements in the stack
-        self.current_size: int = 0
-
-    def size(self) -> int:
-
-        # Return the current number of elements in the stack
-        return self.current_size
-
-    def empty(self) -> bool:
-
-        # Return True if the stack is empty, False otherwise
-        return self.current_size == 0
-
-    def top(self) -> int:
-        if self.empty():
-
-            # If the stack is empty, return -1 (an invalid value)
-            return -1
-
-        # Return the value of the element at the top of the stack
-        if self.head:
-            return self.head.val
-        return -1
+```go,editable
+package main
+type ListNode struct{ Val int; Next *ListNode }
+type Stack struct{ head *ListNode; capacity, currentSize int }
+func (s *Stack) Empty() bool { return s.currentSize == 0 }
+func (s *Stack) Top()   int  { if s.Empty() { return -1 }; return s.head.Val }
 ```
 
-**Why don't we return the entire node?**We only return the actual **data** value and not the node itself. This is because the user of this stack does not want to know the inner implementation details. They are just concerned with the item's value at the top of the stack, and we should expose that information to them. It also allows us to change the implementation to something else, like a doubly linked list or an array, and the calling code will be unaffected.
+```kotlin,editable
+class ListNode(var v: Int, var next: ListNode? = null)
+open class Stack(protected val capacity: Int) {
+    protected var head: ListNode? = null; protected var currentSize = 0
+    open fun empty() = currentSize == 0
+    open fun top()   = if (empty()) -1 else head!!.v
+}
+```
+
+```rust,editable
+struct ListNode { val: i32, next: Option<Box<ListNode>> }
+pub struct Stack { head: Option<Box<ListNode>>, capacity: usize, current_size: usize }
+impl Stack {
+    pub fn empty(&self) -> bool { self.current_size == 0 }
+    pub fn top(&self)   -> i32  { match &self.head { Some(n) => n.val, None => -1 } }
+}
+```
+
+</div>
 
 ## Complexity Analysis
 
-The `top()` function returns the data stored in the head node (the first node in the list/the last inserted node). Hence, both the space and time complexities are **O(1)**.
-
-> **Best Case**
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
->
-> **Worst Case**
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> **All cases** — Time: **O(1)** | Space: **O(1)**
 
 ***
 
 # Pushing an item onto the stack
 
-The push operation inserts a data item at the `top` of the stack. Insertion only happens after ensuring that we do not exceed the stack's **capacity** constraint. Unlike the array implementation, in the linked list implementation of a stack, we need to take some extra steps to maintain the head reference. Let's look at the possible cases we need to consider.
+Push allocates a new node, links it to the old head, and makes it the new head.
 
-## 1\. Stack is full
+## 1. Stack is full
 
-Since the stack is full, we cannot add more data without removing some items. We will return `false` as this operation cannot be done.
+`currentSize == capacity`. Reject the push — return `false`.
 
-// Diagram: Cannot push data onto the stack if it is full
+## 2. Stack is not full
+
+Three steps, all O(1):
+
+1. Allocate a new node `newNode` with the given value.
+2. Set `newNode.next = head` (the old top is now the second element).
+3. Set `head = newNode` and increment `currentSize`.
+
+The order of those three steps matters: if you set `head = newNode` *before* setting `newNode.next = head`, you'll set `newNode.next` to itself, creating a cycle of length 1. Always rewire the new node's `next` *first*, then update `head`.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph BEFORE["before push(9)"]
+        direction LR
+        H1["head"] --> N1["7"] --> N2["5"] --> NUL1["null"]
+    end
+    subgraph AFTER["after push(9)"]
+        direction LR
+        H2["head"] --> N3["9"] --> N4["7"] --> N5["5"] --> NUL2["null"]
+    end
+    BEFORE --> AFTER
+    style N3 fill:#dcfce7,stroke:#22c55e
+```
+
+<p align="center"><strong>Push — the new node lands at the head; the old head becomes <code>newNode.next</code>. Three pointer assignments, regardless of how many nodes are already in the list.</strong></p>
 
 > **Algorithm**
 >
-> -   **Step 1:** If the stack is full, return \`false\` to indicate that the operation was unsuccessful.
-
-## 2\. Stack is not full
-
-In this case, we must create and initialize a new node with the given value. We update the  section of the newly created node to hold the current head of the internal linked list. The next step is to update the `head` to hold this newly created node. Finally, we increment the value of the `currentSize` variable by 1 and return `true`
-
-// Diagram: Push data onto the stack when stack is not full
-
-// Diagram: The push operation in a stack class implemented using a linked list can be summarized as the following algorithm
-
-> **Algorithm:**
->
-> -   **Step 1:** If the stack is not full, create a new node with the given data.
-> -   **Step 2:** Set the new node's \`next\` pointer to hold the reference of the current \`head\`.
-> -   **Step 3:** Update the head pointer to hold the reference of the new node.
-> -   **Step 4:** Increment the \`currentSize\` by \`1\`.
-> -   **Step 5:** Return \`true\` to indicate that the operation was successful.
+> -   **Step 1:** If `currentSize == capacity`, return `false`.
+> -   **Step 2:** Create a new node `newNode` with the given value.
+> -   **Step 3:** `newNode.next = head; head = newNode; currentSize++`.
+> -   **Step 4:** Return `true`.
 
 ## Implementation
 
-The implementation is quite simple. We write all the cases in conditional blocks to implement the push operation.
+<div class="lang-tabs">
 
-C++
+```python,editable
+class _ListNode:
+    def __init__(self, v): self.val, self.next = v, None
 
-```cpp
-/**
- * Definition for singly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *next;
- *     ListNode() : val(0), next(nullptr) {}
- *     ListNode(int val) : val(val), next(nullptr) {}
- * };
- */
+class Stack:
+    def __init__(self, c): self.capacity, self.head, self.current_size = c, None, 0
+    def push(self, val):
+        if self.current_size == self.capacity: return False
+        new_node = _ListNode(val)
+        new_node.next = self.head      # rewire next BEFORE moving head
+        self.head     = new_node
+        self.current_size += 1
+        return True
 
-// Diagram: using namespace std;
+s = Stack(2); print(s.push(7), s.push(9), s.push(11))   # True True False
+```
+
+```java,editable
+public class Main {
+    static class ListNode { int val; ListNode next; ListNode(int v){ val = v; } }
+    static class Stack {
+        private ListNode head; private int currentSize, capacity;
+        Stack(int c){ capacity = c; }
+        boolean push(int val) {
+            if (currentSize == capacity) return false;
+            ListNode n = new ListNode(val);
+            n.next = head;
+            head   = n;
+            currentSize++;
+            return true;
+        }
+    }
+    public static void main(String[] args){
+        Stack s = new Stack(2);
+        System.out.println(s.push(7) + " " + s.push(9) + " " + s.push(11));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
+typedef struct ListNode { int val; struct ListNode *next; } ListNode;
+typedef struct { ListNode *head; int capacity, currentSize; } Stack;
+
+Stack* stack_create(int c){ Stack *s=malloc(sizeof(*s)); s->head=NULL; s->capacity=c; s->currentSize=0; return s; }
+bool stack_push(Stack *s, int val){
+    if (s->currentSize == s->capacity) return false;
+    ListNode *n = malloc(sizeof(ListNode));
+    n->val  = val;
+    n->next = s->head;
+    s->head = n;
+    s->currentSize++;
+    return true;
+}
+
+int main() {
+    Stack *s = stack_create(2);
+    printf("%d %d %d\n", stack_push(s,7), stack_push(s,9), stack_push(s,11));
+}
+```
+
+```cpp,editable
+#include <iostream>
+
+struct ListNode { int val; ListNode *next; ListNode(int v):val(v),next(nullptr){} };
 
 class Stack {
+    ListNode *head = nullptr; int currentSize = 0; int capacity;
 public:
-
-    // Pointer to the head of the stack
-    ListNode *head;
-
-    // Maximum capacity of the stack
-    int capacity;
-
-    // Current number of elements in the stack
-    int currentSize;
-
-// Diagram: Stack(int capacity) {
-
-        // Initialize the capacity of the stack
-        this->capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this->currentSize = 0;
-
-        // Initialize the head pointer to null
-        this->head = nullptr;
-    }
-
-// Diagram: int size() {
-
-        // Return the current number of elements in the stack
-        return currentSize;
-    }
-
-// Diagram: bool empty() {
-
-        // Return true if the stack is empty, false otherwise
-        return currentSize == 0;
-    }
-
-    int top() {
-        if (empty()) {
-
-            // If the stack is empty, return -1 (an invalid value)
-            return -1;
-        }
-
-        // Return the value of the element at the top of the stack
-        return head->val;
-    }
-
+    Stack(int c) : capacity(c) {}
     bool push(int val) {
-        if (currentSize == capacity) {
-
-            // If the stack is already full, return false
-            return false;
-        }
-
-        // Create a new node with the given val
-        ListNode *newNode = new ListNode(val);
-
-        // Set the next pointer of the new node to the current head
-        newNode->next = head;
-
-        // Update the head pointer to the new node
-        head = newNode;
-
-        // Increment the count of elements in the stack
+        if (currentSize == capacity) return false;
+        ListNode *n = new ListNode(val);
+        n->next = head;
+        head    = n;
         currentSize++;
-
-        // Return true to indicate a successful push operation
         return true;
     }
 };
+
+int main() {
+    Stack s(2);
+    std::cout << s.push(7) << " " << s.push(9) << " " << s.push(11) << "\n";
+}
 ```
 
-Java
+```scala,editable
+class ListNode(var v: Int, var next: ListNode = null)
 
-```java
-/**
- * Definition for singly-linked list.
- * class ListNode {
- *     int val;
- *     ListNode next;
- *     ListNode() {}
- *     ListNode(int val) { this.val = val; }
- * };
- */
+class Stack(val capacity: Int) {
+  protected var head: ListNode = null
+  protected var currentSize    = 0
+  def push(v: Int): Boolean = {
+    if (currentSize == capacity) return false
+    val n = new ListNode(v); n.next = head
+    head  = n
+    currentSize += 1
+    true
+  }
+}
 
-// Diagram: class Stack {
+object Main extends App {
+  val s = new Stack(2)
+  println(s"${s.push(7)} ${s.push(9)} ${s.push(11)}")
+}
+```
 
-    // Reference to the head of the stack
-    public ListNode head;
-
-    // Maximum capacity of the stack
-    public int capacity;
-
-    // Current number of elements in the stack
-    public int currentSize;
-
-// Diagram: public Stack(int capacity) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
-    }
-
-// Diagram: public int size() {
-
-        // Return the current number of elements in the stack
-        return currentSize;
-    }
-
-// Diagram: public boolean empty() {
-
-        // Return true if the stack is empty, false otherwise
-        return currentSize == 0;
-    }
-
-    public int top() {
-        if (empty()) {
-
-            // If the stack is empty, return -1 (an invalid value)
-            return -1;
-        }
-
-        // Return the value of the element at the top of the stack
-        return head.val;
-    }
-
-    public boolean push(int val) {
-        if (currentSize == capacity) {
-
-            // If the stack is already full, return false
-            return false;
-        }
-
-        // Create a new node with the given val
-        ListNode newNode = new ListNode(val);
-
-        // Set the next reference of the new node to the current head
-        newNode.next = head;
-
-        // Update the head reference to the new node
-        head = newNode;
-
-        // Increment the count of elements in the stack
-        currentSize++;
-
-        // Return true to indicate a successful push operation
+```javascript,editable
+class ListNode { constructor(v){ this.val = v; this.next = null; } }
+class Stack {
+    constructor(c){ this.capacity=c; this.head=null; this.currentSize=0; }
+    push(val){
+        if (this.currentSize === this.capacity) return false;
+        const n = new ListNode(val);
+        n.next     = this.head;
+        this.head  = n;
+        this.currentSize++;
         return true;
     }
+}
+const s = new Stack(2);
+console.log(s.push(7), s.push(9), s.push(11));
 ```
 
-Typescript
-
-```typescript
-/**
- * Definition for singly-linked list.
- * class ListNode {
- *     val: number
- *     next: ListNode | null
- *     constructor(val?: number, next?: ListNode | null) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.next = (next===undefined ? null : next)
- *     }
- * }
- */
-
-// Diagram: export class Stack {
-
-    // Reference to the head of the stack
-    head: ListNode | null;
-
-    // Maximum capacity of the stack
-    capacity: number;
-
-    // Current number of elements in the stack
-    currentSize: number;
-
-// Diagram: constructor(capacity: number) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
-    }
-
-// Diagram: size(): number {
-
-        // Return the current number of elements in the stack
-        return this.currentSize;
-    }
-
-// Diagram: empty(): boolean {
-
-        // Return true if the stack is empty, false otherwise
-        return this.currentSize === 0;
-    }
-
-    top(): number {
-        if (this.empty()) {
-
-            // If the stack is empty, return -1 (an invalid value)
-            return -1;
-        }
-
-        // Return the value of the element at the top of the stack
-        return this.head!.val;
-    }
-
+```typescript,editable
+class ListNode { val: number; next: ListNode | null; constructor(v: number){ this.val=v; this.next=null; } }
+class Stack {
+    protected capacity: number; protected head: ListNode|null = null; protected currentSize = 0;
+    constructor(c: number){ this.capacity = c; }
     push(val: number): boolean {
-        if (this.currentSize === this.capacity) {
-
-            // If the stack is already full, return false
-            return false;
-        }
-
-        // Create a new node with the given val
-        const newNode = new ListNode(val);
-
-        // Set the next reference of the new node to the current head
-        newNode.next = this.head;
-
-        // Update the head reference to the new node
-        this.head = newNode;
-
-        // Increment the count of elements in the stack
+        if (this.currentSize === this.capacity) return false;
+        const n = new ListNode(val);
+        n.next     = this.head;
+        this.head  = n;
         this.currentSize++;
-
-        // Return true to indicate a successful push operation
         return true;
     }
+}
+const s = new Stack(2);
+console.log(s.push(7), s.push(9), s.push(11));
 ```
 
-Javascript
+```go,editable
+package main
+import "fmt"
 
-```javascript
-/**
- * Definition for singly-linked list.
- * function ListNode(val, next) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.next = (next===undefined ? null : next)
- * }
- */
+type ListNode struct{ Val int; Next *ListNode }
+type Stack    struct{ head *ListNode; capacity, currentSize int }
 
-// Diagram: export class Stack {
+func NewStack(c int) *Stack { return &Stack{capacity: c} }
+func (s *Stack) Push(val int) bool {
+    if s.currentSize == s.capacity { return false }
+    n := &ListNode{Val: val, Next: s.head}
+    s.head = n
+    s.currentSize++
+    return true
+}
 
-    // Reference to the head of the stack
-    head;
-
-    // Maximum capacity of the stack
-    capacity;
-
-    // Current number of elements in the stack
-    currentSize;
-
-// Diagram: constructor(capacity) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
-    }
-
-    size() {
-
-        // Return the current number of elements in the stack
-        return this.currentSize;
-    }
-
-    empty() {
-
-        // Return true if the stack is empty, false otherwise
-        return this.currentSize === 0;
-    }
-
-    top() {
-        if (this.empty()) {
-
-            // If the stack is empty, return -1 (an invalid value)
-            return -1;
-        }
-
-        // Return the value of the element at the top of the stack
-        return this.head.val;
-    }
-
-    push(val) {
-        if (this.currentSize === this.capacity) {
-
-            // If the stack is already full, return false
-            return false;
-        }
-
-        // Create a new node with the given val
-        const newNode = new ListNode(val);
-
-        // Set the next reference of the new node to the current head
-        newNode.next = this.head;
-
-        // Update the head reference to the new node
-        this.head = newNode;
-
-        // Increment the count of elements in the stack
-        this.currentSize++;
-
-        // Return true to indicate a successful push operation
-        return true;
-    }
+func main() {
+    s := NewStack(2)
+    fmt.Println(s.Push(7), s.Push(9), s.Push(11))
+}
 ```
 
-Python
+```kotlin,editable
+class ListNode(var v: Int, var next: ListNode? = null)
 
-```python
-from typing import Optional
+open class Stack(protected val capacity: Int) {
+    protected var head: ListNode? = null
+    protected var currentSize     = 0
+    open fun push(v: Int): Boolean {
+        if (currentSize == capacity) return false
+        val n = ListNode(v); n.next = head
+        head  = n
+        currentSize++
+        return true
+    }
+}
 
-"""
-Definition for singly-linked list.
-class ListNode:
-    def __init__(self, val):
-        self.val = val
-        self.next = None
-"""
-
-class Stack:
-    def __init__(self, capacity: int):
-
-        # Reference to the head of the stack
-        self.head: Optional[ListNode] = None
-
-        # Maximum capacity of the stack
-        self.capacity: int = capacity
-
-        # Current number of elements in the stack
-        self.current_size: int = 0
-
-    def size(self) -> int:
-
-        # Return the current number of elements in the stack
-        return self.current_size
-
-    def empty(self) -> bool:
-
-        # Return True if the stack is empty, False otherwise
-        return self.current_size == 0
-
-    def top(self) -> int:
-        if self.empty():
-
-            # If the stack is empty, return -1 (an invalid value)
-            return -1
-
-        # Return the value of the element at the top of the stack
-        if self.head:
-            return self.head.val
-        return -1
-
-    def push(self, val: int) -> bool:
-        if self.current_size == self.capacity:
-
-            # If the stack is already full, return False
-            return False
-
-        # Create a new node with the given val
-        new_node = ListNode(val)
-
-        # Set the next reference of the new node to the current head
-        new_node.next = self.head
-
-        # Update the head reference to the new node
-        self.head = new_node
-
-        # Increment the count of elements in the stack
-        self.current_size += 1
-
-        # Return True to indicate a successful push operation
-        return True
+fun main() {
+    val s = Stack(2)
+    println("${s.push(7)} ${s.push(9)} ${s.push(11)}")
+}
 ```
+
+```rust,editable
+struct ListNode { val: i32, next: Option<Box<ListNode>> }
+
+pub struct Stack { head: Option<Box<ListNode>>, capacity: usize, current_size: usize }
+impl Stack {
+    pub fn new(c: usize) -> Self { Stack { head: None, capacity: c, current_size: 0 } }
+    pub fn push(&mut self, val: i32) -> bool {
+        if self.current_size == self.capacity { return false; }
+        // Take ownership of the old head, build a new node pointing to it.
+        let new_node = Box::new(ListNode { val, next: self.head.take() });
+        self.head = Some(new_node);
+        self.current_size += 1;
+        true
+    }
+}
+
+fn main() {
+    let mut s = Stack::new(2);
+    println!("{} {} {}", s.push(7), s.push(9), s.push(11));
+}
+```
+
+</div>
 
 ## Complexity Analysis
 
-The time and space complexity for inserting an item at the beginning of a list is **O(1)**.
-
-> **Best Case**
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
->
-> **Worst Case**
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> **All cases** — Time: **O(1)** | Space: **O(1)** (one node allocated per push)
 
 ***
 
-# Popping an item from the top of the stack
+# Popping an item from the stack
 
-The pop operation removes the **top** item from the stack and returns its value. After removing the item from the top, the internal `currentSize` is also decremented. The algorithm for removing a value from the top of the stack is quite straightforward. Let's look at the possible cases we need to consider.
+Pop removes the head node, returns its value, and frees the memory.
 
-## 1\. Stack is empty
+## 1. Stack is empty
 
-We return `-1` here to indicate that this is an invalid operation, as there is no item at the top of the stack.
+`head == null`. Return `-1`.
 
-// Diagram: Cannot pop data from an empty stack
+## 2. Stack is not empty
+
+Three steps:
+
+1. Save `head.val` into a temporary.
+2. Save the old head pointer (so we can free it).
+3. Advance `head = head.next` and decrement `currentSize`.
+4. Free (delete) the saved old head and return the saved value.
+
+The "save old head before moving" sequence matters in languages with manual memory management — if you advance `head` first and *then* try to delete the old head, you've already lost the pointer to it.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph BEFORE["before pop()"]
+        direction LR
+        H1["head"] --> N1["9 ← will be freed"] --> N2["7"] --> N3["5"] --> NUL1["null"]
+    end
+    subgraph AFTER["after pop() → 9"]
+        direction LR
+        H2["head"] --> N4["7"] --> N5["5"] --> NUL2["null"]
+    end
+    BEFORE --> AFTER
+    style N1 fill:#fee2e2,stroke:#ef4444
+```
+
+<p align="center"><strong>Pop — read the head's value, advance head, free the old head. The list shrinks by one node from the front.</strong></p>
 
 > **Algorithm**
 >
-> -   **Step 1:** If the stack is empty, return \`-1\` to indicate that the operation was unsuccessful.
-
-## 2\. Stack is not empty
-
-In this case, we need to update `head` to hold the second node in our internal linked list and delete the first node. However, before updating `head` to the second node, we must store the current head node in a temporary variable to delete it after modifying the `head` variable. We must also store the data value of that **head** node in a variable so that we can return its value after the node is deleted. The final step is to decrease the `currentSize` by 1.
-
-// Diagram: Pop data from a non empty the stack
-
-The pop operation in a stack class implemented using a linked list can be summarized as the following algorithm.
-
-> **Algorithm**
->
-> -   **Step 1:** If the stack is not empty, store the value of the element at the \`head\` node of the internal linked list in a temporary variable.
-> -   **Step 2:** Move the head pointer to the next node.
-> -   **Step 3:** Delete the original head node to free up memory.
-> -   **Step 4:** Decrement the \`currentSize\` by \`1\`.
-> -   **Step 5**: Return the value stored in the temporary variable.
+> -   **Step 1:** If `empty()`, return `-1`.
+> -   **Step 2:** Save `value = head.val` and `temp = head`.
+> -   **Step 3:** `head = head.next; currentSize--`.
+> -   **Step 4:** Free `temp` (in languages without GC); return `value`.
 
 ## Implementation
 
-The implementation is quite simple. We write all the cases in conditional blocks to implement the pop operation.
-
-C++
-
-```cpp
-/**
- * Definition for singly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *next;
- *     ListNode() : val(0), next(nullptr) {}
- *     ListNode(int val) : val(val), next(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Stack {
-public:
-
-    // Pointer to the head of the stack
-    ListNode *head;
-
-    // Maximum capacity of the stack
-    int capacity;
-
-    // Current number of elements in the stack
-    int currentSize;
-
-// Diagram: Stack(int capacity) {
-
-        // Initialize the capacity of the stack
-        this->capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this->currentSize = 0;
-
-        // Initialize the head pointer to null
-        this->head = nullptr;
-    }
-
-// Diagram: int size() {
-
-        // Return the current number of elements in the stack
-        return currentSize;
-    }
-
-// Diagram: bool empty() {
-
-        // Return true if the stack is empty, false otherwise
-        return currentSize == 0;
-    }
-
-    int top() {
-        if (empty()) {
-
-            // If the stack is empty, return -1 (an invalid value)
-            return -1;
-        }
-
-        // Return the value of the element at the top of the stack
-        return head->val;
-    }
-
-    bool push(int val) {
-        if (currentSize == capacity) {
-
-            // If the stack is already full, return false
-            return false;
-        }
-
-        // Create a new node with the given val
-        ListNode *newNode = new ListNode(val);
-
-        // Set the next pointer of the new node to the current head
-        newNode->next = head;
-
-        // Update the head pointer to the new node
-        head = newNode;
-
-        // Increment the count of elements in the stack
-        currentSize++;
-
-        // Return true to indicate a successful push operation
-        return true;
-    }
-
-    int pop() {
-        if (empty()) {
-
-            // If the stack is empty, return -1 (an invalid value)
-            return -1;
-        }
-
-        // Store the value of the element at the top of the stack
-        int value = head->val;
-
-        // Create a temporary pointer to the current head
-        ListNode *temp = head;
-
-        // Update the head pointer to the next node
-        head = head->next;
-
-        // Delete the old head node to free memory
-        delete temp;
-
-        // Decrement the count of elements in the stack
-        currentSize--;
-
-        // Return the value of the popped element
-        return value;
-    }
-};
-```
-
-Java
-
-```java
-/**
- * Definition for singly-linked list.
- * class ListNode {
- *     int val;
- *     ListNode next;
- *     ListNode() {}
- *     ListNode(int val) { this.val = val; }
- * };
- */
-
-// Diagram: class Stack {
-
-    // Reference to the head of the stack
-    public ListNode head;
-
-    // Maximum capacity of the stack
-    public int capacity;
-
-    // Current number of elements in the stack
-    public int currentSize;
-
-// Diagram: public Stack(int capacity) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
-    }
-
-// Diagram: public int size() {
-
-        // Return the current number of elements in the stack
-        return currentSize;
-    }
-
-// Diagram: public boolean empty() {
-
-        // Return true if the stack is empty, false otherwise
-        return currentSize == 0;
-    }
-
-    public int top() {
-        if (empty()) {
-
-            // If the stack is empty, return -1 (an invalid value)
-            return -1;
-        }
-
-        // Return the value of the element at the top of the stack
-        return head.val;
-    }
-
-    public boolean push(int val) {
-        if (currentSize == capacity) {
-
-            // If the stack is already full, return false
-            return false;
-        }
-
-        // Create a new node with the given val
-        ListNode newNode = new ListNode(val);
-
-        // Set the next reference of the new node to the current head
-        newNode.next = head;
-
-        // Update the head reference to the new node
-        head = newNode;
-
-        // Increment the count of elements in the stack
-        currentSize++;
-
-        // Return true to indicate a successful push operation
-        return true;
-    }
-
-    public int pop() {
-        if (empty()) {
-
-            // If the stack is empty, return -1 (an invalid value)
-            return -1;
-        }
-
-        // Store the value of the element at the top of the stack
-        int value = head.val;
-
-        // Create a temporary reference to the current head
-        ListNode temp = head;
-
-        // Update the head reference to the next node
-        head = head.next;
-
-        // Delete the old head node to free memory
-        temp = null;
-
-        // Decrement the count of elements in the stack
-        currentSize--;
-
-        // Return the value of the popped element
-        return value;
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for singly-linked list.
- * class ListNode {
- *     val: number
- *     next: ListNode | null
- *     constructor(val?: number, next?: ListNode | null) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.next = (next===undefined ? null : next)
- *     }
- * }
- */
-
-// Diagram: export class Stack {
-
-    // Reference to the head of the stack
-    head: ListNode | null;
-
-    // Maximum capacity of the stack
-    capacity: number;
-
-    // Current number of elements in the stack
-    currentSize: number;
-
-// Diagram: constructor(capacity: number) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
-    }
-
-// Diagram: size(): number {
-
-        // Return the current number of elements in the stack
-        return this.currentSize;
-    }
-
-// Diagram: empty(): boolean {
-
-        // Return true if the stack is empty, false otherwise
-        return this.currentSize === 0;
-    }
-
-    top(): number {
-        if (this.empty()) {
-
-            // If the stack is empty, return -1 (an invalid value)
-            return -1;
-        }
-
-        // Return the value of the element at the top of the stack
-        return this.head!.val;
-    }
-
-    push(val: number): boolean {
-        if (this.currentSize === this.capacity) {
-
-            // If the stack is already full, return false
-            return false;
-        }
-
-        // Create a new node with the given val
-        const newNode = new ListNode(val);
-
-        // Set the next reference of the new node to the current head
-        newNode.next = this.head;
-
-        // Update the head reference to the new node
-        this.head = newNode;
-
-        // Increment the count of elements in the stack
-        this.currentSize++;
-
-        // Return true to indicate a successful push operation
-        return true;
-    }
-
-    pop(): number {
-        if (this.empty()) {
-
-            // If the stack is empty, return -1 (an invalid value)
-            return -1;
-        }
-
-        // Store the value of the element at the top of the stack
-        const value = this.head!.val;
-
-        // Create a temporary reference to the current head
-        const temp = this.head;
-
-        // Update the head reference to the next node
-        this.head = this.head!.next;
-
-        // Delete the old head node to free memory
-        if (temp) {
-            temp.next = null;
-        }
-
-        // Decrement the count of elements in the stack
-        this.currentSize--;
-
-        // Return the value of the popped element
-        return value;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for singly-linked list.
- * function ListNode(val, next) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.next = (next===undefined ? null : next)
- * }
- */
-
-// Diagram: export class Stack {
-
-    // Reference to the head of the stack
-    head;
-
-    // Maximum capacity of the stack
-    capacity;
-
-    // Current number of elements in the stack
-    currentSize;
-
-// Diagram: constructor(capacity) {
-
-        // Initialize the capacity of the stack
-        this.capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this.currentSize = 0;
-
-        // Initialize the head reference to null
-        this.head = null;
-    }
-
-    size() {
-
-        // Return the current number of elements in the stack
-        return this.currentSize;
-    }
-
-    empty() {
-
-        // Return true if the stack is empty, false otherwise
-        return this.currentSize === 0;
-    }
-
-    top() {
-        if (this.empty()) {
-
-            // If the stack is empty, return -1 (an invalid value)
-            return -1;
-        }
-
-        // Return the value of the element at the top of the stack
-        return this.head.val;
-    }
-
-    push(val) {
-        if (this.currentSize === this.capacity) {
-
-            // If the stack is already full, return false
-            return false;
-        }
-
-        // Create a new node with the given val
-        const newNode = new ListNode(val);
-
-        // Set the next reference of the new node to the current head
-        newNode.next = this.head;
-
-        // Update the head reference to the new node
-        this.head = newNode;
-
-        // Increment the count of elements in the stack
-        this.currentSize++;
-
-        // Return true to indicate a successful push operation
-        return true;
-    }
-
-    pop() {
-        if (this.empty()) {
-
-            // If the stack is empty, return -1 (an invalid value)
-            return -1;
-        }
-
-        // Store the value of the element at the top of the stack
-        const value = this.head.val;
-
-        // Create a temporary reference to the current head
-        const temp = this.head;
-
-        // Update the head reference to the next node
-        this.head = this.head.next;
-
-        // Delete the old head node to free memory
-        if (temp) {
-            temp.next = null;
-        }
-
-        // Decrement the count of elements in the stack
-        this.currentSize--;
-
-        // Return the value of the popped element
-        return value;
-    }
-```
-
-Python
-
-```python
-from typing import Optional
-
-"""
-Definition for singly-linked list.
-class ListNode:
-    def __init__(self, val):
-        self.val = val
-        self.next = None
-"""
+<div class="lang-tabs">
+
+```python,editable
+class _ListNode:
+    def __init__(self, v): self.val, self.next = v, None
 
 class Stack:
-    def __init__(self, capacity: int):
-
-        # Reference to the head of the stack
-        self.head: Optional[ListNode] = None
-
-        # Maximum capacity of the stack
-        self.capacity: int = capacity
-
-        # Current number of elements in the stack
-        self.current_size: int = 0
-
-    def size(self) -> int:
-
-        # Return the current number of elements in the stack
-        return self.current_size
-
-    def empty(self) -> bool:
-
-        # Return True if the stack is empty, False otherwise
-        return self.current_size == 0
-
-    def top(self) -> int:
-        if self.empty():
-
-            # If the stack is empty, return -1 (an invalid value)
-            return -1
-
-        # Return the value of the element at the top of the stack
-        if self.head:
-            return self.head.val
-        return -1
-
-    def push(self, val: int) -> bool:
-        if self.current_size == self.capacity:
-
-            # If the stack is already full, return False
-            return False
-
-        # Create a new node with the given val
-        new_node = ListNode(val)
-
-        # Set the next reference of the new node to the current head
-        new_node.next = self.head
-
-        # Update the head reference to the new node
-        self.head = new_node
-
-        # Increment the count of elements in the stack
+    def __init__(self, c): self.capacity, self.head, self.current_size = c, None, 0
+    def empty(self): return self.current_size == 0
+    def push(self, v):
+        if self.current_size == self.capacity: return False
+        n = _ListNode(v); n.next = self.head; self.head = n
         self.current_size += 1
-
-        # Return True to indicate a successful push operation
         return True
-
-    def pop(self) -> int:
-        if self.empty():
-
-            # If the stack is empty, return -1 (an invalid value)
-            return -1
-
-        # Store the value of the element at the top of the stack
-        if self.head:
-            value: int = self.head.val
-
-        # Create a temporary reference to the current head
-        temp: Optional[ListNode] = self.head
-
-        # Update the head reference to the next node
-        if self.head:
-            self.head = self.head.next
-
-        # Delete the old head node to free memory (automatically handled
-        # in Python)
-        del temp
-
-        # Decrement the count of elements in the stack
+    def pop(self):
+        if self.empty(): return -1
+        value     = self.head.val
+        self.head = self.head.next      # GC reclaims the old head node
         self.current_size -= 1
-
-        # Return the value of the popped element
         return value
+
+s = Stack(3); s.push(1); s.push(2); s.push(3)
+print(s.pop(), s.pop(), s.pop(), s.pop())   # 3 2 1 -1
 ```
+
+```java,editable
+public class Main {
+    static class ListNode { int val; ListNode next; ListNode(int v){ val=v; } }
+    static class Stack {
+        private ListNode head; private int currentSize, capacity;
+        Stack(int c){ capacity = c; }
+        boolean empty(){ return currentSize == 0; }
+        boolean push(int v){
+            if (currentSize == capacity) return false;
+            ListNode n = new ListNode(v); n.next = head; head = n;
+            currentSize++; return true;
+        }
+        int pop(){
+            if (empty()) return -1;
+            int value = head.val;
+            head      = head.next;       // old head becomes garbage
+            currentSize--;
+            return value;
+        }
+    }
+    public static void main(String[] args){
+        Stack s = new Stack(3);
+        s.push(1); s.push(2); s.push(3);
+        System.out.println(s.pop() + " " + s.pop() + " " + s.pop() + " " + s.pop());
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
+typedef struct ListNode { int val; struct ListNode *next; } ListNode;
+typedef struct { ListNode *head; int capacity, currentSize; } Stack;
+
+Stack* stack_create(int c){ Stack *s=malloc(sizeof(*s)); s->head=NULL; s->capacity=c; s->currentSize=0; return s; }
+bool stack_empty(Stack *s){ return s->currentSize == 0; }
+bool stack_push (Stack *s, int v){
+    if (s->currentSize == s->capacity) return false;
+    ListNode *n = malloc(sizeof(*n)); n->val = v; n->next = s->head; s->head = n;
+    s->currentSize++; return true;
+}
+int  stack_pop  (Stack *s){
+    if (stack_empty(s)) return -1;
+    int value = s->head->val;
+    ListNode *old = s->head;            // save BEFORE advancing
+    s->head = s->head->next;
+    free(old);                          // and free AFTER advancing
+    s->currentSize--;
+    return value;
+}
+
+int main(){
+    Stack *s = stack_create(3);
+    stack_push(s,1); stack_push(s,2); stack_push(s,3);
+    printf("%d %d %d %d\n", stack_pop(s), stack_pop(s), stack_pop(s), stack_pop(s));
+    free(s);
+}
+```
+
+```cpp,editable
+#include <iostream>
+
+struct ListNode { int val; ListNode *next; ListNode(int v):val(v),next(nullptr){} };
+
+class Stack {
+    ListNode *head = nullptr; int currentSize = 0; int capacity;
+public:
+    Stack(int c) : capacity(c) {}
+    bool empty(){ return currentSize == 0; }
+    bool push(int v){
+        if (currentSize == capacity) return false;
+        ListNode *n = new ListNode(v); n->next = head; head = n;
+        currentSize++; return true;
+    }
+    int pop(){
+        if (empty()) return -1;
+        int v = head->val;
+        ListNode *old = head;
+        head = head->next;
+        delete old;
+        currentSize--;
+        return v;
+    }
+};
+
+int main(){
+    Stack s(3);
+    s.push(1); s.push(2); s.push(3);
+    std::cout << s.pop() << " " << s.pop() << " " << s.pop() << " " << s.pop() << "\n";
+}
+```
+
+```scala,editable
+class ListNode(var v: Int, var next: ListNode = null)
+
+class Stack(val capacity: Int) {
+  protected var head: ListNode = null
+  protected var currentSize    = 0
+  def empty: Boolean = currentSize == 0
+  def push(v: Int): Boolean = {
+    if (currentSize == capacity) return false
+    val n = new ListNode(v); n.next = head
+    head  = n; currentSize += 1; true
+  }
+  def pop: Int = {
+    if (empty) return -1
+    val value = head.v
+    head      = head.next      // GC reclaims the old node
+    currentSize -= 1
+    value
+  }
+}
+
+object Main extends App {
+  val s = new Stack(3)
+  s.push(1); s.push(2); s.push(3)
+  println(s"${s.pop} ${s.pop} ${s.pop} ${s.pop}")
+}
+```
+
+```javascript,editable
+class ListNode { constructor(v){ this.val = v; this.next = null; } }
+class Stack {
+    constructor(c){ this.capacity=c; this.head=null; this.currentSize=0; }
+    empty(){ return this.currentSize === 0; }
+    push(v){
+        if (this.currentSize === this.capacity) return false;
+        const n = new ListNode(v); n.next = this.head; this.head = n;
+        this.currentSize++; return true;
+    }
+    pop(){
+        if (this.empty()) return -1;
+        const v = this.head.val;
+        this.head = this.head.next;     // GC reclaims old node
+        this.currentSize--;
+        return v;
+    }
+}
+const s = new Stack(3);
+s.push(1); s.push(2); s.push(3);
+console.log(s.pop(), s.pop(), s.pop(), s.pop());
+```
+
+```typescript,editable
+class ListNode { val: number; next: ListNode | null; constructor(v: number){ this.val=v; this.next=null; } }
+class Stack {
+    protected capacity: number; protected head: ListNode|null = null; protected currentSize = 0;
+    constructor(c: number){ this.capacity = c; }
+    empty(): boolean { return this.currentSize === 0; }
+    push(v: number): boolean {
+        if (this.currentSize === this.capacity) return false;
+        const n = new ListNode(v); n.next = this.head; this.head = n;
+        this.currentSize++; return true;
+    }
+    pop(): number {
+        if (this.empty()) return -1;
+        const v = this.head!.val;
+        this.head = this.head!.next;
+        this.currentSize--;
+        return v;
+    }
+}
+const s = new Stack(3);
+s.push(1); s.push(2); s.push(3);
+console.log(s.pop(), s.pop(), s.pop(), s.pop());
+```
+
+```go,editable
+package main
+import "fmt"
+
+type ListNode struct{ Val int; Next *ListNode }
+type Stack    struct{ head *ListNode; capacity, currentSize int }
+
+func NewStack(c int) *Stack { return &Stack{capacity: c} }
+func (s *Stack) Empty() bool { return s.currentSize == 0 }
+func (s *Stack) Push(v int) bool {
+    if s.currentSize == s.capacity { return false }
+    s.head = &ListNode{Val: v, Next: s.head}
+    s.currentSize++
+    return true
+}
+func (s *Stack) Pop() int {
+    if s.Empty() { return -1 }
+    v := s.head.Val
+    s.head = s.head.Next       // GC reclaims old node
+    s.currentSize--
+    return v
+}
+
+func main() {
+    s := NewStack(3)
+    s.Push(1); s.Push(2); s.Push(3)
+    fmt.Println(s.Pop(), s.Pop(), s.Pop(), s.Pop())
+}
+```
+
+```kotlin,editable
+class ListNode(var v: Int, var next: ListNode? = null)
+open class Stack(protected val capacity: Int) {
+    protected var head: ListNode? = null
+    protected var currentSize     = 0
+    open fun empty() = currentSize == 0
+    open fun push(v: Int): Boolean {
+        if (currentSize == capacity) return false
+        val n = ListNode(v); n.next = head; head = n
+        currentSize++; return true
+    }
+    open fun pop(): Int {
+        if (empty()) return -1
+        val v = head!!.v
+        head  = head!!.next
+        currentSize--
+        return v
+    }
+}
+fun main() {
+    val s = Stack(3)
+    s.push(1); s.push(2); s.push(3)
+    println("${s.pop()} ${s.pop()} ${s.pop()} ${s.pop()}")
+}
+```
+
+```rust,editable
+struct ListNode { val: i32, next: Option<Box<ListNode>> }
+
+pub struct Stack { head: Option<Box<ListNode>>, capacity: usize, current_size: usize }
+impl Stack {
+    pub fn new(c: usize) -> Self { Stack { head: None, capacity: c, current_size: 0 } }
+    pub fn empty(&self) -> bool { self.current_size == 0 }
+    pub fn push(&mut self, v: i32) -> bool {
+        if self.current_size == self.capacity { return false; }
+        self.head = Some(Box::new(ListNode { val: v, next: self.head.take() }));
+        self.current_size += 1;
+        true
+    }
+    pub fn pop(&mut self) -> i32 {
+        match self.head.take() {
+            None => -1,                          // empty stack
+            Some(mut node) => {
+                self.head = node.next.take();    // promote node.next to head
+                self.current_size -= 1;
+                node.val                         // node is dropped here
+            }
+        }
+    }
+}
+
+fn main() {
+    let mut s = Stack::new(3);
+    s.push(1); s.push(2); s.push(3);
+    println!("{} {} {} {}", s.pop(), s.pop(), s.pop(), s.pop());
+}
+```
+
+</div>
 
 ## Complexity Analysis
 
-Since we only call the `empty()`  function and extract and delete the head of a linked list, which are both constant **O(1)** operations in both time and space, our `pop()` operation is also **O(1)**.
-
-> **Best Case**
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
->
-> **Worst Case**
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> **All cases** — Time: **O(1)** | Space: **O(1)** (one node freed per pop)
 
 ***
 
@@ -2538,166 +1387,431 @@ Since we only call the `empty()`  function and extract and delete the head of
 
 ## Problem Statement
 
-Given the skeleton of a **Stack class**, complete this class by implementing all the stack operations below.
+Implement the same `Stack` class from the array-implementation lesson, but **backed by a singly linked list** instead of an array.
 
-> -   **Stack(int capacity)** - Initializes the Stack object with the given capacity.
-> -   **size()** - Returns the current size of the stack.
-> -   **empty()** - Returns \`true\` if the stack is empty, and \`false\` if it is not.
-> -   **top()** - Returns the element at the top of the stack. If the stack is empty, returns \`-1\`.
-> -   **push(int val)** - Pushes the given value onto the stack and returns \`true\` if the operation was successful. Returns \`false\` if the stack is full.
-> -   **pop()** - Pops the top element from the stack and returns its value. If the stack is empty, returns \`-1\`.
+> -   **`Stack(int capacity)`** — initialise with the given capacity.
+> -   **`size()`** — current size.
+> -   **`empty()`** — is the stack empty?
+> -   **`top()`** — value at the top, or `-1` if empty.
+> -   **`push(int val)`** — push onto the top; return `true` on success, `false` if full.
+> -   **`pop()`** — pop and return the top, or `-1` if empty.
 
-// Diagram: You must abide by the following constraints
+> **Constraint:** Use a **linked list** as the internal data structure.
 
-1\. Use a **linked list as the internal data structure** to store data and implement this class.
-
-// Diagram: Implementation of a stack using a linked list
-
-> The input should adhere to the following rules:
->
-> 1.  The input should contain two arrays of the same size.
-> 2.  The first array should contain the list of operations, while the second should contain the corresponding operands for those operations.
-> 3.  The first index in the first array should contain **Stack**, and the first index in the second array should contain a single positive integer representing the capacity of the stack. This value is used to initialise the stack.
-> 4.  For each index in the first array that contains the **push** operation, the corresponding index in the second array should contain the value that needs to be pushed.
-> 5.  For each index in the first array that contains **pop**, **empty**, **top**, or **size** operations, the corresponding index in the second array should contain an empty array.
->
-> **Example:**
->
-> -   **Input:** \[Stack, push, push, top, empty, pop, top, push, push, empty\] \[\[2\], \[2\], \[3\], \[\], \[\], \[\], \[\], \[8\], \[9\], \[\]\]
->
-> -   **Output:** \[null, true, true, 3, false, 3, 2, true, false, false\]
->
-> **Explanation:**
->
-> **Operation:** Stack stack = new Stack(2) **Result:** Initializes an empty \`Stack\` with a capacity of 2
->
-> **Operation:** stack.push(2) **Result:** \`stack = \[2\]\`, returns \`true\`
->
-> **Operation:** stack.push(3) **Result:** \`stack = \[3, 2\]\`, returns \`true\`
->
-> **Operation:** stack.top() **Result:** \`stack = \[3, 2\]\`, returns \`3\`
->
-> **Operation:** stack.empty() **Result:** \`stack = \[3, 2\]\`, returns \`false\`
->
-> **Operation:** stack.pop() **Result:** \`stack = \[2\]\`, returns \`3\`
->
-> **Operation:** stack.top() **Result:** \`stack = \[2\]\`, returns \`2\`
->
-> **Operation:** stack.push(8) **Result:** \`stack = \[8, 2\]\`, returns \`true\`
->
-> **Operation:** stack.push(9) **Result:** \`stack = \[8, 2\]\`, stack is full, returns \`false\`
->
-> **Operation:** stack.empty() **Result:** \`stack = \[8, 2\]\`, returns \`false\`
+> **Example:** identical to the array version. Same input, same output.
 
 ## Solution
 
-```cpp
-/**
- * Definition for singly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *next;
- *     ListNode() : val(0), next(nullptr) {}
- *     ListNode(int val) : val(val), next(nullptr) {}
- * };
- */
+The full implementation, in 10 languages, combining everything we built incrementally above.
 
-using namespace std;
+<div class="lang-tabs">
+
+```python,editable
+class _ListNode:
+    __slots__ = ('val', 'next')
+    def __init__(self, val):
+        self.val, self.next = val, None
+
+class Stack:
+    def __init__(self, capacity: int):
+        self.capacity     = capacity
+        self.head         = None
+        self.current_size = 0
+
+    def size(self):  return self.current_size
+    def empty(self): return self.current_size == 0
+    def top(self):   return -1 if self.empty() else self.head.val
+
+    def push(self, val):
+        if self.current_size == self.capacity: return False
+        n = _ListNode(val); n.next = self.head; self.head = n
+        self.current_size += 1
+        return True
+
+    def pop(self):
+        if self.empty(): return -1
+        v = self.head.val
+        self.head = self.head.next
+        self.current_size -= 1
+        return v
+
+# Boss-fight demo
+s = Stack(2)
+print(s.push(2), s.push(3))      # True True
+print(s.top(), s.empty())        # 3 False
+print(s.pop())                   # 3
+print(s.top())                   # 2
+print(s.push(8), s.push(9))      # True False (capacity is 2)
+print(s.empty())                 # False
+```
+
+```java,editable
+public class Main {
+    static class ListNode { int val; ListNode next; ListNode(int v){ val = v; } }
+
+    static class Stack {
+        private ListNode head;
+        private final int capacity;
+        private int       currentSize;
+        Stack(int capacity) { this.capacity = capacity; }
+
+        int     size()  { return currentSize; }
+        boolean empty() { return currentSize == 0; }
+        int     top()   { return empty() ? -1 : head.val; }
+
+        boolean push(int val) {
+            if (currentSize == capacity) return false;
+            ListNode n = new ListNode(val); n.next = head; head = n;
+            currentSize++; return true;
+        }
+        int pop() {
+            if (empty()) return -1;
+            int v = head.val;
+            head  = head.next;
+            currentSize--;
+            return v;
+        }
+    }
+
+    public static void main(String[] args) {
+        Stack s = new Stack(2);
+        System.out.println(s.push(2) + " " + s.push(3));
+        System.out.println(s.top()  + " " + s.empty());
+        System.out.println(s.pop());
+        System.out.println(s.top());
+        System.out.println(s.push(8) + " " + s.push(9));
+        System.out.println(s.empty());
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
+typedef struct ListNode { int val; struct ListNode *next; } ListNode;
+typedef struct { ListNode *head; int capacity, currentSize; } Stack;
+
+Stack* stack_create(int c){ Stack *s=malloc(sizeof(*s)); s->head=NULL; s->capacity=c; s->currentSize=0; return s; }
+int    stack_size  (Stack *s){ return s->currentSize; }
+bool   stack_empty (Stack *s){ return s->currentSize == 0; }
+int    stack_top   (Stack *s){ return stack_empty(s) ? -1 : s->head->val; }
+bool   stack_push  (Stack *s, int v){
+    if (s->currentSize == s->capacity) return false;
+    ListNode *n = malloc(sizeof(*n)); n->val = v; n->next = s->head; s->head = n;
+    s->currentSize++; return true;
+}
+int    stack_pop   (Stack *s){
+    if (stack_empty(s)) return -1;
+    int v = s->head->val;
+    ListNode *old = s->head; s->head = s->head->next; free(old);
+    s->currentSize--; return v;
+}
+
+int main() {
+    Stack *s = stack_create(2);
+    printf("%d %d\n", stack_push(s,2), stack_push(s,3));
+    printf("%d %d\n", stack_top(s),    stack_empty(s));
+    printf("%d\n",    stack_pop(s));
+    printf("%d\n",    stack_top(s));
+    printf("%d %d\n", stack_push(s,8), stack_push(s,9));
+    printf("%d\n",    stack_empty(s));
+    free(s);
+}
+```
+
+```cpp,editable
+#include <iostream>
+
+struct ListNode { int val; ListNode *next; ListNode(int v):val(v),next(nullptr){} };
 
 class Stack {
+    ListNode *head        = nullptr;
+    int       currentSize = 0;
+    int       capacity;
 public:
-
-    // Pointer to the head of the stack
-    ListNode *head;
-
-    // Maximum capacity of the stack
-    int capacity;
-
-    // Current number of elements in the stack
-    int currentSize;
-
-    Stack(int capacity) {
-
-        // Initialize the capacity of the stack
-        this->capacity = capacity;
-
-        // Initialize the currentSize to zero
-        this->currentSize = 0;
-
-        // Initialize the head pointer to null
-        this->head = nullptr;
+    Stack(int c) : capacity(c) {}
+    int  size()  { return currentSize; }
+    bool empty() { return currentSize == 0; }
+    int  top()   { return empty() ? -1 : head->val; }
+    bool push(int v) {
+        if (currentSize == capacity) return false;
+        ListNode *n = new ListNode(v); n->next = head; head = n;
+        currentSize++; return true;
     }
-
-    int size() {
-
-        // Return the current number of elements in the stack
-        return currentSize;
-    }
-
-    bool empty() {
-
-        // Return true if the stack is empty, false otherwise
-        return currentSize == 0;
-    }
-
-    int top() {
-        if (empty()) {
-
-            // If the stack is empty, return -1 (an invalid value)
-            return -1;
-        }
-
-        // Return the value of the element at the top of the stack
-        return head->val;
-    }
-
-    bool push(int val) {
-        if (currentSize == capacity) {
-
-            // If the stack is already full, return false
-            return false;
-        }
-
-        // Create a new node with the given val
-        ListNode *newNode = new ListNode(val);
-
-        // Set the next pointer of the new node to the current head
-        newNode->next = head;
-
-        // Update the head pointer to the new node
-        head = newNode;
-
-        // Increment the count of elements in the stack
-        currentSize++;
-
-        // Return true to indicate a successful push operation
-        return true;
-    }
-
     int pop() {
-        if (empty()) {
-
-            // If the stack is empty, return -1 (an invalid value)
-            return -1;
-        }
-
-        // Store the value of the element at the top of the stack
-        int value = head->val;
-
-        // Create a temporary pointer to the current head
-        ListNode *temp = head;
-
-        // Update the head pointer to the next node
-        head = head->next;
-
-        // Delete the old head node to free memory
-        delete temp;
-
-        // Decrement the count of elements in the stack
-        currentSize--;
-
-        // Return the value of the popped element
-        return value;
+        if (empty()) return -1;
+        int v = head->val;
+        ListNode *old = head; head = head->next; delete old;
+        currentSize--; return v;
     }
+    ~Stack() { while (!empty()) pop(); }
 };
+
+int main() {
+    Stack s(2);
+    std::cout << s.push(2) << " " << s.push(3) << "\n";
+    std::cout << s.top()   << " " << s.empty() << "\n";
+    std::cout << s.pop()   << "\n";
+    std::cout << s.top()   << "\n";
+    std::cout << s.push(8) << " " << s.push(9) << "\n";
+    std::cout << s.empty() << "\n";
+}
 ```
+
+```scala,editable
+class ListNode(var v: Int, var next: ListNode = null)
+
+class Stack(val capacity: Int) {
+  private var head: ListNode = null
+  private var currentSize    = 0
+
+  def size:  Int     = currentSize
+  def empty: Boolean = currentSize == 0
+  def top:   Int     = if (empty) -1 else head.v
+
+  def push(v: Int): Boolean = {
+    if (currentSize == capacity) return false
+    val n = new ListNode(v); n.next = head
+    head  = n; currentSize += 1; true
+  }
+  def pop: Int = {
+    if (empty) return -1
+    val value = head.v
+    head      = head.next
+    currentSize -= 1
+    value
+  }
+}
+
+object Main extends App {
+  val s = new Stack(2)
+  println(s"${s.push(2)} ${s.push(3)}")
+  println(s"${s.top} ${s.empty}")
+  println(s.pop)
+  println(s.top)
+  println(s"${s.push(8)} ${s.push(9)}")
+  println(s.empty)
+}
+```
+
+```javascript,editable
+class ListNode { constructor(v){ this.val = v; this.next = null; } }
+
+class Stack {
+    constructor(capacity) {
+        this.capacity    = capacity;
+        this.head        = null;
+        this.currentSize = 0;
+    }
+    size()  { return this.currentSize; }
+    empty() { return this.currentSize === 0; }
+    top()   { return this.empty() ? -1 : this.head.val; }
+    push(v) {
+        if (this.currentSize === this.capacity) return false;
+        const n = new ListNode(v); n.next = this.head; this.head = n;
+        this.currentSize++; return true;
+    }
+    pop()   {
+        if (this.empty()) return -1;
+        const v = this.head.val;
+        this.head = this.head.next;
+        this.currentSize--;
+        return v;
+    }
+}
+
+const s = new Stack(2);
+console.log(s.push(2), s.push(3));
+console.log(s.top(),   s.empty());
+console.log(s.pop());
+console.log(s.top());
+console.log(s.push(8), s.push(9));
+console.log(s.empty());
+```
+
+```typescript,editable
+class ListNode {
+    val: number; next: ListNode | null;
+    constructor(val: number) { this.val = val; this.next = null; }
+}
+
+class Stack {
+    private capacity:    number;
+    private head:        ListNode | null = null;
+    private currentSize: number = 0;
+    constructor(capacity: number) { this.capacity = capacity; }
+
+    size():  number  { return this.currentSize; }
+    empty(): boolean { return this.currentSize === 0; }
+    top():   number  { return this.empty() ? -1 : this.head!.val; }
+    push(v: number): boolean {
+        if (this.currentSize === this.capacity) return false;
+        const n = new ListNode(v); n.next = this.head; this.head = n;
+        this.currentSize++; return true;
+    }
+    pop(): number {
+        if (this.empty()) return -1;
+        const v = this.head!.val;
+        this.head = this.head!.next;
+        this.currentSize--;
+        return v;
+    }
+}
+
+const s = new Stack(2);
+console.log(s.push(2), s.push(3));
+console.log(s.top(),   s.empty());
+console.log(s.pop());
+console.log(s.top());
+console.log(s.push(8), s.push(9));
+console.log(s.empty());
+```
+
+```go,editable
+package main
+import "fmt"
+
+type ListNode struct{ Val int; Next *ListNode }
+
+type Stack struct {
+    head        *ListNode
+    capacity    int
+    currentSize int
+}
+
+func NewStack(c int) *Stack { return &Stack{capacity: c} }
+func (s *Stack) Size()  int  { return s.currentSize }
+func (s *Stack) Empty() bool { return s.currentSize == 0 }
+func (s *Stack) Top()   int  { if s.Empty() { return -1 }; return s.head.Val }
+func (s *Stack) Push(v int) bool {
+    if s.currentSize == s.capacity { return false }
+    s.head = &ListNode{Val: v, Next: s.head}
+    s.currentSize++
+    return true
+}
+func (s *Stack) Pop() int {
+    if s.Empty() { return -1 }
+    v := s.head.Val; s.head = s.head.Next; s.currentSize--
+    return v
+}
+
+func main() {
+    s := NewStack(2)
+    fmt.Println(s.Push(2), s.Push(3))
+    fmt.Println(s.Top(),   s.Empty())
+    fmt.Println(s.Pop())
+    fmt.Println(s.Top())
+    fmt.Println(s.Push(8), s.Push(9))
+    fmt.Println(s.Empty())
+}
+```
+
+```kotlin,editable
+class ListNode(var v: Int, var next: ListNode? = null)
+
+class Stack(private val capacity: Int) {
+    private var head: ListNode? = null
+    private var currentSize     = 0
+
+    fun size():  Int     = currentSize
+    fun empty(): Boolean = currentSize == 0
+    fun top():   Int     = if (empty()) -1 else head!!.v
+    fun push(v: Int): Boolean {
+        if (currentSize == capacity) return false
+        val n = ListNode(v); n.next = head; head = n
+        currentSize++; return true
+    }
+    fun pop(): Int {
+        if (empty()) return -1
+        val v = head!!.v
+        head  = head!!.next
+        currentSize--
+        return v
+    }
+}
+
+fun main() {
+    val s = Stack(2)
+    println("${s.push(2)} ${s.push(3)}")
+    println("${s.top()} ${s.empty()}")
+    println(s.pop())
+    println(s.top())
+    println("${s.push(8)} ${s.push(9)}")
+    println(s.empty())
+}
+```
+
+```rust,editable
+struct ListNode { val: i32, next: Option<Box<ListNode>> }
+
+pub struct Stack {
+    head:         Option<Box<ListNode>>,
+    capacity:     usize,
+    current_size: usize,
+}
+
+impl Stack {
+    pub fn new(capacity: usize) -> Self {
+        Stack { head: None, capacity, current_size: 0 }
+    }
+    pub fn size(&self)  -> i32  { self.current_size as i32 }
+    pub fn empty(&self) -> bool { self.current_size == 0 }
+    pub fn top(&self)   -> i32  {
+        match &self.head { Some(n) => n.val, None => -1 }
+    }
+    pub fn push(&mut self, v: i32) -> bool {
+        if self.current_size == self.capacity { return false; }
+        self.head = Some(Box::new(ListNode { val: v, next: self.head.take() }));
+        self.current_size += 1;
+        true
+    }
+    pub fn pop(&mut self) -> i32 {
+        match self.head.take() {
+            None => -1,
+            Some(mut node) => {
+                self.head = node.next.take();
+                self.current_size -= 1;
+                node.val
+            }
+        }
+    }
+}
+
+fn main() {
+    let mut s = Stack::new(2);
+    println!("{} {}", s.push(2), s.push(3));
+    println!("{} {}", s.top(),   s.empty());
+    println!("{}", s.pop());
+    println!("{}", s.top());
+    println!("{} {}", s.push(8), s.push(9));
+    println!("{}", s.empty());
+}
+```
+
+</div>
+
+***
+
+## Final Takeaway
+
+Linked-list and array stacks implement the same interface with the same asymptotic costs but different real-world behaviour. Three lessons:
+
+1. **Same complexity, different memory model.** Both implementations are O(1) per operation. The difference is in *how* that constant cost is realised: an array stack writes to one slot of a contiguous buffer (cache-friendly, requires up-front allocation); a linked-list stack allocates and frees one node per operation (no upfront allocation, no cache locality).
+2. **Maintain `currentSize` explicitly.** Walking the list to count nodes is O(N); a counter makes `size()` and `empty()` constant time at the cost of one integer.
+3. **Wire the new node's `next` first, then move `head`.** The order of those three pointer assignments is the most common bug in linked-list pushes — get it wrong and you create a self-loop.
+
+> **Choosing between array and linked-list stacks:**
+>
+> | Need | Pick |
+> |---|---|
+> | Predictable upper bound on size, performance-critical | array |
+> | Bursty workload, unknown maximum size | linked list (or growable array) |
+> | Memory-constrained, can afford one buffer | array |
+> | Many short-lived stacks (one per call site, etc.) | array (small fixed-size for stack-allocated speed) |
+> | Want guaranteed O(1) push (no occasional resize spike) | linked list |
+>
+> Most language standard libraries default to growable arrays (`std::stack` over `std::deque`, Python `list`, Java `ArrayDeque`) because the amortised cost wins on most workloads. Linked-list stacks shine when you have many small stacks, when allocation cost is dominated by something else (a GC tier, a slab allocator), or when you want predictable per-operation latency.
+
+> *Coming up — we shift gears from implementations to *applications*. The next three lessons cover **expression evaluation**: infix vs. postfix vs. prefix notation, evaluating a postfix expression with a stack, and converting infix to postfix using two stacks. These are some of the most beautiful uses of a stack in all of computer science — and the foundation of every calculator, every parser, and every compiler you'll ever read about.*
