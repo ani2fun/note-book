@@ -1,4 +1,14 @@
-# 4. Deletion in doubly linked lists
+# 4. Deletion in Doubly Linked Lists
+
+## The Hook
+
+Insertion was the easy half of the story. We were *adding* a node — bringing in fresh memory, wiring it carefully into the chain, and walking away with a longer list. Deletion is the inverse, and at first glance it looks symmetric: same four-pointer dance, same "save before clobber" discipline, same O(1) splice when we know the target. But there's a wrinkle that changes everything.
+
+**When you delete a node, the node is gone.** Forever. Once you call `delete` (or drop the last reference), the memory may be reused before your next instruction runs. So the *order* of operations becomes load-bearing in a way it never was for insertion. Read what you need to read **before** you free, and the moment you free, every field on that node — `prev`, `next`, `val` — turns into a landmine.
+
+Master that, and you unlock the doubly linked list's headline feature: **O(1) deletion of any node, given just its address.** A singly linked list cannot do this — it is forced to walk from the head to find the predecessor every single time. The doubly linked list closes that gap with one extra pointer per node, and in this lesson you'll see exactly how. By the end, you'll have a checklist for deletion that mirrors the insertion checklist from the last lesson — and you'll know why deleting an arbitrary known node is the operation that makes LRU caches, undo stacks, and process schedulers feasible.
+
+---
 
 ## Table of contents
 
@@ -9,7 +19,7 @@
 5. [Understanding deletion by given data](#understanding-deletion-by-given-data)
 6. [Delete node with given data](#delete-node-with-given-data)
 7. [Delete nodes with given data](#delete-nodes-with-given-data)
-8. [Understanding deletion after a given node](#understanding-deletion-after-the-given-node)
+8. [Understanding deletion after the given node](#understanding-deletion-after-the-given-node)
 9. [Delete node after the given node](#delete-node-after-the-given-node)
 10. [Understanding deletion before a given node](#understanding-deletion-before-a-given-node)
 11. [Delete node before the given node](#delete-node-before-the-given-node)
@@ -22,3467 +32,3890 @@
 
 # Understanding deletion of first node
 
-Deleting the first node is similar to **inserting at the beginning** and is also one of the simplest deletion operations. We need to consider two cases.
+Deleting the first node is the mirror of **inserting at the beginning** — same anchor (the head), same constant cost, but now we are *removing* a node instead of adding one. The shape of the work is the same: tweak a small, fixed set of pointers, then return the new head. Three cases appear, and the order in which we touch the pointers matters because once a node is freed, its fields are no longer safe to read.
 
-## 1\. The list is empty
+## 1. The list is empty
 
-When the list is empty, meaning it contains no elements, any attempt to delete a node is unnecessary because there are no nodes in the list. Since there is nothing to remove, the list remains unchanged. We can return the existing **head**, as the list is empty, and no node needs to be deleted.
+The list contains no nodes — `head` is `null`. There is nothing to delete, so we return `null` (or the original head, which is the same thing). This guard is the very first line of every deletion routine in this lesson.
 
-// Diagram: The list is empty and X > 0
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    H(["head = null"]) -.-> EMPTY[" (empty list) "]
+    EMPTY -->|"nothing to delete"| OUT(["return null"])
+```
+
+<p align="center"><strong>Empty list — no node exists, so deletion is a no-op. Return <code>null</code> immediately.</strong></p>
 
 > **Algorithm**
 >
 > -   **Step 1:** Return the original head node.
 
-## 2. The list has only one node
+## 2. The list has only one node
 
-Deleting the first node involves storing the reference to the current **head** in a temporary variable, updating the **head** to the next node in the list (which would be `null` in this case), and then deleting the old **head** node.
+The lone node is simultaneously the head and the tail. Deleting it leaves a *truly* empty list. We save the head reference into a temporary, advance `head` to its (null) successor, and free the saved reference. The list is now empty.
 
-// Diagram: The list has only one node
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph BEFORE["Before"]
+        direction LR
+        BH(["head"]) --> ONLY["prev: null<br/>val: 5<br/>next: null"]
+    end
+    subgraph AFTER["After delete first node"]
+        direction LR
+        AH(["head = null"]) -.-> GONE[" (empty list) "]
+    end
+    BEFORE -->|"1. save head<br/>2. head = null<br/>3. free saved"| AFTER
+    style ONLY fill:#fee2e2,stroke:#ef4444
+```
+
+<p align="center"><strong>Single-node list — the lone node is both head and tail. After deletion, the list is empty and <code>head</code> becomes <code>null</code>.</strong></p>
 
 > **Algorithm**
 >
 > -   **Step 1:** Delete the head node to free up memory.
-> -   **Step 2:** Return \`null\` as the list is now empty.
+> -   **Step 2:** Return `null` as the list is now empty.
 
-## 3\. The list has more than one node
+## 3. The list has more than one node
 
-When removing the first node, we update the **head** to hold the reference of the second node in the list. We also set the pointer of the second node to `null` and then delete the first node. However, before updating the **head**, it's important to use a temporary variable to store the reference of the current head node so that we can delete it later.
+This is the general case. We *save the old head* in a temporary, slide `head` forward to the second node, snip the bidirectional link by clearing the new head's `prev` to `null`, and only **then** free the saved old head. The save-before-clobber pattern from insertion appears here in a slightly different form: **save the doomed node *before* you reroute pointers around it**, because once `head` moves, the old node may have no other live reference and you'll never reach it again.
 
-// Diagram: The list has more than one node
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph BEFORE["Before"]
+        direction LR
+        BH(["head"]) --> H1["prev: null<br/>val: 5"] <--> H2["7"] <--> H3["3<br/>next: null"]
+    end
+    subgraph AFTER["After delete first node"]
+        direction LR
+        AH(["head"]) --> N1["prev: null<br/>val: 7"] <--> N2["3<br/>next: null"]
+        GONE["val: 5 ✗<br/>(freed)"]
+    end
+    BEFORE -->|"1. save = head<br/>2. head = head.next<br/>3. head.prev = null<br/>4. free saved"| AFTER
+    style GONE fill:#fee2e2,stroke:#ef4444
+```
+
+<p align="center"><strong>Multi-node deletion at the front — three pointer touches plus a free. The new head's <code>prev</code> must be cleared to <code>null</code>, restoring the "I have no predecessor" invariant.</strong></p>
 
 > **Algorithm**
 >
 > -   **Step 1:** Create a temporary pointer to store the current head node.
 > -   **Step 2:** Move the head pointer to the next node.
-> -   **Step 3:** Set the \`previous\` pointer of the new head node to \`null\`.
+> -   **Step 3:** Set the `prev` pointer of the new head node to `null`.
 > -   **Step 4:** Delete the original head node to free up memory.
 > -   **Step 5:** Return the new head node.
 
 ## Implementation
 
-When implementing the logic for deleting the first node operation, we consider both possible cases and write the code for each in conditional blocks.
+When implementing the logic for deleting the first node, we consider all three cases and write the code for each in conditional blocks.
 
-C++
+<div class="lang-tabs">
 
-```cpp
-/**
- * Definition for doubly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *prev;
- *     ListNode *next;
- *     ListNode() : val(0), prev(nullptr), next(nullptr) {}
- *     ListNode(int val) : val(val), prev(nullptr), next(nullptr) {}
- * };
- */
+```python,editable
+class Solution:
+    def delete_first_node(self, head):
+        if head is None:                       # Case 1: empty list
+            return None
+        if head.next is None:                  # Case 2: single node
+            return None                        #   Drop the only reference — list is empty
+        node_to_delete = head                  # Save before clobber
+        head           = head.next             # Slide the head forward
+        head.prev      = None                  # New head has no predecessor
+        del node_to_delete                     # Free the old head (Python GC will reclaim)
+        return head
+```
 
-// Diagram: using namespace std;
+```java,editable
+class Solution {
+    public ListNode deleteFirstNode(ListNode head) {
+        if (head == null)        return null;          // Case 1: empty
+        if (head.next == null)   return null;          // Case 2: single node
+        ListNode nodeToDelete = head;                  // Save before clobber
+        head        = head.next;                       // Slide forward
+        head.prev   = null;                            // New head has no predecessor
+        nodeToDelete = null;                           // Drop reference for GC
+        return head;
+    }
+}
+```
 
+```c,editable
+ListNode* deleteFirstNode(ListNode *head) {
+    if (head == NULL)         return NULL;            /* Case 1: empty */
+    if (head->next == NULL) {                         /* Case 2: single node */
+        free(head);
+        return NULL;
+    }
+    ListNode *nodeToDelete = head;                    /* Save before clobber */
+    head        = head->next;                         /* Slide forward */
+    head->prev  = NULL;                               /* New head has no predecessor */
+    free(nodeToDelete);                               /* Free the old head */
+    return head;
+}
+```
+
+```cpp,editable
 class Solution {
 public:
     ListNode *deleteFirstNode(ListNode *head) {
-
-        // Check if the list is empty (no nodes)
-        if (head == nullptr) {
-
-            // If the list is empty, there is nothing to delete, so
-            // return nullptr
-            return nullptr;
-        }
-
-        // Check if there is only one node in the list
-        if (head->next == nullptr) {
-
-            // Delete the single node
+        if (head == nullptr)         return nullptr;          // Case 1: empty
+        if (head->next == nullptr) {                          // Case 2: single node
             delete head;
-
-            // After deletion, the list becomes empty, so return nullptr
             return nullptr;
         }
-
-        // If there are multiple nodes in the list
-        // Store the first node in a temporary pointer
-        ListNode *nodeToBeDeleted = head;
-
-        // Update the head to point to the second node
-        head = head->next;
-
-        // Update the previous pointer of the new head to nullptr
-        head->prev = nullptr;
-
-        // Delete the first node
-        delete nodeToBeDeleted;
-
-        // Return the updated head of the list
+        ListNode *nodeToDelete = head;                        // Save before clobber
+        head        = head->next;                             // Slide forward
+        head->prev  = nullptr;                                // New head has no predecessor
+        delete nodeToDelete;                                  // Free the old head
         return head;
     }
 };
 ```
 
-Java
-
-```java
-/**
- * Definition for doubly-linked list.
- * class ListNode {
- *     int val;
- *     ListNode prev;
- *     ListNode next;
- *     ListNode() {}
- *     ListNode(int val) { this.val = val; }
- * };
- */
-
+```scala,editable
 class Solution {
-    public ListNode deleteFirstNode(ListNode head) {
-
-        // Check if the list is empty (no nodes)
-        if (head == null) {
-
-            // If the list is empty, there is nothing to delete, so
-            // return null
-            return null;
-        }
-
-        // Check if there is only one node in the list
-        if (head.next == null) {
-
-            // Delete the single node
-            head = null;
-
-            // After deletion, the list becomes empty, so return null
-            return null;
-        }
-
-        // If there are multiple nodes in the list
-        // Store the first node in a temporary pointer
-        ListNode nodeToBeDeleted = head;
-
-        // Update the head to point to the second node
-        head = head.next;
-
-        // Update the previous pointer of the new head to null
-        head.prev = null;
-
-        // Delete the first node
-        nodeToBeDeleted = null;
-
-        // Return the updated head of the list
-        return head;
-    }
+  def deleteFirstNode(head: ListNode): ListNode = {
+    if (head == null)        return null               // Case 1: empty
+    if (head.next == null)   return null               // Case 2: single node
+    var nodeToDelete = head                            // Save before clobber
+    val newHead      = head.next
+    newHead.prev     = null                            // No predecessor
+    nodeToDelete     = null                            // Drop ref
+    newHead
+  }
+}
 ```
 
-Typescript
-
-```typescript
-/**
- * Definition for doubly-linked list.
- * class ListNode {
- *     val: number
- *     prev: ListNode | null
- *     next: ListNode | null
- *     constructor(
- *         val?: number,
- *         prev?: ListNode | null,
- *         next?: ListNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.prev = (prev===undefined ? null : prev)
- *         this.next = (next===undefined ? null : next)
- *     }
- * }
- */
-
-export class Solution {
-    deleteFirstNode(head: ListNode | null): ListNode | null {
-
-        // Check if the list is empty (no nodes)
-        if (head === null) {
-
-            // If the list is empty, there is nothing to delete, so
-            // return null
-            return null;
-        }
-
-        // Check if there is only one node in the list
-        if (head.next === null) {
-
-            // Delete the single node
-            head = null;
-
-            // After deletion, the list becomes empty, so return null
-            return null;
-        }
-
-        // If there are multiple nodes in the list
-        // Store the first node in a temporary pointer
-        let nodeToBeDeleted: ListNode | null = head;
-
-        // Update the head to point to the second node
-        head = head.next;
-
-        // Update the previous pointer of the new head to null
-        head.prev = null;
-
-        // Delete the first node
-        nodeToBeDeleted = null;
-
-        // Return the updated head of the list
-        return head;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for doubly-linked list.
- * function ListNode(val, prev, next) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.prev = (prev===undefined ? null : prev)
- *     this.next = (next===undefined ? null : next)
- * }
- */
-
-export class Solution {
+```javascript,editable
+class Solution {
     deleteFirstNode(head) {
-
-        // Check if the list is empty (no nodes)
-        if (head === null) {
-
-            // If the list is empty, there is nothing to delete, so
-            // return null
-            return null;
-        }
-
-        // Check if there is only one node in the list
-        if (head.next === null) {
-
-            // Delete the single node
-            head = null;
-
-            // After deletion, the list becomes empty, so return null
-            return null;
-        }
-
-        // If there are multiple nodes in the list
-        // Store the first node in a temporary pointer
-        let nodeToBeDeleted = head;
-
-        // Update the head to point to the second node
-        head = head.next;
-
-        // Update the previous pointer of the new head to null
-        head.prev = null;
-
-        // Delete the first node
-        nodeToBeDeleted = null;
-
-        // Return the updated head of the list
+        if (head === null)        return null;          // Case 1: empty
+        if (head.next === null)   return null;          // Case 2: single node
+        let nodeToDelete = head;                        // Save before clobber
+        head        = head.next;                        // Slide forward
+        head.prev   = null;                             // New head has no predecessor
+        nodeToDelete = null;                            // Drop reference for GC
         return head;
     }
+}
 ```
 
-Python
-
-```python
-"""
-Definition for doubly-linked list.
-class ListNode:
-    def __init__(self, val):
-        self.val = val
-        self.prev = None
-        self.next = None
-"""
-
-// Diagram: from typing import Optional
-
-class Solution:
-    def delete_first_node(
-        self, head: Optional[ListNode]
-    ) -> Optional[ListNode]:
-
-        # Check if the list is empty (no nodes)
-        if head is None:
-
-            # If the list is empty, there is nothing to delete, so return
-            # None
-            return None
-
-        # Check if there is only one node in the list
-        if head.next is None:
-
-            # Delete the single node
-            del head
-
-            # After deletion, the list becomes empty, so return None
-            return None
-
-        # If there are multiple nodes in the list
-        # Store the first node in a temporary pointer
-        nodeToBeDeleted = head
-
-        # Update the head to point to the second node
-        head = head.next
-
-        # Update the previous pointer of the new head to None
-        if head:
-            head.prev = None
-
-        # Delete the first node
-        del nodeToBeDeleted
-
-        # Return the updated head of the list
-        return head
+```typescript,editable
+class Solution {
+    deleteFirstNode(head: ListNode | null): ListNode | null {
+        if (head === null)        return null;          // Case 1: empty
+        if (head.next === null)   return null;          // Case 2: single node
+        let nodeToDelete: ListNode | null = head;       // Save before clobber
+        head        = head.next;
+        head!.prev  = null;                             // New head has no predecessor
+        nodeToDelete = null;
+        return head;
+    }
+}
 ```
 
-## Complexity analysis
+```go,editable
+func deleteFirstNode(head *ListNode) *ListNode {
+    if head == nil       { return nil }                 // Case 1: empty
+    if head.Next == nil  { return nil }                 // Case 2: single node
+    nodeToDelete := head                                // Save before clobber
+    head      = head.Next                               // Slide forward
+    head.Prev = nil                                     // New head has no predecessor
+    _ = nodeToDelete                                    // Go GC will reclaim
+    return head
+}
+```
 
-Looking at the logic, it is straightforward to understand the complexity of this operation in terms of time and space. In any case, we delete the first node and change the value of the head. Since we already have access to the **head** node, this operation will take constant time and space.
+```kotlin,editable
+class Solution {
+    fun deleteFirstNode(head: ListNode?): ListNode? {
+        if (head == null)        return null            // Case 1: empty
+        if (head.next == null)   return null            // Case 2: single node
+        var nodeToDelete: ListNode? = head              // Save before clobber
+        val newHead = head.next!!
+        newHead.prev = null                             // No predecessor
+        nodeToDelete = null                             // Drop ref
+        return newHead
+    }
+}
+```
+
+```rust,editable
+// See lesson 09 for a complete Rc<RefCell<...>> implementation.
+// Rust's ownership rules don't permit two safe references in opposite
+// directions, so a true bidirectional DLL needs interior mutability.
+```
+
+</div>
+
+## Complexity Analysis
+
+We touch a constant number of pointers regardless of list length, and we never traverse. Both time and space are O(1).
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    OLD["old head ✗"] -.->|"freed"| GONE["(memory reclaimed)"]
+    H["new head"] <--> M["..."] <--> T["tail"]
+```
+
+<p align="center"><strong>All cases — delete the first node touches a constant number of pointers (free old head, slide head forward, clear new head's <code>prev</code>). No traversal.</strong></p>
 
 > **Best Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> -   Space Complexity — **O(1)**
+> -   Time Complexity — **O(1)**
 >
 > **Worst Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> -   Space Complexity — **O(1)**
+> -   Time Complexity — **O(1)**
 
 ***
 
 # Delete first node
 
-## Problem Statement
+## The Problem
 
-Given the **head** of a doubly linked list, write a function to delete the first node from this list and return the head of the updated list.
+> Given the **head** of a doubly linked list, write a function to delete the first node from this list and return the head of the updated list.
 
-### Example
+```
+Input:  head = [5, 7, 3, 10]
+Output: [7, 3, 10]
+```
 
-> -   **Input:** head = \[5, 7, 3, 10\]
-> -   **Output:** \[7, 3, 10\]
+## The Solution
 
-## Solution
+<div class="lang-tabs">
 
-```cpp
-/**
- * Definition for doubly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *prev;
- *     ListNode *next;
- *     ListNode() : val(0), prev(nullptr), next(nullptr) {}
- *     ListNode(int val) : val(val), prev(nullptr), next(nullptr) {}
- * };
- */
+```python,editable
+class Solution:
+    def delete_first_node(self, head):
+        if head is None:                  # Empty list
+            return None
+        if head.next is None:             # Single-node list
+            return None
+        head      = head.next             # Slide the head forward
+        head.prev = None                  # New head has no predecessor
+        return head
+```
 
-using namespace std;
+```java,editable
+class Solution {
+    public ListNode deleteFirstNode(ListNode head) {
+        if (head == null)       return null;
+        if (head.next == null)  return null;
+        head      = head.next;
+        head.prev = null;
+        return head;
+    }
+}
+```
 
+```c,editable
+ListNode* deleteFirstNode(ListNode *head) {
+    if (head == NULL)        return NULL;
+    if (head->next == NULL) { free(head); return NULL; }
+    ListNode *old = head;
+    head        = head->next;
+    head->prev  = NULL;
+    free(old);
+    return head;
+}
+```
+
+```cpp,editable
 class Solution {
 public:
     ListNode *deleteFirstNode(ListNode *head) {
-
-        // Check if the list is empty (no nodes)
-        if (head == nullptr) {
-
-            // If the list is empty, there is nothing to delete, so
-            // return nullptr
-            return nullptr;
-        }
-
-        // Check if there is only one node in the list
-        if (head->next == nullptr) {
-
-            // Delete the single node
-            delete head;
-
-            // After deletion, the list becomes empty, so return nullptr
-            return nullptr;
-        }
-
-        // If there are multiple nodes in the list
-        // Store the first node in a temporary pointer
-        ListNode *nodeToBeDeleted = head;
-
-        // Update the head to point to the second node
-        head = head->next;
-
-        // Update the previous pointer of the new head to nullptr
-        head->prev = nullptr;
-
-        // Delete the first node
-        delete nodeToBeDeleted;
-
-        // Return the updated head of the list
+        if (head == nullptr)         return nullptr;
+        if (head->next == nullptr) { delete head; return nullptr; }
+        ListNode *old = head;
+        head        = head->next;
+        head->prev  = nullptr;
+        delete old;
         return head;
     }
 };
 ```
+
+```scala,editable
+class Solution {
+  def deleteFirstNode(head: ListNode): ListNode = {
+    if (head == null)       return null
+    if (head.next == null)  return null
+    val newHead = head.next
+    newHead.prev = null
+    newHead
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    deleteFirstNode(head) {
+        if (head === null)       return null;
+        if (head.next === null)  return null;
+        head      = head.next;
+        head.prev = null;
+        return head;
+    }
+}
+```
+
+```typescript,editable
+class Solution {
+    deleteFirstNode(head: ListNode | null): ListNode | null {
+        if (head === null)       return null;
+        if (head.next === null)  return null;
+        head       = head.next;
+        head!.prev = null;
+        return head;
+    }
+}
+```
+
+```go,editable
+func deleteFirstNode(head *ListNode) *ListNode {
+    if head == nil       { return nil }
+    if head.Next == nil  { return nil }
+    head      = head.Next
+    head.Prev = nil
+    return head
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun deleteFirstNode(head: ListNode?): ListNode? {
+        if (head == null)       return null
+        if (head.next == null)  return null
+        val newHead = head.next!!
+        newHead.prev = null
+        return newHead
+    }
+}
+```
+
+```rust,editable
+// See lesson 09 for a complete Rc<RefCell<...>> implementation.
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — head = [5, 7, 3, 10]</strong></summary>
+
+```
+Initial │ head → 5 ↔ 7 ↔ 3 ↔ 10
+Step 1  │ head is not null, head.next is not null → general case
+Step 2  │ save old head (node 5)
+Step 3  │ head = head.next                  │ head → 7 ↔ 3 ↔ 10  (but 7.prev still → 5)
+Step 4  │ head.prev = null                  │ head → 7 ↔ 3 ↔ 10  (clean break)
+Step 5  │ free old head (node 5)
+Result: [7, 3, 10] ✓
+```
+
+The key invariant: clear `head.prev = null` *before* freeing, so the new head's "I'm now the front" claim is honest in both directions.
+
+</details>
 
 ***
 
 # Understanding deletion of last node
 
-Deleting the last node in a doubly linked list is similar to **deleting the first node**. This is because we can access both the tail node and the previous pointer in each node. Let's go through all the cases we need to consider.
+Deleting the last node is the perfect mirror of deleting the first — we already keep an explicit `tail` reference, so the predecessor is one `prev` hop away. No traversal, no scanning. The cases are identical in shape; only the words `head ↔ tail` and `next ↔ prev` flip.
 
-## 1\. The list is empty
+## 1. The list is empty
 
-When the list is empty, meaning it contains no elements, any attempt to delete a node is unnecessary because there are no nodes in the list. Since there is nothing to remove, the list remains unchanged. We can return the existing **tail**, as the list is empty, and no node needs to be deleted.
+`tail` is `null`, so there is nothing to delete. Return `null`.
 
-// Diagram: The list is empty
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    T(["tail = null"]) -.-> EMPTY[" (empty list) "]
+    EMPTY -->|"nothing to delete"| OUT(["return null"])
+```
+
+<p align="center"><strong>Empty list — return <code>null</code> immediately, no work to do.</strong></p>
 
 > **Algorithm**
 >
 > -   **Step 1:** Return the original tail node.
 
-## 2\. The list has only one node
+## 2. The list has only one node
 
-Deleting the last node in a linked list is the same as deleting the first node if there's only one node. The process involves storing the reference to the current **tail** in a temporary variable, updating the **tail** to the previous node in the list (which would be `null` in this case), and then deleting the old **tail** node.
+The one node is both head and tail. Deleting it empties the list. Save the reference, set `tail` to `null`, and free.
 
-// Diagram: The list has only one node
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph BEFORE["Before"]
+        direction LR
+        BT(["tail"]) --> ONLY["prev: null<br/>val: 5<br/>next: null"]
+    end
+    subgraph AFTER["After delete last node"]
+        direction LR
+        AT(["tail = null"]) -.-> GONE[" (empty list) "]
+    end
+    BEFORE -->|"1. save tail<br/>2. tail = null<br/>3. free saved"| AFTER
+    style ONLY fill:#fee2e2,stroke:#ef4444
+```
+
+<p align="center"><strong>Single-node list — the lone node disappears and <code>tail</code> becomes <code>null</code>.</strong></p>
 
 > **Algorithm**
 >
 > -   **Step 1:** Delete the tail node to free up memory.
-> -   **Step 2:** Return \`null\` as the list is now empty.
+> -   **Step 2:** Return `null` as the list is now empty.
 
-## 3\. The list has more than one node
+## 3. The list has more than one node
 
-When removing the last node, we update the **tail** to hold the reference of the second last node in the list. We also set the  pointer of the second last node to `null` and then delete the last node. However, before updating the **tail**, it's important to use a temporary variable to store the reference of the current tail node so that we can delete it later.
+Save the doomed tail, slide `tail` backward via its `prev` pointer (this is where the doubly linked list earns its keep — *no scan from head needed*), set the new tail's `next` to `null`, and free the saved old tail.
 
-// Diagram: The list has more than one node
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph BEFORE["Before"]
+        direction LR
+        H1["5"] <--> H2["7"] <--> H3["10<br/>next: null"]
+        BT(["tail"]) --> H3
+    end
+    subgraph AFTER["After delete last node"]
+        direction LR
+        N1["5"] <--> N2["7<br/>next: null"]
+        AT(["tail"]) --> N2
+        GONE["10 ✗<br/>(freed)"]
+    end
+    BEFORE -->|"1. save = tail<br/>2. tail = tail.prev<br/>3. tail.next = null<br/>4. free saved"| AFTER
+    style GONE fill:#fee2e2,stroke:#ef4444
+```
+
+<p align="center"><strong>Multi-node deletion at the back — three pointer touches plus a free. The <code>prev</code> pointer is what makes this O(1) — a singly linked list cannot do this without an O(N) walk.</strong></p>
 
 > **Algorithm**
 >
 > -   **Step 1:** Create a temporary pointer to store the current tail node.
 > -   **Step 2:** Move the tail pointer to the previous node.
-> -   **Step 3:** Set the \`next\` pointer of the new tail node to \`null\`.
-> -   **Step 4:** Delete the original head node to free up memory.
+> -   **Step 3:** Set the `next` pointer of the new tail node to `null`.
+> -   **Step 4:** Delete the original tail node to free up memory.
 > -   **Step 5:** Return the new tail node.
 
 ## Implementation
 
-When implementing the logic for deleting the last node operation, we consider all the possible cases and subcases and write the code for each in conditional blocks.
+<div class="lang-tabs">
 
-C++
+```python,editable
+class Solution:
+    def delete_last_node(self, tail):
+        if tail is None:                       # Case 1: empty list
+            return None
+        if tail.prev is None:                  # Case 2: single node
+            return None
+        node_to_delete = tail                  # Save before clobber
+        tail           = tail.prev             # Slide tail backward via prev (O(1)!)
+        tail.next      = None                  # New tail has no successor
+        del node_to_delete
+        return tail
+```
 
-```cpp
-/**
- * Definition for doubly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *prev;
- *     ListNode *next;
- *     ListNode() : val(0), prev(nullptr), next(nullptr) {}
- *     ListNode(int val) : val(val), prev(nullptr), next(nullptr) {}
- * };
- */
+```java,editable
+class Solution {
+    public ListNode deleteLastNode(ListNode tail) {
+        if (tail == null)        return null;          // Case 1: empty
+        if (tail.prev == null)   return null;          // Case 2: single node
+        ListNode nodeToDelete = tail;                  // Save before clobber
+        tail        = tail.prev;                       // Slide backward via prev (O(1)!)
+        tail.next   = null;                            // New tail has no successor
+        nodeToDelete = null;
+        return tail;
+    }
+}
+```
 
-// Diagram: using namespace std;
+```c,editable
+ListNode* deleteLastNode(ListNode *tail) {
+    if (tail == NULL)         return NULL;
+    if (tail->prev == NULL) { free(tail); return NULL; }
+    ListNode *old = tail;
+    tail        = tail->prev;                          /* Slide backward via prev (O(1)!) */
+    tail->next  = NULL;                                /* New tail has no successor */
+    free(old);
+    return tail;
+}
+```
 
+```cpp,editable
 class Solution {
 public:
     ListNode *deleteLastNode(ListNode *tail) {
-
-        // If the list is empty, there is nothing to delete, so return
-        // nullptr
-        if (tail == nullptr) {
-            return nullptr;
-        }
-
-        // Check if there is only one node in the list
-        if (tail->prev == nullptr) {
-
-            // Delete the single node
-            delete tail;
-
-            // After deletion, the list becomes empty, so return nullptr
-            return nullptr;
-        }
-
-        // If there are multiple nodes in the list
-        // Store the last node (tail) in a temporary pointer
-        ListNode *nodeToBeDeleted = tail;
-
-        // Update the tail to point to the second-to-last node
-        tail = tail->prev;
-
-        // Update the next pointer of the new tail to nullptr
-        tail->next = nullptr;
-
-        // Delete the last node
-        delete nodeToBeDeleted;
-
-        // Return the updated tail of the list
+        if (tail == nullptr)         return nullptr;
+        if (tail->prev == nullptr) { delete tail; return nullptr; }
+        ListNode *old = tail;
+        tail        = tail->prev;                      // Slide backward via prev (O(1)!)
+        tail->next  = nullptr;                         // New tail has no successor
+        delete old;
         return tail;
     }
 };
 ```
 
-Java
-
-```java
-/**
- * Definition for doubly-linked list.
- * class ListNode {
- *     int val;
- *     ListNode prev;
- *     ListNode next;
- *     ListNode() {}
- *     ListNode(int val) { this.val = val; }
- * };
- */
-
+```scala,editable
 class Solution {
-    public ListNode deleteLastNode(ListNode tail) {
-
-        // If the list is empty, there is nothing to delete, so return
-        // null
-        if (tail == null) {
-            return null;
-        }
-
-        // Check if there is only one node in the list
-        if (tail.prev == null) {
-
-            // Delete the single node
-            tail = null;
-
-            // After deletion, the list becomes empty, so return null
-            return null;
-        }
-
-        // If there are multiple nodes in the list
-        // Store the last node (tail) in a temporary pointer
-        ListNode nodeToBeDeleted = tail;
-
-        // Update the tail to point to the second-to-last node
-        tail = tail.prev;
-
-        // Update the next pointer of the new tail to null
-        tail.next = null;
-
-        // Delete the last node
-        nodeToBeDeleted = null;
-
-        // Return the updated tail of the list
-        return tail;
-    }
+  def deleteLastNode(tail: ListNode): ListNode = {
+    if (tail == null)       return null
+    if (tail.prev == null)  return null
+    val newTail = tail.prev
+    newTail.next = null
+    newTail
+  }
+}
 ```
 
-Typescript
-
-```typescript
-/**
- * Definition for doubly-linked list.
- * class ListNode {
- *     val: number
- *     prev: ListNode | null
- *     next: ListNode | null
- *     constructor(
- *         val?: number,
- *         prev?: ListNode | null,
- *         next?: ListNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.prev = (prev===undefined ? null : prev)
- *         this.next = (next===undefined ? null : next)
- *     }
- * }
- */
-
-export class Solution {
-    deleteLastNode(tail: ListNode | null): ListNode | null {
-
-        // If the list is empty, there is nothing to delete, so return
-        // null
-        if (tail === null) {
-            return null;
-        }
-
-        // Check if there is only one node in the list
-        if (tail.prev === null) {
-
-            // Delete the single node
-            tail = null;
-
-            // After deletion, the list becomes empty, so return null
-            return null;
-        }
-
-        // If there are multiple nodes in the list
-        // Store the last node (tail) in a temporary pointer
-        let nodeToBeDeleted: ListNode | null = tail;
-
-        // Update the tail to point to the second-to-last node
-        tail = tail.prev;
-
-        // Update the next pointer of the new tail to null
-        tail.next = null;
-
-        // Delete the last node
-        nodeToBeDeleted = null;
-
-        // Return the updated tail of the list
-        return tail;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for doubly-linked list.
- * function ListNode(val, prev, next) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.prev = (prev===undefined ? null : prev)
- *     this.next = (next===undefined ? null : next)
- * }
- */
-
-export class Solution {
+```javascript,editable
+class Solution {
     deleteLastNode(tail) {
-
-        // If the list is empty, there is nothing to delete, so return
-        // null
-        if (tail === null) {
-            return null;
-        }
-
-        // Check if there is only one node in the list
-        if (tail.prev === null) {
-
-            // Delete the single node
-            tail = null;
-
-            // After deletion, the list becomes empty, so return null
-            return null;
-        }
-
-        // If there are multiple nodes in the list
-        // Store the last node (tail) in a temporary pointer
-        let nodeToBeDeleted = tail;
-
-        // Update the tail to point to the second-to-last node
-        tail = tail.prev;
-
-        // Update the next pointer of the new tail to null
+        if (tail === null)       return null;
+        if (tail.prev === null)  return null;
+        let nodeToDelete = tail;
+        tail      = tail.prev;
         tail.next = null;
-
-        // Delete the last node
-        nodeToBeDeleted = null;
-
-        // Return the updated tail of the list
+        nodeToDelete = null;
         return tail;
     }
+}
 ```
 
-Python
-
-```python
-"""
-Definition for doubly-linked list.
-class ListNode:
-    def __init__(self, val):
-        self.val = val
-        self.prev = None
-        self.next = None
-"""
-
-// Diagram: from typing import Optional
-
-class Solution:
-    def delete_last_node(
-        self, tail: Optional[ListNode]
-    ) -> Optional[ListNode]:
-
-        # If the list is empty, there is nothing to delete, so return
-        # null
-        if tail is None:
-            return None
-
-        # Check if there is only one node in the list
-        if tail.prev is None:
-
-            # Delete the single node
-            tail = None
-
-            # After deletion, the list becomes empty, so return None
-            return None
-
-        # If there are multiple nodes in the list
-        # Store the last node (tail) in a temporary pointer
-        node_to_be_deleted: ListNode = tail
-
-        # Update the tail to point to the second-to-last node
-        tail = tail.prev
-
-        # Update the next pointer of the new tail to None
-        if tail:
-            tail.next = None
-
-        # Delete the last node
-        del node_to_be_deleted
-
-        # Return the updated tail of the list
-        return tail
+```typescript,editable
+class Solution {
+    deleteLastNode(tail: ListNode | null): ListNode | null {
+        if (tail === null)       return null;
+        if (tail.prev === null)  return null;
+        let nodeToDelete: ListNode | null = tail;
+        tail       = tail.prev;
+        tail!.next = null;
+        nodeToDelete = null;
+        return tail;
+    }
+}
 ```
 
-## Complexity analysis
+```go,editable
+func deleteLastNode(tail *ListNode) *ListNode {
+    if tail == nil       { return nil }
+    if tail.Prev == nil  { return nil }
+    tail      = tail.Prev
+    tail.Next = nil
+    return tail
+}
+```
 
-Looking at the logic, it is straightforward to understand the complexity of this operation in terms of time and space. In any case, we delete the first node and change the value of the head. Since we already have access to the **tail** node, this operation will take constant time and space.
+```kotlin,editable
+class Solution {
+    fun deleteLastNode(tail: ListNode?): ListNode? {
+        if (tail == null)       return null
+        if (tail.prev == null)  return null
+        val newTail = tail.prev!!
+        newTail.next = null
+        return newTail
+    }
+}
+```
+
+```rust,editable
+// See lesson 09 for a complete Rc<RefCell<...>> implementation.
+```
+
+</div>
+
+## Complexity Analysis
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    H["head"] <--> M["..."] <--> NEW["new tail"] -.-> OLD["old tail ✗<br/>(freed)"]
+```
+
+<p align="center"><strong>All cases — delete the last node touches a constant number of pointers. The <code>prev</code> pointer eliminates the O(N) walk a singly linked list would require.</strong></p>
 
 > **Best Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> -   Space Complexity — **O(1)**
+> -   Time Complexity — **O(1)**
 >
 > **Worst Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> -   Space Complexity — **O(1)**
+> -   Time Complexity — **O(1)**
 
 ***
 
 # Delete last node
 
-## Problem Statement
+## The Problem
 
-Given the **tail** of a doubly linked list, write a function to delete the last node from this linked list and return the tail of the updated list.
+> Given the **tail** of a doubly linked list, write a function to delete the last node from this linked list and return the tail of the updated list.
 
-### Example
+```
+Input:  tail = node(10) of [5, 7, 3, 10]
+Output: [5, 7, 3]
+```
 
-> -   **Input:** head = \[5, 7, 3, 10\]
-> -   **Output:** \[5, 7, 3\]
+## The Solution
 
-## Solution
+<div class="lang-tabs">
 
-```cpp
-/**
- * Definition for doubly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *prev;
- *     ListNode *next;
- *     ListNode() : val(0), prev(nullptr), next(nullptr) {}
- *     ListNode(int val) : val(val), prev(nullptr), next(nullptr) {}
- * };
- */
+```python,editable
+class Solution:
+    def delete_last_node(self, tail):
+        if tail is None:                  # Empty list
+            return None
+        if tail.prev is None:             # Single-node list
+            return None
+        tail      = tail.prev             # Slide tail backward (O(1) via prev)
+        tail.next = None                  # New tail has no successor
+        return tail
+```
 
-using namespace std;
+```java,editable
+class Solution {
+    public ListNode deleteLastNode(ListNode tail) {
+        if (tail == null)        return null;
+        if (tail.prev == null)   return null;
+        tail      = tail.prev;
+        tail.next = null;
+        return tail;
+    }
+}
+```
 
+```c,editable
+ListNode* deleteLastNode(ListNode *tail) {
+    if (tail == NULL)         return NULL;
+    if (tail->prev == NULL) { free(tail); return NULL; }
+    ListNode *old = tail;
+    tail        = tail->prev;
+    tail->next  = NULL;
+    free(old);
+    return tail;
+}
+```
+
+```cpp,editable
 class Solution {
 public:
     ListNode *deleteLastNode(ListNode *tail) {
-
-        // If the list is empty, there is nothing to delete, so return
-        // nullptr
-        if (tail == nullptr) {
-            return nullptr;
-        }
-
-        // Check if there is only one node in the list
-        if (tail->prev == nullptr) {
-
-            // Delete the single node
-            delete tail;
-
-            // After deletion, the list becomes empty, so return nullptr
-            return nullptr;
-        }
-
-        // If there are multiple nodes in the list
-        // Store the last node (tail) in a temporary pointer
-        ListNode *nodeToBeDeleted = tail;
-
-        // Update the tail to point to the second-to-last node
-        tail = tail->prev;
-
-        // Update the next pointer of the new tail to nullptr
-        tail->next = nullptr;
-
-        // Delete the last node
-        delete nodeToBeDeleted;
-
-        // Return the updated tail of the list
+        if (tail == nullptr)         return nullptr;
+        if (tail->prev == nullptr) { delete tail; return nullptr; }
+        ListNode *old = tail;
+        tail        = tail->prev;
+        tail->next  = nullptr;
+        delete old;
         return tail;
     }
 };
 ```
 
+```scala,editable
+class Solution {
+  def deleteLastNode(tail: ListNode): ListNode = {
+    if (tail == null)       return null
+    if (tail.prev == null)  return null
+    val newTail = tail.prev
+    newTail.next = null
+    newTail
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    deleteLastNode(tail) {
+        if (tail === null)       return null;
+        if (tail.prev === null)  return null;
+        tail      = tail.prev;
+        tail.next = null;
+        return tail;
+    }
+}
+```
+
+```typescript,editable
+class Solution {
+    deleteLastNode(tail: ListNode | null): ListNode | null {
+        if (tail === null)       return null;
+        if (tail.prev === null)  return null;
+        tail       = tail.prev;
+        tail!.next = null;
+        return tail;
+    }
+}
+```
+
+```go,editable
+func deleteLastNode(tail *ListNode) *ListNode {
+    if tail == nil       { return nil }
+    if tail.Prev == nil  { return nil }
+    tail      = tail.Prev
+    tail.Next = nil
+    return tail
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun deleteLastNode(tail: ListNode?): ListNode? {
+        if (tail == null)       return null
+        if (tail.prev == null)  return null
+        val newTail = tail.prev!!
+        newTail.next = null
+        return newTail
+    }
+}
+```
+
+```rust,editable
+// See lesson 09 for a complete Rc<RefCell<...>> implementation.
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — tail = node(10) of [5, 7, 3, 10]</strong></summary>
+
+```
+Initial │ 5 ↔ 7 ↔ 3 ↔ 10  ;  tail = node(10)
+Step 1  │ tail.prev = node(3) is not null → general case
+Step 2  │ tail = tail.prev                  │ tail → 3, but 3.next still → 10
+Step 3  │ tail.next = null                  │ 5 ↔ 7 ↔ 3   (clean break)
+Step 4  │ free old tail (node 10)
+Result: [5, 7, 3] ✓
+```
+
+Notice we never touched the head — and we never traversed. The doubly linked list's `prev` pointer collapses what would have been an O(N) operation in a singly linked list down to a constant-time tweak.
+
+</details>
+
 ***
 
 # Understanding deletion by given data
 
-Just like in a singly linked list, deleting a node with a given data in a doubly linked list can be done by using the search operation. Instead of returning the data after finding it, we delete it during this operation. Let’s explore the possible scenarios to consider when deleting a node with the given data.
+Deleting a node by its value combines what we already know: a linear search to locate the node, followed by a constant-time splice to remove it. Four cases cover every possibility, and each one degenerates to something we already understand.
 
-## 1\. The list is empty
+## 1. The list is empty
 
-When the list is empty, meaning it contains no elements, any attempt to delete a node is unnecessary because there are no nodes in the list. Since there is nothing to remove, the list remains unchanged. We can return the existing **head**, as the list is empty, and no node needs to be deleted.
+Nothing to search, nothing to delete. Return the (null) head.
 
-// Diagram: The list is empty
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    H(["head = null"]) -.-> EMPTY[" (empty list) "]
+    EMPTY -->|"no search target exists"| OUT(["return null"])
+```
+
+<p align="center"><strong>Empty list — no node to compare against, return immediately.</strong></p>
 
 > **Algorithm**
 >
 > -   **Step 1:** Return the original head node.
 
-## 2\. The first node is deleted
+## 2. The first node matches
 
-If the data matches the first node, this case becomes the same as **deleting the first node**. We update the **head** to store the reference to the second node and delete the old head.
+If the head's value matches the target, the operation degenerates to **delete the first node**. Slide `head` forward, clear the new head's `prev`, and free the old head.
 
-// Diagram: The first node is deleted
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph BEFORE["Before — data = 5"]
+        direction LR
+        BH(["head"]) --> M1["5 ✗"] <--> M2["7"] <--> M3["3"]
+    end
+    subgraph AFTER["After"]
+        direction LR
+        AH(["head"]) --> N1["7"] <--> N2["3"]
+    end
+    BEFORE -->|"first node matches → delete first"| AFTER
+    style M1 fill:#fee2e2,stroke:#ef4444
+```
+
+<p align="center"><strong>Head match — same as "delete first node". The new head's <code>prev</code> must be set to <code>null</code>.</strong></p>
 
 > **Algorithm**
 >
 > -   **Step 1:** Create a temporary pointer to store the current head node.
 > -   **Step 2:** Move the head pointer to the next node.
-> -   **Step 3:** Set the \`previous\` pointer of the new head node to \`null\`.
+> -   **Step 3:** Set the `prev` pointer of the new head node to `null`.
 > -   **Step 4:** Delete the original head node to free up memory.
 > -   **Step 5:** Return the new head node.
 
-## 3\. The node to be deleted is not the first node
+## 3. The matching node is in the middle (or at the tail)
 
-We need access to the node one step before it to delete a node that is not the first node of the linked list. This information can be obtained from the node's pointer. Deleting a node from within the list involves a four-step process.
+Walk forward from the second node, comparing values, until you find a match. The matching node has both a predecessor (`current.prev`) and a successor (`current.next`, which may be `null` if the match is the tail). Splice it out by routing the predecessor's `next` to the successor and the successor's `prev` to the predecessor — guarding the second update with a null check, because the matching node may be the tail.
 
-// Diagram: The node to be deleted is not the first node
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph BEFORE["Before — data = 3"]
+        direction LR
+        H1["5"] <--> H2["7"] <--> H3["3 ✗"] <--> H4["10"]
+    end
+    subgraph AFTER["After"]
+        direction LR
+        N1["5"] <--> N2["7"] <--> N4["10"]
+        GONE["3 ✗<br/>(freed)"]
+    end
+    BEFORE -->|"1. find target<br/>2. prev.next = target.next<br/>3. if next: next.prev = prev<br/>4. free target"| AFTER
+    style GONE fill:#fee2e2,stroke:#ef4444
+```
+
+<p align="center"><strong>Mid-list match — the predecessor is reachable in O(1) via <code>target.prev</code>, and we splice both directions in two pointer writes plus a free.</strong></p>
 
 > **Algorithm**
 >
-> -   **Step 1:** Traverse the list, keeping track of \`current\` node until reaching the given node.
-> -   **Step 2:** Set the \`next\` pointer of the node before the \`current\` node to hold the reference of the node after the \`current\` node.
-> -   **Step 3:** Set the \`previous\` pointer of the node after the \`current\` node to hold the reference of the node before the \`current\` node.
-> -   **Step 4:** Delete the \`current\` node to free up memory.
+> -   **Step 1:** Traverse the list, keeping track of the `current` node, until reaching the node whose value equals the given data.
+> -   **Step 2:** Set the `next` pointer of the node before the `current` node to hold the reference of the node after the `current` node.
+> -   **Step 3:** Set the `prev` pointer of the node after the `current` node (if it exists) to hold the reference of the node before the `current` node.
+> -   **Step 4:** Delete the `current` node to free up memory.
 > -   **Step 5:** Return the original head node.
 
-## 4\. The node to be deleted could not be found 
+## 4. The data is not found
 
-If the data provided does not match the data of any node in the linked list, then such a node does not exist in the list, so we return the existing **head**.
+If the walk falls off the end (`current` becomes `null`) without ever matching, the value is not in the list. Return the head unchanged.
 
-// Diagram: The node to be deleted is not the first node
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    H(["head"]) --> N1["5"] <--> N2["7"] <--> N3["10"] --> NULL(["null"])
+    NOTE["data = 99 — walked all the way<br/>to null without a match"] -.-> NULL
+```
+
+<p align="center"><strong>No match — fall off the end and return the original head untouched.</strong></p>
 
 > **Algorithm**
 >
-> -   **Step 1:** Traverse the list, keeping track of \`current\` node until reaching the given node.
+> -   **Step 1:** Traverse the list, keeping track of the `current` node, until `current` becomes `null`.
 > -   **Step 2:** Return the original head node.
 
 ## Implementation
 
-When implementing the logic for deleting a node with a given data operation, we consider all the possible cases and write the code for each in conditional blocks.
+<div class="lang-tabs">
 
-C++
+```python,editable
+class Solution:
+    def delete_node_with_given_data(self, head, data):
+        if head is None:                          # Case 1: empty
+            return None
+        if head.val == data:                      # Case 2: head matches
+            node_to_delete = head
+            head           = head.next
+            if head is not None:
+                head.prev = None                  # New head loses its predecessor
+            del node_to_delete
+            return head
+        current = head.next                       # Skip head — already checked
+        while current is not None and current.val != data:
+            current = current.next
+        if current is None:                       # Case 4: not found
+            return head
+        # Case 3: splice current out
+        current.prev.next = current.next          # Predecessor skips over current
+        if current.next is not None:              # Conditional — current may be the tail
+            current.next.prev = current.prev      # Successor's back-link skips current
+        del current
+        return head
+```
 
-```cpp
-/**
- * Definition for doubly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *prev;
- *     ListNode *next;
- *     ListNode() : val(0), prev(nullptr), next(nullptr) {}
- *     ListNode(int val) : val(val), prev(nullptr), next(nullptr) {}
- * };
- */
+```java,editable
+class Solution {
+    public ListNode deleteNodeWithGivenData(ListNode head, int data) {
+        if (head == null) return null;
+        if (head.val == data) {                          // Case 2: head matches
+            ListNode old = head;
+            head = head.next;
+            if (head != null) head.prev = null;
+            old = null;
+            return head;
+        }
+        ListNode current = head.next;
+        while (current != null && current.val != data) {
+            current = current.next;
+        }
+        if (current == null) return head;                // Case 4: not found
+        current.prev.next = current.next;                // Splice forward
+        if (current.next != null) {                      // Splice backward (guarded)
+            current.next.prev = current.prev;
+        }
+        current = null;
+        return head;
+    }
+}
+```
 
-// Diagram: using namespace std;
+```c,editable
+ListNode* deleteNodeWithGivenData(ListNode *head, int data) {
+    if (head == NULL) return NULL;
+    if (head->val == data) {                              /* Case 2: head matches */
+        ListNode *old = head;
+        head = head->next;
+        if (head != NULL) head->prev = NULL;
+        free(old);
+        return head;
+    }
+    ListNode *current = head->next;
+    while (current != NULL && current->val != data) {
+        current = current->next;
+    }
+    if (current == NULL) return head;                     /* Case 4: not found */
+    current->prev->next = current->next;
+    if (current->next != NULL) {
+        current->next->prev = current->prev;
+    }
+    free(current);
+    return head;
+}
+```
 
+```cpp,editable
 class Solution {
 public:
     ListNode *deleteNodeWithGivenData(ListNode *head, int data) {
-
-        // If the list is empty, there is nothing to delete, so return
-        // nullptr
-        if (head == nullptr) {
-            return nullptr;
-        }
-
-        // If the first node's value matches the target data, delete the
-        // first node
-        if (head->val == data) {
-
-            // Store the current head in a separate variable to be
-            // deleted later
-            ListNode *nodeToBeDeleted = head;
-
-            // Move the head to the next node in the list
+        if (head == nullptr) return nullptr;
+        if (head->val == data) {                          // Case 2: head matches
+            ListNode *old = head;
             head = head->next;
-
-            // If the new head exists, update its previous pointer to be
-            // nullptr, as it is now the first node
-            if (head != nullptr) {
-                head->prev = nullptr;
-            }
-
-            // Delete the node with the target data
-            delete nodeToBeDeleted;
-
-            // Return the new head of the list
+            if (head != nullptr) head->prev = nullptr;
+            delete old;
             return head;
         }
-
-        // Pointer to the current node, starting from the head
         ListNode *current = head->next;
-
-        // If the target data is not in the first node, search for it in
-        // the rest of the list
         while (current != nullptr && current->val != data) {
-
-            // Continue traversing the list until the target data is
-            // found or the end of the list is reached
             current = current->next;
         }
-
-        // If the target data is not found in the list, return the head
-        if (current == nullptr) {
-            return head;
-        }
-
-        // If the target data is found, remove the node from the list
-        current->prev->next = current->next;
-
-        // If the next node exists, update its previous pointer to skip
-        // the deleted node
-        if (current->next) {
+        if (current == nullptr) return head;              // Case 4: not found
+        current->prev->next = current->next;              // Splice forward
+        if (current->next != nullptr) {                   // Splice backward (guarded)
             current->next->prev = current->prev;
         }
-
-        // Delete the node with the target data
         delete current;
-
-        // Return the head of the list, with the target data node removed
         return head;
     }
 };
 ```
 
-Java
-
-```java
-/**
- * Definition for doubly-linked list.
- * class ListNode {
- *     int val;
- *     ListNode prev;
- *     ListNode next;
- *     ListNode() {}
- *     ListNode(int val) { this.val = val; }
- * };
- */
-
+```scala,editable
 class Solution {
-    public ListNode deleteNodeWithGivenData(ListNode head, int data) {
-
-        // If the list is empty, there is nothing to delete, so return
-        // null
-        if (head == null) {
-            return null;
-        }
-
-        // If the first node's value matches the target data, delete the
-        // first node
-        if (head.val == data) {
-
-            // Store the current head in a separate variable to be
-            // deleted later
-            ListNode nodeToBeDeleted = head;
-
-            // Move the head to the next node in the list
-            head = head.next;
-
-            // If the new head exists, update its previous pointer to be
-            // null, as it is now the first node
-            if (head != null) {
-                head.prev = null;
-            }
-
-            // Delete the node with the target data by dereferencing it
-            nodeToBeDeleted = null;
-
-            // Return the new head of the list
-            return head;
-        }
-
-        // Pointer to the current node, starting from the second node
-        ListNode current = head.next;
-
-        // If the target data is not in the first node, search for it in
-        // the rest of the list
-        while (current != null && current.val != data) {
-
-            // Continue traversing the list until the target data is
-            // found or the end of the list is reached
-            current = current.next;
-        }
-
-        // If the target data is not found in the list, return the head
-        if (current == null) {
-            return head;
-        }
-
-        // If the target data is found, remove the node from the list
-        current.prev.next = current.next;
-
-        // If the next node exists, update its previous pointer to skip
-        // the deleted node
-        if (current.next != null) {
-            current.next.prev = current.prev;
-        }
-
-        // Delete the node with the target data by dereferencing it
-        current = null;
-
-        // Return the head of the list, with the target data node removed
-        return head;
+  def deleteNodeWithGivenData(head: ListNode, data: Int): ListNode = {
+    if (head == null) return null
+    if (head.v == data) {
+      val newHead = head.next
+      if (newHead != null) newHead.prev = null
+      return newHead
     }
+    var current = head.next
+    while (current != null && current.v != data) current = current.next
+    if (current == null) return head
+    current.prev.next = current.next
+    if (current.next != null) current.next.prev = current.prev
+    head
+  }
+}
 ```
 
-Typescript
-
-```typescript
-/**
- * Definition for doubly-linked list.
- * class ListNode {
- *     val: number
- *     prev: ListNode | null
- *     next: ListNode | null
- *     constructor(
- *         val?: number,
- *         prev?: ListNode | null,
- *         next?: ListNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.prev = (prev===undefined ? null : prev)
- *         this.next = (next===undefined ? null : next)
- *     }
- * }
- */
-
-export class Solution {
-    deleteNodeWithGivenData(
-        head: ListNode | null,
-        data: number
-    ): ListNode | null {
-
-        // If the list is empty, there is nothing to delete, so return
-        // null
-        if (head === null) {
-            return null;
-        }
-
-        // If the first node's value matches the target data, delete the
-        // first node
-        if (head.val === data) {
-
-            // Store the current head in a separate variable to be
-            // deleted later
-            let nodeToBeDeleted = head;
-
-            // Move the head to the next node in the list
-            head = head.next;
-
-            // If the new head exists, update its previous pointer to be
-            // null, as it is now the first node
-            if (head !== null) {
-                head.prev = null;
-            }
-
-            // Dereference nodeToBeDeleted for garbage collection
-            nodeToBeDeleted = null;
-
-            // Return the new head of the list
-            return head;
-        }
-
-        // Pointer to the current node, starting from the second node
-        let current = head.next;
-
-        // If the target data is not in the first node, search for it in
-        // the rest of the list
-        while (current !== null && current.val !== data) {
-
-            // Continue traversing the list until the target data is
-            // found or the end of the list is reached
-            current = current.next;
-        }
-
-        // If the target data is not found in the list, return the head
-        if (current === null) {
-            return head;
-        }
-
-        // If the target data is found, remove the node from the list
-        current.prev!.next = current.next;
-
-        // If the next node exists, update its previous pointer to skip
-        // the deleted node
-        if (current.next !== null) {
-            current.next.prev = current.prev;
-        }
-
-        // Dereference current for garbage collection
-        current = null;
-
-        // Return the head of the list, with the target data node removed
-        return head;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for doubly-linked list.
- * function ListNode(val, prev, next) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.prev = (prev===undefined ? null : prev)
- *     this.next = (next===undefined ? null : next)
- * }
- */
-
-export class Solution {
+```javascript,editable
+class Solution {
     deleteNodeWithGivenData(head, data) {
-
-        // If the list is empty, there is nothing to delete, so return
-        // null
-        if (head === null) {
-            return null;
-        }
-
-        // If the first node's value matches the target data, delete the
-        // first node
-        if (head.val === data) {
-
-            // Store the current head in a separate variable to be
-            // deleted later
-            let nodeToBeDeleted = head;
-
-            // Move the head to the next node in the list
+        if (head === null) return null;
+        if (head.val === data) {                          // Case 2: head matches
             head = head.next;
-
-            // If the new head exists, update its previous pointer to be
-            // null, as it is now the first node
-            if (head !== null) {
-                head.prev = null;
-            }
-
-            // Delete the node with the target data
-            nodeToBeDeleted = null;
-
-            // Return the new head of the list
+            if (head !== null) head.prev = null;
             return head;
         }
-
-        // Pointer to the current node, starting from the second node
         let current = head.next;
-
-        // If the target data is not in the first node, search for it in
-        // the rest of the list
         while (current !== null && current.val !== data) {
-
-            // Continue traversing the list until the target data is
-            // found or the end of the list is reached
             current = current.next;
         }
-
-        // If the target data is not found in the list, return the head
-        if (current === null) {
-            return head;
-        }
-
-        // If the target data is found, remove the node from the list
+        if (current === null) return head;                // Case 4: not found
         current.prev.next = current.next;
-
-        // If the next node exists, update its previous pointer to skip
-        // the deleted node
-        if (current.next !== null) {
-            current.next.prev = current.prev;
-        }
-
-        // Delete the node with the target data
-        current = null;
-
-        // Return the head of the list, with the target data node removed
+        if (current.next !== null) current.next.prev = current.prev;
         return head;
     }
+}
 ```
 
-Python
+```typescript,editable
+class Solution {
+    deleteNodeWithGivenData(head: ListNode | null, data: number): ListNode | null {
+        if (head === null) return null;
+        if (head.val === data) {
+            head = head.next;
+            if (head !== null) head.prev = null;
+            return head;
+        }
+        let current: ListNode | null = head.next;
+        while (current !== null && current.val !== data) {
+            current = current.next;
+        }
+        if (current === null) return head;
+        (current.prev as ListNode).next = current.next;
+        if (current.next !== null) current.next.prev = current.prev;
+        return head;
+    }
+}
+```
 
-```python
-"""
-Definition for doubly-linked list.
-class ListNode:
-    def __init__(self, val):
-        self.val = val
-        self.prev = None
-        self.next = None
-"""
-
-// Diagram: from typing import Optional
-
-class Solution:
-    def delete_node_with_given_data(
-        self, head: Optional[ListNode], data: int
-    ) -> Optional[ListNode]:
-
-        # If the list is empty, there is nothing to delete, so return
-        # None
-        if head is None:
-            return None
-
-        # If the first node's value matches the target data, delete the
-        # first node
-        if head.val == data:
-
-            # Store the current head in a separate variable to be deleted
-            # later
-            node_to_be_deleted = head
-
-            # Move the head to the next node in the list
-            head = head.next
-
-            # If the new head exists, update its previous pointer to be
-            # None, as it is now the first node
-            if head is not None:
-                head.prev = None
-
-            # Dereference node_to_be_deleted for garbage collection
-            node_to_be_deleted = None
-
-            # Return the new head of the list
-            return head
-
-        # Pointer to the current node, starting from the second node
-        current = head.next
-
-        # If the target data is not in the first node, search for it in
-        # the rest of the list
-        while current is not None and current.val != data:
-
-            # Continue traversing the list until the target data is found
-            # or the end of the list is reached
-            current = current.next
-
-        # If the target data is not found in the list, return the head
-        if current is None:
-            return head
-
-        # If the target data is found, remove the node from the list
-        current.prev.next = current.next
-
-        # If the next node exists, update its previous pointer to skip
-        # the deleted node
-        if current.next is not None:
-            current.next.prev = current.prev
-
-        # Dereference current for garbage collection
-        current = None
-
-        # Return the head of the list, with the target data node removed
+```go,editable
+func deleteNodeWithGivenData(head *ListNode, data int) *ListNode {
+    if head == nil { return nil }
+    if head.Val == data {                                 // Case 2: head matches
+        head = head.Next
+        if head != nil { head.Prev = nil }
         return head
+    }
+    current := head.Next
+    for current != nil && current.Val != data {
+        current = current.Next
+    }
+    if current == nil { return head }                     // Case 4: not found
+    current.Prev.Next = current.Next
+    if current.Next != nil { current.Next.Prev = current.Prev }
+    return head
+}
 ```
+
+```kotlin,editable
+class Solution {
+    fun deleteNodeWithGivenData(head: ListNode?, data: Int): ListNode? {
+        if (head == null) return null
+        if (head.`val` == data) {
+            val newHead = head.next
+            if (newHead != null) newHead.prev = null
+            return newHead
+        }
+        var current = head.next
+        while (current != null && current.`val` != data) current = current.next
+        if (current == null) return head
+        current.prev!!.next = current.next
+        if (current.next != null) current.next!!.prev = current.prev
+        return head
+    }
+}
+```
+
+```rust,editable
+// See lesson 09 for a complete Rc<RefCell<...>> implementation.
+```
+
+</div>
+
+> *Before reading on — what would happen if we removed the `if (current.next != null)` guard? Trace it on `[5, 7, 3]` with `data = 3`.*
+>
+> `current` would land on the tail (node 3). `current.next` is `null`, and dereferencing `current.next.prev` would crash. The guard exists because the matching node may be the tail, in which case there is no successor whose `prev` needs updating.
 
 ## Complexity Analysis
 
-Similar to singly linked list, the time complexity of deleting a node with the given data depends on the position of the node in the linked list. Since the list must be traversed to locate the node containing the specified data, the number of operations varies based on where the node is found.
+Time depends on where the match lives. If the head matches, we're done in O(1). If the match sits at the tail (or the value is absent), we walked the whole list — O(N).
 
 ### Best case
 
-The best case occurs when the given data matches the first node. In this case, the function must delete the first node of the list. This process takes **constant** time, regardless of the linked list's size.
+The match is at the head. Constant time.
 
-// Diagram: Best case: Delete the head node
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    H["head ✗"] --> N1["..."] --> NEW["new head"]
+```
+
+<p align="center"><strong>Best case — head matches, no traversal needed.</strong></p>
 
 ### Worst case
 
-On the other hand, the worst case occurs when the given data matches the last node. In this case, the function must delete the last node of the list. This process takes linear time proportional to the length of the linked list, i.e., **O(N)**.
+The match is at the tail (or absent). Linear time.
 
-// Diagram: Worst case: Delete the tail node
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    H["head"] --> N1["[0]"] --> ETC["..."] --> T["[N-1] ✗"]
+    NOTE["O(N) walk to find target"] -.-> T
+```
 
-In a doubly-linked list, we can traverse the list in either direction to find a specific node. If we traverse from the **tail** node to the **head** node (in the reverse direction), deleting the first node becomes the worst-case scenario instead of deleting the last node. In the current implementation, we are traversing from the **head** node to the **tail** node, so the worst-case scenario is deleting the last node.
+<p align="center"><strong>Worst case — value lives at the tail (or doesn't exist), forcing a full O(N) traversal.</strong></p>
 
-The function's space complexity is constant, as it only creates a few variables that take up a fixed amount of space regardless of the size of the linked list.
-
-> **Best Case** - The node with given data is the first node
+> **Best Case** — match is the first node
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> -   Space Complexity — **O(1)**
+> -   Time Complexity — **O(1)**
 >
-> **Worst Case** - The node with the given data is the last node
+> **Worst Case** — match is at the tail, or absent
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(N)**
+> -   Space Complexity — **O(1)**
+> -   Time Complexity — **O(N)**
 
 ***
 
 # Delete node with given data
 
-## Problem Statement
+## The Problem
 
-Given the **head** of a doubly linked list and a **data** value, write a function to delete the first node with the given data from the list and return the head of the updated list.
+> Given the **head** of a doubly linked list and a **data** value, write a function to delete the first node with the given data from the list and return the head of the updated list.
 
-### Example
+```
+Input:  head = [5, 7, 3, 10], data = 3
+Output: [5, 7, 10]
+```
 
-> -   **Input:** head = \[5, 7, 3, 10\], data = 3
-> -   **Output:** \[5, 7, 10\]
+## The Solution
 
-## Solution
+<div class="lang-tabs">
 
-```cpp
-/**
- * Definition for doubly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *prev;
- *     ListNode *next;
- *     ListNode() : val(0), prev(nullptr), next(nullptr) {}
- *     ListNode(int val) : val(val), prev(nullptr), next(nullptr) {}
- * };
- */
+```python,editable
+class Solution:
+    def delete_node_with_given_data(self, head, data):
+        if head is None:
+            return None
+        if head.val == data:                      # Head match shortcut
+            head = head.next
+            if head is not None:
+                head.prev = None
+            return head
+        current = head.next
+        while current is not None and current.val != data:
+            current = current.next
+        if current is None:                       # Not found
+            return head
+        current.prev.next = current.next          # Splice forward
+        if current.next is not None:
+            current.next.prev = current.prev      # Splice backward (guarded)
+        return head
+```
 
-using namespace std;
+```java,editable
+class Solution {
+    public ListNode deleteNodeWithGivenData(ListNode head, int data) {
+        if (head == null) return null;
+        if (head.val == data) {
+            head = head.next;
+            if (head != null) head.prev = null;
+            return head;
+        }
+        ListNode current = head.next;
+        while (current != null && current.val != data) current = current.next;
+        if (current == null) return head;
+        current.prev.next = current.next;
+        if (current.next != null) current.next.prev = current.prev;
+        return head;
+    }
+}
+```
 
+```c,editable
+ListNode* deleteNodeWithGivenData(ListNode *head, int data) {
+    if (head == NULL) return NULL;
+    if (head->val == data) {
+        ListNode *old = head;
+        head = head->next;
+        if (head != NULL) head->prev = NULL;
+        free(old);
+        return head;
+    }
+    ListNode *current = head->next;
+    while (current != NULL && current->val != data) current = current->next;
+    if (current == NULL) return head;
+    current->prev->next = current->next;
+    if (current->next != NULL) current->next->prev = current->prev;
+    free(current);
+    return head;
+}
+```
+
+```cpp,editable
 class Solution {
 public:
     ListNode *deleteNodeWithGivenData(ListNode *head, int data) {
-
-        // If the list is empty, there is nothing to delete, so return
-        // nullptr
-        if (head == nullptr) {
-            return nullptr;
-        }
-
-        // If the first node's value matches the target data, delete the
-        // first node
+        if (head == nullptr) return nullptr;
         if (head->val == data) {
-
-            // Store the current head in a separate variable to be
-            // deleted later
-            ListNode *nodeToBeDeleted = head;
-
-            // Move the head to the next node in the list
+            ListNode *old = head;
             head = head->next;
-
-            // If the new head exists, update its previous pointer to be
-            // nullptr, as it is now the first node
-            if (head != nullptr) {
-                head->prev = nullptr;
-            }
-
-            // Delete the node with the target data
-            delete nodeToBeDeleted;
-
-            // Return the new head of the list
+            if (head != nullptr) head->prev = nullptr;
+            delete old;
             return head;
         }
-
-        // Pointer to the current node, starting from the head
         ListNode *current = head->next;
-
-        // If the target data is not in the first node, search for it in
-        // the rest of the list
-        while (current != nullptr && current->val != data) {
-
-            // Continue traversing the list until the target data is
-            // found or the end of the list is reached
-            current = current->next;
-        }
-
-        // If the target data is not found in the list, return the head
-        if (current == nullptr) {
-            return head;
-        }
-
-        // If the target data is found, remove the node from the list
+        while (current != nullptr && current->val != data) current = current->next;
+        if (current == nullptr) return head;
         current->prev->next = current->next;
-
-        // If the next node exists, update its previous pointer to skip
-        // the deleted node
-        if (current->next) {
-            current->next->prev = current->prev;
-        }
-
-        // Delete the node with the target data
+        if (current->next != nullptr) current->next->prev = current->prev;
         delete current;
-
-        // Return the head of the list, with the target data node removed
         return head;
     }
 };
 ```
+
+```scala,editable
+class Solution {
+  def deleteNodeWithGivenData(head: ListNode, data: Int): ListNode = {
+    if (head == null) return null
+    if (head.v == data) {
+      val newHead = head.next
+      if (newHead != null) newHead.prev = null
+      return newHead
+    }
+    var current = head.next
+    while (current != null && current.v != data) current = current.next
+    if (current == null) return head
+    current.prev.next = current.next
+    if (current.next != null) current.next.prev = current.prev
+    head
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    deleteNodeWithGivenData(head, data) {
+        if (head === null) return null;
+        if (head.val === data) {
+            head = head.next;
+            if (head !== null) head.prev = null;
+            return head;
+        }
+        let current = head.next;
+        while (current !== null && current.val !== data) current = current.next;
+        if (current === null) return head;
+        current.prev.next = current.next;
+        if (current.next !== null) current.next.prev = current.prev;
+        return head;
+    }
+}
+```
+
+```typescript,editable
+class Solution {
+    deleteNodeWithGivenData(head: ListNode | null, data: number): ListNode | null {
+        if (head === null) return null;
+        if (head.val === data) {
+            head = head.next;
+            if (head !== null) head.prev = null;
+            return head;
+        }
+        let current: ListNode | null = head.next;
+        while (current !== null && current.val !== data) current = current.next;
+        if (current === null) return head;
+        (current.prev as ListNode).next = current.next;
+        if (current.next !== null) current.next.prev = current.prev;
+        return head;
+    }
+}
+```
+
+```go,editable
+func deleteNodeWithGivenData(head *ListNode, data int) *ListNode {
+    if head == nil { return nil }
+    if head.Val == data {
+        head = head.Next
+        if head != nil { head.Prev = nil }
+        return head
+    }
+    current := head.Next
+    for current != nil && current.Val != data { current = current.Next }
+    if current == nil { return head }
+    current.Prev.Next = current.Next
+    if current.Next != nil { current.Next.Prev = current.Prev }
+    return head
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun deleteNodeWithGivenData(head: ListNode?, data: Int): ListNode? {
+        if (head == null) return null
+        if (head.`val` == data) {
+            val newHead = head.next
+            if (newHead != null) newHead.prev = null
+            return newHead
+        }
+        var current = head.next
+        while (current != null && current.`val` != data) current = current.next
+        if (current == null) return head
+        current.prev!!.next = current.next
+        if (current.next != null) current.next!!.prev = current.prev
+        return head
+    }
+}
+```
+
+```rust,editable
+// See lesson 09 for a complete Rc<RefCell<...>> implementation.
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — head = [5, 7, 3, 10], data = 3</strong></summary>
+
+```
+Initial │ 5 ↔ 7 ↔ 3 ↔ 10
+Step 1  │ head.val = 5 ≠ 3 → not the head case
+Step 2  │ current = node(7); 7 ≠ 3 → advance
+Step 3  │ current = node(3); 3 == 3 ✓ → splice
+Step 4  │ current.prev.next = current.next     │ 7.next = node(10)
+Step 5  │ current.next != null → splice back  │ 10.prev = node(7)
+Step 6  │ free node(3)
+Result: [5, 7, 10] ✓
+```
+
+</details>
 
 ***
 
 # Delete nodes with given data
 
-## Problem Statement
+## The Problem
 
-Given the **head** of a doubly linked list and a **data** value, write a function to delete **all** the nodes with the given data from the list and return the head of the updated list.
+> Given the **head** of a doubly linked list and a **data** value, write a function to delete **all** the nodes with the given data from the list and return the head of the updated list.
 
-### Example
+```
+Input:  head = [5, 7, 3, 10, 3], data = 3
+Output: [5, 7, 10]
+```
 
-> -   **Input:** head = \[5, 7, 3, 10, 3\], data = 3
-> -   **Output:** \[5, 7, 10\]
+This is the *plural* sibling of the previous problem. The trick is two-phase: first peel off any matching nodes from the front (the head can match repeatedly — `[3, 3, 3, 5]` with `data = 3` should leave `[5]`), then walk the rest with two pointers (`previous` and `current`), splicing out each match in O(1) per match.
 
-## Solution
+## The Solution
 
-```cpp
-/**
- * Definition for doubly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *prev;
- *     ListNode *next;
- *     ListNode() : val(0), prev(nullptr), next(nullptr) {}
- *     ListNode(int val) : val(val), prev(nullptr), next(nullptr) {}
- * };
- */
+<div class="lang-tabs">
 
-using namespace std;
+```python,editable
+class Solution:
+    def delete_nodes_with_given_data(self, head, data):
+        # Phase 1: peel matches off the front
+        while head is not None and head.val == data:
+            head = head.next
+            if head is not None:
+                head.prev = None
+        if head is None:                              # All nodes matched
+            return None
+        # Phase 2: scan the rest with previous/current
+        previous = head                               # Last known good node
+        current  = head.next
+        while current is not None:
+            # Inner loop: skip a run of matches
+            while current is not None and current.val == data:
+                current = current.next                # Advance past the matching run
+            # Splice previous → current (jumping over any deleted run)
+            previous.next = current
+            if current is not None:
+                current.prev = previous               # Mirror update
+                previous = current                    # previous catches up
+                current  = current.next               # advance past the kept node
+        return head
+```
 
+```java,editable
+class Solution {
+    public ListNode deleteNodesWithGivenData(ListNode head, int data) {
+        while (head != null && head.val == data) {
+            head = head.next;
+            if (head != null) head.prev = null;
+        }
+        if (head == null) return null;
+        ListNode previous = head;
+        ListNode current  = head.next;
+        while (current != null) {
+            while (current != null && current.val == data) current = current.next;
+            previous.next = current;
+            if (current != null) {
+                current.prev = previous;
+                previous = current;
+                current  = current.next;
+            }
+        }
+        return head;
+    }
+}
+```
+
+```c,editable
+ListNode* deleteNodesWithGivenData(ListNode *head, int data) {
+    while (head != NULL && head->val == data) {
+        ListNode *old = head;
+        head = head->next;
+        if (head != NULL) head->prev = NULL;
+        free(old);
+    }
+    if (head == NULL) return NULL;
+    ListNode *previous = head;
+    ListNode *current  = head->next;
+    while (current != NULL) {
+        while (current != NULL && current->val == data) {
+            ListNode *old = current;
+            current = current->next;
+            free(old);
+        }
+        previous->next = current;
+        if (current != NULL) {
+            current->prev = previous;
+            previous = current;
+            current  = current->next;
+        }
+    }
+    return head;
+}
+```
+
+```cpp,editable
 class Solution {
 public:
     ListNode *deleteNodesWithGivenData(ListNode *head, int data) {
-
-        // Check if the head is nullptr (empty list)
-        if (head == nullptr) {
-            return nullptr;
-        }
-
-        // Delete nodes with the given data at the beginning of the list
         while (head != nullptr && head->val == data) {
-
-            // Store the node to delete
-            ListNode *nodeToDelete = head;
-
-            // Move the head pointer to the next node
+            ListNode *old = head;
             head = head->next;
-
-            // Update the previous pointer of the new head
-            if (head != nullptr) {
-                head->prev = nullptr;
-            }
-
-            // Delete the node
-            delete nodeToDelete;
+            if (head != nullptr) head->prev = nullptr;
+            delete old;
         }
-
-        // If the list is empty after deleting nodes at the beginning
-        if (head == nullptr) {
-            return nullptr;
-        }
-
-        // Iterate through the rest of the list to delete nodes with the
-        // given data
+        if (head == nullptr) return nullptr;
         ListNode *previous = head;
-        ListNode *current = head->next;
-
+        ListNode *current  = head->next;
         while (current != nullptr) {
-
-            // Delete nodes with the given data
             while (current != nullptr && current->val == data) {
-                ListNode *nodeToDelete = current;
+                ListNode *old = current;
                 current = current->next;
-                delete nodeToDelete;
+                delete old;
             }
-
-            // Update the previous pointer to skip the deleted nodes
             previous->next = current;
             if (current != nullptr) {
                 current->prev = previous;
-            }
-
-            // Move the previous and current pointers forward
-            previous = current;
-            if (current != nullptr) {
-                current = current->next;
+                previous = current;
+                current  = current->next;
             }
         }
-
-        // Return the modified head of the list
         return head;
     }
 };
 ```
+
+```scala,editable
+class Solution {
+  def deleteNodesWithGivenData(head: ListNode, data: Int): ListNode = {
+    var h = head
+    while (h != null && h.v == data) {
+      h = h.next
+      if (h != null) h.prev = null
+    }
+    if (h == null) return null
+    var previous = h
+    var current  = h.next
+    while (current != null) {
+      while (current != null && current.v == data) current = current.next
+      previous.next = current
+      if (current != null) {
+        current.prev = previous
+        previous = current
+        current  = current.next
+      }
+    }
+    h
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    deleteNodesWithGivenData(head, data) {
+        while (head !== null && head.val === data) {
+            head = head.next;
+            if (head !== null) head.prev = null;
+        }
+        if (head === null) return null;
+        let previous = head;
+        let current  = head.next;
+        while (current !== null) {
+            while (current !== null && current.val === data) current = current.next;
+            previous.next = current;
+            if (current !== null) {
+                current.prev = previous;
+                previous = current;
+                current  = current.next;
+            }
+        }
+        return head;
+    }
+}
+```
+
+```typescript,editable
+class Solution {
+    deleteNodesWithGivenData(head: ListNode | null, data: number): ListNode | null {
+        while (head !== null && head.val === data) {
+            head = head.next;
+            if (head !== null) head.prev = null;
+        }
+        if (head === null) return null;
+        let previous: ListNode = head;
+        let current:  ListNode | null = head.next;
+        while (current !== null) {
+            while (current !== null && current.val === data) current = current.next;
+            previous.next = current;
+            if (current !== null) {
+                current.prev = previous;
+                previous = current;
+                current  = current.next;
+            }
+        }
+        return head;
+    }
+}
+```
+
+```go,editable
+func deleteNodesWithGivenData(head *ListNode, data int) *ListNode {
+    for head != nil && head.Val == data {
+        head = head.Next
+        if head != nil { head.Prev = nil }
+    }
+    if head == nil { return nil }
+    previous := head
+    current  := head.Next
+    for current != nil {
+        for current != nil && current.Val == data { current = current.Next }
+        previous.Next = current
+        if current != nil {
+            current.Prev = previous
+            previous = current
+            current  = current.Next
+        }
+    }
+    return head
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun deleteNodesWithGivenData(head: ListNode?, data: Int): ListNode? {
+        var h = head
+        while (h != null && h.`val` == data) {
+            h = h.next
+            if (h != null) h.prev = null
+        }
+        if (h == null) return null
+        var previous = h
+        var current  = h.next
+        while (current != null) {
+            while (current != null && current.`val` == data) current = current.next
+            previous.next = current
+            if (current != null) {
+                current.prev = previous
+                previous = current
+                current  = current.next
+            }
+        }
+        return h
+    }
+}
+```
+
+```rust,editable
+// See lesson 09 for a complete Rc<RefCell<...>> implementation.
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — head = [5, 7, 3, 10, 3], data = 3</strong></summary>
+
+```
+Initial │ 5 ↔ 7 ↔ 3 ↔ 10 ↔ 3
+Phase 1 │ head.val = 5 ≠ 3 → no front matches
+Phase 2 │ previous = node(5), current = node(7)
+        │ 7 ≠ 3 → previous.next = node(7); previous = 7; current = 3
+        │ inner: 3 == 3 → current = node(10)
+        │ previous.next = 10; 10.prev = 7; previous = 10; current = 3
+        │ inner: 3 == 3 → current = null
+        │ previous.next = null   (tail terminator restored)
+Result: [5, 7, 10] ✓
+```
+
+The two-phase split is what keeps the head case clean — the head can match repeatedly, but every other matching run sits between two well-defined neighbours.
+
+</details>
 
 ***
 
 # Understanding deletion after the given node
 
-This case remains more or less the same as its counterpart in a singly linked list. Here, as an extra step, we also need to update the pointer after the deletion operation, but we have already done it for other operations, so you must be familiar with it by now. Let's examine all the cases we need to consider.
+This case is similar to its singly-linked counterpart, with one extra step: after we splice out the node *after* the given one, we must update the **back-pointer** of the new successor — otherwise the backward chain breaks. Three cases.
 
-## 1\. The list is empty
+## 1. The list is empty
 
-If the list is empty and contains no elements, we cannot find the given node because it does not exist within the list. Deleting the node after the given node is not possible because there is no reference point within the list to perform the deletion. In this case, we can return the existing **head**, as the list is empty, and no node needs to be deleted.
+No list, no anchor. Return `null`.
 
-// Diagram: The list is empty
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    H(["head = null"]) -.-> EMPTY[" (empty list) "]
+    EMPTY -->|"no anchor"| OUT(["return null"])
+```
+
+<p align="center"><strong>Empty list — no anchor for the operation.</strong></p>
 
 > **Algorithm**
 >
 > -   **Step 1:** Return the original head node.
 
-## 2\. The given node is the last node
+## 2. The given node is the last node
 
-When the given node is the last node in the list, attempting to delete a node after it becomes an invalid operation. This is because, by definition, the last node has no successor, i.e., no node following it in the sequence. We can return the **head** because no other operation needs to be done.
+The given node has no successor — there's nothing *after* it to delete. Return the head unchanged.
 
-// Diagram: The given node is the last node
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    H(["head"]) --> N1["..."] <--> N2["given<br/>(tail)"] --> NULL(["null"])
+    NOTE["nothing after given to delete"] -.-> NULL
+```
+
+<p align="center"><strong>Given node is the tail — there is no successor, so the operation is a no-op.</strong></p>
 
 > **Algorithm**
 >
 > -   **Step 1:** Return the original head node.
 
-## 3\. The given node is not the last node
+## 3. The given node is not the last node
 
-To delete a node after a given node, we can update the  pointer of the given node to skip over the node that needs to be deleted. Then, we can remove the node that we want to delete. However, since it is a doubly linked list, we must also update the pointers of the nodes involved.
+Save `target = given.next`, then route `given.next` past it to `target.next`. If `target.next` exists (i.e. the deleted node was not itself the tail), update its `prev` back to `given`. Then free `target`.
 
-// Diagram: The given node is not the last node
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph BEFORE["Before"]
+        direction LR
+        BG["given"] <--> BT["target ✗"] <--> BS["successor"]
+    end
+    subgraph AFTER["After"]
+        direction LR
+        AG["given"] <--> AS["successor"]
+        GONE["target ✗<br/>(freed)"]
+    end
+    BEFORE -->|"1. save target = given.next<br/>2. given.next = target.next<br/>3. if successor: successor.prev = given<br/>4. free target"| AFTER
+    style GONE fill:#fee2e2,stroke:#ef4444
+```
+
+<p align="center"><strong>Splice out the node after the given one — three pointer touches plus a free, with the mirror update guarded against the case where the deleted node was the tail.</strong></p>
 
 > **Algorithm**
 >
-> -   **Step 1:** Create a temporary pointer to store the node's reference after the \`given\` node.
-> -   **Step 2:** Set the \`given\` node's \`next\` pointer to hold the reference of the node stored in the \`next\` pointer of the node after the \`given\` node.
-> -   **Step 3:** Set the \`previous\` pointer of the node after the \`given\` node to hold the reference of the \`given\` node.
+> -   **Step 1:** Create a temporary pointer to store the reference of the node after the `given` node.
+> -   **Step 2:** Set the `given` node's `next` pointer to hold the reference of the node stored in the `next` pointer of the node after the `given` node.
+> -   **Step 3:** Set the `prev` pointer of the node after the deleted node (if it exists) to hold the reference of the `given` node.
 > -   **Step 4:** Delete the node after the given node to free up memory.
 > -   **Step 5:** Return the original head node.
 
 ## Implementation
 
-When implementing the logic for deleting a node after a given node operation, we consider all the possible cases and write the code for each in conditional blocks.
+<div class="lang-tabs">
 
-C++
+```python,editable
+class Solution:
+    def delete_node_after_the_given_node(self, head, node):
+        if head is None:                              # Case 1: empty
+            return None
+        if node is None or node.next is None:         # Case 2: nothing after given
+            return head
+        target = node.next                            # Save the doomed node
+        node.next = target.next                       # Reroute given.next past target
+        if target.next is not None:                   # If target was not the tail
+            target.next.prev = node                   #   mirror — successor's back-link
+        del target
+        return head
+```
 
-```cpp
-/**
- * Definition for doubly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *prev;
- *     ListNode *next;
- *     ListNode() : val(0), prev(nullptr), next(nullptr) {}
- *     ListNode(int val) : val(val), prev(nullptr), next(nullptr) {}
- * };
- */
+```java,editable
+class Solution {
+    public ListNode deleteNodeAfterTheGivenNode(ListNode head, ListNode node) {
+        if (head == null) return null;
+        if (node == null || node.next == null) return head;     // Cases 1 & 2
+        ListNode target = node.next;                            // Save before clobber
+        node.next = target.next;                                // Reroute past target
+        if (target.next != null) {                              // Mirror (guarded)
+            target.next.prev = node;
+        }
+        target = null;
+        return head;
+    }
+}
+```
 
-// Diagram: using namespace std;
+```c,editable
+ListNode* deleteNodeAfterTheGivenNode(ListNode *head, ListNode *node) {
+    if (head == NULL) return NULL;
+    if (node == NULL || node->next == NULL) return head;
+    ListNode *target = node->next;
+    node->next = target->next;
+    if (target->next != NULL) target->next->prev = node;
+    free(target);
+    return head;
+}
+```
 
+```cpp,editable
 class Solution {
 public:
-    ListNode *deleteNodeAfterTheGivenNode(
-        ListNode *head,
-        ListNode *node
-    ) {
-
-        // If the list is empty, there's nothing to delete, so return
-        // nullptr.
-        if (head == nullptr) {
-            return nullptr;
+    ListNode *deleteNodeAfterTheGivenNode(ListNode *head, ListNode *node) {
+        if (head == nullptr) return nullptr;
+        if (node == nullptr || node->next == nullptr) return head;
+        ListNode *target = node->next;                          // Save before clobber
+        node->next = target->next;                              // Reroute past target
+        if (target->next != nullptr) {                          // Mirror (guarded)
+            target->next->prev = node;
         }
-
-        // If the given node is nullptr or it is the last node in the
-        // list, there's no node to delete, so return the original head.
-        if (node == nullptr || node->next == nullptr) {
-            return head;
-        }
-
-        // Store the next node in a temporary variable.
-        ListNode *nodeToBeDeleted = node->next;
-
-        // Link the current node (node) to the node after the one being
-        // deleted.
-        node->next = nodeToBeDeleted->next;
-
-        // Check if the node to be deleted is not the last node in the
-        // list
-        if (nodeToBeDeleted->next != nullptr) {
-
-            // Point the previous node of the node to be deleted to given
-            // node
-            nodeToBeDeleted->next->prev = node;
-        }
-
-        // Delete the node after given node
-        delete nodeToBeDeleted;
-
-        // Return the original head.
+        delete target;
         return head;
     }
 };
 ```
 
-Java
-
-```java
-/**
- * Definition for doubly-linked list.
- * class ListNode {
- *     int val;
- *     ListNode prev;
- *     ListNode next;
- *     ListNode() {}
- *     ListNode(int val) { this.val = val; }
- * };
- */
-
+```scala,editable
 class Solution {
-    public ListNode deleteNodeAfterTheGivenNode(
-        ListNode head,
-        ListNode node
-    ) {
-
-        // If the list is empty, there's nothing to delete, so return
-        // null.
-        if (head == null) {
-            return null;
-        }
-
-        // If the given node is null or it is the last node in the list,
-        // there's no node to delete, so return the original head.
-        if (node == null || node.next == null) {
-            return head;
-        }
-
-        // Store the next node in a temporary variable.
-        ListNode nodeToBeDeleted = node.next;
-
-        // Link the current node (node) to the node after the one being
-        // deleted.
-        node.next = nodeToBeDeleted.next;
-
-        // Check if the node to be deleted is not the last node in the
-        // list
-        if (nodeToBeDeleted.next != null) {
-
-            // Point the previous node of the node to be deleted to the
-            // given node
-            nodeToBeDeleted.next.prev = node;
-        }
-
-        // Dereference nodeToBeDeleted to allow garbage collection
-        nodeToBeDeleted = null;
-
-        // Return the original head.
-        return head;
-    }
+  def deleteNodeAfterTheGivenNode(head: ListNode, node: ListNode): ListNode = {
+    if (head == null) return null
+    if (node == null || node.next == null) return head
+    val target = node.next
+    node.next = target.next
+    if (target.next != null) target.next.prev = node
+    head
+  }
+}
 ```
 
-Typescript
-
-```typescript
-/**
- * Definition for doubly-linked list.
- * class ListNode {
- *     val: number
- *     prev: ListNode | null
- *     next: ListNode | null
- *     constructor(
- *         val?: number,
- *         prev?: ListNode | null,
- *         next?: ListNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.prev = (prev===undefined ? null : prev)
- *         this.next = (next===undefined ? null : next)
- *     }
- * }
- */
-
-export class Solution {
-    deleteNodeAfterTheGivenNode(
-        head: ListNode | null,
-        node: ListNode | null
-    ): ListNode | null {
-
-        // If the list is empty, there's nothing to delete, so return
-        // null.
-        if (head === null) {
-            return null;
-        }
-
-        // If the given node is null or it is the last node in the list,
-        // there's no node to delete, so return the original head.
-        if (node === null || node.next === null) {
-            return head;
-        }
-
-        // Store the next node in a temporary variable.
-        let nodeToBeDeleted = node.next;
-
-        // Link the current node (node) to the node after the one being
-        // deleted.
-        node.next = nodeToBeDeleted.next;
-
-        // Check if the node to be deleted is not the last node in the
-        // list
-        if (nodeToBeDeleted.next !== null) {
-
-            // Point the previous node of the node to be deleted to the
-            // given node
-            nodeToBeDeleted.next.prev = node;
-        }
-
-        // Dereference nodeToBeDeleted for garbage collection
-        nodeToBeDeleted = null;
-
-        // Return the original head.
-        return head;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for doubly-linked list.
- * function ListNode(val, prev, next) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.prev = (prev===undefined ? null : prev)
- *     this.next = (next===undefined ? null : next)
- * }
- */
-
-export class Solution {
+```javascript,editable
+class Solution {
     deleteNodeAfterTheGivenNode(head, node) {
-
-        // If the list is empty, there's nothing to delete, so return
-        // null.
-        if (head === null) {
-            return null;
-        }
-
-        // If the given node is null or it is the last node in the list,
-        // there's no node to delete, so return the original head.
-        if (node === null || node.next === null) {
-            return head;
-        }
-
-        // Store the next node in a temporary variable.
-        let nodeToBeDeleted = node.next;
-
-        // Link the current node (node) to the node after the one being
-        // deleted.
-        node.next = nodeToBeDeleted.next;
-
-        // Check if the node to be deleted is not the last node in the
-        // list
-        if (nodeToBeDeleted.next !== null) {
-
-            // Point the previous node of the node to be deleted to the
-            // given node
-            nodeToBeDeleted.next.prev = node;
-        }
-
-        // Dereference nodeToBeDeleted for garbage collection
-        nodeToBeDeleted = null;
-
-        // Return the original head.
+        if (head === null) return null;
+        if (node === null || node.next === null) return head;
+        const target = node.next;
+        node.next = target.next;
+        if (target.next !== null) target.next.prev = node;
         return head;
     }
+}
 ```
 
-Python
+```typescript,editable
+class Solution {
+    deleteNodeAfterTheGivenNode(head: ListNode | null, node: ListNode | null): ListNode | null {
+        if (head === null) return null;
+        if (node === null || node.next === null) return head;
+        const target = node.next;
+        node.next = target.next;
+        if (target.next !== null) target.next.prev = node;
+        return head;
+    }
+}
+```
 
-```python
-"""
-Definition for doubly-linked list.
-class ListNode:
-    def __init__(self, val):
-        self.val = val
-        self.prev = None
-        self.next = None
-"""
+```go,editable
+func deleteNodeAfterTheGivenNode(head, node *ListNode) *ListNode {
+    if head == nil { return nil }
+    if node == nil || node.Next == nil { return head }
+    target := node.Next
+    node.Next = target.Next
+    if target.Next != nil { target.Next.Prev = node }
+    return head
+}
+```
 
-// Diagram: from typing import Optional
-
-class Solution:
-    def delete_node_after_the_given_node(
-        self, head: Optional[ListNode], node: Optional[ListNode]
-    ) -> Optional[ListNode]:
-
-        # If the list is empty, there's nothing to delete, so return
-        # None.
-        if head is None:
-            return None
-
-        # If the given node is None or it is the last node in the list,
-        # there's no node to delete, so return the original head.
-        if node is None or node.next is None:
-            return head
-
-        # Store the next node in a temporary variable.
-        node_to_be_deleted = node.next
-
-        # Link the current node (node) to the node after the one being
-        # deleted.
-        node.next = node_to_be_deleted.next
-
-        # Check if the node to be deleted is not the last node in the
-        # list
-        if node_to_be_deleted.next is not None:
-
-            # Point the previous node of the node to be deleted to the
-            # given node
-            node_to_be_deleted.next.prev = node
-
-        # Dereference node_to_be_deleted for garbage collection
-        node_to_be_deleted = None
-
-        # Return the original head.
+```kotlin,editable
+class Solution {
+    fun deleteNodeAfterTheGivenNode(head: ListNode?, node: ListNode?): ListNode? {
+        if (head == null) return null
+        if (node == null || node.next == null) return head
+        val target = node.next!!
+        node.next = target.next
+        if (target.next != null) target.next!!.prev = node
         return head
+    }
+}
 ```
+
+```rust,editable
+// See lesson 09 for a complete Rc<RefCell<...>> implementation.
+```
+
+</div>
 
 ## Complexity Analysis
 
-We need to make some pointer manipulations to delete the node. Therefore, the time complexity is constant. Similarly, we don't create any new nodes in all cases, so the space complexity is also constant, i.e., **O(1)**.
+We touch a constant number of pointers and never traverse. Both time and space are O(1).
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    G["given"] -->|"O(1) — 3 pointers + free"| S["successor (or null)"]
+```
+
+<p align="center"><strong>All cases — delete after the given node touches at most three pointers and one free, regardless of list size.</strong></p>
 
 > **Best Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> -   Space Complexity — **O(1)**
+> -   Time Complexity — **O(1)**
 >
 > **Worst Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> -   Space Complexity — **O(1)**
+> -   Time Complexity — **O(1)**
 
 ***
 
 # Delete node after the given node
 
-## Problem Statement
+## The Problem
 
-Given the **head** of a doubly linked list and a **random** **node** in a linked list, write a function to delete the node after the given node and return the head of the updated list.
+> Given the **head** of a doubly linked list and a reference to a **random node** in the list, write a function to delete the node after the given node and return the head of the updated list.
 
-### Example
+```
+Input:  head = [5, 7, 3, 10], node = node(7)
+Output: [5, 7, 10]
+```
 
-> -   **Input:** head = \[5, 7, 3, 10\], node = 7
-> -   **Output:** \[5, 7, 10\]
+## The Solution
 
-## Solution
+<div class="lang-tabs">
 
-```cpp
-/**
- * Definition for doubly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *prev;
- *     ListNode *next;
- *     ListNode() : val(0), prev(nullptr), next(nullptr) {}
- *     ListNode(int val) : val(val), prev(nullptr), next(nullptr) {}
- * };
- */
+```python,editable
+class Solution:
+    def delete_node_after_the_given_node(self, head, node):
+        if head is None: return None
+        if node is None or node.next is None: return head
+        target    = node.next                          # Save before clobber
+        node.next = target.next                        # Reroute past target
+        if target.next is not None:                    # Guarded mirror update
+            target.next.prev = node
+        return head
+```
 
-using namespace std;
+```java,editable
+class Solution {
+    public ListNode deleteNodeAfterTheGivenNode(ListNode head, ListNode node) {
+        if (head == null) return null;
+        if (node == null || node.next == null) return head;
+        ListNode target = node.next;
+        node.next = target.next;
+        if (target.next != null) target.next.prev = node;
+        return head;
+    }
+}
+```
 
+```c,editable
+ListNode* deleteNodeAfterTheGivenNode(ListNode *head, ListNode *node) {
+    if (head == NULL) return NULL;
+    if (node == NULL || node->next == NULL) return head;
+    ListNode *target = node->next;
+    node->next = target->next;
+    if (target->next != NULL) target->next->prev = node;
+    free(target);
+    return head;
+}
+```
+
+```cpp,editable
 class Solution {
 public:
-    ListNode *deleteNodeAfterTheGivenNode(
-        ListNode *head,
-        ListNode *node
-    ) {
-
-        // If the list is empty, there's nothing to delete, so return
-        // nullptr.
-        if (head == nullptr) {
-            return nullptr;
-        }
-
-        // If the given node is nullptr or it is the last node in the
-        // list, there's no node to delete, so return the original head.
-        if (node == nullptr || node->next == nullptr) {
-            return head;
-        }
-
-        // Store the next node in a temporary variable.
-        ListNode *nodeToBeDeleted = node->next;
-
-        // Link the current node (node) to the node after the one being
-        // deleted.
-        node->next = nodeToBeDeleted->next;
-
-        // Check if the node to be deleted is not the last node in the
-        // list
-        if (nodeToBeDeleted->next != nullptr) {
-
-            // Point the previous node of the node to be deleted to given
-            // node
-            nodeToBeDeleted->next->prev = node;
-        }
-
-        // Delete the node after given node
-        delete nodeToBeDeleted;
-
-        // Return the original head.
+    ListNode *deleteNodeAfterTheGivenNode(ListNode *head, ListNode *node) {
+        if (head == nullptr) return nullptr;
+        if (node == nullptr || node->next == nullptr) return head;
+        ListNode *target = node->next;
+        node->next = target->next;
+        if (target->next != nullptr) target->next->prev = node;
+        delete target;
         return head;
     }
 };
 ```
+
+```scala,editable
+class Solution {
+  def deleteNodeAfterTheGivenNode(head: ListNode, node: ListNode): ListNode = {
+    if (head == null) return null
+    if (node == null || node.next == null) return head
+    val target = node.next
+    node.next = target.next
+    if (target.next != null) target.next.prev = node
+    head
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    deleteNodeAfterTheGivenNode(head, node) {
+        if (head === null) return null;
+        if (node === null || node.next === null) return head;
+        const target = node.next;
+        node.next = target.next;
+        if (target.next !== null) target.next.prev = node;
+        return head;
+    }
+}
+```
+
+```typescript,editable
+class Solution {
+    deleteNodeAfterTheGivenNode(head: ListNode | null, node: ListNode | null): ListNode | null {
+        if (head === null) return null;
+        if (node === null || node.next === null) return head;
+        const target = node.next;
+        node.next = target.next;
+        if (target.next !== null) target.next.prev = node;
+        return head;
+    }
+}
+```
+
+```go,editable
+func deleteNodeAfterTheGivenNode(head, node *ListNode) *ListNode {
+    if head == nil { return nil }
+    if node == nil || node.Next == nil { return head }
+    target := node.Next
+    node.Next = target.Next
+    if target.Next != nil { target.Next.Prev = node }
+    return head
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun deleteNodeAfterTheGivenNode(head: ListNode?, node: ListNode?): ListNode? {
+        if (head == null) return null
+        if (node == null || node.next == null) return head
+        val target = node.next!!
+        node.next = target.next
+        if (target.next != null) target.next!!.prev = node
+        return head
+    }
+}
+```
+
+```rust,editable
+// See lesson 09 for a complete Rc<RefCell<...>> implementation.
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — head = [5, 7, 3, 10], node = node(7)</strong></summary>
+
+```
+Initial │ 5 ↔ 7 ↔ 3 ↔ 10
+Step 1  │ target = node(7).next = node(3)        (save before clobber)
+Step 2  │ node(7).next = target.next = node(10)  │ 5 ↔ 7 → 10
+Step 3  │ target.next != null → 10.prev = node(7)│ 5 ↔ 7 ↔ 10  (mirror complete)
+Step 4  │ free node(3)
+Result: [5, 7, 10] ✓
+```
+
+</details>
 
 ***
 
 # Understanding deletion before a given node
 
-Deleting a node before the given node is an operation that gives a doubly linked list a significant advantage over a singly linked list. In a singly linked list, the implementation of this operation is complicated as it requires keeping a `previousToPrevious` reference variable to delete the node before a given node.
+This is one of the operations that gives a doubly linked list a real edge over a singly linked one. In a singly linked list, "delete before X" needs us to track a `previousToPrevious` pointer all the way from the head — there's no other way to find the node *two steps* before X. In a doubly linked list, both candidates we need are within one hop: `node.prev` is the doomed node, and `node.prev.prev` is the predecessor's predecessor whose `next` we have to reroute. Four cases.
 
-However, in a doubly linked list, we can access the nodes in the reverse direction using the pointer stored in every node, making the entire operation much simpler. Let's examine all the possible cases for deleting a node before the given node in a doubly linked list.
+## 1. The list is empty (or given is null)
 
-## 1\. The list is empty
+No anchor exists. Return the head unchanged.
 
-If the list is empty and contains no elements, we cannot find the given node because it does not exist within the list. Deleting the node after the given node is not possible because there is no reference point within the list to perform the deletion. In this case, we can return the existing **head**, as the list is empty, and no node needs to be deleted.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    H(["head = null<br/>or given = null"]) -->|"no anchor"| OUT(["return head unchanged"])
+```
 
-// Diagram: The list is empty
+<p align="center"><strong>Empty list or null reference — no anchor exists, return early.</strong></p>
 
 > **Algorithm**
 >
 > -   **Step 1:** Return the original head node.
 
-## 2\. The given node is the first node
+## 2. The given node is the head
 
-When the given node is the first node in the list, attempting to delete a node before it becomes an invalid operation. This is because, by definition, the first node has no predecessor, i.e., no node preceding it in the sequence. We can return the **head** because no other operation needs to be done.
+The head has no predecessor — there is nothing *before* it to delete. Return the head unchanged.
 
-// Diagram: The given node is the first node
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    NULL(["null"]) --- G["given<br/>(= head)"] <--> N1["..."]
+    NOTE["nothing before head"] -.-> NULL
+```
+
+<p align="center"><strong>Given is the head — no predecessor exists, the operation is a no-op.</strong></p>
 
 > **Algorithm**
 >
 > -   **Step 1:** Return the original head node.
 
-## 3\. The given node is the second node
+## 3. The given node is the second node
 
-This is a unique situation because removing the node before the second node essentially means deleting the linked list's head node. As learned earlier, this scenario is identical to **deleting the first node**. We need to update the head to store the reference to the second node and then delete the old head.
+The node before the second node *is* the head. Deleting it means a new head emerges — the given node itself becomes the head. This is functionally **delete the first node**.
 
-// Diagram: The list has more than one node
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph BEFORE["Before"]
+        direction LR
+        BH(["head"]) --> H1["5 ✗"] <--> G["given (7)"] <--> H3["3"]
+    end
+    subgraph AFTER["After"]
+        direction LR
+        AH(["head"]) --> AG["given (7)"] <--> N3["3"]
+        GONE["5 ✗<br/>(freed)"]
+    end
+    BEFORE -->|"delete-first-node + update head reference"| AFTER
+    style GONE fill:#fee2e2,stroke:#ef4444
+```
+
+<p align="center"><strong>Given is the second node — the predecessor is the head. Deleting it promotes the given node to head.</strong></p>
 
 > **Algorithm**
 >
 > -   **Step 1:** Create a temporary pointer to store the current head node.
-> -   **Step 2:** Move the head pointer to the next node.
-> -   **Step 3:** Set the \`previous\` pointer of the new head node to \`null\`.
+> -   **Step 2:** Move the head pointer to the next node (which is the given node).
+> -   **Step 3:** Set the `prev` pointer of the new head node to `null`.
 > -   **Step 4:** Delete the original head node to free up memory.
 > -   **Step 5:** Return the new head node.
 
-## 4\. The given node is any other node
+## 4. The given node is any other node
 
-Deleting a node before a given node is similar to **deleting the given node**. The only difference is that the node to be deleted is the one before the given node. This process involves four steps.
+The doomed node is `target = given.prev`, and its predecessor is `target.prev` (= `given.prev.prev`). Both are O(1) hops away. Reroute `given.prev = target.prev`, route `target.prev.next = given`, and free `target`.
 
-// Diagram: The given node is any other node
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph BEFORE["Before"]
+        direction LR
+        PP["pre-predecessor<br/>(= given.prev.prev)"] <--> BT["target ✗<br/>(= given.prev)"] <--> BG["given"]
+    end
+    subgraph AFTER["After"]
+        direction LR
+        AP["pre-predecessor"] <--> AG["given"]
+        GONE["target ✗<br/>(freed)"]
+    end
+    BEFORE -->|"1. save target = given.prev<br/>2. given.prev = target.prev<br/>3. if pre-pre: pre-pre.next = given<br/>4. free target"| AFTER
+    style GONE fill:#fee2e2,stroke:#ef4444
+```
+
+<p align="center"><strong>Given is mid-list — splice the predecessor out by routing <code>given.prev</code> to <code>given.prev.prev</code> and the pre-predecessor's <code>next</code> to <code>given</code>. Both hops are O(1).</strong></p>
 
 > **Algorithm**
 >
-> -   **Step 1:** Create a temporary pointer to store the reference of the node before the \`given\` node.
-> -   **Step 2:** Set the given node's \`previous\` pointer to hold the reference of the node before the node to be deleted.
-> -   **Step 3:** Set \`next\` pointer of the node before the to-be-deleted node to hold the reference of the \`given\` node.
-> -   **Step 4:** Delete the node before the \`given\` node to free up memory.
+> -   **Step 1:** Create a temporary pointer to store the reference of the node before the `given` node.
+> -   **Step 2:** Set the given node's `prev` pointer to hold the reference of the node before the node to be deleted.
+> -   **Step 3:** Set the `next` pointer of the node before the to-be-deleted node (if it exists) to hold the reference of the `given` node.
+> -   **Step 4:** Delete the node before the `given` node to free up memory.
 > -   **Step 5:** Return the original head node.
 
 ## Implementation
 
-When implementing the logic for deleting the node before the given node, we consider all the possible cases and write the code for each in conditional blocks. 
+<div class="lang-tabs">
 
-C++
+```python,editable
+class Solution:
+    def delete_node_before_the_given_node(self, head, node):
+        if head is None or node is None:                # Case 1
+            return head
+        if node is head:                                # Case 2: given is head — nothing before
+            return head
+        if head.next is node:                           # Case 3: given is second node
+            old_head  = head
+            head      = head.next                       # given becomes the new head
+            head.prev = None
+            del old_head
+            return head
+        # Case 4: general — splice predecessor out
+        target    = node.prev                           # The doomed node
+        node.prev = target.prev                         # given's prev jumps over target
+        if target.prev is not None:                     # Mirror — pre-predecessor's next
+            target.prev.next = node
+        del target
+        return head
+```
 
-```cpp
-/**
- * Definition for doubly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *prev;
- *     ListNode *next;
- *     ListNode() : val(0), prev(nullptr), next(nullptr) {}
- *     ListNode(int val) : val(val), prev(nullptr), next(nullptr) {}
- * };
- */
+```java,editable
+class Solution {
+    public ListNode deleteNodeBeforeTheGivenNode(ListNode head, ListNode node) {
+        if (head == null || node == null) return head;
+        if (node == head) return head;                          // Case 2
+        if (head.next == node) {                                // Case 3: given is second
+            ListNode old = head;
+            head      = head.next;
+            head.prev = null;
+            old = null;
+            return head;
+        }
+        ListNode target = node.prev;                            // Case 4
+        node.prev = target.prev;
+        if (target.prev != null) target.prev.next = node;
+        target = null;
+        return head;
+    }
+}
+```
 
-// Diagram: using namespace std;
+```c,editable
+ListNode* deleteNodeBeforeTheGivenNode(ListNode *head, ListNode *node) {
+    if (head == NULL || node == NULL) return head;
+    if (node == head) return head;
+    if (head->next == node) {
+        ListNode *old = head;
+        head = head->next;
+        head->prev = NULL;
+        free(old);
+        return head;
+    }
+    ListNode *target = node->prev;
+    node->prev = target->prev;
+    if (target->prev != NULL) target->prev->next = node;
+    free(target);
+    return head;
+}
+```
 
+```cpp,editable
 class Solution {
 public:
-    ListNode *deleteNodeBeforeTheGivenNode(
-        ListNode *head,
-        ListNode *node
-    ) {
-
-        // If the head or the given node is nullptr, there is nothing to
-        // delete Return the existing head
-        if (head == nullptr || node == nullptr) {
-            return head;
-        }
-
-        // If the given node is the head node, we cannot delete the node
-        // before it
-        if (node == head) {
-            return head;
-        }
-
-        // If the node to delete is the immediate next node of the head
-        // Update the head to point to the next node, delete the original
-        // head, and return the updated head
-        if (head->next != nullptr && head->next == node) {
-            ListNode *nodeToBeDeleted = head;
-            head = head->next;
-
-            // Update the new head's previous pointer to null
+    ListNode *deleteNodeBeforeTheGivenNode(ListNode *head, ListNode *node) {
+        if (head == nullptr || node == nullptr) return head;
+        if (node == head) return head;                          // Case 2
+        if (head->next == node) {                               // Case 3
+            ListNode *old = head;
+            head       = head->next;
             head->prev = nullptr;
-
-            // Delete the node before the given node
-            delete nodeToBeDeleted;
+            delete old;
             return head;
         }
-
-        // If the node before the given node is not the head,
-        // update the pointers of the neighboring nodes and delete the
-        // node before the given node
-
-        // Get the node before the given node
-        ListNode *nodeToBeDeleted = node->prev;
-
-        // Update the previous pointer of the given node
-        node->prev = nodeToBeDeleted->prev;
-        if (nodeToBeDeleted->prev != nullptr) {
-
-            // Update the next pointer of the node before the given node
-            nodeToBeDeleted->prev->next = node;
-        }
-
-        // Delete the node before the given node
-        delete nodeToBeDeleted;
-
-        // Return the head of the updated linked list
+        ListNode *target = node->prev;                          // Case 4
+        node->prev = target->prev;
+        if (target->prev != nullptr) target->prev->next = node;
+        delete target;
         return head;
     }
 };
 ```
 
-Java
-
-```java
-/**
- * Definition for doubly-linked list.
- * class ListNode {
- *     int val;
- *     ListNode prev;
- *     ListNode next;
- *     ListNode() {}
- *     ListNode(int val) { this.val = val; }
- * };
- */
-
+```scala,editable
 class Solution {
-    public ListNode deleteNodeBeforeTheGivenNode(
-        ListNode head,
-        ListNode node
-    ) {
-
-        // If the head or the given node is null, there is nothing to
-        // delete Return the existing head
-        if (head == null || node == null) {
-            return head;
-        }
-
-        // If the given node is the head node, we cannot delete the node
-        // before it
-        if (node == head) {
-            return head;
-        }
-
-        // If the node to delete is the immediate next node of the head
-        // Update the head to point to the next node, delete the original
-        // head, and return the updated head
-        if (head.next != null && head.next == node) {
-            ListNode nodeToBeDeleted = head;
-            head = head.next;
-
-            // Update the new head's previous pointer to null
-            head.prev = null;
-
-            // Dereference for garbage collection
-            nodeToBeDeleted = null;
-            return head;
-        }
-
-        // If the node before the given node is not the head,
-        // update the pointers of the neighboring nodes and delete the
-        // node before the given node
-
-        // Get the node before the given node
-        ListNode nodeToBeDeleted = node.prev;
-
-        // Update the previous pointer of the given node
-        node.prev = nodeToBeDeleted.prev;
-        if (nodeToBeDeleted.prev != null) {
-
-            // Update the next pointer of the node before the given node
-            nodeToBeDeleted.prev.next = node;
-        }
-
-        // Dereference for garbage collection
-        nodeToBeDeleted = null;
-
-        // Return the head of the updated linked list
-        return head;
+  def deleteNodeBeforeTheGivenNode(head: ListNode, node: ListNode): ListNode = {
+    if (head == null || node == null) return head
+    if (node eq head) return head
+    if (head.next eq node) {
+      val newHead = head.next
+      newHead.prev = null
+      return newHead
     }
+    val target = node.prev
+    node.prev = target.prev
+    if (target.prev != null) target.prev.next = node
+    head
+  }
+}
 ```
 
-Typescript
-
-```typescript
-/**
- * Definition for doubly-linked list.
- * class ListNode {
- *     val: number
- *     prev: ListNode | null
- *     next: ListNode | null
- *     constructor(
- *         val?: number,
- *         prev?: ListNode | null,
- *         next?: ListNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.prev = (prev===undefined ? null : prev)
- *         this.next = (next===undefined ? null : next)
- *     }
- * }
- */
-
-export class Solution {
-    deleteNodeBeforeTheGivenNode(
-        head: ListNode | null,
-        node: ListNode | null
-    ): ListNode | null {
-
-        // If the head or the given node is null, there is nothing to
-        // delete Return the existing head
-        if (head === null || node === null) {
-            return head;
-        }
-
-        // If the given node is the head node, we cannot delete the node
-        // before it
-        if (node === head) {
-            return head;
-        }
-
-        // If the node to delete is the immediate next node of the head
-        // Update the head to point to the next node, delete the original
-        // head, and return the updated head
-        if (head.next !== null && head.next === node) {
-            let nodeToBeDeleted: ListNode | null = head;
-            head = head.next;
-
-            // Update the new head's previous pointer to null
-            head.prev = null;
-
-            // Dereference for garbage collection
-            nodeToBeDeleted = null;
-            return head;
-        }
-
-        // Get the node before the given node
-        let nodeToBeDeleted: ListNode | null = node.prev;
-
-        // Update the previous pointer of the given node
-        node.prev = nodeToBeDeleted.prev;
-        if (nodeToBeDeleted.prev !== null) {
-
-            // Update the next pointer of the node before the given node
-            nodeToBeDeleted.prev.next = node;
-        }
-
-        // Dereference for garbage collection
-        nodeToBeDeleted = null;
-
-        // Return the head of the updated linked list
-        return head;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for doubly-linked list.
- * function ListNode(val, prev, next) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.prev = (prev===undefined ? null : prev)
- *     this.next = (next===undefined ? null : next)
- * }
- */
-
-export class Solution {
+```javascript,editable
+class Solution {
     deleteNodeBeforeTheGivenNode(head, node) {
-
-        // If the head or the given node is null, there is nothing to
-        // delete Return the existing head
-        if (head === null || node === null) {
-            return head;
-        }
-
-        // If the given node is the head node, we cannot delete the node
-        // before it
-        if (node === head) {
-            return head;
-        }
-
-        // If the node to delete is the immediate next node of the head
-        // Update the head to point to the next node, delete the original
-        // head, and return the updated head
-        if (head.next !== null && head.next === node) {
-            let nodeToBeDeleted = head;
-            head = head.next;
-
-            // Update the new head's previous pointer to null
+        if (head === null || node === null) return head;
+        if (node === head) return head;
+        if (head.next === node) {
+            head      = head.next;
             head.prev = null;
-
-            // Dereference  for garbage collection
-            nodeToBeDeleted = null;
             return head;
         }
-
-        // Get the node before the given node
-        let nodeToBeDeleted = node.prev;
-
-        // Update the previous pointer of the given node
-        node.prev = nodeToBeDeleted.prev;
-        if (nodeToBeDeleted.prev !== null) {
-
-            // Update the next pointer of the node before the given node
-            nodeToBeDeleted.prev.next = node;
-        }
-
-        // Dereference for garbage collection
-        nodeToBeDeleted = null;
-
-        // Return the head of the updated linked list
+        const target = node.prev;
+        node.prev = target.prev;
+        if (target.prev !== null) target.prev.next = node;
         return head;
     }
+}
 ```
 
-Python
+```typescript,editable
+class Solution {
+    deleteNodeBeforeTheGivenNode(head: ListNode | null, node: ListNode | null): ListNode | null {
+        if (head === null || node === null) return head;
+        if (node === head) return head;
+        if (head.next === node) {
+            head       = head.next;
+            head!.prev = null;
+            return head;
+        }
+        const target = node.prev as ListNode;
+        node.prev = target.prev;
+        if (target.prev !== null) target.prev.next = node;
+        return head;
+    }
+}
+```
 
-```python
-"""
-Definition for doubly-linked list.
-class ListNode:
-    def __init__(self, val):
-        self.val = val
-        self.prev = None
-        self.next = None
-"""
-
-// Diagram: from typing import Optional
-
-class Solution:
-    def delete_node_before_the_given_node(
-        self, head: Optional[ListNode], node: Optional[ListNode]
-    ) -> Optional[ListNode]:
-
-        # If the head or the given node is None, there is nothing to delete
-        # Return the existing head
-        if head is None or node is None:
-            return head
-
-        # If the given node is the head node, we cannot delete the node
-        # before it
-        if node == head:
-            return head
-
-        # If the node to delete is the immediate next node of the head
-        # Update the head to point to the next node, delete the original
-        # head, and return the updated head
-        if head.next is not None and head.next == node:
-            node_to_be_deleted = head
-            head = head.next
-
-            # Update the new head's previous pointer to None
-            head.prev = None
-
-            # Dereference for garbage collection
-            node_to_be_deleted = None
-            return head
-
-        # Get the node before the given node
-        node_to_be_deleted = node.prev
-
-        # Update the previous pointer of the given node
-        node.prev = node_to_be_deleted.prev
-        if node_to_be_deleted.prev is not None:
-
-            # Update the next pointer of the node before the given node
-            node_to_be_deleted.prev.next = node
-
-        # Dereference for garbage collection
-        node_to_be_deleted = None
-
-        # Return the head of the updated linked list
+```go,editable
+func deleteNodeBeforeTheGivenNode(head, node *ListNode) *ListNode {
+    if head == nil || node == nil { return head }
+    if node == head { return head }
+    if head.Next == node {
+        head      = head.Next
+        head.Prev = nil
         return head
+    }
+    target := node.Prev
+    node.Prev = target.Prev
+    if target.Prev != nil { target.Prev.Next = node }
+    return head
+}
 ```
+
+```kotlin,editable
+class Solution {
+    fun deleteNodeBeforeTheGivenNode(head: ListNode?, node: ListNode?): ListNode? {
+        if (head == null || node == null) return head
+        if (node === head) return head
+        if (head.next === node) {
+            val newHead = head.next!!
+            newHead.prev = null
+            return newHead
+        }
+        val target = node.prev!!
+        node.prev = target.prev
+        if (target.prev != null) target.prev!!.next = node
+        return head
+    }
+}
+```
+
+```rust,editable
+// See lesson 09 for a complete Rc<RefCell<...>> implementation.
+```
+
+</div>
+
+> *Why is the "given is the second node" case special? Try to fit it under the general case — what goes wrong?*
+>
+> Under the general case, we set `target.prev.next = node` only if `target.prev != null`. If `target` is the head (Case 3), `target.prev` is null and that step is skipped — but we **also** need to update the external `head` reference, because the head itself is gone. The general case alone never updates `head`. Splitting Case 3 out keeps the head reference honest.
 
 ## Complexity Analysis
 
-Similar to singly linked list, the time complexity of deleting a node before a given node depends on the position of the target node in the linked list. Since the list must be traversed to locate the node and its predecessor, the number of operations varies based on where the deletion occurs.
+We never traverse — both the doomed node and its predecessor are reachable in O(1) via `prev` links. This is the same headline win we saw with insertion-before-given-node, expressed for deletion.
 
-### Best case
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    PP["pre-predecessor"] -->|"O(1)"| G["given"]
+    NOTE["target = given.prev — O(1)<br/>target.prev = given.prev.prev — O(1)"] -.-> G
+```
 
-The best case occurs when the given node is the second node of the list. In this case, the function must delete the first node of the list. This process takes**constant**time, regardless of the linked list's size.
-
-// Diagram: Best case: Delete the head node
-
-### Worst case
-
-On the other hand, the worst case occurs when the given data matches the last node. In this case, the function must delete the second last node of the list. This process takes linear time proportional to the length of the linked list, i.e.,**O(N)**.
-
-// Diagram: Worst case: Delete the tail node
-
-The function's space complexity is **O(1)** because it only creates a single new node and does not use any additional data structures.
+<p align="center"><strong>All cases — delete before the given node touches a constant number of pointers, with both the target and its predecessor reachable via <code>prev</code> in O(1).</strong></p>
 
 > **Best Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> -   Space Complexity — **O(1)**
+> -   Time Complexity — **O(1)**
 >
 > **Worst Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> -   Space Complexity — **O(1)**
+> -   Time Complexity — **O(1)**
 
 ***
 
 # Delete node before the given node
 
-## Problem Statement
+## The Problem
 
-Given the **head** of a doubly linked list and a **random node** in the list, write a function to delete the node before the given node and return the head of the updated list.
+> Given the **head** of a doubly linked list and a reference to a **random node** in the list, write a function to delete the node before the given node and return the head of the updated list.
 
-### Example
+```
+Input:  head = [5, 7, 3, 10], node = node(3)
+Output: [5, 3, 10]
+```
 
-> -   **Input:** head = \[5, 7, 3, 10\], node = 3
-> -   **Output:** \[5, 3, 10\]
+## The Solution
 
-## Solution
+<div class="lang-tabs">
 
-```cpp
-/**
- * Definition for doubly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *prev;
- *     ListNode *next;
- *     ListNode() : val(0), prev(nullptr), next(nullptr) {}
- *     ListNode(int val) : val(val), prev(nullptr), next(nullptr) {}
- * };
- */
+```python,editable
+class Solution:
+    def delete_node_before_the_given_node(self, head, node):
+        if head is None or node is None: return head
+        if node is head:                              # Nothing before head
+            return head
+        if head.next is node:                         # Given is second → delete first
+            head      = head.next
+            head.prev = None
+            return head
+        target    = node.prev                         # General: O(1) predecessor
+        node.prev = target.prev
+        if target.prev is not None:
+            target.prev.next = node                   # Mirror — pre-predecessor → given
+        return head
+```
 
-using namespace std;
+```java,editable
+class Solution {
+    public ListNode deleteNodeBeforeTheGivenNode(ListNode head, ListNode node) {
+        if (head == null || node == null) return head;
+        if (node == head) return head;
+        if (head.next == node) {
+            head      = head.next;
+            head.prev = null;
+            return head;
+        }
+        ListNode target = node.prev;
+        node.prev = target.prev;
+        if (target.prev != null) target.prev.next = node;
+        return head;
+    }
+}
+```
 
+```c,editable
+ListNode* deleteNodeBeforeTheGivenNode(ListNode *head, ListNode *node) {
+    if (head == NULL || node == NULL) return head;
+    if (node == head) return head;
+    if (head->next == node) {
+        ListNode *old = head;
+        head = head->next;
+        head->prev = NULL;
+        free(old);
+        return head;
+    }
+    ListNode *target = node->prev;
+    node->prev = target->prev;
+    if (target->prev != NULL) target->prev->next = node;
+    free(target);
+    return head;
+}
+```
+
+```cpp,editable
 class Solution {
 public:
-    ListNode *deleteNodeBeforeTheGivenNode(
-        ListNode *head,
-        ListNode *node
-    ) {
-
-        // If the head or the given node is nullptr, there is nothing to
-        // delete Return the existing head
-        if (head == nullptr || node == nullptr) {
-            return head;
-        }
-
-        // If the given node is the head node, we cannot delete the node
-        // before it
-        if (node == head) {
-            return head;
-        }
-
-        // If the node to delete is the immediate next node of the head
-        // Update the head to point to the next node, delete the original
-        // head, and return the updated head
-        if (head->next != nullptr && head->next == node) {
-            ListNode *nodeToBeDeleted = head;
+    ListNode *deleteNodeBeforeTheGivenNode(ListNode *head, ListNode *node) {
+        if (head == nullptr || node == nullptr) return head;
+        if (node == head) return head;
+        if (head->next == node) {
+            ListNode *old = head;
             head = head->next;
-
-            // Update the new head's previous pointer to null
             head->prev = nullptr;
-
-            // Delete the node before the given node
-            delete nodeToBeDeleted;
+            delete old;
             return head;
         }
-
-        // If the node before the given node is not the head,
-        // update the pointers of the neighbouring nodes and delete the
-        // node before the given node
-
-        // Get the node before the given node
-        ListNode *nodeToBeDeleted = node->prev;
-
-        // Update the previous pointer of the given node
-        node->prev = nodeToBeDeleted->prev;
-        if (nodeToBeDeleted->prev != nullptr) {
-
-            // Update the next pointer of the node before the given node
-            nodeToBeDeleted->prev->next = node;
-        }
-
-        // Delete the node before the given node
-        delete nodeToBeDeleted;
-
-        // Return the head of the updated linked list
+        ListNode *target = node->prev;
+        node->prev = target->prev;
+        if (target->prev != nullptr) target->prev->next = node;
+        delete target;
         return head;
     }
 };
 ```
+
+```scala,editable
+class Solution {
+  def deleteNodeBeforeTheGivenNode(head: ListNode, node: ListNode): ListNode = {
+    if (head == null || node == null) return head
+    if (node eq head) return head
+    if (head.next eq node) {
+      val newHead = head.next
+      newHead.prev = null
+      return newHead
+    }
+    val target = node.prev
+    node.prev = target.prev
+    if (target.prev != null) target.prev.next = node
+    head
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    deleteNodeBeforeTheGivenNode(head, node) {
+        if (head === null || node === null) return head;
+        if (node === head) return head;
+        if (head.next === node) {
+            head      = head.next;
+            head.prev = null;
+            return head;
+        }
+        const target = node.prev;
+        node.prev = target.prev;
+        if (target.prev !== null) target.prev.next = node;
+        return head;
+    }
+}
+```
+
+```typescript,editable
+class Solution {
+    deleteNodeBeforeTheGivenNode(head: ListNode | null, node: ListNode | null): ListNode | null {
+        if (head === null || node === null) return head;
+        if (node === head) return head;
+        if (head.next === node) {
+            head       = head.next;
+            head!.prev = null;
+            return head;
+        }
+        const target = node.prev as ListNode;
+        node.prev = target.prev;
+        if (target.prev !== null) target.prev.next = node;
+        return head;
+    }
+}
+```
+
+```go,editable
+func deleteNodeBeforeTheGivenNode(head, node *ListNode) *ListNode {
+    if head == nil || node == nil { return head }
+    if node == head { return head }
+    if head.Next == node {
+        head      = head.Next
+        head.Prev = nil
+        return head
+    }
+    target := node.Prev
+    node.Prev = target.Prev
+    if target.Prev != nil { target.Prev.Next = node }
+    return head
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun deleteNodeBeforeTheGivenNode(head: ListNode?, node: ListNode?): ListNode? {
+        if (head == null || node == null) return head
+        if (node === head) return head
+        if (head.next === node) {
+            val newHead = head.next!!
+            newHead.prev = null
+            return newHead
+        }
+        val target = node.prev!!
+        node.prev = target.prev
+        if (target.prev != null) target.prev!!.next = node
+        return head
+    }
+}
+```
+
+```rust,editable
+// See lesson 09 for a complete Rc<RefCell<...>> implementation.
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — head = [5, 7, 3, 10], node = node(3)</strong></summary>
+
+```
+Initial │ 5 ↔ 7 ↔ 3 ↔ 10
+Step 1  │ node(3) is not head, head.next = node(7) ≠ node(3) → general case
+Step 2  │ target = node(3).prev = node(7)
+Step 3  │ node(3).prev = target.prev = node(5)
+Step 4  │ target.prev != null → 5.next = node(3)
+Step 5  │ free node(7)
+Result: [5, 3, 10] ✓
+```
+
+`target.prev` was reachable in a single field read — no scan from head, no auxiliary pointer carried along during traversal. That's the doubly linked list paying for itself.
+
+</details>
 
 ***
 
 # Understanding deletion of the given node
 
-This is another scenario where a doubly linked list outperforms a singly linked list. The presence of a pointer in each node eliminates the need to traverse the list to locate the node immediately preceding the one that needs to be deleted. Let's examine all the potential cases we need to consider.
+**This is the headline operation of the entire lesson.** Given just a reference to a node — no head, no walk, no search — delete it in O(1). A singly linked list literally cannot do this, because it cannot find the predecessor without walking from the head. The doubly linked list closes that gap with one extra pointer per node, and the result is an operation that powers every LRU cache, every undo stack, every process scheduler in the kernel.
 
-## 1\. The list is empty
+Three cases.
 
-If the list is empty and contains no elements, we cannot find the given node because it does not exist within the list. Therefore, deleting the given node is not possible because there is no reference point within the list to perform the deletion. In this case, we can return the existing **head**, as the list is empty, and no node needs to be deleted.
+## 1. The list is empty (or given is null)
 
-// Diagram: The list is empty
+No anchor exists. Return the (null) head.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    H(["head = null<br/>or given = null"]) -->|"no target"| OUT(["return head"])
+```
+
+<p align="center"><strong>Empty list or null reference — nothing to delete.</strong></p>
 
 > **Algorithm**
 >
 > -   **Step 1:** Return the original head node.
 
-## 2\. The first node is deleted
+## 2. The given node is the head
 
-If the given node matches the first node, this case becomes the same as **deleting the first node**. We update the head to store the reference to the second node and delete the old head.
+Slide `head` forward, clear the new head's `prev`, free the old head. Same as **delete first node**.
 
-// Diagram: The first node is deleted
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph BEFORE["Before"]
+        direction LR
+        BH(["head"]) --> G["given (= head) ✗"] <--> H2["..."]
+    end
+    subgraph AFTER["After"]
+        direction LR
+        AH(["head"]) --> N2["..."]
+    end
+    BEFORE -->|"head = head.next; head.prev = null; free old"| AFTER
+    style G fill:#fee2e2,stroke:#ef4444
+```
+
+<p align="center"><strong>Given is the head — degenerate case that becomes "delete first node".</strong></p>
 
 > **Algorithm**
 >
 > -   **Step 1:** Create a temporary pointer to store the current head node.
 > -   **Step 2:** Move the head pointer to the next node.
-> -   **Step 3:** Set the \`previous\` pointer of the new head node to \`null\`.
+> -   **Step 3:** Set the `prev` pointer of the new head node to `null`.
 > -   **Step 4:** Delete the original head node to free up memory.
 > -   **Step 5:** Return the new head node.
 
-## 3\. The node to be deleted is not the first node
+## 3. The given node is not the head — the killer feature
 
-This case is super easy as it is very similar to**deleting the node with given data** but even easier as we do not need to traverse the linked list to find the node to be deleted. We already have the node to be deleted and need to update some references in the linked list to delete it. Deletion of a given node from between the list is a 3-step process.
+We have `node`. Its predecessor is `node.prev`, sitting right there. Its successor is `node.next`, also right there. Splice both directions and free. **Three pointer touches, O(1), no traversal.** This is the operation a singly linked list can't match — it would need O(N) to find the predecessor.
 
-// Diagram: The node to be deleted is not the first node
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph BEFORE["Before"]
+        direction LR
+        P["predecessor<br/>(= node.prev)"] <--> G["given ✗"] <--> S["successor<br/>(= node.next, may be null)"]
+    end
+    subgraph AFTER["After"]
+        direction LR
+        AP["predecessor"] <--> AS["successor"]
+        GONE["given ✗<br/>(freed)"]
+    end
+    BEFORE -->|"1. node.prev.next = node.next<br/>2. if node.next: node.next.prev = node.prev<br/>3. free node"| AFTER
+    style GONE fill:#fee2e2,stroke:#ef4444
+```
+
+<p align="center"><strong>Given is mid-list (or tail) — splice both directions in O(1). This is the operation that justifies the existence of the doubly linked list.</strong></p>
 
 > **Algorithm**
 >
-> -   **Step 1:** Set the \`next\` pointer of the node before the \`given\` node to hold the reference of the node after the \`given\` node.
-> -   **Step 2:** Set the \`previous\` pointer of the node after the \`given\` node to hold the reference of the node before the \`given\` node.
-> -   **Step 3:** Delete the \`given\` node to free up memory.
+> -   **Step 1:** Set the `next` pointer of the node before the `given` node to hold the reference of the node after the `given` node.
+> -   **Step 2:** Set the `prev` pointer of the node after the `given` node (if it exists) to hold the reference of the node before the `given` node.
+> -   **Step 3:** Delete the `given` node to free up memory.
 > -   **Step 4:** Return the original head node.
 
 ## Implementation
 
-When implementing the logic for deleting a node with a given data operation, we consider all the possible cases and write the code for each in conditional blocks.
+<div class="lang-tabs">
 
-C++
+```python,editable
+class Solution:
+    def delete_the_given_node(self, head, node):
+        if head is None or node is None:               # Case 1
+            return head
+        if node is head:                               # Case 2: given is head
+            head = head.next
+            if head is not None:
+                head.prev = None
+            return head
+        # Case 3: O(1) splice — the headline operation
+        if node.prev is not None:
+            node.prev.next = node.next                 # Predecessor skips over node
+        if node.next is not None:
+            node.next.prev = node.prev                 # Successor's back-link skips node
+        del node
+        return head
+```
 
-```cpp
-/**
- * Definition for doubly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *prev;
- *     ListNode *next;
- *     ListNode() : val(0), prev(nullptr), next(nullptr) {}
- *     ListNode(int val) : val(val), prev(nullptr), next(nullptr) {}
- * };
- */
+```java,editable
+class Solution {
+    public ListNode deleteTheGivenNode(ListNode head, ListNode node) {
+        if (head == null || node == null) return head;
+        if (node == head) {                                    // Case 2
+            head = head.next;
+            if (head != null) head.prev = null;
+            return head;
+        }
+        // Case 3: O(1) splice
+        if (node.prev != null) node.prev.next = node.next;
+        if (node.next != null) node.next.prev = node.prev;
+        node = null;
+        return head;
+    }
+}
+```
 
-// Diagram: using namespace std;
+```c,editable
+ListNode* deleteTheGivenNode(ListNode *head, ListNode *node) {
+    if (head == NULL || node == NULL) return head;
+    if (node == head) {                                /* Case 2 */
+        head = head->next;
+        if (head != NULL) head->prev = NULL;
+        free(node);
+        return head;
+    }
+    /* Case 3: O(1) splice */
+    if (node->prev != NULL) node->prev->next = node->next;
+    if (node->next != NULL) node->next->prev = node->prev;
+    free(node);
+    return head;
+}
+```
 
+```cpp,editable
 class Solution {
 public:
     ListNode *deleteTheGivenNode(ListNode *head, ListNode *node) {
-
-        // If the list is empty or the given node is null, there's
-        // nothing to do
-        if (head == nullptr || node == nullptr) {
-            return head;
-        }
-
-        // If the node to be deleted is the head node
-        if (node == head) {
+        if (head == nullptr || node == nullptr) return head;
+        if (node == head) {                                    // Case 2
             head = head->next;
-
-            // If there is a new head, update its previous pointer to
-            // null
-            if (head != nullptr) {
-                head->prev = nullptr;
-            }
-
-            // Delete the given node
+            if (head != nullptr) head->prev = nullptr;
             delete node;
             return head;
         }
-
-        // If the node to be deleted is not the head node
-        // Update the previous node's next pointer to skip the given node
-        node->prev->next = node->next;
-
-        // If the node to be deleted is not the last node in the list
-        // Update the next node's previous pointer to skip the given node
-        if (node->next) {
-            node->next->prev = node->prev;
-        }
-
-        // Delete the given node
+        // Case 3: O(1) splice — the killer feature
+        if (node->prev != nullptr) node->prev->next = node->next;
+        if (node->next != nullptr) node->next->prev = node->prev;
         delete node;
-
-        // Return the original head of the list
         return head;
     }
 };
 ```
 
-Java
-
-```java
-/**
- * Definition for doubly-linked list.
- * class ListNode {
- *     int val;
- *     ListNode prev;
- *     ListNode next;
- *     ListNode() {}
- *     ListNode(int val) { this.val = val; }
- * };
- */
-
+```scala,editable
 class Solution {
-    public ListNode deleteTheGivenNode(ListNode head, ListNode node) {
-
-        // If the list is empty or the given node is null, there's
-        // nothing to do
-        if (head == null || node == null) {
-            return head;
-        }
-
-        // If the node to be deleted is the head node
-        if (node == head) {
-            head = head.next;
-
-            // If there is a new head, update its previous pointer to
-            // null
-            if (head != null) {
-                head.prev = null;
-            }
-
-            // Dereference the node for garbage collection
-            node = null;
-            return head;
-        }
-
-        // If the node to be deleted is not the head node
-        // Update the previous node's next pointer to skip the given node
-        node.prev.next = node.next;
-
-        // If the node to be deleted is not the last node in the list
-        // Update the next node's previous pointer to skip the given node
-        if (node.next != null) {
-            node.next.prev = node.prev;
-        }
-
-        // Dereference the node for garbage collection
-        node = null;
-
-        // Return the original head of the list
-        return head;
+  def deleteTheGivenNode(head: ListNode, node: ListNode): ListNode = {
+    if (head == null || node == null) return head
+    if (node eq head) {
+      val newHead = head.next
+      if (newHead != null) newHead.prev = null
+      return newHead
     }
+    if (node.prev != null) node.prev.next = node.next
+    if (node.next != null) node.next.prev = node.prev
+    head
+  }
+}
 ```
 
-Typescript
-
-```typescript
-/**
- * Definition for doubly-linked list.
- * class ListNode {
- *     val: number
- *     prev: ListNode | null
- *     next: ListNode | null
- *     constructor(
- *         val?: number,
- *         prev?: ListNode | null,
- *         next?: ListNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.prev = (prev===undefined ? null : prev)
- *         this.next = (next===undefined ? null : next)
- *     }
- * }
- */
-
-export class Solution {
-    deleteTheGivenNode(
-        head: ListNode | null,
-        node: ListNode | null
-    ): ListNode | null {
-
-        // If the list is empty or the given node is null, there's
-        // nothing to do
-        if (head === null || node === null) {
-            return head;
-        }
-
-        // If the node to be deleted is the head node
-        if (node === head) {
-            head = head.next;
-
-            // If there is a new head, update its previous pointer to
-            // null
-            if (head != null) {
-                head.prev = null;
-            }
-
-            // Dereference the node for garbage collection
-            node = null;
-            return head;
-        }
-
-        // If the node to be deleted is not the head node
-        // Update the previous node's next pointer to skip the given node
-        node.prev!.next = node.next;
-
-        // If the node to be deleted is not the last node in the list
-        // Update the next node's previous pointer to skip the given node
-        if (node.next !== null) {
-            node.next.prev = node.prev;
-        }
-
-        // Dereference for garbage collection
-        node = null;
-
-        // Return the original head of the list
-        return head;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for doubly-linked list.
- * function ListNode(val, prev, next) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.prev = (prev===undefined ? null : prev)
- *     this.next = (next===undefined ? null : next)
- * }
- */
-
-export class Solution {
+```javascript,editable
+class Solution {
     deleteTheGivenNode(head, node) {
-
-        // If the list is empty or the given node is null, there's
-        // nothing to do
-        if (head === null || node === null) {
-            return head;
-        }
-
-        // If the node to be deleted is the head node
+        if (head === null || node === null) return head;
         if (node === head) {
             head = head.next;
-
-            // If there is a new head, update its previous pointer to
-            // null
-            if (head != null) {
-                head.prev = null;
-            }
-
-            // Dereference the node for garbage collection
-            node = null;
+            if (head !== null) head.prev = null;
             return head;
         }
-
-        // If the node to be deleted is not the head node
-        // Update the previous node's next pointer to skip the given node
-        node.prev.next = node.next;
-
-        // If the node to be deleted is not the last node in the list
-        // Update the next node's previous pointer to skip the given node
-        if (node.next !== null) {
-            node.next.prev = node.prev;
-        }
-
-        // Dereference the node for garbage collection
-        node = null;
-
-        // Return the original head of the list
+        if (node.prev !== null) node.prev.next = node.next;
+        if (node.next !== null) node.next.prev = node.prev;
         return head;
     }
+}
 ```
 
-Python
+```typescript,editable
+class Solution {
+    deleteTheGivenNode(head: ListNode | null, node: ListNode | null): ListNode | null {
+        if (head === null || node === null) return head;
+        if (node === head) {
+            head = head.next;
+            if (head !== null) head.prev = null;
+            return head;
+        }
+        if (node.prev !== null) node.prev.next = node.next;
+        if (node.next !== null) node.next.prev = node.prev;
+        return head;
+    }
+}
+```
 
-```python
-"""
-Definition for doubly-linked list.
-class ListNode:
-    def __init__(self, val):
-        self.val = val
-        self.prev = None
-        self.next = None
-"""
-
-// Diagram: from typing import Optional
-
-class Solution:
-    def delete_the_given_node(
-        self, head: Optional[ListNode], node: Optional[ListNode]
-    ) -> Optional[ListNode]:
-
-        # If the list is empty or the given node is None, there's nothing
-        # to do
-        if head is None or node is None:
-            return head
-
-        # If the node to be deleted is the head node
-        if node == head:
-            head = head.next
-
-            # If there is a new head, update its previous pointer to null
-            if head is not None:
-                head.prev = None
-
-            # Dereference the node for garbage collection
-            node = None
-            return head
-
-        # If the node to be deleted is not the head node
-        # Update the previous node's next pointer to skip the given node
-        if node.prev is not None:
-            node.prev.next = node.next
-
-        # If the node to be deleted is not the last node in the list
-        # Update the next node's previous pointer to skip the given node
-        if node.next is not None:
-            node.next.prev = node.prev
-
-        # Dereference node for garbage collection
-        node = None
-
-        # Return the original head of the list
+```go,editable
+func deleteTheGivenNode(head, node *ListNode) *ListNode {
+    if head == nil || node == nil { return head }
+    if node == head {
+        head = head.Next
+        if head != nil { head.Prev = nil }
         return head
+    }
+    if node.Prev != nil { node.Prev.Next = node.Next }
+    if node.Next != nil { node.Next.Prev = node.Prev }
+    return head
+}
 ```
+
+```kotlin,editable
+class Solution {
+    fun deleteTheGivenNode(head: ListNode?, node: ListNode?): ListNode? {
+        if (head == null || node == null) return head
+        if (node === head) {
+            val newHead = head.next
+            if (newHead != null) newHead.prev = null
+            return newHead
+        }
+        if (node.prev != null) node.prev!!.next = node.next
+        if (node.next != null) node.next!!.prev = node.prev
+        return head
+    }
+}
+```
+
+```rust,editable
+// See lesson 09 for a complete Rc<RefCell<...>> implementation.
+```
+
+</div>
 
 ## Complexity Analysis
 
-The function shows a significant improvement in worst-case complexity. In a singly linked list, a similar operation would take **O(N)** time in the worst case, as we need to traverse the entire list to get the previous node. However, in a doubly-linked list, having access to any node also gives us access to the node before it through its previous section, eliminating the need to traverse the entire list and reducing the worst-case time complexity to **O(1)**.
+This is the operation where the doubly linked list's headline guarantee shines. A singly linked list would need **O(N)** to delete a given node (because it has to find the predecessor by walking from the head). Here, both neighbours are one hop away through `node.prev` and `node.next`, so the splice is **O(1)** in every case — head, middle, or tail.
 
-// Diagram: All cases: Delete the given node
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    P["predecessor"] -->|"O(1) — skip target"| S["successor"]
+    NOTE["both neighbours reachable<br/>via node.prev and node.next"] -.-> P
+```
 
-Since no new nodes are created, the space complexity remains constant.
+<p align="center"><strong>All cases — delete the given node is O(1) thanks to the <code>prev</code> pointer. This single guarantee is why LRU caches, undo stacks, and kernel run-queues are built on doubly linked lists.</strong></p>
 
 > **Best Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> -   Space Complexity — **O(1)**
+> -   Time Complexity — **O(1)**
 >
 > **Worst Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> -   Space Complexity — **O(1)**
+> -   Time Complexity — **O(1)**
 
 ***
 
 # Delete the given node
 
-## Problem Statement
+## The Problem
 
-Given the **head** of a doubly linked list and a **random node** in that linked list, write a function to delete that node from the list and return the head of the updated list.
+> Given the **head** of a doubly linked list and a reference to a **random node** in that list, write a function to delete that node from the list and return the head of the updated list.
 
-### Example
+```
+Input:  head = [5, 7, 3, 10], node = node(7)
+Output: [5, 3, 10]
+```
 
-> -   **Input:** head = \[5, 7, 3, 10\], node = 7
-> -   **Output:** \[5, 3, 10\]
+## The Solution
 
-## Solution
+<div class="lang-tabs">
 
-```cpp
-/**
- * Definition for doubly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *prev;
- *     ListNode *next;
- *     ListNode() : val(0), prev(nullptr), next(nullptr) {}
- *     ListNode(int val) : val(val), prev(nullptr), next(nullptr) {}
- * };
- */
+```python,editable
+class Solution:
+    def delete_the_given_node(self, head, node):
+        if head is None or node is None: return head
+        if node is head:                            # Head case
+            head = head.next
+            if head is not None:
+                head.prev = None
+            return head
+        # The headline O(1) splice
+        if node.prev is not None:
+            node.prev.next = node.next
+        if node.next is not None:
+            node.next.prev = node.prev
+        return head
+```
 
-using namespace std;
+```java,editable
+class Solution {
+    public ListNode deleteTheGivenNode(ListNode head, ListNode node) {
+        if (head == null || node == null) return head;
+        if (node == head) {
+            head = head.next;
+            if (head != null) head.prev = null;
+            return head;
+        }
+        if (node.prev != null) node.prev.next = node.next;
+        if (node.next != null) node.next.prev = node.prev;
+        return head;
+    }
+}
+```
 
+```c,editable
+ListNode* deleteTheGivenNode(ListNode *head, ListNode *node) {
+    if (head == NULL || node == NULL) return head;
+    if (node == head) {
+        head = head->next;
+        if (head != NULL) head->prev = NULL;
+        free(node);
+        return head;
+    }
+    if (node->prev != NULL) node->prev->next = node->next;
+    if (node->next != NULL) node->next->prev = node->prev;
+    free(node);
+    return head;
+}
+```
+
+```cpp,editable
 class Solution {
 public:
     ListNode *deleteTheGivenNode(ListNode *head, ListNode *node) {
-
-        // If the list is empty or the given node is null, there's
-        // nothing to do
-        if (head == nullptr || node == nullptr) {
-            return head;
-        }
-
-        // If the node to be deleted is the head node
+        if (head == nullptr || node == nullptr) return head;
         if (node == head) {
             head = head->next;
-
-            // If there is a new head, update its previous pointer to
-            // null
-            if (head != nullptr) {
-                head->prev = nullptr;
-            }
-
-            // Delete the given node
+            if (head != nullptr) head->prev = nullptr;
             delete node;
             return head;
         }
-
-        // If the node to be deleted is not the head node
-        // Update the previous node's next pointer to skip the given node
-        node->prev->next = node->next;
-
-        // If the node to be deleted is not the last node in the list
-        // Update the next node's previous pointer to skip the given node
-        if (node->next) {
-            node->next->prev = node->prev;
-        }
-
-        // Delete the given node
+        if (node->prev != nullptr) node->prev->next = node->next;
+        if (node->next != nullptr) node->next->prev = node->prev;
         delete node;
-
-        // Return the original head of the list
         return head;
     }
 };
 ```
+
+```scala,editable
+class Solution {
+  def deleteTheGivenNode(head: ListNode, node: ListNode): ListNode = {
+    if (head == null || node == null) return head
+    if (node eq head) {
+      val newHead = head.next
+      if (newHead != null) newHead.prev = null
+      return newHead
+    }
+    if (node.prev != null) node.prev.next = node.next
+    if (node.next != null) node.next.prev = node.prev
+    head
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    deleteTheGivenNode(head, node) {
+        if (head === null || node === null) return head;
+        if (node === head) {
+            head = head.next;
+            if (head !== null) head.prev = null;
+            return head;
+        }
+        if (node.prev !== null) node.prev.next = node.next;
+        if (node.next !== null) node.next.prev = node.prev;
+        return head;
+    }
+}
+```
+
+```typescript,editable
+class Solution {
+    deleteTheGivenNode(head: ListNode | null, node: ListNode | null): ListNode | null {
+        if (head === null || node === null) return head;
+        if (node === head) {
+            head = head.next;
+            if (head !== null) head.prev = null;
+            return head;
+        }
+        if (node.prev !== null) node.prev.next = node.next;
+        if (node.next !== null) node.next.prev = node.prev;
+        return head;
+    }
+}
+```
+
+```go,editable
+func deleteTheGivenNode(head, node *ListNode) *ListNode {
+    if head == nil || node == nil { return head }
+    if node == head {
+        head = head.Next
+        if head != nil { head.Prev = nil }
+        return head
+    }
+    if node.Prev != nil { node.Prev.Next = node.Next }
+    if node.Next != nil { node.Next.Prev = node.Prev }
+    return head
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun deleteTheGivenNode(head: ListNode?, node: ListNode?): ListNode? {
+        if (head == null || node == null) return head
+        if (node === head) {
+            val newHead = head.next
+            if (newHead != null) newHead.prev = null
+            return newHead
+        }
+        if (node.prev != null) node.prev!!.next = node.next
+        if (node.next != null) node.next!!.prev = node.prev
+        return head
+    }
+}
+```
+
+```rust,editable
+// See lesson 09 for a complete Rc<RefCell<...>> implementation.
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — head = [5, 7, 3, 10], node = node(7)</strong></summary>
+
+```
+Initial │ 5 ↔ 7 ↔ 3 ↔ 10
+Step 1  │ node(7) ≠ head → general case
+Step 2  │ node(7).prev != null → 5.next = node(3)
+Step 3  │ node(7).next != null → 3.prev = node(5)
+Step 4  │ free node(7)
+Result: [5, 3, 10] ✓
+
+Total: 2 pointer writes + 1 free. No traversal. The exact same operation
+in a singly linked list would have required O(N) — walk from head until
+some.next == node(7), then snip. The prev pointer eliminates that scan.
+```
+
+</details>
 
 ***
 
 # Understanding deletion at a given distance
 
-In this final deletion form, we are incorporating the concepts we previously studied in the context of a singly linked list. The aim is to create a logical and comprehensive approach encompassing various scenarios. Although the process is similar to a singly linked list, keeping track of the previous node in each case requires additional effort. We will examine all the potential scenarios that need to be considered.
+This final form combines what we know: walk forward `X` steps, then delete whatever node we land on. Because the input is an *index* (not a node reference), the doubly linked list's `prev` pointer doesn't shortcut the walk — but once we've located the target, the splice is O(1). Four cases.
 
-## 1\. The list is empty
+## 1. The list is empty
 
-When the list is empty, meaning it contains no elements, any attempt to delete a node is unnecessary because there are no nodes in the list. Since there is nothing to remove, the list remains unchanged. We can return the existing **head**, as the list is empty, and no node needs to be deleted.
+No nodes to count, no node to delete. Return `null`.
 
-// Diagram: The list is empty
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    H(["head = null"]) -.-> EMPTY[" (empty list) "]
+    EMPTY -->|"no nodes to count"| OUT(["return null"])
+```
+
+<p align="center"><strong>Empty list — nothing at any distance.</strong></p>
 
 > **Algorithm**
 >
 > -   **Step 1:** Return the original head node.
 
-## 2\. X = 0
+## 2. X = 0
 
-In this scenario, we must delete the head node, i.e., **deleting the first node** in the linked list. We should update the **head** to point to the second node in the linked list and set the pointer of the second node to `null`. After completing these steps, we can then delete the original head node.
+Delete the head — degenerate case identical to **delete first node**.
 
-// Diagram: The list has more than one node
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph BEFORE["Before — X = 0"]
+        direction LR
+        BH(["head"]) --> H1["[0] ✗"] <--> H2["[1]"] <--> H3["[2]"]
+    end
+    subgraph AFTER["After"]
+        direction LR
+        AH(["head"]) --> N1["[1]"] <--> N2["[2]"]
+    end
+    BEFORE -->|"delete first node"| AFTER
+    style H1 fill:#fee2e2,stroke:#ef4444
+```
+
+<p align="center"><strong>X = 0 — degenerate case that becomes "delete first node".</strong></p>
 
 > **Algorithm**
 >
 > -   **Step 1:** Create a temporary pointer to store the current head node.
 > -   **Step 2:** Move the head pointer to the next node.
-> -   **Step 3:** Set the \`previous\` pointer of the new head node to \`null\`.
+> -   **Step 3:** Set the `prev` pointer of the new head node to `null`.
 > -   **Step 4:** Delete the original head node to free up memory.
 > -   **Step 5:** Return the new head node.
 
-## 3\. X < size of the list
+## 3. X < size of the list
 
-In a doubly linked list, each node has a pointer, so we can move `X` steps using the current reference variable to reach the node that needs to be deleted. After that, the process is the same as **deleting a node with given data**. We need to adjust the pointers of the nodes that come before and after the current node and then delete the current node.
+Walk forward `X` steps via `next`, landing on the target. Then delegate to **delete the given node** — splice predecessor and successor, free, done.
 
-// Diagram: X < size of the list
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    H(["head"]) --> N0["[0]"] --> Nm1["[X-1]"] --> NX["[X] ✗<br/>(target)"] --> Nx1["[X+1]"] --> Tail["..."]
+    NOTE["walk X steps then splice"] -.-> NX
+    style NX fill:#fee2e2,stroke:#ef4444
+```
+
+<p align="center"><strong>X &lt; length — walk forward to position X (cost O(X)), then splice in O(1).</strong></p>
 
 > **Algorithm**
 >
-> -   **Step 1:** Traverse the distance X while keeping track of the \`current\` node.
-> -   **Step 2:** Set the \`next\` pointer of the node before the \`current\` node to hold the reference of the node after the \`current\` node.
-> -   **Step 3:** Set the \`previous\` pointer of the node after the \`current\` node to hold the reference of the node before the \`current\` node.
-> -   **Step 4:** Delete the \`current\` node to free up memory.
+> -   **Step 1:** Traverse the distance X while keeping track of the `current` node.
+> -   **Step 2:** Set the `next` pointer of the node before the `current` node to hold the reference of the node after the `current` node.
+> -   **Step 3:** Set the `prev` pointer of the node after the `current` node (if it exists) to hold the reference of the node before the `current` node.
+> -   **Step 4:** Delete the `current` node to free up memory.
 > -   **Step 5:** Return the original head node.
 
-## 4\. X >= the size of the linked list
+## 4. X ≥ size of the list
 
-This indicates an invalid query. For example, we cannot delete the 10th node in a list of size 3. We will return the existing **head** node.
+Position `X` doesn't exist — the walk runs off the end (`current` becomes `null`). Return the original head unchanged.
 
-**What about the case when X == size of the linked list?**
+> **Note:** `X = size` is also invalid — for a 5-node list, valid distances are `[0, 4]` (X is a distance from the head, not a 1-indexed position). `X = 5` falls off the end.
 
-This is also an invalid case. To clarify, let's consider a list of size 5. In this scenario, the potential values of `X` could range from 0 to 4, meaning `[0, 4]`. Therefore, an input 5 would be invalid. It's important to note that X represents the distance from the head node, not the node's position.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    H(["head"]) --> N0["[0]"] --> N1["[1]"] --> N2["[2]<br/>last"] --> NULL(["null"])
+    NOTE["X = 5, but list has 3 nodes<br/>walk falls off end → return head"] -.-> NULL
+```
 
-// Diagram: X >= size of the linked list
+<p align="center"><strong>X &ge; length — walk falls off the end and we return the original head untouched.</strong></p>
 
 > **Algorithm**
 >
-> -   **Step 1:** Traverse the distance X while keeping track of the \`current\` node.
+> -   **Step 1:** Traverse the distance X while keeping track of the `current` node.
 > -   **Step 2:** Return the original head node.
 
 ## Implementation
 
-When implementing the logic for deleting nodes at a distance, we consider all the possible cases and write the code for each in conditional blocks.
+<div class="lang-tabs">
 
-C++
+```python,editable
+class Solution:
+    def delete_node_at_given_distance(self, head, X):
+        if head is None:                              # Case 1
+            return None
+        if X == 0:                                    # Case 2: delete first
+            head = head.next
+            if head is not None:
+                head.prev = None
+            return head
+        current = head
+        counter = 0
+        while current is not None and counter < X:    # Walk to position X
+            current  = current.next
+            counter += 1
+        if current is None:                           # Case 4: X out of range
+            return head
+        # Case 3: splice current out (= delete the given node)
+        if current.prev is not None:
+            current.prev.next = current.next
+        if current.next is not None:
+            current.next.prev = current.prev
+        del current
+        return head
+```
 
-```cpp
-/**
- * Definition for doubly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *prev;
- *     ListNode *next;
- *     ListNode() : val(0), prev(nullptr), next(nullptr) {}
- *     ListNode(int val) : val(val), prev(nullptr), next(nullptr) {}
- * };
- */
+```java,editable
+class Solution {
+    public ListNode deleteNodeAtGivenDistance(ListNode head, int X) {
+        if (head == null) return null;
+        if (X == 0) {
+            head = head.next;
+            if (head != null) head.prev = null;
+            return head;
+        }
+        ListNode current = head;
+        int counter = 0;
+        while (current != null && counter < X) {
+            current = current.next;
+            counter++;
+        }
+        if (current == null) return head;
+        if (current.prev != null) current.prev.next = current.next;
+        if (current.next != null) current.next.prev = current.prev;
+        current = null;
+        return head;
+    }
+}
+```
 
-// Diagram: using namespace std;
+```c,editable
+ListNode* deleteNodeAtGivenDistance(ListNode *head, int X) {
+    if (head == NULL) return NULL;
+    if (X == 0) {
+        ListNode *old = head;
+        head = head->next;
+        if (head != NULL) head->prev = NULL;
+        free(old);
+        return head;
+    }
+    ListNode *current = head;
+    int counter = 0;
+    while (current != NULL && counter < X) {
+        current = current->next;
+        counter++;
+    }
+    if (current == NULL) return head;
+    if (current->prev != NULL) current->prev->next = current->next;
+    if (current->next != NULL) current->next->prev = current->prev;
+    free(current);
+    return head;
+}
+```
 
+```cpp,editable
 class Solution {
 public:
     ListNode *deleteNodeAtGivenDistance(ListNode *head, int X) {
-
-        // Check if the list is empty. If so, there's nothing to delete,
-        // so return nullptr.
-        if (head == nullptr) {
-            return nullptr;
-        }
-
-        // If X is 0, we need to delete the first node
+        if (head == nullptr) return nullptr;
         if (X == 0) {
-
-            // Store the node to be deleted in a temporary pointer
-            ListNode *nodeToBeDeleted = head;
-
-            // Move the head to the next node, removing the first node
+            ListNode *old = head;
             head = head->next;
-
-            // Update the new head's prev pointer
-            if (head != nullptr) {
-                head->prev = nullptr;
-            }
-
-            // Delete the node that was previously the head
-            delete nodeToBeDeleted;
-
-            // Return the new head
+            if (head != nullptr) head->prev = nullptr;
+            delete old;
             return head;
         }
-
-        // Initialize a current pointer to traverse the list
         ListNode *current = head;
-
-        // Initialize a counter to keep track of the distance from the
-        // head
         int counter = 0;
-
-        // Traverse the list until either the end is reached or the
-        // desired distance X is reached
         while (current != nullptr && counter < X) {
             current = current->next;
             counter++;
         }
-
-        // If the end of the list is reached before reaching the desired
-        // distance X, there is no node to delete, so we return the
-        // original head.
-        if (current == nullptr) {
-            return head;
-        }
-
-        // If the desired node is found at the given distance X,
-        // update the previous node's next pointer to skip the current
-        // node
-        if (current->prev != nullptr) {
-            current->prev->next = current->next;
-        }
-
-        // Update the next node's previous pointer to skip the current
-        // node
-        if (current->next != nullptr) {
-            current->next->prev = current->prev;
-        }
-
-        // Delete the current node as it is no longer part of the list
+        if (current == nullptr) return head;                 // Case 4
+        if (current->prev != nullptr) current->prev->next = current->next;
+        if (current->next != nullptr) current->next->prev = current->prev;
         delete current;
-
-        // Return the original head of the list
         return head;
     }
 };
 ```
 
-Java
-
-```java
-/**
- * Definition for doubly-linked list.
- * class ListNode {
- *     int val;
- *     ListNode prev;
- *     ListNode next;
- *     ListNode() {}
- *     ListNode(int val) { this.val = val; }
- * };
- */
-
+```scala,editable
 class Solution {
-    public ListNode deleteNodeAtGivenDistance(ListNode head, int X) {
-
-        // Check if the list is empty. If so, there's nothing to delete,
-        // so return null.
-        if (head == null) {
-            return null;
-        }
-
-        // If X is 0, we need to delete the first node
-        if (X == 0) {
-
-            // Store the node to be deleted in a temporary pointer
-            ListNode nodeToBeDeleted = head;
-
-            // Move the head to the next node, removing the first node
-            head = head.next;
-
-            // Update the new head's prev pointer
-            if (head != null) {
-                head.prev = null;
-            }
-
-            // Delete the node that was previously the head
-            nodeToBeDeleted = null;
-
-            // Return the new head
-            return head;
-        }
-
-        // Initialize a current pointer to traverse the list
-        ListNode current = head;
-
-        // Initialize a counter to keep track of the distance from the
-        // head
-        int counter = 0;
-
-        // Traverse the list until either the end is reached or the
-        // desired distance X is reached
-        while (current != null && counter < X) {
-            current = current.next;
-            counter++;
-        }
-
-        // If the end of the list is reached before reaching the desired
-        // distance X, there is no node to delete, so we return the
-        // original head.
-        if (current == null) {
-            return head;
-        }
-
-        // If the desired node is found at the given distance X,
-        // update the previous node's next pointer to skip the current
-        // node
-        if (current.prev != null) {
-            current.prev.next = current.next;
-        }
-
-        // Update the next node's previous pointer to skip the current
-        // node
-        if (current.next != null) {
-            current.next.prev = current.prev;
-        }
-
-        // Delete the current node as it is no longer part of the list
-        current = null;
-
-        // Return the original head of the list
-        return head;
+  def deleteNodeAtGivenDistance(head: ListNode, X: Int): ListNode = {
+    if (head == null) return null
+    if (X == 0) {
+      val newHead = head.next
+      if (newHead != null) newHead.prev = null
+      return newHead
     }
+    var current = head
+    var counter = 0
+    while (current != null && counter < X) {
+      current = current.next
+      counter += 1
+    }
+    if (current == null) return head
+    if (current.prev != null) current.prev.next = current.next
+    if (current.next != null) current.next.prev = current.prev
+    head
+  }
+}
 ```
 
-Typescript
-
-```typescript
-/**
- * Definition for doubly-linked list.
- * class ListNode {
- *     val: number
- *     prev: ListNode | null
- *     next: ListNode | null
- *     constructor(
- *         val?: number,
- *         prev?: ListNode | null,
- *         next?: ListNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.prev = (prev===undefined ? null : prev)
- *         this.next = (next===undefined ? null : next)
- *     }
- * }
- */
-
-export class Solution {
-    deleteNodeAtGivenDistance(
-        head: ListNode | null,
-        X: number
-    ): ListNode | null {
-
-        // Check if the list is empty. If so, there's nothing to delete,
-        // so return null.
-        if (head === null) {
-            return null;
-        }
-
-        // If X is 0, we need to delete the first node
-        if (X === 0) {
-
-            // Store the node to be deleted in a temporary pointer
-            let nodeToBeDeleted: ListNode | null = head;
-
-            // Move the head to the next node, removing the first node
-            head = head.next;
-
-            // Update the new head's prev pointer
-            if (head !== null) {
-                head.prev = null;
-            }
-
-            // Delete the node that was previously the head
-            nodeToBeDeleted = null;
-
-            // Return the new head
-            return head;
-        }
-
-        // Initialize a current pointer to traverse the list
-        let current: ListNode | null = head;
-
-        // Initialize a counter to keep track of the distance from the
-        // head
-        let counter: number = 0;
-
-        // Traverse the list until either the end is reached or the
-        // desired distance X is reached
-        while (current !== null && counter < X) {
-            current = current.next;
-            counter++;
-        }
-
-        // If the end of the list is reached before reaching the desired
-        // distance X, there is no node to delete, so we return the
-        // original head.
-        if (current === null) {
-            return head;
-        }
-
-        // If the desired node is found at the given distance X,
-        // update the previous node's next pointer to skip the current
-        // node
-        if (current.prev !== null) {
-            current.prev.next = current.next;
-        }
-
-        // Update the next node's previous pointer to skip the current
-        // node
-        if (current.next !== null) {
-            current.next.prev = current.prev;
-        }
-
-        // Delete the current node as it is no longer part of the list
-        current = null;
-
-        // Return the original head of the list
-        return head;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for doubly-linked list.
- * function ListNode(val, prev, next) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.prev = (prev===undefined ? null : prev)
- *     this.next = (next===undefined ? null : next)
- * }
- */
-
-export class Solution {
+```javascript,editable
+class Solution {
     deleteNodeAtGivenDistance(head, X) {
-
-        // Check if the list is empty. If so, there's nothing to delete,
-        // so return null.
-        if (head === null) {
-            return null;
-        }
-
-        // If X is 0, we need to delete the first node
+        if (head === null) return null;
         if (X === 0) {
-
-            // Store the node to be deleted in a temporary pointer
-            let nodeToBeDeleted = head;
-
-            // Move the head to the next node, removing the first node
             head = head.next;
-
-            // Update the new head's prev pointer
-            if (head !== null) {
-                head.prev = null;
-            }
-
-            // Delete the node that was previously the head
-            nodeToBeDeleted = null;
-
-            // Return the new head
+            if (head !== null) head.prev = null;
             return head;
         }
-
-        // Initialize a current pointer to traverse the list
-        let current = head;
-
-        // Initialize a counter to keep track of the distance from the
-        // head
-        let counter = 0;
-
-        // Traverse the list until either the end is reached or the
-        // desired distance X is reached
+        let current = head, counter = 0;
         while (current !== null && counter < X) {
             current = current.next;
             counter++;
         }
-
-        // If the end of the list is reached before reaching the desired
-        // distance X, there is no node to delete, so we return the
-        // original head.
-        if (current === null) {
-            return head;
-        }
-
-        // If the desired node is found at the given distance X,
-        // update the previous node's next pointer to skip the current
-        // node
-        if (current.prev !== null) {
-            current.prev.next = current.next;
-        }
-
-        // Update the next node's previous pointer to skip the current
-        // node
-        if (current.next !== null) {
-            current.next.prev = current.prev;
-        }
-
-        // Delete the current node as it is no longer part of the list
-        current = null;
-
-        // Return the original head of the list
+        if (current === null) return head;
+        if (current.prev !== null) current.prev.next = current.next;
+        if (current.next !== null) current.next.prev = current.prev;
         return head;
     }
+}
 ```
 
-Python
+```typescript,editable
+class Solution {
+    deleteNodeAtGivenDistance(head: ListNode | null, X: number): ListNode | null {
+        if (head === null) return null;
+        if (X === 0) {
+            head = head.next;
+            if (head !== null) head.prev = null;
+            return head;
+        }
+        let current: ListNode | null = head;
+        let counter = 0;
+        while (current !== null && counter < X) {
+            current = current.next;
+            counter++;
+        }
+        if (current === null) return head;
+        if (current.prev !== null) current.prev.next = current.next;
+        if (current.next !== null) current.next.prev = current.prev;
+        return head;
+    }
+}
+```
 
-```python
-"""
-Definition for doubly-linked list.
-class ListNode:
-    def __init__(self, val):
-        self.val = val
-        self.prev = None
-        self.next = None
-"""
-
-// Diagram: from typing import Optional
-
-class Solution:
-    def delete_node_at_given_distance(
-        self, head: Optional[ListNode], x: int
-    ) -> Optional[ListNode]:
-
-        # Check if the list is empty. If so, there's nothing to delete,
-        # so return None.
-        if head is None:
-            return None
-
-        # If x is 0, we need to delete the first node
-        if x == 0:
-
-            # Store the node to be deleted in a temporary pointer
-            node_to_be_deleted: ListNode = head
-
-            # Move the head to the next node, removing the first node
-            head = head.next
-
-            # Update the new head's prev pointer
-            if head is not None:
-                head.prev = None
-
-            # Delete the node that was previously the head
-            del node_to_be_deleted
-
-            # Return the new head
-            return head
-
-        # Initialize a current pointer to traverse the list
-        current: Optional[ListNode] = head
-
-        # Initialize a counter to keep track of the distance from the
-        # head
-        counter: int = 0
-
-        # Traverse the list until either the end is reached or the
-        # desired distance x is reached
-        while current is not None and counter < x:
-            current = current.next
-            counter += 1
-
-        # If the end of the list is reached before reaching the desired
-        # distance x, there is no node to delete, so we return the
-        # original head.
-        if current is None:
-            return head
-
-        # If the desired node is found at the given distance x,
-        # update the previous node's next pointer to skip the current
-        # node
-        if current.prev is not None:
-            current.prev.next = current.next
-
-        # Update the next node's previous pointer to skip the current
-        # node
-        if current.next is not None:
-            current.next.prev = current.prev
-
-        # Delete the current node as it is no longer part of the list
-        del current
-
-        # Return the original head of the list
+```go,editable
+func deleteNodeAtGivenDistance(head *ListNode, X int) *ListNode {
+    if head == nil { return nil }
+    if X == 0 {
+        head = head.Next
+        if head != nil { head.Prev = nil }
         return head
+    }
+    current := head
+    counter := 0
+    for current != nil && counter < X {
+        current = current.Next
+        counter++
+    }
+    if current == nil { return head }
+    if current.Prev != nil { current.Prev.Next = current.Next }
+    if current.Next != nil { current.Next.Prev = current.Prev }
+    return head
+}
 ```
+
+```kotlin,editable
+class Solution {
+    fun deleteNodeAtGivenDistance(head: ListNode?, X: Int): ListNode? {
+        if (head == null) return null
+        if (X == 0) {
+            val newHead = head.next
+            if (newHead != null) newHead.prev = null
+            return newHead
+        }
+        var current: ListNode? = head
+        var counter = 0
+        while (current != null && counter < X) {
+            current = current.next
+            counter++
+        }
+        if (current == null) return head
+        if (current.prev != null) current.prev!!.next = current.next
+        if (current.next != null) current.next!!.prev = current.prev
+        return head
+    }
+}
+```
+
+```rust,editable
+// See lesson 09 for a complete Rc<RefCell<...>> implementation.
+```
+
+</div>
 
 ## Complexity Analysis
 
-Similar to single linked list, the time complexity of deleting a node at a given distance `X` depends on the value of `X` and the size of the linked list. Since the list must be traversed up to the specified distance to locate the node, the number of operations varies based on how far the node is from the beginning.
-
 ### Best case
 
-The best case occurs when `X` is equal to 0. In this case, the function must delete the first node of the list. This process takes **constant** time, regardless of the linked list's size.
+`X = 0` — head deletion in constant time.
 
-// Diagram: Best case: Delete the first node
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    OLD["[0] ✗"] -.-> GONE["(freed)"]
+    NEW["new head [1]"] <--> M["..."] <--> T["tail"]
+```
+
+<p align="center"><strong>Best case (X = 0) — direct head deletion, no traversal.</strong></p>
 
 ### Worst case
 
-On the other hand, the worst case occurs when `X` is one less than the size of the list. In this case, the function must delete the last node of the list. This process takes linear time proportional to the length of the linked list, i.e., **O(N)**.
+`X = length − 1` — walk the whole list, then delete the tail. O(N).
 
-// Diagram: Best case: Delete the last node
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    H["head"] --> A["[0]"] --> ETC["..."] --> T["[N-1] ✗"]
+    NOTE["O(N) walk before delete"] -.-> T
+```
 
-The function's space complexity is constant, as it only creates a few variables that take up a fixed amount of space regardless of the size of the linked list.
+<p align="center"><strong>Worst case (X = length − 1) — full traversal before the splice. The doubly linked list can't shortcut this because the input is an index, not a node reference.</strong></p>
 
-> **Best Case** - When X = 0
+> **Best Case** — X = 0
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> -   Space Complexity — **O(1)**
+> -   Time Complexity — **O(1)**
 >
-> **Worst Case** - When X = length of the list - 1
+> **Worst Case** — X = length − 1
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(N)**
+> -   Space Complexity — **O(1)**
+> -   Time Complexity — **O(N)**
 
 ***
 
 # Delete node at given distance
 
-## Problem Statement
+## The Problem
 
-Given the **head** of a doubly linked list and distance **X**, write a function to delete the node at a distance **X** from the start of the linked list and return the head of the updated list.
+> Given the **head** of a doubly linked list and a distance **X**, write a function to delete the node at distance X from the start of the linked list and return the head of the updated list.
 
-### Example
+```
+Input:  head = [5, 7, 3, 10], X = 1
+Output: [5, 3, 10]
+```
 
-> -   **Input:** head = \[5, 7, 3, 10\], X = 1
-> -   **Output:** \[5, 3, 10\]
+## The Solution
 
-## Solution
+<div class="lang-tabs">
 
-```cpp
-/**
- * Definition for doubly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *prev;
- *     ListNode *next;
- *     ListNode() : val(0), prev(nullptr), next(nullptr) {}
- *     ListNode(int val) : val(val), prev(nullptr), next(nullptr) {}
- * };
- */
+```python,editable
+class Solution:
+    def delete_node_at_given_distance(self, head, X):
+        if head is None: return None
+        if X == 0:                                    # Delete first
+            head = head.next
+            if head is not None:
+                head.prev = None
+            return head
+        current, counter = head, 0
+        while current is not None and counter < X:    # Walk X steps
+            current  = current.next
+            counter += 1
+        if current is None:                           # Out of range
+            return head
+        if current.prev is not None:
+            current.prev.next = current.next
+        if current.next is not None:
+            current.next.prev = current.prev
+        return head
+```
 
-using namespace std;
+```java,editable
+class Solution {
+    public ListNode deleteNodeAtGivenDistance(ListNode head, int X) {
+        if (head == null) return null;
+        if (X == 0) {
+            head = head.next;
+            if (head != null) head.prev = null;
+            return head;
+        }
+        ListNode current = head;
+        int counter = 0;
+        while (current != null && counter < X) { current = current.next; counter++; }
+        if (current == null) return head;
+        if (current.prev != null) current.prev.next = current.next;
+        if (current.next != null) current.next.prev = current.prev;
+        return head;
+    }
+}
+```
 
+```c,editable
+ListNode* deleteNodeAtGivenDistance(ListNode *head, int X) {
+    if (head == NULL) return NULL;
+    if (X == 0) {
+        ListNode *old = head;
+        head = head->next;
+        if (head != NULL) head->prev = NULL;
+        free(old);
+        return head;
+    }
+    ListNode *current = head;
+    int counter = 0;
+    while (current != NULL && counter < X) { current = current->next; counter++; }
+    if (current == NULL) return head;
+    if (current->prev != NULL) current->prev->next = current->next;
+    if (current->next != NULL) current->next->prev = current->prev;
+    free(current);
+    return head;
+}
+```
+
+```cpp,editable
 class Solution {
 public:
     ListNode *deleteNodeAtGivenDistance(ListNode *head, int X) {
-
-        // Check if the list is empty. If so, there's nothing to delete,
-        // so return nullptr.
-        if (head == nullptr) {
-            return nullptr;
-        }
-
-        // If X is 0, we need to delete the first node
+        if (head == nullptr) return nullptr;
         if (X == 0) {
-
-            // Store the node to be deleted in a temporary pointer
-            ListNode *nodeToBeDeleted = head;
-
-            // Move the head to the next node, removing the first node
+            ListNode *old = head;
             head = head->next;
-
-            // Update the new head's prev pointer
-            if (head != nullptr) {
-                head->prev = nullptr;
-            }
-
-            // Delete the node that was previously the head
-            delete nodeToBeDeleted;
-
-            // Return the new head
+            if (head != nullptr) head->prev = nullptr;
+            delete old;
             return head;
         }
-
-        // Initialize a current pointer to traverse the list
         ListNode *current = head;
-
-        // Initialize a counter to keep track of the distance from the
-        // head
         int counter = 0;
-
-        // Traverse the list until either the end is reached or the
-        // desired distance X is reached
-        while (current != nullptr && counter < X) {
-            current = current->next;
-            counter++;
-        }
-
-        // If the end of the list is reached before reaching the desired
-        // distance X, there is no node to delete, so we return the
-        // original head.
-        if (current == nullptr) {
-            return head;
-        }
-
-        // If the desired node is found at the given distance X,
-        // update the previous node's next pointer to skip the current
-        // node
-        if (current->prev != nullptr) {
-            current->prev->next = current->next;
-        }
-
-        // Update the next node's previous pointer to skip the current
-        // node
-        if (current->next != nullptr) {
-            current->next->prev = current->prev;
-        }
-
-        // Delete the current node as it is no longer part of the list
+        while (current != nullptr && counter < X) { current = current->next; counter++; }
+        if (current == nullptr) return head;
+        if (current->prev != nullptr) current->prev->next = current->next;
+        if (current->next != nullptr) current->next->prev = current->prev;
         delete current;
-
-        // Return the original head of the list
         return head;
     }
 };
 ```
+
+```scala,editable
+class Solution {
+  def deleteNodeAtGivenDistance(head: ListNode, X: Int): ListNode = {
+    if (head == null) return null
+    if (X == 0) {
+      val newHead = head.next
+      if (newHead != null) newHead.prev = null
+      return newHead
+    }
+    var current = head
+    var counter = 0
+    while (current != null && counter < X) { current = current.next; counter += 1 }
+    if (current == null) return head
+    if (current.prev != null) current.prev.next = current.next
+    if (current.next != null) current.next.prev = current.prev
+    head
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    deleteNodeAtGivenDistance(head, X) {
+        if (head === null) return null;
+        if (X === 0) {
+            head = head.next;
+            if (head !== null) head.prev = null;
+            return head;
+        }
+        let current = head, counter = 0;
+        while (current !== null && counter < X) { current = current.next; counter++; }
+        if (current === null) return head;
+        if (current.prev !== null) current.prev.next = current.next;
+        if (current.next !== null) current.next.prev = current.prev;
+        return head;
+    }
+}
+```
+
+```typescript,editable
+class Solution {
+    deleteNodeAtGivenDistance(head: ListNode | null, X: number): ListNode | null {
+        if (head === null) return null;
+        if (X === 0) {
+            head = head.next;
+            if (head !== null) head.prev = null;
+            return head;
+        }
+        let current: ListNode | null = head;
+        let counter = 0;
+        while (current !== null && counter < X) { current = current.next; counter++; }
+        if (current === null) return head;
+        if (current.prev !== null) current.prev.next = current.next;
+        if (current.next !== null) current.next.prev = current.prev;
+        return head;
+    }
+}
+```
+
+```go,editable
+func deleteNodeAtGivenDistance(head *ListNode, X int) *ListNode {
+    if head == nil { return nil }
+    if X == 0 {
+        head = head.Next
+        if head != nil { head.Prev = nil }
+        return head
+    }
+    current := head
+    counter := 0
+    for current != nil && counter < X { current = current.Next; counter++ }
+    if current == nil { return head }
+    if current.Prev != nil { current.Prev.Next = current.Next }
+    if current.Next != nil { current.Next.Prev = current.Prev }
+    return head
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun deleteNodeAtGivenDistance(head: ListNode?, X: Int): ListNode? {
+        if (head == null) return null
+        if (X == 0) {
+            val newHead = head.next
+            if (newHead != null) newHead.prev = null
+            return newHead
+        }
+        var current: ListNode? = head
+        var counter = 0
+        while (current != null && counter < X) { current = current.next; counter++ }
+        if (current == null) return head
+        if (current.prev != null) current.prev!!.next = current.next
+        if (current.next != null) current.next!!.prev = current.prev
+        return head
+    }
+}
+```
+
+```rust,editable
+// See lesson 09 for a complete Rc<RefCell<...>> implementation.
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — head = [5, 7, 3, 10], X = 1</strong></summary>
+
+```
+Initial │ 5 ↔ 7 ↔ 3 ↔ 10
+Step 1  │ X = 1 ≠ 0 → walk to position 1
+Step 2  │ counter=0, current=node(5); counter<1 → advance
+        │ counter=1, current=node(7); counter<1 false → stop
+Step 3  │ current = node(7), splice it out:
+        │   current.prev.next = current.next       │ 5.next = node(3)
+        │   current.next.prev = current.prev       │ 3.prev = node(5)
+Step 4  │ free node(7)
+Result: [5, 3, 10] ✓
+```
+
+</details>
+
+---
+
+## Final Takeaway
+
+Eight deletion variants, one underlying skill: **find the doomed node, save its address, reroute its neighbours, free.** The doubly linked list earns its keep when the input is a *node reference* — delete first, delete last, delete given, delete before, delete after all collapse to O(1). When the input is a *value or an index*, you still pay O(N) for the search or the walk, just like in a singly linked list — the extra `prev` pointer doesn't help because values and indices don't dereference.
+
+But the headline win is **delete the given node in O(1)**. A singly linked list cannot do this. That single capability is why every LRU cache, every undo stack, every kernel run-queue, and the deque inside Python's `collections` is built on a doubly linked list.
+
+> **The Deletion Checklist** — every time you splice a node out of a doubly linked list, ask yourself the same four questions. Drill them until they're automatic:
+>
+> 1. **Have I saved the doomed node's address before rerouting?** (Save before clobber — once neighbours skip past it, you may have no way back.)
+> 2. **Does the predecessor's `next` now skip the doomed node?**
+> 3. **Does the successor's `prev` now skip the doomed node?** (Guard with a null check — the doomed node may be the tail.)
+> 4. **Did I update the external `head` reference if I deleted the head?** (And the `tail` reference if I deleted the tail.)
+>
+> Skip any one and you've corrupted the chain — or leaked memory, or left a dangling reference. The bug will hide until someone walks backward, or until the freed node is reused for something else.
+
+> **Transfer challenge:** Implement an LRU cache with capacity `K` using a doubly linked list and a hash map. On `get(key)`, if the key exists, move its node to the front (most-recently-used end) in O(1); on `put(key, value)`, if the cache is full, evict the tail node in O(1). Hint: every operation in this lesson except "delete by value" and "delete at distance" is O(1) — those are the *only* operations LRU needs.
+>
+> <details>
+> <summary>Solution sketch</summary>
+>
+> Maintain a hash map `key → node` and a doubly linked list with explicit `head` (most-recently-used) and `tail` (least-recently-used) references. `get(key)`: look up the node in O(1), then `delete the given node` (O(1)) and `insert at beginning` (O(1)) to move it to the front. `put(key, value)`: if the key exists, move-to-front and update the value; if not and the cache is at capacity, `delete last node` (O(1)) plus a hash-map removal, then `insert at beginning` (O(1)) and a hash-map insertion. Every public operation is O(1) — the only structure that makes this possible is a doubly linked list, because *delete-the-given-node* is the load-bearing operation, and that's O(1) only with `prev` pointers.
+>
+> </details>
+
+Up next: **reversal**. Insertion and deletion let us add and remove nodes — reversal is something more dramatic, where we keep every node and only flip the *direction* of every link. The same "save before clobber" discipline that protected us during deletion will save us again, this time as we walk a list that is being rewired underneath us.
