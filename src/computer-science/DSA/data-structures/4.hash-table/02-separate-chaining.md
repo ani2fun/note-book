@@ -1,4 +1,14 @@
-# 2. Separate chaining
+# 2. Separate Chaining
+
+## The Hook
+
+Two of your friends — Hari and Riya — book the *same hotel room* on the same date by accident. The hotel has only one room with that number. What do you do? You don't tear up one of the bookings; you don't pretend the second person doesn't exist. You **add another bed** to the room and let them share it. The room number stays the same; the *capacity* grows on demand.
+
+That, in one sentence, is the soul of **separate chaining**: when two keys collide on the same array slot, don't fight over the slot — extend it. Each "slot" stops being a single seat and becomes a **chain** that can grow as long as it needs to. The hash function still routes you to the right slot in O(1); a tiny linked list inside the slot then mops up whatever fraction of the collision storm landed there.
+
+This is the *most intuitive* way to resolve collisions, the one used inside Java's `HashMap`, Python's `dict` (until very recently — modern CPython uses open addressing, but the conceptual model is still chain-style for teaching), and most language standard libraries. Master it well and you'll have a tool that works under almost any load and never *runs out of slots* — but with a few sharp tradeoffs that we will surface, exploit, and stress-test before the lesson ends.
+
+---
 
 ## Table of contents
 
@@ -14,2093 +24,2636 @@
 
 # Introduction to separate chaining
 
-Now that we know what a hash table is and the operations it supports, we can dive deeper into how hash tables deal with collisions. Separate chaining is one such way of collision resolution in hash tables. As the name suggests, the internal array is an array of a chain-like data structure in the separate chaining implementation of a hash table. This data structure can simultaneously hold more than one data item, which is exactly how collisions are resolved. All the keys with the same hash value are stored at the hashed index, forming a data chain.
+Now that we know what a hash table is and the operations it supports, we can dive deeper into how hash tables actually deal with collisions. **Separate chaining** is one of the two great families of collision resolution. The name says it all: when keys collide, we don't try to relocate them — we let them sit at the *same* slot, "separated" only by the order in which they were inserted, all chained together inside that slot.
 
-// Diagram: Logical representation of separate chaining implementation of a hash table
+Concretely: the internal array is no longer an array of `(key, value)` cells. It's an array of **chains** — small, growable containers that can hold many records at the same index. All keys whose hashes collide on index `i` get appended to the chain at `table[i]`. Looking up a key is now a two-stage process: hash to the index, then walk the chain at that index until you find the key (or run out of chain).
 
-We can implement the chain using a linked list, dynamic array, or a self-balancing binary search tree as the data structure. The most common separate chaining implementation uses a doubly linked list, which we will use in this course.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph TBL["Internal array — each slot is a chain"]
+        direction TB
+        I0["[0]"] --> C0["('Karan', 4)"]
+        I1["[1]"] --> C1["('Hari', 7)"] --> C1b["('Riya', 12)"] --> C1c["('Anmol', 19)"]
+        I2["[2]"] --> EMPTY1["(empty)"]
+        I3["[3]"] --> C3["('Neha', 23)"] --> C3b["('Karan', 4)"]
+    end
+    style I1 fill:#fef9c3,stroke:#f59e0b
+    style C1 fill:#dbeafe,stroke:#3b82f6
+    style C1b fill:#dbeafe,stroke:#3b82f6
+    style C1c fill:#dbeafe,stroke:#3b82f6
+```
 
-Separate chaining is sometimes called **closed addressing** or **open hashing** because collisions are handled using another data structure (a linked list). 
+<p align="center"><strong>Logical view of separate chaining — every slot is a chain (a small linked list). Index 1 has absorbed three colliding keys; index 2 sits empty; index 3 holds two. The array length never changes, but each slot is free to grow.</strong></p>
+
+The chain itself can be anything that supports "add" and "walk through": a **doubly linked list**, a **dynamic array**, or even a **self-balancing BST** for adversarial workloads (Java 8+ does this once a chain exceeds eight nodes). In this course we'll use a doubly linked list — it's the most pedagogically clean choice and connects directly to what you just learned in the doubly-linked-list section.
+
+> **Aliases worth knowing:** Separate chaining is sometimes called **closed addressing** or **open hashing**. The terminology is unfortunate — the "closed" and "open" descriptors point in *opposite* directions across hashing literature. Just remember the structural property: **the address (slot) is closed (fixed by the hash); the bucket (chain at that address) is open (grows on demand).** The opposite scheme — open addressing — is what we'll meet in the next lesson.
 
 ## Advantages
 
-The separate chaining implementation can easily resolve collision in hash tables and is the most intuitive way to solve this problem. It has a few advantages over other collision resolution schemes that we will learn later in this course.
+The separate chaining implementation is the most intuitive collision resolution scheme, and it has three properties that make it the safe default:
 
-> -   **Easy**: Separate chaining is easier to understand and implement than other collision resolution schemes, which we will learn later.
-> -   **Infinite size**: There is no restriction on the hash table size. The chain data structure can grow as much as memory permits.
-> -   **Collision performance**: Unlike other collision resolution schemes, in separate chaining, collision on one hashed index does not affect the other hashed indices.
+> -   **Easy to implement:** The mental model is exactly "array of mini-lists." Insertion, deletion, and search are direct adaptations of linked-list operations you already know.
+> -   **No size ceiling:** The array's *length* is fixed, but the chains inside the slots can grow without bound. The hash table never runs out of room as long as memory holds.
+> -   **Localised collisions:** A pile-up at slot `i` does not affect slots `j` or `k`. Pathological keys all colliding into one bucket leave the rest of the table fast and unaffected.
 
 ## Limitations
 
-Even though the separate chaining implementation is easy to understand and intuitive, it is not always the best choice for implementing hash tables. It has a few limitations over other collision resolution schemes.
+Three properties cut the other way:
 
-> -   **Infinite size**: No size restriction can lead to unchecked hash table expansion, causing out-of-memory (OOM) issues.
-> -   **Extra space**: The data structure used for chaining has its data members, such as previous and next references, in doubly linked lists that use extra space.
-> -   **CPU cache performance**: When using a chain data structure, the data is scattered throughout the memory, and so the CPU cache performance is poor as it cannot leverage the locality of reference as in arrays.
+> -   **Unbounded growth = OOM risk:** The same flexibility that lets the table absorb infinite collisions also lets a runaway insert loop balloon memory until the process dies.
+> -   **Memory overhead per node:** Every chain entry is a linked-list node, so each record carries the cost of `prev` and `next` pointers (16 extra bytes per node on 64-bit systems) on top of the actual `(key, value)` payload.
+> -   **Cache misses everywhere:** Linked-list nodes live at unrelated memory addresses. Walking a chain bounces all over RAM, so the CPU's locality-of-reference advantage — the trick that makes arrays brutally fast in practice — is lost. Open addressing will exploit exactly this gap.
 
-We will look at the different components that make up the hash table, which uses separate chaining collision resolution using a doubly linked list.
+> *Predict before reading on — if I told you the average chain length in a well-tuned hash table is roughly **1.0** (one record per chain), what does that imply about insert and search time complexity? And what happens if I stuff 1,000 keys into a table of size 4?*
 
 ***
 
 # Key components of separate chaining
 
-Now that we know what separate chaining is let us look at the structure of a separate chaining implementation of a hash table using a **doubly linked list**. The hash table is just an encapsulation around an array of linked lists that stores key-value pairs. Different pieces have to be put together to create a hash table. Let us look at all the components and functions needed to implement such a hash table.
+The separate-chaining hash table has three components welded together: a record type for the payload, an internal array of chains, and a hash function that routes keys to chain indices. Let's build each piece in isolation before assembling the full class.
 
 ## Record
 
-Each linked list node stores the key-value pair that represents the mapping in the separate chaining implementation of a hash table. A record is a data structure encapsulating this key-value pair, making it easy to use and operate. Each node in the linked list holds data in this format.
+A **record** is the unit stored inside a chain — the actual `(key, value)` pair the user cares about. Wrapping it in its own type keeps the chain code clean (the chain stores `Record` objects rather than juggling parallel arrays) and lets us extend the record later (e.g. add timestamps, hit counters) without touching the rest of the table.
 
-// Diagram: A record in the separate chaining implementation of a hash table
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph REC["Record"]
+        direction LR
+        K["key<br/>(int)"] --- V["value<br/>(int)"]
+    end
+    subgraph NODE["Doubly-linked-list node holding a record"]
+        direction LR
+        P["prev"] --- VAL["val: Record"] --- N["next"]
+    end
+    REC -.->|"stored inside"| VAL
+```
 
-We create a class with key and value as its data members to implement this data structure. The class provides a parameterized constructor to supply values during construction.
+<p align="center"><strong>The record is the payload, the chain node is the container — every node in the chain holds one record alongside its <code>prev</code> and <code>next</code> pointers.</strong></p>
 
-C++
+<div class="lang-tabs">
 
-```cpp
-// Represents an entry in the hash table
+```python,editable
+# Each chain entry is a (key, value) pair. We use a small dataclass-style class
+# instead of a raw tuple so the chain code reads cleanly: entry.key, entry.value.
+class Record:
+    def __init__(self, key: int, value: int):
+        self.key   = key      # The lookup key
+        self.value = value    # The mapped value
+
+# Demo
+r = Record(1, 99)
+print(r.key, r.value)   # 1 99
+```
+
+```java,editable
+public class Main {
+    // Record encapsulates the (key, value) pair stored in each chain node.
+    static class Record {
+        int key;
+        int value;
+        Record(int key, int value) {
+            this.key   = key;
+            this.value = value;
+        }
+    }
+
+    public static void main(String[] args) {
+        Record r = new Record(1, 99);
+        System.out.println(r.key + " " + r.value);   // 1 99
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+
+// Record stored inside each chain node.
+typedef struct {
+    int key;
+    int value;
+} Record;
+
+// Doubly linked list node holding one record.
+typedef struct ListNode {
+    Record val;
+    struct ListNode *prev;
+    struct ListNode *next;
+} ListNode;
+
+int main() {
+    Record r = { .key = 1, .value = 99 };
+    printf("%d %d\n", r.key, r.value);   // 1 99
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+
+// Record stored in each chain entry.
 struct Record {
     int key;
     int value;
-
     Record() = default;
     Record(int key, int value) : key(key), value(value) {}
 };
 
-// Definition for doubly-linked list.
-struct ListNode {
-    Record val;
-    ListNode *prev;
-    ListNode *next;
-    ListNode(Record val) : val(val), prev(nullptr), next(nullptr) {}
-};
-```
-
-Java
-
-```java
-// Represents an entry in the hash table
-class Record {
-    int key;
-    int value;
-
-    Record(int key, int value) {
-        this.key = key;
-        this.value = value;
-    }
-
-// Definition for doubly-linked list.
-class ListNode {
-    Record val;
-    ListNode prev;
-    ListNode next;
-    ListNode() {}
-    ListNode(Record val) { this.val = val; }
-};
-```
-
-Typescript
-
-```typescript
-// Represents an entry in the hash table
-class Record {
-    key: number;
-    value: number;
-
-    constructor(key: number, value: number) {
-        this.key = key;
-        this.value = value;
-    }
-
-// Definition for doubly-linked list.
-class ListNode {
-    val: Record
-    prev: ListNode | null
-    next: ListNode | null
-    constructor(
-        val?: Record,
-        prev?: ListNode | null,
-        next?: ListNode | null
-    ) {
-        this.val = (val===undefined ? null : val)
-        this.prev = (prev===undefined ? null : prev)
-        this.next = (next===undefined ? null : next)
-    }
-```
-
-Javascript
-
-```javascript
-// Represents an entry in the hash table
-class Record {
-    constructor(key, value) {
-        this.key = key;
-        this.value = value;
-    }
-
-// Definition for doubly-linked list.
-function ListNode(val, prev, next) {
-    this.val = (val===undefined ? null : val)
-    this.prev = (prev===undefined ? null : prev)
-    this.next = (next===undefined ? null : next)
+int main() {
+    Record r(1, 99);
+    std::cout << r.key << " " << r.value << "\n";   // 1 99
 }
 ```
 
-Python
+```scala,editable
+// Record is the unit of storage inside each chain.
+case class Record(key: Int, var value: Int)
 
-```python
-# Represents an entry in the hash table
-class Record:
-    def __init__(self, key: int, value: int):
-        self.key = key
-        self.value = value
-
-# Definition for doubly-linked list.
-class ListNode:
-    def __init__(self, val):
-        self.val = val
-        self.prev = None
-        self.next = None
+object Main extends App {
+  val r = Record(1, 99)
+  println(s"${r.key} ${r.value}")   // 1 99
+}
 ```
+
+```javascript,editable
+// Each chain entry holds a Record — a (key, value) pair.
+class Record {
+    constructor(key, value) {
+        this.key   = key;
+        this.value = value;
+    }
+}
+
+const r = new Record(1, 99);
+console.log(r.key, r.value);   // 1 99
+```
+
+```typescript,editable
+class Record {
+    key:   number;
+    value: number;
+    constructor(key: number, value: number) {
+        this.key   = key;
+        this.value = value;
+    }
+}
+
+const r = new Record(1, 99);
+console.log(r.key, r.value);   // 1 99
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+// Record encapsulates the (key, value) pair stored in each chain node.
+type Record struct {
+    Key   int
+    Value int
+}
+
+func main() {
+    r := Record{Key: 1, Value: 99}
+    fmt.Println(r.Key, r.Value)   // 1 99
+}
+```
+
+```kotlin,editable
+// Record holds a single (key, value) pair stored inside a chain node.
+data class Record(val key: Int, var value: Int)
+
+fun main() {
+    val r = Record(1, 99)
+    println("${r.key} ${r.value}")   // 1 99
+}
+```
+
+```rust,editable
+// Record encapsulates a (key, value) entry inside the chain.
+#[derive(Clone, Debug)]
+struct Record {
+    key:   i32,
+    value: i32,
+}
+
+fn main() {
+    let r = Record { key: 1, value: 99 };
+    println!("{} {}", r.key, r.value);   // 1 99
+}
+```
+
+</div>
 
 ## Internal array
 
-In the separate chaining implementation of a hash table, the internal array is an array of linked lists. Each index in the array represents a hash value, and the linked list at the index stores all the records that have keys with the same hash value(collision).
+The internal array of a separate-chaining hash table is **an array of chains**. Each cell of the array holds an entire (initially empty) chain. The hash value of a key picks a cell; the chain at that cell stores all records whose keys hash to it.
 
-// Diagram: The internal array is an array of linked lists
-
-When a hash table is created, all linked lists are empty. Adding mappings to the hash table adds new nodes to the linked lists at the hashed indices. Later in the course, we will learn more about the different operations on a hash table implemented using separate chaining.
-
-// Diagram: As the mappings are added to the hash table, new nodes are added to lists at the hashed indices
-
-To keep the implementation simple, we use the library implementation of a linked list instead of using the `ListNode` class we created in the doubly linked list course.
-
-C++
-
-```cpp
-// Represents an entry in the hash table
-struct Record {
-    int key;
-    int value;
-
-    Record() = default;
-    Record(int key, int value) : key(key), value(value) {}
-};
-
-// Definition for doubly-linked list.
-struct ListNode {
-    Record val;
-    ListNode *prev;
-    ListNode *next;
-    ListNode(Record val) : val(val), prev(nullptr), next(nullptr) {}
-};
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph EMPTY["Empty hash table — capacity 4"]
+        direction TB
+        E0["[0]"] --> H0["(empty chain)"]
+        E1["[1]"] --> H1["(empty chain)"]
+        E2["[2]"] --> H2["(empty chain)"]
+        E3["[3]"] --> H3["(empty chain)"]
+    end
 ```
 
-Java
+<p align="center"><strong>An empty separate-chaining hash table — every slot starts as an empty chain. The array's length never changes after construction.</strong></p>
 
-```java
-// Represents an entry in the hash table
-class Record {
-    int key;
-    int value;
+When we insert into the table, the chain at the hashed index grows. The next diagram shows the same table after a series of inserts that produce two collisions (slot 1 collects three records, slot 3 collects two).
 
-    Record(int key, int value) {
-        this.key = key;
-        this.value = value;
-    }
-
-// Definition for doubly-linked list.
-class ListNode {
-    Record val;
-    ListNode prev;
-    ListNode next;
-    ListNode() {}
-    ListNode(Record val) { this.val = val; }
-};
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph FILLED["After inserts — chains have grown at colliding slots"]
+        direction TB
+        E0["[0]"] --> H0["(empty)"]
+        E1["[1]"] --> R1["(5,A)"] --> R2["(9,B)"] --> R3["(13,C)"]
+        E2["[2]"] --> H2["(empty)"]
+        E3["[3]"] --> R4["(7,D)"] --> R5["(11,E)"]
+    end
+    style R1 fill:#dbeafe,stroke:#3b82f6
+    style R2 fill:#dbeafe,stroke:#3b82f6
+    style R3 fill:#dbeafe,stroke:#3b82f6
+    style R4 fill:#dbeafe,stroke:#3b82f6
+    style R5 fill:#dbeafe,stroke:#3b82f6
 ```
 
-Typescript
+<p align="center"><strong>The same table after five inserts (capacity = 4, hash = key mod 4) — keys 5, 9, 13 all hash to 1; keys 7, 11 both hash to 3. Notice that the array's length is unchanged; the table simply absorbs collisions by extending the affected chains.</strong></p>
 
-```typescript
-// Represents an entry in the hash table
-class Record {
-    key: number;
-    value: number;
-
-    constructor(key: number, value: number) {
-        this.key = key;
-        this.value = value;
-    }
-
-// Definition for doubly-linked list.
-class ListNode {
-    val: Record
-    prev: ListNode | null
-    next: ListNode | null
-    constructor(
-        val?: Record,
-        prev?: ListNode | null,
-        next?: ListNode | null
-    ) {
-        this.val = (val===undefined ? null : val)
-        this.prev = (prev===undefined ? null : prev)
-        this.next = (next===undefined ? null : next)
-    }
-```
-
-Javascript
-
-```javascript
-// Represents an entry in the hash table
-class Record {
-    constructor(key, value) {
-        this.key = key;
-        this.value = value;
-    }
-
-// Definition for doubly-linked list.
-function ListNode(val, prev, next) {
-    this.val = (val===undefined ? null : val)
-    this.prev = (prev===undefined ? null : prev)
-    this.next = (next===undefined ? null : next)
-}
-```
-
-Python
-
-```python
-# Represents an entry in the hash table
-class Record:
-    def __init__(self, key: int, value: int):
-        self.key = key
-        self.value = value
-
-# Definition for doubly-linked list.
-class ListNode:
-    def __init__(self, val):
-        self.val = val
-        self.prev = None
-        self.next = None
-```
+In this course, the chain inside each slot is a **doubly linked list**. To keep the lessons focused on hashing rather than on re-implementing a linked list, we use the standard library's linked-list type wherever the language provides one. (You already built one in the previous section — feel free to swap in your own version once the table works.)
 
 ## Hash function
 
-The hash function is the heart of any hash table. It converts a given key to an index (hash value) in the internal array. The key-value pair is searched, inserted, or deleted in the internal array at that index. Any hash-value collision is resolved using separate chaining (adding to the linked list).
+The hash function maps a key to a valid array index. Throughout this section we'll use the simplest possible function — `key mod capacity` — so we can focus all our attention on collision *handling*. A real-world hash table would replace this with a stronger function (the principles of which we covered in [Lesson 1](01-introduction-to-hash-tables.md#examples-of-hash-functions)).
 
-// Diagram: The hash function translates keys to array indices
-
-C++
-
-```cpp
-// Represents an entry in the hash table
-struct Record {
-    int key;
-    int value;
-
-    Record() = default;
-    Record(int key, int value) : key(key), value(value) {}
-};
-
-// Definition for doubly-linked list.
-struct ListNode {
-    Record val;
-    ListNode *prev;
-    ListNode *next;
-    ListNode(Record val) : val(val), prev(nullptr), next(nullptr) {}
-};
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    K["key = 13"] -->|"hash<br/>(key mod 4)"| H["index = 1"]
+    H --> SLOT["table[1] —<br/>chain to walk"]
 ```
 
-Java
+<p align="center"><strong>The hash function reduces a key to a valid array index in O(1). For <code>capacity = 4</code> and <code>key = 13</code>, <code>13 mod 4 = 1</code>, so the search continues inside the chain at slot 1.</strong></p>
 
-```java
-// Represents an entry in the hash table
-class Record {
-    int key;
-    int value;
-
-    Record(int key, int value) {
-        this.key = key;
-        this.value = value;
-    }
-
-// Definition for doubly-linked list.
-class ListNode {
-    Record val;
-    ListNode prev;
-    ListNode next;
-    ListNode() {}
-    ListNode(Record val) { this.val = val; }
-};
-```
-
-Typescript
-
-```typescript
-// Represents an entry in the hash table
-class Record {
-    key: number;
-    value: number;
-
-    constructor(key: number, value: number) {
-        this.key = key;
-        this.value = value;
-    }
-
-// Definition for doubly-linked list.
-class ListNode {
-    val: Record
-    prev: ListNode | null
-    next: ListNode | null
-    constructor(
-        val?: Record,
-        prev?: ListNode | null,
-        next?: ListNode | null
-    ) {
-        this.val = (val===undefined ? null : val)
-        this.prev = (prev===undefined ? null : prev)
-        this.next = (next===undefined ? null : next)
-    }
-```
-
-Javascript
-
-```javascript
-// Represents an entry in the hash table
-class Record {
-    constructor(key, value) {
-        this.key = key;
-        this.value = value;
-    }
-
-// Definition for doubly-linked list.
-function ListNode(val, prev, next) {
-    this.val = (val===undefined ? null : val)
-    this.prev = (prev===undefined ? null : prev)
-    this.next = (next===undefined ? null : next)
-}
-```
-
-Python
-
-```python
-# Represents an entry in the hash table
-class Record:
-    def __init__(self, key: int, value: int):
-        self.key = key
-        self.value = value
-
-# Definition for doubly-linked list.
-class ListNode:
-    def __init__(self, val):
-        self.val = val
-        self.prev = None
-        self.next = None
-```
+We'll fold the hash function directly into the hash-table class as a private method, since no caller of the table needs to know how the function is computed.
 
 ***
 
 # Implementing the hash table class
 
-Now that we know the individual components of a hash table and how its operations are implemented using separate chaining, let us look at the hash table class. This class encapsulates all these components and provides public functions to expose these operations. The hash table class abstracts away the implementation details of operations and the internal data structures to provide a clean and simple-to-use interface.
+Now we wrap everything — the record type, the array of chains, the hash function, and the public operations — into a single class. Encapsulation is what turns a pile of components into something a caller can use without thinking.
 
-// Diagram: Representation of separate chaining implementation of a hash table encapsulated in a class
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph CLS["MyHashTable class"]
+        direction TB
+        subgraph PRIV["private (hidden internals)"]
+            direction TB
+            CAP["capacity: int"]
+            TBL["table: array of chains"]
+            HF["hashFunction(key)"]
+        end
+        subgraph PUB["public (callable interface)"]
+            direction TB
+            S["search(key) → value"]
+            I["insert(key, value)"]
+            R["remove(key)"]
+        end
+        PUB -.-> PRIV
+    end
+```
+
+<p align="center"><strong>The hash-table class — public methods (the only things callers see) sit on top of the private internals (capacity, the array of chains, and the hash function). Encapsulation lets the implementation change later without breaking callers.</strong></p>
 
 ## Implementation
 
-The hash table class is implemented by encapsulating all the components we learned earlier with the search, insert, and delete operations as public functions. The hash function and other helper functions and definitions are private to the class and need not be exposed.
+Below is the skeleton of the class — the constructor wires up an empty array of chains, but the three operations (`search`, `insert`, `remove`) are stubbed out. We'll fill them in over the next three sections.
 
-C++
+<div class="lang-tabs">
 
-```cpp
+```python,editable
+# Skeleton of the separate-chaining hash table.
+# Each "chain" is a Python list of Record objects (idiomatic and runnable).
+class Record:
+    def __init__(self, key: int, value: int):
+        self.key   = key
+        self.value = value
+
+class MyHashTable:
+    def __init__(self, capacity: int):
+        self.capacity = capacity                       # Number of array slots
+        # One empty chain per slot; chains grow as collisions accumulate
+        self.table    = [[] for _ in range(capacity)]
+
+    def _hash(self, key: int) -> int:
+        # Division-method hash — keep keys in the valid index range
+        return key % self.capacity
+
+    def search(self, key: int) -> int:
+        pass    # filled in next section
+
+    def insert(self, key: int, value: int) -> None:
+        pass    # filled in next section
+
+    def remove(self, key: int) -> None:
+        pass    # filled in next section
+
+# Demo — instantiate and inspect
+h = MyHashTable(4)
+print(len(h.table))    # 4 empty chains
+```
+
+```java,editable
+import java.util.*;
+
+public class Main {
+    static class Record {
+        int key;
+        int value;
+        Record(int key, int value) { this.key = key; this.value = value; }
+    }
+
+    static class MyHashTable {
+        private final int                       capacity;
+        private final List<LinkedList<Record>>  table;     // Array of chains
+
+        MyHashTable(int capacity) {
+            this.capacity = capacity;
+            this.table    = new ArrayList<>(capacity);
+            // Pre-create one empty chain per slot
+            for (int i = 0; i < capacity; i++) table.add(new LinkedList<>());
+        }
+
+        private int hash(int key) { return key % capacity; }   // Division method
+
+        int  search(int key)              { return -1; }     // filled in next section
+        void insert(int key, int value)   {            }     // filled in next section
+        void remove(int key)              {            }     // filled in next section
+    }
+
+    public static void main(String[] args) {
+        MyHashTable h = new MyHashTable(4);
+        System.out.println("created table with capacity 4");
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct Node {
+    int key, value;
+    struct Node *next;
+} Node;
+
+typedef struct {
+    int    capacity;
+    Node **table;       // Array of chain heads
+} MyHashTable;
+
+int hash_fn(MyHashTable *h, int key) { return key % h->capacity; }
+
+MyHashTable* createTable(int capacity) {
+    MyHashTable *h = malloc(sizeof(MyHashTable));
+    h->capacity = capacity;
+    h->table    = calloc(capacity, sizeof(Node*));   // All chain heads start NULL
+    return h;
+}
+
+int  search_op(MyHashTable *h, int key)              { return -1; }
+void insert_op(MyHashTable *h, int key, int value)   {            }
+void remove_op(MyHashTable *h, int key)              {            }
+
+int main() {
+    MyHashTable *h = createTable(4);
+    printf("created table with capacity %d\n", h->capacity);
+    free(h->table); free(h);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
 #include <list>
+#include <vector>
 
-// Diagram: using namespace std;
-
-// Represents an entry in the hash table
 struct Record {
     int key;
     int value;
-
     Record() = default;
     Record(int key, int value) : key(key), value(value) {}
 };
 
 class MyHashTable {
 private:
+    int                            capacity;
+    std::vector<std::list<Record>> table;       // Array of chains
 
-    // The hashtable
-    vector<list<Record>> table;
-    int capacity;
+    int hash(int key) { return key % capacity; }
 
 public:
     MyHashTable(int capacity) : capacity(capacity), table(capacity) {}
 
-// Diagram: int search(int key) {}
-
-// Diagram: void insert(int key, int value) {}
-
-    void remove(int key) {}
+    int  search(int key)            { return -1; }
+    void insert(int key, int value) {            }
+    void remove(int key)            {            }
 };
-```
 
-Java
-
-```java
-import java.util.*;
-
-// Represents an entry in the hash table
-class Record {
-    int key;
-    int value;
-
-    Record(int key, int value) {
-        this.key = key;
-        this.value = value;
-    }
-
-// Diagram: class MyHashTable {
-
-    // The hashtable
-    private List<LinkedList<Record>> table;
-    private int capacity;
-
-    public MyHashTable(int capacity) {
-        this.capacity = capacity;
-
-        // Initialize the table with the given capacity
-        table = new ArrayList<>(capacity);
-        for (int i = 0; i < capacity; i++) {
-            table.add(new LinkedList<>());
-        }
-
-// Diagram: public int search(int key) {}
-
-// Diagram: public void insert(int key, int value) {}
-
-    public void remove(int key) {}
+int main() {
+    MyHashTable h(4);
+    std::cout << "created table with capacity 4\n";
 }
 ```
 
-Typescript
+```scala,editable
+import scala.collection.mutable.ListBuffer
 
-```typescript
-import { DoublyLinkedList } from "datastructures-js";
+case class Record(key: Int, var value: Int)
 
-// Represents an entry in the hash table
+class MyHashTable(val capacity: Int) {
+  // Each slot is a ListBuffer that grows on collision.
+  private val table: Array[ListBuffer[Record]] =
+    Array.fill(capacity)(ListBuffer.empty[Record])
+
+  private def hash(key: Int): Int = key % capacity
+
+  def search(key: Int):  Int  = -1
+  def insert(key: Int, value: Int): Unit = ()
+  def remove(key: Int):  Unit = ()
+}
+
+object Main extends App {
+  val h = new MyHashTable(4)
+  println("created table with capacity 4")
+}
+```
+
+```javascript,editable
 class Record {
-    key: number;
-    value: number;
+    constructor(key, value) { this.key = key; this.value = value; }
+}
 
-    constructor(key: number, value: number) {
-        this.key = key;
-        this.value = value;
+class MyHashTable {
+    constructor(capacity) {
+        this.capacity = capacity;
+        // One empty chain (array) per slot
+        this.table    = Array.from({ length: capacity }, () => []);
     }
+    _hash(key) { return key % this.capacity; }   // Division-method hash
 
-// Diagram: export class MyHashTable {
+    search(key)        { return -1; }
+    insert(key, value) {            }
+    remove(key)        {            }
+}
 
-    // The hashtable
-    table: DoublyLinkedList<Record>[];
-    capacity: number;
+const h = new MyHashTable(4);
+console.log("created table with capacity 4");
+```
+
+```typescript,editable
+class Record {
+    key:   number;
+    value: number;
+    constructor(key: number, value: number) { this.key = key; this.value = value; }
+}
+
+class MyHashTable {
+    private capacity: number;
+    private table:    Record[][];     // Array of chains
 
     constructor(capacity: number) {
         this.capacity = capacity;
-
-        // Initialize the table with the given capacity
-        this.table = Array.from(
-            { length: capacity },
-            () => new DoublyLinkedList<Record>()
-        );
+        this.table    = Array.from({ length: capacity }, () => [] as Record[]);
     }
+    private hash(key: number): number { return key % this.capacity; }
 
-// Diagram: search(key: number): number {}
+    search(key: number):                 number { return -1; }
+    insert(key: number, value: number):  void   {            }
+    remove(key: number):                 void   {            }
+}
 
-// Diagram: insert(key: number, value: number): void {}
+const h = new MyHashTable(4);
+console.log("created table with capacity 4");
+```
 
-    remove(key: number): void {}
+```go,editable
+package main
+
+import "fmt"
+
+type Record struct {
+    Key   int
+    Value int
+}
+
+type MyHashTable struct {
+    capacity int
+    table    [][]Record       // Array of chains
+}
+
+func newTable(capacity int) *MyHashTable {
+    return &MyHashTable{
+        capacity: capacity,
+        table:    make([][]Record, capacity),
+    }
+}
+
+func (h *MyHashTable) hash(key int) int { return key % h.capacity }
+
+func (h *MyHashTable) Search(key int) int                 { return -1 }
+func (h *MyHashTable) Insert(key int, value int)          {           }
+func (h *MyHashTable) Remove(key int)                     {           }
+
+func main() {
+    h := newTable(4)
+    fmt.Printf("created table with capacity %d\n", h.capacity)
 }
 ```
 
-Javascript
+```kotlin,editable
+data class Record(val key: Int, var value: Int)
 
-```javascript
-import { DoublyLinkedList } from "datastructures-js";
+class MyHashTable(private val capacity: Int) {
+    // Each slot is a MutableList of records — grows on collision
+    private val table: Array<MutableList<Record>> =
+        Array(capacity) { mutableListOf() }
 
-// Represents an entry in the hash table
-class Record {
-    constructor(key, value) {
-        this.key = key;
-        this.value = value;
-    }
+    private fun hash(key: Int): Int = key % capacity
 
-// Diagram: export class MyHashTable {
+    fun search(key: Int): Int  = -1
+    fun insert(key: Int, value: Int) {}
+    fun remove(key: Int) {}
+}
 
-    // The hashtable
-    constructor(capacity) {
-        this.capacity = capacity;
-
-        // Initialize the table with the given capacity
-        this.table = Array.from(
-            { length: capacity },
-            () => new DoublyLinkedList()
-        );
-    }
-
-// Diagram: search(key) {}
-
-// Diagram: insert(key, value) {}
-
-    remove(key) {}
+fun main() {
+    val h = MyHashTable(4)
+    println("created table with capacity 4")
 }
 ```
 
-Python
+```rust,editable
+#[derive(Clone, Debug)]
+struct Record { key: i32, value: i32 }
 
-```python
-from typing import List
-from llist import dllist
+struct MyHashTable {
+    capacity: usize,
+    table:    Vec<Vec<Record>>,    // Each slot is a Vec acting as the chain
+}
 
-# Represents an entry in the hash table
-class Record:
-    def __init__(self, key: int, value: int):
-        self.key = key
-        self.value = value
+impl MyHashTable {
+    fn new(capacity: usize) -> Self {
+        MyHashTable { capacity, table: vec![Vec::new(); capacity] }
+    }
+    fn hash(&self, key: i32) -> usize { (key as usize) % self.capacity }
 
-class MyHashTable:
-    def __init__(self, capacity: int):
-        self.capacity = capacity
+    fn search(&self,     _key: i32)           -> i32  { -1 }
+    fn insert(&mut self, _key: i32, _val: i32)        {    }
+    fn remove(&mut self, _key: i32)                   {    }
+}
 
-        # Initialize the table with the given capacity
-        self.table = [dllist() for _ in range(capacity)]
-
-    def search(self, key: int) -> int:
-        pass
-
-    def insert(self, key: int, value: int) -> None:
-        pass
-
-    def remove(self, key: int) -> None:
-        pass
+fn main() {
+    let h = MyHashTable::new(4);
+    println!("created table with capacity {}", h.capacity);
+}
 ```
+
+</div>
 
 ## Using the hash table class
 
-The hash table class abstracts away the implementation details in a class. Anyone who wants to use the hash table as a data structure can instantiate an object of the hash table class we defined earlier and operate upon it by calling the exposed public functions. The caller does not need to care about the implementation detail and can focus on solving the higher-level problem.
+Once the class is defined, callers don't see records, chains, or hash functions. They see three methods: `insert`, `search`, `remove`. The internals can change tomorrow — different chain type, different hash function, different growth policy — and no caller code needs to be touched. This is the discipline that separates a one-off script from a reusable data structure.
 
-C++
-
-```cpp
-#include <list>
-
-// Diagram: using namespace std;
-
-// Represents an entry in the hash table
-struct Record {
-    int key;
-    int value;
-
-    Record() = default;
-    Record(int key, int value) : key(key), value(value) {}
-};
-
-class MyHashTable {
-private:
-
-    // The hashtable
-    vector<list<Record>> table;
-    int capacity;
-
-public:
-    MyHashTable(int capacity) : capacity(capacity), table(capacity) {}
-
-// Diagram: int search(int key) {}
-
-// Diagram: void insert(int key, int value) {}
-
-    void remove(int key) {}
-};
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    USER["caller code"] -->|"insert(1, 100)"| API
+    USER -->|"search(1)"| API
+    USER -->|"remove(1)"| API
+    subgraph API["MyHashTable public API"]
+        I["insert"]
+        S["search"]
+        R["remove"]
+    end
+    API -.->|"delegates to"| INT["private internals:<br/>hash function +<br/>array of chains"]
 ```
 
-Java
+<p align="center"><strong>Encapsulation in action — the caller talks to the public API; the API talks to the private internals. The wall between them is what lets the implementation evolve independently.</strong></p>
 
-```java
-import java.util.*;
-
-// Represents an entry in the hash table
-class Record {
-    int key;
-    int value;
-
-    Record(int key, int value) {
-        this.key = key;
-        this.value = value;
-    }
-
-// Diagram: class MyHashTable {
-
-    // The hashtable
-    private List<LinkedList<Record>> table;
-    private int capacity;
-
-    public MyHashTable(int capacity) {
-        this.capacity = capacity;
-
-        // Initialize the table with the given capacity
-        table = new ArrayList<>(capacity);
-        for (int i = 0; i < capacity; i++) {
-            table.add(new LinkedList<>());
-        }
-
-// Diagram: public int search(int key) {}
-
-// Diagram: public void insert(int key, int value) {}
-
-    public void remove(int key) {}
-}
-```
-
-Typescript
-
-```typescript
-import { DoublyLinkedList } from "datastructures-js";
-
-// Represents an entry in the hash table
-class Record {
-    key: number;
-    value: number;
-
-    constructor(key: number, value: number) {
-        this.key = key;
-        this.value = value;
-    }
-
-// Diagram: export class MyHashTable {
-
-    // The hashtable
-    table: DoublyLinkedList<Record>[];
-    capacity: number;
-
-    constructor(capacity: number) {
-        this.capacity = capacity;
-
-        // Initialize the table with the given capacity
-        this.table = Array.from(
-            { length: capacity },
-            () => new DoublyLinkedList<Record>()
-        );
-    }
-
-// Diagram: search(key: number): number {}
-
-// Diagram: insert(key: number, value: number): void {}
-
-    remove(key: number): void {}
-}
-```
-
-Javascript
-
-```javascript
-import { DoublyLinkedList } from "datastructures-js";
-
-// Represents an entry in the hash table
-class Record {
-    constructor(key, value) {
-        this.key = key;
-        this.value = value;
-    }
-
-// Diagram: export class MyHashTable {
-
-    // The hashtable
-    constructor(capacity) {
-        this.capacity = capacity;
-
-        // Initialize the table with the given capacity
-        this.table = Array.from(
-            { length: capacity },
-            () => new DoublyLinkedList()
-        );
-    }
-
-// Diagram: search(key) {}
-
-// Diagram: insert(key, value) {}
-
-    remove(key) {}
-}
-```
-
-Python
-
-```python
-from typing import List
-from llist import dllist
-
-# Represents an entry in the hash table
-class Record:
-    def __init__(self, key: int, value: int):
-        self.key = key
-        self.value = value
-
-class MyHashTable:
-    def __init__(self, capacity: int):
-        self.capacity = capacity
-
-        # Initialize the table with the given capacity
-        self.table = [dllist() for _ in range(capacity)]
-
-    def search(self, key: int) -> int:
-        pass
-
-    def insert(self, key: int, value: int) -> None:
-        pass
-
-    def remove(self, key: int) -> None:
-        pass
-```
-
-To better understand how encapsulating all the data and operations to implement a hash table is useful, let us look at what happens when the code above is executed.
-
-// Diagram: Execution of code using an instance (object) of the hash table class
-
-Now that we know what the separate chaining implementation of a hash table using a linked list looks like and how it functions, we will learn more about the implementation of each operation in the coming lessons.
+With the skeleton in place, we'll now fill in the three operations one at a time — search first (because it's the simplest), then insert (which builds on search), then delete (which builds on both).
 
 ***
 
 # Search operation in separate chaining
 
-The search operation is one of the primary operations on a hash table and is used to retrieve the value of a key as stored in the hash table. The implementation is encapsulated in the search function and relies on the separate chaining collision resolution scheme to look for a value in the internal array of linked lists. Let us look at the algorithm and implementation of the search operation in a hash table implemented using separate chaining.
+The search operation is the heartbeat of a hash table. Every other operation either *is* a search (lookup) or *contains* a search (insert and delete both walk the chain to find the key first). Get search right, and the rest falls into place.
 
 ## Algorithm
 
-The search operation is quite simple. We only need to calculate the index (hash code) for the given key and then search for the key at the index. However, the hash table could have a collision for the given key (another key with the same hash code stored in the table), so we must follow a separate chaining scheme to search for the given key.
+The recipe is two clean steps, plus a careful walk:
 
-Once we calculate the index (hash code) for the given key, we start a linear search in the linked list at that index until we either find the key or the linked list is traversed completely. If the given key is found in the table, we return it. Otherwise, we return a flag (`-1` in this example) to indicate that the key is absent.
+1. **Hash the key** to compute its chain's index in the internal array.
+2. **Walk the chain** at that index. Compare each record's key to the search key.
+3. **Return the value** if a match is found, or a sentinel (`-1`) if the chain is exhausted without a match.
 
-// Diagram: Search for the given key in a separate chaining implementation of a hash table using linked list
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    Q["search(13)"] --> H["hash(13)<br/>= 1"]
+    H --> CHAIN
+    subgraph CHAIN["chain at table[1]"]
+        direction LR
+        N1["(5, A)<br/>5 ≠ 13 ✗"] --> N2["(9, B)<br/>9 ≠ 13 ✗"] --> N3["(13, C)<br/>13 == 13 ✓"]
+    end
+    N3 --> RET["return C"]
+    style N3 fill:#dcfce7,stroke:#22c55e
+```
+
+<p align="center"><strong>Search flow — the hash function picks the chain, then the walk inside the chain finds the matching record. If the chain runs out before a match, the operation returns the "not found" sentinel.</strong></p>
 
 > **Algorithm**
 >
-> -   **Step 1:** Calculate the index(hash code) for the given key.
-> -   **Step 2:** Search for the key in the list at the calculated index.
-> -   **Step 3:** If the key is found, return it's value. Otherwise, return \`-1\`.
+> -   **Step 1:** Calculate the index (hash code) for the given key.
+> -   **Step 2:** Search for the key by walking the chain at the calculated index.
+> -   **Step 3:** If the key is found, return its value. Otherwise, return `-1`.
 
 ## Implementation
 
-To implement the operation, we use the hash function to get the index in the internal array and then traverse the linked list at that index to search for the given key. If the key is found, we return its value. Otherwise, we return -1.
+<div class="lang-tabs">
 
-C++
+```python,editable
+class Record:
+    def __init__(self, key, value):
+        self.key, self.value = key, value
 
-```cpp
-#include <list>
+class MyHashTable:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.table    = [[] for _ in range(capacity)]
 
-// Diagram: using namespace std;
+    def _hash(self, key):
+        return key % self.capacity      # Division-method hash
 
-// Represents an entry in the hash table
-struct Record {
-    int key;
-    int value;
+    def search(self, key):
+        index = self._hash(key)         # Step 1: route to the chain
+        # Step 2: linear walk through the chain
+        for entry in self.table[index]:
+            if entry.key == key:        # Match — return the stored value
+                return entry.value
+        return -1                       # Step 3: chain exhausted, key absent
 
-    Record() = default;
-    Record(int key, int value) : key(key), value(value) {}
-};
-
-class MyHashTable {
-private:
-
-    // The hashtable
-    vector<list<Record>> table;
-    int capacity;
-
-// Diagram: int hashFunction(int key) { return key % capacity; }
-
-public:
-    MyHashTable(int capacity) : capacity(capacity), table(capacity) {}
-
-// Diagram: int search(int key) {
-
-        // Get the bucket index
-        int index = hashFunction(key);
-
-        // Search for the key in the bucket
-        for (auto &entry : table[index]) {
-            if (entry.key == key) {
-
-                // Return the value if key is found
-                return entry.value;
-            }
-
-        // Return -1 if the key is not found
-        return -1;
-    }
-};
+# Demo — empty table, lookup misses
+h = MyHashTable(4)
+print(h.search(7))                      # -1
 ```
 
-Java
-
-```java
+```java,editable
 import java.util.*;
 
-// Represents an entry in the hash table
-class Record {
-    int key;
-    int value;
+public class Main {
+    static class Record { int key, value; Record(int k, int v){key=k;value=v;} }
 
-    Record(int key, int value) {
-        this.key = key;
-        this.value = value;
-    }
+    static class MyHashTable {
+        private final int                      capacity;
+        private final List<LinkedList<Record>> table;
 
-// Diagram: class MyHashTable {
-
-    // The hashtable
-    private List<LinkedList<Record>> table;
-    private int capacity;
-
-    public MyHashTable(int capacity) {
-        this.capacity = capacity;
-
-        // Initialize the table with the given capacity
-        table = new ArrayList<>(capacity);
-        for (int i = 0; i < capacity; i++) {
-            table.add(new LinkedList<>());
+        MyHashTable(int capacity) {
+            this.capacity = capacity;
+            this.table    = new ArrayList<>(capacity);
+            for (int i = 0; i < capacity; i++) table.add(new LinkedList<>());
         }
+        private int hash(int key) { return key % capacity; }
 
-    private int hashFunction(int key) {
-        return key % capacity;
-    }
-
-// Diagram: public int search(int key) {
-
-        // Get the bucket index
-        int index = hashFunction(key);
-
-        // Search for the key in the bucket
-        for (Record entry : table.get(index)) {
-            if (entry.key == key) {
-
-                // Return the value if key is found
-                return entry.value;
+        int search(int key) {
+            int index = hash(key);                    // Step 1
+            for (Record entry : table.get(index)) {   // Step 2: walk the chain
+                if (entry.key == key) return entry.value;
             }
-
-        // Return -1 if the key is not found
-        return -1;
+            return -1;                                // Step 3: not found
+        }
     }
+
+    public static void main(String[] args) {
+        MyHashTable h = new MyHashTable(4);
+        System.out.println(h.search(7));   // -1
+    }
+}
 ```
 
-Typescript
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
 
-```typescript
-import { DoublyLinkedList } from "datastructures-js";
+typedef struct Node {
+    int key, value;
+    struct Node *next;
+} Node;
 
-// Represents an entry in the hash table
-class Record {
-    key: number;
-    value: number;
+typedef struct { int capacity; Node **table; } MyHashTable;
 
-    constructor(key: number, value: number) {
-        this.key = key;
-        this.value = value;
+int hash_fn(MyHashTable *h, int key) { return key % h->capacity; }
+
+int search_op(MyHashTable *h, int key) {
+    int index  = hash_fn(h, key);             // Step 1
+    Node *cur  = h->table[index];
+    while (cur) {                             // Step 2: walk the chain
+        if (cur->key == key) return cur->value;
+        cur = cur->next;
     }
+    return -1;                                // Step 3: not found
+}
 
-// Diagram: export class MyHashTable {
+int main() {
+    MyHashTable h = { .capacity = 4, .table = calloc(4, sizeof(Node*)) };
+    printf("%d\n", search_op(&h, 7));          // -1
+    free(h.table);
+    return 0;
+}
+```
 
-    // The hashtable
-    table: DoublyLinkedList<Record>[];
-    capacity: number;
+```cpp,editable
+#include <iostream>
+#include <list>
+#include <vector>
+
+struct Record { int key, value; Record() = default; Record(int k, int v):key(k),value(v){} };
+
+class MyHashTable {
+    int                            capacity;
+    std::vector<std::list<Record>> table;
+    int hash(int key) { return key % capacity; }
+
+public:
+    MyHashTable(int cap) : capacity(cap), table(cap) {}
+
+    int search(int key) {
+        int index = hash(key);                  // Step 1
+        for (auto &entry : table[index]) {      // Step 2: walk the chain
+            if (entry.key == key) return entry.value;
+        }
+        return -1;                              // Step 3
+    }
+};
+
+int main() {
+    MyHashTable h(4);
+    std::cout << h.search(7) << "\n";   // -1
+}
+```
+
+```scala,editable
+import scala.collection.mutable.ListBuffer
+
+case class Record(key: Int, var value: Int)
+
+class MyHashTable(val capacity: Int) {
+  private val table: Array[ListBuffer[Record]] =
+    Array.fill(capacity)(ListBuffer.empty[Record])
+
+  private def hash(key: Int): Int = key % capacity
+
+  def search(key: Int): Int = {
+    val index = hash(key)                        // Step 1
+    table(index).find(_.key == key)              // Step 2: walk the chain
+                .map(_.value).getOrElse(-1)      // Step 3: -1 if not found
+  }
+}
+
+object Main extends App {
+  val h = new MyHashTable(4)
+  println(h.search(7))   // -1
+}
+```
+
+```javascript,editable
+class Record { constructor(k, v){ this.key = k; this.value = v; } }
+
+class MyHashTable {
+    constructor(capacity) {
+        this.capacity = capacity;
+        this.table    = Array.from({ length: capacity }, () => []);
+    }
+    _hash(key) { return key % this.capacity; }
+
+    search(key) {
+        const index = this._hash(key);              // Step 1
+        for (const entry of this.table[index]) {    // Step 2
+            if (entry.key === key) return entry.value;
+        }
+        return -1;                                  // Step 3
+    }
+}
+
+const h = new MyHashTable(4);
+console.log(h.search(7));   // -1
+```
+
+```typescript,editable
+class Record {
+    constructor(public key: number, public value: number) {}
+}
+
+class MyHashTable {
+    private capacity: number;
+    private table:    Record[][];
 
     constructor(capacity: number) {
         this.capacity = capacity;
-
-        // Initialize the table with the given capacity
-        this.table = Array.from(
-            { length: capacity },
-            () => new DoublyLinkedList<Record>()
-        );
+        this.table    = Array.from({ length: capacity }, () => [] as Record[]);
     }
+    private hash(key: number): number { return key % this.capacity; }
 
-    hashFunction(key: number): number {
-        return key % this.capacity;
-    }
-
-// Diagram: search(key: number): number {
-
-        // Get the bucket index
-        const index = this.hashFunction(key);
-
-        // Search for the key in the bucket
-        let head = this.table[index].head();
-        while (head !== null) {
-            if (head.getValue().key === key) {
-
-                // Return the value if key is found
-                return head.getValue().value;
-            }
-            head = head.getNext();
+    search(key: number): number {
+        const index = this.hash(key);                  // Step 1
+        for (const entry of this.table[index]) {       // Step 2
+            if (entry.key === key) return entry.value;
         }
-
-        // Return -1 if the key is not found
-        return -1;
+        return -1;                                     // Step 3
     }
+}
+
+const h = new MyHashTable(4);
+console.log(h.search(7));   // -1
 ```
 
-Javascript
+```go,editable
+package main
 
-```javascript
-import { DoublyLinkedList } from "datastructures-js";
+import "fmt"
 
-// Represents an entry in the hash table
-class Record {
-    constructor(key, value) {
-        this.key = key;
-        this.value = value;
-    }
+type Record struct{ Key, Value int }
 
-// Diagram: export class MyHashTable {
+type MyHashTable struct {
+    capacity int
+    table    [][]Record
+}
 
-    // The hashtable
-    constructor(capacity) {
-        this.capacity = capacity;
+func newTable(capacity int) *MyHashTable {
+    return &MyHashTable{capacity: capacity, table: make([][]Record, capacity)}
+}
+func (h *MyHashTable) hash(key int) int { return key % h.capacity }
 
-        // Initialize the table with the given capacity
-        this.table = Array.from(
-            { length: capacity },
-            () => new DoublyLinkedList()
-        );
-    }
-
-    hashFunction(key) {
-        return key % this.capacity;
-    }
-
-// Diagram: search(key) {
-
-        // Get the bucket index
-        const index = this.hashFunction(key);
-
-        // Search for the key in the bucket
-        let head = this.table[index].head();
-        while (head !== null) {
-            if (head.getValue().key === key) {
-
-                // Return the value if key is found
-                return head.getValue().value;
-            }
-            head = head.getNext();
+func (h *MyHashTable) Search(key int) int {
+    index := h.hash(key)                          // Step 1
+    for _, entry := range h.table[index] {        // Step 2
+        if entry.Key == key {
+            return entry.Value
         }
-
-        // Return -1 if the key is not found
-        return -1;
     }
+    return -1                                     // Step 3
+}
+
+func main() {
+    h := newTable(4)
+    fmt.Println(h.Search(7))   // -1
+}
 ```
 
-Python
+```kotlin,editable
+data class Record(val key: Int, var value: Int)
 
-```python
-from typing import List
-from llist import dllist
+class MyHashTable(private val capacity: Int) {
+    private val table: Array<MutableList<Record>> = Array(capacity) { mutableListOf() }
+    private fun hash(key: Int): Int = key % capacity
 
-# Represents an entry in the hash table
-class Record:
-    def __init__(self, key: int, value: int):
-        self.key = key
-        self.value = value
+    fun search(key: Int): Int {
+        val index = hash(key)                              // Step 1
+        for (entry in table[index]) {                      // Step 2
+            if (entry.key == key) return entry.value
+        }
+        return -1                                          // Step 3
+    }
+}
 
-class MyHashTable:
-    def __init__(self, capacity: int):
-        self.capacity = capacity
-
-        # Initialize the table with the given capacity
-        self.table = [dllist() for _ in range(capacity)]
-
-    def hash_function(self, key: int) -> int:
-        return key % self.capacity
-
-    def search(self, key: int) -> int:
-
-        # Get the bucket index
-        index = self.hash_function(key)
-
-        # Search for the key in the bucket
-        head = self.table[index].first
-        while head:
-            if head.value.key == key:
-
-                # Return the value if key is found
-                return head.value.value
-            head = head.next
-
-        # Return -1 if the key is not found
-        return -1
+fun main() {
+    val h = MyHashTable(4)
+    println(h.search(7))   // -1
+}
 ```
+
+```rust,editable
+#[derive(Clone, Debug)]
+struct Record { key: i32, value: i32 }
+
+struct MyHashTable {
+    capacity: usize,
+    table:    Vec<Vec<Record>>,
+}
+
+impl MyHashTable {
+    fn new(capacity: usize) -> Self {
+        MyHashTable { capacity, table: vec![Vec::new(); capacity] }
+    }
+    fn hash(&self, key: i32) -> usize { (key as usize) % self.capacity }
+
+    fn search(&self, key: i32) -> i32 {
+        let index = self.hash(key);                        // Step 1
+        for entry in &self.table[index] {                  // Step 2
+            if entry.key == key { return entry.value; }
+        }
+        -1                                                 // Step 3
+    }
+}
+
+fn main() {
+    let h = MyHashTable::new(4);
+    println!("{}", h.search(7));   // -1
+}
+```
+
+</div>
 
 ## Complexity analysis
 
-The search operation computes the hash value of the provided key, which is a constant-time operation. However, after that, we have to traverse the linked list at the calculated index to search for the key. In the best case, the linked list at that index may only have one node, so the time complexity will be **constant**, **O(1)**.
+The hash function is O(1). The total cost of search is therefore the cost of the chain walk at the resulting index. That walk is what determines best, average, and worst case.
 
-In the worst case, however, all the keys stored in the hash table may have collided at the same hash value (index), so the size of the linked list would be the size of all key-value pairs stored (N). Thus, the worst-case time complexity of the search operation is **linear** **O(N)**.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph BEST["Best case — chain length 1"]
+        B0["[0]"] --> B1["(k, v)"]
+    end
+    subgraph AVG["Average case — well-distributed, chain length ≈ 1"]
+        A0["[0]"] --> A1["(k, v)"]
+        A2["[1]"] --> A3["(k, v)"]
+        A4["[2]"] --> A5["(k, v)"]
+    end
+    subgraph WORST["Worst case — every key collides into one chain"]
+        W0["[0]"] --> W1["(k1)"] --> W2["(k2)"] --> W3["(k3)"] --> W4["...kN"]
+        W5["[1]"] --> WE1["(empty)"]
+        W6["[2]"] --> WE2["(empty)"]
+    end
+    BEST ~~~ AVG ~~~ WORST
+```
 
-// Diagram: Best case, average case and worst case depends on the size of linked list at the calculated index
+<p align="center"><strong>Search performance is governed by chain length — O(1) when chains are short, O(N) when every key collides into one chain. A good hash function keeps the average chain length close to 1.</strong></p>
 
-Since we do not create any new data structure that depends on the size of stored data or input and only create a fixed number of temporary variables to implement the operation, the space complexity is **constant** **O(1)** in any case.
+The space cost is constant — a few local variables, no new data structures.
 
-> **Best Case** - No collision
+> **Best case** — no collision, chain has 0 or 1 nodes
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> -   Time: **O(1)**
+> -   Space: **O(1)**
 >
-> **Average Case** - Evenly distributed hash values
+> **Average case** — well-distributed hash values
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> -   Time: **O(1)**
+> -   Space: **O(1)**
 >
-> **Worst Case** - 100% collision
+> **Worst case** — every key collides at the same index
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(N)**
+> -   Time: **O(N)**
+> -   Space: **O(1)**
+
+> *Predict before reading on — when we move to insert, we'll need to detect "key already exists" before adding a new record. Which existing operation does that detection look exactly like? (Yes, search. Insert is going to be search-with-an-extra-step.)*
 
 ***
 
 # Insert operation in separate chaining
 
-The insert operation is another primary operation on a hash table and is used to insert a key-value mapping(Record) into the hash table. If the key is already in the hash table, the insert operation updates its value to the new value supplied. The implementation is encapsulated in the insert function, which uses separate chaining to search for the key first. Let us look at the algorithm and implementation of the insert operation in a hash table implemented using separate chaining.
+Insert stores a new `(key, value)` mapping. There's a subtle but important rule baked into the operation: if the key is *already* in the table, insert doesn't add a duplicate — it **updates** the existing value. This makes the hash table behave like a true dictionary, not a multiset.
 
 ## Algorithm
 
-The insert operation is just an extension of the search operation. Like the search operation, we calculate the index (hash code) for the given key and search the linked list at that index for a record with the given key. We need to consider two cases.
+Insert is search with a twist: walk the chain looking for the key, then *act* depending on whether the search hit or missed.
 
-### 1\. Key is present in the table
+### Case 1 — Key is present
 
-If a record with the given key is found in the linked list at the calculated index with the given key, its value is updated to the new value. 
+If we find a record with the matching key, we don't add a new one — we just overwrite the existing record's `value` with the new value and return.
 
-// Diagram: Insert a key value pair in the hash table where the key is present
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    Q["insert(13, Z)"] --> H["hash(13)<br/>= 1"]
+    H --> CHAIN
+    subgraph CHAIN["chain at table[1] — before"]
+        direction LR
+        N1["(5, A)"] --> N2["(9, B)"] --> N3["(13, C)"]
+    end
+    N3 --> ACT["found 13 →<br/>overwrite C with Z"]
+    ACT --> AFTER
+    subgraph AFTER["chain at table[1] — after"]
+        direction LR
+        M1["(5, A)"] --> M2["(9, B)"] --> M3["(13, Z)"]
+    end
+    style M3 fill:#dcfce7,stroke:#22c55e
+```
 
-> **Algorithm**
+<p align="center"><strong>Insert when the key already exists — the chain length does not change; only the matching record's <code>value</code> is updated. This guarantees the table never holds two records with the same key.</strong></p>
+
+> **Algorithm — case 1**
 >
-> -   **Step 1:** Calculate the index(hash code) for the given key.
-> -   **Step 2:** Search for the key in the list at the calculated index.
+> -   **Step 1:** Calculate the index for the given key.
+> -   **Step 2:** Walk the chain at the calculated index searching for the key.
 > -   **Step 3:** If the key is found, update the value of the stored record.
 
-### 1\. Key is not present in the table
+### Case 2 — Key is not present
 
-If no record with the given key is found in the linked list at the calculated index. A new record with the given key-value pair is created and inserted at the **end** of the linked list.
+If we walk the entire chain without finding the key, we know definitively that this is a new mapping. Append a new record to the **end** of the chain.
 
-**Why do we insert the node at the end?**
+**Why insert at the end and not the head?**
 
-Since the key was not found during the search, we have already reached the end of the list. Thus, we can simply insert the new node there.
+Two reasons. First, the search loop has already walked the chain to its end, so the tail pointer is essentially "in our hand" — appending is O(1) given a doubly linked list with a tail reference (or the implicit end of an array-backed bucket). Second, appending preserves insertion order, which is occasionally useful for debugging and for data structures that piggyback on the table (LRU caches, ordered dicts, etc.). Some implementations *do* prepend at the head, which is also O(1) — both are correct; the trade-off is between insertion order and the head-update cost.
 
-// Diagram: Insert a key value pair in the hash table where the key is not present
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    Q["insert(17, D)"] --> H["hash(17)<br/>= 1"]
+    H --> CHAIN
+    subgraph CHAIN["chain at table[1] — before"]
+        direction LR
+        N1["(5, A)"] --> N2["(9, B)"] --> N3["(13, C)"]
+    end
+    N3 --> ACT["walked to end,<br/>17 not found →<br/>append (17, D)"]
+    ACT --> AFTER
+    subgraph AFTER["chain at table[1] — after"]
+        direction LR
+        M1["(5, A)"] --> M2["(9, B)"] --> M3["(13, C)"] --> M4["(17, D)"]
+    end
+    style M4 fill:#dcfce7,stroke:#22c55e
+```
 
-> **Algorithm**
+<p align="center"><strong>Insert when the key is new — the search exhausted the chain, so a fresh record is appended to the tail. The chain grows by one node; the array length is unchanged.</strong></p>
+
+> **Algorithm — case 2**
 >
-> -   **Step 1:** Calculate the index(hash code) for the given key.
-> -   **Step 2:** Search for the key in the list at the calculated index.
-> -   **Step 3:** If the key is not found, add a new node with the key-value pair at the end of the list.
+> -   **Step 1:** Calculate the index for the given key.
+> -   **Step 2:** Walk the chain at the calculated index searching for the key.
+> -   **Step 3:** If the key is not found, append a new record at the end of the chain.
 
 ## Implementation
 
-We use the hash function to get the index in the internal array and update the node with a given key if it exists. Otherwise, we create a record object with the given key and value and add it to the front of the linked list at the calculated index.
+<div class="lang-tabs">
 
-C++
+```python,editable
+class Record:
+    def __init__(self, key, value):
+        self.key, self.value = key, value
 
-```cpp
+class MyHashTable:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.table    = [[] for _ in range(capacity)]
+
+    def _hash(self, key):
+        return key % self.capacity
+
+    def search(self, key):
+        for entry in self.table[self._hash(key)]:
+            if entry.key == key:
+                return entry.value
+        return -1
+
+    def insert(self, key, value):
+        index = self._hash(key)
+        # Case 1 — key exists, update its value in place
+        for entry in self.table[index]:
+            if entry.key == key:
+                entry.value = value
+                return
+        # Case 2 — key not found, append a new record
+        self.table[index].append(Record(key, value))
+
+# Demo — insert, search, update, search again
+h = MyHashTable(4)
+h.insert(1, 10);  h.insert(5, 50)        # 5 % 4 == 1, collision with key 1
+print(h.search(5))                       # 50
+h.insert(5, 99)                          # update existing
+print(h.search(5))                       # 99
+```
+
+```java,editable
+import java.util.*;
+
+public class Main {
+    static class Record { int key, value; Record(int k, int v){key=k;value=v;} }
+
+    static class MyHashTable {
+        private final int capacity;
+        private final List<LinkedList<Record>> table;
+        MyHashTable(int capacity) {
+            this.capacity = capacity;
+            this.table    = new ArrayList<>(capacity);
+            for (int i = 0; i < capacity; i++) table.add(new LinkedList<>());
+        }
+        private int hash(int key) { return key % capacity; }
+
+        int search(int key) {
+            for (Record entry : table.get(hash(key)))
+                if (entry.key == key) return entry.value;
+            return -1;
+        }
+
+        void insert(int key, int value) {
+            int index = hash(key);
+            // Case 1 — key already in chain → update
+            for (Record entry : table.get(index)) {
+                if (entry.key == key) { entry.value = value; return; }
+            }
+            // Case 2 — key absent → append a new record
+            table.get(index).add(new Record(key, value));
+        }
+    }
+
+    public static void main(String[] args) {
+        MyHashTable h = new MyHashTable(4);
+        h.insert(1, 10); h.insert(5, 50);
+        System.out.println(h.search(5));   // 50
+        h.insert(5, 99);
+        System.out.println(h.search(5));   // 99
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct Node {
+    int key, value;
+    struct Node *next;
+} Node;
+
+typedef struct { int capacity; Node **table; } MyHashTable;
+
+int hash_fn(MyHashTable *h, int key) { return key % h->capacity; }
+
+void insert_op(MyHashTable *h, int key, int value) {
+    int index = hash_fn(h, key);
+    // Case 1 — update if key exists
+    for (Node *cur = h->table[index]; cur; cur = cur->next) {
+        if (cur->key == key) { cur->value = value; return; }
+    }
+    // Case 2 — prepend at head (O(1) without a tail pointer)
+    Node *node  = malloc(sizeof(Node));
+    node->key   = key;
+    node->value = value;
+    node->next  = h->table[index];
+    h->table[index] = node;
+}
+
+int search_op(MyHashTable *h, int key) {
+    for (Node *cur = h->table[hash_fn(h, key)]; cur; cur = cur->next)
+        if (cur->key == key) return cur->value;
+    return -1;
+}
+
+int main() {
+    MyHashTable h = { .capacity = 4, .table = calloc(4, sizeof(Node*)) };
+    insert_op(&h, 1, 10); insert_op(&h, 5, 50);
+    printf("%d\n", search_op(&h, 5));   // 50
+    insert_op(&h, 5, 99);
+    printf("%d\n", search_op(&h, 5));   // 99
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
 #include <list>
+#include <vector>
 
-// Diagram: using namespace std;
-
-// Represents an entry in the hash table
-struct Record {
-    int key;
-    int value;
-
-    Record() = default;
-    Record(int key, int value) : key(key), value(value) {}
-};
+struct Record { int key, value; Record() = default; Record(int k,int v):key(k),value(v){} };
 
 class MyHashTable {
-private:
-
-    // The hashtable
-    vector<list<Record>> table;
-    int capacity;
-
-// Diagram: int hashFunction(int key) { return key % capacity; }
-
+    int                            capacity;
+    std::vector<std::list<Record>> table;
+    int hash(int key) { return key % capacity; }
 public:
-    MyHashTable(int capacity) : capacity(capacity), table(capacity) {}
+    MyHashTable(int cap) : capacity(cap), table(cap) {}
 
-// Diagram: int search(int key) {
-
-        // Get the bucket index
-        int index = hashFunction(key);
-
-        // Search for the key in the bucket
-        for (auto &entry : table[index]) {
-            if (entry.key == key) {
-
-                // Return the value if key is found
-                return entry.value;
-            }
-
-        // Return -1 if the key is not found
+    int search(int key) {
+        for (auto &e : table[hash(key)]) if (e.key == key) return e.value;
         return -1;
     }
 
-// Diagram: void insert(int key, int value) {
-
-        // Get the bucket index
-        int index = hashFunction(key);
-
-        // Check if the key already exists and update its value
-        for (auto &entry : table[index]) {
-            if (entry.key == key) {
-
-                // Update value if key exists
-                entry.value = value;
-                return;
-            }
-
-        // Add a new record if the key does not exist
+    void insert(int key, int value) {
+        int index = hash(key);
+        // Case 1 — update existing record
+        for (auto &e : table[index]) if (e.key == key) { e.value = value; return; }
+        // Case 2 — append new record at the chain's tail
         table[index].emplace_back(key, value);
     }
 };
+
+int main() {
+    MyHashTable h(4);
+    h.insert(1, 10); h.insert(5, 50);
+    std::cout << h.search(5) << "\n";   // 50
+    h.insert(5, 99);
+    std::cout << h.search(5) << "\n";   // 99
+}
 ```
 
-Java
+```scala,editable
+import scala.collection.mutable.ListBuffer
 
-```java
-import java.util.*;
+case class Record(key: Int, var value: Int)
 
-// Represents an entry in the hash table
-class Record {
-    int key;
-    int value;
+class MyHashTable(val capacity: Int) {
+  private val table: Array[ListBuffer[Record]] =
+    Array.fill(capacity)(ListBuffer.empty[Record])
+  private def hash(key: Int): Int = key % capacity
 
-    Record(int key, int value) {
-        this.key = key;
-        this.value = value;
+  def search(key: Int): Int =
+    table(hash(key)).find(_.key == key).map(_.value).getOrElse(-1)
+
+  def insert(key: Int, value: Int): Unit = {
+    val chain = table(hash(key))
+    chain.find(_.key == key) match {
+      case Some(rec) => rec.value = value             // Case 1 — update
+      case None      => chain += Record(key, value)   // Case 2 — append
     }
+  }
+}
 
-// Diagram: class MyHashTable {
-
-    // The hashtable
-    private List<LinkedList<Record>> table;
-    private int capacity;
-
-    public MyHashTable(int capacity) {
-        this.capacity = capacity;
-
-        // Initialize the table with the given capacity
-        table = new ArrayList<>(capacity);
-        for (int i = 0; i < capacity; i++) {
-            table.add(new LinkedList<>());
-        }
-
-    private int hashFunction(int key) {
-        return key % capacity;
-    }
-
-// Diagram: public int search(int key) {
-
-        // Get the bucket index
-        int index = hashFunction(key);
-
-        // Search for the key in the bucket
-        for (Record entry : table.get(index)) {
-            if (entry.key == key) {
-
-                // Return the value if key is found
-                return entry.value;
-            }
-
-        // Return -1 if the key is not found
-        return -1;
-    }
-
-// Diagram: public void insert(int key, int value) {
-
-        // Get the bucket index
-        int index = hashFunction(key);
-
-        // Check if the key already exists and update its value
-        for (Record entry : table.get(index)) {
-            if (entry.key == key) {
-
-                // Update value if key exists
-                entry.value = value;
-                return;
-            }
-
-        // Add a new record if the key does not exist
-        table.get(index).add(new Record(key, value));
-    }
+object Main extends App {
+  val h = new MyHashTable(4)
+  h.insert(1, 10); h.insert(5, 50)
+  println(h.search(5))   // 50
+  h.insert(5, 99)
+  println(h.search(5))   // 99
+}
 ```
 
-Typescript
+```javascript,editable
+class Record { constructor(k, v){ this.key = k; this.value = v; } }
 
-```typescript
-import { DoublyLinkedList } from "datastructures-js";
-
-// Represents an entry in the hash table
-class Record {
-    key: number;
-    value: number;
-
-    constructor(key: number, value: number) {
-        this.key = key;
-        this.value = value;
-    }
-
-// Diagram: export class MyHashTable {
-
-    // The hashtable
-    table: DoublyLinkedList<Record>[];
-    capacity: number;
-
-    constructor(capacity: number) {
-        this.capacity = capacity;
-
-        // Initialize the table with the given capacity
-        this.table = Array.from(
-            { length: capacity },
-            () => new DoublyLinkedList<Record>()
-        );
-    }
-
-    hashFunction(key: number): number {
-        return key % this.capacity;
-    }
-
-// Diagram: search(key: number): number {
-
-        // Get the bucket index
-        const index = this.hashFunction(key);
-
-        // Search for the key in the bucket
-        let head = this.table[index].head();
-        while (head !== null) {
-            if (head.getValue().key === key) {
-
-                // Return the value if key is found
-                return head.getValue().value;
-            }
-            head = head.getNext();
-        }
-
-        // Return -1 if the key is not found
-        return -1;
-    }
-
-// Diagram: insert(key: number, value: number): void {
-
-        // Get the bucket index
-        const index = this.hashFunction(key);
-
-        // Check if the key already exists and update its value
-        let head = this.table[index].head();
-        while (head !== null) {
-            if (head.getValue().key === key) {
-
-                // Update value if key exists
-                head.setValue(new Record(key, value));
-                return;
-            }
-
-            head = head.getNext();
-        }
-
-        // Add a new record if the key does not exist
-        this.table[index].insertLast(new Record(key, value));
-    }
-```
-
-Javascript
-
-```javascript
-import { DoublyLinkedList } from "datastructures-js";
-
-// Represents an entry in the hash table
-class Record {
-    constructor(key, value) {
-        this.key = key;
-        this.value = value;
-    }
-
-// Diagram: export class MyHashTable {
-
-    // The hashtable
+class MyHashTable {
     constructor(capacity) {
         this.capacity = capacity;
-
-        // Initialize the table with the given capacity
-        this.table = Array.from(
-            { length: capacity },
-            () => new DoublyLinkedList()
-        );
+        this.table    = Array.from({ length: capacity }, () => []);
     }
+    _hash(key) { return key % this.capacity; }
 
-    hashFunction(key) {
-        return key % this.capacity;
-    }
-
-// Diagram: search(key) {
-
-        // Get the bucket index
-        const index = this.hashFunction(key);
-
-        // Search for the key in the bucket
-        let head = this.table[index].head();
-        while (head !== null) {
-            if (head.getValue().key === key) {
-
-                // Return the value if key is found
-                return head.getValue().value;
-            }
-            head = head.getNext();
-        }
-
-        // Return -1 if the key is not found
+    search(key) {
+        for (const e of this.table[this._hash(key)])
+            if (e.key === key) return e.value;
         return -1;
     }
 
-// Diagram: insert(key, value) {
-
-        // Get the bucket index
-        const index = this.hashFunction(key);
-
-        // Check if the key already exists and update its value
-        let head = this.table[index].head();
-        while (head !== null) {
-            if (head.getValue().key === key) {
-
-                // Update value if key exists
-                head.setValue(new Record(key, value));
-                return;
-            }
-
-            head = head.getNext();
+    insert(key, value) {
+        const index = this._hash(key);
+        // Case 1 — update if exists
+        for (const e of this.table[index]) {
+            if (e.key === key) { e.value = value; return; }
         }
-
-        // Add a new record if the key does not exist
-        this.table[index].insertLast(new Record(key, value));
+        // Case 2 — append new record
+        this.table[index].push(new Record(key, value));
     }
+}
+
+const h = new MyHashTable(4);
+h.insert(1, 10); h.insert(5, 50);
+console.log(h.search(5));   // 50
+h.insert(5, 99);
+console.log(h.search(5));   // 99
 ```
 
-Python
+```typescript,editable
+class Record {
+    constructor(public key: number, public value: number) {}
+}
 
-```python
-from typing import List
-from llist import dllist
+class MyHashTable {
+    private capacity: number;
+    private table:    Record[][];
+    constructor(capacity: number) {
+        this.capacity = capacity;
+        this.table    = Array.from({ length: capacity }, () => [] as Record[]);
+    }
+    private hash(key: number): number { return key % this.capacity; }
 
-# Represents an entry in the hash table
-class Record:
-    def __init__(self, key: int, value: int):
-        self.key = key
-        self.value = value
+    search(key: number): number {
+        for (const e of this.table[this.hash(key)])
+            if (e.key === key) return e.value;
+        return -1;
+    }
 
-class MyHashTable:
-    def __init__(self, capacity: int):
-        self.capacity = capacity
+    insert(key: number, value: number): void {
+        const index = this.hash(key);
+        for (const e of this.table[index]) {
+            if (e.key === key) { e.value = value; return; }    // Case 1
+        }
+        this.table[index].push(new Record(key, value));        // Case 2
+    }
+}
 
-        # Initialize the table with the given capacity
-        self.table = [dllist() for _ in range(capacity)]
-
-    def hash_function(self, key: int) -> int:
-        return key % self.capacity
-
-    def search(self, key: int) -> int:
-
-        # Get the bucket index
-        index = self.hash_function(key)
-
-        # Search for the key in the bucket
-        head = self.table[index].first
-        while head:
-            if head.value.key == key:
-
-                # Return the value if key is found
-                return head.value.value
-            head = head.next
-
-        # Return -1 if the key is not found
-        return -1
-
-    def insert(self, key: int, value: int) -> None:
-
-        # Get the bucket index
-        index = self.hash_function(key)
-
-        # Check if the key already exists and update its value
-        head = self.table[index].first
-        while head:
-            if head.value.key == key:
-
-                # Update value if key exists
-                head.value.value = value
-                return
-            head = head.next
-
-        # Add a new record if the key does not exist
-        self.table[index].append(Record(key, value))
+const h = new MyHashTable(4);
+h.insert(1, 10); h.insert(5, 50);
+console.log(h.search(5));   // 50
+h.insert(5, 99);
+console.log(h.search(5));   // 99
 ```
+
+```go,editable
+package main
+
+import "fmt"
+
+type Record struct{ Key, Value int }
+
+type MyHashTable struct {
+    capacity int
+    table    [][]Record
+}
+
+func newTable(capacity int) *MyHashTable {
+    return &MyHashTable{capacity: capacity, table: make([][]Record, capacity)}
+}
+func (h *MyHashTable) hash(key int) int { return key % h.capacity }
+
+func (h *MyHashTable) Search(key int) int {
+    for _, e := range h.table[h.hash(key)] {
+        if e.Key == key { return e.Value }
+    }
+    return -1
+}
+
+func (h *MyHashTable) Insert(key, value int) {
+    index := h.hash(key)
+    // Case 1 — update existing record
+    for i, e := range h.table[index] {
+        if e.Key == key { h.table[index][i].Value = value; return }
+    }
+    // Case 2 — append new record
+    h.table[index] = append(h.table[index], Record{Key: key, Value: value})
+}
+
+func main() {
+    h := newTable(4)
+    h.Insert(1, 10); h.Insert(5, 50)
+    fmt.Println(h.Search(5))   // 50
+    h.Insert(5, 99)
+    fmt.Println(h.Search(5))   // 99
+}
+```
+
+```kotlin,editable
+data class Record(val key: Int, var value: Int)
+
+class MyHashTable(private val capacity: Int) {
+    private val table: Array<MutableList<Record>> = Array(capacity) { mutableListOf() }
+    private fun hash(key: Int): Int = key % capacity
+
+    fun search(key: Int): Int =
+        table[hash(key)].find { it.key == key }?.value ?: -1
+
+    fun insert(key: Int, value: Int) {
+        val chain = table[hash(key)]
+        val existing = chain.find { it.key == key }
+        if (existing != null) existing.value = value      // Case 1 — update
+        else                  chain.add(Record(key, value)) // Case 2 — append
+    }
+}
+
+fun main() {
+    val h = MyHashTable(4)
+    h.insert(1, 10); h.insert(5, 50)
+    println(h.search(5))   // 50
+    h.insert(5, 99)
+    println(h.search(5))   // 99
+}
+```
+
+```rust,editable
+#[derive(Clone, Debug)]
+struct Record { key: i32, value: i32 }
+
+struct MyHashTable {
+    capacity: usize,
+    table:    Vec<Vec<Record>>,
+}
+
+impl MyHashTable {
+    fn new(capacity: usize) -> Self {
+        MyHashTable { capacity, table: vec![Vec::new(); capacity] }
+    }
+    fn hash(&self, key: i32) -> usize { (key as usize) % self.capacity }
+
+    fn search(&self, key: i32) -> i32 {
+        for e in &self.table[self.hash(key)] {
+            if e.key == key { return e.value; }
+        }
+        -1
+    }
+
+    fn insert(&mut self, key: i32, value: i32) {
+        let index = self.hash(key);
+        // Case 1 — update existing record
+        for e in self.table[index].iter_mut() {
+            if e.key == key { e.value = value; return; }
+        }
+        // Case 2 — append new record
+        self.table[index].push(Record { key, value });
+    }
+}
+
+fn main() {
+    let mut h = MyHashTable::new(4);
+    h.insert(1, 10); h.insert(5, 50);
+    println!("{}", h.search(5));   // 50
+    h.insert(5, 99);
+    println!("{}", h.search(5));   // 99
+}
+```
+
+</div>
 
 ## Complexity analysis
 
-The insert operation computes the hash value of the provided key, which is a constant-time operation. However, after that, we have to traverse the linked list at the calculated index to search for the key first. In the best case, the linked list at that index might be empty, so the time complexity will be **constant**, **O(1)**.
+Insert pays the same chain-walk cost as search (we have to confirm whether the key is already present), plus an O(1) update or append. The complexity envelope is therefore the same as search.
 
-In the worst case, however, all the keys stored in the hash table may have collided at the same hash value (index), so the size of the linked list would be the size of all key-value pairs stored (N). If the key is not in the hash table, we would have to traverse this entire list to confirm that before creating and adding a new record. And so, the worst-case time complexity of the insert operation is **linear** **O(N)**.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph BEST["Best — chain empty, append immediately"]
+        B0["[0]"] --> B1["+ (k, v)"]
+    end
+    subgraph WORST["Worst — chain has all N keys, scan to end, then append"]
+        W0["[0]"] --> W1["k1"] --> W2["k2"] --> W3["..."] --> W4["kN"] --> W5["+ (k, v)"]
+    end
+    BEST ~~~ WORST
+```
 
-// Diagram: Best case, average case and worst case depends on the size of linked list at the calculated index
+<p align="center"><strong>Insert performance — best case is appending to an empty chain (O(1)); worst case is scanning a chain holding every key in the table (O(N)) before appending.</strong></p>
 
-To insert a new key-value pair, we create only a single new node and insert it at the front of the linked list. We do not create any new data structure that depends on the size of stored data or input. We only create a fixed number of temporary variables to implement the operation, so the space complexity is **constant** **O(1)**.
-
-> **Best Case** - No collision or calculated index empty
+> **Best case** — chain at the index is empty
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> -   Time: **O(1)**
+> -   Space: **O(1)**
 >
-> **Average Case** - Evenly distributed hash values
+> **Average case** — well-distributed hash values
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> -   Time: **O(1)**
+> -   Space: **O(1)**
 >
-> **Worst Case** - 100% collision and key not present
+> **Worst case** — every key collides at one index
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(N)**
+> -   Time: **O(N)**
+> -   Space: **O(1)**
 
 ***
 
 # Delete operation in separate chaining
 
-The delete operation is another primary operation on a hash table and is used to delete a key-value mapping(Record) from the hash table. If the key is not in the hash table, it is a no-op(nothing is done). The implementation is encapsulated in the delete function, which uses separate chaining to search for the key first. Let us look at the algorithm and implementation of the delete operation in a hash table implemented using separate chaining.
+Delete is the cleanest of the three operations. It's just search-then-remove: find the record, unlink it from the chain, and you're done.
 
 ## Algorithm
 
-The delete operation is also an extension of the search operation. Like the search operation, we calculate the index (hash code) for the given key and search the linked list at that index for a record with the given key. We need to consider two cases.
+### Case 1 — Key is present
 
-### 1\. Key is present in the table
+Walk the chain. When you find the record with the matching key, unlink it from the chain (the standard linked-list deletion: rewire the predecessor's `next` and the successor's `prev`).
 
-If a record is found in the linked list at the calculated index that has the given key, the node where it is stored is deleted from the linked list using the standard node deletion algorithm in a linked list. The resultant list is then stored at the calculated index.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    Q["delete(9)"] --> H["hash(9)<br/>= 1"]
+    H --> CHAIN
+    subgraph CHAIN["chain at table[1] — before"]
+        direction LR
+        N1["(5, A)"] --> N2["(9, B)"] --> N3["(13, C)"]
+    end
+    N2 --> ACT["found 9 →<br/>unlink node"]
+    ACT --> AFTER
+    subgraph AFTER["chain at table[1] — after"]
+        direction LR
+        M1["(5, A)"] --> M3["(13, C)"]
+    end
+    style M3 fill:#dcfce7,stroke:#22c55e
+```
 
-// Diagram: Delete a key from the hash table where the key is present
+<p align="center"><strong>Delete when the key exists — the matching node is unlinked from the chain. The array length stays the same; the chain shrinks by one.</strong></p>
 
-> **Algorithm**
+> **Algorithm — case 1**
 >
-> -   **Step 1:** Calculate the index(hash code) for the given key.
-> -   **Step 2:** Search for the key in the list at the calculated index.
-> -   **Step 3:** Delete the node if it is found and store the resultant list at the calculated index.
+> -   **Step 1:** Calculate the index for the given key.
+> -   **Step 2:** Walk the chain at the calculated index, searching for the key.
+> -   **Step 3:** If found, unlink the node from the chain.
 
-### 2\. Key is not present in the table
+### Case 2 — Key is not present
 
-Nothing is done if no record is found in the linked list at the calculated index with the given key, and the delete operation becomes a no-op (nothing done).
+If the chain is exhausted without a match, the operation is a **no-op** — nothing happens, no error, no exception. The mapping wasn't there; the table is unchanged.
 
-// Diagram: Delete a key from the hash table where the key is not present
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    Q["delete(99)"] --> H["hash(99)<br/>= 3"]
+    H --> CHAIN
+    subgraph CHAIN["chain at table[3]"]
+        direction LR
+        N1["(7, X)"] --> N2["(11, Y)"]
+    end
+    N2 --> ACT["walked to end,<br/>99 not found →<br/>no-op"]
+    style ACT fill:#fef9c3,stroke:#f59e0b
+```
+
+<p align="center"><strong>Delete when the key is absent — the operation completes silently with no change. Most public APIs treat this as success rather than an error.</strong></p>
 
 ## Implementation
 
-To implement the operation we use the hash function to get the index in the internal array and then traverse the linked list at that index to search for the given key. If the key is found, we delete that node from the linked list at the calculated index. 
+<div class="lang-tabs">
 
-C++
-
-```cpp
-#include <list>
-
-// Diagram: using namespace std;
-
-// Represents an entry in the hash table
-struct Record {
-    int key;
-    int value;
-
-    Record() = default;
-    Record(int key, int value) : key(key), value(value) {}
-};
-
-class MyHashTable {
-private:
-
-    // The hashtable
-    vector<list<Record>> table;
-    int capacity;
-
-// Diagram: int hashFunction(int key) { return key % capacity; }
-
-public:
-    MyHashTable(int capacity) : capacity(capacity), table(capacity) {}
-
-// Diagram: int search(int key) {
-
-        // Get the bucket index
-        int index = hashFunction(key);
-
-        // Search for the key in the bucket
-        for (auto &entry : table[index]) {
-            if (entry.key == key) {
-
-                // Return the value if key is found
-                return entry.value;
-            }
-
-        // Return -1 if the key is not found
-        return -1;
-    }
-
-// Diagram: void insert(int key, int value) {
-
-        // Get the bucket index
-        int index = hashFunction(key);
-
-        // Check if the key already exists and update its value
-        for (auto &entry : table[index]) {
-            if (entry.key == key) {
-
-                // Update value if key exists
-                entry.value = value;
-                return;
-            }
-
-        // Add a new record if the key does not exist
-        table[index].emplace_back(key, value);
-    }
-
-// Diagram: void remove(int key) {
-
-        // Get the bucket index
-        int index = hashFunction(key);
-
-        // Remove the record with the matching key
-        for (auto it = table[index].begin(); it != table[index].end();
-             ++it) {
-            if (it->key == key) {
-
-                // Remove the record
-                table[index].erase(it);
-                return;
-            }
-};
-```
-
-Java
-
-```java
-import java.util.*;
-
-// Represents an entry in the hash table
-class Record {
-    int key;
-    int value;
-
-    Record(int key, int value) {
-        this.key = key;
-        this.value = value;
-    }
-
-// Diagram: class MyHashTable {
-
-    // The hashtable
-    private List<LinkedList<Record>> table;
-    private int capacity;
-
-    public MyHashTable(int capacity) {
-        this.capacity = capacity;
-
-        // Initialize the table with the given capacity
-        table = new ArrayList<>(capacity);
-        for (int i = 0; i < capacity; i++) {
-            table.add(new LinkedList<>());
-        }
-
-    private int hashFunction(int key) {
-        return key % capacity;
-    }
-
-// Diagram: public int search(int key) {
-
-        // Get the bucket index
-        int index = hashFunction(key);
-
-        // Search for the key in the bucket
-        for (Record entry : table.get(index)) {
-            if (entry.key == key) {
-
-                // Return the value if key is found
-                return entry.value;
-            }
-
-        // Return -1 if the key is not found
-        return -1;
-    }
-
-// Diagram: public void insert(int key, int value) {
-
-        // Get the bucket index
-        int index = hashFunction(key);
-
-        // Check if the key already exists and update its value
-        for (Record entry : table.get(index)) {
-            if (entry.key == key) {
-
-                // Update value if key exists
-                entry.value = value;
-                return;
-            }
-
-        // Add a new record if the key does not exist
-        table.get(index).add(new Record(key, value));
-    }
-
-// Diagram: public void remove(int key) {
-
-        // Get the bucket index
-        int index = hashFunction(key);
-
-        // Remove the record with the matching key
-        table.get(index).removeIf(entry -> entry.key == key);
-    }
-```
-
-Typescript
-
-```typescript
-import { DoublyLinkedList } from "datastructures-js";
-
-// Represents an entry in the hash table
-class Record {
-    key: number;
-    value: number;
-
-    constructor(key: number, value: number) {
-        this.key = key;
-        this.value = value;
-    }
-
-// Diagram: export class MyHashTable {
-
-    // The hashtable
-    table: DoublyLinkedList<Record>[];
-    capacity: number;
-
-    constructor(capacity: number) {
-        this.capacity = capacity;
-
-        // Initialize the table with the given capacity
-        this.table = Array.from(
-            { length: capacity },
-            () => new DoublyLinkedList<Record>()
-        );
-    }
-
-    hashFunction(key: number): number {
-        return key % this.capacity;
-    }
-
-// Diagram: search(key: number): number {
-
-        // Get the bucket index
-        const index = this.hashFunction(key);
-
-        // Search for the key in the bucket
-        let head = this.table[index].head();
-        while (head !== null) {
-            if (head.getValue().key === key) {
-
-                // Return the value if key is found
-                return head.getValue().value;
-            }
-            head = head.getNext();
-        }
-
-        // Return -1 if the key is not found
-        return -1;
-    }
-
-// Diagram: insert(key: number, value: number): void {
-
-        // Get the bucket index
-        const index = this.hashFunction(key);
-
-        // Check if the key already exists and update its value
-        let head = this.table[index].head();
-        while (head !== null) {
-            if (head.getValue().key === key) {
-
-                // Update value if key exists
-                head.setValue(new Record(key, value));
-                return;
-            }
-
-            head = head.getNext();
-        }
-
-        // Add a new record if the key does not exist
-        this.table[index].insertLast(new Record(key, value));
-    }
-
-// Diagram: remove(key: number): void {
-
-        // Get the bucket index
-        const index = this.hashFunction(key);
-
-        // Remove the record with the matching key
-        let head = this.table[index].head();
-        while (head !== null) {
-            if (head.getValue().key === key) {
-
-                // Remove the record
-                this.table[index].remove(head);
-                return;
-            }
-
-            head = head.getNext();
-        }
-```
-
-Javascript
-
-```javascript
-import { DoublyLinkedList } from "datastructures-js";
-
-// Represents an entry in the hash table
-class Record {
-    constructor(key, value) {
-        this.key = key;
-        this.value = value;
-    }
-
-// Diagram: export class MyHashTable {
-
-    // The hashtable
-    constructor(capacity) {
-        this.capacity = capacity;
-
-        // Initialize the table with the given capacity
-        this.table = Array.from(
-            { length: capacity },
-            () => new DoublyLinkedList()
-        );
-    }
-
-    hashFunction(key) {
-        return key % this.capacity;
-    }
-
-// Diagram: search(key) {
-
-        // Get the bucket index
-        const index = this.hashFunction(key);
-
-        // Search for the key in the bucket
-        let head = this.table[index].head();
-        while (head !== null) {
-            if (head.getValue().key === key) {
-
-                // Return the value if key is found
-                return head.getValue().value;
-            }
-            head = head.getNext();
-        }
-
-        // Return -1 if the key is not found
-        return -1;
-    }
-
-// Diagram: insert(key, value) {
-
-        // Get the bucket index
-        const index = this.hashFunction(key);
-
-        // Check if the key already exists and update its value
-        let head = this.table[index].head();
-        while (head !== null) {
-            if (head.getValue().key === key) {
-
-                // Update value if key exists
-                head.setValue(new Record(key, value));
-                return;
-            }
-
-            head = head.getNext();
-        }
-
-        // Add a new record if the key does not exist
-        this.table[index].insertLast(new Record(key, value));
-    }
-
-// Diagram: remove(key) {
-
-        // Get the bucket index
-        const index = this.hashFunction(key);
-
-        // Remove the record with the matching key
-        let head = this.table[index].head();
-        while (head !== null) {
-            if (head.getValue().key === key) {
-
-                // Remove the record
-                this.table[index].remove(head);
-                return;
-            }
-
-            head = head.getNext();
-        }
-```
-
-Python
-
-```python
-from typing import List
-from llist import dllist
-
-# Represents an entry in the hash table
+```python,editable
 class Record:
-    def __init__(self, key: int, value: int):
-        self.key = key
-        self.value = value
+    def __init__(self, key, value):
+        self.key, self.value = key, value
 
 class MyHashTable:
-    def __init__(self, capacity: int):
+    def __init__(self, capacity):
         self.capacity = capacity
+        self.table    = [[] for _ in range(capacity)]
+    def _hash(self, key): return key % self.capacity
 
-        # Initialize the table with the given capacity
-        self.table = [dllist() for _ in range(capacity)]
-
-    def hash_function(self, key: int) -> int:
-        return key % self.capacity
-
-    def search(self, key: int) -> int:
-
-        # Get the bucket index
-        index = self.hash_function(key)
-
-        # Search for the key in the bucket
-        head = self.table[index].first
-        while head:
-            if head.value.key == key:
-
-                # Return the value if key is found
-                return head.value.value
-            head = head.next
-
-        # Return -1 if the key is not found
+    def search(self, key):
+        for e in self.table[self._hash(key)]:
+            if e.key == key: return e.value
         return -1
 
-    def insert(self, key: int, value: int) -> None:
-
-        # Get the bucket index
-        index = self.hash_function(key)
-
-        # Check if the key already exists and update its value
-        head = self.table[index].first
-        while head:
-            if head.value.key == key:
-
-                # Update value if key exists
-                head.value.value = value
-                return
-            head = head.next
-
-        # Add a new record if the key does not exist
+    def insert(self, key, value):
+        index = self._hash(key)
+        for e in self.table[index]:
+            if e.key == key: e.value = value; return
         self.table[index].append(Record(key, value))
 
-    def remove(self, key: int) -> None:
-
-        # Get the bucket index
-        index = self.hash_function(key)
-
-        # Remove the record with the matching key
-        head = self.table[index].first
-        while head:
-            if head.value.key == key:
-
-                # Remove the record
-                self.table[index].remove(head)
+    def remove(self, key):
+        chain = self.table[self._hash(key)]
+        for i, e in enumerate(chain):
+            if e.key == key:
+                chain.pop(i)        # Unlink the matching record
                 return
-            head = head.next
+        # Case 2 — key absent → silent no-op
+
+# Demo
+h = MyHashTable(4)
+h.insert(1, 10); h.insert(5, 50); h.insert(9, 90)   # all hash to 1
+h.remove(5)
+print(h.search(5))    # -1, gone
+print(h.search(9))    # 90, untouched
 ```
+
+```java,editable
+import java.util.*;
+
+public class Main {
+    static class Record { int key, value; Record(int k,int v){key=k;value=v;} }
+
+    static class MyHashTable {
+        private final int capacity;
+        private final List<LinkedList<Record>> table;
+        MyHashTable(int capacity) {
+            this.capacity = capacity;
+            this.table    = new ArrayList<>(capacity);
+            for (int i = 0; i < capacity; i++) table.add(new LinkedList<>());
+        }
+        private int hash(int key) { return key % capacity; }
+
+        int search(int key) {
+            for (Record e : table.get(hash(key))) if (e.key == key) return e.value;
+            return -1;
+        }
+        void insert(int key, int value) {
+            int idx = hash(key);
+            for (Record e : table.get(idx)) if (e.key == key) { e.value = value; return; }
+            table.get(idx).add(new Record(key, value));
+        }
+        void remove(int key) {
+            // removeIf cleanly handles both cases — match → unlink, no match → no-op
+            table.get(hash(key)).removeIf(e -> e.key == key);
+        }
+    }
+
+    public static void main(String[] args) {
+        MyHashTable h = new MyHashTable(4);
+        h.insert(1, 10); h.insert(5, 50); h.insert(9, 90);
+        h.remove(5);
+        System.out.println(h.search(5));   // -1
+        System.out.println(h.search(9));   // 90
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct Node { int key, value; struct Node *next; } Node;
+typedef struct { int capacity; Node **table; } MyHashTable;
+
+int hash_fn(MyHashTable *h, int key) { return key % h->capacity; }
+
+void insert_op(MyHashTable *h, int key, int value) {
+    int idx = hash_fn(h, key);
+    for (Node *c = h->table[idx]; c; c = c->next)
+        if (c->key == key) { c->value = value; return; }
+    Node *n = malloc(sizeof(Node));
+    n->key = key; n->value = value; n->next = h->table[idx];
+    h->table[idx] = n;
+}
+int search_op(MyHashTable *h, int key) {
+    for (Node *c = h->table[hash_fn(h, key)]; c; c = c->next)
+        if (c->key == key) return c->value;
+    return -1;
+}
+
+void remove_op(MyHashTable *h, int key) {
+    int    idx  = hash_fn(h, key);
+    Node **link = &h->table[idx];          // Pointer-to-pointer trick avoids
+    while (*link) {                        // a special case for the chain head.
+        if ((*link)->key == key) {
+            Node *dead = *link;
+            *link = dead->next;            // Rewire predecessor → successor
+            free(dead);
+            return;
+        }
+        link = &(*link)->next;
+    }
+    // Case 2 — silent no-op
+}
+
+int main() {
+    MyHashTable h = { .capacity = 4, .table = calloc(4, sizeof(Node*)) };
+    insert_op(&h, 1, 10); insert_op(&h, 5, 50); insert_op(&h, 9, 90);
+    remove_op(&h, 5);
+    printf("%d %d\n", search_op(&h, 5), search_op(&h, 9));   // -1 90
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <list>
+#include <vector>
+
+struct Record { int key, value; Record() = default; Record(int k,int v):key(k),value(v){} };
+
+class MyHashTable {
+    int                            capacity;
+    std::vector<std::list<Record>> table;
+    int hash(int key) { return key % capacity; }
+public:
+    MyHashTable(int cap) : capacity(cap), table(cap) {}
+
+    int search(int key) {
+        for (auto &e : table[hash(key)]) if (e.key == key) return e.value;
+        return -1;
+    }
+    void insert(int key, int value) {
+        int idx = hash(key);
+        for (auto &e : table[idx]) if (e.key == key) { e.value = value; return; }
+        table[idx].emplace_back(key, value);
+    }
+    void remove(int key) {
+        auto &chain = table[hash(key)];
+        for (auto it = chain.begin(); it != chain.end(); ++it) {
+            if (it->key == key) { chain.erase(it); return; }
+        }
+        // Case 2 — silent no-op
+    }
+};
+
+int main() {
+    MyHashTable h(4);
+    h.insert(1, 10); h.insert(5, 50); h.insert(9, 90);
+    h.remove(5);
+    std::cout << h.search(5) << " " << h.search(9) << "\n";   // -1 90
+}
+```
+
+```scala,editable
+import scala.collection.mutable.ListBuffer
+
+case class Record(key: Int, var value: Int)
+
+class MyHashTable(val capacity: Int) {
+  private val table: Array[ListBuffer[Record]] =
+    Array.fill(capacity)(ListBuffer.empty[Record])
+  private def hash(key: Int): Int = key % capacity
+
+  def search(key: Int): Int =
+    table(hash(key)).find(_.key == key).map(_.value).getOrElse(-1)
+  def insert(key: Int, value: Int): Unit = {
+    val c = table(hash(key))
+    c.find(_.key == key) match {
+      case Some(r) => r.value = value
+      case None    => c += Record(key, value)
+    }
+  }
+  def remove(key: Int): Unit = {
+    val c   = table(hash(key))
+    val idx = c.indexWhere(_.key == key)
+    if (idx >= 0) c.remove(idx)            // Found → unlink; else silent no-op
+  }
+}
+
+object Main extends App {
+  val h = new MyHashTable(4)
+  h.insert(1, 10); h.insert(5, 50); h.insert(9, 90)
+  h.remove(5)
+  println(s"${h.search(5)} ${h.search(9)}")   // -1 90
+}
+```
+
+```javascript,editable
+class Record { constructor(k, v){ this.key = k; this.value = v; } }
+
+class MyHashTable {
+    constructor(capacity) {
+        this.capacity = capacity;
+        this.table    = Array.from({ length: capacity }, () => []);
+    }
+    _hash(key) { return key % this.capacity; }
+
+    search(key) {
+        for (const e of this.table[this._hash(key)])
+            if (e.key === key) return e.value;
+        return -1;
+    }
+    insert(key, value) {
+        const idx = this._hash(key);
+        for (const e of this.table[idx])
+            if (e.key === key) { e.value = value; return; }
+        this.table[idx].push(new Record(key, value));
+    }
+    remove(key) {
+        const chain = this.table[this._hash(key)];
+        const idx   = chain.findIndex(e => e.key === key);
+        if (idx !== -1) chain.splice(idx, 1);   // Found → unlink
+        // Case 2 — silent no-op
+    }
+}
+
+const h = new MyHashTable(4);
+h.insert(1, 10); h.insert(5, 50); h.insert(9, 90);
+h.remove(5);
+console.log(h.search(5), h.search(9));   // -1 90
+```
+
+```typescript,editable
+class Record { constructor(public key: number, public value: number){} }
+
+class MyHashTable {
+    private capacity: number;
+    private table:    Record[][];
+    constructor(capacity: number) {
+        this.capacity = capacity;
+        this.table    = Array.from({ length: capacity }, () => [] as Record[]);
+    }
+    private hash(key: number): number { return key % this.capacity; }
+
+    search(key: number): number {
+        for (const e of this.table[this.hash(key)])
+            if (e.key === key) return e.value;
+        return -1;
+    }
+    insert(key: number, value: number): void {
+        const idx = this.hash(key);
+        for (const e of this.table[idx])
+            if (e.key === key) { e.value = value; return; }
+        this.table[idx].push(new Record(key, value));
+    }
+    remove(key: number): void {
+        const chain = this.table[this.hash(key)];
+        const idx   = chain.findIndex(e => e.key === key);
+        if (idx !== -1) chain.splice(idx, 1);
+    }
+}
+
+const h = new MyHashTable(4);
+h.insert(1, 10); h.insert(5, 50); h.insert(9, 90);
+h.remove(5);
+console.log(h.search(5), h.search(9));   // -1 90
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+type Record struct{ Key, Value int }
+type MyHashTable struct{ capacity int; table [][]Record }
+
+func newTable(capacity int) *MyHashTable { return &MyHashTable{capacity, make([][]Record, capacity)} }
+func (h *MyHashTable) hash(key int) int  { return key % h.capacity }
+
+func (h *MyHashTable) Search(key int) int {
+    for _, e := range h.table[h.hash(key)] { if e.Key == key { return e.Value } }
+    return -1
+}
+func (h *MyHashTable) Insert(key, value int) {
+    idx := h.hash(key)
+    for i, e := range h.table[idx] { if e.Key == key { h.table[idx][i].Value = value; return } }
+    h.table[idx] = append(h.table[idx], Record{key, value})
+}
+func (h *MyHashTable) Remove(key int) {
+    idx := h.hash(key)
+    for i, e := range h.table[idx] {
+        if e.Key == key {
+            // Unlink by slicing around index i (preserves order)
+            h.table[idx] = append(h.table[idx][:i], h.table[idx][i+1:]...)
+            return
+        }
+    }
+    // Case 2 — silent no-op
+}
+
+func main() {
+    h := newTable(4)
+    h.Insert(1, 10); h.Insert(5, 50); h.Insert(9, 90)
+    h.Remove(5)
+    fmt.Println(h.Search(5), h.Search(9))   // -1 90
+}
+```
+
+```kotlin,editable
+data class Record(val key: Int, var value: Int)
+
+class MyHashTable(private val capacity: Int) {
+    private val table: Array<MutableList<Record>> = Array(capacity) { mutableListOf() }
+    private fun hash(key: Int): Int = key % capacity
+
+    fun search(key: Int): Int =
+        table[hash(key)].find { it.key == key }?.value ?: -1
+    fun insert(key: Int, value: Int) {
+        val c = table[hash(key)]
+        val r = c.find { it.key == key }
+        if (r != null) r.value = value else c.add(Record(key, value))
+    }
+    fun remove(key: Int) {
+        // removeIf is true ⇒ found and unlinked, false ⇒ silent no-op
+        table[hash(key)].removeIf { it.key == key }
+    }
+}
+
+fun main() {
+    val h = MyHashTable(4)
+    h.insert(1, 10); h.insert(5, 50); h.insert(9, 90)
+    h.remove(5)
+    println("${h.search(5)} ${h.search(9)}")   // -1 90
+}
+```
+
+```rust,editable
+#[derive(Clone, Debug)]
+struct Record { key: i32, value: i32 }
+
+struct MyHashTable { capacity: usize, table: Vec<Vec<Record>> }
+
+impl MyHashTable {
+    fn new(capacity: usize) -> Self { MyHashTable { capacity, table: vec![Vec::new(); capacity] } }
+    fn hash(&self, key: i32) -> usize { (key as usize) % self.capacity }
+
+    fn search(&self, key: i32) -> i32 {
+        for e in &self.table[self.hash(key)] { if e.key == key { return e.value; } }
+        -1
+    }
+    fn insert(&mut self, key: i32, value: i32) {
+        let idx = self.hash(key);
+        for e in self.table[idx].iter_mut() {
+            if e.key == key { e.value = value; return; }
+        }
+        self.table[idx].push(Record { key, value });
+    }
+    fn remove(&mut self, key: i32) {
+        let idx = self.hash(key);
+        if let Some(pos) = self.table[idx].iter().position(|e| e.key == key) {
+            self.table[idx].remove(pos);   // Found → unlink
+        }
+        // Case 2 — silent no-op
+    }
+}
+
+fn main() {
+    let mut h = MyHashTable::new(4);
+    h.insert(1, 10); h.insert(5, 50); h.insert(9, 90);
+    h.remove(5);
+    println!("{} {}", h.search(5), h.search(9));   // -1 90
+}
+```
+
+</div>
 
 ## Complexity analysis
 
-The delete operation computes the hash value of the provided key, which is a constant-time operation. However, after that, we have to traverse the linked list at the calculated index to search for the key first. In the best case, the linked list at that index might be empty, so the time complexity will be **constant**, **O(1)**.
+Like search and insert, delete walks a single chain. The only extra work — unlinking a node from a doubly linked list, or splicing it out of an array bucket — is O(1) once the node is found.
 
-In the worst case, however, all the keys stored in the hash table may have collided at the same hash value (index), so the size of the linked list would be the size of all key-value pairs stored (N). If the key is not in the hash table, we must traverse this list to confirm that. And so, the worst-case time complexity of the delete operation is **linear** **O(N)**.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph BEST["Best — chain empty or first node matches"]
+        B0["[0]"] --> B1["(k, v) ✗"]
+    end
+    subgraph WORST["Worst — every key in one chain, target at the very end (or absent)"]
+        W0["[0]"] --> W1["k1"] --> W2["..."] --> W3["target ✗"]
+    end
+    BEST ~~~ WORST
+```
 
-// Diagram: Best case, average case and worst case depends on the size of linked list at the calculated index
+<p align="center"><strong>Delete performance — same envelope as search and insert. The cost is the chain walk; the unlink itself is O(1).</strong></p>
 
-To delete the given key, we do not create any new data structure that depends on the size of stored data or input. We only create a fixed number of temporary variables to implement the operation. Thus, the space complexity is **constant O(1)**.
-
-> **Best Case** - No collision or calculated index empty
+> **Best case** — chain empty or first node matches
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> -   Time: **O(1)**
+> -   Space: **O(1)**
 >
-> **Average Case** - Evenly distributed hash values
+> **Average case** — well-distributed hash values
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> -   Time: **O(1)**
+> -   Space: **O(1)**
 >
-> **Worst Case** - 100% collision and key not present
+> **Worst case** — every key collides at one index
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(N)**
+> -   Time: **O(N)**
+> -   Space: **O(1)**
 
 ***
 
 # Design a hash table with separate chaining
 
+Time for the boss fight. You'll now implement a complete hash table with separate chaining from scratch — every operation we've built, plus one new one to flex your understanding.
+
 ## Problem Statement
 
-Given the skeleton of a **MyHashTable** class, complete this class by implementing all the operations below.
+Given the skeleton of a `MyHashTable` class, complete this class by implementing all of the following operations:
 
-> -   **MyHashTable(int capacity)** - Initializes the hash table object with the given capacity for the internal data structure.
-> -   **search(int key)** - Returns the value mapped to the given key, or \`-1\` if the key is absent.
-> -   **insert(int key, int value)** - Inserts a (key, value) pair into the hash table. If the key already exists, it updates the value. Returns \`true\` if the operation is successful; otherwise, returns \`false\`.
-> -   **remove(int key)** - Removes the key and its corresponding value if the mapping for the key exists in the key.
-> -   **getKeysAtIndex(int index)** - Returns the list of keys mapped to the given index in the internal data structure.
+> -   **MyHashTable(int capacity)** — Initialises the hash table with the given internal-array capacity.
+> -   **search(int key)** — Returns the value mapped to the given key, or `-1` if the key is absent.
+> -   **insert(int key, int value)** — Inserts a `(key, value)` pair. If the key already exists, updates its value. Returns `true` on success.
+> -   **remove(int key)** — Removes the mapping for the given key; no-op if absent.
+> -   **getKeysAtIndex(int index)** — Returns the list of keys currently mapped to the given internal-array index. Useful for testing the chain layout directly.
 
-// Diagram: You must abide by the following constraints
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph CONS["Constraints"]
+        direction TB
+        C1["No built-in hash table libraries"]
+        C2["Use separate chaining for collisions"]
+        C3["Hash function: index = key % capacity"]
+    end
+```
 
-// Diagram: 1\. You must implement this without using any built-in hash table libraries
-
-// Diagram: 2. Separate chaining must be used as a collision resolution strategy
-
-3\. The hash function should compute a key's index by taking the key's modulo with the hash table's capacity, i.e., `index = key % capacity`.
+<p align="center"><strong>Constraints — implement everything from scratch with separate chaining and the simple division-method hash. The point is to internalise the mechanics, not to use a library.</strong></p>
 
 > The input should adhere to the following rules:
 >
 > 1.  The input should contain two arrays of the same size.
 > 2.  The first array should contain the list of operations, while the second should contain the corresponding operands for those operations.
-> 3.  The first index in the first array should contain **MyHashTable**, and the first index in the second array should contain a single positive integer representing the capacity of the hash table. This value is used to initialise the hash table.
-> 4.  For each index in the first array that contains the **insert** operation, the corresponding index in the second array should contain a (key, value) pair to be inserted.
-> 5.  For each index in the first array that contains **search** or **remove** operations, the corresponding index in the second array should contain the key for which that operation will be performed.
-> 6.  For each index in the first array that contains the **getKeysAtIndex** operation, the corresponding index in the second array should contain the index for which the operation will be performed.
+> 3.  The first index in the first array should contain `MyHashTable`, and the first index in the second array should contain a single positive integer representing the capacity of the hash table. This value is used to initialise the hash table.
+> 4.  For each index in the first array that contains the `insert` operation, the corresponding index in the second array should contain a `(key, value)` pair to be inserted.
+> 5.  For each index in the first array that contains `search` or `remove` operations, the corresponding index in the second array should contain the key for which that operation will be performed.
+> 6.  For each index in the first array that contains the `getKeysAtIndex` operation, the corresponding index in the second array should contain the index for which the operation will be performed.
 >
 > **Example:**
 >
-> -   **Input:** \[MyHashTable, insert, insert, search, insert, search, insert, search, search, getKeysAtIndex\] \[\[1\], \[1, 2\], \[2, 4\], \[1\], \[1, 3\], \[1\], \[2, 5\], \[2\], \[3\], \[0\]\]
+> -   **Input:** `[MyHashTable, insert, insert, search, insert, search, insert, search, search, getKeysAtIndex]`, `[[1], [1, 2], [2, 4], [1], [1, 3], [1], [2, 5], [2], [3], [0]]`
 >
-> -   **Output:** \[null, true, true, 2, true, 3, true, 5, -1, \[1, 2\]\]
+> -   **Output:** `[null, true, true, 2, true, 3, true, 5, -1, [1, 2]]`
 >
 > **Explanation:**
 >
-> **Operation:** MyHashTable myHashTable = new MyHashTable(1) **Result:** Initializes an empty \`MyHashTable\` with a capacity of 1
->
-> **Operation:** myHashTable.insert(1, 2) **Result:** \`table = \[\[\[1, 2\]\]\]\`, returns \`true\`
->
-> **Operation:** myHashTable.insert(2, 4) **Result:** \`table = \[\[\[1, 2\], \[2, 4\]\]\]\`, returns \`true\`
->
-> **Operation:** myHashTable.search(1) **Result:** Returns \`2\`
->
-> **Operation:** myHashTable.insert(1, 3) **Result:** \`table = \[\[\[1, 3\], \[2, 4\]\]\]\`, returns \`true\`
->
-> **Operation:** myHashTable.search(1) **Result:** Returns \`3\`
->
-> **Operation:** myHashTable.insert(2, 5) **Result:** \`table = \[\[\[1, 3\], \[2, 5\]\]\]\`, returns \`true\`
->
-> **Operation:** myHashTable.search(2) **Result:** Returns \`5\`
->
-> **Operation:** myHashTable.search(3) **Result:** Returns \`-1\`
->
-> **Operation:** myHashTable.getKeysAtIndex(0) **Result:** At index 0 of the hash table, we have two keys, 1 and 2, so returns \`\[1, 2\]\`
+> | Operation | Effect | Result |
+> |---|---|---|
+> | `MyHashTable(1)` | empty table, capacity 1 | `null` |
+> | `insert(1, 2)` | `table = [[(1, 2)]]` | `true` |
+> | `insert(2, 4)` | `table = [[(1, 2), (2, 4)]]` (collision — both at index 0) | `true` |
+> | `search(1)` | found in chain | `2` |
+> | `insert(1, 3)` | key exists → update value | `true` |
+> | `search(1)` | updated value returned | `3` |
+> | `insert(2, 5)` | key exists → update value | `true` |
+> | `search(2)` | | `5` |
+> | `search(3)` | not in chain | `-1` |
+> | `getKeysAtIndex(0)` | inspect chain at index 0 | `[1, 2]` |
 
 ## Solution
 
-```cpp
+The full implementation in 10 languages. Notice how `getKeysAtIndex` is just a shallow walk of the chain at the requested index — useful for testing and for any feature that needs to introspect the table's layout (e.g. iteration, cache eviction policies).
+
+<div class="lang-tabs">
+
+```python,editable
+class Record:
+    def __init__(self, key, value):
+        self.key, self.value = key, value
+
+class MyHashTable:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.table    = [[] for _ in range(capacity)]
+
+    def _hash(self, key):
+        return key % self.capacity
+
+    def search(self, key):
+        for e in self.table[self._hash(key)]:
+            if e.key == key: return e.value
+        return -1
+
+    def insert(self, key, value):
+        idx = self._hash(key)
+        for e in self.table[idx]:
+            if e.key == key: e.value = value; return True
+        self.table[idx].append(Record(key, value))
+        return True
+
+    def remove(self, key):
+        chain = self.table[self._hash(key)]
+        for i, e in enumerate(chain):
+            if e.key == key: chain.pop(i); return
+
+    def getKeysAtIndex(self, index):
+        if index < 0 or index >= self.capacity: return []
+        return [e.key for e in self.table[index]]
+
+# Boss-fight demo
+h = MyHashTable(1)
+h.insert(1, 2);  h.insert(2, 4)
+print(h.search(1))                 # 2
+h.insert(1, 3)
+print(h.search(1))                 # 3
+h.insert(2, 5)
+print(h.search(2), h.search(3))    # 5 -1
+print(h.getKeysAtIndex(0))         # [1, 2]
+```
+
+```java,editable
+import java.util.*;
+
+public class Main {
+    static class Record { int key, value; Record(int k,int v){key=k;value=v;} }
+
+    static class MyHashTable {
+        private final int capacity;
+        private final List<LinkedList<Record>> table;
+        MyHashTable(int capacity) {
+            this.capacity = capacity;
+            this.table    = new ArrayList<>(capacity);
+            for (int i = 0; i < capacity; i++) table.add(new LinkedList<>());
+        }
+        private int hash(int key) { return key % capacity; }
+
+        int search(int key) {
+            for (Record e : table.get(hash(key))) if (e.key == key) return e.value;
+            return -1;
+        }
+        boolean insert(int key, int value) {
+            int idx = hash(key);
+            for (Record e : table.get(idx)) if (e.key == key) { e.value = value; return true; }
+            table.get(idx).add(new Record(key, value));
+            return true;
+        }
+        void remove(int key) {
+            table.get(hash(key)).removeIf(e -> e.key == key);
+        }
+        List<Integer> getKeysAtIndex(int index) {
+            if (index < 0 || index >= capacity) return Collections.emptyList();
+            List<Integer> out = new ArrayList<>();
+            for (Record e : table.get(index)) out.add(e.key);
+            return out;
+        }
+    }
+
+    public static void main(String[] args) {
+        MyHashTable h = new MyHashTable(1);
+        h.insert(1, 2); h.insert(2, 4);
+        System.out.println(h.search(1));       // 2
+        h.insert(1, 3);
+        System.out.println(h.search(1));       // 3
+        h.insert(2, 5);
+        System.out.println(h.search(2) + " " + h.search(3));   // 5 -1
+        System.out.println(h.getKeysAtIndex(0));   // [1, 2]
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct Node { int key, value; struct Node *next; } Node;
+typedef struct { int capacity; Node **table; } MyHashTable;
+
+int hash_fn(MyHashTable *h, int key) { return key % h->capacity; }
+
+int  search_op(MyHashTable *h, int key) {
+    for (Node *c = h->table[hash_fn(h,key)]; c; c = c->next)
+        if (c->key == key) return c->value;
+    return -1;
+}
+int  insert_op(MyHashTable *h, int key, int value) {
+    int idx = hash_fn(h, key);
+    for (Node *c = h->table[idx]; c; c = c->next)
+        if (c->key == key) { c->value = value; return 1; }
+    Node *n = malloc(sizeof(Node));
+    n->key = key; n->value = value; n->next = h->table[idx];
+    h->table[idx] = n;
+    return 1;
+}
+void remove_op(MyHashTable *h, int key) {
+    int idx = hash_fn(h, key);
+    Node **link = &h->table[idx];
+    while (*link) {
+        if ((*link)->key == key) { Node *d = *link; *link = d->next; free(d); return; }
+        link = &(*link)->next;
+    }
+}
+void printKeysAtIndex(MyHashTable *h, int index) {
+    if (index < 0 || index >= h->capacity) { printf("[]\n"); return; }
+    printf("[");
+    for (Node *c = h->table[index]; c; c = c->next)
+        printf("%d%s", c->key, c->next ? ", " : "");
+    printf("]\n");
+}
+
+int main() {
+    MyHashTable h = { .capacity = 1, .table = calloc(1, sizeof(Node*)) };
+    insert_op(&h, 1, 2); insert_op(&h, 2, 4);
+    printf("%d\n", search_op(&h, 1));   // 2
+    insert_op(&h, 1, 3);
+    printf("%d\n", search_op(&h, 1));   // 3
+    insert_op(&h, 2, 5);
+    printf("%d %d\n", search_op(&h, 2), search_op(&h, 3));   // 5 -1
+    printKeysAtIndex(&h, 0);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
 #include <list>
+#include <vector>
 
-using namespace std;
-
-// Represents an entry in the hash table
-struct Record {
-    int key;
-    int value;
-
-    Record() = default;
-    Record(int key, int value) : key(key), value(value) {}
-};
+struct Record { int key, value; Record() = default; Record(int k,int v):key(k),value(v){} };
 
 class MyHashTable {
-private:
-
-    int capacity;
-
-    // The hashtable
-    vector<list<Record>> table;
-
-    int hashFunction(int key) { return key % capacity; }
-
+    int                            capacity;
+    std::vector<std::list<Record>> table;
+    int hash(int key) { return key % capacity; }
 public:
-    MyHashTable(int capacity) : capacity(capacity), table(capacity) {
-
-    }
+    MyHashTable(int cap) : capacity(cap), table(cap) {}
 
     int search(int key) {
-
-        // Get the bucket index
-        int index = hashFunction(key);
-
-        // Search for the key in the bucket
-        for (auto &entry : table[index]) {
-            if (entry.key == key) {
-
-                // Return the value if key is found
-                return entry.value;
-            }
-        }
-
-        // Return -1 if the key is not found
+        for (auto &e : table[hash(key)]) if (e.key == key) return e.value;
         return -1;
     }
-
-    void insert(int key, int value) {
-
-        // Get the bucket index
-        int index = hashFunction(key);
-
-        // Check if the key already exists and update its value
-        for (auto &entry : table[index]) {
-            if (entry.key == key) {
-
-                // Update value if key exists
-                entry.value = value;
-                return;
-            }
-        }
-
-        // Add a new record if the key does not exist
-        table[index].emplace_back(key, value);
+    bool insert(int key, int value) {
+        int idx = hash(key);
+        for (auto &e : table[idx]) if (e.key == key) { e.value = value; return true; }
+        table[idx].emplace_back(key, value);
+        return true;
     }
-
     void remove(int key) {
-
-        // Get the bucket index
-        int index = hashFunction(key);
-
-        // Remove the record with the matching key
-        for (auto it = table[index].begin(); it != table[index].end();
-             ++it) {
-            if (it->key == key) {
-
-                // Remove the record
-                table[index].erase(it);
-                return;
-            }
-        }
+        auto &c = table[hash(key)];
+        for (auto it = c.begin(); it != c.end(); ++it)
+            if (it->key == key) { c.erase(it); return; }
     }
-
-    vector<int> getKeysAtIndex(int index) {
-
-        // Return an empty vector if the index is invalid
-        if (index < 0 || index >= capacity) {
-            return {};
-        }
-
-        // Collect all keys in the bucket
-        vector<int> keys;
-        for (auto &entry : table[index]) {
-            keys.push_back(entry.key);
-        }
-
+    std::vector<int> getKeysAtIndex(int index) {
+        if (index < 0 || index >= capacity) return {};
+        std::vector<int> keys;
+        for (auto &e : table[index]) keys.push_back(e.key);
         return keys;
     }
 };
+
+int main() {
+    MyHashTable h(1);
+    h.insert(1, 2); h.insert(2, 4);
+    std::cout << h.search(1) << "\n";   // 2
+    h.insert(1, 3);
+    std::cout << h.search(1) << "\n";   // 3
+    h.insert(2, 5);
+    std::cout << h.search(2) << " " << h.search(3) << "\n";   // 5 -1
+    auto ks = h.getKeysAtIndex(0);
+    std::cout << "["; for (size_t i=0;i<ks.size();++i) std::cout<<ks[i]<<(i+1<ks.size()?", ":""); std::cout<<"]\n";
+}
 ```
+
+```scala,editable
+import scala.collection.mutable.ListBuffer
+
+case class Record(key: Int, var value: Int)
+
+class MyHashTable(val capacity: Int) {
+  private val table: Array[ListBuffer[Record]] =
+    Array.fill(capacity)(ListBuffer.empty[Record])
+  private def hash(key: Int): Int = key % capacity
+
+  def search(key: Int): Int =
+    table(hash(key)).find(_.key == key).map(_.value).getOrElse(-1)
+  def insert(key: Int, value: Int): Boolean = {
+    val c = table(hash(key))
+    c.find(_.key == key) match {
+      case Some(r) => r.value = value
+      case None    => c += Record(key, value)
+    }
+    true
+  }
+  def remove(key: Int): Unit = {
+    val c = table(hash(key)); val i = c.indexWhere(_.key == key)
+    if (i >= 0) c.remove(i)
+  }
+  def getKeysAtIndex(index: Int): List[Int] =
+    if (index < 0 || index >= capacity) Nil
+    else table(index).iterator.map(_.key).toList
+}
+
+object Main extends App {
+  val h = new MyHashTable(1)
+  h.insert(1, 2); h.insert(2, 4)
+  println(h.search(1))                              // 2
+  h.insert(1, 3); println(h.search(1))              // 3
+  h.insert(2, 5)
+  println(s"${h.search(2)} ${h.search(3)}")         // 5 -1
+  println(h.getKeysAtIndex(0))                      // List(1, 2)
+}
+```
+
+```javascript,editable
+class Record { constructor(k,v){ this.key=k; this.value=v; } }
+
+class MyHashTable {
+    constructor(capacity) {
+        this.capacity = capacity;
+        this.table    = Array.from({ length: capacity }, () => []);
+    }
+    _hash(key) { return key % this.capacity; }
+
+    search(key) {
+        for (const e of this.table[this._hash(key)]) if (e.key === key) return e.value;
+        return -1;
+    }
+    insert(key, value) {
+        const idx = this._hash(key);
+        for (const e of this.table[idx]) if (e.key === key) { e.value = value; return true; }
+        this.table[idx].push(new Record(key, value));
+        return true;
+    }
+    remove(key) {
+        const c = this.table[this._hash(key)];
+        const i = c.findIndex(e => e.key === key);
+        if (i !== -1) c.splice(i, 1);
+    }
+    getKeysAtIndex(index) {
+        if (index < 0 || index >= this.capacity) return [];
+        return this.table[index].map(e => e.key);
+    }
+}
+
+const h = new MyHashTable(1);
+h.insert(1, 2); h.insert(2, 4);
+console.log(h.search(1));                  // 2
+h.insert(1, 3); console.log(h.search(1));  // 3
+h.insert(2, 5);
+console.log(h.search(2), h.search(3));     // 5 -1
+console.log(h.getKeysAtIndex(0));          // [1, 2]
+```
+
+```typescript,editable
+class Record { constructor(public key: number, public value: number){} }
+
+class MyHashTable {
+    private capacity: number;
+    private table:    Record[][];
+    constructor(capacity: number) {
+        this.capacity = capacity;
+        this.table    = Array.from({ length: capacity }, () => [] as Record[]);
+    }
+    private hash(key: number): number { return key % this.capacity; }
+
+    search(key: number): number {
+        for (const e of this.table[this.hash(key)]) if (e.key === key) return e.value;
+        return -1;
+    }
+    insert(key: number, value: number): boolean {
+        const idx = this.hash(key);
+        for (const e of this.table[idx]) if (e.key === key) { e.value = value; return true; }
+        this.table[idx].push(new Record(key, value));
+        return true;
+    }
+    remove(key: number): void {
+        const c = this.table[this.hash(key)];
+        const i = c.findIndex(e => e.key === key);
+        if (i !== -1) c.splice(i, 1);
+    }
+    getKeysAtIndex(index: number): number[] {
+        if (index < 0 || index >= this.capacity) return [];
+        return this.table[index].map(e => e.key);
+    }
+}
+
+const h = new MyHashTable(1);
+h.insert(1, 2); h.insert(2, 4);
+console.log(h.search(1));                   // 2
+h.insert(1, 3); console.log(h.search(1));   // 3
+h.insert(2, 5);
+console.log(h.search(2), h.search(3));      // 5 -1
+console.log(h.getKeysAtIndex(0));           // [1, 2]
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+type Record struct{ Key, Value int }
+type MyHashTable struct{ capacity int; table [][]Record }
+
+func newTable(capacity int) *MyHashTable { return &MyHashTable{capacity, make([][]Record, capacity)} }
+func (h *MyHashTable) hash(key int) int  { return key % h.capacity }
+
+func (h *MyHashTable) Search(key int) int {
+    for _, e := range h.table[h.hash(key)] { if e.Key == key { return e.Value } }
+    return -1
+}
+func (h *MyHashTable) Insert(key, value int) bool {
+    idx := h.hash(key)
+    for i, e := range h.table[idx] { if e.Key == key { h.table[idx][i].Value = value; return true } }
+    h.table[idx] = append(h.table[idx], Record{key, value})
+    return true
+}
+func (h *MyHashTable) Remove(key int) {
+    idx := h.hash(key)
+    for i, e := range h.table[idx] {
+        if e.Key == key {
+            h.table[idx] = append(h.table[idx][:i], h.table[idx][i+1:]...)
+            return
+        }
+    }
+}
+func (h *MyHashTable) GetKeysAtIndex(index int) []int {
+    if index < 0 || index >= h.capacity { return []int{} }
+    out := make([]int, 0, len(h.table[index]))
+    for _, e := range h.table[index] { out = append(out, e.Key) }
+    return out
+}
+
+func main() {
+    h := newTable(1)
+    h.Insert(1, 2); h.Insert(2, 4)
+    fmt.Println(h.Search(1))                  // 2
+    h.Insert(1, 3); fmt.Println(h.Search(1))  // 3
+    h.Insert(2, 5)
+    fmt.Println(h.Search(2), h.Search(3))     // 5 -1
+    fmt.Println(h.GetKeysAtIndex(0))          // [1 2]
+}
+```
+
+```kotlin,editable
+data class Record(val key: Int, var value: Int)
+
+class MyHashTable(private val capacity: Int) {
+    private val table: Array<MutableList<Record>> = Array(capacity) { mutableListOf() }
+    private fun hash(key: Int): Int = key % capacity
+
+    fun search(key: Int): Int =
+        table[hash(key)].find { it.key == key }?.value ?: -1
+    fun insert(key: Int, value: Int): Boolean {
+        val c = table[hash(key)]; val r = c.find { it.key == key }
+        if (r != null) r.value = value else c.add(Record(key, value))
+        return true
+    }
+    fun remove(key: Int) {
+        table[hash(key)].removeIf { it.key == key }
+    }
+    fun getKeysAtIndex(index: Int): List<Int> =
+        if (index < 0 || index >= capacity) emptyList()
+        else table[index].map { it.key }
+}
+
+fun main() {
+    val h = MyHashTable(1)
+    h.insert(1, 2); h.insert(2, 4)
+    println(h.search(1))                      // 2
+    h.insert(1, 3); println(h.search(1))      // 3
+    h.insert(2, 5)
+    println("${h.search(2)} ${h.search(3)}")  // 5 -1
+    println(h.getKeysAtIndex(0))              // [1, 2]
+}
+```
+
+```rust,editable
+#[derive(Clone, Debug)]
+struct Record { key: i32, value: i32 }
+
+struct MyHashTable { capacity: usize, table: Vec<Vec<Record>> }
+
+impl MyHashTable {
+    fn new(capacity: usize) -> Self { MyHashTable { capacity, table: vec![Vec::new(); capacity] } }
+    fn hash(&self, key: i32) -> usize { (key as usize) % self.capacity }
+
+    fn search(&self, key: i32) -> i32 {
+        for e in &self.table[self.hash(key)] { if e.key == key { return e.value; } }
+        -1
+    }
+    fn insert(&mut self, key: i32, value: i32) -> bool {
+        let idx = self.hash(key);
+        for e in self.table[idx].iter_mut() {
+            if e.key == key { e.value = value; return true; }
+        }
+        self.table[idx].push(Record { key, value });
+        true
+    }
+    fn remove(&mut self, key: i32) {
+        let idx = self.hash(key);
+        if let Some(p) = self.table[idx].iter().position(|e| e.key == key) {
+            self.table[idx].remove(p);
+        }
+    }
+    fn get_keys_at_index(&self, index: usize) -> Vec<i32> {
+        if index >= self.capacity { return vec![]; }
+        self.table[index].iter().map(|e| e.key).collect()
+    }
+}
+
+fn main() {
+    let mut h = MyHashTable::new(1);
+    h.insert(1, 2); h.insert(2, 4);
+    println!("{}", h.search(1));            // 2
+    h.insert(1, 3); println!("{}", h.search(1));  // 3
+    h.insert(2, 5);
+    println!("{} {}", h.search(2), h.search(3));  // 5 -1
+    println!("{:?}", h.get_keys_at_index(0));     // [1, 2]
+}
+```
+
+</div>
+
+## Final Takeaway
+
+You just built a complete, working hash table. The whole structure is **a hash function pointing into an array of chains**, and three operations that all do the same thing — hash to a chain, walk that chain, then either read, write, or remove. Once you see that pattern, every separate-chaining hash table looks the same on the inside.
+
+The two big lessons to carry forward:
+
+1. **Collisions don't have to be a war.** Separate chaining absorbs them by *expanding the slot*, not by *moving the key elsewhere*. Memory grows; behaviour stays predictable; load factor can exceed 1 with no special handling. That's the great strength.
+2. **Cache misses are the price of pointer chasing.** Each chain node is a separate heap allocation, scattered across RAM. Walking a long chain is slow not because of `O(N)` operations but because each step is a *cache miss*. If your data is small and your chains are long, a contiguous-memory alternative will outperform separate chaining even at the same complexity class.
+
+> *Coming up — open addressing solves the cache problem by giving up the chain entirely and resolving collisions <strong>inside the same array</strong>. The next three lessons (linear probing, quadratic probing, double hashing) are three different ways of asking the same question: "if my slot is taken, where do I go next?" The first one — linear probing — is the simplest, and also the one with the most surprising failure mode. We'll see why.*

@@ -1,4 +1,14 @@
-# 1. Introduction to hash tables
+# 1. Introduction to Hash Tables
+
+## The Hook
+
+Type a friend's name into your phone. Before your finger leaves the screen, the contact is on screen. Five billion humans on this planet, and your phone found *one* of them in roughly the time it takes light to cross a room. Now imagine the lazy way: scroll through every contact one by one until you find the right name. On a list of 5,000 contacts that's maybe a second. On a list of 5 billion, that's *years* of scrolling.
+
+The trick that bridges those two worlds — that turns "search a billion items" into "look in exactly one place" — is a single, brutal idea: **stop searching, start computing**. Don't *find* where the data is; *calculate* where it is.
+
+That's a **hash table**. It's the data structure behind every database index, every Python `dict` and Java `HashMap`, every cache in front of every web service you've ever loaded, every set of users that needs to be checked for duplicates, every compiler's symbol table, and a sizeable chunk of every interview you'll ever sit. Master this lesson, and the rest of the course will feel like watching the same magic trick from increasingly clever angles.
+
+---
 
 ## Table of contents
 
@@ -14,220 +24,934 @@
 
 # Understanding the problem
 
-To better understand a hash table, let us first look at some common problems programmers face when designing software systems. When writing a program, we often need to **map** different data types together, such as the roll number of all students in a class. We need some data structure that stores the mapping between data of different types. The names of all students are strings, while their roll numbers might be positive integer values. 
+Before we can appreciate a hash table, we have to feel the pain it removes. So let's reach for a problem you'd run into within five minutes of writing real software: **storing a mapping between two pieces of data**.
 
-// Diagram: Storing mappings between strings and integers
+Picture a classroom. Every student has a **name** (a string) and a **roll number** (a positive integer). The school's software has to answer one question, fast and often: *"Given a name, what's the roll number?"* That's a mapping problem — *names* on one side, *roll numbers* on the other, and a relationship that connects each name to exactly one number.
 
-One way to store these mappings is in two separate arrays at the same indices.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph KEYS["Names (strings)"]
+        direction TB
+        K1["Riya"]
+        K2["Hari"]
+        K3["Neha"]
+        K4["Karan"]
+    end
+    subgraph VALS["Roll numbers (integers)"]
+        direction TB
+        V1["12"]
+        V2["7"]
+        V3["23"]
+        V4["4"]
+    end
+    K1 --> V1
+    K2 --> V2
+    K3 --> V3
+    K4 --> V4
+```
 
-// Diagram: Storing mapping between names and roll number in separate arrays
+<p align="center"><strong>The mapping problem in its simplest form — every name on the left must point to exactly one roll number on the right. The question is not <em>can</em> we store this, it's <em>can we look it up fast?</em></strong></p>
 
-This is an easy way to store data, but what if we want to retrieve the roll number of a student by their name? If the data is stored in arrays, we will have to traverse the entire `names` array to search for a student's name to get their roll number. 
+The first idea anyone has is also the most natural one: keep two parallel arrays — one of names, one of roll numbers — and trust that the same index in both arrays describes the same student. Index 0 of `names` and index 0 of `rolls` belong to the same person, index 1 to the next, and so on.
 
-// Diagram: Searching for the roll number of a student by their name
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+block-beta
+  columns 4
+  N0["Riya"]:1 N1["Hari"]:1 N2["Neha"]:1 N3["Karan"]:1
+  R0["12"]:1   R1["7"]:1    R2["23"]:1   R3["4"]:1
+  I0["index 0"]:1 I1["index 1"]:1 I2["index 2"]:1 I3["index 3"]:1
+  style I0 fill:#fef9c3,stroke:#f59e0b
+  style I1 fill:#fef9c3,stroke:#f59e0b
+  style I2 fill:#fef9c3,stroke:#f59e0b
+  style I3 fill:#fef9c3,stroke:#f59e0b
+```
 
-This will solve the problem at hand. However, the operation does a linear scan of the entire array, which will be inefficient if many students are in a class. What if we want to store the roll numbers of all the students in all classes of all the schools in a city? This is not an efficient way to store data.
+<p align="center"><strong>Two parallel arrays representing the same mapping — the top row is <code>names</code>, the middle row is <code>rolls</code>, and the implicit contract is that <code>names[i]</code> and <code>rolls[i]</code> belong to the same student.</strong></p>
+
+This *works*. It really does — for tiny classes. But step back and ask the obvious question: *given the name "Neha", how do you actually retrieve her roll number?* Because the link between the arrays is the index, and the index of "Neha" is not written down anywhere, you have to **find it** — by scanning `names` from position 0, comparing each entry to "Neha", until you hit her.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    Q["query:<br/><code>find('Neha')</code>"] --> S0
+    subgraph SCAN["Linear scan of names array"]
+        direction LR
+        S0["names[0]<br/>= 'Riya'<br/>✗"] --> S1["names[1]<br/>= 'Hari'<br/>✗"] --> S2["names[2]<br/>= 'Neha'<br/>✓"]
+    end
+    S2 --> R["return rolls[2]<br/>= 23"]
+    style S2 fill:#dcfce7,stroke:#22c55e
+```
+
+<p align="center"><strong>Searching for "Neha" by name — every miss is a wasted comparison, and the worst case requires reading every element of the array. For 50 students that's 50 comparisons; for 50 million users it's 50 million.</strong></p>
+
+This solves the problem at hand — barely. The cost is a **linear scan** that, in the worst case, touches every element. That might be tolerable for one classroom. But what if your "classroom" is *every student in every school in a city*? What about every customer of an online store? Every URL in a web crawler's database? You can't afford to walk a billion items every time someone presses a key.
 
 ## Limitations of storing mappings in two arrays
 
-It is quite intuitive to store the mapping between a student's name (key) and roll number (value) in two separate arrays. However, this approach has some serious limitations.
+The two-array idea has a kind of folksy charm, but it carries two structural defects that no amount of cleverness can fix:
 
-> -   **Bad performance:** Searching for data stored in an array has linear **O(N)** worst case time complexity.
-> -   **Fixed size:** The size of an array is fixed at the time of creation and cannot be expanded/reduced.
+> -   **Bad performance:** Searching for data stored in an array has linear **O(N)** worst-case time complexity. The cost of a lookup grows in lockstep with the size of the data.
+> -   **Fixed size:** A classical array's size is fixed at the moment of creation — it cannot expand or shrink later, so you must guess the maximum number of students up front.
 
-We may be able to use dynamic arrays instead of fixed-sized arrays to get over the fixed-size limitation, but it will still have the same performance. What if we had a data structure that could solve the above problem most efficiently and at scale?
+Could we patch the second flaw with a **dynamic array** that grows on demand? Sure. That fixes the size problem, but the lookup is *still* O(N). The fundamental issue isn't the array — it's the fact that **the index of a student's name is not derivable from the name itself**. Every lookup is a search.
+
+> *Hold that thought before reading on — what if, instead of <em>searching</em> for the index of a name, we could <strong>compute</strong> it directly from the name? What kind of magic would that take?*
 
 ***
 
 # Exploring a possible solution
 
-We know that storing key-value mappings in two separate arrays has limitations and results in sub-optimal solutions, so we can look at a data structure explicitly designed to solve this problem. A hash table efficiently stores mapping between data and provides fast data access.
+The fix isn't to scan faster. It's to *not scan at all*. We need a data structure designed from the ground up around one rule: **the location of a value should be a function of its key**. Hand it a name, and without a single comparison, it knows where the roll number lives.
+
+That data structure is a **hash table**, and the most familiar example of it in the physical world is something you've probably held in your hand: a phone book.
 
 ## Real life example
 
-A real-life example of such a data structure is a phone book directory with the phone numbers of all the residents in a city. The phone book lists the names in alphabetical order. Anyone can quickly jump to the page with a person's phone number just by looking at the index instead of linearly scanning the entire phonebook.
+A phone book is a thick directory of names and phone numbers, listed in alphabetical order. You don't read it cover to cover. You don't even start at page 1 and flip forward. You **jump** — directly to the page where names starting with that letter live, then to the page where that prefix narrows further, and within seconds you're looking at the number you came for.
 
-This fast access is possible because the index translates the name to the page number(intermediate value), where the phone number is stored super fast. Once we know the name, we apply a few steps to find the page number and then look at that page for the phone number.
+That speed isn't a property of the *information* in the phone book. It's a property of the **layout**: the alphabetical ordering acts as a function that turns a name into a page number. Once you have a page number, the phone number is one short scan away. The "search" has been replaced with a *calculation* (using the name's first letter to index into the alphabet).
 
-// Diagram: Finding the phone number in a phone book
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    NAME["Name<br/>'Neha Sharma'"] --> RULE["Rule:<br/>first letter → section,<br/>section → page"]
+    RULE --> PAGE["Page 312<br/>(S section)"]
+    PAGE --> NUM["Phone number:<br/>+91 98xxx 12xxx"]
+    style NAME fill:#dbeafe,stroke:#3b82f6
+    style RULE fill:#fef9c3,stroke:#f59e0b
+    style PAGE fill:#ede9fe,stroke:#7c3aed
+    style NUM fill:#dcfce7,stroke:#22c55e
+```
+
+<p align="center"><strong>Looking up a phone number in a phone book — the name is fed to a simple rule (alphabetical layout), the rule yields a page number, and the page yields the phone number. The intermediate "page number" is the entire trick.</strong></p>
+
+That intermediate value — the **page number** — is the soul of the idea. We never search for it; we *derive* it from the name. And once we have it, the data is one direct read away.
 
 ## Hash table
 
-A hash table is a data structure that stores the mapping between a key and value and provides constant **O(1)** search, insert, and delete operations in most cases. Like the real-world phone book, a hash table uses a hash function to translate the key to an intermediate value (hash value). This intermediate value can be used to access the stored data quickly. The data is generally stored in an array, and the intermediate value (hash value) is an array index, making constant **O(1)** time access possible. Logically, it looks like a table that stores mappings as key-value pairs in a row.
+A **hash table** is a data structure that stores mappings between **keys** and **values** and provides constant-time **O(1)** search, insert, and delete operations in the average case. Like the phone book, a hash table uses a function — called a **hash function** — to translate a key into an intermediate integer (the **hash value**). That integer is used as an index into an internal array where the data actually lives.
 
-// Diagram: A hash table stores mapping between a key and value
+Three concrete pieces, working together:
+
+> -   **Key** — the input you have (e.g. the student's name `"Neha"`).
+> -   **Hash function** — the rule that turns a key into an integer index.
+> -   **Internal array** — where the key-value pair is physically stored, indexed by the hash value.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    K["key<br/>'Neha'"] --> H["hash<br/>function"] --> IDX["index 2"]
+    IDX --> ARR["internal array"]
+    subgraph ARR["internal array"]
+        direction TB
+        A0["[0] (Karan, 4)"]
+        A1["[1] (Hari, 7)"]
+        A2["[2] (Neha, 23)"]
+        A3["[3] (Riya, 12)"]
+    end
+    ARR --> V["value<br/>23"]
+    style A2 fill:#dcfce7,stroke:#22c55e
+```
+
+<p align="center"><strong>How a hash table answers a lookup — the key is hashed into an array index, and the value at that index is returned in one read. No scan, no comparisons walking the array.</strong></p>
 
 ## Logical representation
 
-A hash table is logically represented as a simple table where each row stores a mapping between a key and a value. This representation is easy to understand and use when solving a problem. We will use this representation throughout the course to represent a hash table.
+When we draw a hash table on paper or talk about it in interviews, we don't usually draw the underlying array. We draw a **table** with two columns — one for keys, one for values — where each row stores a single mapping. The internal array exists, but it's an implementation detail; the table view is the abstraction the user reasons about. We'll use this exact representation throughout the course.
 
-// Diagram: Logical representation of a hash table
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+block-beta
+  columns 2
+  HK["Key"] HV["Value"]
+  K1["'Riya'"]   V1["12"]
+  K2["'Hari'"]   V2["7"]
+  K3["'Neha'"]   V3["23"]
+  K4["'Karan'"]  V4["4"]
+  style HK fill:#fef9c3,stroke:#f59e0b
+  style HV fill:#fef9c3,stroke:#f59e0b
+```
+
+<p align="center"><strong>Logical view of a hash table — a two-column table where each row is one key-value mapping. This is the mental model you carry around; the actual array-and-hash-function machinery is hidden underneath.</strong></p>
+
+> *Pause and predict — we said the hash function turns a key into an array index. The internal array has a fixed size (say, 8 slots). What happens if our school has 80 students? Or 8 million? Eight slots, eight million keys — something has to give. Hold that question; we'll arrive at the answer in pieces.*
 
 ***
 
 # Defining a hash function
 
-A hash function is the center of any solution to the mapping problem we saw earlier. Understanding a hash function is very important before exploring the internal workings of a hash table.
+A hash function isn't optional decoration — it's the engine. Everything else (the array, the operations, the performance guarantees) is built on top of it. So before we can dissect a hash table, we have to make the hash function feel concrete, and that starts with a slightly older idea: a **mathematical function**.
 
 ## Mathematical function
 
-In pure mathematics, a function from set K to V is defined as the logic that assigns exactly one value in V to every element in K. The set K is the **domain**, and V is the function's **codomain**. In simple terms, a mathematical function is essentially something that maps values from a set K to a set V. These sets can have data of any type (integers, strings, objects, etc.).
+In pure mathematics, a function from a set **K** to a set **V** is the rule that assigns *exactly one* value in **V** to *every* element in **K**. The set **K** is called the **domain** (the inputs), and **V** is called the **codomain** (the possible outputs). The data in those sets can be of any type — integers, strings, objects, points in space, anything — but the *contract* is the same: every input maps to one output.
 
-// Diagram: A function maps values between its domain and codomain sets
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph DOM["Domain K (inputs)"]
+        direction TB
+        K1["k₁"]
+        K2["k₂"]
+        K3["k₃"]
+        K4["k₄"]
+    end
+    subgraph COD["Codomain V (outputs)"]
+        direction TB
+        V1["v₁"]
+        V2["v₂"]
+        V3["v₃"]
+    end
+    K1 -->|"f"| V1
+    K2 -->|"f"| V2
+    K3 -->|"f"| V3
+    K4 -->|"f"| V2
+```
 
-To understand mathematical functions better, let us look at some simple examples. Most of us are familiar with numerical mathematical functions, so we will only look at 
+<p align="center"><strong>A mathematical function maps every element of its domain <code>K</code> to exactly one element in its codomain <code>V</code>. Two different inputs are allowed to land on the same output (notice <code>k₂</code> and <code>k₄</code> both map to <code>v₂</code>) — this freedom is what makes hashing possible later.</strong></p>
 
-// Diagram: Examples of some mathematical functions
+Most of us first met functions through numbers — `f(x) = x + 1`, `f(x) = x²`, `f(x) = x mod 10`. These are tiny, total recipes that take an input and return an output, every time, deterministically.
 
-It is important to note here that mathematical functions place no restrictions on the size of their domain and codomain sets so that both these sets can be of any arbitrary size (infinite or fixed)
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph F1["f(x) = x + 1"]
+        direction LR
+        A1["x = 5"] --> B1["6"]
+        A2["x = 12"] --> B2["13"]
+    end
+    subgraph F2["f(x) = x²"]
+        direction LR
+        C1["x = 4"] --> D1["16"]
+        C2["x = 9"] --> D2["81"]
+    end
+    subgraph F3["f(x) = x mod 10"]
+        direction LR
+        E1["x = 47"] --> G1["7"]
+        E2["x = 1234"] --> G2["4"]
+    end
+    F1 ~~~ F2 ~~~ F3
+```
+
+<p align="center"><strong>Three example mathematical functions — each takes an input and produces a single, deterministic output. The first two have an unbounded codomain (any integer); the last one always returns a value in <code>{0, 1, ..., 9}</code>. That last property is the seed of the hash function idea.</strong></p>
+
+Mathematical functions place **no restriction** on the size of their domain or codomain. Both can be infinite, both can be tiny, or one can be huge and the other can be small. That last case — *huge domain mapped into a small codomain* — is exactly where hash functions live.
 
 ## Hash function
 
-Now that we know a mathematical function let us look at hash functions. A hash function is a mathematical function that can map elements from an arbitrary (infinite or fixed) set to a finite site. Any mathematical function with a fixed-size codomain set (hash value) can be called a hash function. The domain set (keys) for the hash function can be of a fixed or infinite size.
+A **hash function** is a mathematical function whose **codomain is finite** (and usually small). The domain — the set of all keys the function might be asked about — is allowed to be enormous, even infinite. The function's job is to *squeeze* that vast input space down into a bounded output space.
 
-// Diagram: Hash functions are just a subset of all mathematical functions
+> Any mathematical function with a fixed-size codomain qualifies as a hash function. Most mathematical functions are *not* hash functions — `f(x) = x + 1` produces a different output for every integer input, so its codomain is the entire set of integers, which is infinite.
 
-Not all mathematical functions are hash functions, but all hash functions are mathematical functions. The output from a hash function (elements of the codomain set) is called hash values, sometimes also called hash codes, digests, or simply hashes. Let us revisit our example mathematical functions from before and understand what functions can be classified as hash functions or otherwise.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph ALL["All mathematical functions"]
+        direction TB
+        subgraph HASH["Hash functions<br/>(finite codomain)"]
+            H1["x mod 10"]
+            H2["middle digit of x²"]
+            H3["first letter index of name"]
+        end
+        OUT1["x + 1<br/>(infinite codomain)"]
+        OUT2["x²<br/>(infinite codomain)"]
+    end
+```
 
-// Diagram: Not all mathematical functions are hash functions
+<p align="center"><strong>The set of all mathematical functions is huge — hash functions are the strict subset whose codomain has a fixed, finite size. Every hash function is a mathematical function, but most mathematical functions are not hash functions.</strong></p>
+
+The output of a hash function — the elements of its codomain — has many names you'll see in the wild: **hash values**, **hash codes**, **digests**, or just **hashes**. They all mean the same thing.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph YES["Hash function ✓ (finite codomain)"]
+        direction LR
+        Y1["f(x) = x mod 10<br/>codomain = {0..9}"]
+        Y2["f(x) = middle 2 digits of x²<br/>codomain = {0..99}"]
+    end
+    subgraph NO["Not a hash function ✗ (infinite codomain)"]
+        direction LR
+        N1["f(x) = x + 1<br/>codomain = ℤ"]
+        N2["f(x) = x²<br/>codomain = ℤ⁺"]
+    end
+    YES ~~~ NO
+```
+
+<p align="center"><strong>Revisiting our example functions — the first two restrict their output to a finite set, so they are hash functions. The last two can produce arbitrarily large outputs, so they are mathematical functions but not hash functions.</strong></p>
 
 ## Collision
 
-A hash function's domain set (keys) can be potentially infinite, but the co-domain set (hash values) has a fixed size. It should be easy to see that no matter how good a hash function is, mapping a potentially infinite number of values to values in a finite size will result in a collision.
+Here's the unavoidable consequence of the rule we just stated: a hash function takes a (potentially infinite) set of inputs and forces them into a finite set of outputs. By **the pigeonhole principle**, if you have more pigeons than holes, some hole must contain at least two pigeons. The same is true here — give a hash function enough keys, and *some* of them must land on the same hash value.
 
-Collision
+> **Collision**
+>
+> When two *different* keys in the domain map to the *same* hash value in the codomain, it is called a **collision**.
 
-> When two different elements in a hash function's domain set(keys) map to the same value in the codomain set (hash value), it is said to be a collision.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    K1["'Hari'"] -->|"hash"| H["index 3"]
+    K2["'Riya'"] -->|"hash"| H
+    H --> NOTE["Both keys want<br/>the same slot — <br/>this is a collision"]
+    style H fill:#fee2e2,stroke:#ef4444
+    style NOTE fill:#fef9c3,stroke:#f59e0b
+```
 
-// Diagram: When to different inputs have the same hash value, it is called a collision
+<p align="center"><strong>A collision — two distinct keys (<code>'Hari'</code> and <code>'Riya'</code>) hash to the same index. The hash function is doing its job correctly; the collision is a <em>structural</em> consequence of squeezing a large domain into a small codomain.</strong></p>
 
-The primary purpose of a hash function is to map elements in a large (potentially infinite) set to a fixed-sized set, so collision is inevitable. However, we can choose the hash function carefully to reduce the chances of collision. A good hash function has a low probability for collision and is fast.
+The whole *point* of a hash function is to compress a large input space into a small output space, so collisions aren't a bug — they're a feature of the territory. What we *can* do is choose a hash function carefully so that collisions are **rare** and the function is **fast** to compute. Those two properties — low collision probability and quick evaluation — are the headline criteria for "is this a good hash function?"
+
+> *Predict before reading on — if collisions are inevitable, what should the hash table actually <strong>do</strong> when two keys collide? Pick the one you'd implement first, mentally. We'll come back to this in the section on internal mechanics.*
 
 ***
 
 # Properties of a good hash function
 
-Now that we know what is a hash function, it should be clear that not all hash functions are the same. A good hash function for a specific type of input data (domain set) may perform poorly for other data types. How do we decide if a hash function is good or bad? A few properties of a hash function decide if it is good or bad. Some of them are given below.
+We've established what a hash function *is*. But you can write a thousand different hash functions, and most of them will be terrible. The difference between a great hash function and a useless one shows up the moment you put real data through it. Three properties separate the good from the bad.
 
 ## Uniformity
 
-A good hash function maps elements in the domain set(keys) to elements in the co-domain set(hash values) as uniformly as possible. Some hash functions, like the mod function, are uniform. In a perfectly uniform function, every element in the co-domain set should be mapped to the same number of elements in the domain set.
+A good hash function spreads keys **evenly** across its codomain. If the codomain has 100 slots and we feed in 1000 keys, an ideal hash function gives each slot roughly 10 keys — not 990 in one slot and zero in another. A perfectly uniform hash function maps the same number of domain elements to every codomain element.
 
-// Diagram: The keys are mapped to values uniformly
+The classic example is the **modulo function**, `f(x) = x mod m`. If your keys are uniformly distributed integers, then `x mod m` distributes them across `{0, 1, ..., m-1}` evenly. That's why it's the default starting point for integer hashing.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph KEYS["Domain (12 keys)"]
+        direction TB
+        K1["k₁"]
+        K2["k₂"]
+        K3["k₃"]
+        K4["k₄"]
+        K5["k₅"]
+        K6["k₆"]
+        K7["k₇"]
+        K8["k₈"]
+        K9["k₉"]
+        K10["k₁₀"]
+        K11["k₁₁"]
+        K12["k₁₂"]
+    end
+    subgraph SLOTS["Codomain (4 slots — uniform)"]
+        direction TB
+        S0["[0] — 3 keys"]
+        S1["[1] — 3 keys"]
+        S2["[2] — 3 keys"]
+        S3["[3] — 3 keys"]
+    end
+    K1 --> S0
+    K2 --> S1
+    K3 --> S2
+    K4 --> S3
+    K5 --> S0
+    K6 --> S1
+    K7 --> S2
+    K8 --> S3
+    K9 --> S0
+    K10 --> S1
+    K11 --> S2
+    K12 --> S3
+```
+
+<p align="center"><strong>Uniform distribution — twelve keys spread evenly across four slots, three per slot. A poorly distributed hash function would dump (say) ten keys into slot [0] and one each into slots [1], [2], and [3], wrecking the average-case lookup time.</strong></p>
+
+Why does uniformity matter so much? Because the moment two keys collide, the cost of operating on them rises. If a hash function piles every key onto the same index, you've quietly turned an O(1) data structure back into an O(N) one — congratulations, you've reinvented the linked list.
 
 ## Deterministic
 
-A hash function should be deterministic. This means that any element in the domain set(keys) should be mapped to exactly one element in the co-domain set(hash values) and always be the same. Essentially, this means that for a given input(key), the hash function should always result in the same hash value.
+A hash function must be **deterministic**: the same input must *always* produce the same output. There can be no randomness, no time-of-day dependency, no memory-address quirks. Hash `"Neha"` today and you get index 2; hash `"Neha"` six months from now in a different machine, in a different process, on the moon — you must still get index 2.
 
-// Diagram: A key should always be mapped to the same hash value
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph T1["Call 1 — Monday"]
+        direction LR
+        A1["'Neha'"] -->|"hash"| B1["index 2"]
+    end
+    subgraph T2["Call 2 — Friday"]
+        direction LR
+        A2["'Neha'"] -->|"hash"| B2["index 2"]
+    end
+    subgraph T3["Call 3 — six months later"]
+        direction LR
+        A3["'Neha'"] -->|"hash"| B3["index 2"]
+    end
+    T1 ~~~ T2 ~~~ T3
+```
+
+<p align="center"><strong>Determinism in action — the same key produces the same hash every single time, no exceptions. Without this guarantee, the slot you stored a value in this morning would be empty when you came back to find it.</strong></p>
+
+The reason for this rule is brutally practical. We *store* a value at the index returned by `hash(key)`. We later *retrieve* the value by recomputing `hash(key)` and looking at that index. If the function returned a different index on retrieval than it did on insertion, the value would be at one slot and our search would look at another. The whole structure breaks the moment the function isn't deterministic.
 
 ## Efficient
 
-A hash function maps input data (keys) to a fixed-sized set of values(hash value). The primary purpose of a hash function is to store and retire data items using this computed hash value, so the hash value computation should be efficient. The hash function should be efficient and fast and have a negligible computational cost.
+The hash function is invoked on **every single operation** — every insert, every search, every delete. If hashing a key takes 1 millisecond, then 1,000 lookups already cost 1 second of pure hashing, before we've touched the array. The hash function therefore has to be **fast** — ideally, almost free. Constant-time arithmetic on the bits of the key is the gold standard; anything that requires nontrivial work per byte starts to erode the O(1) promise the table is selling.
 
-// Diagram: The hash function should be efficient
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    K["key"] --> HF["hash function<br/>O(1) compute"]
+    HF --> I["index"]
+    I --> V["array[index] → value"]
+    NOTE["If <code>hash(key)</code> is slow,<br/>every operation is slow.<br/>Speed of the table = speed of the hash."] -.-> HF
+    style HF fill:#fef9c3,stroke:#f59e0b
+```
+
+<p align="center"><strong>The hash function sits on the critical path of every hash-table operation — its runtime is multiplied by every insert, search, and delete. Slow hash function ⇒ slow hash table, no matter how good the rest of the implementation is.</strong></p>
+
+Three properties — **uniform**, **deterministic**, **efficient** — and a hash function that nails all three is what turns a hash table from a clever toy into the workhorse you'll meet inside every standard library on Earth.
+
+> *Quick test before moving on — would <code>f(key) = 0</code> qualify as a hash function under the formal definition? Is it deterministic? Is it efficient? Is it uniform? What would a hash table built on it actually behave like?*
+>
+> Yes, it is technically a hash function — finite codomain (`{0}`), deterministic (always returns 0), and efficient (instant). It fails *spectacularly* on uniformity: every key maps to slot 0, and the table degenerates into one giant linked list of collisions. The lookup is O(N). This is the lesson — being a hash function is not enough; being a *good* one is what creates the magic.
 
 ***
 
 # Examples of hash functions
 
-Now that we know that a hash function is just a subset of all mathematical functions, it is fairly easy to see that there can be an infinite number of hash functions, and it is not too difficult for anyone to create one. Let us look at some easy examples of hash functions to understand them better.
+Now that we know that a hash function is just a subset of all mathematical functions, it should be easy to see that there are infinitely many of them, and writing one is not hard. Let's walk through four canonical examples — they cover most of the patterns you'll encounter, and each one teaches a different intuition.
 
 ## Identity hash function
 
-For cases where the domain set has a fixed size, the elements in the set can be used as the hashed values. The domain and codomain sets are the same for an identity hash function, and every value is mapped to it. The input(key) can be treated as the hash value.
+The simplest hash function is the one that does almost nothing: it returns the key as-is. The domain and codomain are the same set, and `hash(key) = key`. This works only when the domain is itself **finite and small** — typically when the keys are already integers in a known, bounded range.
 
-// Diagram: Identity hash function
+For example, if you're hashing the digits 0–9, `hash(d) = d` is a perfectly good hash function. Slot `d` of the array stores the data for digit `d`.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph DOM["Domain = Codomain = {0..9}"]
+        direction TB
+        K0["0"] --> H0["0"]
+        K1["1"] --> H1["1"]
+        K2["2"] --> H2["2"]
+        K3["3"] --> H3["3"]
+        K4["4"] --> H4["4"]
+    end
+```
+
+<p align="center"><strong>Identity hash function — the key <em>is</em> the hash. Trivially deterministic, instant to compute, and perfectly uniform over its bounded domain. Useless when keys are large or unbounded, because the array would have to be just as large.</strong></p>
 
 ## Trivial hash functions
 
-For cases where the domain set has a fixed size but cannot use the identity hash function, we can apply some trivial techniques to use the keys as hash values. For example, if the domain set has values between `[1000, 2000]` but we want the codomain set (hash values) only to have a value between `[1, 99]`, we can extract the middle two digits of the input and use them as the has values. 
+When the domain is small but doesn't match the array's index range, a *trivial* transformation often suffices. Suppose your keys are integers in `[1000, 2000]` and you want hash values in `[0, 99]`. You could simply **extract the middle two digits** of the key and use them as the hash. The key `1473` becomes hash `47`; the key `1819` becomes hash `81`.
 
-// Diagram: A trivial hash function
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    K1["1473"] -->|"extract middle<br/>two digits"| H1["47"]
+    K2["1819"] -->|"extract middle<br/>two digits"| H2["81"]
+    K3["1234"] -->|"extract middle<br/>two digits"| H3["23"]
+    K4["1058"] -->|"extract middle<br/>two digits"| H4["05"]
+```
+
+<p align="center"><strong>A trivial digit-extraction hash function — works because both the domain and codomain are tightly bounded. Just enough math to fit keys into the array; just little enough to stay O(1).</strong></p>
 
 ## Division hash function
 
-If both the domain(key) and codomain (hash codes) are a set of integers, the division hash function is the simplest group of hash functions to think of. To fix the size of the codomain set (hash values) to a size, say, Y, we can divide the elements from the domain set (keys) by Y and treat the remainder as the hash value. This way, the codomain set (hash values) will have only a fixed size (0 .. Y-1).
+When both keys and hashes are integers, the **division method** (also called modulo hashing) is the simplest serious choice. Pick a codomain size **Y** (your array length), and define:
 
-// Diagram: Division hash functions for integer keys
+```
+hash(key) = key mod Y
+```
 
-## Mid square hash function
+The remainder is always in `[0, Y-1]` — exactly the range of valid array indices.
 
-A mid square hash function is also good if the domain(key) and codomain (hash codes) are a set of integers. We square the key and take the middle **r** digits of the key. When we square an integer, all its digits contribute to the resultant squared integer, not just the first or last few digits (as in the division method). Since we only take r digits, the resultant hash value will always be between `[0 to base^r)`.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph EX["hash(key) = key mod 7"]
+        direction LR
+        K1["key = 23"] --> H1["23 mod 7 = 2"]
+        K2["key = 47"] --> H2["47 mod 7 = 5"]
+        K3["key = 100"] --> H3["100 mod 7 = 2"]
+        K4["key = 77"] --> H4["77 mod 7 = 0"]
+    end
+    NOTE["Notice <code>23</code> and <code>100</code> both map to index 2 —<br/>collisions are real, even with a good function."] -.-> H1
+    style H1 fill:#fef9c3,stroke:#f59e0b
+    style H3 fill:#fef9c3,stroke:#f59e0b
+```
 
-// Diagram: Mid square hash functions for integer keys
+<p align="center"><strong>Division hashing with <code>Y = 7</code> — every integer key is reduced to a remainder in <code>{0..6}</code>. Choosing <code>Y</code> to be a prime tends to spread keys most uniformly, especially when the keys themselves have hidden patterns.</strong></p>
+
+A subtle but important detail: the choice of `Y` matters enormously. If your keys are all multiples of 4 and you pick `Y = 8`, every key collapses into just 2 slots (0 and 4). Picking `Y` to be a **prime number** is a folklore rule of thumb because primes have no small factors that align with the bit patterns of typical keys, so the remainders stay well-spread.
+
+## Mid-square hash function
+
+The **mid-square method** is a smarter cousin of digit extraction. The recipe:
+
+1. **Square** the key.
+2. From the square, **take the middle `r` digits** as the hash value.
+
+Why squaring? Because when you square an integer, *every* digit of the key contributes to *every* digit of the result — the high digits and the low digits get tangled together in the multiplication. So when you snip out the middle, you're getting a value that's been influenced by the whole key, not just a fragment of it. The output range is `[0, base^r)`, where `base` is the numeric base (10 for decimal).
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    K1["key = 123"] --> SQ1["123² = 15129"]
+    SQ1 --> M1["middle 2 digits<br/>= 51"]
+    K2["key = 478"] --> SQ2["478² = 228484"]
+    SQ2 --> M2["middle 2 digits<br/>= 84"]
+    K3["key = 902"] --> SQ3["902² = 813604"]
+    SQ3 --> M3["middle 2 digits<br/>= 36"]
+```
+
+<p align="center"><strong>Mid-square hashing with <code>r = 2</code> — the key is squared, and the middle two decimal digits are extracted. Each output digit is influenced by every input digit, so the spread tends to be more uniform than naïve digit extraction.</strong></p>
+
+Compare this with the division method: division throws away the high digits entirely (the remainder only sees the low end), while mid-square scrambles every digit before keeping a few. For keys with skewed distributions (say, all ending in 0), mid-square often distributes more evenly than `key mod Y`.
 
 ## Takeaway
 
-From the examples above, it should be easy to figure out that there can be many different types of hash functions, and it is quite easy to create one. However, the choice of a hash function depends on the use case. For example, if the domain set is infinite, we cannot use an identity function, or if the domain set size is small, it's just easier to use an identity or trivial hash function.
+What these examples should make obvious is that there is no single "the hash function" — there is a *family* of techniques, each with strengths in particular regimes:
+
+- **Identity** — when the keys *are* the indices.
+- **Trivial extraction** — when the keys are small integers and you need to fit them into a smaller range.
+- **Division** — when keys are large integers and you have a prime-sized array.
+- **Mid-square** — when keys have skewed digit patterns that division would amplify.
+
+For real-world data (strings, objects, structured records), production hash functions are dramatically more sophisticated — they treat the key as a sequence of bytes, fold those bytes through bit rotations and multiplications, and sometimes mix in a random seed to defeat adversaries. But the *intuition* is the same: take a key, run it through a fast, deterministic, scrambling function, return an integer that fits in your array.
+
+> *Coming up — we'll see how to actually <em>wire</em> a hash function into an array to make storage and retrieval real, and what the structure has to do when (not if) two keys collide.*
 
 ***
 
 # Internal mechanics of a hash table
 
-A hash table is generally an encapsulation around an array, and the basic principle on which it works is quite simple. We know that accessing a data item in an array is a constant time **O(1)** operation if we know the index where the data item is stored.
+We have all the pieces — keys, hash functions, the idea of squeezing them into a bounded codomain. Now let's wire them together into the actual data structure.
 
-We can leverage an array's fast random-access property to map a key and value together. We can store the original key-value pair at that index by using a hash function that converts the given key into an array's index(hash value). A good hash function guarantees that a given key will always result in the same index, and the computation is a constant-time operation. Once we fix the index for a key, the data can be accessed in constant time in the array.
+The principle is short enough to fit in one sentence: **a hash table is an array, plus a hash function that turns keys into indices for that array**.
 
-// Diagram: Working of a hash table
+That's it. The whole magic of O(1) lookup falls out of one observation: an array can be indexed in constant time. If we *know* the index, we don't search — we read. The hash function's only job is to turn a key (which has no obvious index) into an index (which does).
 
-There are many different implementations of a hash table, each generally tailored to a specific use case. However, the underlying basic components remain the same. Let us look at the major components that make up a hash table.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    K["key<br/>('Neha')"] --> HF["hash function<br/>(deterministic,<br/>O(1))"] --> IDX["index<br/>(2)"]
+    IDX --> ARR
+    subgraph ARR["internal array"]
+        direction TB
+        A0["[0] (Karan, 4)"]
+        A1["[1] (Hari, 7)"]
+        A2["[2] (Neha, 23)"]
+        A3["[3] (Riya, 12)"]
+    end
+    A2 --> OUT["value<br/>(23)"]
+    style A2 fill:#dcfce7,stroke:#22c55e
+```
+
+<p align="center"><strong>End-to-end flow of a hash table — key in, hash computed, index produced, array indexed, value out. Three constant-time steps stitched into one constant-time operation.</strong></p>
+
+A hash table is conceptually that simple. In practice, every implementation has three components, and every implementation makes different tradeoffs between them.
 
 ## Internal array
 
-A hash table is just an encapsulation around an array. This array stores the actual data (key and value). This internal array generally has a fixed size, but more complex implementations can also use a dynamic array. The internal array's size also decides which hash function to use, as the hash function ultimately calculates an index in this array. The internal array's size depends on the distribution of keys and use case, and it should be big enough to prevent too many collisions.
+The internal array is where the actual data lives. Each cell of the array stores a **key-value pair**, not just the value. The size of this array — call it `m` — fixes the codomain of the hash function: the function must produce hashes in `[0, m-1]`. Some hash tables keep this size fixed forever; more sophisticated implementations grow the array dynamically when it gets too crowded.
 
-**Why do we store both key and value in the internal array?**
+A natural question deserves a direct answer:
 
-We store both key and value as there could be a collision, and multiple keys might be mapped to the same hash value. When searching for a key, we iterate through all the colliding keys and search for the given key by matching it with the stored key.
+> **Why store the key inside the cell, when the cell's index already encodes the key (via hashing)?**
+>
+> Because **collisions are inevitable**. Two different keys can — and eventually will — hash to the same index. When you later look up one of those keys, the cell at that index might hold *the other one*. Without storing the original key in the cell, you couldn't tell which key's value you found. Storing the key lets you confirm with one comparison: "is this the cell I came for, or a colliding stranger?"
 
-// Diagram: The internal array stores the key value pair
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+block-beta
+  columns 4
+  H0["[0]"]:1 H1["[1]"]:1 H2["[2]"]:1 H3["[3]"]:1
+  C0["('Karan', 4)"]:1 C1["('Hari', 7)"]:1 C2["('Neha', 23)"]:1 C3["('Riya', 12)"]:1
+  style H0 fill:#fef9c3,stroke:#f59e0b
+  style H1 fill:#fef9c3,stroke:#f59e0b
+  style H2 fill:#fef9c3,stroke:#f59e0b
+  style H3 fill:#fef9c3,stroke:#f59e0b
+```
+
+<p align="center"><strong>The internal array stores a (key, value) pair in every cell — not just the value. The redundancy looks wasteful but is exactly what lets the table identify the right entry in the presence of collisions.</strong></p>
 
 ## Hash function
 
-The hash function is the heart of a hash table. It converts a key into an index of the internal array. The hash function for a hash table should be fast, deterministic, and have a uniformly distributed set of output values to prevent collision. Even though a hash function might be mathematically uniform if used with skewed input(keys), it might still lead to a collision, so it should be chosen with the use case in mind.
+The hash function is the **heart** of the table. It converts a key into a valid index for the internal array. It must be **deterministic**, **efficient**, and ideally **uniform** for the kind of keys this table will see in practice. (Notice the qualifier: a function that is mathematically uniform may still cluster badly if the *actual* keys have hidden patterns. Production code often picks the function based on the use case, not just the math.)
 
-// Diagram: The hash function maps keys to a hash value
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    K1["'Riya'"] -->|"hash"| H1["3"]
+    K2["'Hari'"] -->|"hash"| H2["1"]
+    K3["'Neha'"] -->|"hash"| H3["2"]
+    K4["'Karan'"] -->|"hash"| H4["0"]
+    subgraph CO["Codomain — array indices"]
+        H1
+        H2
+        H3
+        H4
+    end
+```
+
+<p align="center"><strong>The hash function fans every key out to an integer index in the bounded range <code>[0, m-1]</code>. The same input always lands on the same output (determinism), and a well-chosen function spreads outputs evenly across the range (uniformity).</strong></p>
 
 ## Collision resolution
 
-Choosing a hash function is only half the job. Its performance and chances of collision also depend on the data set it is used on. No matter how good a hash function is, there will be chances of collisions if the domain set (unique key values) is large.
+Choosing a hash function is only half the design. No matter how good the function is, *some* keys will collide — and the table needs a plan for what to do when they do. This plan is called the **collision resolution scheme**, and it's the single biggest fork in hash-table implementations.
 
-A hash table also encapsulates a collision resolution mechanism for such cases. This mechanism transparently decides how to handle collisions so that the data is not lost and the operations on the hash table are still efficient.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    K1["'Hari'"] -->|"hash"| IDX["index 2"]
+    K2["'Riya'"] -->|"hash"| IDX
+    K3["'Neha'"] -->|"hash"| IDX
+    IDX --> Q["Three keys want<br/>slot 2 — now what?"]
+    style IDX fill:#fee2e2,stroke:#ef4444
+    style Q fill:#fef9c3,stroke:#f59e0b
+```
 
-// Diagram: Multiple keys can collide at the same hash value
+<p align="center"><strong>A worst-case collision scenario — three different keys all hash to the same slot. The collision resolution scheme decides whether they share the slot (chaining), get rerouted to other slots (open addressing), or are handled by yet another mechanism. The choice has profound consequences for performance and memory.</strong></p>
 
-Later in this course, we will learn about different implementations of a hash table that use different hashing techniques and collision resolution mechanisms. Every method has its tradeoffs, and the user should choose the collision resolution that best suits the use case.
+The two dominant strategies in this course are:
+
+- **Separate chaining** — every slot in the array holds a *linked list* of all keys that hashed to it. Collisions are absorbed by lengthening the list.
+- **Open addressing** — when a slot is taken, the table probes a sequence of *other* slots (linear probing, quadratic probing, double hashing) and stores the key in the first free one it finds.
+
+Both have non-obvious tradeoffs in cache behavior, deletion complexity, load-factor sensitivity, and memory overhead — and we'll spend the next several lessons taking each apart in detail. For now, the only fact you need is that **collision resolution is a *required* component**, not an optional one. Every hash table has it; every hash table makes a different choice; and that choice is what gives each hash table its personality.
+
+> *Mental dry-run before moving on — picture an internal array of size 8 with three entries already stored: <code>('Hari', 7)</code> at index 2, <code>('Karan', 4)</code> at index 0, <code>('Neha', 23)</code> at index 5. We now insert <code>('Riya', 12)</code>, and <code>hash('Riya') = 5</code>. What does the array look like under separate chaining? Under open addressing? Sketch both before reading the next lesson — you'll find that the same insert produces two completely different shapes.*
 
 ***
 
 # Overview of supported operations
 
-Now that we know what a hash table is and how it works using a hash function and internal array, we can dive a bit deeper and understand the different operations that can be performed on it. Every data structure has its special powers, and for a hash table, it is ultra-fast storage and retrieval of mappings(key-value pairs). Below are the primary operations on a hash table and their high-level working.
+We've assembled the machine. Time to drive it. A hash table exposes a small, sharp set of operations — three primary ones, all of which exploit the same hash-then-index trick. Below is the high-level flow for each; the full implementation details vary with the collision-resolution scheme and will be covered in dedicated lessons.
 
 ## Insert operation
 
-The insert operation is one of the primary operations on a hash table and is used to store a key-value mapping. A key-value mapping is stored by hashing the key to get the index in the internal array and storing the key-value pair at that location. If the key is already present in the table, its value is updated to the new value.
+**Insert** stores a new key-value mapping. The recipe is:
 
-// Diagram: Insert a key value mapping into the hash table
+1. Hash the key to get an index.
+2. Place the `(key, value)` pair at that index of the internal array.
+3. If the key already exists, **update** the value instead of duplicating the entry.
 
-## Search operation
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    IN["insert('Neha', 23)"] --> H["hash('Neha')<br/>= 2"]
+    H --> CHK{"Slot 2<br/>occupied?"}
+    CHK -->|"empty"| W1["array[2] = ('Neha', 23)"]
+    CHK -->|"same key"| W2["update existing<br/>value"]
+    CHK -->|"different key"| W3["collision —<br/>resolve via chosen<br/>scheme"]
+    style W3 fill:#fef9c3,stroke:#f59e0b
+```
 
-The search operation is another primary operation on a hash table and is used to retrieve the mapped value for a given key. The value is retrieved by passing the given key to the hash function to get the index in the internal array and fetching the value at that location. If the value key-value mapping does not exist, the search function returns an error value to indicate it or throws an error.
+<p align="center"><strong>Insert flow — hash, then store. The third branch (collision with a different key) is where the collision-resolution scheme takes over and decides whether to chain or probe.</strong></p>
 
-// Diagram: Search for key in the hash table
+## Search operation
 
-## Delete operation
+**Search** retrieves the value mapped to a given key. The recipe:
 
-The delete operation deletes the key-value mapping for a given key from the hash table. The given key is passed to the hash function to get its index in the internal array, and the value at that location is deleted. If the value key-value mapping does not exist, the operation is treated as a no-op(nothing done)
+1. Hash the key to get an index.
+2. Look at the internal array at that index.
+3. If the cell holds an entry whose key matches, return the value.
+4. If the slot is empty (or the cell holds a *different* key, depending on the resolution scheme), return a "not found" signal — `null`, an exception, an empty `Optional`, depending on the language.
 
-// Diagram: Delete a key from the hash table
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    IN["search('Neha')"] --> H["hash('Neha')<br/>= 2"]
+    H --> READ["read array[2]"]
+    READ --> CHK{"Stored key<br/>== 'Neha'?"}
+    CHK -->|"yes"| OUT1["return value (23)"]
+    CHK -->|"no, slot empty"| OUT2["return 'not found'"]
+    CHK -->|"no, different key"| OUT3["follow resolution<br/>scheme to find<br/>or give up"]
+    style OUT1 fill:#dcfce7,stroke:#22c55e
+    style OUT3 fill:#fef9c3,stroke:#f59e0b
+```
+
+<p align="center"><strong>Search flow — hash, then read, then verify the stored key. The verification step is what justifies storing the key in the cell: it disambiguates the target from any colliding stranger that happens to share the slot.</strong></p>
+
+## Delete operation
+
+**Delete** removes the mapping for a given key. The recipe:
+
+1. Hash the key to get an index.
+2. Look at the internal array at that index.
+3. If the cell holds the matching key, clear the entry.
+4. If the key is not present, the operation is a **no-op** — nothing is done, and most APIs do not consider this an error.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    IN["delete('Neha')"] --> H["hash('Neha')<br/>= 2"]
+    H --> READ["read array[2]"]
+    READ --> CHK{"Stored key<br/>== 'Neha'?"}
+    CHK -->|"yes"| OUT1["clear array[2]"]
+    CHK -->|"no, not present"| OUT2["no-op"]
+    CHK -->|"no, different key"| OUT3["follow resolution<br/>scheme; if not found,<br/>no-op"]
+    style OUT1 fill:#dcfce7,stroke:#22c55e
+    style OUT2 fill:#ede9fe,stroke:#7c3aed
+```
+
+<p align="center"><strong>Delete flow — hash, find, clear. Deletion under open addressing has a hidden subtlety: simply clearing a slot can break the probing sequence used to find later entries, so a "tombstone" marker is often used instead. We'll meet tombstones in a later lesson.</strong></p>
 
 ## Handling collisions
 
-The operations above are the primary operations on the hash table data structure, and we carefully selected examples to avoid collision. This is because there is no single implementation of a hash table, and the collision resolution technique broadly divides the hash table implementation into two categories.
+Notice that all three operations above were described as if collisions don't exist — every example landed in an empty slot, or a slot already holding the right key. That's a deliberate simplification, because **the implementation of insert, search, and delete depends entirely on how the table resolves collisions**. There isn't *one* hash table; there are families of them, and each family redraws these flows.
 
-> -   Open addressing
-> -   Separate chaining
+The two great families:
 
-The separate chaining scheme is generally implemented using an array of linked lists to deal with collisions, while open-addressing deals by probing the internal array for empty spots. The implementation of these primary operations depends on the collision resolution scheme used. We will learn about these operations in more detail later in this course when we learn about these collision resolution schemes.
+> -   **Open addressing** — collisions are absorbed by probing other slots in the array.
+> -   **Separate chaining** — collisions are absorbed by storing all colliding keys in a linked list at the same slot.
+
+We'll spend the rest of the section dissecting both. For each, we'll see how it changes insertion, what it means for search probes, what tricky issue deletion creates, and what kind of input data each one shines or stumbles on.
+
+> *What's next* — In the next lesson we'll dive into **separate chaining**: the simpler of the two families, and a deeply intuitive one. We'll meet the linked-list-per-slot trick, build it from scratch, watch it gracefully absorb collision after collision, and then push it until it breaks. Once you've seen separate chaining clearly, open addressing will read like a clever optimization on the same theme.
