@@ -1,2925 +1,1708 @@
-# 2. Array implementation of queues
+# 2. Array Implementation of Queues
+
+## The Hook
+
+A queue needs to enqueue, dequeue, and peek in **O(1)** — and once again the array is the obvious tool. Treat one index as the *front*, another as the *back*, and the whole interface collapses to integer arithmetic and a single array store. Enqueue? Bump back, write `arr[back]`. Dequeue? Read `arr[front]`, bump front. Size, front, back? One field each.
+
+There's a wrinkle this time. A stack only needs one moving index — the top. A queue needs *two*, and **both march forward** as data flows through. Enqueue advances the back; dequeue advances the front. Run a queue long enough and the back hits the end of the array while the *front* is still in the middle, leaving a graveyard of vacated slots at index 0..front−1 that the naïve algorithm cannot reuse. You'd run out of room while the queue is half empty.
+
+The fix is one of the prettiest tricks in introductory data structures: **treat the array as a circle**. When the back hits the last index, the next enqueue wraps around to index 0 and keeps going. The same trick on dequeue. One modulo (`(idx + 1) % capacity`) per operation, and the array's vacated slots are reusable forever. The result is called a **circular** (or *ring*) **buffer**, and it powers everything from kernel I/O ring buffers to Linux `kfifo`, audio pipelines, networking stacks, and Disruptor-style high-frequency-trading queues. Ten lines of code, multibillion-dollar applications.
+
+This lesson builds that circular queue end-to-end in 10 languages, deriving the modulo trick from first principles and showing exactly why every operation is still O(1).
+
+---
 
 ## Table of contents
 
-1. [Structure of an array based queue](#structure-of-an-array-based-queue)
-2. [Cyclic nature of array based queues](#cyclic-nature-of-array-based-queues)
-3. [Implementing the queue class using an array](#implementing-the-queue-class-using-an-array)
+1. [Structure of an array-based queue](#structure-of-an-array-based-queue)
+2. [The cyclic nature of array-based queues](#the-cyclic-nature-of-array-based-queues)
+3. [Implementing the queue class](#implementing-the-queue-class)
 4. [Determining the size of the queue](#determining-the-size-of-the-queue)
 5. [Checking if the queue is empty](#checking-if-the-queue-is-empty)
 6. [Accessing the front of the queue](#accessing-the-front-of-the-queue)
 7. [Accessing the back of the queue](#accessing-the-back-of-the-queue)
-8. [Enqueuing an item in the queue](#enqueuing-an-item-in-the-queue)
+8. [Enqueuing an item into the queue](#enqueuing-an-item-into-the-queue)
 9. [Dequeuing an item from the queue](#dequeuing-an-item-from-the-queue)
-10. [Design a queue using circular array](#design-a-queue-using-circular-array)
+10. [Design a queue using a circular array](#design-a-queue-using-a-circular-array)
 
 ***
 
-# Structure of an array based queue
+# Structure of an array-based queue
 
-A queue is a linear data structure that only supports enqueue and dequeue operations to add and remove data items from the **ends** of the queue. This makes the array the perfect candidate to implement a queue. Most use cases can be solved using a **bounded** queue with a fixed size and cannot grow beyond that. Since we already know the queue size when creating it, we can use arrays to implement it.
+Four fields and a buffer. That's it.
 
-// Diagram: Implementation of a queue using an array
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph CLS["Queue (circular-array-backed)"]
+        direction TB
+        A["arr: fixed-size array of capacity slots"]
+        F["frontIndex: index of the front item (0 when empty, by convention)"]
+        B["backIndex: index of the back item (−1 when empty, by convention)"]
+        S["currentSize: number of items currently in the queue"]
+        C["capacity: max items the queue can hold"]
+    end
+```
+
+<p align="center"><strong>An array-backed queue is just five things — the buffer, two index pointers, the size counter, and the capacity. Everything else (empty, full, enqueue, dequeue, front, back) is computed from these.</strong></p>
 
 ## State information
 
-To implement a queue using an array, we must keep current information about the queue alongside the array that holds all the data items. This information is necessary to ensure all queue operations work as desired. Let us look at all the state information we need to maintain.
-
 ### Front index
 
-The index of the data item in the array that holds the **front** of the queue is the `frontIndex`. The value of the `frontIndex` changes when data items are **dequeued** from the queue. It is important to ensure that the `frontIndex` always store the index of the front of the queue for the proper functioning of all the operations.
+`frontIndex` points at the array slot that currently holds the front of the queue (the oldest item). Convention used throughout this lesson:
 
-// Diagram: It is important to maintain the frontIndex and make sure it has the correct value
+- **Empty** queue ⇒ `frontIndex = 0` (will become valid as soon as the first item is enqueued).
+- **Non-empty** queue ⇒ `frontIndex` ∈ `[0, capacity − 1]`, points at the oldest item.
+
+`frontIndex` only ever advances — every dequeue moves it forward (cyclically). Enqueue never touches it.
 
 ### Back index
 
-The index of the data item in the array that holds the **back** of the queue is the `backIndex`. The value of the `backIndex` changes when data items are **enqueued** into the queue. Just like the `frontIndex`, it is important to ensure that the `backIndex` always stores the index at the back of the queue for the proper functioning of all the operations.
+`backIndex` points at the array slot that currently holds the back of the queue (the newest item). Convention:
 
-// Diagram: It is important to maintain the backIndex and make sure it has the correct value
+- **Empty** queue ⇒ `backIndex = -1` (no item to point at).
+- **Non-empty** queue ⇒ `backIndex` ∈ `[0, capacity − 1]`, points at the newest item.
+
+`backIndex` only ever advances — every enqueue moves it forward (cyclically). Dequeue never touches it.
 
 ### Size
 
-It is important to keep track of the number of data items currently held in the queue. It is important to ensure that this value is always correct and less than the total capacity of the array to prevent attempts to access memory outside the array, which is a frequent cause of program crashes. To always know the current size of the queue, we need to store this information in a `currentSize` variable. Every time data is enqueued or dequeued from the queue, the value of `currentSize` is incremented or decremented by 1.
-
-// Diagram: The size of the queue is important state information that can be derived from front and back index
+The number of items currently in the queue. Why store it as a separate counter and not derive it from the indices? Because — and this is the subtle bit — once the queue wraps around, `backIndex < frontIndex` is *normal*, not a bug, and you cannot tell from the indices alone whether the queue holds 0 items or `capacity` items if `frontIndex == backIndex + 1 (mod capacity)`. A separate counter makes empty/full unambiguous in O(1).
 
 ### Capacity
 
-Since an array has a fixed size, the queue size is **bounded** by the array size when implementing a queue using an array. It's very important to ensure we never exceed this capacity, so we must hold this information about the array's capacity somewhere. We use another variable, `capacity` to hold the size of the array used to implement the queue. 
+The length of the underlying buffer. Fixed at construction. Used to detect overflow (refuse enqueue when `currentSize == capacity`) and to compute the modulo wrap-around.
 
-// Diagram: The capacity of a queue is the size of the array used to implement it
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+block-beta
+  columns 7
+  L["index"]:1 I0["0"]:1 I1["1"]:1 I2["2"]:1 I3["3"]:1 I4["4"]:1 I5["5"]:1
+  V["value"]:1 V0["—"]:1 V1["3"]:1 V2["5"]:1 V3["7"]:1 V4["—"]:1 V5["—"]:1
+  S1["frontIndex = 1"]:3 S2["backIndex = 3"]:3 _:1
+  S3["currentSize = 3, capacity = 6"]:7
+  style V1 fill:#dcfce7,stroke:#22c55e
+  style V3 fill:#fef9c3,stroke:#f59e0b
+```
 
-## Representation in memory
+<p align="center"><strong>Capacity-6 array, three items stored at indices 1, 2, 3 — front at 1, back at 3. Indices 0 and 4–5 are unused but allocated. The next enqueue writes at index 4 and bumps back to 4; the next dequeue returns the value at index 1 and bumps front to 2.</strong></p>
 
-We know that data items in an array reside in contiguous memory, so if we implement a queue as an array, all the data items in the queue will reside next to each other.
-
-// Diagram: Queue implemented using arrays in memory
+> *Predict before reading on — given the state above, what happens after two more enqueues and two more dequeues?*
+>
+> Enqueue: write at 4 (back→4), then write at 5 (back→5). Now `[—, 3, 5, 7, e1, e2]`, front=1, back=5, size=5.
+> Dequeue twice: return arr[1]=3 (front→2), return arr[2]=5 (front→3). Now `[—, —, —, 7, e1, e2]`, front=3, back=5, size=3.
+> Notice that indices 0–2 are now "stranded" — the back will hit index 5 and want to wrap. The next section is exactly about that.
 
 ***
 
-# Cyclic nature of array based queues
+# The cyclic nature of array-based queues
 
-Unlike stacks, data is inserted into and removed from the queue from **two ends**. The front end only removes data items from the queue, and the back end only adds data items to the queue. This helps the queue achieve a **First-in-First-out** **(FIFO)** ordering.
+Here's the problem and the trick that fixes it.
 
-// Diagram: Data in queue is added to and removed from different ends
+## The problem — both ends march forward
 
-## Array implementation
+In an array-backed *stack*, only one index moves (the top), and it bounces up and down between 0 and `capacity − 1`. The array slots are reusable forever; there's never any wasted space.
 
-However, when implementing queues in an array using indexes to represent the front and the back of the queue, any addition to the queue is done at the `backIndex` and any removal is done at the `frontIndex`. Since the size of an array is fixed, every enqueue and dequeue operation moves the front or the back of the queue **forward** in the array that holds them. To understand this better, let us look at an example of a queue(capacity 6) implemented as an array that tries to perform the same operations as in the generic queue above.
+In an array-backed *queue*, **both indices march forward**. Enqueue moves back forward; dequeue moves front forward. Eventually one of them hits the end of the array. Without a fix, you've now run out of room on the back end *even if the front end has plenty of slack*.
 
-// Diagram: Adding and removing data moves the queue forward in the array
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+block-beta
+  columns 7
+  L["index"]:1 I0["0"]:1 I1["1"]:1 I2["2"]:1 I3["3"]:1 I4["4"]:1 I5["5"]:1
+  V["value"]:1 V0["—"]:1 V1["—"]:1 V2["—"]:1 V3["7"]:1 V4["11"]:1 V5["13"]:1
+  N["state"]:1 N1["front=3, back=5, size=3, capacity=6"]:6
+  style V3 fill:#dcfce7,stroke:#22c55e
+  style V5 fill:#fef9c3,stroke:#f59e0b
+```
 
-As we can see from the example, the front and the back of the queue move **forward** in the array that holds them, and eventually, the `backIndex` hits the end of the array. At this point, no more data can be added **after** the `backIndex`.
+<p align="center"><strong>The naïve view — back has hit the last slot, but the front has marched up to 3, leaving indices 0–2 vacated and unused. The queue holds only 3 of 6 capacity, yet a "linear" enqueue would now incorrectly report "full".</strong></p>
 
-However, the queue size is still less than the capacity(6), and there is room for more data. There are empty spaces before the `frontIndex` in the queue created by the data items that were dequeued from the queue. As we can see from the example, the front and the back of the queue always move in the array that holds them.
+## The fix — wrap around
 
-// Diagram: Empty spaces at the start of the array
+When the back hits the last index, the *next* enqueue should write at index 0 and treat it as the new back. The array becomes a **circle**:
 
-## Cyclic movement
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A0["[0]"] --> A1["[1]"] --> A2["[2]"] --> A3["[3]"] --> A4["[4]"] --> A5["[5]"] -->|"wrap"| A0
+```
 
-To get over this problem, the moment the `backIndex` reaches the end of the array, the next data item is added to the **start** of the array if it is empty. This becomes the new `backIndex` for the queue in the array, and any subsequent data items are added **after** it.
+<p align="center"><strong>Treat the array as a ring — index <code>capacity − 1</code>'s "next" is index <code>0</code>, not "out of bounds". A single modulo expression encodes this: <code>nextIndex = (currentIndex + 1) % capacity</code>.</strong></p>
 
-// Diagram: The start of the array becomes the new back index of the queue
+Now the same enqueue that previously failed succeeds — write at index 0, and back becomes 0:
 
-This makes the queue array implementation cyclic, going around in circles from start to end and then back to the start of the array.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+block-beta
+  columns 7
+  L["index"]:1 I0["0"]:1 I1["1"]:1 I2["2"]:1 I3["3"]:1 I4["4"]:1 I5["5"]:1
+  V["value"]:1 V0["17"]:1 V1["—"]:1 V2["—"]:1 V3["7"]:1 V4["11"]:1 V5["13"]:1
+  N["state"]:1 N1["front=3, back=0, size=4 — back has wrapped"]:6
+  style V3 fill:#dcfce7,stroke:#22c55e
+  style V0 fill:#fef9c3,stroke:#f59e0b
+```
+
+<p align="center"><strong>After enqueueing 17 — back wrapped from 5 to 0 via <code>(5 + 1) % 6 = 0</code>. The queue's <em>logical</em> contents are now <code>[7, 11, 13, 17]</code> in order, even though <em>physically</em> they're stored as <code>[17, —, —, 7, 11, 13]</code>. The wrap is invisible to the caller.</strong></p>
+
+The same wrap applies to dequeue. The expression `(index + 1) % capacity` advances `index` by one, *cycling back to 0* when it would otherwise step past the end. Two ring-buffer pointers, one cheap modulo, and the queue is now a fully circular structure that uses every slot.
+
+> *Predict before reading on — once the queue wraps, what does "queue is full" actually look like? <code>backIndex == capacity − 1</code> can't be the right check anymore.*
+>
+> Right — `backIndex` could be anywhere on the ring. The clean test is `currentSize == capacity` (which is exactly why we maintain `currentSize` separately from the indices). Without that counter, distinguishing *empty* (back just behind front, nothing in between) from *full* (back just behind front, the gap is full) on a circular buffer requires either reserving one slot as a sentinel or storing a flag. The counter sidesteps that whole genus of bugs.
+
+## Memory layout
+
+Conceptually circular, physically still a flat contiguous array. The `% capacity` operator is the only thing that distinguishes a ring buffer from a normal array — there's no special hardware, no clever pointer arithmetic. Just one modulo per operation.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph MEM["Memory layout — capacity 6, items stored at indices 3,4,5,0"]
+        direction LR
+        M0["@1000<br/>17"] --- M1["@1004<br/>—"] --- M2["@1008<br/>—"] --- M3["@1012<br/>7"] --- M4["@1016<br/>11"] --- M5["@1020<br/>13"]
+    end
+    NOTE["Logical order: 7 → 11 → 13 → 17.<br/>Physical order: 17, —, —, 7, 11, 13.<br/>Same contiguous bytes, modulo arithmetic does the rest."] -.-> M3
+    style M3 fill:#dcfce7,stroke:#22c55e
+    style M0 fill:#fef9c3,stroke:#f59e0b
+```
+
+<p align="center"><strong>A circular queue in actual memory — six 4-byte int slots laid out linearly. The "wrap" is a property of the access pattern, not the storage. The CPU still gets cache locality on each operation; the modulo costs a few nanoseconds.</strong></p>
 
 ***
 
-# Implementing the queue class using an array
+# Implementing the queue class
 
-As we learned earlier, when implementing a queue using an array, we always need to keep track of some state information, which is necessary to perform operations on a queue. The state information, the array, and all the operations performed on a queue can be **encapsulated in a class**. This is exactly what classes are designed to do.
+We'll build the class incrementally — first the skeleton (constructor + stub methods), then fill in `size`, `empty`, `front`, `back`, `enqueue`, `dequeue` in order.
 
-// Diagram: Representation of array implementation of a queue encapsulated in a class
-
-## Queue class
-
-The queue class can be implemented by defining a class where all the data members are private to the class, and the operations are exposed to users as functions that manipulate the data members. We also create a parameterized constructor for the queue class to initialize it with a fixed capacity, which we store in the member variable `capacity` and dynamically create an array of the given capacity.
-
-C++
-
-```cpp
-using namespace std;
-
-class Queue {
-public:
-
-    // Pointer to the dynamic array representing the queue
-    int *arr;
-
-    // Maximum capacity of the queue
-    int capacity;
-
-    // Index of the front element in the queue
-    int frontIndex;
-
-    // Index of the back element in the queue
-    int backIndex;
-
-    // Current number of elements in the queue
-    int currentSize;
-
-    Queue(int capacity) {
-        this->capacity = capacity;
-
-        // Allocating memory for the queue
-        this->arr = new int[capacity];
-
-        // Initializing front index to 0
-        this->frontIndex = 0;
-
-        // Initializing back index to -1
-        this->backIndex = -1;
-
-        // Initializing current size to 0
-        this->currentSize = 0;
-    }
-
-// Diagram: int size() {}
-
-// Diagram: bool empty() {}
-
-// Diagram: int front() {}
-
-// Diagram: int back() {}
-
-// Diagram: bool enqueue(int val) {}
-
-    int dequeue() {}
-};
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph CLS["Queue class"]
+        direction TB
+        subgraph PRIV["private internals"]
+            A["arr"]
+            F["frontIndex"]
+            B["backIndex"]
+            S["currentSize"]
+            C["capacity"]
+        end
+        subgraph PUB["public API"]
+            SZ["size()"]
+            EM["empty()"]
+            FR["front()"]
+            BK["back()"]
+            ENQ["enqueue(val) → bool"]
+            DEQ["dequeue() → val"]
+        end
+        PUB -.-> PRIV
+    end
 ```
 
-Java
+<p align="center"><strong>The class as we'll build it — five private fields, six public methods. The two index fields plus the modulo arithmetic are the only "interesting" code in the entire implementation.</strong></p>
 
-```java
-class Queue {
+## Queue class — skeleton
 
-    // Pointer to the dynamic array representing the queue
-    public int[] arr;
+<div class="lang-tabs">
 
-    // Maximum capacity of the queue
-    public int capacity;
+```python,editable
+class Queue:
+    def __init__(self, capacity: int):
+        self.capacity     = capacity
+        self.arr          = [0] * capacity
+        self.front_index  = 0          # 0 when empty, by convention
+        self.back_index   = -1         # -1 when empty
+        self.current_size = 0
 
-    // Index of the front element in the queue
-    public int frontIndex;
+    def size(self):       pass
+    def empty(self):      pass
+    def front(self):      pass
+    def back(self):       pass
+    def enqueue(self, v): pass
+    def dequeue(self):    pass
 
-    // Index of the back element in the queue
-    public int backIndex;
+q = Queue(4)
+print("created queue with capacity 4")
+```
 
-    // Current number of elements in the queue
-    public int currentSize;
-
-    public Queue(int capacity) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new int[capacity];
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
+```java,editable
+public class Main {
+    static class Queue {
+        private final int[] arr;
+        private final int   capacity;
+        private int         frontIndex   = 0;
+        private int         backIndex    = -1;
+        private int         currentSize  = 0;
+        Queue(int capacity) {
+            this.capacity = capacity;
+            this.arr      = new int[capacity];
+        }
+        int     size()             { return 0; }
+        boolean empty()            { return true; }
+        int     front()            { return -1; }
+        int     back()             { return -1; }
+        boolean enqueue(int val)   { return false; }
+        int     dequeue()          { return -1; }
     }
-
-// Diagram: public int size() {}
-
-// Diagram: public boolean empty() {}
-
-// Diagram: public int front() {}
-
-// Diagram: public int back() {}
-
-// Diagram: public boolean enqueue(int val) {}
-
-    public int dequeue() {}
+    public static void main(String[] args) {
+        Queue q = new Queue(4);
+        System.out.println("created queue with capacity 4");
+    }
 }
 ```
 
-Typescript
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
-```typescript
-export class Queue {
+typedef struct {
+    int *arr;
+    int  capacity, frontIndex, backIndex, currentSize;
+} Queue;
 
-    // Pointer to the dynamic array representing the queue
-    arr: number[];
+Queue* queue_create(int capacity) {
+    Queue *q = malloc(sizeof(Queue));
+    q->arr         = malloc(sizeof(int) * capacity);
+    q->capacity    = capacity;
+    q->frontIndex  = 0;
+    q->backIndex   = -1;
+    q->currentSize = 0;
+    return q;
+}
 
-    // Maximum capacity of the queue
-    capacity: number;
+int  queue_size   (Queue *q)              { return 0; }
+bool queue_empty  (Queue *q)              { return true; }
+int  queue_front  (Queue *q)              { return -1; }
+int  queue_back   (Queue *q)              { return -1; }
+bool queue_enqueue(Queue *q, int val)     { return false; }
+int  queue_dequeue(Queue *q)              { return -1; }
 
-    // Index of the front element in the queue
-    frontIndex: number;
+int main() {
+    Queue *q = queue_create(4);
+    printf("created queue with capacity %d\n", q->capacity);
+    free(q->arr); free(q);
+}
+```
 
-    // Index of the back element in the queue
-    backIndex: number;
+```cpp,editable
+#include <iostream>
+#include <vector>
 
-    // Current number of elements in the queue
-    currentSize: number;
+class Queue {
+    std::vector<int> arr;
+    int              frontIndex  = 0;
+    int              backIndex   = -1;
+    int              currentSize = 0;
+    int              capacity;
+public:
+    Queue(int cap) : arr(cap), capacity(cap) {}
 
+    int  size()              { return 0; }
+    bool empty()             { return true; }
+    int  front()             { return -1; }
+    int  back()              { return -1; }
+    bool enqueue(int val)    { return false; }
+    int  dequeue()           { return -1; }
+};
+
+int main() {
+    Queue q(4);
+    std::cout << "created queue with capacity 4\n";
+}
+```
+
+```scala,editable
+class Queue(val capacity: Int) {
+  protected val arr        = new Array[Int](capacity)
+  protected var frontIdx   = 0
+  protected var backIdx    = -1
+  protected var currSize   = 0
+
+  def size:    Int     = 0
+  def empty:   Boolean = true
+  def front:   Int     = -1
+  def back:    Int     = -1
+  def enqueue(v: Int): Boolean = false
+  def dequeue: Int     = -1
+}
+
+object Main extends App {
+  val q = new Queue(4)
+  println("created queue with capacity 4")
+}
+```
+
+```javascript,editable
+class Queue {
+    constructor(capacity) {
+        this.capacity     = capacity;
+        this.arr          = new Array(capacity).fill(0);
+        this.frontIndex   = 0;
+        this.backIndex    = -1;
+        this.currentSize  = 0;
+    }
+    size()        { return 0; }
+    empty()       { return true; }
+    front()       { return -1; }
+    back()        { return -1; }
+    enqueue(val)  { return false; }
+    dequeue()     { return -1; }
+}
+
+const q = new Queue(4);
+console.log("created queue with capacity 4");
+```
+
+```typescript,editable
+class Queue {
+    private capacity:    number;
+    private arr:         number[];
+    private frontIndex   = 0;
+    private backIndex    = -1;
+    private currentSize  = 0;
     constructor(capacity: number) {
         this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new Array<number>(capacity);
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
+        this.arr      = new Array(capacity).fill(0);
     }
+    size():       number  { return 0; }
+    empty():      boolean { return true; }
+    front():      number  { return -1; }
+    back():       number  { return -1; }
+    enqueue(v: number): boolean { return false; }
+    dequeue():    number  { return -1; }
+}
 
-// Diagram: size(): number {}
+const q = new Queue(4);
+console.log("created queue with capacity 4");
+```
 
-// Diagram: empty(): boolean {}
+```go,editable
+package main
+import "fmt"
 
-// Diagram: front(): number {}
+type Queue struct {
+    arr                                       []int
+    capacity, frontIndex, backIndex, currSize int
+}
 
-// Diagram: back(): number {}
+func NewQueue(c int) *Queue {
+    return &Queue{arr: make([]int, c), capacity: c, frontIndex: 0, backIndex: -1, currSize: 0}
+}
+func (q *Queue) Size()    int  { return 0 }
+func (q *Queue) Empty()   bool { return true }
+func (q *Queue) Front()   int  { return -1 }
+func (q *Queue) Back()    int  { return -1 }
+func (q *Queue) Enqueue(v int) bool { return false }
+func (q *Queue) Dequeue() int  { return -1 }
 
-// Diagram: enqueue(val: number): boolean {}
-
-    dequeue(): number {}
+func main() {
+    q := NewQueue(4)
+    fmt.Println("created queue with capacity", q.capacity)
 }
 ```
 
-Javascript
+```kotlin,editable
+class Queue(private val capacity: Int) {
+    private val arr         = IntArray(capacity)
+    private var frontIndex  = 0
+    private var backIndex   = -1
+    private var currentSize = 0
 
-```javascript
-export class Queue {
+    fun size():    Int     = 0
+    fun empty():   Boolean = true
+    fun front():   Int     = -1
+    fun back():    Int     = -1
+    fun enqueue(v: Int): Boolean = false
+    fun dequeue(): Int     = -1
+}
 
-    // Pointer to the dynamic array representing the queue
-    arr;
-
-    // Maximum capacity of the queue
-    capacity;
-
-    // Index of the front element in the queue
-    frontIndex;
-
-    // Index of the back element in the queue
-    backIndex;
-
-    // Current number of elements in the queue
-    currentSize;
-
-    constructor(capacity) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new Array(capacity);
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-    size() {}
-
-    empty() {}
-
-    front() {}
-
-    back() {}
-
-// Diagram: enqueue(val) {}
-
-    dequeue() {}
+fun main() {
+    val q = Queue(4)
+    println("created queue with capacity 4")
 }
 ```
 
-Python
+```rust,editable
+pub struct Queue {
+    arr:          Vec<i32>,
+    capacity:     usize,
+    front_index:  usize,
+    back_index:   i32,
+    current_size: usize,
+}
 
-```python
-from typing import List
-
-class Queue:
-    def __init__(self, capacity):
-
-        # Pointer to the dynamic array representing the queue
-        self.arr: List[int] = [None] * capacity
-
-        # Maximum capacity of the queue
-        self.capacity: int = capacity
-
-        # Index of the front element in the queue
-        self.front_index: int = 0
-
-        # Index of the back element in the queue
-        self.back_index: int = -1
-
-        # Current number of elements in the queue
-        self.current_size: int = 0
-
-    def size(self):
-        pass
-
-    def empty(self):
-        pass
-
-    def front(self):
-        pass
-
-    def back(self):
-        pass
-
-    def enqueue(self, val):
-        pass
-
-    def dequeue(self):
-        pass
-```
-
-## Using the queue class
-
-The queue class abstracts away the implementation details in a class. Anyone who wants to use the queue data structure can instantiate an object of the queue class we defined earlier and operate upon it by calling the exposed public functions in the class. 
-
-C++
-
-```cpp
-using namespace std;
-
-class Queue {
-public:
-
-    // Pointer to the dynamic array representing the queue
-    int *arr;
-
-    // Maximum capacity of the queue
-    int capacity;
-
-    // Index of the front element in the queue
-    int frontIndex;
-
-    // Index of the back element in the queue
-    int backIndex;
-
-    // Current number of elements in the queue
-    int currentSize;
-
-    Queue(int capacity) {
-        this->capacity = capacity;
-
-        // Allocating memory for the queue
-        this->arr = new int[capacity];
-
-        // Initializing front index to 0
-        this->frontIndex = 0;
-
-        // Initializing back index to -1
-        this->backIndex = -1;
-
-        // Initializing current size to 0
-        this->currentSize = 0;
+impl Queue {
+    pub fn new(capacity: usize) -> Self {
+        Queue { arr: vec![0; capacity], capacity, front_index: 0, back_index: -1, current_size: 0 }
     }
+    pub fn size(&self)        -> usize { 0 }
+    pub fn empty(&self)       -> bool  { true }
+    pub fn front(&self)       -> i32   { -1 }
+    pub fn back(&self)        -> i32   { -1 }
+    pub fn enqueue(&mut self, _v: i32) -> bool { false }
+    pub fn dequeue(&mut self) -> i32   { -1 }
+}
 
-// Diagram: int size() {}
-
-// Diagram: bool empty() {}
-
-// Diagram: int front() {}
-
-// Diagram: int back() {}
-
-// Diagram: bool enqueue(int val) {}
-
-    int dequeue() {}
-};
-```
-
-Java
-
-```java
-class Queue {
-
-    // Pointer to the dynamic array representing the queue
-    public int[] arr;
-
-    // Maximum capacity of the queue
-    public int capacity;
-
-    // Index of the front element in the queue
-    public int frontIndex;
-
-    // Index of the back element in the queue
-    public int backIndex;
-
-    // Current number of elements in the queue
-    public int currentSize;
-
-    public Queue(int capacity) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new int[capacity];
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-// Diagram: public int size() {}
-
-// Diagram: public boolean empty() {}
-
-// Diagram: public int front() {}
-
-// Diagram: public int back() {}
-
-// Diagram: public boolean enqueue(int val) {}
-
-    public int dequeue() {}
+fn main() {
+    let q = Queue::new(4);
+    println!("created queue with capacity {}", q.capacity);
 }
 ```
 
-Typescript
+</div>
 
-```typescript
-export class Queue {
-
-    // Pointer to the dynamic array representing the queue
-    arr: number[];
-
-    // Maximum capacity of the queue
-    capacity: number;
-
-    // Index of the front element in the queue
-    frontIndex: number;
-
-    // Index of the back element in the queue
-    backIndex: number;
-
-    // Current number of elements in the queue
-    currentSize: number;
-
-    constructor(capacity: number) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new Array<number>(capacity);
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-// Diagram: size(): number {}
-
-// Diagram: empty(): boolean {}
-
-// Diagram: front(): number {}
-
-// Diagram: back(): number {}
-
-// Diagram: enqueue(val: number): boolean {}
-
-    dequeue(): number {}
-}
-```
-
-Javascript
-
-```javascript
-export class Queue {
-
-    // Pointer to the dynamic array representing the queue
-    arr;
-
-    // Maximum capacity of the queue
-    capacity;
-
-    // Index of the front element in the queue
-    frontIndex;
-
-    // Index of the back element in the queue
-    backIndex;
-
-    // Current number of elements in the queue
-    currentSize;
-
-    constructor(capacity) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new Array(capacity);
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-    size() {}
-
-    empty() {}
-
-    front() {}
-
-    back() {}
-
-// Diagram: enqueue(val) {}
-
-    dequeue() {}
-}
-```
-
-Python
-
-```python
-from typing import List
-
-class Queue:
-    def __init__(self, capacity):
-
-        # Pointer to the dynamic array representing the queue
-        self.arr: List[int] = [None] * capacity
-
-        # Maximum capacity of the queue
-        self.capacity: int = capacity
-
-        # Index of the front element in the queue
-        self.front_index: int = 0
-
-        # Index of the back element in the queue
-        self.back_index: int = -1
-
-        # Current number of elements in the queue
-        self.current_size: int = 0
-
-    def size(self):
-        pass
-
-    def empty(self):
-        pass
-
-    def front(self):
-        pass
-
-    def back(self):
-        pass
-
-    def enqueue(self, val):
-        pass
-
-    def dequeue(self):
-        pass
-```
-
-Let's examine what happens when the code is executed to understand better how encapsulating all the data and state information needed to implement a queue, along with the array and all the operations in a queue class, is useful.
-
-// Diagram: Execution of code using an instance (object) of the queue class
-
-Now that we know what the array implementation of a queue looks like and how it functions, we will learn more about the implementation of each function in the coming lessons.
+The skeleton is just bookkeeping — five fields, six stubs. The next six sections fill in one stub at a time.
 
 ***
 
 # Determining the size of the queue
 
-The size operation tells the caller about the current size of the queue. The operation becomes quite simple since we store the `currentSize` variable in the queue class, tracking the current queue size. We need to return this value.
-
-// Diagram: Size of the queue is stored in a member variable of the queue class
+The size operation reports the current number of items in the queue. We've already done all the hard work in the constructor and (preview) in `enqueue`/`dequeue`: those operations maintain `currentSize` as an invariant. The size method is then a one-line read.
 
 > **Algorithm**
 >
-> -   **Step 1:** Return the value of \`currentSize\`.
+> -   **Step 1:** Return the value of `currentSize`.
 
 ## Implementation
 
-We combine all the cases and write all of them in conditional blocks to implement the size operation.
+<div class="lang-tabs">
 
-C++
-
-```cpp
-using namespace std;
-
-class Queue {
-public:
-
-    // Pointer to the dynamic array representing the queue
-    int *arr;
-
-    // Maximum capacity of the queue
-    int capacity;
-
-    // Index of the front element in the queue
-    int frontIndex;
-
-    // Index of the back element in the queue
-    int backIndex;
-
-    // Current number of elements in the queue
-    int currentSize;
-
-    Queue(int capacity) {
-        this->capacity = capacity;
-
-        // Allocating memory for the queue
-        this->arr = new int[capacity];
-
-        // Initializing front index to 0
-        this->frontIndex = 0;
-
-        // Initializing back index to -1
-        this->backIndex = -1;
-
-        // Initializing current size to 0
-        this->currentSize = 0;
-    }
-
-// Diagram: int size() {
-
-        // Returns the current size of the queue
-        return currentSize;
-    }
-};
+```python,editable
+def size(self):
+    return self.current_size
 ```
 
-Java
-
-```java
-class Queue {
-
-    // Pointer to the dynamic array representing the queue
-    public int[] arr;
-
-    // Maximum capacity of the queue
-    public int capacity;
-
-    // Index of the front element in the queue
-    public int frontIndex;
-
-    // Index of the back element in the queue
-    public int backIndex;
-
-    // Current number of elements in the queue
-    public int currentSize;
-
-    public Queue(int capacity) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new int[capacity];
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-// Diagram: public int size() {
-
-        // Returns the current size of the queue
-        return currentSize;
-    }
+```java,editable
+int size() { return currentSize; }
 ```
 
-Typescript
-
-```typescript
-export class Queue {
-
-    // Pointer to the dynamic array representing the queue
-    arr: number[];
-
-    // Maximum capacity of the queue
-    capacity: number;
-
-    // Index of the front element in the queue
-    frontIndex: number;
-
-    // Index of the back element in the queue
-    backIndex: number;
-
-    // Current number of elements in the queue
-    currentSize: number;
-
-    constructor(capacity: number) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new Array<number>(capacity);
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-// Diagram: size(): number {
-
-        // Returns the current size of the queue
-        return this.currentSize;
-    }
+```c,editable
+int queue_size(Queue *q) { return q->currentSize; }
 ```
 
-Javascript
-
-```javascript
-export class Queue {
-
-    // Pointer to the dynamic array representing the queue
-    arr;
-
-    // Maximum capacity of the queue
-    capacity;
-
-    // Index of the front element in the queue
-    frontIndex;
-
-    // Index of the back element in the queue
-    backIndex;
-
-    // Current number of elements in the queue
-    currentSize;
-
-    constructor(capacity) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new Array(capacity);
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-    size() {
-
-        // Returns the current size of the queue
-        return this.currentSize;
-    }
+```cpp,editable
+int size() { return currentSize; }
 ```
 
-Python
-
-```python
-using namespace std;
+```scala,editable
+def size: Int = currSize
 ```
+
+```javascript,editable
+size() { return this.currentSize; }
+```
+
+```typescript,editable
+size(): number { return this.currentSize; }
+```
+
+```go,editable
+func (q *Queue) Size() int { return q.currSize }
+```
+
+```kotlin,editable
+fun size(): Int = currentSize
+```
+
+```rust,editable
+pub fn size(&self) -> usize { self.current_size }
+```
+
+</div>
 
 ## Complexity Analysis
 
-The implementation is a quite simple one-line statement returning the value of the `currentSize` variable.
+A single field read.
 
 > **Best Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> - Time:  **O(1)**
+> - Space: **O(1)**
 >
 > **Worst Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> - Time:  **O(1)**
+> - Space: **O(1)**
 
 ***
 
 # Checking if the queue is empty
 
-As the name suggests, this operation tells the caller if the queue is empty or if some items are already in it. It will return `true` if the queue is empty and `false` otherwise. We can check if the queue size equals 0 to implement this operation.
-
-// Diagram: Operation to check if the queue is empty
-
-## Algorithm
-
-The empty operation in a queue class implemented using an array can be summarized as the following algorithm.
+`empty()` returns `true` when there are no items in the queue. The cleanest definition is *"size is zero"* — and since `size` is already O(1), so is `empty`.
 
 > **Algorithm**
 >
-> -   **Step 1:** Return \`true\` is the size of the queue is equal to \`0\`, otherwise, return \`false\`.
+> -   **Step 1:** Return `true` if `currentSize == 0`, else `false`.
 
 ## Implementation
 
-// Diagram: The implementation is quite simple one line statement returning true if size() == 0, false otherwise
+<div class="lang-tabs">
 
-C++
-
-```cpp
-using namespace std;
-
-class Queue {
-public:
-
-    // Pointer to the dynamic array representing the queue
-    int *arr;
-
-    // Maximum capacity of the queue
-    int capacity;
-
-    // Index of the front element in the queue
-    int frontIndex;
-
-    // Index of the back element in the queue
-    int backIndex;
-
-    // Current number of elements in the queue
-    int currentSize;
-
-    Queue(int capacity) {
-        this->capacity = capacity;
-
-        // Allocating memory for the queue
-        this->arr = new int[capacity];
-
-        // Initializing front index to 0
-        this->frontIndex = 0;
-
-        // Initializing back index to -1
-        this->backIndex = -1;
-
-        // Initializing current size to 0
-        this->currentSize = 0;
-    }
-
-// Diagram: int size() {
-
-        // Returns the current size of the queue
-        return currentSize;
-    }
-
-// Diagram: bool empty() {
-
-        // Returns true if the queue is empty, false otherwise
-        return size() == 0;
-    }
-};
+```python,editable
+def empty(self):
+    return self.size() == 0
 ```
 
-Java
-
-```java
-class Queue {
-
-    // Pointer to the dynamic array representing the queue
-    public int[] arr;
-
-    // Maximum capacity of the queue
-    public int capacity;
-
-    // Index of the front element in the queue
-    public int frontIndex;
-
-    // Index of the back element in the queue
-    public int backIndex;
-
-    // Current number of elements in the queue
-    public int currentSize;
-
-    public Queue(int capacity) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new int[capacity];
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-// Diagram: public int size() {
-
-        // Returns the current size of the queue
-        return currentSize;
-    }
-
-// Diagram: public boolean empty() {
-
-        // Returns true if the queue is empty, false otherwise
-        return size() == 0;
-    }
+```java,editable
+boolean empty() { return size() == 0; }
 ```
 
-Typescript
-
-```typescript
-export class Queue {
-
-    // Pointer to the dynamic array representing the queue
-    arr: number[];
-
-    // Maximum capacity of the queue
-    capacity: number;
-
-    // Index of the front element in the queue
-    frontIndex: number;
-
-    // Index of the back element in the queue
-    backIndex: number;
-
-    // Current number of elements in the queue
-    currentSize: number;
-
-    constructor(capacity: number) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new Array<number>(capacity);
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-// Diagram: size(): number {
-
-        // Returns the current size of the queue
-        return this.currentSize;
-    }
-
-// Diagram: empty(): boolean {
-
-        // Returns true if the queue is empty, false otherwise
-        return this.size() === 0;
-    }
+```c,editable
+bool queue_empty(Queue *q) { return queue_size(q) == 0; }
 ```
 
-Javascript
-
-```javascript
-export class Queue {
-
-    // Pointer to the dynamic array representing the queue
-    arr;
-
-    // Maximum capacity of the queue
-    capacity;
-
-    // Index of the front element in the queue
-    frontIndex;
-
-    // Index of the back element in the queue
-    backIndex;
-
-    // Current number of elements in the queue
-    currentSize;
-
-    constructor(capacity) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new Array(capacity);
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-    size() {
-
-        // Returns the current size of the queue
-        return this.currentSize;
-    }
-
-    empty() {
-
-        // Returns true if the queue is empty, false otherwise
-        return this.size() === 0;
-    }
+```cpp,editable
+bool empty() { return size() == 0; }
 ```
 
-Python
-
-```python
-using namespace std;
+```scala,editable
+def empty: Boolean = size == 0
 ```
+
+```javascript,editable
+empty() { return this.size() === 0; }
+```
+
+```typescript,editable
+empty(): boolean { return this.size() === 0; }
+```
+
+```go,editable
+func (q *Queue) Empty() bool { return q.Size() == 0 }
+```
+
+```kotlin,editable
+fun empty(): Boolean = size() == 0
+```
+
+```rust,editable
+pub fn empty(&self) -> bool { self.size() == 0 }
+```
+
+</div>
 
 ## Complexity Analysis
 
-The function internally calls the `size()` function and returns a value based on the result, so the complexity is the same as that of the `size()` function i.e **O(1)**.
+Calls `size`, returns a comparison.
 
 > **Best Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> - Time:  **O(1)**
+> - Space: **O(1)**
 >
 > **Worst Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> - Time:  **O(1)**
+> - Space: **O(1)**
 
 ***
 
 # Accessing the front of the queue
 
-This front operation returns the value at the **front** of the queue. Since we always store the index of the data item at the front of the queue in the array implementation, we need to return the value at that index to the user. We have two cases to consider here.
+`front()` returns the value of the oldest item in the queue without removing it. Two cases:
 
-## 1\. Queue is empty
+1. **Queue is empty** → return `-1` as a sentinel (production code would throw; we return `-1` for simplicity, matching the lesson's convention).
+2. **Queue is non-empty** → return `arr[frontIndex]`.
 
-We can return `-1` to indicate that there are no items in the queue. Ideally, we should be throwing an error, but for the sake of simplicity here, we return `-1`
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+block-beta
+  columns 7
+  L["index"]:1 I0["0"]:1 I1["1"]:1 I2["2"]:1 I3["3"]:1 I4["4"]:1 I5["5"]:1
+  V["value"]:1 V0["—"]:1 V1["3"]:1 V2["5"]:1 V3["7"]:1 V4["—"]:1 V5["—"]:1
+  R["front() returns arr[frontIndex] = arr[1] = 3"]:7
+  style V1 fill:#dcfce7,stroke:#22c55e
+```
 
-// Diagram: Front function when queue is empty
+<p align="center"><strong>front() — read the slot at <code>frontIndex</code>. The queue is unchanged after the call.</strong></p>
 
 > **Algorithm**
 >
-> -   **Step 1:** If the queue is empty, return \`-1\` to indicate that there is no front element.
-
-## 2\. Queue is not empty
-
-If the queue is not empty, we return the value at the `frontIndex`.
-
-// Diagram: Front operation when queue is not empty
-
-> **Algorithm**
->
-> -   **Step 1:** If the queue is not empty, return the value stored at \`frontIndex\` of the internal array.
+> -   **Step 1:** If the queue is empty, return `-1`.
+> -   **Step 2:** Otherwise return `arr[frontIndex]`.
 
 ## Implementation
 
-The implementation is quite simple. We write all the cases in conditional blocks to implement the **front** operation.
+<div class="lang-tabs">
 
-C++
-
-```cpp
-using namespace std;
-
-class Queue {
-public:
-
-    // Pointer to the dynamic array representing the queue
-    int *arr;
-
-    // Maximum capacity of the queue
-    int capacity;
-
-    // Index of the front element in the queue
-    int frontIndex;
-
-    // Index of the back element in the queue
-    int backIndex;
-
-    // Current number of elements in the queue
-    int currentSize;
-
-    Queue(int capacity) {
-        this->capacity = capacity;
-
-        // Allocating memory for the queue
-        this->arr = new int[capacity];
-
-        // Initializing front index to 0
-        this->frontIndex = 0;
-
-        // Initializing back index to -1
-        this->backIndex = -1;
-
-        // Initializing current size to 0
-        this->currentSize = 0;
-    }
-
-// Diagram: int size() {
-
-        // Returns the current size of the queue
-        return currentSize;
-    }
-
-// Diagram: bool empty() {
-
-        // Returns true if the queue is empty, false otherwise
-        return size() == 0;
-    }
-
-    int front() {
-        if (empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the front of the queue
-        return arr[frontIndex];
-    }
-};
+```python,editable
+def front(self):
+    if self.empty(): return -1
+    return self.arr[self.front_index]
 ```
 
-Java
-
-```java
-class Queue {
-
-    // Pointer to the dynamic array representing the queue
-    public int[] arr;
-
-    // Maximum capacity of the queue
-    public int capacity;
-
-    // Index of the front element in the queue
-    public int frontIndex;
-
-    // Index of the back element in the queue
-    public int backIndex;
-
-    // Current number of elements in the queue
-    public int currentSize;
-
-    public Queue(int capacity) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new int[capacity];
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-// Diagram: public int size() {
-
-        // Returns the current size of the queue
-        return currentSize;
-    }
-
-// Diagram: public boolean empty() {
-
-        // Returns true if the queue is empty, false otherwise
-        return size() == 0;
-    }
-
-    public int front() {
-        if (empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the front of the queue
-        return arr[frontIndex];
-    }
+```java,editable
+int front() { return empty() ? -1 : arr[frontIndex]; }
 ```
 
-Typescript
-
-```typescript
-using namespace std;
+```c,editable
+int queue_front(Queue *q) {
+    return queue_empty(q) ? -1 : q->arr[q->frontIndex];
+}
 ```
 
-Javascript
-
-```javascript
-export class Queue {
-
-    // Pointer to the dynamic array representing the queue
-    arr;
-
-    // Maximum capacity of the queue
-    capacity;
-
-    // Index of the front element in the queue
-    frontIndex;
-
-    // Index of the back element in the queue
-    backIndex;
-
-    // Current number of elements in the queue
-    currentSize;
-
-    constructor(capacity) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new Array(capacity);
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-    size() {
-
-        // Returns the current size of the queue
-        return this.currentSize;
-    }
-
-    empty() {
-
-        // Returns true if the queue is empty, false otherwise
-        return this.size() === 0;
-    }
-
-    front() {
-        if (this.empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the front of the queue
-        return this.arr[this.frontIndex];
-    }
+```cpp,editable
+int front() { return empty() ? -1 : arr[frontIndex]; }
 ```
 
-Python
-
-```python
-from typing import List
-
-class Queue:
-    def __init__(self, capacity):
-
-        # Pointer to the dynamic array representing the queue
-        self.arr: List[int] = [None] * capacity
-
-        # Maximum capacity of the queue
-        self.capacity: int = capacity
-
-        # Index of the front element in the queue
-        self.front_index: int = 0
-
-        # Index of the back element in the queue
-        self.back_index: int = -1
-
-        # Current number of elements in the queue
-        self.current_size: int = 0
-
-    def size(self):
-
-        # Returns the current size of the queue
-        return self.current_size
-
-    def empty(self):
-
-        # Returns True if the queue is empty, False otherwise
-        return self.size() == 0
-
-    def front(self):
-        if self.empty():
-
-            # Returns -1 if the queue is empty
-            return -1
-
-        # Returns the element at the front of the queue
-        return self.arr[self.front_index]
+```scala,editable
+def front: Int = if (empty) -1 else arr(frontIdx)
 ```
+
+```javascript,editable
+front() { return this.empty() ? -1 : this.arr[this.frontIndex]; }
+```
+
+```typescript,editable
+front(): number { return this.empty() ? -1 : this.arr[this.frontIndex]; }
+```
+
+```go,editable
+func (q *Queue) Front() int {
+    if q.Empty() { return -1 }
+    return q.arr[q.frontIndex]
+}
+```
+
+```kotlin,editable
+fun front(): Int = if (empty()) -1 else arr[frontIndex]
+```
+
+```rust,editable
+pub fn front(&self) -> i32 {
+    if self.empty() { -1 } else { self.arr[self.front_index] }
+}
+```
+
+</div>
 
 ## Complexity Analysis
 
-We call the `empty()` function, and based on that, we return a value. If the queue is not empty, we return the value at `frontIndex` the internal array, so the complexity will be the same as that of the `empty()` function i.e. **O(1)**.
+A predicate plus an array indexing — both O(1).
 
 > **Best Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> - Time:  **O(1)**
+> - Space: **O(1)**
 >
 > **Worst Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> - Time:  **O(1)**
+> - Space: **O(1)**
 
 ***
 
 # Accessing the back of the queue
 
-This **back** operation returns the value at the **back** of the queue. Since we always store the index of the data item at the back of the queue in the array implementation, we need to return the value at that index to the user. We have two cases to consider here.
+`back()` returns the value of the newest item in the queue without removing it. Same two cases — empty (`-1`) or read `arr[backIndex]`.
 
-## 1\. Queue is empty
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+block-beta
+  columns 7
+  L["index"]:1 I0["0"]:1 I1["1"]:1 I2["2"]:1 I3["3"]:1 I4["4"]:1 I5["5"]:1
+  V["value"]:1 V0["—"]:1 V1["3"]:1 V2["5"]:1 V3["7"]:1 V4["—"]:1 V5["—"]:1
+  R["back() returns arr[backIndex] = arr[3] = 7"]:7
+  style V3 fill:#fef9c3,stroke:#f59e0b
+```
 
-We can return `-1` to indicate that there are no items in the queue. Ideally, we should be throwing an error, but for the sake of simplicity here, we return `-1`
-
-// Diagram: Back operation when queue is empty
+<p align="center"><strong>back() — read the slot at <code>backIndex</code>. The queue is unchanged after the call.</strong></p>
 
 > **Algorithm**
 >
-> -   **Step 1:** If the queue is empty, return \`-1\` to indicate that there is no back element.
-
-## 2\. Queue is not empty
-
-// Diagram: If the queue is not empty, we return the value at the backIndex
-
-// Diagram: Back operation when queue is not empty
-
-> **Algorithm**
->
-> -   **Step 1:** If the queue is not empty, return the value stored at \`backIndex\` of the internal array.
+> -   **Step 1:** If the queue is empty, return `-1`.
+> -   **Step 2:** Otherwise return `arr[backIndex]`.
 
 ## Implementation
 
-The implementation is quite simple. We write all the cases in conditional blocks to implement the **back** operation.
+<div class="lang-tabs">
 
-C++
-
-```cpp
-using namespace std;
-
-class Queue {
-public:
-
-    // Pointer to the dynamic array representing the queue
-    int *arr;
-
-    // Maximum capacity of the queue
-    int capacity;
-
-    // Index of the front element in the queue
-    int frontIndex;
-
-    // Index of the back element in the queue
-    int backIndex;
-
-    // Current number of elements in the queue
-    int currentSize;
-
-    Queue(int capacity) {
-        this->capacity = capacity;
-
-        // Allocating memory for the queue
-        this->arr = new int[capacity];
-
-        // Initializing front index to 0
-        this->frontIndex = 0;
-
-        // Initializing back index to -1
-        this->backIndex = -1;
-
-        // Initializing current size to 0
-        this->currentSize = 0;
-    }
-
-// Diagram: int size() {
-
-        // Returns the current size of the queue
-        return currentSize;
-    }
-
-// Diagram: bool empty() {
-
-        // Returns true if the queue is empty, false otherwise
-        return size() == 0;
-    }
-
-    int front() {
-        if (empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the front of the queue
-        return arr[frontIndex];
-    }
-
-    int back() {
-        if (empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the back of the queue
-        return arr[backIndex];
-    }
-};
+```python,editable
+def back(self):
+    if self.empty(): return -1
+    return self.arr[self.back_index]
 ```
 
-Java
-
-```java
-class Queue {
-
-    // Pointer to the dynamic array representing the queue
-    public int[] arr;
-
-    // Maximum capacity of the queue
-    public int capacity;
-
-    // Index of the front element in the queue
-    public int frontIndex;
-
-    // Index of the back element in the queue
-    public int backIndex;
-
-    // Current number of elements in the queue
-    public int currentSize;
-
-    public Queue(int capacity) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new int[capacity];
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-// Diagram: public int size() {
-
-        // Returns the current size of the queue
-        return currentSize;
-    }
-
-// Diagram: public boolean empty() {
-
-        // Returns true if the queue is empty, false otherwise
-        return size() == 0;
-    }
-
-    public int front() {
-        if (empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the front of the queue
-        return arr[frontIndex];
-    }
-
-    public int back() {
-        if (empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the back of the queue
-        return arr[backIndex];
-    }
+```java,editable
+int back() { return empty() ? -1 : arr[backIndex]; }
 ```
 
-Typescript
-
-```typescript
-export class Queue {
-
-    // Pointer to the dynamic array representing the queue
-    arr: number[];
-
-    // Maximum capacity of the queue
-    capacity: number;
-
-    // Index of the front element in the queue
-    frontIndex: number;
-
-    // Index of the back element in the queue
-    backIndex: number;
-
-    // Current number of elements in the queue
-    currentSize: number;
-
-    constructor(capacity: number) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new Array<number>(capacity);
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-// Diagram: size(): number {
-
-        // Returns the current size of the queue
-        return this.currentSize;
-    }
-
-// Diagram: empty(): boolean {
-
-        // Returns true if the queue is empty, false otherwise
-        return this.size() === 0;
-    }
-
-    front(): number {
-        if (this.empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the front of the queue
-        return this.arr[this.frontIndex];
-    }
-
-    back(): number {
-        if (this.empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the back of the queue
-        return this.arr[this.backIndex];
-    }
+```c,editable
+int queue_back(Queue *q) {
+    return queue_empty(q) ? -1 : q->arr[q->backIndex];
+}
 ```
 
-Javascript
-
-```javascript
-export class Queue {
-
-    // Pointer to the dynamic array representing the queue
-    arr;
-
-    // Maximum capacity of the queue
-    capacity;
-
-    // Index of the front element in the queue
-    frontIndex;
-
-    // Index of the back element in the queue
-    backIndex;
-
-    // Current number of elements in the queue
-    currentSize;
-
-    constructor(capacity) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new Array(capacity);
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-    size() {
-
-        // Returns the current size of the queue
-        return this.currentSize;
-    }
-
-    empty() {
-
-        // Returns true if the queue is empty, false otherwise
-        return this.size() === 0;
-    }
-
-    front() {
-        if (this.empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the front of the queue
-        return this.arr[this.frontIndex];
-    }
-
-    back() {
-        if (this.empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the back of the queue
-        return this.arr[this.backIndex];
-    }
+```cpp,editable
+int back() { return empty() ? -1 : arr[backIndex]; }
 ```
 
-Python
-
-```python
-from typing import List
-
-class Queue:
-    def __init__(self, capacity):
-
-        # Pointer to the dynamic array representing the queue
-        self.arr: List[int] = [None] * capacity
-
-        # Maximum capacity of the queue
-        self.capacity: int = capacity
-
-        # Index of the front element in the queue
-        self.front_index: int = 0
-
-        # Index of the back element in the queue
-        self.back_index: int = -1
-
-        # Current number of elements in the queue
-        self.current_size: int = 0
-
-    def size(self):
-
-        # Returns the current size of the queue
-        return self.current_size
-
-    def empty(self):
-
-        # Returns True if the queue is empty, False otherwise
-        return self.size() == 0
-
-    def front(self):
-        if self.empty():
-
-            # Returns -1 if the queue is empty
-            return -1
-
-        # Returns the element at the front of the queue
-        return self.arr[self.front_index]
-
-    def back(self):
-        if self.empty():
-
-            # Returns -1 if the queue is empty
-            return -1
-
-        # Returns the element at the back of the queue
-        return self.arr[self.back_index]
+```scala,editable
+def back: Int = if (empty) -1 else arr(backIdx)
 ```
+
+```javascript,editable
+back() { return this.empty() ? -1 : this.arr[this.backIndex]; }
+```
+
+```typescript,editable
+back(): number { return this.empty() ? -1 : this.arr[this.backIndex]; }
+```
+
+```go,editable
+func (q *Queue) Back() int {
+    if q.Empty() { return -1 }
+    return q.arr[q.backIndex]
+}
+```
+
+```kotlin,editable
+fun back(): Int = if (empty()) -1 else arr[backIndex]
+```
+
+```rust,editable
+pub fn back(&self) -> i32 {
+    if self.empty() { -1 } else { self.arr[self.back_index as usize] }
+}
+```
+
+</div>
 
 ## Complexity Analysis
 
-We call the `empty()` function, and based on that, we return a value. If the queue is not empty, we return the value at `backIndex` the internal array, so the complexity will be the same as that of the `empty()` function i.e. **O(1)**.
-
 > **Best Case**
 >
-> -   Space Complexity -**\`O(1)**
-> -   Time Complexity - **O(1)**
+> - Time:  **O(1)**
+> - Space: **O(1)**
 >
 > **Worst Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> - Time:  **O(1)**
+> - Space: **O(1)**
 
 ***
 
-# Enqueuing an item in the queue
+# Enqueuing an item into the queue
 
-The enqueue operation adds a data item to the end of the queue and is implemented by adding the data item at the end of the internal array using the `backIndex`. Addition only happens after ensuring that we do not exceed the `capacity` of the queue after this operation. The implementation is quite straightforward, though there are certain cases that we need to consider.
+Enqueue is the more interesting operation — the cyclic trick lives here. Two top-level cases:
 
-## 1\. Queue is full
+1. **Queue is full** (`currentSize == capacity`) → reject; return `false`.
+2. **Queue is not full** → advance `backIndex` (cyclically), write the value, increment size.
 
-Since the queue is full, we cannot add more data without removing some items. We will return `false` as this operation cannot be done
+The cyclic advance is the one-liner that does all the work:
 
-// Diagram: Cannot enqueue data when the queue is full
+```text
+backIndex = (backIndex + 1) % capacity
+```
+
+When `backIndex` is the last valid index, `(last + 1) % capacity == 0`, wrapping us back to slot 0. When `backIndex` is anywhere else, this is just `backIndex + 1`. One expression handles both the normal case *and* the wrap-around case — no `if`, no special branches.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph CASE1["case 1: backIndex < capacity − 1 (no wrap)"]
+        direction LR
+        C1A["state: front=1, back=2, size=2<br/>arr=[—,3,5,—,—,—]"]
+        C1B["enqueue(7) → back = (2+1)%6 = 3<br/>arr=[—,3,5,7,—,—], size=3"]
+        C1A --> C1B
+    end
+    subgraph CASE2["case 2: backIndex == capacity − 1 (wrap)"]
+        direction LR
+        C2A["state: front=3, back=5, size=3<br/>arr=[—,—,—,7,11,13]"]
+        C2B["enqueue(17) → back = (5+1)%6 = 0<br/>arr=[17,—,—,7,11,13], size=4"]
+        C2A --> C2B
+    end
+```
+
+<p align="center"><strong>Enqueue branches handled by one modulo — when back+1 is in-bounds, the modulo is a no-op; when back+1 is out-of-bounds, the modulo wraps it to 0. Same line of code, both cases.</strong></p>
 
 > **Algorithm**
 >
-> -   **Step 1:** If the queue is full, return \`false\` to indicate that the operation was unsuccessful.
-
-## 2\. Queue is not full
-
-Enqueuing data to the queue when not full is very simple using the queue's array implementation. However, since the array is limited in size and the implementation is **cyclic**, we can further divide the implementation into three cases.
-
-### 2.1 backIndex < lastIndex
-
-In this case, we first need to increment the `backIndex` index by one to move it to the next empty index in the array and add the value to that index.
-
-// Diagram: Enqueue operation when the back != last index
-
-> **Algorithm**
->
-> -   **Step 1:** If \`backIndex\` is not the last index, increment it by \`1\`.
-> -   **Step 2:** Store the new value at the incremented \`backIndex\` of the internal array.
-> -   **Step 3:** Increment the \`currentSize\` variable by \`1\`.
-> -   **Step 4:** Return \`true\` to indicate that the operation was successful.
-
-### 2.2 backIndex == lastIndex
-
-This is a special case as in this case the `backIndex` is the last index of the internal array, and adding 1 will result in an index that is out of the array. Remember, the array implementation of a queue is **cyclic**. Moving around in a circle, the index to which we want to add our data item is the 0th index of the internal array. This can be easily done by using the mod operator on  `backIndex + 1`. The expression `(backIndex + 1) % capacity` keeps into account this cyclic nature and makes sure that the result is always in the range `[0, capacity -1]`.
-
-// Diagram: Enqueue operation when the back index is the last index of the array
-
-> **Algorithm**
->
-> -   **Step 1:** If \`backIndex\` is the last index, cyclically increment it by \`1\` so that it becomes the 0th index.
-> -   **Step 2:** Store the new value at the incremented \`backIndex\` of the internal array.
-> -   **Step 3:** Increment the \`currentSize\` variable by \`1\`.
-> -   **Step 4:** Return \`true\` to indicate that the operation was successful.
+> -   **Step 1:** If `currentSize == capacity`, return `false` (queue full).
+> -   **Step 2:** Update `backIndex = (backIndex + 1) % capacity`.
+> -   **Step 3:** Store `arr[backIndex] = val`.
+> -   **Step 4:** Increment `currentSize`.
+> -   **Step 5:** Return `true`.
 
 ## Implementation
 
-The implementation is quite simple. We write all the cases in conditional blocks to implement the enqueue operation.
+<div class="lang-tabs">
 
-C++
-
-```cpp
-using namespace std;
-
-class Queue {
-public:
-
-    // Pointer to the dynamic array representing the queue
-    int *arr;
-
-    // Maximum capacity of the queue
-    int capacity;
-
-    // Index of the front element in the queue
-    int frontIndex;
-
-    // Index of the back element in the queue
-    int backIndex;
-
-    // Current number of elements in the queue
-    int currentSize;
-
-    Queue(int capacity) {
-        this->capacity = capacity;
-
-        // Allocating memory for the queue
-        this->arr = new int[capacity];
-
-        // Initializing front index to 0
-        this->frontIndex = 0;
-
-        // Initializing back index to -1
-        this->backIndex = -1;
-
-        // Initializing current size to 0
-        this->currentSize = 0;
-    }
-
-// Diagram: int size() {
-
-        // Returns the current size of the queue
-        return currentSize;
-    }
-
-// Diagram: bool empty() {
-
-        // Returns true if the queue is empty, false otherwise
-        return size() == 0;
-    }
-
-    int front() {
-        if (empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the front of the queue
-        return arr[frontIndex];
-    }
-
-    int back() {
-        if (empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the back of the queue
-        return arr[backIndex];
-    }
-
-    bool enqueue(int val) {
-        if (currentSize == capacity) {
-
-            // Returns false if the queue is full and cannot enqueue more
-            // elements
-            return false;
-        }
-
-        // Calculates the next back index in a circular manner
-        backIndex = (backIndex + 1) % capacity;
-
-        // Inserts the new element at the back of the queue
-        arr[backIndex] = val;
-
-        // Increments the current size
-        currentSize++;
-
-        // Returns true to indicate successful enqueue operation
-        return true;
-    }
-};
+```python,editable
+def enqueue(self, val):
+    if self.current_size == self.capacity: return False
+    self.back_index           = (self.back_index + 1) % self.capacity
+    self.arr[self.back_index] = val
+    self.current_size        += 1
+    return True
 ```
 
-Java
-
-```java
-class Queue {
-
-    // Pointer to the dynamic array representing the queue
-    public int[] arr;
-
-    // Maximum capacity of the queue
-    public int capacity;
-
-    // Index of the front element in the queue
-    public int frontIndex;
-
-    // Index of the back element in the queue
-    public int backIndex;
-
-    // Current number of elements in the queue
-    public int currentSize;
-
-    public Queue(int capacity) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new int[capacity];
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-// Diagram: public int size() {
-
-        // Returns the current size of the queue
-        return currentSize;
-    }
-
-// Diagram: public boolean empty() {
-
-        // Returns true if the queue is empty, false otherwise
-        return size() == 0;
-    }
-
-    public int front() {
-        if (empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the front of the queue
-        return arr[frontIndex];
-    }
-
-    public int back() {
-        if (empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the back of the queue
-        return arr[backIndex];
-    }
-
-    public boolean enqueue(int val) {
-        if (currentSize == capacity) {
-
-            // Returns false if the queue is full and cannot enqueue more
-            // elements
-            return false;
-        }
-
-        // Calculates the next back index in a circular manner
-        backIndex = (backIndex + 1) % capacity;
-
-        // Inserts the new element at the back of the queue
-        arr[backIndex] = val;
-
-        // Increments the current size
-        currentSize++;
-
-        // Returns true to indicate a successful enqueue operation
-        return true;
-    }
+```java,editable
+boolean enqueue(int val) {
+    if (currentSize == capacity) return false;
+    backIndex            = (backIndex + 1) % capacity;
+    arr[backIndex]       = val;
+    currentSize++;
+    return true;
+}
 ```
 
-Typescript
-
-```typescript
-export class Queue {
-
-    // Pointer to the dynamic array representing the queue
-    arr: number[];
-
-    // Maximum capacity of the queue
-    capacity: number;
-
-    // Index of the front element in the queue
-    frontIndex: number;
-
-    // Index of the back element in the queue
-    backIndex: number;
-
-    // Current number of elements in the queue
-    currentSize: number;
-
-    constructor(capacity: number) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new Array<number>(capacity);
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-// Diagram: size(): number {
-
-        // Returns the current size of the queue
-        return this.currentSize;
-    }
-
-// Diagram: empty(): boolean {
-
-        // Returns true if the queue is empty, false otherwise
-        return this.size() === 0;
-    }
-
-    front(): number {
-        if (this.empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the front of the queue
-        return this.arr[this.frontIndex];
-    }
-
-    back(): number {
-        if (this.empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the back of the queue
-        return this.arr[this.backIndex];
-    }
-
-    enqueue(val: number): boolean {
-        if (this.currentSize === this.capacity) {
-
-            // Returns false if the queue is full and cannot enqueue more
-            // elements
-            return false;
-        }
-
-        // Calculates the next back index in a circular manner
-        this.backIndex = (this.backIndex + 1) % this.capacity;
-
-        // Inserts the new element at the back of the queue
-        this.arr[this.backIndex] = val;
-
-        // Increments the current size
-        this.currentSize++;
-
-        // Returns true to indicate a successful enqueue operation
-        return true;
-    }
+```c,editable
+bool queue_enqueue(Queue *q, int val) {
+    if (q->currentSize == q->capacity) return false;
+    q->backIndex          = (q->backIndex + 1) % q->capacity;
+    q->arr[q->backIndex]  = val;
+    q->currentSize++;
+    return true;
+}
 ```
 
-Javascript
-
-```javascript
-export class Queue {
-
-    // Pointer to the dynamic array representing the queue
-    arr;
-
-    // Maximum capacity of the queue
-    capacity;
-
-    // Index of the front element in the queue
-    frontIndex;
-
-    // Index of the back element in the queue
-    backIndex;
-
-    // Current number of elements in the queue
-    currentSize;
-
-    constructor(capacity) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new Array(capacity);
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-    size() {
-
-        // Returns the current size of the queue
-        return this.currentSize;
-    }
-
-    empty() {
-
-        // Returns true if the queue is empty, false otherwise
-        return this.size() === 0;
-    }
-
-    front() {
-        if (this.empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the front of the queue
-        return this.arr[this.frontIndex];
-    }
-
-    back() {
-        if (this.empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the back of the queue
-        return this.arr[this.backIndex];
-    }
-
-    enqueue(val) {
-        if (this.currentSize === this.capacity) {
-
-            // Returns false if the queue is full and cannot enqueue more
-            // elements
-            return false;
-        }
-
-        // Calculates the next back index in a circular manner
-        this.backIndex = (this.backIndex + 1) % this.capacity;
-
-        // Inserts the new element at the back of the queue
-        this.arr[this.backIndex] = val;
-
-        // Increments the current size
-        this.currentSize++;
-
-        // Returns true to indicate a successful enqueue operation
-        return true;
-    }
+```cpp,editable
+bool enqueue(int val) {
+    if (currentSize == capacity) return false;
+    backIndex            = (backIndex + 1) % capacity;
+    arr[backIndex]       = val;
+    currentSize++;
+    return true;
+}
 ```
 
-Python
-
-```python
-from typing import List
-
-class Queue:
-    def __init__(self, capacity):
-
-        # Pointer to the dynamic array representing the queue
-        self.arr: List[int] = [None] * capacity
-
-        # Maximum capacity of the queue
-        self.capacity: int = capacity
-
-        # Index of the front element in the queue
-        self.front_index: int = 0
-
-        # Index of the back element in the queue
-        self.back_index: int = -1
-
-        # Current number of elements in the queue
-        self.current_size: int = 0
-
-    def size(self):
-
-        # Returns the current size of the queue
-        return self.current_size
-
-    def empty(self):
-
-        # Returns True if the queue is empty, False otherwise
-        return self.size() == 0
-
-    def front(self):
-        if self.empty():
-
-            # Returns -1 if the queue is empty
-            return -1
-
-        # Returns the element at the front of the queue
-        return self.arr[self.front_index]
-
-    def back(self):
-        if self.empty():
-
-            # Returns -1 if the queue is empty
-            return -1
-
-        # Returns the element at the back of the queue
-        return self.arr[self.back_index]
-
-    def enqueue(self, val):
-        if self.current_size == self.capacity:
-
-            # Returns False if the queue is full and cannot enqueue more
-            # elements
-            return False
-
-        # Calculates the next back index in a circular manner
-        self.back_index = (self.back_index + 1) % self.capacity
-
-        # Inserts the new element at the back of the queue
-        self.arr[self.back_index] = val
-
-        # Increments the current size
-        self.current_size += 1
-
-        # Returns True to indicate a successful enqueue operation
-        return True
+```scala,editable
+def enqueue(v: Int): Boolean = {
+  if (currSize == capacity) return false
+  backIdx       = (backIdx + 1) % capacity
+  arr(backIdx)  = v
+  currSize     += 1
+  true
+}
 ```
+
+```javascript,editable
+enqueue(val) {
+    if (this.currentSize === this.capacity) return false;
+    this.backIndex            = (this.backIndex + 1) % this.capacity;
+    this.arr[this.backIndex]  = val;
+    this.currentSize++;
+    return true;
+}
+```
+
+```typescript,editable
+enqueue(val: number): boolean {
+    if (this.currentSize === this.capacity) return false;
+    this.backIndex            = (this.backIndex + 1) % this.capacity;
+    this.arr[this.backIndex]  = val;
+    this.currentSize++;
+    return true;
+}
+```
+
+```go,editable
+func (q *Queue) Enqueue(val int) bool {
+    if q.currSize == q.capacity { return false }
+    q.backIndex         = (q.backIndex + 1) % q.capacity
+    q.arr[q.backIndex]  = val
+    q.currSize++
+    return true
+}
+```
+
+```kotlin,editable
+fun enqueue(v: Int): Boolean {
+    if (currentSize == capacity) return false
+    backIndex       = (backIndex + 1) % capacity
+    arr[backIndex]  = v
+    currentSize++
+    return true
+}
+```
+
+```rust,editable
+pub fn enqueue(&mut self, v: i32) -> bool {
+    if self.current_size == self.capacity { return false; }
+    self.back_index = ((self.back_index + 1).rem_euclid(self.capacity as i32)) as i32;
+    self.arr[self.back_index as usize] = v;
+    self.current_size += 1;
+    true
+}
+```
+
+</div>
+
+> **Note on the Rust signature** — we keep `back_index` as `i32` (signed) so the empty sentinel `-1` fits, then `rem_euclid` gives us the correct non-negative remainder for the wrap.
 
 ## Complexity Analysis
 
-We just add a new item at a known array index and do not allocate any new memory for the enqueue operation and so the complexity is constant in time as well as space
+A bounds check, a modulo, an array write, an increment. No allocation. No loop.
 
 > **Best Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> - Time:  **O(1)**
+> - Space: **O(1)**
 >
 > **Worst Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> - Time:  **O(1)**
+> - Space: **O(1)**
 
 ***
 
 # Dequeuing an item from the queue
 
-The dequeue operation is as important as the enqueue as it is the only way to remove a data item from the queue. It is implemented by removing the data item at the **front** of the internal array using the `frontIndex` and returning its value. The implementation is quite straightforward, though there are certain cases that we need to consider.
+Dequeue is the symmetric operation. Two cases:
 
-## 1\. Queue is empty
+1. **Queue is empty** → return `-1`.
+2. **Queue is non-empty** → save `arr[frontIndex]`, advance `frontIndex` cyclically, decrement size, return the saved value.
 
-We return `-1`here to indicate this is an invalid operation, as no item is at the front of the queue.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph CASE1["case 1: frontIndex < capacity − 1 (no wrap)"]
+        direction LR
+        D1A["state: front=1, back=3, size=3<br/>arr=[—,3,5,7,—,—]"]
+        D1B["dequeue() → 3<br/>front = (1+1)%6 = 2<br/>arr=[—,3,5,7,—,—] (slot 1 stranded), size=2"]
+        D1A --> D1B
+    end
+    subgraph CASE2["case 2: frontIndex == capacity − 1 (wrap)"]
+        direction LR
+        D2A["state: front=5, back=1, size=3<br/>arr=[11,13,—,—,—,7]"]
+        D2B["dequeue() → 7<br/>front = (5+1)%6 = 0<br/>arr=[11,13,—,—,—,7], size=2"]
+        D2A --> D2B
+    end
+```
 
-// Diagram: Dequeue operation when queue is empty
+<p align="center"><strong>Dequeue mirrors enqueue — one modulo handles both the normal advance and the wrap from index <code>capacity − 1</code> back to <code>0</code>. The vacated slot is left untouched (its value is ignored, never read again until overwritten by a future enqueue).</strong></p>
+
+> **Why don't we zero out the dequeued slot?**
+>
+> We don't need to. The queue's logical contents are *only* the slots between `frontIndex` and `backIndex` (cyclically). The dequeued slot is now outside that range, so it'll never be read by `front`/`back`/iteration. The next enqueue that comes around will *overwrite* it. Zeroing would just be wasted work — and for non-trivial element types (objects, smart pointers) the production trade-off is between memory pressure (clearing frees referenced memory sooner) and CPU cost (clearing isn't free). The simplest correct queue does no clearing; library queues for reference types may clear to release references.
 
 > **Algorithm**
 >
-> -   **Step 1:** If the queue is empty, return \`-1\` to indicate that the operation was unsuccessful.
-
-## 2\. Queue is not empty
-
-Due to the **cyclic** nature of the array implementation of a queue, just like the enqueue operation, we can further divide the implementation of the dequeue operation into three cases. We must check for these cases in the given order to implement the dequeue operation correctly.
-
-### 2.1 frontIndex < lastIndex
-
-This is the generic case, and its implementation is quite logical. We first store the value at the `frontIndex` of the internal array in a temporary variable and then increment the `frontIndex` by one. Finally, we return the value stored in the temporary variable.
-
-// Diagram: Dequeue operation when front != last index
-
-> **Algorithm**
->
-> -   **Step 1:** If the queue is not empty, store the value of the element at the \`frontIndex\` of the internal array in a temporary variable.
-> -   **Step 2:** If \`frontIndex\` is not the last index, increment it by \`1\`.
-> -   **Step 3:** Decrement the \`currentSize\` variable by \`1\`.
-> -   **Step 4:** Return the value stored in the temporary variable.
-
-### 2.2 frontIndex == lastIndex
-
-This is a special case as, in this case, the `frontIndex` is the last index of the internal array, and adding `1` to it will result in an index that is out of the array. Remember, the array implementation of a queue is **cyclic**. Moving around in a circle, the next front of the queue should now be at the **0th index** of the internal array. This can be easily done by using the mod operator on `frontIndex + 1`. The expression `(frontIndex + 1) % capacity` keeps into account this cyclic nature and makes sure that the result is always in the range `[0, capacity -1]`.
-
-// Diagram: Dequeue operation when front == last index
-
-> **Algorithm**
->
-> -   **Step 1:** If the queue is not empty, store the value of the element at the \`frontIndex\` of the internal array in a temporary variable.
-> -   **Step 2:** If \`frontIndex\` is the last index, cyclically increment it by \`1\` so that it becomes the 0th index.
-> -   **Step 3:** Decrement the \`currentSize\` variable by \`1\`.
-> -   **Step 4:** Return the value stored in the temporary variable.
-
-**Why don't we delete the data in the array and update the value of the frontIndex?**
-
-We don't need to delete the old **front** after incrementing the value of the `frontIndex` by one because the queue only consists of data between the `frontIndex` and `backIndex` in the array. Any data outside it is never accessed and overwritten as the queue grows.
+> -   **Step 1:** If `currentSize == 0`, return `-1`.
+> -   **Step 2:** Save `dequeued = arr[frontIndex]`.
+> -   **Step 3:** Update `frontIndex = (frontIndex + 1) % capacity`.
+> -   **Step 4:** Decrement `currentSize`.
+> -   **Step 5:** Return `dequeued`.
 
 ## Implementation
 
-The implementation is quite simple. We write all the cases in conditional blocks to implement the dequeue operation.
+<div class="lang-tabs">
 
-C++
-
-```cpp
-using namespace std;
-
-class Queue {
-public:
-
-    // Pointer to the dynamic array representing the queue
-    int *arr;
-
-    // Maximum capacity of the queue
-    int capacity;
-
-    // Index of the front element in the queue
-    int frontIndex;
-
-    // Index of the back element in the queue
-    int backIndex;
-
-    // Current number of elements in the queue
-    int currentSize;
-
-    Queue(int capacity) {
-        this->capacity = capacity;
-
-        // Allocating memory for the queue
-        this->arr = new int[capacity];
-
-        // Initializing front index to 0
-        this->frontIndex = 0;
-
-        // Initializing back index to -1
-        this->backIndex = -1;
-
-        // Initializing current size to 0
-        this->currentSize = 0;
-    }
-
-// Diagram: int size() {
-
-        // Returns the current size of the queue
-        return currentSize;
-    }
-
-// Diagram: bool empty() {
-
-        // Returns true if the queue is empty, false otherwise
-        return size() == 0;
-    }
-
-    int front() {
-        if (empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the front of the queue
-        return arr[frontIndex];
-    }
-
-    int back() {
-        if (empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the back of the queue
-        return arr[backIndex];
-    }
-
-    bool enqueue(int val) {
-        if (currentSize == capacity) {
-
-            // Returns false if the queue is full and cannot enqueue more
-            // elements
-            return false;
-        }
-
-        // Calculates the next back index in a circular manner
-        backIndex = (backIndex + 1) % capacity;
-
-        // Inserts the new element at the back of the queue
-        arr[backIndex] = val;
-
-        // Increments the current size
-        currentSize++;
-
-        // Returns true to indicate successful enqueue operation
-        return true;
-    }
-
-    int dequeue() {
-        if (empty()) {
-
-            // Returns -1 if the queue is empty and cannot dequeue
-            // elements
-            return -1;
-        }
-
-        // Stores the element to be dequeued
-        int dequeuedElement = arr[frontIndex];
-
-        // Calculates the next front index in a circular manner
-        frontIndex = (frontIndex + 1) % capacity;
-
-        // Decrements the current size
-        currentSize--;
-
-        // Returns the dequeued element
-        return dequeuedElement;
-    }
-};
+```python,editable
+def dequeue(self):
+    if self.empty(): return -1
+    val               = self.arr[self.front_index]
+    self.front_index  = (self.front_index + 1) % self.capacity
+    self.current_size -= 1
+    return val
 ```
 
-Java
-
-```java
-class Queue {
-
-    // Pointer to the dynamic array representing the queue
-    public int[] arr;
-
-    // Maximum capacity of the queue
-    public int capacity;
-
-    // Index of the front element in the queue
-    public int frontIndex;
-
-    // Index of the back element in the queue
-    public int backIndex;
-
-    // Current number of elements in the queue
-    public int currentSize;
-
-    public Queue(int capacity) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new int[capacity];
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-// Diagram: public int size() {
-
-        // Returns the current size of the queue
-        return currentSize;
-    }
-
-// Diagram: public boolean empty() {
-
-        // Returns true if the queue is empty, false otherwise
-        return size() == 0;
-    }
-
-    public int front() {
-        if (empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the front of the queue
-        return arr[frontIndex];
-    }
-
-    public int back() {
-        if (empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the back of the queue
-        return arr[backIndex];
-    }
-
-    public boolean enqueue(int val) {
-        if (currentSize == capacity) {
-
-            // Returns false if the queue is full and cannot enqueue more
-            // elements
-            return false;
-        }
-
-        // Calculates the next back index in a circular manner
-        backIndex = (backIndex + 1) % capacity;
-
-        // Inserts the new element at the back of the queue
-        arr[backIndex] = val;
-
-        // Increments the current size
-        currentSize++;
-
-        // Returns true to indicate a successful enqueue operation
-        return true;
-    }
-
-    public int dequeue() {
-        if (empty()) {
-
-            // Returns -1 if the queue is empty and cannot dequeue
-            // elements
-            return -1;
-        }
-
-        // Stores the element to be dequeued
-        int dequeuedElement = arr[frontIndex];
-
-        // Calculates the next front index in a circular manner
-        frontIndex = (frontIndex + 1) % capacity;
-
-        // Decrements the current size
-        currentSize--;
-
-        // Returns the dequeued element
-        return dequeuedElement;
-    }
+```java,editable
+int dequeue() {
+    if (empty()) return -1;
+    int val      = arr[frontIndex];
+    frontIndex   = (frontIndex + 1) % capacity;
+    currentSize--;
+    return val;
+}
 ```
 
-Typescript
-
-```typescript
-export class Queue {
-
-    // Pointer to the dynamic array representing the queue
-    arr: number[];
-
-    // Maximum capacity of the queue
-    capacity: number;
-
-    // Index of the front element in the queue
-    frontIndex: number;
-
-    // Index of the back element in the queue
-    backIndex: number;
-
-    // Current number of elements in the queue
-    currentSize: number;
-
-    constructor(capacity: number) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new Array<number>(capacity);
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-// Diagram: size(): number {
-
-        // Returns the current size of the queue
-        return this.currentSize;
-    }
-
-// Diagram: empty(): boolean {
-
-        // Returns true if the queue is empty, false otherwise
-        return this.size() === 0;
-    }
-
-    front(): number {
-        if (this.empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the front of the queue
-        return this.arr[this.frontIndex];
-    }
-
-    back(): number {
-        if (this.empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the back of the queue
-        return this.arr[this.backIndex];
-    }
-
-    enqueue(val: number): boolean {
-        if (this.currentSize === this.capacity) {
-
-            // Returns false if the queue is full and cannot enqueue more
-            // elements
-            return false;
-        }
-
-        // Calculates the next back index in a circular manner
-        this.backIndex = (this.backIndex + 1) % this.capacity;
-
-        // Inserts the new element at the back of the queue
-        this.arr[this.backIndex] = val;
-
-        // Increments the current size
-        this.currentSize++;
-
-        // Returns true to indicate a successful enqueue operation
-        return true;
-    }
-
-    dequeue(): number {
-        if (this.empty()) {
-
-            // Returns -1 if the queue is empty and cannot dequeue
-            // elements
-            return -1;
-        }
-
-        // Stores the element to be dequeued
-        const dequeuedElement = this.arr[this.frontIndex];
-
-        // Calculates the next front index in a circular manner
-        this.frontIndex = (this.frontIndex + 1) % this.capacity;
-
-        // Decrements the current size
-        this.currentSize--;
-
-        // Returns the dequeued element
-        return dequeuedElement;
-    }
+```c,editable
+int queue_dequeue(Queue *q) {
+    if (queue_empty(q)) return -1;
+    int val          = q->arr[q->frontIndex];
+    q->frontIndex    = (q->frontIndex + 1) % q->capacity;
+    q->currentSize--;
+    return val;
+}
 ```
 
-Javascript
-
-```javascript
-export class Queue {
-
-    // Pointer to the dynamic array representing the queue
-    arr;
-
-    // Maximum capacity of the queue
-    capacity;
-
-    // Index of the front element in the queue
-    frontIndex;
-
-    // Index of the back element in the queue
-    backIndex;
-
-    // Current number of elements in the queue
-    currentSize;
-
-    constructor(capacity) {
-        this.capacity = capacity;
-
-        // Allocating memory for the queue
-        this.arr = new Array(capacity);
-
-        // Initializing front index to 0
-        this.frontIndex = 0;
-
-        // Initializing back index to -1
-        this.backIndex = -1;
-
-        // Initializing current size to 0
-        this.currentSize = 0;
-    }
-
-    size() {
-
-        // Returns the current size of the queue
-        return this.currentSize;
-    }
-
-    empty() {
-
-        // Returns true if the queue is empty, false otherwise
-        return this.size() === 0;
-    }
-
-    front() {
-        if (this.empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the front of the queue
-        return this.arr[this.frontIndex];
-    }
-
-    back() {
-        if (this.empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the back of the queue
-        return this.arr[this.backIndex];
-    }
-
-    enqueue(val) {
-        if (this.currentSize === this.capacity) {
-
-            // Returns false if the queue is full and cannot enqueue more
-            // elements
-            return false;
-        }
-
-        // Calculates the next back index in a circular manner
-        this.backIndex = (this.backIndex + 1) % this.capacity;
-
-        // Inserts the new element at the back of the queue
-        this.arr[this.backIndex] = val;
-
-        // Increments the current size
-        this.currentSize++;
-
-        // Returns true to indicate a successful enqueue operation
-        return true;
-    }
-
-    dequeue() {
-        if (this.empty()) {
-
-            // Returns -1 if the queue is empty and cannot dequeue
-            // elements
-            return -1;
-        }
-
-        // Stores the element to be dequeued
-        const dequeuedElement = this.arr[this.frontIndex];
-
-        // Calculates the next front index in a circular manner
-        this.frontIndex = (this.frontIndex + 1) % this.capacity;
-
-        // Decrements the current size
-        this.currentSize--;
-
-        // Returns the dequeued element
-        return dequeuedElement;
-    }
+```cpp,editable
+int dequeue() {
+    if (empty()) return -1;
+    int val      = arr[frontIndex];
+    frontIndex   = (frontIndex + 1) % capacity;
+    currentSize--;
+    return val;
+}
 ```
 
-Python
-
-```python
-using namespace std;
+```scala,editable
+def dequeue: Int = {
+  if (empty) return -1
+  val v       = arr(frontIdx)
+  frontIdx    = (frontIdx + 1) % capacity
+  currSize   -= 1
+  v
+}
 ```
+
+```javascript,editable
+dequeue() {
+    if (this.empty()) return -1;
+    const val        = this.arr[this.frontIndex];
+    this.frontIndex  = (this.frontIndex + 1) % this.capacity;
+    this.currentSize--;
+    return val;
+}
+```
+
+```typescript,editable
+dequeue(): number {
+    if (this.empty()) return -1;
+    const val        = this.arr[this.frontIndex];
+    this.frontIndex  = (this.frontIndex + 1) % this.capacity;
+    this.currentSize--;
+    return val;
+}
+```
+
+```go,editable
+func (q *Queue) Dequeue() int {
+    if q.Empty() { return -1 }
+    val            := q.arr[q.frontIndex]
+    q.frontIndex    = (q.frontIndex + 1) % q.capacity
+    q.currSize--
+    return val
+}
+```
+
+```kotlin,editable
+fun dequeue(): Int {
+    if (empty()) return -1
+    val v       = arr[frontIndex]
+    frontIndex  = (frontIndex + 1) % capacity
+    currentSize--
+    return v
+}
+```
+
+```rust,editable
+pub fn dequeue(&mut self) -> i32 {
+    if self.empty() { return -1; }
+    let v = self.arr[self.front_index];
+    self.front_index = (self.front_index + 1) % self.capacity;
+    self.current_size -= 1;
+    v
+}
+```
+
+</div>
 
 ## Complexity Analysis
 
-We access the data item at a known array index and increment the value of a variable in the implementation of the dequeue operation. So, the complexity is constant in time and space.
+Same shape as enqueue — predicate, modulo, array read, decrement.
 
 > **Best Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> - Time:  **O(1)**
+> - Space: **O(1)**
 >
 > **Worst Case**
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+> - Time:  **O(1)**
+> - Space: **O(1)**
 
 ***
 
-# Design a queue using circular array
+# Design a queue using a circular array
 
 ## Problem Statement
 
-Given the skeleton of a **Queue class**, complete this class by implementing all the queue operations below.
+Given the skeleton of a **Queue class**, complete it by implementing all the queue operations below.
 
-> -   **Queue(int capacity)** - Initializes the Queue object with the given capacity.
-> -   **size()** - Returns the current size of the queue.
-> -   **empty()** - Returns \`true\` if the queue is empty and \`false\` if not.
-> -   **front()** - Returns the element at the front of the queue. If the queue is empty, it returns \`-1\`.
-> -   **back()** - Returns the element at the back of the queue. If the queue is empty, it returns \`-1\`.
-> -   **enqueue(int val)** - Adds the given value to the queue and returns \`true\` if the operation is successful. Returns \`false\` if the queue is full.
-> -   **dequeue()** - Removes the front element from the queue and returns its value. If the queue is empty, it returns \`-1\`.
+> -   **`Queue(int capacity)`** — initialise the queue with the given capacity.
+> -   **`size()`** — return the current size of the queue.
+> -   **`empty()`** — return `true` if the queue is empty, else `false`.
+> -   **`front()`** — return the front element; if empty, return `-1`.
+> -   **`back()`** — return the back element; if empty, return `-1`.
+> -   **`enqueue(int val)`** — add `val` at the back; return `true` if successful, `false` if full.
+> -   **`dequeue()`** — remove and return the front element; if empty, return `-1`.
 
-// Diagram: You must abide by the following constraints
+## Constraints
 
-1. Use an **array as the internal data structure** to store data and implement this class.
+1. Use **a single fixed-size array** as the internal data structure. No additional containers, no nodes.
+2. The implementation **must be circular** — every vacated slot must be reusable before the queue declares itself full.
 
-2\. The implementation **should be circular in nature**, i.e., all the vacant positions of the internal array must be filled before declaring the queue empty.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A0["[0] 17"] --> A1["[1] —"] --> A2["[2] —"] --> A3["[3] 7"] --> A4["[4] 11"] --> A5["[5] 13"] -->|"wrap"| A0
+    style A3 fill:#dcfce7,stroke:#22c55e
+    style A0 fill:#fef9c3,stroke:#f59e0b
+```
 
-// Diagram: Implementation of a circular queue using an array
+<p align="center"><strong>Circular queue layout — front=3, back=0 (wrapped), logical order 7→11→13→17. Every slot is reachable; the array is reused indefinitely as long as the size never exceeds capacity.</strong></p>
 
-> The input should adhere to the following rules:
+## Worked Example
+
+> **Input** (operations array, operands array):
 >
-> 1.  The input should contain two arrays of the same size.
-> 2.  The first array should contain the list of operations, while the second should contain the corresponding operands for those operations.
-> 3.  The first index in the first array should contain **Queue**, and the first index in the second array should contain a single positive integer representing the capacity of the queue. This value is used to initialise the queue.
-> 4.  For each index in the first array that contains the **enqueue** operation, the corresponding index in the second array should contain the value that needs to be pushed.
-> 5.  For each index in the first array that contains **size**, **empty**, **front**, **back**, or **dequeue** operations, the corresponding index in the second array should contain an empty array.
+> `[Queue, enqueue, back, enqueue, front, empty, dequeue, front, enqueue, enqueue, empty]`
 >
-> **Example:**
+> `[[2], [2], [], [3], [], [], [], [], [8], [9], []]`
 >
-> -   **Input:** \[Queue, enqueue, back, enqueue, front, empty, dequeue, front, enqueue, enqueue, empty\] \[\[2\], \[2\], \[\], \[3\], \[\], \[\], \[\], \[\], \[8\], \[9\], \[\]\]
+> **Expected Output:**
 >
-> -   **Output:** \[null, true, 2, true, 2, false, 2, 3, true, false, false\]
+> `[null, true, 2, true, 2, false, 2, 3, true, false, false]`
 >
-> **Explanation:**
+> **Trace:**
 >
-> **Operation:** Queue queue = new Queue(2) **Result:** Initializes an empty \`Queue\` with a capacity of 2
->
-> **Operation:** queue.enqueue(2) **Result:** \`queue = \[2\]\`, returns \`true\`
->
-> **Operation:** queue.back() **Result:** \`queue = \[2\]\`, returns \`2\`
->
-> **Operation:** queue.enqueue(3) **Result:** \`queue = \[2, 3\]\`, returns \`true\`
->
-> **Operation:** queue.front() **Result:** \`queue = \[2, 3\]\`, returns \`2\`
->
-> **Operation:** queue.empty() **Result:** \`queue = \[2, 3\]\`, returns \`false\`
->
-> **Operation:** queue.dequeue() **Result:** \`queue = \[3\]\`, returns \`2\`
->
-> **Operation:** queue.front() **Result:** \`queue = \[3\]\`, returns \`3\`
->
-> **Operation:** queue.enqueue(8) **Result:** \`queue = \[3, 8\]\`, returns \`true\`
->
-> **Operation:** queue.enqueue(9) **Result:** \`queue = \[3, 8\]\`, queue is full, returns \`false\`
->
-> **Operation:** queue.empty() **Result:** \`queue = \[3, 8\]\`, returns \`false\`
+> | Op | Result | Queue state |
+> |---|---|---|
+> | `Queue(2)` | — | `[]`  (capacity 2) |
+> | `enqueue(2)` | `true` | `[2]` |
+> | `back()` | `2` | `[2]` |
+> | `enqueue(3)` | `true` | `[2, 3]` (full) |
+> | `front()` | `2` | `[2, 3]` |
+> | `empty()` | `false` | `[2, 3]` |
+> | `dequeue()` | `2` | `[3]` |
+> | `front()` | `3` | `[3]` |
+> | `enqueue(8)` | `true` | `[3, 8]` (full again) |
+> | `enqueue(9)` | `false` | `[3, 8]` (rejected — full) |
+> | `empty()` | `false` | `[3, 8]` |
 
 ## Solution
 
-```cpp
-using namespace std;
+<div class="lang-tabs">
+
+```python,editable
+class Queue:
+    def __init__(self, capacity: int):
+        self.capacity     = capacity
+        self.arr          = [0] * capacity
+        self.front_index  = 0
+        self.back_index   = -1
+        self.current_size = 0
+
+    def size(self):  return self.current_size
+    def empty(self): return self.current_size == 0
+    def front(self): return -1 if self.empty() else self.arr[self.front_index]
+    def back(self):  return -1 if self.empty() else self.arr[self.back_index]
+    def enqueue(self, v):
+        if self.current_size == self.capacity: return False
+        self.back_index           = (self.back_index + 1) % self.capacity
+        self.arr[self.back_index] = v
+        self.current_size        += 1
+        return True
+    def dequeue(self):
+        if self.empty(): return -1
+        v = self.arr[self.front_index]
+        self.front_index  = (self.front_index + 1) % self.capacity
+        self.current_size -= 1
+        return v
+
+# Boss-fight demo
+q = Queue(2)
+print(q.enqueue(2), q.back())       # True 2
+print(q.enqueue(3), q.front())      # True 2
+print(q.empty())                    # False
+print(q.dequeue(), q.front())       # 2 3
+print(q.enqueue(8), q.enqueue(9))   # True False (full)
+print(q.empty())                    # False
+```
+
+```java,editable
+public class Main {
+    static class Queue {
+        private final int[] arr;
+        private final int   capacity;
+        private int frontIndex = 0, backIndex = -1, currentSize = 0;
+        Queue(int capacity) {
+            this.capacity = capacity;
+            this.arr      = new int[capacity];
+        }
+        int     size()        { return currentSize; }
+        boolean empty()       { return currentSize == 0; }
+        int     front()       { return empty() ? -1 : arr[frontIndex]; }
+        int     back()        { return empty() ? -1 : arr[backIndex]; }
+        boolean enqueue(int v) {
+            if (currentSize == capacity) return false;
+            backIndex      = (backIndex + 1) % capacity;
+            arr[backIndex] = v;
+            currentSize++;
+            return true;
+        }
+        int dequeue() {
+            if (empty()) return -1;
+            int v       = arr[frontIndex];
+            frontIndex  = (frontIndex + 1) % capacity;
+            currentSize--;
+            return v;
+        }
+    }
+    public static void main(String[] args) {
+        Queue q = new Queue(2);
+        System.out.println(q.enqueue(2) + " " + q.back());
+        System.out.println(q.enqueue(3) + " " + q.front());
+        System.out.println(q.empty());
+        System.out.println(q.dequeue() + " " + q.front());
+        System.out.println(q.enqueue(8) + " " + q.enqueue(9));
+        System.out.println(q.empty());
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
+typedef struct {
+    int *arr;
+    int  capacity, frontIndex, backIndex, currentSize;
+} Queue;
+
+Queue* queue_create(int c) {
+    Queue *q = malloc(sizeof(*q));
+    q->arr = malloc(sizeof(int) * c);
+    q->capacity = c; q->frontIndex = 0; q->backIndex = -1; q->currentSize = 0;
+    return q;
+}
+int  queue_size (Queue *q){ return q->currentSize; }
+bool queue_empty(Queue *q){ return q->currentSize == 0; }
+int  queue_front(Queue *q){ return queue_empty(q) ? -1 : q->arr[q->frontIndex]; }
+int  queue_back (Queue *q){ return queue_empty(q) ? -1 : q->arr[q->backIndex]; }
+bool queue_enqueue(Queue *q, int v) {
+    if (q->currentSize == q->capacity) return false;
+    q->backIndex          = (q->backIndex + 1) % q->capacity;
+    q->arr[q->backIndex]  = v;
+    q->currentSize++;
+    return true;
+}
+int  queue_dequeue(Queue *q) {
+    if (queue_empty(q)) return -1;
+    int v          = q->arr[q->frontIndex];
+    q->frontIndex  = (q->frontIndex + 1) % q->capacity;
+    q->currentSize--;
+    return v;
+}
+
+int main() {
+    Queue *q = queue_create(2);
+    printf("%d %d\n", queue_enqueue(q,2), queue_back(q));
+    printf("%d %d\n", queue_enqueue(q,3), queue_front(q));
+    printf("%d\n",    queue_empty(q));
+    printf("%d %d\n", queue_dequeue(q), queue_front(q));
+    printf("%d %d\n", queue_enqueue(q,8), queue_enqueue(q,9));
+    printf("%d\n",    queue_empty(q));
+    free(q->arr); free(q);
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
 
 class Queue {
+    std::vector<int> arr;
+    int frontIndex = 0, backIndex = -1, currentSize = 0, capacity;
 public:
-
-    // Pointer to the dynamic array representing the queue
-    int *arr;
-
-    // Maximum capacity of the queue
-    int capacity;
-
-    // Index of the front element in the queue
-    int frontIndex;
-
-    // Index of the back element in the queue
-    int backIndex;
-
-    // Current number of elements in the queue
-    int currentSize;
-
-    Queue(int capacity) {
-        this->capacity = capacity;
-
-        // Allocating memory for the queue
-        this->arr = new int[capacity];
-
-        // Initializing front index to 0
-        this->frontIndex = 0;
-
-        // Initializing back index to -1
-        this->backIndex = -1;
-
-        // Initializing current size to 0
-        this->currentSize = 0;
-    }
-
-    int size() {
-
-        // Returns the current size of the queue
-        return currentSize;
-    }
-
-    bool empty() {
-
-        // Returns true if the queue is empty, false otherwise
-        return size() == 0;
-    }
-
-    int front() {
-        if (empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the front of the queue
-        return arr[frontIndex];
-    }
-
-    int back() {
-        if (empty()) {
-
-            // Returns -1 if the queue is empty
-            return -1;
-        }
-
-        // Returns the element at the back of the queue
-        return arr[backIndex];
-    }
-
-    bool enqueue(int val) {
-        if (currentSize == capacity) {
-
-            // Returns false if the queue is full and cannot enqueue more
-            // elements
-            return false;
-        }
-
-        // Calculates the next back index in a circular manner
-        backIndex = (backIndex + 1) % capacity;
-
-        // Inserts the new element at the back of the queue
-        arr[backIndex] = val;
-
-        // Increments the current size
+    Queue(int c) : arr(c), capacity(c) {}
+    int  size()  { return currentSize; }
+    bool empty() { return currentSize == 0; }
+    int  front() { return empty() ? -1 : arr[frontIndex]; }
+    int  back()  { return empty() ? -1 : arr[backIndex]; }
+    bool enqueue(int v) {
+        if (currentSize == capacity) return false;
+        backIndex      = (backIndex + 1) % capacity;
+        arr[backIndex] = v;
         currentSize++;
-
-        // Returns true to indicate successful enqueue operation
         return true;
     }
-
     int dequeue() {
-        if (empty()) {
-
-            // Returns -1 if the queue is empty and cannot dequeue
-            // elements
-            return -1;
-        }
-
-        // Stores the element to be dequeued
-        int dequeuedElement = arr[frontIndex];
-
-        // Calculates the next front index in a circular manner
-        frontIndex = (frontIndex + 1) % capacity;
-
-        // Decrements the current size
+        if (empty()) return -1;
+        int v       = arr[frontIndex];
+        frontIndex  = (frontIndex + 1) % capacity;
         currentSize--;
-
-        // Returns the dequeued element
-        return dequeuedElement;
+        return v;
     }
 };
+
+int main() {
+    Queue q(2);
+    std::cout << q.enqueue(2) << " " << q.back()  << "\n";
+    std::cout << q.enqueue(3) << " " << q.front() << "\n";
+    std::cout << q.empty() << "\n";
+    std::cout << q.dequeue() << " " << q.front() << "\n";
+    std::cout << q.enqueue(8) << " " << q.enqueue(9) << "\n";
+    std::cout << q.empty() << "\n";
+}
 ```
+
+```scala,editable
+class Queue(val capacity: Int) {
+  private val arr   = new Array[Int](capacity)
+  private var f     = 0
+  private var b     = -1
+  private var n     = 0
+
+  def size:  Int     = n
+  def empty: Boolean = n == 0
+  def front: Int     = if (empty) -1 else arr(f)
+  def back:  Int     = if (empty) -1 else arr(b)
+  def enqueue(v: Int): Boolean = {
+    if (n == capacity) return false
+    b      = (b + 1) % capacity
+    arr(b) = v
+    n     += 1
+    true
+  }
+  def dequeue: Int = {
+    if (empty) return -1
+    val v = arr(f)
+    f     = (f + 1) % capacity
+    n    -= 1
+    v
+  }
+}
+
+object Main extends App {
+  val q = new Queue(2)
+  println(s"${q.enqueue(2)} ${q.back}")
+  println(s"${q.enqueue(3)} ${q.front}")
+  println(q.empty)
+  println(s"${q.dequeue} ${q.front}")
+  println(s"${q.enqueue(8)} ${q.enqueue(9)}")
+  println(q.empty)
+}
+```
+
+```javascript,editable
+class Queue {
+    constructor(capacity) {
+        this.capacity     = capacity;
+        this.arr          = new Array(capacity).fill(0);
+        this.frontIndex   = 0;
+        this.backIndex    = -1;
+        this.currentSize  = 0;
+    }
+    size()  { return this.currentSize; }
+    empty() { return this.currentSize === 0; }
+    front() { return this.empty() ? -1 : this.arr[this.frontIndex]; }
+    back()  { return this.empty() ? -1 : this.arr[this.backIndex]; }
+    enqueue(v) {
+        if (this.currentSize === this.capacity) return false;
+        this.backIndex             = (this.backIndex + 1) % this.capacity;
+        this.arr[this.backIndex]   = v;
+        this.currentSize++;
+        return true;
+    }
+    dequeue() {
+        if (this.empty()) return -1;
+        const v          = this.arr[this.frontIndex];
+        this.frontIndex  = (this.frontIndex + 1) % this.capacity;
+        this.currentSize--;
+        return v;
+    }
+}
+
+const q = new Queue(2);
+console.log(q.enqueue(2), q.back());
+console.log(q.enqueue(3), q.front());
+console.log(q.empty());
+console.log(q.dequeue(), q.front());
+console.log(q.enqueue(8), q.enqueue(9));
+console.log(q.empty());
+```
+
+```typescript,editable
+class Queue {
+    private capacity:    number;
+    private arr:         number[];
+    private frontIndex   = 0;
+    private backIndex    = -1;
+    private currentSize  = 0;
+    constructor(capacity: number) {
+        this.capacity = capacity;
+        this.arr      = new Array(capacity).fill(0);
+    }
+    size():  number  { return this.currentSize; }
+    empty(): boolean { return this.currentSize === 0; }
+    front(): number  { return this.empty() ? -1 : this.arr[this.frontIndex]; }
+    back():  number  { return this.empty() ? -1 : this.arr[this.backIndex]; }
+    enqueue(v: number): boolean {
+        if (this.currentSize === this.capacity) return false;
+        this.backIndex             = (this.backIndex + 1) % this.capacity;
+        this.arr[this.backIndex]   = v;
+        this.currentSize++;
+        return true;
+    }
+    dequeue(): number {
+        if (this.empty()) return -1;
+        const v          = this.arr[this.frontIndex];
+        this.frontIndex  = (this.frontIndex + 1) % this.capacity;
+        this.currentSize--;
+        return v;
+    }
+}
+
+const q = new Queue(2);
+console.log(q.enqueue(2), q.back());
+console.log(q.enqueue(3), q.front());
+console.log(q.empty());
+console.log(q.dequeue(), q.front());
+console.log(q.enqueue(8), q.enqueue(9));
+console.log(q.empty());
+```
+
+```go,editable
+package main
+import "fmt"
+
+type Queue struct {
+    arr                                          []int
+    capacity, frontIndex, backIndex, currentSize int
+}
+
+func NewQueue(c int) *Queue {
+    return &Queue{arr: make([]int, c), capacity: c, frontIndex: 0, backIndex: -1, currentSize: 0}
+}
+func (q *Queue) Size()  int  { return q.currentSize }
+func (q *Queue) Empty() bool { return q.currentSize == 0 }
+func (q *Queue) Front() int  { if q.Empty() { return -1 }; return q.arr[q.frontIndex] }
+func (q *Queue) Back()  int  { if q.Empty() { return -1 }; return q.arr[q.backIndex] }
+func (q *Queue) Enqueue(v int) bool {
+    if q.currentSize == q.capacity { return false }
+    q.backIndex          = (q.backIndex + 1) % q.capacity
+    q.arr[q.backIndex]   = v
+    q.currentSize++
+    return true
+}
+func (q *Queue) Dequeue() int {
+    if q.Empty() { return -1 }
+    v             := q.arr[q.frontIndex]
+    q.frontIndex   = (q.frontIndex + 1) % q.capacity
+    q.currentSize--
+    return v
+}
+
+func main() {
+    q := NewQueue(2)
+    fmt.Println(q.Enqueue(2), q.Back())
+    fmt.Println(q.Enqueue(3), q.Front())
+    fmt.Println(q.Empty())
+    fmt.Println(q.Dequeue(), q.Front())
+    fmt.Println(q.Enqueue(8), q.Enqueue(9))
+    fmt.Println(q.Empty())
+}
+```
+
+```kotlin,editable
+class Queue(private val capacity: Int) {
+    private val arr         = IntArray(capacity)
+    private var frontIndex  = 0
+    private var backIndex   = -1
+    private var currentSize = 0
+
+    fun size():  Int     = currentSize
+    fun empty(): Boolean = currentSize == 0
+    fun front(): Int     = if (empty()) -1 else arr[frontIndex]
+    fun back():  Int     = if (empty()) -1 else arr[backIndex]
+    fun enqueue(v: Int): Boolean {
+        if (currentSize == capacity) return false
+        backIndex       = (backIndex + 1) % capacity
+        arr[backIndex]  = v
+        currentSize++
+        return true
+    }
+    fun dequeue(): Int {
+        if (empty()) return -1
+        val v       = arr[frontIndex]
+        frontIndex  = (frontIndex + 1) % capacity
+        currentSize--
+        return v
+    }
+}
+
+fun main() {
+    val q = Queue(2)
+    println("${q.enqueue(2)} ${q.back()}")
+    println("${q.enqueue(3)} ${q.front()}")
+    println(q.empty())
+    println("${q.dequeue()} ${q.front()}")
+    println("${q.enqueue(8)} ${q.enqueue(9)}")
+    println(q.empty())
+}
+```
+
+```rust,editable
+pub struct Queue {
+    arr:           Vec<i32>,
+    capacity:      usize,
+    front_index:   usize,
+    back_index:    i32,
+    current_size:  usize,
+}
+
+impl Queue {
+    pub fn new(capacity: usize) -> Self {
+        Queue { arr: vec![0; capacity], capacity, front_index: 0, back_index: -1, current_size: 0 }
+    }
+    pub fn size(&self)  -> usize { self.current_size }
+    pub fn empty(&self) -> bool  { self.current_size == 0 }
+    pub fn front(&self) -> i32   { if self.empty() { -1 } else { self.arr[self.front_index] } }
+    pub fn back(&self)  -> i32   { if self.empty() { -1 } else { self.arr[self.back_index as usize] } }
+    pub fn enqueue(&mut self, v: i32) -> bool {
+        if self.current_size == self.capacity { return false; }
+        self.back_index = (self.back_index + 1).rem_euclid(self.capacity as i32);
+        self.arr[self.back_index as usize] = v;
+        self.current_size += 1;
+        true
+    }
+    pub fn dequeue(&mut self) -> i32 {
+        if self.empty() { return -1; }
+        let v = self.arr[self.front_index];
+        self.front_index = (self.front_index + 1) % self.capacity;
+        self.current_size -= 1;
+        v
+    }
+}
+
+fn main() {
+    let mut q = Queue::new(2);
+    println!("{} {}", q.enqueue(2), q.back());
+    println!("{} {}", q.enqueue(3), q.front());
+    println!("{}",    q.empty());
+    println!("{} {}", q.dequeue(), q.front());
+    println!("{} {}", q.enqueue(8), q.enqueue(9));
+    println!("{}",    q.empty());
+}
+```
+
+</div>
+
+***
+
+## Final Takeaway
+
+A circular array queue is *the* canonical bounded-FIFO data structure — every operation is O(1), no allocation per call, perfect cache locality, and it composes beautifully with hardware features (DMA ring buffers, lock-free ring buffers, the entire networking stack).
+
+1. **Two indices, one modulo.** Front and back both march forward; `(idx + 1) % capacity` is the only thing that distinguishes a queue's array from a stack's array. Once you internalise that line, the whole implementation is bookkeeping.
+2. **Maintain `currentSize` separately.** It's the only unambiguous way to distinguish *empty* from *full* on a circular buffer. Trying to derive size from the index gap leads to off-by-one bugs and subtle ring-buffer puzzles (the "leave one slot empty" trick is one workaround; just storing the size is simpler).
+3. **The trade-off is bounded capacity.** A circular array queue cannot grow without copying. If you need an unbounded queue, you either (a) use a linked list — next lesson — or (b) implement a *growable* ring buffer that reallocates and re-rolls when full. The bounded version is what you want for back-pressure-aware producers, fixed-memory environments (kernels, embedded), and lock-free designs.
+
+> *Coming up — the linked-list implementation. Same interface, different trade-offs: O(1) enqueue and dequeue without amortisation, unbounded by default, but each node costs a heap allocation and pointer chasing destroys cache locality. The lesson after that pits stacks and queues against each other in two design problems that test whether you really understand the FIFO contract.*
