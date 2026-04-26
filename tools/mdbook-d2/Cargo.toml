@@ -1,0 +1,15 @@
+[package]
+name = "mdbook-d2"
+version = "0.1.0"
+edition = "2021"
+description = "mdbook preprocessor that renders ```d2 fenced blocks to inline SVG via kroki.io at build time"
+publish = false
+
+[dependencies]
+serde_json = "1"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true

@@ -15,7 +15,8 @@ RUN apk add --no-cache \
       openssl-dev \
       musl-dev \
       ca-certificates \
-      binutils
+      binutils \
+      curl
 
 RUN cargo install mdbook --version "${MDBOOK_VERSION}" --locked \
  && strip /usr/local/cargo/bin/mdbook || true
@@ -26,6 +27,12 @@ WORKDIR /app
 FROM mdbook-tools AS build
 
 COPY . .
+
+# Build & install the local mdbook-d2 preprocessor so `mdbook build` finds it on PATH.
+# It POSTs each ```d2 fenced block to kroki.io at build time and inlines the
+# returned SVG, so reader browsers never call kroki.
+RUN cargo install --path tools/mdbook-d2 --locked \
+ && strip /usr/local/cargo/bin/mdbook-d2 || true
 
 RUN mdbook build
 
