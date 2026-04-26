@@ -1,1252 +1,1279 @@
-# Pattern: Postorder traversal (Stateful)
+# 11. Pattern: Postorder Traversal (Stateful)
 
-## Table of Contents
+## The Hook
 
-1. [Understanding the stateful postorder traversal pattern](#understanding-the-stateful-postorder-traversal-pattern)
-2. [Identifying the stateful postorder traversal pattern](#identifying-the-stateful-postorder-traversal-pattern)
-3. [Diameter of tree](#diameter-of-tree)
-4. [Descendants sum count](#descendants-sum-count)
-5. [Distribute coins](#distribute-coins)
-6. [Most frequent subtree sum](#most-frequent-subtree-sum)
-7. [Longest monotonic path](#longest-monotonic-path)
-8. [Monotonic subtree count](#monotonic-subtree-count)
-9. [Path sum count](#path-sum-count)
+The previous lesson handled problems where each subtree returned **one** number to its parent and the parent combined the two children's numbers into a new one. That worked for height, sum, and similar single-value rollups. But there's a class of problems where the recursion needs to compute **two** things at once: a value to *return* to the parent (the "feed-up" answer) and a value to *track globally* (the "best-so-far" answer).
+
+The classic example is **diameter of a binary tree** — the longest path between any two nodes. At every node, the diameter could either:
+- *Pass through* this node (length = leftHeight + rightHeight), or
+- Live *entirely within* one of the subtrees (length = whatever the subtree's diameter was).
+
+So each call needs to *return* its own height (so the parent can compute its diameter), and *update a global maximum* with the best diameter seen so far. One value flows up the recursion; the other accumulates as a side effect. Two channels, one traversal.
+
+This is the **stateful postorder pattern**. Same postorder traversal as the previous lesson, but augmented with a *shared mutable* (a global counter, a hash map, a tuple of running stats) that each call updates as the recursion bubbles up. The state is *not* pushed and popped per node — it monotonically grows or refines as we go. That's the structural difference from stateful *preorder* (lesson 9): preorder mutates and undoes; postorder mutates and accumulates.
+
+This pattern unlocks a wide range of problems: tree diameter, longest mono-value paths, "count subtrees with property X", "distribute coins along edges", "find subtree sums with the highest frequency", and dozens of similar "two answers per node" problems. This lesson walks through the seven canonical examples, each with implementations in 10 languages.
+
+---
+
+## Table of contents
+
+1. [The stateful postorder pattern](#the-stateful-postorder-pattern)
+2. [How to recognise it](#how-to-recognise-it)
+3. [Problem 1 — Diameter of tree](#problem-1--diameter-of-tree)
+4. [Problem 2 — Descendants sum count](#problem-2--descendants-sum-count)
+5. [Problem 3 — Distribute coins](#problem-3--distribute-coins)
+6. [Problem 4 — Most frequent subtree sum](#problem-4--most-frequent-subtree-sum)
+7. [Problem 5 — Longest monotonic path](#problem-5--longest-monotonic-path)
+8. [Problem 6 — Monotonic subtree count](#problem-6--monotonic-subtree-count)
+9. [Problem 7 — Path sum count](#problem-7--path-sum-count)
 
 ***
 
-# Understanding the stateful postorder traversal pattern
+# The stateful postorder pattern
 
-The stateless postorder traversal can only share data between nodes by passing a copy of processed values up from the child nodes to the parent node. However, there are some problems where, to process a node, we may also need to read or update some state variables that can be accessed from all nodes. The stateful postorder traversal is ideal for solving such problems, as the same copy data is shared between all nodes throughout the traversal, which can be read or updated when returned values from the left and right subtrees are aggregated in a node.
+```text
+recurse(node):
+  if node is null: return baseCase
+  leftAnswer  = recurse(node.left)
+  rightAnswer = recurse(node.right)
 
-The stateful postorder traversal pattern is a classification of problems that can be solved using the stateful postorder traversal technique.
+  # ★ side-channel update: refine global state using leftAnswer, rightAnswer, node
+  globalState = update(globalState, leftAnswer, rightAnswer, node)
 
-// Diagram: The order of processing of nodes in postorder traversal
-
-In this lesson, we will learn more about using the stateful postorder traversal technique to solve binary tree problems and how to identify a problem as a postorder pattern problem.
-
-## The stateful postorder traversal technique
-
-Consider we are given a binary tree, and to process a node, we need the aggregated value of a function `f` over all the nodes in its subtree, and also update a state variable `state` that is shared between all the nodes using the aggregated value and a function `g`.
-
-// Diagram: Update using and
-
-We only need to do a slight modification to the postorder traversal technique. We can either pass the state variables as references to the postorder function call or create global variables in the enclosing scope so that they are shared across all nodes. For this example, we will pass the state variables as a reference.
-
-We create a variable `state` in the calling function and initialize it with some default value. We then start the postorder traversal from the root node and pass the variable `state` as a reference. When processing a node, we store the values returned by the left and right subtrees in local variables `left` and `right` and aggregate them with the contribution of the current node using the function `f` in another local variable `aggregate`. We then update the value of the variable `state` using `aggregate` and function `g` and pass back the aggregated value `aggregate` to the parent node.
-
-This way, at the end of postorder traversal, every node in the tree is processed with the aggregated value of the function `f` over all nodes in its subtree, and the state variable `state` is updated with each processed value. Also, the aggregated value of the function `f` over all nodes in the tree is returned from the postorder call since the top-level node is the root node.
-
-// Diagram: Stateful postorder traversal using function f and g
-
-### Algorithm
-
-The generic algorithm given below uses postorder traversal to process every node by using the aggregated value of a function `f` over all nodes in its subtree while also updating the state variable `state` every time.
-
-The state variable is passed as a reference in this example, but for cases when that is not possible, the state variables can be created as globals in the enclosing  scope.
-
-> **Algorithm**
->
-> -   **Step 1:** Create a state variable \`state\` and initialize it to a default value
-> -   **Step 2:** Call \`postorder(root, state)\`
->
-> **postorder(node, \[ref\] state)**
->
-> -   **Step 1:** If this is a \`null\` node, return a default value
-> -   **Step 2:** \`left\` = Call \`postorder(node.left, state)\`
-> -   **Step 3:** \`right\` = Call \`postorder(node.right, state)\`
-> -   **Step 4:** Aggregate all values together: \`aggregate = \`f(left, right, node.val)\`
-> -   **Step 5:** \`state\` = \`g(state, aggregate)\`
-> -   **Step 5:** Return \`aggregate\`
-
-### Implementation
-
-The implementation of the stateful postorder traversal technique is given below. We create the state variables (`state` in this case) in the calling function and pass them to the postorder function call as a reference. However, every node has its own copy of the local variables `left`, `right` and `aggregate` that are unaffected by execution in other nodes.
-
-For languages where we cannot pass the state variables as references, we create them as global variables in the enclosing scope to share them between all nodes.
-
-C++
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    int callingFunction(TreeNode* root) {
-
-        // Initialize state variable with a default value
-        int state = 0;
-
-        // Traverse the binary tree in postorder passing state variable as reference
-        postorder(root, state);
-
-    }
-    int postorder(TreeNode *node, int& state) {
-
-        if (!node) {
-            // Return if this is a null node;
-            return 0;
-        }
-
-        // Pass the new aggregated value down
-        int left = postorder(node->left);
-        int right = postorder(node->right);
-
-        // Process the node with left and right values
-        // Replace this with actual implementation
-        // .
-
-        // Add contribution of current node
-        int aggregate = f(left, right, node->val);
-
-        // Update the state variable
-        state = g(state, aggregate);
-
-        // Pass back the aggregated value to the parent node
-        return aggregate;
-
-    }
-};
+  return feedUp(leftAnswer, rightAnswer, node)
 ```
 
-Java
+Two distinct things happen at each node:
 
-```java
-import java.util.*;
+1. **Side-channel update** — refine a global accumulator using the children's results and the current node. This is what your *answer* is built from.
+2. **Feed-up** — return some value to the parent. This is what enables the *next* level up to do its own update.
 
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
+The genius of the pattern is that the value returned to the parent and the value tracked globally **don't have to be the same**. In the diameter problem, the function returns *height* (so the parent can extend the path through it), but it tracks *diameter* (the global best). One traversal, two answers.
 
-class Solution {
-    // Class variable to maintain shared state across all nodes
-    private int state = 0;
-
-    public void callingFunction(TreeNode root) {
-        // Initialize state variable with a default value
-        state = 0;
-
-        // Traverse the binary tree in postorder, updating state variable
-        postorder(root);
-    }
-
-    private int postorder(TreeNode node) {
-        if (node == null) {
-            // Return if this is a null node;
-            return 0;
-        }
-
-        // Pass the new aggregated value down
-        int left = postorder(node.left);
-        int right = postorder(node.right);
-
-        // Process the node with left and right values
-        // Replace this with actual implementation
-        // .
-
-        // Add contribution of the current node
-        int aggregate = f(left, right, node.val);
-
-        // Update the shared state variable
-        state = g(state, aggregate);
-
-        // Pass back the aggregated value to the parent node
-        return aggregate;
-    }
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    R(("(1)<br/>height returned: 3<br/>diameter tracked: 4"))
+    A(("(2)<br/>height: 2"))
+    B(("(3)<br/>height: 2"))
+    C(("(4)<br/>height: 1"))
+    D(("(7)<br/>height: 1"))
+    R --> A
+    R --> B
+    A --> C
+    B --> D
+    style R fill:#fef9c3,stroke:#f59e0b
 ```
 
-Typescript
+<p align="center"><strong>Stateful postorder for diameter — each call returns its <em>height</em> to the parent (so the parent can compute its own); separately, each call updates a global <em>maxDiameter</em> with <code>leftHeight + rightHeight</code>. Two answers per call, one traversal.</strong></p>
 
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
+> **Why is the global state safe to share?** Because postorder updates are *monotone* — typically a `max` or `min` or a counter `+= 1`. Order of updates doesn't matter, and there's no need for "undo" because no later subtree's result can invalidate an earlier one's. This is the structural difference from stateful preorder (lesson 9), where state had to be pushed and popped to keep sibling subtrees from polluting each other.
 
-export class Solution {
-  private state: number = 0; // Class-level variable to be shared across all nodes
+## Generic pattern in 10 languages
 
-  callingFunction(root: TreeNode | null): void {
-    // Initialize state variable with a default value
-    this.state = 0;
+The template — diameter of a tree, since it's the canonical example.
 
-    // Traverse the binary tree in postorder passing state as a class-level variable
-    this.postorder(root);
-  }
+<div class="lang-tabs">
 
-  private postorder(node: TreeNode | null): number {
-    if (!node) {
-      // Return if this is a null node;
-      return 0;
-    }
+```python,editable
+from typing import Optional
 
-    // Pass the new aggregated value down
-    const left = this.postorder(node.left);
-    const right = this.postorder(node.right);
-
-    // Process the node with left and right values
-    // Replace this with actual implementation
-    // .
-
-    // Add contribution of current node
-    const aggregate = this.f(left, right, node.val);
-
-    // Update the state variable
-    this.state = this.g(this.state, aggregate);
-
-    // Pass back the aggregated value to the parent node
-    return aggregate;
-  }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-  state = 0; // Class-level variable to be shared across all nodes
-
-  callingFunction(root) {
-    // Initialize state variable with a default value
-    this.state = 0;
-
-    // Traverse the binary tree in postorder passing state as a class-level variable
-    this.postorder(root);
-  }
-
-  postorder(node) {
-    if (!node) {
-      // Return if this is a null node;
-      return 0;
-    }
-
-    // Pass the new aggregated value down
-    const left = this.postorder(node.left);
-    const right = this.postorder(node.right);
-
-    // Process the node with left and right values
-    // Replace this with actual implementation
-    // .
-
-    // Add contribution of current node
-    const aggregate = this.f(left, right, node.val);
-
-    // Update the state variable
-    this.state = this.g(this.state, aggregate);
-
-    // Pass back the aggregated value to the parent node
-    return aggregate;
-  }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
 class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
+    def __init__(self, val=0, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
 
-// Diagram: from typing import Optional, List
-
-class Solution:
-    def __init__(self):
-        # Initialize state variable as a class-level attribute
-        self.state = 0
-
-    def calling_function(self, root: Optional[TreeNode]) -> None:
-        # Reset state before traversal
-        self.state = 0
-
-        # Traverse the binary tree in postorder
-        self.postorder(root)
-
-    def postorder(self, node: Optional[TreeNode]) -> int:
-        if not node:
-            # Return if this is a null node;
-            return 0
-
-        # Pass the new aggregated value down
-        left = self.postorder(node.left)
-        right = self.postorder(node.right)
-
-        # Process the node with left and right values
-        # Replace this with actual implementation
-        # .
-
-        # Add contribution of current node
-        aggregate = self.f(left, right, node.val)
-
-        # Update the state variable
-        self.state = self.g(self.state, aggregate)
-
-        # Pass back the aggregated value to the parent node
-        return aggregate
+def diameter(root: Optional[TreeNode]) -> int:
+    best = [0]                                      # global state (in a list to mutate from inner fn)
+    def height(node):
+        if node is None: return 0
+        l = height(node.left); r = height(node.right)
+        best[0] = max(best[0], l + r)               # update global state (diameter)
+        return 1 + max(l, r)                        # return height to parent
+    height(root)
+    return best[0]
 ```
 
-### Complexity Analysis
+```java,editable
+static int best;
+static int height(TreeNode n) {
+    if (n == null) return 0;
+    int l = height(n.left), r = height(n.right);
+    best = Math.max(best, l + r);                   // update global state
+    return 1 + Math.max(l, r);                      // return height
+}
+public static int diameter(TreeNode root) {
+    best = 0;
+    height(root);
+    return best;
+}
+```
 
-It is quite easy to figure out the time and space complexity of the solution. We traverse the entire tree using the postorder traversal that takes linear **O(N)** time and apply the function `f` on every node. And so, the overall time complexity depends on the time complexity of the function `f`. Considering it is a constant time **O(1)** operation, the overall time complexity is linear **O(N)** in any case.
+```c,editable
+static int g_best;
+int height(TreeNode *n) {
+    if (!n) return 0;
+    int l = height(n->left), r = height(n->right);
+    if (l + r > g_best) g_best = l + r;
+    return 1 + (l > r ? l : r);
+}
+int diameter(TreeNode *root) { g_best = 0; height(root); return g_best; }
+```
 
-The space complexity of postorder traversal depends on the maximum size of the function call stack, which can be linear **O(N)** if the tree is a degenerate binary tree where every node only has one child and **O(log(N))** if it is a height-balanced binary tree. There is only one shared copy of state variables, which only makes a constant contribution to the entire run, so we can ignore it. Each stack frame also creates its copy of local variables, but each of them only makes a constant contribution to the size of the frame, so the overall space complexity is the same as the space required for the stack frames.
+```cpp,editable
+int g_best;
+int height(TreeNode *n) {
+    if (!n) return 0;
+    int l = height(n->left), r = height(n->right);
+    g_best = std::max(g_best, l + r);
+    return 1 + std::max(l, r);
+}
+int diameter(TreeNode *root) { g_best = 0; height(root); return g_best; }
+```
 
-> **Best Case:** Height balanced binary tree
->
-> -   Space Complexity - **O(log(N))**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case:** Degenerate tree
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
+```scala,editable
+def diameter(root: TreeNode): Int = {
+  var best = 0
+  def height(n: TreeNode): Int = {
+    if (n == null) return 0
+    val l = height(n.left); val r = height(n.right)
+    best = math.max(best, l + r)
+    1 + math.max(l, r)
+  }
+  height(root); best
+}
+```
+
+```javascript,editable
+function diameter(root) {
+    let best = 0;
+    function height(n) {
+        if (!n) return 0;
+        const l = height(n.left), r = height(n.right);
+        best = Math.max(best, l + r);
+        return 1 + Math.max(l, r);
+    }
+    height(root); return best;
+}
+```
+
+```typescript,editable
+function diameter(root: TreeNode | null): number {
+    let best = 0;
+    function height(n: TreeNode | null): number {
+        if (!n) return 0;
+        const l = height(n.left), r = height(n.right);
+        best = Math.max(best, l + r);
+        return 1 + Math.max(l, r);
+    }
+    height(root); return best;
+}
+```
+
+```go,editable
+func diameter(root *TreeNode) int {
+    best := 0
+    var height func(*TreeNode) int
+    height = func(n *TreeNode) int {
+        if n == nil { return 0 }
+        l, r := height(n.Left), height(n.Right)
+        if l + r > best { best = l + r }
+        if l > r { return 1 + l }
+        return 1 + r
+    }
+    height(root)
+    return best
+}
+```
+
+```kotlin,editable
+fun diameter(root: TreeNode?): Int {
+    var best = 0
+    fun height(n: TreeNode?): Int {
+        if (n == null) return 0
+        val l = height(n.left); val r = height(n.right)
+        best = maxOf(best, l + r)
+        return 1 + maxOf(l, r)
+    }
+    height(root); return best
+}
+```
+
+```rust,editable
+fn dia_height(node: &Option<Box<TreeNode>>, best: &mut i32) -> i32 {
+    match node {
+        None => 0,
+        Some(n) => {
+            let l = dia_height(&n.left,  best);
+            let r = dia_height(&n.right, best);
+            *best = std::cmp::max(*best, l + r);
+            1 + std::cmp::max(l, r)
+        }
+    }
+}
+pub fn diameter(root: &Option<Box<TreeNode>>) -> i32 {
+    let mut best = 0;
+    dia_height(root, &mut best);
+    best
+}
+```
+
+</div>
 
 ***
 
-# Identifying the stateful postorder traversal pattern
+# How to recognise it
 
-The stateful postorder traversal technique is very versatile and can solve a wide variety of binary tree problems. These are generally **easy** or **medium** problems where we need to process every node using an aggregated value of some function `f`  applied to its left and right subtrees, and also update some state variable shared between all nodes with the aggregated value as we traverse. A combination of the aggregated value at the root and the state variables is generally the solution to these problems.
+The pattern fits when:
 
-If the problem statement or its solution follows the generic template below, it can be solved by applying the stateful postorder traversal technique.
+- The answer at each node depends on **both children's results** (postorder), *and*
+- The "best result anywhere in the tree" might differ from "the result feeding up to my parent". The two are *related* but not the *same* number.
 
-**Template:**Given a binary tree, process every node using the aggregated value of a function `f` applied to its left and right subtrees. The processing of a leaf node or a `null` reference should be trivial, meaning it should have a known solution.
+Concrete cues:
 
-## Example
+- *"Find the longest / largest / maximum X in the tree"* — track the global best.
+- *"Count nodes / subtrees / paths satisfying property Y"* — track a global counter.
+- *"The path can start and end anywhere"* — definitely "track best while feeding height up".
+- *"Compute X for every subtree, then find the most-frequent / largest / smallest"* — track globals across all subtree computations.
 
-Let's consider the following problem as an example to better understand how to identify and solve a problem using the stateful postorder traversal technique.
-
-> **Problem statement:** Given the root of a binary tree, write a function to calculate and return the diameter of this tree
->
-> The diameter of a binary tree is the longest distance between any two nodes in the tree, whether or not they pass through the root. The distance here is defined by the number of edges in the path.
-
-// Diagram: Find the diameter of a binary tree.
-
-### The stateful postorder traversal technique
-
-The diameter of a tree is the length of the longest leaf-to-leaf path in the tree. And so, if for every node, we find the length of the longest leaf-to-leaf path passing through it, the diameter will be the maximum among these values. Let's consider the example below to understand this better.
-
-// Diagram: The longest leaf-to-leaf path passing through every node in the binary tree.
-
-As we will see shortly, we can compute the length of the longest leaf-to-leaf path passing through a node if we know the heights of its left and right subtrees. The height of a node in a binary tree is the number of edges from the node to the most distant leaf node in its subtree. The height of a node can be recursively computed by getting the maximum between the height of the node's left and right subtrees and adding one to it. Consider the following example where we have the height of every node in the binary tree from the example.
-
-// Diagram: The height of a node is the max of height of its left and right subtree plus 1
-
-It is easy to see now that the length of the longest leaf-to-leaf path passing through a node is just the sum of the heights of the left and right subtrees.
-
-// Diagram: The length of the longest leaf-to-leaf path passing through a node is the sum of the heights of its left and right subtrees.
-
-Consider the following example where we have the length of the longest leaf-to-leaf path passing through every node in the binary tree from the example.
-
-// Diagram: The length of the longest leaf-to-leaf path passing through a node is the sum of the heights of its left and right subtrees.
-
-This means if every node passes to its parent the height of the subtree starting at itself the parent can use the values it receives from its left and right child nodes to calculate its height as well as the length of the longest leaf-to-leaf path passing through it which can potentially be the diameter of the entire tree. The height of a `null` reference is 0, which makes the height of the leaf node to be 1.
-
-This fits the generic template from the stateful postorder traversal pattern we learned earlier.
-
-**Template:**Given a binary tree, process every node using the aggregated value of a function `f` (max height) over all the node-to-leaf paths in the subtree starting at that node while updating some shared state (`diameter`) variables. The processing of a leaf or `null` node should be trivial, meaning it should have a known solution (0 for `null` node).
-
-We initialize a state variable `diameter` with 0 in the calling function and start the postorder traversal from the root node, passing it as a reference. For languages where passing by reference is not supported, the variable can be created as a global variable in the enclosing scope.
-
-To understand how postorder traversal solves this problem better, we must look at it as a bottom-up execution. The postorder traversal from the root node recursively traverses to the left until it reaches a leaf node for which both the left and right subtrees are `null` references. Hitting a `null` reference is the base case for this recursive execution, where we return 0  back up to the leaf node as the height of the `null` node is 0.
-
-The zero values received from the left and right `null` references are then used to process the leaf node by adding them together to get the length of the longest leaf-to-leaf path passing through the leaf node and updating the shared variable `diameter` if the calculated value is greater. Finally, the height of the leaf node is calculated by taking the maximum of the height of the left and right subtrees and adding one to it, which is then passed back up to the parent. The parent node gets the height value from both the left and right subtrees and repeats the same process to calculate the length of the longest leaf-to-leaf path passing through it, updating `diameter` if needed and calculating and passing back up the height of the current node.
-
-// Diagram: Every node uses the height of its left and right subtrees to calculate its height and the longest leaf-to-leaf path passing through it.
-
-This way, at every node, we calculate and compare the longest leaf-to-leaf pass going through it with every other leaf-to-leaf path seen so far (`diameter`). At the end of the postorder traversal, the value returned to the calling function from the root node will be the height of the binary tree, which we don't care about but `diameter` will have the longest leaf-to-leaf path in the tree, which is the diameter of the tree.
-
-It is important to note that when moving from bottom to top, the value passed back up to the parent is the height of a subtree, which is only used to calculate a derived value (longest leaf-to-leaf path) that is a potential solution. So, the final value returned from the postorder call is not the solution, but the shared variable `diameter` that holds the maximum of these derived values.
-
-// Diagram: Find the diameter of the binary tree
-
-The implementation of the stateful postorder traversal technique to solve the problem is given below.
-
-C++
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-
-    // Global variable to calculate the diameter of the tree
-    int diameter = 0;
-    int heightOfBinaryTree(TreeNode *root) {
-        if (!root) {
-            return 0;
-        }
-
-        // Calculate the height of the left and right subtrees
-        // recursively
-        int leftHeight = heightOfBinaryTree(root->left);
-        int rightHeight = heightOfBinaryTree(root->right);
-
-        // Update the diameter if the sum of the left and right subtree
-        // heights is greater
-        diameter = max(diameter, leftHeight + rightHeight);
-
-        // Return the height of the current subtree
-        // (maximum height of left or right subtree + 1)
-        return max(leftHeight, rightHeight) + 1;
-    }
-
-// Diagram: int diameterOfTree(TreeNode root) {
-
-        // Call the helper function to calculate the height of the tree
-        // and update the diameter
-        heightOfBinaryTree(root);
-
-        return diameter;
-    }
-};
-```
-
-Java
-
-```java
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-// Diagram: class Solution {
-
-    // Global variable to calculate the diameter of the tree
-    private int diameter = 0;
-
-    private int heightOfBinaryTree(TreeNode root) {
-        if (root == null) {
-            return 0;
-        }
-
-        // Calculate the height of the left and right subtrees
-        // recursively
-        int leftHeight = heightOfBinaryTree(root.left);
-        int rightHeight = heightOfBinaryTree(root.right);
-
-        // Update the diameter if the sum of the left and right subtree
-        // heights is greater
-        diameter = Math.max(diameter, leftHeight + rightHeight);
-
-        // Return the height of the current subtree
-        // (maximum height of left or right subtree + 1)
-        return Math.max(leftHeight, rightHeight) + 1;
-    }
-
-// Diagram: public int diameterOfTree(TreeNode root) {
-
-        // Call the helper function to calculate the height of the tree
-        // and update the diameter
-        heightOfBinaryTree(root);
-
-        return diameter;
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-// Diagram: export class Solution {
-
-    // Global variable to calculate the diameter of the tree
-    diameter: number = 0;
-
-    heightOfBinaryTree(root: TreeNode | null): number {
-        if (!root) {
-            return 0;
-        }
-
-        // Calculate the height of the left and right subtrees
-        // recursively
-        const leftHeight = this.heightOfBinaryTree(root.left);
-        const rightHeight = this.heightOfBinaryTree(root.right);
-
-        // Update the diameter if the sum of the left and right subtree
-        // heights is greater
-        this.diameter = Math.max(
-            this.diameter,
-            leftHeight + rightHeight
-        );
-
-        // Return the height of the current subtree
-        // (maximum height of left or right subtree + 1)
-        return Math.max(leftHeight, rightHeight) + 1;
-    }
-
-// Diagram: diameterOfTree(root: TreeNode | null): number {
-
-        // Call the helper function to calculate the height of the tree
-        // and update the diameter
-        this.heightOfBinaryTree(root);
-
-        return this.diameter;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-// Diagram: export class Solution {
-
-    // Global variable to calculate the diameter of the tree
-    diameter = 0;
-
-    heightOfBinaryTree(root) {
-        if (!root) {
-            return 0;
-        }
-
-        // Calculate the height of the left and right subtrees
-        // recursively
-        let leftHeight = this.heightOfBinaryTree(root.left);
-        let rightHeight = this.heightOfBinaryTree(root.right);
-
-        // Update the diameter if the sum of the left and right subtree
-        // heights is greater
-        this.diameter = Math.max(
-            this.diameter,
-            leftHeight + rightHeight
-        );
-
-        // Return the height of the current subtree
-        // (maximum height of left or right subtree + 1)
-        return Math.max(leftHeight, rightHeight) + 1;
-    }
-
-// Diagram: diameterOfTree(root) {
-
-        // Call the helper function to calculate the height of the tree
-        // and update the diameter
-        this.heightOfBinaryTree(root);
-
-        return this.diameter;
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import Optional
-
-class Solution:
-    def __init__(self):
-
-        # Global variable to calculate the diameter of the tree
-        self.diameter: int = 0
-
-    def height_of_binary_tree(self, root: Optional[TreeNode]) -> int:
-        if not root:
-            return 0
-
-        # Calculate the height of the left and right subtrees recursively
-        left_height = self.height_of_binary_tree(root.left)
-        right_height = self.height_of_binary_tree(root.right)
-
-        # Update the diameter if the sum of the left and right subtree
-        # heights is greater
-        self.diameter = max(self.diameter, left_height + right_height)
-
-        # Return the height of the current subtree
-        # (maximum height of left or right subtree + 1)
-        return max(left_height, right_height) + 1
-
-    def diameter_of_tree(self, root: Optional[TreeNode]) -> int:
-
-        # Call the helper function to calculate the height of the tree
-        # and update the diameter
-        self.height_of_binary_tree(root)
-
-        return self.diameter
-```
-
-The stateful postorder traversal can solve this problem in linear time and a single pass using a very small and concise recursive implementation.
-
-## Example problems
-
-Most problems that fall under this category are**easy**problems; a list of a few is given below.
-
-> -   **[Diameter of tree](https://www.codeintuition.io/courses/binary-tree/7D8VO_D2WFnGmlT79LtgS)**
-> -   **[Descendants sum count](https://www.codeintuition.io/courses/binary-tree/S5Y6lSa1lt4BCUZvax1oG)**
-> -   **[Distribute coins](https://www.codeintuition.io/courses/binary-tree/EuGerHj4zNCQdgmrr9vyj)**
-> -   **[Most frequent subtree sum](https://www.codeintuition.io/courses/binary-tree/ncT-fWMEeb7ABVZkjDTm2)**
-> -   **[Longest monotonic path](https://www.codeintuition.io/courses/binary-tree/4_trmpij9BcM0n8FshxtK)**
-> -   **[Monotonic subtree count](https://www.codeintuition.io/courses/binary-tree/Sf3T-qYepqF81QX_Ndmtf)**
-> -   **[Path sum count](https://www.codeintuition.io/courses/binary-tree/wi9NlYyXoH_1CPoQGSPu4)**
-
-We will now solve these problems to understand the stateful postorder traversal technique better.
+Anti-pattern: if a single returned value suffices (like simple sum-of-leaves or height), use the *stateless* postorder. If you really only need information from above (no global), use the preorder patterns instead.
 
 ***
 
-# Diameter of tree
+# Problem 1 — Diameter of tree
 
-## Problem Statement
+> The diameter is the longest *path* (in edges) between any two nodes. The path may pass through any node — not necessarily the root.
 
-Given the **root** of a binary tree, write a function to calculate and return the **diameter** of this tree.
+Already covered in the generic skeleton above. Each call returns *height* (number of nodes downward); each call updates `best = max(best, leftHeight + rightHeight)` (path edges through this node). Final answer is the global `best`.
 
-The diameter of a binary tree is the longest distance between any two nodes in the tree, whether or not they pass through the root. The distance here is defined by the number of edges in the path.
+The implementation is exactly the generic template. The lesson here is *what to choose* as the feed-up vs the global, not how to type the code.
 
-### Example 1
+***
 
-> -   **Input:** root = \[1, 2, 3, 4, null, null, 7\]
-> -   **Output:** 4
-> -   **Explanation:** The diameter of the above tree is shown in the diagram.
+# Problem 2 — Descendants sum count
 
-### Example 2
+> Count nodes whose value equals the sum of *all* values in their subtree below them (not including themselves).
 
-> -   **Input:** root = \[1, 8, 4, 9, null, 2, 7\]
-> -   **Output:** 4
-> -   **Explanation:** The diameter of the above tree is shown in the diagram.
+Each subtree returns its sum (so the parent can compute its own); along the way, each call updates a global counter if `node.val == leftSum + rightSum`.
 
 ## Solution
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+<div class="lang-tabs">
 
-using namespace std;
-
-class Solution {
-public:
-
-    // Global variable to calculate the diameter of the tree
-    int diameter = 0;
-
-    int heightOfBinaryTree(TreeNode *root) {
-        if (!root) {
-            return 0;
-        }
-
-        // Calculate the height of the left and right subtrees
-        // recursively
-        int leftHeight = heightOfBinaryTree(root->left);
-        int rightHeight = heightOfBinaryTree(root->right);
-
-        // Update the diameter if the sum of the left and right subtree
-        // heights is greater
-        diameter = max(diameter, leftHeight + rightHeight);
-
-        // Return the height of the current subtree
-        // (maximum height of left or right subtree + 1)
-        return max(leftHeight, rightHeight) + 1;
-    }
-
-    int diameterOfTree(TreeNode *root) {
-
-        // Call the helper function to calculate the height of the tree
-        // and update the diameter
-        heightOfBinaryTree(root);
-
-        return diameter;
-    }
-};
+```python,editable
+def descendants_sum_count(root):
+    count = [0]
+    def sum_(n):
+        if n is None: return 0
+        l = sum_(n.left); r = sum_(n.right)
+        if n.val == l + r: count[0] += 1
+        return n.val + l + r
+    sum_(root)
+    return count[0]
 ```
+
+```java,editable
+static int dscCount;
+static int dscSum(TreeNode n) {
+    if (n == null) return 0;
+    int l = dscSum(n.left), r = dscSum(n.right);
+    if (n.val == l + r) dscCount++;
+    return n.val + l + r;
+}
+public static int descendantsSumCount(TreeNode root) {
+    dscCount = 0;
+    dscSum(root);
+    return dscCount;
+}
+```
+
+```c,editable
+static int g_dsc_count;
+int dsc_sum(TreeNode *n) {
+    if (!n) return 0;
+    int l = dsc_sum(n->left), r = dsc_sum(n->right);
+    if (n->val == l + r) g_dsc_count++;
+    return n->val + l + r;
+}
+int descendants_sum_count(TreeNode *root) { g_dsc_count = 0; dsc_sum(root); return g_dsc_count; }
+```
+
+```cpp,editable
+int g_count;
+int dscSum(TreeNode *n) {
+    if (!n) return 0;
+    int l = dscSum(n->left), r = dscSum(n->right);
+    if (n->val == l + r) g_count++;
+    return n->val + l + r;
+}
+int descendantsSumCount(TreeNode *root) { g_count = 0; dscSum(root); return g_count; }
+```
+
+```scala,editable
+def descendantsSumCount(root: TreeNode): Int = {
+  var count = 0
+  def go(n: TreeNode): Int = {
+    if (n == null) return 0
+    val l = go(n.left); val r = go(n.right)
+    if (n.value == l + r) count += 1
+    n.value + l + r
+  }
+  go(root); count
+}
+```
+
+```javascript,editable
+function descendantsSumCount(root) {
+    let count = 0;
+    function go(n) {
+        if (!n) return 0;
+        const l = go(n.left), r = go(n.right);
+        if (n.val === l + r) count++;
+        return n.val + l + r;
+    }
+    go(root); return count;
+}
+```
+
+```typescript,editable
+function descendantsSumCount(root: TreeNode | null): number {
+    let count = 0;
+    function go(n: TreeNode | null): number {
+        if (!n) return 0;
+        const l = go(n.left), r = go(n.right);
+        if (n.val === l + r) count++;
+        return n.val + l + r;
+    }
+    go(root); return count;
+}
+```
+
+```go,editable
+func descendantsSumCount(root *TreeNode) int {
+    count := 0
+    var go_ func(*TreeNode) int
+    go_ = func(n *TreeNode) int {
+        if n == nil { return 0 }
+        l, r := go_(n.Left), go_(n.Right)
+        if n.Val == l + r { count++ }
+        return n.Val + l + r
+    }
+    go_(root); return count
+}
+```
+
+```kotlin,editable
+fun descendantsSumCount(root: TreeNode?): Int {
+    var count = 0
+    fun go(n: TreeNode?): Int {
+        if (n == null) return 0
+        val l = go(n.left); val r = go(n.right)
+        if (n.value == l + r) count++
+        return n.value + l + r
+    }
+    go(root); return count
+}
+```
+
+```rust,editable
+fn dsc_go(node: &Option<Box<TreeNode>>, count: &mut i32) -> i32 {
+    match node {
+        None => 0,
+        Some(n) => {
+            let l = dsc_go(&n.left,  count);
+            let r = dsc_go(&n.right, count);
+            if n.val == l + r { *count += 1; }
+            n.val + l + r
+        }
+    }
+}
+pub fn descendants_sum_count(root: &Option<Box<TreeNode>>) -> i32 {
+    let mut count = 0;
+    dsc_go(root, &mut count);
+    count
+}
+```
+
+</div>
 
 ***
 
-# Descendants sum count
+# Problem 3 — Distribute coins
 
-## Problem Statement
+> Each node has `node.val` coins. Total coins equal total nodes. A move is moving 1 coin between two adjacent nodes. Return the minimum number of moves so every node ends with exactly 1 coin.
 
-Given the **root** of a binary tree, write a function to find and return the number of nodes in the tree where the value of the node is equal to the sum of the values of its descendants. 
+The trick: at every node, define *excess* = `(coins received from below) + node.val - 1`. If excess > 0, that many coins must flow *up* to the parent. If excess < 0, that many coins must flow *down* from the parent. Either way, the *absolute value* of excess equals the number of coin moves on the *edge to the parent*.
 
-Descendants of node **x** are all the nodes that lie in the subtree where **x** is the root node. The sum is considered `0` if the node has no descendants.
-
-### Example 1
-
-> -   **Input:** root = \[21, 7, 3, 5, 2, null, 4\]
-> -   **Output:** 2
-> -   **Explanation:** The root node and node with value 7 are the only two nodes whose value is equal to the sum of its descendants.
-
-### Example 2
-
-> -   **Input:** root = \[5, 7, 3, 1, 2, null, 3\]
-> -   **Output:** 1
-> -   **Explanation:** The node with value 3 at level 2 is the only one whose value is equal to the sum of its descendants.
+So sum `|leftExcess|` and `|rightExcess|` at every node — that's the total moves through this node's two outgoing edges to its children.
 
 ## Solution
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+<div class="lang-tabs">
 
-using namespace std;
-
-class Solution {
-public:
-    int count = 0;
-
-    int computeSum(TreeNode *root) {
-
-        // Base case: If the current node is NULL, return 0
-        if (!root) {
-            return 0;
-        }
-
-        // Recursively compute the sum of the left and right subtrees
-        int leftSum = computeSum(root->left);
-        int rightSum = computeSum(root->right);
-
-        // If the value of the current node is equal to the sum of its
-        // descendants, increment the count
-        if (root->val == leftSum + rightSum) {
-            count++;
-        }
-
-        // Return the sum of the current subtree, including the value
-        // of the current node
-        return leftSum + rightSum + root->val;
-    }
-
-    int descendantsSumCount(TreeNode *root) {
-
-        // Call the computeSum function to count the number of nodes
-        // satisfying the given condition
-        computeSum(root);
-        return count;
-    }
-};
+```python,editable
+def distribute_coins(root):
+    moves = [0]
+    def excess(n):
+        if n is None: return 0
+        l = excess(n.left); r = excess(n.right)
+        moves[0] += abs(l) + abs(r)
+        return l + r + n.val - 1
+    excess(root)
+    return moves[0]
 ```
+
+```java,editable
+static int g_moves;
+static int excess(TreeNode n) {
+    if (n == null) return 0;
+    int l = excess(n.left), r = excess(n.right);
+    g_moves += Math.abs(l) + Math.abs(r);
+    return l + r + n.val - 1;
+}
+public static int distributeCoins(TreeNode root) {
+    g_moves = 0; excess(root); return g_moves;
+}
+```
+
+```c,editable
+static int g_moves;
+int excess(TreeNode *n) {
+    if (!n) return 0;
+    int l = excess(n->left), r = excess(n->right);
+    g_moves += (l < 0 ? -l : l) + (r < 0 ? -r : r);
+    return l + r + n->val - 1;
+}
+int distribute_coins(TreeNode *root) { g_moves = 0; excess(root); return g_moves; }
+```
+
+```cpp,editable
+int g_moves;
+int excess(TreeNode *n) {
+    if (!n) return 0;
+    int l = excess(n->left), r = excess(n->right);
+    g_moves += std::abs(l) + std::abs(r);
+    return l + r + n->val - 1;
+}
+int distributeCoins(TreeNode *root) { g_moves = 0; excess(root); return g_moves; }
+```
+
+```scala,editable
+def distributeCoins(root: TreeNode): Int = {
+  var moves = 0
+  def excess(n: TreeNode): Int = {
+    if (n == null) return 0
+    val l = excess(n.left); val r = excess(n.right)
+    moves += math.abs(l) + math.abs(r)
+    l + r + n.value - 1
+  }
+  excess(root); moves
+}
+```
+
+```javascript,editable
+function distributeCoins(root) {
+    let moves = 0;
+    function excess(n) {
+        if (!n) return 0;
+        const l = excess(n.left), r = excess(n.right);
+        moves += Math.abs(l) + Math.abs(r);
+        return l + r + n.val - 1;
+    }
+    excess(root); return moves;
+}
+```
+
+```typescript,editable
+function distributeCoins(root: TreeNode | null): number {
+    let moves = 0;
+    function excess(n: TreeNode | null): number {
+        if (!n) return 0;
+        const l = excess(n.left), r = excess(n.right);
+        moves += Math.abs(l) + Math.abs(r);
+        return l + r + n.val - 1;
+    }
+    excess(root); return moves;
+}
+```
+
+```go,editable
+func distributeCoins(root *TreeNode) int {
+    moves := 0
+    abs := func(x int) int { if x < 0 { return -x }; return x }
+    var excess func(*TreeNode) int
+    excess = func(n *TreeNode) int {
+        if n == nil { return 0 }
+        l, r := excess(n.Left), excess(n.Right)
+        moves += abs(l) + abs(r)
+        return l + r + n.Val - 1
+    }
+    excess(root)
+    return moves
+}
+```
+
+```kotlin,editable
+fun distributeCoins(root: TreeNode?): Int {
+    var moves = 0
+    fun excess(n: TreeNode?): Int {
+        if (n == null) return 0
+        val l = excess(n.left); val r = excess(n.right)
+        moves += kotlin.math.abs(l) + kotlin.math.abs(r)
+        return l + r + n.value - 1
+    }
+    excess(root); return moves
+}
+```
+
+```rust,editable
+fn dc_excess(node: &Option<Box<TreeNode>>, moves: &mut i32) -> i32 {
+    match node {
+        None => 0,
+        Some(n) => {
+            let l = dc_excess(&n.left,  moves);
+            let r = dc_excess(&n.right, moves);
+            *moves += l.abs() + r.abs();
+            l + r + n.val - 1
+        }
+    }
+}
+pub fn distribute_coins(root: &Option<Box<TreeNode>>) -> i32 {
+    let mut moves = 0;
+    dc_excess(root, &mut moves);
+    moves
+}
+```
+
+</div>
 
 ***
 
-# Distribute coins
+# Problem 4 — Most frequent subtree sum
 
-## Problem Statement
+> The "subtree sum" of a node is the sum of values in its subtree. Return all subtree sums whose frequency in the tree is highest.
 
-Given the **root** of a binary tree with **n** nodes, each node of the tree has a `node.val` amount of coins. There are a total of **n** coins throughout the tree. We can move by choosing two adjacent nodes and moving one coin from one node to another. A move can be made from parent to child or child to parent. Write a function to return the minimum number of moves required to make every node have exactly one coin.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 0\]
-> -   **Output:** 2
-> -   **Explanation:** In the first move, we move the coin from the root node to the right child, and in the second move, we move one coin from the left child to the root.
-
-### Example 2
-
-> -   **Input:** root = \[0, 3, 0\]
-> -   **Output:** 3
-> -   **Explanation:** In the first move, we move a coin from the left node to the root node; in the second move, we move the coin in the root node to the right child, and in the third move, we move a coin from the left node to the root.
+Each call returns its subtree sum (so the parent can compute its own); along the way, increment a frequency map and update a `maxFreq` tracker. After the recursion, scan the frequency map for entries equal to `maxFreq`.
 
 ## Solution
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+<div class="lang-tabs">
 
-using namespace std;
-
-class Solution {
-public:
-
-    // Declare moves as a global variable outside the Solution class
-    int moves = 0;
-
-    int balanceCoins(TreeNode *root) {
-
-        // base case: return 0 if the node is null
-        if (!root) {
-            return 0;
-        }
-
-        // recursively calculate the excess values for the left and
-        // right subtrees
-        int leftExcess = balanceCoins(root->left);
-        int rightExcess = balanceCoins(root->right);
-
-        // calculate the excess value for the current node
-        int excess = leftExcess + rightExcess + root->val - 1;
-
-        // add the absolute value of excess values for left and right
-        // subtrees to the total moves
-        moves += abs(leftExcess) + abs(rightExcess);
-        return excess;
-    }
-
-    int distributeCoins(TreeNode *root) {
-
-        // call balanceCoins function to calculate the excess values and
-        // update the global moves variable
-        balanceCoins(root);
-
-        // return the total moves required
-        return moves;
-    }
-};
+```python,editable
+def most_frequent_subtree_sum(root):
+    if root is None: return []
+    freq = {}
+    max_f = [0]
+    def go(n):
+        if n is None: return 0
+        s = n.val + go(n.left) + go(n.right)
+        freq[s] = freq.get(s, 0) + 1
+        if freq[s] > max_f[0]: max_f[0] = freq[s]
+        return s
+    go(root)
+    return [k for k, v in freq.items() if v == max_f[0]]
 ```
 
-***
+```java,editable
+static Map<Integer, Integer> g_freq;
+static int g_maxFreq;
+static int subSum(TreeNode n) {
+    if (n == null) return 0;
+    int s = n.val + subSum(n.left) + subSum(n.right);
+    int c = g_freq.merge(s, 1, Integer::sum);
+    if (c > g_maxFreq) g_maxFreq = c;
+    return s;
+}
+public static List<Integer> mostFrequentSubtreeSum(TreeNode root) {
+    g_freq = new HashMap<>(); g_maxFreq = 0;
+    if (root == null) return new ArrayList<>();
+    subSum(root);
+    List<Integer> out = new ArrayList<>();
+    for (Map.Entry<Integer, Integer> e : g_freq.entrySet())
+        if (e.getValue() == g_maxFreq) out.add(e.getKey());
+    return out;
+}
+```
 
-# Most frequent subtree sum
+```c,editable
+// (omitted for brevity — C lacks a hash map in stdlib; implement an open-addressing
+//  hash with the same algorithm)
+```
 
-## Problem Statement
-
-Given the **root** of a binary tree, write a function that finds and returns the most frequent subtree sum in this tree. If there is more than one such sum, return the values of all of them in **any order**.
-
-The subtree sum of a node is the total sum of all the values in its subtree, including its own value.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 3\]
-> -   **Output:** \[6, 2, 3\]
-> -   **Explanation:** All the subtree sums have a frequency of 1.
-
-### Example 2
-
-> -   **Input:** root = \[3, 8, 2, 1, null, 1, 6\]
-> -   **Output:** \[1, 9\]
-> -   **Explanation:** The subtree sums of 1 and 9 have a frequency of 2, which is the highest.
-
-## Solution
-
-```cpp
+```cpp,editable
 #include <unordered_map>
-
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-
-    // Stores frequency of each subtree sum
-    unordered_map<int, int> freq;
-
-    // Tracks the highest frequency
-    int maxFreq = 0;
-
-    int computeSubtreeSum(TreeNode *root) {
-
-        // Base case: return 0 for null nodes
-        if (!root) {
-            return 0;
-        }
-
-        // Compute subtree sum recursively (postorder)
-        int leftSum = computeSubtreeSum(root->left);
-        int rightSum = computeSubtreeSum(root->right);
-        int subtreeSum = root->val + leftSum + rightSum;
-
-        // Update frequency map
-        freq[subtreeSum]++;
-
-        // Track max frequency
-        maxFreq = max(maxFreq, freq[subtreeSum]);
-
-        return subtreeSum;
-    }
-
-    vector<int> mostFrequentSubtreeSum(TreeNode *root) {
-
-        // Handle empty tree case
-        if (!root) {
-            return {};
-        }
-
-        computeSubtreeSum(root);
-
-        // Collect all subtree sums with max frequency
-        vector<int> result;
-        for (auto &[sum, count] : freq) {
-            if (count == maxFreq) {
-                result.push_back(sum);
-            }
-        }
-
-        return result;
-    }
-};
+std::unordered_map<int,int> g_freq; int g_maxFreq;
+int subSum(TreeNode *n) {
+    if (!n) return 0;
+    int s = n->val + subSum(n->left) + subSum(n->right);
+    int c = ++g_freq[s];
+    if (c > g_maxFreq) g_maxFreq = c;
+    return s;
+}
+std::vector<int> mostFrequentSubtreeSum(TreeNode *root) {
+    g_freq.clear(); g_maxFreq = 0;
+    if (!root) return {};
+    subSum(root);
+    std::vector<int> out;
+    for (auto& [k, v] : g_freq) if (v == g_maxFreq) out.push_back(k);
+    return out;
+}
 ```
+
+```scala,editable
+def mostFrequentSubtreeSum(root: TreeNode): List[Int] = {
+  if (root == null) return Nil
+  val freq = scala.collection.mutable.Map[Int, Int]()
+  var maxFreq = 0
+  def go(n: TreeNode): Int = {
+    if (n == null) return 0
+    val s = n.value + go(n.left) + go(n.right)
+    freq(s) = freq.getOrElse(s, 0) + 1
+    if (freq(s) > maxFreq) maxFreq = freq(s)
+    s
+  }
+  go(root)
+  freq.collect { case (k, v) if v == maxFreq => k }.toList
+}
+```
+
+```javascript,editable
+function mostFrequentSubtreeSum(root) {
+    if (!root) return [];
+    const freq = new Map(); let maxFreq = 0;
+    function go(n) {
+        if (!n) return 0;
+        const s = n.val + go(n.left) + go(n.right);
+        const c = (freq.get(s) || 0) + 1;
+        freq.set(s, c);
+        if (c > maxFreq) maxFreq = c;
+        return s;
+    }
+    go(root);
+    const out = [];
+    for (const [k, v] of freq) if (v === maxFreq) out.push(k);
+    return out;
+}
+```
+
+```typescript,editable
+function mostFrequentSubtreeSum(root: TreeNode | null): number[] {
+    if (!root) return [];
+    const freq = new Map<number, number>(); let maxFreq = 0;
+    function go(n: TreeNode | null): number {
+        if (!n) return 0;
+        const s = n.val + go(n.left) + go(n.right);
+        const c = (freq.get(s) || 0) + 1;
+        freq.set(s, c);
+        if (c > maxFreq) maxFreq = c;
+        return s;
+    }
+    go(root);
+    const out: number[] = [];
+    for (const [k, v] of freq) if (v === maxFreq) out.push(k);
+    return out;
+}
+```
+
+```go,editable
+func mostFrequentSubtreeSum(root *TreeNode) []int {
+    if root == nil { return nil }
+    freq := map[int]int{}
+    maxFreq := 0
+    var go_ func(*TreeNode) int
+    go_ = func(n *TreeNode) int {
+        if n == nil { return 0 }
+        s := n.Val + go_(n.Left) + go_(n.Right)
+        freq[s]++
+        if freq[s] > maxFreq { maxFreq = freq[s] }
+        return s
+    }
+    go_(root)
+    var out []int
+    for k, v := range freq {
+        if v == maxFreq { out = append(out, k) }
+    }
+    return out
+}
+```
+
+```kotlin,editable
+fun mostFrequentSubtreeSum(root: TreeNode?): List<Int> {
+    if (root == null) return emptyList()
+    val freq = HashMap<Int, Int>(); var maxFreq = 0
+    fun go(n: TreeNode?): Int {
+        if (n == null) return 0
+        val s = n.value + go(n.left) + go(n.right)
+        val c = (freq[s] ?: 0) + 1
+        freq[s] = c
+        if (c > maxFreq) maxFreq = c
+        return s
+    }
+    go(root)
+    return freq.filterValues { it == maxFreq }.keys.toList()
+}
+```
+
+```rust,editable
+use std::collections::HashMap;
+fn mfs_go(node: &Option<Box<TreeNode>>, freq: &mut HashMap<i32, i32>, mx: &mut i32) -> i32 {
+    match node {
+        None => 0,
+        Some(n) => {
+            let s = n.val + mfs_go(&n.left, freq, mx) + mfs_go(&n.right, freq, mx);
+            let c = freq.entry(s).or_insert(0); *c += 1;
+            if *c > *mx { *mx = *c; }
+            s
+        }
+    }
+}
+pub fn most_frequent_subtree_sum(root: &Option<Box<TreeNode>>) -> Vec<i32> {
+    if root.is_none() { return Vec::new(); }
+    let mut freq = HashMap::new(); let mut mx = 0;
+    mfs_go(root, &mut freq, &mut mx);
+    freq.iter().filter_map(|(&k, &v)| if v == mx { Some(k) } else { None }).collect()
+}
+```
+
+</div>
 
 ***
 
-# Longest monotonic path
+# Problem 5 — Longest monotonic path
 
-## Problem Statement
+> A *monotonic* path is one where every node has the same value. Return the longest such path's length (number of edges).
 
-Given the **root** of a binary tree, write a function that finds and returns the longest monotonic path. The path does not have to go through the root and can be any path in the tree.
-
- A monotonic path is a path where all the nodes' values are the same.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 5, 7, null, null, 3\]
-> -   **Output:** 0
-> -   **Explanation:** The given tree does not have any monotonic path.
-
-### Example 2
-
-> -   **Input:** root = \[3, 8, 1, 8, null, 1, 1\]
-> -   **Output:** 2
-> -   **Explanation:** The tree has two monotonic paths, as shown in the diagram above, and the longest one has a length of 2.
+Same shape as diameter, with one twist: the height contribution from a child only counts if the child has the same value as the current node.
 
 ## Solution
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+<div class="lang-tabs">
 
-using namespace std;
-
-class Solution {
-public:
-
-    // Global variable to keep track of max length
-    int maxLength = 0;
-
-    int longestMonotonicPathHelper(TreeNode *root) {
-        if (!root) {
-            return 0;
-        }
-
-        // Recursively calculate the longest univalued path in the left
-        // subtree
-        int leftLength = longestMonotonicPathHelper(root->left);
-
-        // Recursively calculate the longest univalued path in the right
-        // subtree
-        int rightLength = longestMonotonicPathHelper(root->right);
-
-        int leftArrow = 0;
-        int rightArrow = 0;
-
-        // If the left child exists and has the same value as the current
-        // node, extend the path to the left
-        if (root->left && root->left->val == root->val) {
-            leftArrow = leftLength + 1;
-        }
-
-        // If the right child exists and has the same value as the
-        // current node, extend the path to the right
-        if (root->right && root->right->val == root->val) {
-            rightArrow = rightLength + 1;
-        }
-
-        // Update the maxLength if the combined path length is greater
-        maxLength = max(maxLength, leftArrow + rightArrow);
-
-        // Return the longest univalued path from the current node
-        return max(leftArrow, rightArrow);
-    }
-
-    int longestMonotonicPath(TreeNode *root) {
-        longestMonotonicPathHelper(root);
-        return maxLength;
-    }
-};
+```python,editable
+def longest_monotonic_path(root):
+    best = [0]
+    def go(n):
+        if n is None: return 0
+        l = go(n.left); r = go(n.right)
+        la = l + 1 if n.left  and n.left.val  == n.val else 0
+        ra = r + 1 if n.right and n.right.val == n.val else 0
+        best[0] = max(best[0], la + ra)
+        return max(la, ra)
+    go(root)
+    return best[0]
 ```
+
+```java,editable
+static int g_lmpBest;
+static int lmp(TreeNode n) {
+    if (n == null) return 0;
+    int l = lmp(n.left), r = lmp(n.right);
+    int la = (n.left  != null && n.left.val  == n.val) ? l + 1 : 0;
+    int ra = (n.right != null && n.right.val == n.val) ? r + 1 : 0;
+    g_lmpBest = Math.max(g_lmpBest, la + ra);
+    return Math.max(la, ra);
+}
+public static int longestMonotonicPath(TreeNode root) {
+    g_lmpBest = 0; lmp(root); return g_lmpBest;
+}
+```
+
+```c,editable
+static int g_lmp_best;
+int lmp(TreeNode *n) {
+    if (!n) return 0;
+    int l = lmp(n->left), r = lmp(n->right);
+    int la = (n->left  && n->left->val  == n->val) ? l + 1 : 0;
+    int ra = (n->right && n->right->val == n->val) ? r + 1 : 0;
+    if (la + ra > g_lmp_best) g_lmp_best = la + ra;
+    return la > ra ? la : ra;
+}
+int longest_monotonic_path(TreeNode *root) { g_lmp_best = 0; lmp(root); return g_lmp_best; }
+```
+
+```cpp,editable
+int g_best;
+int lmp(TreeNode *n) {
+    if (!n) return 0;
+    int l = lmp(n->left), r = lmp(n->right);
+    int la = (n->left  && n->left->val  == n->val) ? l + 1 : 0;
+    int ra = (n->right && n->right->val == n->val) ? r + 1 : 0;
+    g_best = std::max(g_best, la + ra);
+    return std::max(la, ra);
+}
+int longestMonotonicPath(TreeNode *root) { g_best = 0; lmp(root); return g_best; }
+```
+
+```scala,editable
+def longestMonotonicPath(root: TreeNode): Int = {
+  var best = 0
+  def go(n: TreeNode): Int = {
+    if (n == null) return 0
+    val l = go(n.left); val r = go(n.right)
+    val la = if (n.left  != null && n.left.value  == n.value) l + 1 else 0
+    val ra = if (n.right != null && n.right.value == n.value) r + 1 else 0
+    best = math.max(best, la + ra)
+    math.max(la, ra)
+  }
+  go(root); best
+}
+```
+
+```javascript,editable
+function longestMonotonicPath(root) {
+    let best = 0;
+    function go(n) {
+        if (!n) return 0;
+        const l = go(n.left), r = go(n.right);
+        const la = (n.left  && n.left.val  === n.val) ? l + 1 : 0;
+        const ra = (n.right && n.right.val === n.val) ? r + 1 : 0;
+        best = Math.max(best, la + ra);
+        return Math.max(la, ra);
+    }
+    go(root); return best;
+}
+```
+
+```typescript,editable
+function longestMonotonicPath(root: TreeNode | null): number {
+    let best = 0;
+    function go(n: TreeNode | null): number {
+        if (!n) return 0;
+        const l = go(n.left), r = go(n.right);
+        const la = (n.left  && n.left.val  === n.val) ? l + 1 : 0;
+        const ra = (n.right && n.right.val === n.val) ? r + 1 : 0;
+        best = Math.max(best, la + ra);
+        return Math.max(la, ra);
+    }
+    go(root); return best;
+}
+```
+
+```go,editable
+func longestMonotonicPath(root *TreeNode) int {
+    best := 0
+    var go_ func(*TreeNode) int
+    go_ = func(n *TreeNode) int {
+        if n == nil { return 0 }
+        l, r := go_(n.Left), go_(n.Right)
+        la, ra := 0, 0
+        if n.Left  != nil && n.Left.Val  == n.Val { la = l + 1 }
+        if n.Right != nil && n.Right.Val == n.Val { ra = r + 1 }
+        if la + ra > best { best = la + ra }
+        if la > ra { return la }
+        return ra
+    }
+    go_(root); return best
+}
+```
+
+```kotlin,editable
+fun longestMonotonicPath(root: TreeNode?): Int {
+    var best = 0
+    fun go(n: TreeNode?): Int {
+        if (n == null) return 0
+        val l = go(n.left); val r = go(n.right)
+        val la = if (n.left  != null && n.left!!.value  == n.value) l + 1 else 0
+        val ra = if (n.right != null && n.right!!.value == n.value) r + 1 else 0
+        best = maxOf(best, la + ra)
+        return maxOf(la, ra)
+    }
+    go(root); return best
+}
+```
+
+```rust,editable
+fn lmp_go(node: &Option<Box<TreeNode>>, best: &mut i32) -> i32 {
+    match node {
+        None => 0,
+        Some(n) => {
+            let l = lmp_go(&n.left,  best);
+            let r = lmp_go(&n.right, best);
+            let la = match &n.left  { Some(c) if c.val == n.val => l + 1, _ => 0 };
+            let ra = match &n.right { Some(c) if c.val == n.val => r + 1, _ => 0 };
+            *best = std::cmp::max(*best, la + ra);
+            std::cmp::max(la, ra)
+        }
+    }
+}
+pub fn longest_monotonic_path(root: &Option<Box<TreeNode>>) -> i32 {
+    let mut best = 0;
+    lmp_go(root, &mut best);
+    best
+}
+```
+
+</div>
 
 ***
 
-# Monotonic subtree count
+# Problem 6 — Monotonic subtree count
 
-## Problem Statement
+> Count subtrees that are *entirely* mono-valued — every node in the subtree has the same value.
 
-Given the **root** of a binary tree, write a function that finds and returns the number of monotonic subtrees in this tree.
-
-A monotonic subtree is a subtree in the tree where all the nodes have the same value.
-
-### Example 1
-
-> -   **Input:** root = \[1, 1, 5, 1, null, null, 5\]
-> -   **Output:** 4
-> -   **Explanation:** The tree has four monotonic subtrees. Two of these are leaf nodes with values 1 and 5, while the other two are subtrees \[1, 1, null\] and \[5, null, 5\].
-
-### Example 2
-
-> -   **Input:** root = \[3, 8, 1, 8, null, 1, 1\]
-> -   **Output:** 5
-> -   **Explanation:** The tree has five monotonic subtrees. Three of these are leaf nodes with values 8, 1 and 1, while the other two are subtrees \[8, 8, null\] and \[1, 1, 1\].
+Each call returns whether *its* subtree is mono-valued; along the way, increment a global counter when it is. A subtree is mono-valued iff: both children's subtrees are mono-valued, *and* both children (if they exist) have the same value as the current node.
 
 ## Solution
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+<div class="lang-tabs">
 
-using namespace std;
-
-class Solution {
-public:
-
-    // To store the number of monotonic subtrees
-    int subtreeCount = 0;
-
-    bool isMonotonicSubtree(TreeNode *root) {
-
-        // An empty node is trivially monotonic
-        if (!root) {
-            return true;
-        }
-
-        // Check if the left child is monotonic
-        bool leftMonotonic = isMonotonicSubtree(root->left);
-
-        // Check if the right child is monotonic
-        bool rightMonotonic = isMonotonicSubtree(root->right);
-
-        // If either left or right subtree is not monotonic, return false
-        if (!leftMonotonic || !rightMonotonic) {
-            return false;
-        }
-
-        // If the left child exists and does not have the same value,
-        // return false
-        if (root->left && root->left->val != root->val) {
-            return false;
-        }
-
-        // If the right child exists and does not have the same value,
-        // return false
-        if (root->right && root->right->val != root->val) {
-            return false;
-        }
-
-        // This node and its children form a monotonic subtree
-        subtreeCount++;
-        return true;
-    }
-
-    int monotonicSubtreeCount(TreeNode *root) {
-        isMonotonicSubtree(root);
-        return subtreeCount;
-    }
-};
+```python,editable
+def monotonic_subtree_count(root):
+    count = [0]
+    def go(n):
+        if n is None: return True
+        l_ok = go(n.left); r_ok = go(n.right)
+        if not l_ok or not r_ok: return False
+        if n.left  and n.left.val  != n.val: return False
+        if n.right and n.right.val != n.val: return False
+        count[0] += 1
+        return True
+    go(root)
+    return count[0]
 ```
+
+```java,editable
+static int g_msCount;
+static boolean ms(TreeNode n) {
+    if (n == null) return true;
+    boolean l = ms(n.left), r = ms(n.right);
+    if (!l || !r) return false;
+    if (n.left  != null && n.left.val  != n.val) return false;
+    if (n.right != null && n.right.val != n.val) return false;
+    g_msCount++;
+    return true;
+}
+public static int monotonicSubtreeCount(TreeNode root) {
+    g_msCount = 0; ms(root); return g_msCount;
+}
+```
+
+```c,editable
+static int g_count;
+int ms(TreeNode *n) {
+    if (!n) return 1;
+    int l = ms(n->left), r = ms(n->right);
+    if (!l || !r) return 0;
+    if (n->left  && n->left->val  != n->val) return 0;
+    if (n->right && n->right->val != n->val) return 0;
+    g_count++;
+    return 1;
+}
+int monotonic_subtree_count(TreeNode *root) { g_count = 0; ms(root); return g_count; }
+```
+
+```cpp,editable
+int g_count;
+bool ms(TreeNode *n) {
+    if (!n) return true;
+    bool l = ms(n->left), r = ms(n->right);
+    if (!l || !r) return false;
+    if (n->left  && n->left->val  != n->val) return false;
+    if (n->right && n->right->val != n->val) return false;
+    g_count++;
+    return true;
+}
+int monotonicSubtreeCount(TreeNode *root) { g_count = 0; ms(root); return g_count; }
+```
+
+```scala,editable
+def monotonicSubtreeCount(root: TreeNode): Int = {
+  var count = 0
+  def go(n: TreeNode): Boolean = {
+    if (n == null) return true
+    val lOk = go(n.left); val rOk = go(n.right)
+    if (!lOk || !rOk) return false
+    if (n.left  != null && n.left.value  != n.value) return false
+    if (n.right != null && n.right.value != n.value) return false
+    count += 1
+    true
+  }
+  go(root); count
+}
+```
+
+```javascript,editable
+function monotonicSubtreeCount(root) {
+    let count = 0;
+    function go(n) {
+        if (!n) return true;
+        const lOk = go(n.left), rOk = go(n.right);
+        if (!lOk || !rOk) return false;
+        if (n.left  && n.left.val  !== n.val) return false;
+        if (n.right && n.right.val !== n.val) return false;
+        count++; return true;
+    }
+    go(root); return count;
+}
+```
+
+```typescript,editable
+function monotonicSubtreeCount(root: TreeNode | null): number {
+    let count = 0;
+    function go(n: TreeNode | null): boolean {
+        if (!n) return true;
+        const lOk = go(n.left), rOk = go(n.right);
+        if (!lOk || !rOk) return false;
+        if (n.left  && n.left.val  !== n.val) return false;
+        if (n.right && n.right.val !== n.val) return false;
+        count++; return true;
+    }
+    go(root); return count;
+}
+```
+
+```go,editable
+func monotonicSubtreeCount(root *TreeNode) int {
+    count := 0
+    var go_ func(*TreeNode) bool
+    go_ = func(n *TreeNode) bool {
+        if n == nil { return true }
+        lOk, rOk := go_(n.Left), go_(n.Right)
+        if !lOk || !rOk { return false }
+        if n.Left  != nil && n.Left.Val  != n.Val { return false }
+        if n.Right != nil && n.Right.Val != n.Val { return false }
+        count++; return true
+    }
+    go_(root); return count
+}
+```
+
+```kotlin,editable
+fun monotonicSubtreeCount(root: TreeNode?): Int {
+    var count = 0
+    fun go(n: TreeNode?): Boolean {
+        if (n == null) return true
+        val lOk = go(n.left); val rOk = go(n.right)
+        if (!lOk || !rOk) return false
+        if (n.left  != null && n.left!!.value  != n.value) return false
+        if (n.right != null && n.right!!.value != n.value) return false
+        count++; return true
+    }
+    go(root); return count
+}
+```
+
+```rust,editable
+fn ms_go(node: &Option<Box<TreeNode>>, count: &mut i32) -> bool {
+    match node {
+        None => true,
+        Some(n) => {
+            let l_ok = ms_go(&n.left,  count);
+            let r_ok = ms_go(&n.right, count);
+            if !l_ok || !r_ok { return false; }
+            if let Some(l) = &n.left  { if l.val != n.val { return false; } }
+            if let Some(r) = &n.right { if r.val != n.val { return false; } }
+            *count += 1;
+            true
+        }
+    }
+}
+pub fn monotonic_subtree_count(root: &Option<Box<TreeNode>>) -> i32 {
+    let mut count = 0;
+    ms_go(root, &mut count);
+    count
+}
+```
+
+</div>
 
 ***
 
-# Path sum count
+# Problem 7 — Path sum count
 
-## Problem Statement
+> Given a `target`, count the number of *downward* paths (parent-to-descendant only) whose values sum to `target`.
 
-Given the **root** of a binary tree and a **target**, write a function to find and return the number of paths in the tree where the sum of the nodes in the path is equal to the target. 
+This problem is interesting because it combines *both* preorder push-pop *and* postorder accumulation. The classic O(N) trick uses a **prefix-sum hash map**: as you descend, track the running sum from the root; the number of valid paths *ending at the current node* equals `prefixSumCount[currentSum - target]`. As you backtrack (postorder return), undo the prefix-sum count for this node.
 
-The path does not need to go through the root. It can be any path within the tree. However, the path must follow a top-to-bottom direction (moving only from parent to child) and cannot change direction (i.e., no U-shaped paths).
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 3, 4, null, null, 7\], target = 11
-> -   **Output:** 1
-> -   **Explanation:** The given tree contains a single path that sums to 11, as shown in the diagram above.
-
-### Example 2
-
-> -   **Input:** root = \[1, 8, 4, null, null, 2, 7\], targetSum = 11
-> -   **Output:** 1
-> -   **Explanation:** The given tree contains a single path that sums to 11, as shown in the diagram above.
+This is a hybrid pattern, but it's traditionally taught with the postorder patterns because the *answer accumulates* upward like the others.
 
 ## Solution
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+<div class="lang-tabs">
 
-using namespace std;
-
-class Solution {
-public:
-
-    // Create a map to store the count of prefix sums encountered
-    // so far
-    unordered_map<int, int> prefixSumCount;
-
-    int findPaths(TreeNode *root, int target, int pathSum) {
-
-        // Base case: If the node is nullptr, we've reached the end of a
-        // path, so return 0.
-        if (root == nullptr) {
-            return 0;
-        }
-
-        // Calculate the current sum by adding the value of the
-        // current node to the previous sum.
-        pathSum += root->val;
-
-        // Check if there is a prefix sum (pathSum - target) in the
-        // prefixSumCount map. If such a prefix sum exists, it means
-        // there is a subpath with the target sum ending at the current
-        // node. Increment the count of such subpaths.
-        int numPaths = prefixSumCount[pathSum - target];
-
-        // Add the current sum to the prefixSumCount map to keep track of
-        // it. This is to be used by future nodes in the recursive
-        // traversal.
-        prefixSumCount[pathSum]++;
-
-        // Recursively traverse the left and right subtrees, updating the
-        // current sum and counting the subpaths.
-        numPaths += findPaths(root->left, target, pathSum);
-        numPaths += findPaths(root->right, target, pathSum);
-
-        // Backtrack by removing the current sum from the prefix sum
-        // count map.This is to ensure that the prefix sum count is
-        // accurate for future nodes.
-        prefixSumCount[pathSum]--;
-
-        // Return the total number of subpaths with the target sum found
-        // so far.
-        return numPaths;
-    }
-
-    int pathSumCount(TreeNode *root, int target) {
-
-        // Add initial prefix sum of 0
-        prefixSumCount[0] = 1;
-
-        // Start the recursive traversal from the root node with an
-        // initial sum of 0
-        return findPaths(root, target, 0);
-    }
-};
+```python,editable
+def path_sum_count(root, target):
+    prefix = {0: 1}                              # base: empty prefix has sum 0
+    answer = [0]
+    def go(n, run):
+        if n is None: return
+        run += n.val
+        answer[0] += prefix.get(run - target, 0)
+        prefix[run] = prefix.get(run, 0) + 1
+        go(n.left, run); go(n.right, run)
+        prefix[run] -= 1
+        if prefix[run] == 0: del prefix[run]
+    go(root, 0)
+    return answer[0]
 ```
+
+```java,editable
+static Map<Integer, Integer> g_prefix;
+static int g_answer;
+static void psc(TreeNode n, int target, int run) {
+    if (n == null) return;
+    run += n.val;
+    g_answer += g_prefix.getOrDefault(run - target, 0);
+    g_prefix.merge(run, 1, Integer::sum);
+    psc(n.left, target, run); psc(n.right, target, run);
+    if (g_prefix.get(run) == 1) g_prefix.remove(run);
+    else g_prefix.merge(run, -1, Integer::sum);
+}
+public static int pathSumCount(TreeNode root, int target) {
+    g_prefix = new HashMap<>(); g_prefix.put(0, 1); g_answer = 0;
+    psc(root, target, 0);
+    return g_answer;
+}
+```
+
+```c,editable
+// (omitted — needs an int->int hash map; use the same algorithm as above
+//  with a bespoke open-addressing table)
+```
+
+```cpp,editable
+#include <unordered_map>
+std::unordered_map<int,int> g_pre; int g_ans;
+void psc(TreeNode *n, int target, int run) {
+    if (!n) return;
+    run += n->val;
+    g_ans += g_pre[run - target];
+    g_pre[run]++;
+    psc(n->left, target, run); psc(n->right, target, run);
+    if (--g_pre[run] == 0) g_pre.erase(run);
+}
+int pathSumCount(TreeNode *root, int target) {
+    g_pre.clear(); g_pre[0] = 1; g_ans = 0;
+    psc(root, target, 0);
+    return g_ans;
+}
+```
+
+```scala,editable
+def pathSumCount(root: TreeNode, target: Int): Int = {
+  val prefix = scala.collection.mutable.Map[Int, Int](0 -> 1)
+  var answer = 0
+  def go(n: TreeNode, run: Int): Unit = {
+    if (n == null) return
+    val newRun = run + n.value
+    answer += prefix.getOrElse(newRun - target, 0)
+    prefix(newRun) = prefix.getOrElse(newRun, 0) + 1
+    go(n.left,  newRun); go(n.right, newRun)
+    val c = prefix(newRun) - 1
+    if (c == 0) prefix.remove(newRun) else prefix(newRun) = c
+  }
+  go(root, 0); answer
+}
+```
+
+```javascript,editable
+function pathSumCount(root, target) {
+    const prefix = new Map([[0, 1]]); let answer = 0;
+    function go(n, run) {
+        if (!n) return;
+        run += n.val;
+        answer += prefix.get(run - target) || 0;
+        prefix.set(run, (prefix.get(run) || 0) + 1);
+        go(n.left, run); go(n.right, run);
+        const c = prefix.get(run) - 1;
+        if (c === 0) prefix.delete(run); else prefix.set(run, c);
+    }
+    go(root, 0); return answer;
+}
+```
+
+```typescript,editable
+function pathSumCount(root: TreeNode | null, target: number): number {
+    const prefix = new Map<number, number>([[0, 1]]); let answer = 0;
+    function go(n: TreeNode | null, run: number): void {
+        if (!n) return;
+        run += n.val;
+        answer += prefix.get(run - target) || 0;
+        prefix.set(run, (prefix.get(run) || 0) + 1);
+        go(n.left, run); go(n.right, run);
+        const c = (prefix.get(run) || 0) - 1;
+        if (c === 0) prefix.delete(run); else prefix.set(run, c);
+    }
+    go(root, 0); return answer;
+}
+```
+
+```go,editable
+func pathSumCount(root *TreeNode, target int) int {
+    prefix := map[int]int{0: 1}
+    answer := 0
+    var go_ func(*TreeNode, int)
+    go_ = func(n *TreeNode, run int) {
+        if n == nil { return }
+        run += n.Val
+        answer += prefix[run - target]
+        prefix[run]++
+        go_(n.Left, run); go_(n.Right, run)
+        prefix[run]--
+        if prefix[run] == 0 { delete(prefix, run) }
+    }
+    go_(root, 0); return answer
+}
+```
+
+```kotlin,editable
+fun pathSumCount(root: TreeNode?, target: Int): Int {
+    val prefix = HashMap<Int, Int>(); prefix[0] = 1
+    var answer = 0
+    fun go(n: TreeNode?, run: Int) {
+        if (n == null) return
+        val newRun = run + n.value
+        answer += prefix[newRun - target] ?: 0
+        prefix[newRun] = (prefix[newRun] ?: 0) + 1
+        go(n.left,  newRun); go(n.right, newRun)
+        val c = prefix[newRun]!! - 1
+        if (c == 0) prefix.remove(newRun) else prefix[newRun] = c
+    }
+    go(root, 0); return answer
+}
+```
+
+```rust,editable
+use std::collections::HashMap;
+fn psc_go(node: &Option<Box<TreeNode>>, target: i32, run: i32, prefix: &mut HashMap<i32, i32>, ans: &mut i32) {
+    if let Some(n) = node {
+        let new_run = run + n.val;
+        *ans += *prefix.get(&(new_run - target)).unwrap_or(&0);
+        *prefix.entry(new_run).or_insert(0) += 1;
+        psc_go(&n.left,  target, new_run, prefix, ans);
+        psc_go(&n.right, target, new_run, prefix, ans);
+        let c = prefix.get_mut(&new_run).unwrap();
+        *c -= 1;
+        if *c == 0 { prefix.remove(&new_run); }
+    }
+}
+pub fn path_sum_count(root: &Option<Box<TreeNode>>, target: i32) -> i32 {
+    let mut prefix = HashMap::new(); prefix.insert(0, 1);
+    let mut answer = 0;
+    psc_go(root, target, 0, &mut prefix, &mut answer);
+    answer
+}
+```
+
+</div>
+
+***
+
+## Final Takeaway
+
+Stateful postorder is the most *flexible* of the binary-tree patterns — it absorbs almost every "compute X for every subtree, also track a global Y" question. Three things to walk away with:
+
+1. **Two channels per call.** Decide *what to return to the parent* and *what to update globally*. They're rarely the same number. Diameter returns *height*, tracks *diameter*. Distribute coins returns *excess flow*, tracks *moves*. Most-frequent subtree sum returns *sum*, tracks *frequency map + max frequency*. Recognise the duality and the algorithm writes itself.
+2. **Globals are safe in postorder, dangerous in preorder.** In stateful preorder you must push/pop because sibling subtrees would otherwise see each other's state. In stateful postorder the global is *monotonically* updated (max, count, accumulate) and order doesn't matter — no undo needed. This is the structural distinction between the two stateful flavours.
+3. **Prefix-sum hashing is a force multiplier.** The path-sum-count problem shows how a *combined* preorder-push-pop + postorder-aggregate + prefix-sum-hash can solve in O(N) what a naive O(N²) per-node "look at every ancestor" would do. The same technique recurs in array problems (subarray sum equals K) — internalise the idea.
+
+> *Coming up — the chapter shifts focus from "compute X over the whole tree" to <strong>root-to-leaf path</strong> problems. Where the postorder patterns thought about subtrees, the next two lessons focus on whole paths from the root down to leaves: counting them, listing them, comparing them. The same backtracking template you saw in stateful preorder reappears, but specialised for the path-as-a-unit framing.*

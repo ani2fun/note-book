@@ -1,1309 +1,879 @@
-# Constructing a binary tree
+# 6. Constructing a Binary Tree
 
-## Table of Contents
+## The Hook
 
-1. [Challenges in construction from preorder traversal](#challenges-in-construction-from-preorder-traversal)
-2. [Challenges in construction from inorder traversal](#challenges-in-construction-from-inorder-traversal)
-3. [Challenges in construction from postorder traversal](#challenges-in-construction-from-postorder-traversal)
-4. [Understanding construction using preorder and inorder traversal](#understanding-construction-using-preorder-and-inorder-traversal)
-5. [Construct tree using preorder and inorder traversal](#understanding-construction-using-preorder-and-inorder-traversal)
-6. [Understanding construction using postorder and inorder traversal](#understanding-construction-using-postorder-and-inorder-traversal)
-7. [Construct tree using postorder and inorder traversal](#understanding-construction-using-postorder-and-inorder-traversal)
+The previous two lessons taught us how to *flatten* a tree into a one-dimensional sequence — preorder, inorder, postorder, level-order. Each traversal turns the tree into a list of values. Now we run the question backwards: **given the list, can we recover the tree?**
 
-***
+It would be amazing if a single traversal sufficed. *It does not* — and the proof is short. Different trees can have *identical* traversals when only one ordering is used. Show someone a preorder sequence and they can build *several* different trees that produce it; show them an inorder sequence and the situation is even worse (you can't even identify which value is the root). Postorder shares preorder's problem from the other end. Each ordering, alone, throws away information that *cannot* be recovered.
 
-# Challenges in construction from preorder traversal
+But — and here is the magic — *any two of these traversals together*, combined with one of them being inorder, **uniquely determine the tree**. Pre+in, post+in: each pair gives you exactly one tree, no ambiguity. The construction is a beautiful divide-and-conquer recursion: pre/postorder tells you who the root is; inorder tells you which values fell on the left of that root and which on the right; recurse on the two halves; done.
 
-Let us determine if we can uniquely serialize and deserialize a tree using its preorder traversal sequence. We will start with a simple tree and try to serialize it into its preorder traversal sequence. Then, we will try to reconstruct the **same** tree using the preorder sequence.
+This is more than a theoretical curiosity. *Tree serialisation* — the process of turning a tree into a sequence so it can be sent over a network or written to disk — relies on this idea. So does *deserialisation* (the reverse). Many compilers and editors store ASTs as a *pair* of preorder + inorder dumps, then rebuild on load. The "list of nodes" you see when you `JSON.stringify` a parser's AST is, structurally, a serialised traversal — and the loader function is what we're about to build.
 
-// Diagram: Example Tree
+This lesson explains why no single traversal is enough, walks through *why* pre+in and post+in pair up to determine the tree uniquely, and implements both reconstruction algorithms in 10 languages. By the end you'll be able to build trees from traversals on demand — a frequent interview problem and a building block we'll lean on later.
 
-## Serialization
+---
 
-To serialize the tree, we write down its preorder traversal sequence.
+## Table of contents
 
-// Diagram: Serialization using preorder traversal sequence
-
-## Deserialization
-
-When deserializing, we need to only look at the preorder traversal sequence and reconstruct the same tree we serialized earlier.
-
-// Diagram: Deserialize preorder traversal sequence
-
-Reconstructing a tree by looking only at the preorder traversal sequence consists of the following steps.
-
-> 1.  The first element in the preorder traversal array is the root node.
-> 2.  The next element in the preorder traversal array can be either:
->     -   The left node of the root if the root has a left subtree.
->     -   The right node of the root if the root does not have a left subtree.
-
-// Diagram: Ambiguity when constructing the tree using only preorder traversal
-
-Because deciding whether the next element in the preorder traversal sequence is the left node or the right node is ambiguous, the sequence can generate multiple tree representations depending on the decision between left and right made at each step. This means that preorder traversal cannot be used to deserialize a tree uniquely.
+1. [Why one traversal is not enough](#why-one-traversal-is-not-enough)
+2. [Why two traversals (with inorder) suffice](#why-two-traversals-with-inorder-suffice)
+3. [Construction from preorder + inorder](#construction-from-preorder--inorder)
+4. [Construction from postorder + inorder](#construction-from-postorder--inorder)
+5. [What about preorder + postorder?](#what-about-preorder--postorder)
 
 ***
 
-# Challenges in construction from inorder traversal
+# Why one traversal is not enough
 
-Let us determine if we can uniquely serialize and deserialize a tree using its inorder traversal sequence. We will start with a simple tree, try to serialize it into its inorder traversal sequence, and then try reconstructing the **same** tree using the inorder sequence.
+Consider this preorder sequence: **`[1, 2, 3]`**.
 
-// Diagram: Example Tree
+How many distinct binary trees produce that preorder? At least *five*:
 
-## Serialization
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph T1["A"]
+        A1((1))
+        A2((2))
+        A3((3))
+        A1 --> A2
+        A1 --> A3
+    end
+    subgraph T2["B"]
+        B1((1))
+        B2((2))
+        B3((3))
+        B1 --> B2
+        B2 --> B3
+    end
+    subgraph T3["C"]
+        C1((1))
+        C2((2))
+        C3((3))
+        C1 --> C2
+        C2 -.- CN[" "]
+        C2 --> C3
+        style CN fill:none,stroke:none
+    end
+    subgraph T4["D"]
+        D1((1))
+        D2((2))
+        D3((3))
+        D1 --> D2
+        D1 -.- DN[" "]
+        D2 --> D3
+        style DN fill:none,stroke:none
+    end
+    subgraph T5["E"]
+        E1((1))
+        E2((2))
+        E3((3))
+        E1 -.- EN[" "]
+        E1 --> E2
+        E2 --> E3
+        style EN fill:none,stroke:none
+    end
+```
 
-To serialize the tree, we write down its inorder traversal sequence.
+<p align="center"><strong>Five different trees, all with the same preorder <code>[1, 2, 3]</code>. Preorder fixes the order in which values are <em>visited</em>, but says nothing about whether the next value is the current node's left child, the current node's right child, or some ancestor's right child. The shape is genuinely ambiguous.</strong></p>
 
-// Diagram: Serialization using inorder traversal sequence
+The root of *every* tree above is `1` — that part is unambiguous (preorder visits the root first). But after that, `2` could be `1`'s left child, or `1`'s right child (if `1` has no left). And `3` could be `2`'s left child, `2`'s right child, *or* `1`'s right child. The decision at each step is unconstrained.
 
-## Deserialization
+## Inorder alone is even worse
 
-When deserializing, we need to only look at the inorder traversal sequence and reconstruct the same tree we serialized earlier.
+For inorder, **you can't even identify the root**. Given `[4, 2, 1, 3, 7]`, where's the root? Anywhere. The root could be `4` (with `[]` to the left and `[2, 1, 3, 7]` to the right); or `2` (with `[4]` to the left and `[1, 3, 7]` to the right); or any of the others. Without more information, every value is equally plausible.
 
-// Diagram: Deserialize inorder traversal sequence
+## Postorder alone has the same problem as preorder
 
-Constructing a tree just by looking at its inorder traversal sequence is impossible. This is because, unlike preorder and postorder traversal sequences, we cannot look at the inorder traversal sequence and find the root node. The root node can be anywhere in the sequence.
+Symmetrically, postorder *visits the root last* — so you know the root, but the rest of the sequence is ambiguous in the same way preorder's tail is.
 
-// Diagram: Ambiguity when constructing tree using only inorder traversal
+## Level-order alone
 
-Because deciding the root node in the in-order traversal sequence is ambiguous, it can generate multiple different tree representations depending on what node we select as the root node at every step. This means that inorder traversal cannot be used to deserialize a tree uniquely.
+Level-order at least identifies the root (always first), and identifies the children of each level — but it can't distinguish whether a node has a missing left child or a missing right child *unless null markers are explicitly included*. The standard "compact" level-order serialisation (no nulls) still leaves shape ambiguous; the "verbose" form (with nulls) is unambiguous but uses extra space proportional to the number of `null` markers.
+
+> *Predict before reading on — for the preorder <code>[1, 2, 3]</code>, what does adding the inorder <code>[2, 1, 3]</code> uniquely tell us?*
+>
+> The root is `1` (from preorder's first element). In the inorder, `1` appears at index 1 — so `[2]` is the left subtree and `[3]` is the right subtree. That uniquely picks out **Tree A** from our five candidates above. Combining the two orderings turned five possibilities into one — the entire idea of this lesson.
 
 ***
 
-# Challenges in construction from postorder traversal
+# Why two traversals (with inorder) suffice
 
-Let us determine if we can uniquely serialize and deserialize a tree using its postorder traversal sequence. We will start with a simple tree, try to serialize it into its postorder traversal sequence, and then try reconstructing the **same** tree using the postorder sequence.
+The recipe is the same for both pre+in and post+in. Here's the high-level recursion for **preorder + inorder**:
 
-// Diagram: Example Tree
+> 1. The **first** value in the *current preorder slice* is the root of the *current subtree*.
+> 2. Find that root in the *current inorder slice*. Everything to its **left** in the inorder slice is the *left subtree*; everything to its **right** is the *right subtree*.
+> 3. Recurse on the left subtree (using the matching prefix of the preorder slice).
+> 4. Recurse on the right subtree (using the matching suffix of the preorder slice).
 
-## Serialization
+The *crux* is the inorder split: it tells you exactly *which* values belong to the left subtree and *which* to the right. Without it, you'd have to guess; with it, you can divide the sub-problem into two halves of *exactly the right shape*.
 
-To serialize the tree, we write down its postorder traversal sequence.
+For **postorder + inorder**, the recipe is mirrored: postorder visits the root *last*, so the root of the current subtree is the *last* element of the postorder slice. Once you know the root, the inorder split works the same way.
 
-// Diagram: Serialization using postorder traversal sequence
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    PRE["preorder = [1, 2, 4, 3, 7]
+inorder  = [4, 2, 1, 3, 7]"]
+    STEP1["root is preorder[0] = 1
+find 1 in inorder → index 2
+left subtree inorder = [4, 2]
+right subtree inorder = [3, 7]
+left subtree preorder = next 2 values = [2, 4]
+right subtree preorder = remaining = [3, 7]"]
+    STEP2["recurse on (preorder=[2,4], inorder=[4,2])
+recurse on (preorder=[3,7], inorder=[3,7])"]
+    PRE --> STEP1 --> STEP2
+```
 
-## Deserialization
+<p align="center"><strong>One step of the recursion — the preorder front gives the current root; the inorder split gives the left and right subtree boundaries. The matching slice of the preorder array is recovered by counting (the left subtree's preorder slice has the same length as the left subtree's inorder slice).</strong></p>
 
-When deserializing, we need to only look at the postorder traversal sequence and reconstruct the same tree we serialized earlier.
-
-// Diagram: Deserialize postorder traversal sequence
-
-The reconstruction process of a tree by looking only at the postorder traversal sequence looks something like the steps below.
-
-> 1.  The last element in the postorder traversal sequence is the root node.
-> 2.  The second last element in the postorder traversal sequence can be either:
->     -   The right node of the root if the root has a right subtree.
->     -   The left node of the root if the root does not have a right subtree.
-
-// Diagram: Ambiguity when constructing the tree using only postorder traversal
-
-Because of the ambiguity in deciding if the next element in the postorder traversal sequence is the left node or the right node, the postorder traversal sequence can generate multiple tree representations depending on the decision between left and right made at each step. This means that postorder traversal alone cannot be used to deserialize a tree uniquely.
+> **Why must one of the two be inorder?** Because *only* inorder lets you cleanly *partition* the array around the root. Pre+post (without inorder) tells you the root from both ends but gives you no partition — you can match a value across the two arrays but you can't tell which children are on the left vs right of the root.
 
 ***
 
-# Understanding construction using preorder and inorder traversal
+# Construction from preorder + inorder
 
-If given both the preorder and inorder traversal sequence of a binary tree, we can construct the tree. We use both sequences in tandem to construct the tree and resolve any ambiguity incrementally.
-
-// Diagram: Tree constructed from inorder and preorder traversal
-
-We follow a very simple idea to construct the binary tree from a given preorder and inorder traversal.
-
-> -   **Step 1:** We know the first element in the preorder traversal sequence is the root node, so we use it to construct the \`root\` node.
-> -   **Step 2:** Find the location of the \`root\` node in the inorder traversal sequence.
-> -   **Step 3:** If the \`root\` node in the inorder traversal sequence has elements to its left, it indicates the presence of a \`left\` subtree. In this case, the next element in the preorder sequence is the \`left\` child, which is a clear and straightforward condition.
-> -   **Step 4:** If the \`root\` node in the inorder traversal sequence does not have elements to its left but elements to its right, the root node does not have a left subtree, so the next element in the preorder sequence is the \`right\` child.
-> -   **Step 5:** If the \`root\` node in the inorder traversal sequence does not have elements to its left and right, we are done creating the tree.
-
-// Diagram: Tree construction logic and the starting point
-
-We use the same idea while iterating over the preorder traversal sequence to construct the entire tree recursively.
+Let's tighten the algorithm into one we can implement.
 
 ## Algorithm
 
-To implement the idea, we move the preorder traversal array from start to end and construct a binary tree in **a preorder fashion**. Constructing a tree in a preorder fashion means we first construct the current node, followed by the left and right subtree of the current node recursively. We use the given inorder traversal array to resolve ambiguity at every step and decide if the next node is the left and right subtree or if we are done constructing the entire subtree from the current node and must return the node.
-
-// Diagram: Algorithm to construct tree from inorder and preorder traversal
+We use two helpers: a *moving index* into the preorder array (the next root to consume), and a *range* `[inStart, inEnd]` describing which slice of the inorder array we're working with.
 
 > **Algorithm**
 >
-> -   **Step 1:** Set the global variable \`preInd\` = \`0\`
-> -   **Step 2:** Recursively start constructing the tree for the range \`\[0, inorder.length - 1\]\`.
->     -   **Step 2.1:** Return \`null\` if the \`inStart > inEnd\` means it is a \`null\` node.
->     -   **Step 2.2:** Create a node with the value \`preorder\[preInd\]\`.
->     -   **Step 2.3:** Find the \`index\` of value \`preorder\[preInd\]\` in the inorder array from \`inStart\` to \`inEnd\`. The current node's left and right subtree in the inorder array are in the range \`\[inStart, index - 1\]\` and \`\[index + 1, inEnd\]\`, respectively.
->     -   **Step 2.4:** Increment \`preInd\` by \`1\`.
->     -   **Step 2.5:** Recursively construct the left subtree using the range \`\[inStart, index - 1\]\`
->     -   **Step 2.6:** Recursively construct the right subtree using the range \`\[index + 1, inEnd\]\`
->     -   **Step 2.7:** Return the node created in \`Step 2.2\`.
+> -   **Step 1:** Initialise `preIndex = 0`. Call `build(0, len(inorder) − 1)`.
+> -   **Step 2:** `build(inStart, inEnd)`:
+>     -   If `inStart > inEnd`, return `null` (empty subtree).
+>     -   `rootVal = preorder[preIndex]`; `preIndex++`.
+>     -   Create `node = TreeNode(rootVal)`.
+>     -   Find `idx`, the index of `rootVal` in `inorder[inStart..inEnd]`.
+>     -   `node.left  = build(inStart, idx − 1)`.
+>     -   `node.right = build(idx + 1, inEnd)`.
+>     -   Return `node`.
+
+The `preIndex` advances **before** the recursive calls, and the order matters: the left subtree consumes preorder values *first* (because it's traversed first), then the right subtree.
+
+## A subtlety — speeding up the lookup
+
+The naive "find `rootVal` in `inorder[inStart..inEnd]`" is a linear scan, making the worst case **O(N²)** for a skew tree. For interview-quality solutions you can build a **value → index** hash map of the inorder array up front, making each lookup O(1) and the whole construction **O(N)**. We'll show both versions — the simple one for clarity, then noting where to drop in the map.
+
+> *Predict before reading on — what's the complexity if you skip the hash map?*
+>
+> Worst case **O(N²)** — a skew tree forces every recursive call's "find root in inorder" to scan O(N) of the array. The hash map fix makes that lookup O(1) and the overall complexity falls to O(N) — but the recursive partitioning still uses O(h) call-stack space.
+
+## Worked example
+
+> Preorder: `[1, 2, 4, 3, 7]`
+> Inorder:  `[4, 2, 1, 3, 7]`
+
+| Call                         | preIndex | rootVal | idx in inorder | inStart..inEnd | Result        |
+|------------------------------|----------|---------|----------------|----------------|---------------|
+| `build(0, 4)` (whole tree)   | 0        | 1       | 2              | 0..4           | root          |
+| `build(0, 1)` (left of 1)    | 1        | 2       | 1              | 0..1           | left subtree  |
+| `build(0, 0)` (left of 2)    | 2        | 4       | 0              | 0..0           | leaf 4        |
+| `build(0, −1)` (left of 4)   | 3        | —       | —              | empty          | `null`        |
+| `build(1, 0)` (right of 4)   | 3        | —       | —              | empty          | `null`        |
+| `build(2, 1)` (right of 2)   | 3        | —       | —              | empty          | `null`        |
+| `build(3, 4)` (right of 1)   | 3        | 3       | 3              | 3..4           | right subtree |
+| `build(3, 2)` (left of 3)    | 4        | —       | —              | empty          | `null`        |
+| `build(4, 4)` (right of 3)   | 4        | 7       | 4              | 4..4           | leaf 7        |
+
+Final tree:
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    R((1))
+    A((2))
+    B((3))
+    C((4))
+    D((7))
+    R --> A
+    R --> B
+    A --> C
+    B --> D
+    A -.- AN[" "]
+    B -.- BN[" "]
+    style AN fill:none,stroke:none
+    style BN fill:none,stroke:none
+```
 
 ## Implementation
 
-C++
+<div class="lang-tabs">
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+```python,editable
+from typing import List, Optional
 
-// Diagram: using namespace std;
-
-class Solution {
-public:
-
-    // Global variable to keep track of the current index in the preorder
-    // traversal
-    int preInd = 0;
-
-    // Helper function to find the index of a given value in the inorder
-    // traversal
-    int findIndex(vector<int> &inorder, int start, int end, int val) {
-        for (int i = start; i <= end; i++) {
-            if (inorder[i] == val)
-                return i;
-        }
-
-        // If the value is not found in the inorder array, return the
-        // start index
-        return start;
-    }
-
-    TreeNode *buildTree(
-        vector<int> &inorder,
-        int inStart,
-        int inEnd,
-        vector<int> &preorder
-    ) {
-
-        // Base case: if the inorder range is empty, return nullptr to
-        // indicate an empty subtree
-        if (inStart > inEnd)
-            return nullptr;
-
-        // Create a new node using the current value from the preorder
-        // traversal
-        TreeNode *currentNode = new TreeNode(preorder[preInd]);
-
-        // Find the index of the current value in the inorder traversal
-        int index = findIndex(inorder, inStart, inEnd, preorder[preInd]);
-
-        // Move to the next value in the preorder traversal
-        preInd++;
-
-        // Recursively construct the left and right subtrees using the
-        // appropriate ranges of the inorder and preorder traversals
-        currentNode->left =
-            buildTree(inorder, inStart, index - 1, preorder);
-        currentNode->right =
-            buildTree(inorder, index + 1, inEnd, preorder);
-
-        // Return the current node, which is the root of the constructed
-        // subtree
-        return currentNode;
-    }
-
-    TreeNode *preorderAndInorderReconstruction(
-        vector<int> &preorder,
-        vector<int> &inorder
-    ) {
-
-        // Call the recursive buildTree function with the entire ranges
-        // of inorder and preorder traversals
-        return buildTree(inorder, 0, inorder.size() - 1, preorder);
-    }
-};
-```
-
-Java
-
-```java
-import java.util.*;
-
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-// Diagram: class Solution {
-
-    // Global variable to keep track of the current index in the preorder
-    // traversal
-    int preInd = 0;
-
-    // Helper function to find the index of a given value in the inorder
-    // traversal
-    int findIndex(int[] inorder, int start, int end, int val) {
-        for (int i = start; i <= end; i++) {
-            if (inorder[i] == val) return i;
-        }
-
-        // If the value is not found in the inorder array, return the
-        // start index
-        return start;
-    }
-
-    TreeNode buildTree(
-        int[] inorder,
-        int inStart,
-        int inEnd,
-        int[] preorder
-    ) {
-
-        // Base case: if the inorder range is empty, return null to
-        // indicate an empty subtree
-        if (inStart > inEnd) return null;
-
-        // Create a new node using the current value from the preorder
-        // traversal
-        TreeNode currentNode = new TreeNode(preorder[preInd]);
-
-        // Find the index of the current value in the inorder traversal
-        int index = findIndex(inorder, inStart, inEnd, preorder[preInd]);
-
-        // Move to the next value in the preorder traversal
-        preInd++;
-
-        // Recursively construct the left and right subtrees using the
-        // appropriate ranges of the inorder and preorder traversals
-        currentNode.left =
-            buildTree(inorder, inStart, index - 1, preorder);
-        currentNode.right =
-            buildTree(inorder, index + 1, inEnd, preorder);
-
-        // Return the current node, which is the root of the constructed
-        // subtree
-        return currentNode;
-    }
-
-    public TreeNode preorderAndInorderReconstruction(
-        int[] preorder,
-        int[] inorder
-    ) {
-
-        // Call the recursive buildTree function with the entire ranges
-        // of inorder and preorder traversals
-        return buildTree(inorder, 0, inorder.length - 1, preorder);
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-// Diagram: export class Solution {
-
-    // Global variable to keep track of the current index in the preorder
-    // traversal
-    preInd: number = 0;
-
-    // Helper function to find the index of a given value in the inorder
-    // traversal
-    findIndex(
-        inorder: number[],
-        start: number,
-        end: number,
-        val: number
-    ): number {
-        for (let i = start; i <= end; i++) {
-            if (inorder[i] === val) {
-                return i;
-            }
-
-        // If the value is not found in the inorder array, return the
-        // start index
-        return start;
-    }
-
-    buildTree(
-        inorder: number[],
-        inStart: number,
-        inEnd: number,
-        preorder: number[]
-    ): TreeNode | null {
-
-        // Base case: if the inorder range is empty, return null to
-        // indicate an empty subtree
-        if (inStart > inEnd) {
-            return null;
-        }
-
-        // Create a new node using the current value from the preorder
-        // traversal
-        const currentNode = new TreeNode(preorder[this.preInd]);
-
-        // Find the index of the current value in the inorder traversal
-        const index = this.findIndex(
-            inorder,
-            inStart,
-            inEnd,
-            preorder[this.preInd]
-        );
-
-        // Move to the next value in the preorder traversal
-        this.preInd++;
-
-        // Recursively construct the left and right subtrees using the
-        // appropriate ranges of the inorder and preorder traversals
-        currentNode.left = this.buildTree(
-            inorder,
-            inStart,
-            index - 1,
-            preorder
-        );
-        currentNode.right = this.buildTree(
-            inorder,
-            index + 1,
-            inEnd,
-            preorder
-        );
-
-        // Return the current node, which is the root of the constructed
-        // subtree
-        return currentNode;
-    }
-
-    preorderAndInorderReconstruction(
-        preorder: number[],
-        inorder: number[]
-    ): TreeNode | null {
-
-        // Call the recursive buildTree function with the entire ranges
-        // of inorder and preorder traversals
-        return this.buildTree(inorder, 0, inorder.length - 1, preorder);
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-// Diagram: export class Solution {
-
-    // Global variable to keep track of the current index in the preorder
-    // traversal
-    preInd = 0;
-
-    // Helper function to find the index of a given value in the inorder
-    // traversal
-    findIndex(inorder, start, end, val) {
-        for (let i = start; i <= end; i++) {
-            if (inorder[i] === val) {
-                return i;
-            }
-
-        // If the value is not found in the inorder array, return the
-        // start index
-        return start;
-    }
-
-// Diagram: buildTree(inorder, inStart, inEnd, preorder) {
-
-        // Base case: if the inorder range is empty, return null to
-        // indicate an empty subtree
-        if (inStart > inEnd) {
-            return null;
-        }
-
-        // Create a new node using the current value from the preorder
-        // traversal
-        const currentNode = new TreeNode(preorder[this.preInd]);
-
-        // Find the index of the current value in the inorder traversal
-        const index = this.findIndex(
-            inorder,
-            inStart,
-            inEnd,
-            preorder[this.preInd]
-        );
-
-        // Move to the next value in the preorder traversal
-        this.preInd++;
-
-        // Recursively construct the left and right subtrees using the
-        // appropriate ranges of the inorder and preorder traversals
-        currentNode.left = this.buildTree(
-            inorder,
-            inStart,
-            index - 1,
-            preorder
-        );
-        currentNode.right = this.buildTree(
-            inorder,
-            index + 1,
-            inEnd,
-            preorder
-        );
-
-        // Return the current node, which is the root of the constructed
-        // subtree
-        return currentNode;
-    }
-
-// Diagram: preorderAndInorderReconstruction(preorder, inorder) {
-
-        // Call the recursive buildTree function with the entire ranges
-        // of inorder and preorder traversals
-        return this.buildTree(inorder, 0, inorder.length - 1, preorder);
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
 class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
+    def __init__(self, val=0, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
 
-// Diagram: from typing import Optional, List, Any
+def build_pre_in(preorder: List[int], inorder: List[int]) -> Optional[TreeNode]:
+    # Hash map for O(1) lookup
+    pos = {v: i for i, v in enumerate(inorder)}
+    pre_idx = 0
+    def build(in_start: int, in_end: int) -> Optional[TreeNode]:
+        nonlocal pre_idx
+        if in_start > in_end: return None
+        root_val = preorder[pre_idx]; pre_idx += 1
+        node = TreeNode(root_val)
+        idx  = pos[root_val]
+        node.left  = build(in_start, idx - 1)
+        node.right = build(idx + 1, in_end)
+        return node
+    return build(0, len(inorder) - 1)
 
-class Solution:
-    def __init__(self):
-
-        # Global variable to keep track of the current index in the
-        # preorder traversal
-        self.pre_ind: int = 0
-
-    # Helper function to find the index of a given value in the inorder
-    # traversal
-    def find_index(
-        self, inorder: List[int], start: int, end: int, val: int
-    ) -> int:
-        for i in range(start, end + 1):
-            if inorder[i] == val:
-                return i
-
-        # If the value is not found in the inorder array, return the
-        # start index
-        return start
-
-    def build_tree(
-        self,
-        inorder: List[int],
-        in_start: int,
-        in_end: int,
-        preorder: List[int],
-    ) -> Optional[TreeNode]:
-
-        # Base case: if the inorder range is empty, return None to
-        # indicate an empty subtree
-        if in_start > in_end:
-            return None
-
-        # Create a new node using the current value from the preorder
-        # traversal
-        current_node: TreeNode = TreeNode(preorder[self.pre_ind])
-
-        # Find the index of the current value in the inorder traversal
-        index = self.find_index(
-            inorder, in_start, in_end, preorder[self.pre_ind]
-        )
-
-        # Move to the next value in the preorder traversal
-        self.pre_ind += 1
-
-        # Recursively construct the left and right subtrees using the appropriate ranges
-        # of the inorder and preorder traversals
-        current_node.left = self.build_tree(
-            inorder, in_start, index - 1, preorder
-        )
-        current_node.right = self.build_tree(
-            inorder, index + 1, in_end, preorder
-        )
-
-        # Return the current node, which is the root of the constructed
-        # subtree
-        return current_node
-
-    def preorder_and_inorder_reconstruction(
-        self, preorder: List[int], inorder: List[int]
-    ) -> Optional[TreeNode]:
-
-        # Call the recursive build_tree function with the entire ranges
-        # of inorder and preorder traversals
-        return self.build_tree(inorder, 0, len(inorder) - 1, preorder)
+# preorder = [1, 2, 4, 3, 7], inorder = [4, 2, 1, 3, 7]
+root = build_pre_in([1, 2, 4, 3, 7], [4, 2, 1, 3, 7])
+# verify with inorder traversal
+def inorder(n):
+    return [] if n is None else inorder(n.left) + [n.val] + inorder(n.right)
+print(inorder(root))    # [4, 2, 1, 3, 7]
 ```
 
-## Complexity Analysis
+```java,editable
+import java.util.*;
+public class Main {
+    static class TreeNode {
+        int val; TreeNode left, right;
+        TreeNode(int v) { val = v; }
+    }
+    static int preIdx = 0;
+    static Map<Integer, Integer> pos;
+    static TreeNode build(int[] preorder, int inStart, int inEnd) {
+        if (inStart > inEnd) return null;
+        int rootVal = preorder[preIdx++];
+        TreeNode node = new TreeNode(rootVal);
+        int idx = pos.get(rootVal);
+        node.left  = build(preorder, inStart, idx - 1);
+        node.right = build(preorder, idx + 1, inEnd);
+        return node;
+    }
+    public static TreeNode buildPreIn(int[] preorder, int[] inorder) {
+        preIdx = 0;
+        pos = new HashMap<>();
+        for (int i = 0; i < inorder.length; i++) pos.put(inorder[i], i);
+        return build(preorder, 0, inorder.length - 1);
+    }
+    public static void main(String[] args) {
+        TreeNode root = buildPreIn(new int[]{1, 2, 4, 3, 7}, new int[]{4, 2, 1, 3, 7});
+        System.out.println(root.val + " " + root.left.val + " " + root.right.val);
+    }
+}
+```
 
-We can see from the algorithm and its implementation that we are just iterating over the preorder traversal sequence from start to end and recursively building the tree. Therefore, the runtime complexity grows linearly with the number of nodes. Since we are constructing a tree, the extra space complexity is also linear.
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
 
-> **Best Case**
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case**
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
+typedef struct TreeNode { int val; struct TreeNode *left, *right; } TreeNode;
 
-***
+static int  pos[128];   // value → inorder-index, for values up to 127
+static int  pre_idx;
+static int *preorder_g;
 
-# Preorder and inorder reconstruction
+static TreeNode* build(int in_start, int in_end) {
+    if (in_start > in_end) return NULL;
+    int root_val = preorder_g[pre_idx++];
+    TreeNode *n = malloc(sizeof(*n));
+    n->val = root_val; n->left = NULL; n->right = NULL;
+    int idx = pos[root_val];
+    n->left  = build(in_start, idx - 1);
+    n->right = build(idx + 1, in_end);
+    return n;
+}
 
-## Problem Statement
+TreeNode* build_pre_in(int *preorder, int *inorder, int n) {
+    pre_idx = 0;
+    preorder_g = preorder;
+    for (int i = 0; i < n; i++) pos[inorder[i]] = i;
+    return build(0, n - 1);
+}
 
-Fundamental
+int main() {
+    int pre[] = {1, 2, 4, 3, 7}, in[] = {4, 2, 1, 3, 7};
+    TreeNode *root = build_pre_in(pre, in, 5);
+    printf("root=%d L=%d R=%d\n", root->val, root->left->val, root->right->val);
+}
+```
 
-Given the **preorder** and **inorder** traversal sequence of a binary tree, write a function to reconstruct and return the **root** of the binary tree.
+```cpp,editable
+#include <iostream>
+#include <unordered_map>
+#include <vector>
 
-### Example 1
+struct TreeNode {
+    int val; TreeNode *left, *right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
 
-> -   **Input:** preorder = \[1, 2, 4, 3, 7, 9\], inorder = \[4, 2, 1, 3, 9, 7\]
-> -   **Output:** \[1, 2, 3, 4, null, null, 7, null, null, 9\]
-> -   **Explanation:** The tree is shown in the diagram above.
-
-### Example 2
-
-> -   **Input:** preorder = \[1, 8, 6, 4\], inorder = \[8, 6, 1, 4\]
-> -   **Output:** \[1, 8, 4, null, 6\]
-> -   **Explanation:** The tree is shown in the diagram above.
-
-## Solution
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
+class Builder {
+    int                                 preIdx = 0;
+    std::vector<int>                   *pre   = nullptr;
+    std::unordered_map<int, int>        pos;
 public:
-
-    // Global variable to keep track of the current index in the preorder
-    // traversal
-    int preInd = 0;
-
-    // Helper function to find the index of a given value in the inorder
-    // traversal
-    int findIndex(vector<int> &inorder, int start, int end, int val) {
-        for (int i = start; i <= end; i++) {
-            if (inorder[i] == val) {
-                return i;
-            }
-        }
-
-        // If the value is not found in the inorder array, return the
-        // start index
-        return start;
+    TreeNode* build(int inStart, int inEnd) {
+        if (inStart > inEnd) return nullptr;
+        int rootVal = (*pre)[preIdx++];
+        TreeNode *n = new TreeNode(rootVal);
+        int idx     = pos[rootVal];
+        n->left  = build(inStart, idx - 1);
+        n->right = build(idx + 1, inEnd);
+        return n;
     }
-
-    TreeNode *buildTree(
-        vector<int> &inorder,
-        int inStart,
-        int inEnd,
-        vector<int> &preorder
-    ) {
-
-        // Base case: if the inorder range is empty, return nullptr to
-        // indicate an empty subtree
-        if (inStart > inEnd) {
-            return nullptr;
-        }
-
-        // Create a new node using the current value from the preorder
-        // traversal
-        TreeNode *currentNode = new TreeNode(preorder[preInd]);
-
-        // Find the index of the current value in the inorder traversal
-        int index = findIndex(inorder, inStart, inEnd, preorder[preInd]);
-
-        // Move to the next value in the preorder traversal
-        preInd++;
-
-        // Recursively construct the left and right subtrees using the
-        // appropriate ranges of the inorder and preorder traversals
-        currentNode->left =
-            buildTree(inorder, inStart, index - 1, preorder);
-        currentNode->right =
-            buildTree(inorder, index + 1, inEnd, preorder);
-
-        // Return the current node, which is the root of the constructed
-        // subtree
-        return currentNode;
-    }
-
-    TreeNode *preorderAndInorderReconstruction(
-        vector<int> &preorder,
-        vector<int> &inorder
-    ) {
-
-        // Call the recursive buildTree function with the entire ranges
-        // of inorder and preorder traversals
-        return buildTree(inorder, 0, inorder.size() - 1, preorder);
+    TreeNode* run(std::vector<int>& preorder, std::vector<int>& inorder) {
+        preIdx = 0; pre = &preorder; pos.clear();
+        for (int i = 0; i < (int)inorder.size(); i++) pos[inorder[i]] = i;
+        return build(0, (int)inorder.size() - 1);
     }
 };
+
+int main() {
+    std::vector<int> pre = {1, 2, 4, 3, 7}, in = {4, 2, 1, 3, 7};
+    Builder b;
+    TreeNode *root = b.run(pre, in);
+    std::cout << "root=" << root->val << " L=" << root->left->val
+              << " R=" << root->right->val << "\n";
+}
 ```
+
+```scala,editable
+class TreeNode(var value: Int, var left: TreeNode = null, var right: TreeNode = null)
+
+object Main extends App {
+  def buildPreIn(preorder: Array[Int], inorder: Array[Int]): TreeNode = {
+    val pos = inorder.zipWithIndex.toMap
+    var preIdx = 0
+    def build(inStart: Int, inEnd: Int): TreeNode = {
+      if (inStart > inEnd) return null
+      val rootVal = preorder(preIdx); preIdx += 1
+      val n = new TreeNode(rootVal)
+      val idx = pos(rootVal)
+      n.left  = build(inStart, idx - 1)
+      n.right = build(idx + 1, inEnd)
+      n
+    }
+    build(0, inorder.length - 1)
+  }
+
+  val root = buildPreIn(Array(1, 2, 4, 3, 7), Array(4, 2, 1, 3, 7))
+  println(s"${root.value} ${root.left.value} ${root.right.value}")
+}
+```
+
+```javascript,editable
+class TreeNode {
+    constructor(val = 0, left = null, right = null) { this.val = val; this.left = left; this.right = right; }
+}
+
+function buildPreIn(preorder, inorder) {
+    const pos = new Map();
+    inorder.forEach((v, i) => pos.set(v, i));
+    let preIdx = 0;
+    function build(inStart, inEnd) {
+        if (inStart > inEnd) return null;
+        const rootVal = preorder[preIdx++];
+        const node = new TreeNode(rootVal);
+        const idx  = pos.get(rootVal);
+        node.left  = build(inStart, idx - 1);
+        node.right = build(idx + 1, inEnd);
+        return node;
+    }
+    return build(0, inorder.length - 1);
+}
+
+const root = buildPreIn([1, 2, 4, 3, 7], [4, 2, 1, 3, 7]);
+console.log(root.val, root.left.val, root.right.val);
+```
+
+```typescript,editable
+class TreeNode {
+    val: number;
+    left: TreeNode | null;
+    right: TreeNode | null;
+    constructor(val = 0, left: TreeNode | null = null, right: TreeNode | null = null) {
+        this.val = val; this.left = left; this.right = right;
+    }
+}
+
+function buildPreIn(preorder: number[], inorder: number[]): TreeNode | null {
+    const pos = new Map<number, number>();
+    inorder.forEach((v, i) => pos.set(v, i));
+    let preIdx = 0;
+    const build = (inStart: number, inEnd: number): TreeNode | null => {
+        if (inStart > inEnd) return null;
+        const rootVal = preorder[preIdx++];
+        const node = new TreeNode(rootVal);
+        const idx  = pos.get(rootVal)!;
+        node.left  = build(inStart, idx - 1);
+        node.right = build(idx + 1, inEnd);
+        return node;
+    };
+    return build(0, inorder.length - 1);
+}
+
+const root = buildPreIn([1, 2, 4, 3, 7], [4, 2, 1, 3, 7]);
+console.log(root!.val, root!.left!.val, root!.right!.val);
+```
+
+```go,editable
+package main
+import "fmt"
+
+type TreeNode struct {
+    Val         int
+    Left, Right *TreeNode
+}
+
+func buildPreIn(preorder, inorder []int) *TreeNode {
+    pos := make(map[int]int, len(inorder))
+    for i, v := range inorder {
+        pos[v] = i
+    }
+    preIdx := 0
+    var build func(inStart, inEnd int) *TreeNode
+    build = func(inStart, inEnd int) *TreeNode {
+        if inStart > inEnd { return nil }
+        rootVal := preorder[preIdx]
+        preIdx++
+        n   := &TreeNode{Val: rootVal}
+        idx := pos[rootVal]
+        n.Left  = build(inStart, idx - 1)
+        n.Right = build(idx + 1, inEnd)
+        return n
+    }
+    return build(0, len(inorder) - 1)
+}
+
+func main() {
+    root := buildPreIn([]int{1, 2, 4, 3, 7}, []int{4, 2, 1, 3, 7})
+    fmt.Println(root.Val, root.Left.Val, root.Right.Val)
+}
+```
+
+```kotlin,editable
+class TreeNode(var value: Int, var left: TreeNode? = null, var right: TreeNode? = null)
+
+fun buildPreIn(preorder: IntArray, inorder: IntArray): TreeNode? {
+    val pos = HashMap<Int, Int>(inorder.size)
+    inorder.forEachIndexed { i, v -> pos[v] = i }
+    var preIdx = 0
+    fun build(inStart: Int, inEnd: Int): TreeNode? {
+        if (inStart > inEnd) return null
+        val rootVal = preorder[preIdx++]
+        val n = TreeNode(rootVal)
+        val idx = pos[rootVal]!!
+        n.left  = build(inStart, idx - 1)
+        n.right = build(idx + 1, inEnd)
+        return n
+    }
+    return build(0, inorder.size - 1)
+}
+
+fun main() {
+    val root = buildPreIn(intArrayOf(1, 2, 4, 3, 7), intArrayOf(4, 2, 1, 3, 7))
+    println("${root?.value} ${root?.left?.value} ${root?.right?.value}")
+}
+```
+
+```rust,editable
+use std::collections::HashMap;
+
+#[derive(Debug)]
+pub struct TreeNode {
+    pub val:   i32,
+    pub left:  Option<Box<TreeNode>>,
+    pub right: Option<Box<TreeNode>>,
+}
+
+pub fn build_pre_in(preorder: &[i32], inorder: &[i32]) -> Option<Box<TreeNode>> {
+    let pos: HashMap<i32, usize> = inorder.iter().enumerate().map(|(i, v)| (*v, i)).collect();
+    let mut pre_idx = 0;
+    fn build(
+        preorder: &[i32],
+        pos: &HashMap<i32, usize>,
+        pre_idx: &mut usize,
+        in_start: i32,
+        in_end:   i32,
+    ) -> Option<Box<TreeNode>> {
+        if in_start > in_end { return None; }
+        let root_val = preorder[*pre_idx];
+        *pre_idx += 1;
+        let idx = pos[&root_val] as i32;
+        let mut n = Box::new(TreeNode { val: root_val, left: None, right: None });
+        n.left  = build(preorder, pos, pre_idx, in_start, idx - 1);
+        n.right = build(preorder, pos, pre_idx, idx + 1,   in_end);
+        Some(n)
+    }
+    build(preorder, &pos, &mut pre_idx, 0, inorder.len() as i32 - 1)
+}
+
+fn main() {
+    let pre = [1, 2, 4, 3, 7];
+    let inv = [4, 2, 1, 3, 7];
+    let root = build_pre_in(&pre, &inv).unwrap();
+    let l = root.left.as_ref().unwrap().val;
+    let r = root.right.as_ref().unwrap().val;
+    println!("{} {} {}", root.val, l, r);
+}
+```
+
+</div>
+
+## Complexity
+
+- **Without** the inorder hash map: each recursive call does an O(N) scan to find the root → **O(N²) time**, O(N) space.
+- **With** the inorder hash map: each lookup is O(1) → **O(N) time**, O(N) space.
+- Recursive call-stack: **O(h) space** for the recursion (in addition to the O(N) for the tree itself).
 
 ***
 
-# Understanding construction using postorder and inorder traversal
+# Construction from postorder + inorder
 
-Just like with preorder and inorder construction, we can construct a binary tree if both its postorder and inorder traversal sequence are given. We use both sequences in tandem to construct the tree and resolve any ambiguity incrementally.
+The mirror image of the previous problem. Postorder visits the root *last*, so we walk *backwards* through the postorder array (or use a moving index that decrements).
 
-// Diagram: Tree constructed from inorder and postorder traversal
-
-Constructing a binary tree from a given postorder and inorder traversal is very similar to constructing a binary tree from preorder and inorder traversal.
-
-> -   **Step 1:** In constructing a binary tree, we identify the last element in the postorder traversal sequence, the \`root \`node.
-> -   **Step 2:** Find the location of the \`root\` node in the inorder traversal sequence.
-> -   **Step 3:** If the \`root\` node in the inorder traversal sequence has elements to its right, the root node has a \`right\` subtree, so the second last element in the postorder sequence is the \`right\` child.
-> -   **Step 4:** If the \`root\` node in the inorder traversal sequence does not have elements to its right but elements to its left, the root node does not have a \`right\` subtree, so the second last element in the postorder sequence is the \`left\` child.
-> -   **Step 5:** If the \`root\` node in the inorder traversal sequence does not have elements to its right and left, we are done creating the tree.
-
-// Diagram: Tree construction logic and the starting point
-
-We use the same idea while iterating over the postorder traversal sequence in reverse order to construct the entire tree recursively.
+A second mirror twist: when we discover the root and split the inorder into left/right halves, we then need to recurse into the **right** subtree *first* (because in postorder, the right subtree is processed *just before* the root). The left subtree's postorder values come *before* the right subtree's, so processing the right first lets us consume the postorder array from the back in the correct order.
 
 ## Algorithm
 
-The implementation is straightforward. We move the postorder traversal array in the reverse order and construct a binary tree in an **NRL** fashion. Constructing a tree in an NRL fashion means we first construct the current **node**, followed by the **right** and **left** subtree of the current node recursively. We use the given inorder traversal array to resolve ambiguity at every step and decide if the next node is the right subtree, the left subtree, or if we are done with the entire subtree from the current node and must return the node.
-
-// Diagram: Algorithm to construct tree from inorder and postorder traversal
-
 > **Algorithm**
 >
-> -   **Step 1:** Set the global variable \`postInd\` = \`postOrder.length - 1\`
-> -   **Step 2:** Recursively start constructing the tree for the range \`\[0, inorder.length - 1\]\`.
->     -   **Step 2.1:** Return \`null\` if the \`inStart > inEnd\` means it is a \`null\` node.
->     -   **Step 2.2:** Create a node with the value \`postorder\[postInd\]\`.
->     -   **Step 2.3:** Find the \`index\` of value \`postorder\[postInd\]\` in the inorder array from \`inStart\` to \`inEnd\`. The current node's right and left subtree in the inorder array are in the range \`\[index + 1, inEnd\]\` and \`\[inStart, index - 1\]\`, respectively.
->     -   **Step 2.4:** Decrement \`postInd\` by \`1\`.
->     -   **Step 2.5:** Recursively construct the right subtree using the range \`\[index + 1, inEnd\]\`
->     -   **Step 2.6:** Recursively construct the left subtree using the range \`\[inStart, index - 1\]\`
->     -   **Step 2.7:** Return the node created in \`Step 2.2\`.
+> -   **Step 1:** Initialise `postIndex = len(postorder) − 1`. Build a `value → inorder index` map. Call `build(0, len(inorder) − 1)`.
+> -   **Step 2:** `build(inStart, inEnd)`:
+>     -   If `inStart > inEnd`, return `null`.
+>     -   `rootVal = postorder[postIndex]`; `postIndex--`.
+>     -   `node = TreeNode(rootVal)`.
+>     -   `idx = pos[rootVal]`.
+>     -   `node.right = build(idx + 1, inEnd)`     ← right first!
+>     -   `node.left  = build(inStart, idx − 1)`
+>     -   Return `node`.
+
+The "right first" reversal is the only structural difference from the pre+in version. Everything else (hash map, recursion, complexity) is identical.
+
+## Worked example
+
+> Postorder: `[4, 2, 7, 3, 1]`
+> Inorder:   `[4, 2, 1, 3, 7]`
+
+| Call                          | postIdx | rootVal | inorder split                          |
+|-------------------------------|---------|---------|----------------------------------------|
+| `build(0, 4)`                 | 4       | 1       | left `[4, 2]`, right `[3, 7]`          |
+| `build(3, 4)` (right of 1)    | 3       | 3       | left `[]`, right `[7]`                 |
+| `build(4, 4)` (right of 3)    | 2       | 7       | leaf                                   |
+| `build(3, 2)` (left of 3)     | 1       | —       | empty → null                           |
+| `build(0, 1)` (left of 1)     | 1       | 2       | left `[4]`, right `[]`                 |
+| `build(1, 1)` (right of 2)    | 0       | —       | empty → null                           |
+| `build(0, 0)` (left of 2)     | 0       | 4       | leaf                                   |
+
+Result is the same tree as before — pre+in and post+in *both* uniquely reconstruct the same tree from the same input data.
 
 ## Implementation
 
-C++
+We'll show the Python and Java versions in full; for the rest, the only difference from the pre+in versions is `preIdx++` becomes `postIdx--` and the recursion order swaps right-then-left. Adapt mechanically.
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+<div class="lang-tabs">
 
-// Diagram: using namespace std;
+```python,editable
+def build_post_in(postorder, inorder):
+    pos = {v: i for i, v in enumerate(inorder)}
+    post_idx = len(postorder) - 1
+    def build(in_start, in_end):
+        nonlocal post_idx
+        if in_start > in_end: return None
+        root_val = postorder[post_idx]; post_idx -= 1
+        node = TreeNode(root_val)
+        idx  = pos[root_val]
+        node.right = build(idx + 1, in_end)        # right first
+        node.left  = build(in_start, idx - 1)
+        return node
+    return build(0, len(inorder) - 1)
 
-class Solution {
+root = build_post_in([4, 2, 7, 3, 1], [4, 2, 1, 3, 7])
+print(inorder(root))   # [4, 2, 1, 3, 7]
+```
+
+```java,editable
+import java.util.*;
+public class Main {
+    static class TreeNode { int val; TreeNode left, right; TreeNode(int v){ val = v; } }
+    static int postIdx;
+    static Map<Integer, Integer> pos;
+    static TreeNode build(int[] postorder, int inStart, int inEnd) {
+        if (inStart > inEnd) return null;
+        int rootVal = postorder[postIdx--];
+        TreeNode n = new TreeNode(rootVal);
+        int idx = pos.get(rootVal);
+        n.right = build(postorder, idx + 1, inEnd);     // right first
+        n.left  = build(postorder, inStart, idx - 1);
+        return n;
+    }
+    public static TreeNode buildPostIn(int[] postorder, int[] inorder) {
+        postIdx = postorder.length - 1;
+        pos = new HashMap<>();
+        for (int i = 0; i < inorder.length; i++) pos.put(inorder[i], i);
+        return build(postorder, 0, inorder.length - 1);
+    }
+    public static void main(String[] args) {
+        TreeNode root = buildPostIn(new int[]{4, 2, 7, 3, 1}, new int[]{4, 2, 1, 3, 7});
+        System.out.println(root.val + " " + root.left.val + " " + root.right.val);
+    }
+}
+```
+
+```c,editable
+// pos[], postorder_g, post_idx as globals; symmetric to the pre+in version
+static int post_idx;
+static int *postorder_g;
+
+static TreeNode* build_post(int in_start, int in_end) {
+    if (in_start > in_end) return NULL;
+    int root_val = postorder_g[post_idx--];
+    TreeNode *n = malloc(sizeof(*n));
+    n->val = root_val; n->left = NULL; n->right = NULL;
+    int idx = pos[root_val];
+    n->right = build_post(idx + 1, in_end);     // right first
+    n->left  = build_post(in_start, idx - 1);
+    return n;
+}
+
+TreeNode* build_post_in(int *postorder, int *inorder, int n) {
+    post_idx = n - 1;
+    postorder_g = postorder;
+    for (int i = 0; i < n; i++) pos[inorder[i]] = i;
+    return build_post(0, n - 1);
+}
+```
+
+```cpp,editable
+class BuilderPostIn {
+    int                                 postIdx = 0;
+    std::vector<int>                   *post   = nullptr;
+    std::unordered_map<int, int>        pos;
 public:
-
-    // Global variable to keep track of the index in the postorder
-    // traversal
-    int postInd;
-
-    // Helper function to find the index of a given value in the inorder
-    // traversal
-    int findIndex(vector<int> &inorder, int start, int end, int val) {
-        for (int i = start; i <= end; i++) {
-            if (inorder[i] == val)
-                return i;
-        }
-
-        // If the value is not found in the inorder array, return the
-        // start index
-        return start;
+    TreeNode* build(int inStart, int inEnd) {
+        if (inStart > inEnd) return nullptr;
+        int rootVal = (*post)[postIdx--];
+        TreeNode *n = new TreeNode(rootVal);
+        int idx = pos[rootVal];
+        n->right = build(idx + 1, inEnd);       // right first
+        n->left  = build(inStart, idx - 1);
+        return n;
     }
-
-    TreeNode *buildTree(
-        vector<int> &inorder,
-        int inStart,
-        int inEnd,
-        vector<int> &postorder
-    ) {
-
-        // Base case: If the current inorder range is empty, return
-        // nullptr
-        if (inStart > inEnd)
-            return nullptr;
-
-        // Create a new node with the current postorder element
-        TreeNode *currentNode = new TreeNode(postorder[postInd]);
-
-        // Find the index of this element in inorder
-        int index =
-            findIndex(inorder, inStart, inEnd, postorder[postInd]);
-
-        // Move to the next postorder element
-        postInd--;
-
-        // Recursively build the right subtree with elements after the
-        // current index in inorder
-        currentNode->right =
-            buildTree(inorder, index + 1, inEnd, postorder);
-
-        // Recursively build the left subtree with elements before the
-        // current index in inorder
-        currentNode->left =
-            buildTree(inorder, inStart, index - 1, postorder);
-
-        // Return the current node with its left and right subtrees
-        // constructed
-        return currentNode;
-    }
-
-    TreeNode *postorderAndInorderReconstruction(
-        vector<int> &postorder,
-        vector<int> &inorder
-    ) {
-
-        // Initialize the postInd to the last index of the postorder
-        // traversal.
-        postInd = postorder.size() - 1;
-
-        // Call the helper function with the full range of inorder
-        // traversal.
-        return buildTree(inorder, 0, inorder.size() - 1, postorder);
+    TreeNode* run(std::vector<int>& postorder, std::vector<int>& inorder) {
+        post   = &postorder;
+        postIdx = (int)postorder.size() - 1;
+        pos.clear();
+        for (int i = 0; i < (int)inorder.size(); i++) pos[inorder[i]] = i;
+        return build(0, (int)inorder.size() - 1);
     }
 };
 ```
 
-Java
+```scala,editable
+def buildPostIn(postorder: Array[Int], inorder: Array[Int]): TreeNode = {
+  val pos = inorder.zipWithIndex.toMap
+  var postIdx = postorder.length - 1
+  def build(inStart: Int, inEnd: Int): TreeNode = {
+    if (inStart > inEnd) return null
+    val rootVal = postorder(postIdx); postIdx -= 1
+    val n = new TreeNode(rootVal)
+    val idx = pos(rootVal)
+    n.right = build(idx + 1, inEnd)              // right first
+    n.left  = build(inStart, idx - 1)
+    n
+  }
+  build(0, inorder.length - 1)
+}
+```
 
-```java
-import java.util.*;
-
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-// Diagram: class Solution {
-
-    // Global variable to keep track of the index in the postorder
-    // traversal
-    public int postInd;
-
-    // Helper function to find the index of a given value in the inorder
-    // traversal
-    public int findIndex(int[] inorder, int start, int end, int val) {
-        for (int i = start; i <= end; i++) {
-            if (inorder[i] == val) return i;
-        }
-
-        // If the value is not found in the inorder array, return the
-        // start index
-        return start;
-    }
-
-    public TreeNode buildTree(
-        int[] inorder,
-        int inStart,
-        int inEnd,
-        int[] postorder
-    ) {
-
-        // Base case: If the current inorder range is empty, return null
+```javascript,editable
+function buildPostIn(postorder, inorder) {
+    const pos = new Map();
+    inorder.forEach((v, i) => pos.set(v, i));
+    let postIdx = postorder.length - 1;
+    function build(inStart, inEnd) {
         if (inStart > inEnd) return null;
-
-        // Create a new node with the current postorder element
-        TreeNode currentNode = new TreeNode(postorder[postInd]);
-
-        // Find the index of this element in inorder
-        int index = findIndex(
-            inorder,
-            inStart,
-            inEnd,
-            postorder[postInd]
-        );
-
-        // Move to the next postorder element
-        postInd--;
-
-        // Recursively build the right subtree with elements after the
-        // current index in inorder
-        currentNode.right =
-            buildTree(inorder, index + 1, inEnd, postorder);
-
-        // Recursively build the left subtree with elements before the
-        // current index in inorder
-        currentNode.left =
-            buildTree(inorder, inStart, index - 1, postorder);
-
-        // Return the current node with its left and right subtrees
-        // constructed
-        return currentNode;
+        const rootVal = postorder[postIdx--];
+        const node = new TreeNode(rootVal);
+        const idx  = pos.get(rootVal);
+        node.right = build(idx + 1, inEnd);      // right first
+        node.left  = build(inStart, idx - 1);
+        return node;
     }
-
-    public TreeNode postorderAndInorderReconstruction(
-        int[] postorder,
-        int[] inorder
-    ) {
-
-        // Initialize the postInd to the last index of the postorder
-        // traversal.
-        postInd = postorder.length - 1;
-
-        // Call the helper function with the full range of inorder
-        // traversal.
-        return buildTree(inorder, 0, inorder.length - 1, postorder);
-    }
+    return build(0, inorder.length - 1);
+}
 ```
 
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-// Diagram: export class Solution {
-
-    // Global variable to keep track of the index in the postorder
-    // traversal
-    postInd: number = 0;
-
-    // Helper function to find the index of a given value in the inorder
-    // traversal
-    findIndex(
-        inorder: number[],
-        start: number,
-        end: number,
-        val: number
-    ): number {
-        for (let i = start; i <= end; i++) {
-            if (inorder[i] === val) return i;
-        }
-
-        // If the value is not found in the inorder array, return the
-        // start index
-        return start;
-    }
-
-    buildTree(
-        inorder: number[],
-        inStart: number,
-        inEnd: number,
-        postorder: number[]
-    ): TreeNode | null {
-
-        // Base case: If the current inorder range is empty, return null
+```typescript,editable
+function buildPostIn(postorder: number[], inorder: number[]): TreeNode | null {
+    const pos = new Map<number, number>();
+    inorder.forEach((v, i) => pos.set(v, i));
+    let postIdx = postorder.length - 1;
+    const build = (inStart: number, inEnd: number): TreeNode | null => {
         if (inStart > inEnd) return null;
-
-        // Create a new node with the current postorder element
-        const currentNode: TreeNode = new TreeNode(
-            postorder[this.postInd]
-        );
-
-        // Find the index of this element in inorder
-        const index: number = this.findIndex(
-            inorder,
-            inStart,
-            inEnd,
-            postorder[this.postInd]
-        );
-
-        // Move to the next postorder element
-        this.postInd--;
-
-        // Recursively build the right subtree with elements after the
-        // current index in inorder
-        currentNode.right = this.buildTree(
-            inorder,
-            index + 1,
-            inEnd,
-            postorder
-        );
-
-        // Recursively build the left subtree with elements before the
-        // current index in inorder
-        currentNode.left = this.buildTree(
-            inorder,
-            inStart,
-            index - 1,
-            postorder
-        );
-
-        // Return the current node with its left and right subtrees
-        // constructed
-        return currentNode;
-    }
-
-    postorderAndInorderReconstruction(
-        postorder: number[],
-        inorder: number[]
-    ): TreeNode | null {
-
-        // Initialize the postInd to the last index of the postorder
-        // traversal.
-        this.postInd = postorder.length - 1;
-
-        // Call the helper function with the full range of inorder
-        // traversal.
-        return this.buildTree(inorder, 0, inorder.length - 1, postorder);
-    }
+        const rootVal = postorder[postIdx--];
+        const node = new TreeNode(rootVal);
+        const idx  = pos.get(rootVal)!;
+        node.right = build(idx + 1, inEnd);      // right first
+        node.left  = build(inStart, idx - 1);
+        return node;
+    };
+    return build(0, inorder.length - 1);
+}
 ```
 
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-// Diagram: export class Solution {
-
-    // Global variable to keep track of the index in the postorder
-    // traversal
-    postInd = 0;
-
-    // Helper function to find the index of a given value in the inorder
-    // traversal
-    findIndex(inorder, start, end, val) {
-        for (let i = start; i <= end; i++) {
-            if (inorder[i] === val) return i;
-        }
-
-        // If the value is not found in the inorder array, return the
-        // start index
-        return start;
+```go,editable
+func buildPostIn(postorder, inorder []int) *TreeNode {
+    pos := make(map[int]int, len(inorder))
+    for i, v := range inorder { pos[v] = i }
+    postIdx := len(postorder) - 1
+    var build func(inStart, inEnd int) *TreeNode
+    build = func(inStart, inEnd int) *TreeNode {
+        if inStart > inEnd { return nil }
+        rootVal := postorder[postIdx]
+        postIdx--
+        n   := &TreeNode{Val: rootVal}
+        idx := pos[rootVal]
+        n.Right = build(idx + 1, inEnd)          // right first
+        n.Left  = build(inStart, idx - 1)
+        return n
     }
-
-// Diagram: buildTree(inorder, inStart, inEnd, postorder) {
-
-        // Base case: If the current inorder range is empty, return null
-        if (inStart > inEnd) return null;
-
-        // Create a new node with the current postorder element
-        const currentNode = new TreeNode(postorder[this.postInd]);
-
-        // Find the index of this element in inorder
-        const index = this.findIndex(
-            inorder,
-            inStart,
-            inEnd,
-            postorder[this.postInd]
-        );
-
-        // Move to the next postorder element
-        this.postInd--;
-
-        // Recursively build the right subtree with elements after the
-        // current index in inorder
-        currentNode.right = this.buildTree(
-            inorder,
-            index + 1,
-            inEnd,
-            postorder
-        );
-
-        // Recursively build the left subtree with elements before the
-        // current index in inorder
-        currentNode.left = this.buildTree(
-            inorder,
-            inStart,
-            index - 1,
-            postorder
-        );
-
-        // Return the current node with its left and right subtrees
-        // constructed
-        return currentNode;
-    }
-
-// Diagram: postorderAndInorderReconstruction(postorder, inorder) {
-
-        // Initialize the postInd to the last index of the postorder
-        // traversal.
-        this.postInd = postorder.length - 1;
-
-        // Call the helper function with the full range of inorder
-        // traversal.
-        return this.buildTree(inorder, 0, inorder.length - 1, postorder);
-    }
+    return build(0, len(inorder) - 1)
+}
 ```
 
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import Optional, List
-
-class Solution:
-    def __init__(self):
-
-        # Global variable to keep track of the index in the postorder
-        # traversal
-        self.post_ind: int = 0
-
-    def find_index(
-        self, inorder: List[int], start: int, end: int, val: int
-    ) -> int:
-
-        # Helper function to find the index of a given value in the
-        # inorder traversal
-        for i in range(start, end + 1):
-            if inorder[i] == val:
-                return i
-
-        # If the value is not found in the inorder array, return the
-        # start index
-        return start
-
-    def build_tree(
-        self,
-        inorder: List[int],
-        in_start: int,
-        in_end: int,
-        postorder: List[int],
-    ) -> Optional[TreeNode]:
-
-        # Base case: If the current inorder range is empty, return None
-        if in_start > in_end:
-            return None
-
-        # Create a new node with the current postorder element
-        current_node: TreeNode = TreeNode(postorder[self.post_ind])
-
-        # Find the index of this element in inorder
-        index = self.find_index(
-            inorder, in_start, in_end, postorder[self.post_ind]
-        )
-
-        # Move to the next postorder element
-        self.post_ind -= 1
-
-        # Recursively build the right subtree with elements after the
-        # current index in inorder
-        current_node.right = self.build_tree(
-            inorder, index + 1, in_end, postorder
-        )
-
-        # Recursively build the left subtree with elements before the
-        # current index in inorder
-        current_node.left = self.build_tree(
-            inorder, in_start, index - 1, postorder
-        )
-
-        # Return the current node with its left and right subtrees
-        # constructed
-        return current_node
-
-    def postorder_and_inorder_reconstruction(
-        self, postorder: List[int], inorder: List[int]
-    ) -> Optional[TreeNode]:
-
-        # Initialize the post_ind to the last index of the postorder
-        # traversal.
-        self.post_ind = len(postorder) - 1
-
-        # Call the helper function with the full range of inorder
-        # traversal.
-        return self.build_tree(inorder, 0, len(inorder) - 1, postorder)
+```kotlin,editable
+fun buildPostIn(postorder: IntArray, inorder: IntArray): TreeNode? {
+    val pos = HashMap<Int, Int>(inorder.size)
+    inorder.forEachIndexed { i, v -> pos[v] = i }
+    var postIdx = postorder.size - 1
+    fun build(inStart: Int, inEnd: Int): TreeNode? {
+        if (inStart > inEnd) return null
+        val rootVal = postorder[postIdx--]
+        val n = TreeNode(rootVal)
+        val idx = pos[rootVal]!!
+        n.right = build(idx + 1, inEnd)         // right first
+        n.left  = build(inStart, idx - 1)
+        return n
+    }
+    return build(0, inorder.size - 1)
+}
 ```
 
-## Complexity Analysis
+```rust,editable
+pub fn build_post_in(postorder: &[i32], inorder: &[i32]) -> Option<Box<TreeNode>> {
+    let pos: HashMap<i32, usize> = inorder.iter().enumerate().map(|(i, v)| (*v, i)).collect();
+    let mut post_idx: i32 = postorder.len() as i32 - 1;
+    fn build(
+        postorder: &[i32],
+        pos: &HashMap<i32, usize>,
+        post_idx: &mut i32,
+        in_start: i32,
+        in_end:   i32,
+    ) -> Option<Box<TreeNode>> {
+        if in_start > in_end { return None; }
+        let root_val = postorder[*post_idx as usize];
+        *post_idx -= 1;
+        let idx = pos[&root_val] as i32;
+        let mut n = Box::new(TreeNode { val: root_val, left: None, right: None });
+        n.right = build(postorder, pos, post_idx, idx + 1,   in_end);   // right first
+        n.left  = build(postorder, pos, post_idx, in_start,  idx - 1);
+        Some(n)
+    }
+    build(postorder, &pos, &mut post_idx, 0, inorder.len() as i32 - 1)
+}
+```
 
-We can see from the algorithm and its implementation that we are just iterating over the postorder traversal sequence from end to start and recursively building the tree. Therefore, the runtime complexity grows linearly with the number of nodes. Since we are constructing a tree, the extra space complexity is also linear.
+</div>
 
-> **Best Case**
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case**
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
+## Complexity
+
+Identical to pre+in: **O(N) time, O(N) space** with the inorder hash map.
 
 ***
 
-# Postorder and inorder reconstruction
+# What about preorder + postorder?
 
-## Problem Statement
+A natural question: if pre+in works and post+in works, what about **pre+post** without inorder?
 
-Fundamental
+The answer is *almost* — but with a catch. Pre+post **uniquely determines the tree only when every internal node has exactly two children** (a *full binary tree*). For trees that have any node with only one child, pre+post is ambiguous.
 
-Given the **postorder** and **inorder** traversal sequence of a binary tree, write a function to reconstruct and return the **root** of the binary tree.
+Why? Consider these two trees:
 
-### Example 1
-
-> -   **Input:** preorder = \[4, 2, 9, 7, 3, 1\], inorder = \[4, 2, 1, 3, 9, 7\]
-> -   **Output:** \[1, 2, 3, 4, null, null, 7, null, null, 9\]
-> -   **Explanation:** The tree is shown in the diagram above.
-
-### Example 2
-
-> -   **Input:** preorder = \[6, 8, 4, 1\], inorder = \[8, 6, 1, 4\]
-> -   **Output:** \[1, 8, 4, null, 6\]
-> -   **Explanation:** The tree is shown in the diagram above.
-
-## Solution
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-
-    // Global variable to keep track of the index in the postorder
-    // traversal
-    int postInd;
-
-    // Helper function to find the index of a given value in the inorder
-    // traversal
-    int findIndex(vector<int> &inorder, int start, int end, int val) {
-        for (int i = start; i <= end; i++) {
-            if (inorder[i] == val) {
-                return i;
-            }
-        }
-
-        // If the value is not found in the inorder array, return the
-        // start index
-        return start;
-    }
-
-    TreeNode *buildTree(
-        vector<int> &inorder,
-        int inStart,
-        int inEnd,
-        vector<int> &postorder
-    ) {
-
-        // Base case: If the current inorder range is empty, return
-        // nullptr
-        if (inStart > inEnd) {
-            return nullptr;
-        }
-
-        // Create a new node with the current postorder element
-        TreeNode *currentNode = new TreeNode(postorder[postInd]);
-
-        // Find the index of this element in inorder
-        int index =
-            findIndex(inorder, inStart, inEnd, postorder[postInd]);
-
-        // Move to the next postorder element
-        postInd--;
-
-        // Recursively build the right subtree with elements after the
-        // current index in inorder
-        currentNode->right =
-            buildTree(inorder, index + 1, inEnd, postorder);
-
-        // Recursively build the left subtree with elements before the
-        // current index in inorder
-        currentNode->left =
-            buildTree(inorder, inStart, index - 1, postorder);
-
-        // Return the current node with its left and right subtrees
-        // constructed
-        return currentNode;
-    }
-
-    TreeNode *postorderAndInorderReconstruction(
-        vector<int> &postorder,
-        vector<int> &inorder
-    ) {
-
-        // Initialize the postInd to the last index of the postorder
-        // traversal.
-        postInd = postorder.size() - 1;
-
-        // Call the helper function with the full range of inorder
-        // traversal.
-        return buildTree(inorder, 0, inorder.size() - 1, postorder);
-    }
-};
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph TA["A: 2 is left child of 1"]
+        TA1((1))
+        TA2((2))
+        TA1 --> TA2
+        TA1 -.- TAN[" "]
+        style TAN fill:none,stroke:none
+    end
+    subgraph TB["B: 2 is right child of 1"]
+        TB1((1))
+        TB2((2))
+        TB1 -.- TBN[" "]
+        TB1 --> TB2
+        style TBN fill:none,stroke:none
+    end
 ```
+
+Both trees have **preorder `[1, 2]`** and **postorder `[2, 1]`** — so the pair cannot distinguish them. The reason inorder works (and the others don't) is that *only* inorder reveals the *left/right split* around the root; pre+post both visit the root at known positions but neither tells you, for a single-child node, *which side* the child is on.
+
+So in practice: prefer pre+in or post+in, and fall back to pre+post only if you know for certain the tree is full.
+
+***
+
+## Final Takeaway
+
+Tree construction from traversals is a small jewel of recursive thinking. Three things to walk away with:
+
+1. **One traversal is never enough.** Each individual traversal throws away too much information about the tree's *shape*. Preorder fixes the visit order but not the parent-child relationships; inorder hides the root entirely; postorder mirrors preorder's problem from the other end. Don't try to invert a single traversal.
+2. **Pre+in and post+in are duals.** Both algorithms have the same shape — divide-and-conquer over the inorder slice, indexed by a moving pointer into the other array. Pre+in marches forward through preorder and recurses left-then-right; post+in marches backward through postorder and recurses right-then-left. Recognise the duality and you'll never need to look up either algorithm.
+3. **Pre-build the inorder index map.** Without it, every recursive call does an O(N) scan and the algorithm degrades to O(N²) on skew trees. With it, every lookup is O(1) and the whole construction runs in O(N). The map is a one-line change with massive payoff — always include it in production code.
+
+> *Coming up — the lessons that follow build on construction with <strong>insertion</strong> (adding a new node to an existing tree at a given position) and then dive into the <strong>11 binary-tree patterns</strong> that cover almost every interview question you'll see on this data structure: stateless and stateful preorder/postorder, root-to-leaf paths, level-order traversal, lowest common ancestor, simultaneous traversal of two trees, and a final practice mix. Each pattern is a recipe — once you've internalised the recursive shape from these first six lessons, the patterns are just <em>"what work do I do at the visit step?"</em> applied to specific problems.*

@@ -1,938 +1,993 @@
-# Pattern: Postorder traversal (Stateless)
+# 10. Pattern: Postorder Traversal (Stateless)
 
-## Table of Contents
+## The Hook
 
-1. [Understanding the stateless postorder traversal pattern](#understanding-the-stateless-postorder-traversal-pattern)
-2. [Identifying the stateless postorder traversal pattern](#identifying-the-stateless-postorder-traversal-pattern)
-3. [Sum of leaves](#sum-of-leaves)
-4. [Height of binary tree](#height-of-binary-tree)
-5. [Maximum path sum](#maximum-path-sum)
-6. [Full binary tree](#full-binary-tree)
-7. [Perfect binary tree](#perfect-binary-tree)
-8. [Collect leaves](#collect-leaves)
+The preorder patterns from the last two lessons handed information *down* the tree — parent computes, children inherit. But there's a whole class of problems where the question runs the *other* way: each node's answer can only be computed once it knows the answer for *both of its subtrees*. The height of a node? Max of the left and right subtree heights, plus one. The sum of values in a subtree? Sum of left + sum of right + node's own value. Whether a tree is a full binary tree? Both subtrees must themselves be full *and* the current node must have either zero or two children.
+
+That dependency direction — *children answer first, then their parent combines* — is what postorder traversal is for. The recursive call descends to the leaves, leaves return their base-case answers, internal nodes combine those answers, and the root ends up with the final answer.
+
+The **stateless** variant is the cleanest: each recursive call **returns** its subtree's answer, and the parent combines what comes back. No mutable state, no shared accumulator, no `void` helper that smuggles data through a side effect. Just `f(left) + f(right) + something(node)` — the recursive equation written directly.
+
+This pattern is the bread-and-butter of binary-tree problems. *Every* "compute X for the whole tree" question — height, size, sum, max, balance check, structural validation, BST check, depth comparisons — fits this shape. Even the postorder *stateful* pattern in the next lesson is just an enhancement: it adds a side channel for problems where each subtree needs to report *more than one number* back to its parent.
+
+This lesson establishes the recipe, the canonical six example problems (sum-of-leaves, height, max path sum, full-tree check, perfect-tree check, collect-leaves-by-height), and clean implementations for each in 10 languages.
+
+---
+
+## Table of contents
+
+1. [The stateless postorder pattern](#the-stateless-postorder-pattern)
+2. [How to recognise it](#how-to-recognise-it)
+3. [Problem 1 — Sum of leaves](#problem-1--sum-of-leaves)
+4. [Problem 2 — Height of a binary tree](#problem-2--height-of-a-binary-tree)
+5. [Problem 3 — Maximum root-to-leaf path sum](#problem-3--maximum-root-to-leaf-path-sum)
+6. [Problem 4 — Is it a full binary tree?](#problem-4--is-it-a-full-binary-tree)
+7. [Problem 5 — Is it a perfect binary tree?](#problem-5--is-it-a-perfect-binary-tree)
+8. [Problem 6 — Collect leaves by height](#problem-6--collect-leaves-by-height)
 
 ***
 
-# Understanding the stateless postorder traversal pattern
+# The stateless postorder pattern
 
-The postorder traversal follows the left-right-node processing sequence, where a node is processed after processing both its left and right subtrees recursively. Because a node is processed **after** its left and right subtrees, the postorder traversal is ideal for solving problems where data must be processed and **passed up** from child nodes to the parent node. This makes postorder traversal the ideal solution for solving binary tree problems that require a **bottom-up** processing. Every node processes values passed from its children and passes the result to its parent.
-
-There are two ways to pass data between nodes. One requires maintaining some shared state, while the other is completely stateless. The choice between these options depends on the problem. The stateless postorder traversal is the regular postorder traversal technique that passes data from child nodes to the parent node instead of sharing a single copy between nodes.
-
-The stateless postorder traversal pattern is a classification of problems that can be solved using the stateless postorder traversal technique.
-
-// Diagram: The order of processing of nodes in postorder traversal
-
-In this lesson, we will learn more about using the stateless postorder traversal technique to solve binary tree problems and how to identify a problem as a postorder pattern problem.
-
-## The stateless postorder traversal technique
-
-The stateless postorder traversal technique is quite simple and easy to understand. Consider we are given a binary tree, and to process a node, we need the aggregated value of a function `f` over its left and right subtrees.
-
-// Diagram: Process a node using the aggregated value of function f over its left and right subtrees.
-
-The postorder traversal technique can easily solve this problem. The idea is quite simple: we start the postorder traversal from the root node of the tree that recursively traverses the left and right subtrees of every node before backtracking back to a node. We use this traversal order to pass the aggregated value of the function `f` over all nodes in the subtree of a node back up to its parent.
-
-// Diagram: Process a parent node using the aggregated value passed up from its children.
-
-To understand the technique better, we must look at it as a bottom-up execution. The postorder traversal from the root node recursively traverses to the left until it reaches a leaf node for which both the left and right subtrees are `null` references. Hitting a `null` reference is the base case for this recursive execution where we return some default value back up to the leaf node.
-
-The default values received from the left and right `null` references are then used to process the leaf node. Finally, the default values it received from its left and right `null` references and its own contribution are aggregated using the function `f`. This aggregated value is then passed back up to the parent node, which gets a similar value from its right subtree. The same steps are then repeated for the parent node, where it is processed using the values it received from its left and right subtrees and finally aggregated along with its own contribution using the function `f` and passing it back up to its parent.
-
-We create three local variables, `left`, `right`, and `aggregate`, for each node to store the values returned by the left and right subtree and the aggregated value for the subtree of the current node. The value of `aggregate` is then returned back to the parent from every node.
-
-This way, at the end of postorder traversal, every node in the tree is processed with an aggregated value of function `f` over its left and right subtrees, and the aggregated value of `f` over all nodes in the tree is returned from the postorder call since the top-level node is the root node.
-
-// Diagram: Process every node with the aggregated value of f over its left and right subtrees
-
-## Algorithm
-
-The generic algorithm given below uses postorder traversal to process every node using the aggregated value of a function `f` over its left and right subtrees.
-
-> **postorder(node)**
->
-> -   **Step 1:** If this is a \`null\` node, return a default value
-> -   **Step 2:** \`left\` = Call \`postorder(node.left)\`
-> -   **Step 3:** \`right\` = Call \`postorder(node.right)\`
-> -   **Step 4:** Aggregate all values together: \`aggregate = \`f(left, right, node.val)\`
-> -   **Step 5:** Return \`aggregate\`
-
-## Implementation
-
-The implementation of the postorder traversal technique is given below. The postorder function is completely stateless, as every node has its own copy of local variables `left`, `right` and `aggregate` that are unaffected by execution in other nodes.
-
-C++
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    int postorder(TreeNode *node) {
-
-        if (!node) {
-            // Return some default value if this is a null reference;
-            return 0;
-        }
-
-        // Pass the new aggregated value down
-        int left = postorder(node->left);
-        int right = postorder(node->right);
-
-        // Process the node with left and right values
-        // Replace this with actual implementation
-        // .
-
-        // Add contribution of current node
-        int aggregate = f(left, right, node->val);
-
-        // Pass back the aggregated value to the parent node
-        return aggregate;
-
-    }
-};
+```text
+postorder(node):
+  if node is null: return baseCase                  # e.g. 0, -1, true, infinity
+  leftAnswer  = postorder(node.left)
+  rightAnswer = postorder(node.right)
+  return combine(leftAnswer, rightAnswer, node.val) # the recurrence
 ```
 
-Java
+The shape is identical for every postorder-stateless problem; only the `baseCase` and the `combine` change. Pick those two correctly and the entire algorithm writes itself.
 
-```java
-import java.util.*;
-
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-class Solution {
-    public int postorder(TreeNode node) {
-        if (node == null) {
-            // Return some default value if this is a null reference;
-            return 0;
-        }
-
-        // Pass the new aggregated value down
-        int left = postorder(node.left);
-        int right = postorder(node.right);
-
-        // Process the node with left and right values
-        // Replace this with actual implementation
-        // .
-
-        // Add contribution of current node
-        int aggregate = f(left, right, node.val);
-
-        // Pass back the aggregated value to the parent node
-        return aggregate;
-    }
-
-    // Example placeholder function f for aggregation
-    private int f(int left, int right, int nodeValue) {
-        // Replace with actual aggregation logic
-        return left + right + nodeValue; // Example: summing up values
-    }
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    R(("(1)<br/>combine(L=4, R=11, val=1) = 11"))
+    A(("(2)<br/>combine(L=4, R=0, val=2) = 4"))
+    B(("(3)<br/>combine(L=0, R=11, val=3) = 11"))
+    C(("(4)<br/>leaf → 4"))
+    D(("(7)<br/>leaf → 11... wait"))
+    R --> A
+    R --> B
+    A --> C
+    B --> D
+    style R fill:#fef9c3,stroke:#f59e0b
 ```
 
-Typescript
+<p align="center"><strong>Postorder data flow for max root-to-leaf path sum — leaves return their own value; each internal node returns <code>val + max(L, R)</code>; the root ends up with the answer. The arrows that <em>go down</em> are recursive calls; the values that <em>come up</em> are the returns. (Note: in the example, leaf 7 returns its own value 7, not 11; the node's own value adds at the parent.)</strong></p>
 
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
+> **Why "stateless"?** No mutable state escapes a stack frame. Each call computes its return value purely from its children's return values and the local node — like a functional fold over the tree. Two calls on the same subtree would return the same thing; there's no global accumulator that could give different answers depending on visit order.
 
-export class Solution {
-  postorder(node: TreeNode | null): number {
-    if (!node) {
-      // Return some default value if this is a null reference;
-      return 0;
-    }
+## Generic pattern in 10 languages
 
-    // Pass the new aggregated value down
-    const left = this.postorder(node.left);
-    const right = this.postorder(node.right);
+Below is a "sum of all node values" template — illustrative; substitute the right base case and combine for your problem.
 
-    // Process the node with left and right values
-    // Replace this with actual implementation
-    // .
+<div class="lang-tabs">
 
-    // Add contribution of current node
-    const aggregate = this.f(left, right, node.val);
+```python,editable
+from typing import Optional
 
-    // Pass back the aggregated value to the parent node
-    return aggregate;
-  }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-  postorder(node) {
-    if (!node) {
-      // Return some default value if this is a null reference;
-      return 0;
-    }
-
-    // Pass the new aggregated value down
-    const left = this.postorder(node.left);
-    const right = this.postorder(node.right);
-
-    // Process the node with left and right values
-    // Replace this with actual implementation
-    // .
-
-    // Add contribution of current node
-    const aggregate = this.f(left, right, node.val);
-
-    // Pass back the aggregated value to the parent node
-    return aggregate;
-  }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
 class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
+    def __init__(self, val=0, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
 
-// Diagram: from typing import Optional, List
-
-class Solution:
-    def postorder(self, node: Optional[TreeNode]) -> int:
-        if not node:
-            # Return some default value if this is a null reference;
-            return 0
-
-        # Pass the new aggregated value down
-        left = self.postorder(node.left)
-        right = self.postorder(node.right)
-
-        # Process the node with left and right values
-        # Replace this with actual implementation
-        # .
-
-        # Add contribution of current node
-        aggregate = self.f(left, right, node.val)
-
-        # Pass back the aggregated value to the parent node
-        return aggregate
+def stateless_postorder(node: Optional[TreeNode]) -> int:
+    if node is None: return 0                      # base case
+    left  = stateless_postorder(node.left)
+    right = stateless_postorder(node.right)
+    return left + right + node.val                 # combine
 ```
 
-## Complexity Analysis
+```java,editable
+static int statelessPostorder(TreeNode node) {
+    if (node == null) return 0;
+    int left  = statelessPostorder(node.left);
+    int right = statelessPostorder(node.right);
+    return left + right + node.val;
+}
+```
 
-It is quite easy to figure out the time and space complexity of the solution. We traverse the entire tree using the postorder traversal that takes linear **O(N)** time and apply the function `f` on every node. And so, the overall time complexity depends on the time complexity of the function `f`. Considering it is a constant time **O(1)** operation, the overall time complexity is linear **O(N)** in any case.
+```c,editable
+int stateless_postorder(TreeNode *n) {
+    if (!n) return 0;
+    int left  = stateless_postorder(n->left);
+    int right = stateless_postorder(n->right);
+    return left + right + n->val;
+}
+```
 
-The space complexity of postorder traversal depends on the maximum size of the function call stack, which can be linear **O(N)** if the tree is a degenerate binary tree where every node only has one child and **O(log(N))** if it is a complete binary tree. However, each stack frame also creates its own copy of local variables, but each of them only makes a constant contribution to the size of the frame, so the overall space complexity is the same as the space required for the stack frames.
+```cpp,editable
+int statelessPostorder(TreeNode *n) {
+    if (!n) return 0;
+    int left  = statelessPostorder(n->left);
+    int right = statelessPostorder(n->right);
+    return left + right + n->val;
+}
+```
 
-> **Best Case:** Complete binary tree
+```scala,editable
+def statelessPostorder(n: TreeNode): Int = {
+  if (n == null) return 0
+  val l = statelessPostorder(n.left)
+  val r = statelessPostorder(n.right)
+  l + r + n.value
+}
+```
+
+```javascript,editable
+function statelessPostorder(n) {
+    if (!n) return 0;
+    const left  = statelessPostorder(n.left);
+    const right = statelessPostorder(n.right);
+    return left + right + n.val;
+}
+```
+
+```typescript,editable
+function statelessPostorder(n: TreeNode | null): number {
+    if (!n) return 0;
+    const left  = statelessPostorder(n.left);
+    const right = statelessPostorder(n.right);
+    return left + right + n.val;
+}
+```
+
+```go,editable
+func statelessPostorder(n *TreeNode) int {
+    if n == nil { return 0 }
+    return statelessPostorder(n.Left) + statelessPostorder(n.Right) + n.Val
+}
+```
+
+```kotlin,editable
+fun statelessPostorder(n: TreeNode?): Int {
+    if (n == null) return 0
+    return statelessPostorder(n.left) + statelessPostorder(n.right) + n.value
+}
+```
+
+```rust,editable
+pub fn stateless_postorder(node: &Option<Box<TreeNode>>) -> i32 {
+    match node {
+        None => 0,
+        Some(n) => stateless_postorder(&n.left) + stateless_postorder(&n.right) + n.val,
+    }
+}
+```
+
+</div>
+
+## Complexity
+
+> **Time:** O(N) — each node visited once. **Space:** O(h) for the recursion stack.
+
+***
+
+# How to recognise it
+
+The pattern fits when:
+
+- The answer for any subtree can be **computed solely from the answers of its two subtrees** (and the current node's own value).
+- The whole-tree answer is the answer at the root.
+
+Concrete cues:
+
+- *"Find the height / depth / size of the tree"* — recurrence on subtree heights/sizes.
+- *"Sum / max / min over all nodes / leaves / paths"* — fold over the tree.
+- *"Is the tree balanced / full / perfect / a BST?"* — structural validation, both subtrees must satisfy a property *and* the current node fits.
+- *"Compute X for every subtree"* — same shape, just record the answer at every node.
+
+Anti-pattern: if the answer depends on the *path from the root* to a node (info from above), use a preorder pattern instead. If sibling subtrees need to report multiple values back (e.g., "the longest path through this node, plus the longest path entirely within this subtree"), you want the *stateful* postorder pattern (next lesson).
+
+***
+
+# Problem 1 — Sum of leaves
+
+> Given the root, compute the sum of all leaf node values.
+
+Base case: empty tree contributes 0. Leaf returns its own value. Internal node returns `sumOfLeaves(left) + sumOfLeaves(right)` — the node's own value doesn't enter (it's not a leaf).
+
+## Solution
+
+<div class="lang-tabs">
+
+```python,editable
+def sum_of_leaves(root):
+    if root is None: return 0
+    if root.left is None and root.right is None:
+        return root.val
+    return sum_of_leaves(root.left) + sum_of_leaves(root.right)
+```
+
+```java,editable
+public static int sumOfLeaves(TreeNode root) {
+    if (root == null) return 0;
+    if (root.left == null && root.right == null) return root.val;
+    return sumOfLeaves(root.left) + sumOfLeaves(root.right);
+}
+```
+
+```c,editable
+int sum_of_leaves(TreeNode *root) {
+    if (!root) return 0;
+    if (!root->left && !root->right) return root->val;
+    return sum_of_leaves(root->left) + sum_of_leaves(root->right);
+}
+```
+
+```cpp,editable
+int sumOfLeaves(TreeNode *root) {
+    if (!root) return 0;
+    if (!root->left && !root->right) return root->val;
+    return sumOfLeaves(root->left) + sumOfLeaves(root->right);
+}
+```
+
+```scala,editable
+def sumOfLeaves(root: TreeNode): Int = {
+  if (root == null) return 0
+  if (root.left == null && root.right == null) return root.value
+  sumOfLeaves(root.left) + sumOfLeaves(root.right)
+}
+```
+
+```javascript,editable
+function sumOfLeaves(root) {
+    if (!root) return 0;
+    if (!root.left && !root.right) return root.val;
+    return sumOfLeaves(root.left) + sumOfLeaves(root.right);
+}
+```
+
+```typescript,editable
+function sumOfLeaves(root: TreeNode | null): number {
+    if (!root) return 0;
+    if (!root.left && !root.right) return root.val;
+    return sumOfLeaves(root.left) + sumOfLeaves(root.right);
+}
+```
+
+```go,editable
+func sumOfLeaves(root *TreeNode) int {
+    if root == nil { return 0 }
+    if root.Left == nil && root.Right == nil { return root.Val }
+    return sumOfLeaves(root.Left) + sumOfLeaves(root.Right)
+}
+```
+
+```kotlin,editable
+fun sumOfLeaves(root: TreeNode?): Int {
+    if (root == null) return 0
+    if (root.left == null && root.right == null) return root.value
+    return sumOfLeaves(root.left) + sumOfLeaves(root.right)
+}
+```
+
+```rust,editable
+pub fn sum_of_leaves(root: &Option<Box<TreeNode>>) -> i32 {
+    match root {
+        None => 0,
+        Some(n) if n.left.is_none() && n.right.is_none() => n.val,
+        Some(n) => sum_of_leaves(&n.left) + sum_of_leaves(&n.right),
+    }
+}
+```
+
+</div>
+
+***
+
+# Problem 2 — Height of a binary tree
+
+> Compute the height of the tree (number of nodes along the longest root-to-leaf path).
+
+Base case: empty tree has height 0 (under the *node-counting* convention used in this problem). Each internal node returns `max(height(left), height(right)) + 1`. The root's answer is the tree's height.
+
+> **Note on conventions:** This problem uses the *node-counting* convention (empty = 0, single node = 1). Lesson 1 used the *edge-counting* convention (empty = -1, single node = 0). Both are common; *always read the problem carefully* and pick base cases that make the recurrence consistent.
+
+## Solution
+
+<div class="lang-tabs">
+
+```python,editable
+def height(root):
+    if root is None: return 0
+    return 1 + max(height(root.left), height(root.right))
+```
+
+```java,editable
+public static int height(TreeNode root) {
+    if (root == null) return 0;
+    return 1 + Math.max(height(root.left), height(root.right));
+}
+```
+
+```c,editable
+int height(TreeNode *root) {
+    if (!root) return 0;
+    int l = height(root->left), r = height(root->right);
+    return 1 + (l > r ? l : r);
+}
+```
+
+```cpp,editable
+int height(TreeNode *root) {
+    if (!root) return 0;
+    return 1 + std::max(height(root->left), height(root->right));
+}
+```
+
+```scala,editable
+def height(root: TreeNode): Int =
+  if (root == null) 0 else 1 + math.max(height(root.left), height(root.right))
+```
+
+```javascript,editable
+function height(root) {
+    if (!root) return 0;
+    return 1 + Math.max(height(root.left), height(root.right));
+}
+```
+
+```typescript,editable
+function height(root: TreeNode | null): number {
+    if (!root) return 0;
+    return 1 + Math.max(height(root.left), height(root.right));
+}
+```
+
+```go,editable
+func height(root *TreeNode) int {
+    if root == nil { return 0 }
+    l, r := height(root.Left), height(root.Right)
+    if l > r { return 1 + l }
+    return 1 + r
+}
+```
+
+```kotlin,editable
+fun height(root: TreeNode?): Int =
+    if (root == null) 0 else 1 + maxOf(height(root.left), height(root.right))
+```
+
+```rust,editable
+pub fn height(root: &Option<Box<TreeNode>>) -> i32 {
+    match root {
+        None => 0,
+        Some(n) => 1 + std::cmp::max(height(&n.left), height(&n.right)),
+    }
+}
+```
+
+</div>
+
+***
+
+# Problem 3 — Maximum root-to-leaf path sum
+
+> Compute the largest sum among all root-to-leaf paths.
+
+Base case: empty tree contributes 0 (so the recursion at a single-child node still works). Leaf returns its own value. Internal node returns `node.val + max(maxPathSum(left), maxPathSum(right))`.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    R(("1<br/>1+max(6,10)=11"))
+    A(("2<br/>2+max(4,0)=6"))
+    B(("3<br/>3+max(0,7)=10"))
+    C(("4<br/>leaf → 4"))
+    D(("7<br/>leaf → 7"))
+    R --> A
+    R --> B
+    A --> C
+    B --> D
+    style R fill:#fef9c3,stroke:#f59e0b
+```
+
+<p align="center"><strong>Max path sum — each node returns <em>its own value plus the better of the two subtree answers</em>. Empty subtrees contribute 0; the recursion bubbles the maximum up to the root.</strong></p>
+
+## Solution
+
+<div class="lang-tabs">
+
+```python,editable
+def maximum_path_sum(root):
+    if root is None: return 0
+    return root.val + max(maximum_path_sum(root.left), maximum_path_sum(root.right))
+```
+
+```java,editable
+public static int maximumPathSum(TreeNode root) {
+    if (root == null) return 0;
+    return root.val + Math.max(maximumPathSum(root.left), maximumPathSum(root.right));
+}
+```
+
+```c,editable
+int maximum_path_sum(TreeNode *root) {
+    if (!root) return 0;
+    int l = maximum_path_sum(root->left);
+    int r = maximum_path_sum(root->right);
+    return root->val + (l > r ? l : r);
+}
+```
+
+```cpp,editable
+int maximumPathSum(TreeNode *root) {
+    if (!root) return 0;
+    return root->val + std::max(maximumPathSum(root->left), maximumPathSum(root->right));
+}
+```
+
+```scala,editable
+def maximumPathSum(root: TreeNode): Int =
+  if (root == null) 0 else root.value + math.max(maximumPathSum(root.left), maximumPathSum(root.right))
+```
+
+```javascript,editable
+function maximumPathSum(root) {
+    if (!root) return 0;
+    return root.val + Math.max(maximumPathSum(root.left), maximumPathSum(root.right));
+}
+```
+
+```typescript,editable
+function maximumPathSum(root: TreeNode | null): number {
+    if (!root) return 0;
+    return root.val + Math.max(maximumPathSum(root.left), maximumPathSum(root.right));
+}
+```
+
+```go,editable
+func maximumPathSum(root *TreeNode) int {
+    if root == nil { return 0 }
+    l, r := maximumPathSum(root.Left), maximumPathSum(root.Right)
+    if l > r { return root.Val + l }
+    return root.Val + r
+}
+```
+
+```kotlin,editable
+fun maximumPathSum(root: TreeNode?): Int =
+    if (root == null) 0 else root.value + maxOf(maximumPathSum(root.left), maximumPathSum(root.right))
+```
+
+```rust,editable
+pub fn maximum_path_sum(root: &Option<Box<TreeNode>>) -> i32 {
+    match root {
+        None => 0,
+        Some(n) => n.val + std::cmp::max(maximum_path_sum(&n.left), maximum_path_sum(&n.right)),
+    }
+}
+```
+
+</div>
+
+***
+
+# Problem 4 — Is it a full binary tree?
+
+> Return `true` iff every node has either zero or two children.
+
+Three cases at each node:
+
+- Empty tree → vacuously full → `true`.
+- Leaf (both children null) → full → `true`.
+- Exactly one child null → *not* full → `false`.
+- Both children present → recurse and require both subtrees full.
+
+## Solution
+
+<div class="lang-tabs">
+
+```python,editable
+def is_full(root):
+    if root is None: return True
+    if root.left is None and root.right is None: return True
+    if root.left is None or  root.right is None: return False
+    return is_full(root.left) and is_full(root.right)
+```
+
+```java,editable
+public static boolean isFull(TreeNode root) {
+    if (root == null) return true;
+    if (root.left == null && root.right == null) return true;
+    if (root.left == null || root.right == null) return false;
+    return isFull(root.left) && isFull(root.right);
+}
+```
+
+```c,editable
+int is_full(TreeNode *root) {
+    if (!root) return 1;
+    if (!root->left && !root->right) return 1;
+    if (!root->left ||  !root->right) return 0;
+    return is_full(root->left) && is_full(root->right);
+}
+```
+
+```cpp,editable
+bool isFull(TreeNode *root) {
+    if (!root) return true;
+    if (!root->left && !root->right) return true;
+    if (!root->left ||  !root->right) return false;
+    return isFull(root->left) && isFull(root->right);
+}
+```
+
+```scala,editable
+def isFull(root: TreeNode): Boolean = {
+  if (root == null) return true
+  if (root.left == null && root.right == null) return true
+  if (root.left == null || root.right == null) return false
+  isFull(root.left) && isFull(root.right)
+}
+```
+
+```javascript,editable
+function isFull(root) {
+    if (!root) return true;
+    if (!root.left && !root.right) return true;
+    if (!root.left ||  !root.right) return false;
+    return isFull(root.left) && isFull(root.right);
+}
+```
+
+```typescript,editable
+function isFull(root: TreeNode | null): boolean {
+    if (!root) return true;
+    if (!root.left && !root.right) return true;
+    if (!root.left ||  !root.right) return false;
+    return isFull(root.left) && isFull(root.right);
+}
+```
+
+```go,editable
+func isFull(root *TreeNode) bool {
+    if root == nil { return true }
+    if root.Left == nil && root.Right == nil { return true }
+    if root.Left == nil || root.Right == nil { return false }
+    return isFull(root.Left) && isFull(root.Right)
+}
+```
+
+```kotlin,editable
+fun isFull(root: TreeNode?): Boolean {
+    if (root == null) return true
+    if (root.left == null && root.right == null) return true
+    if (root.left == null || root.right == null) return false
+    return isFull(root.left) && isFull(root.right)
+}
+```
+
+```rust,editable
+pub fn is_full(root: &Option<Box<TreeNode>>) -> bool {
+    match root {
+        None => true,
+        Some(n) => match (&n.left, &n.right) {
+            (None, None)         => true,
+            (Some(_), None)      => false,
+            (None, Some(_))      => false,
+            (Some(_), Some(_))   => is_full(&n.left) && is_full(&n.right),
+        }
+    }
+}
+```
+
+</div>
+
+***
+
+# Problem 5 — Is it a perfect binary tree?
+
+> Return `true` iff every internal node has two children **and** every leaf is at the same depth.
+
+A clean two-pass approach:
+
+1. Find the depth of the leftmost leaf — that's where every leaf must sit.
+2. Recursively check: every leaf is at that depth; every internal node has two children.
+
+A one-pass approach also exists (return both `(isPerfect, height)` from each call), but that's the *stateful* postorder pattern from the next lesson. The two-pass version below is pure stateless.
+
+## Solution
+
+<div class="lang-tabs">
+
+```python,editable
+def is_perfect(root):
+    if root is None: return True
+    # 1. find leftmost leaf's depth (1-indexed)
+    depth, n = 0, root
+    while n:
+        depth += 1; n = n.left
+    # 2. validate every leaf is at `depth`, every internal node has 2 children
+    def go(node, level):
+        if node is None: return True
+        if node.left is None and node.right is None:
+            return level == depth
+        if node.left is None or node.right is None:
+            return False
+        return go(node.left, level + 1) and go(node.right, level + 1)
+    return go(root, 1)
+```
+
+```java,editable
+public static boolean isPerfect(TreeNode root) {
+    if (root == null) return true;
+    int depth = 0;
+    for (TreeNode n = root; n != null; n = n.left) depth++;
+    return checkPerfect(root, 1, depth);
+}
+static boolean checkPerfect(TreeNode n, int level, int depth) {
+    if (n == null) return true;
+    if (n.left == null && n.right == null) return level == depth;
+    if (n.left == null || n.right == null) return false;
+    return checkPerfect(n.left, level + 1, depth) && checkPerfect(n.right, level + 1, depth);
+}
+```
+
+```c,editable
+int check_perfect(TreeNode *n, int level, int depth) {
+    if (!n) return 1;
+    if (!n->left && !n->right) return level == depth;
+    if (!n->left ||  !n->right) return 0;
+    return check_perfect(n->left, level + 1, depth) && check_perfect(n->right, level + 1, depth);
+}
+int is_perfect(TreeNode *root) {
+    if (!root) return 1;
+    int depth = 0;
+    for (TreeNode *n = root; n; n = n->left) depth++;
+    return check_perfect(root, 1, depth);
+}
+```
+
+```cpp,editable
+bool checkPerfect(TreeNode *n, int level, int depth) {
+    if (!n) return true;
+    if (!n->left && !n->right) return level == depth;
+    if (!n->left ||  !n->right) return false;
+    return checkPerfect(n->left, level + 1, depth) && checkPerfect(n->right, level + 1, depth);
+}
+bool isPerfect(TreeNode *root) {
+    if (!root) return true;
+    int depth = 0;
+    for (TreeNode *n = root; n; n = n->left) depth++;
+    return checkPerfect(root, 1, depth);
+}
+```
+
+```scala,editable
+def isPerfect(root: TreeNode): Boolean = {
+  if (root == null) return true
+  var depth = 0; var n = root
+  while (n != null) { depth += 1; n = n.left }
+  def go(node: TreeNode, level: Int): Boolean = {
+    if (node == null) return true
+    if (node.left == null && node.right == null) return level == depth
+    if (node.left == null || node.right == null) return false
+    go(node.left, level + 1) && go(node.right, level + 1)
+  }
+  go(root, 1)
+}
+```
+
+```javascript,editable
+function isPerfect(root) {
+    if (!root) return true;
+    let depth = 0;
+    for (let n = root; n; n = n.left) depth++;
+    function go(n, level) {
+        if (!n) return true;
+        if (!n.left && !n.right) return level === depth;
+        if (!n.left || !n.right) return false;
+        return go(n.left, level + 1) && go(n.right, level + 1);
+    }
+    return go(root, 1);
+}
+```
+
+```typescript,editable
+function isPerfect(root: TreeNode | null): boolean {
+    if (!root) return true;
+    let depth = 0;
+    for (let n: TreeNode | null = root; n; n = n.left) depth++;
+    function go(n: TreeNode | null, level: number): boolean {
+        if (!n) return true;
+        if (!n.left && !n.right) return level === depth;
+        if (!n.left || !n.right) return false;
+        return go(n.left, level + 1) && go(n.right, level + 1);
+    }
+    return go(root, 1);
+}
+```
+
+```go,editable
+func isPerfect(root *TreeNode) bool {
+    if root == nil { return true }
+    depth := 0
+    for n := root; n != nil; n = n.Left { depth++ }
+    var go_ func(*TreeNode, int) bool
+    go_ = func(n *TreeNode, level int) bool {
+        if n == nil { return true }
+        if n.Left == nil && n.Right == nil { return level == depth }
+        if n.Left == nil || n.Right == nil { return false }
+        return go_(n.Left, level + 1) && go_(n.Right, level + 1)
+    }
+    return go_(root, 1)
+}
+```
+
+```kotlin,editable
+fun isPerfect(root: TreeNode?): Boolean {
+    if (root == null) return true
+    var depth = 0; var n: TreeNode? = root
+    while (n != null) { depth++; n = n.left }
+    fun go(node: TreeNode?, level: Int): Boolean {
+        if (node == null) return true
+        if (node.left == null && node.right == null) return level == depth
+        if (node.left == null || node.right == null) return false
+        return go(node.left, level + 1) && go(node.right, level + 1)
+    }
+    return go(root, 1)
+}
+```
+
+```rust,editable
+pub fn is_perfect(root: &Option<Box<TreeNode>>) -> bool {
+    if root.is_none() { return true; }
+    let mut depth = 0;
+    let mut cur = root.as_ref();
+    while let Some(n) = cur { depth += 1; cur = n.left.as_ref(); }
+    fn go(node: &Option<Box<TreeNode>>, level: i32, depth: i32) -> bool {
+        match node {
+            None => true,
+            Some(n) => match (&n.left, &n.right) {
+                (None, None)          => level == depth,
+                (Some(_), None)       => false,
+                (None, Some(_))       => false,
+                _ => go(&n.left, level + 1, depth) && go(&n.right, level + 1, depth),
+            }
+        }
+    }
+    go(root, 1, depth)
+}
+```
+
+</div>
+
+***
+
+# Problem 6 — Collect leaves by height
+
+> Iteratively peel off the leaves of the tree and collect them in a list of lists: first list = the original leaves, second list = the leaves *after* removing the first set, and so on, until the tree is empty.
 >
-> -   Space Complexity - **O(log(N))**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case:** Degenerate binary tree
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
+> **Example:** `[1, 2, 1, 7, null, null, 1]` → `[[7, 1], [2, 1], [1]]`.
 
-***
+A clever postorder trick: each node has a *height* equal to `1 + max(leftHeight, rightHeight)` (with `null` having height -1). All nodes with height 0 are leaves, with height 1 they're "second wave" leaves (would-be leaves after the originals are peeled), and so on. So we run a single postorder, compute each node's height, and bucket the node into `out[height]`.
 
-# Identifying the stateless postorder traversal pattern
-
-The postorder traversal technique is very versatile and can solve a wide variety of binary tree problems. These are generally **easy** or **medium** problems where we need to process every node using the aggregated value of some function `f` over its left and right subtrees. Also, the stateless implementation can only solve problems where no state (common) information is shared between all nodes, and each node has access to only its copy of local variables. 
-
-If the problem statement or its solution follows the generic template below, it can be solved by applying the stateless postorder traversal technique.
-
-**Template:**Given a binary tree, process every node using the aggregated value of a function `f` over its left and right subtrees. The processing of a leaf or null node should be trivial, meaning it should have a known solution, and no state information must be shared between nodes.
-
-## Example
-
-Let's consider the following problem as an example to better understand how to identify and solve a problem using the stateless postorder traversal technique.
-
-> **Problem statement:** Given the root of a binary tree, write a function to calculate and return the sum of all its leaf nodes
-
-// Diagram: Find the sum of all leaves of a binary tree
-
-### The postorder traversal technique
-
-The problem description fits the generic template from the stateless postorder traversal pattern we learned earlier.
-
-**Template:**Given a binary tree, process every node using the aggregated value of a function `f` (sum of leaves) over its left and right subtrees. The processing of a leaf or null node should be trivial, meaning it should have a known solution, and no state information must be shared between nodes.
-
-We can solve this problem by using postorder traversal, where every node returns to its parent, the sum of all the leaf nodes in its subtree.  For a `null` reference, the sum of all leaves in its subtree is 0, while for a leaf node, the sum of all leaf nodes in its subtree is its own value. Hence, hitting a `null` reference or a leaf node are two base cases for the postorder traversal, where we return a 0 value or the value of the leaf node, respectively, to the parent. All the other nodes can calculate the sum of all leaves in their subtree by adding the values they receive from their left and right children. 
-
-This way, at the end of postorder traversal, the caller receives the sum of all leaf nodes in the subtree rooted at the root node, which is the entire binary tree itself.
-
-// Diagram: Find the sum of all leaves of a binary tree
-
-The implementation of the stateless postorder traversal technique to solve the problem is given below.
-
-C++
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    int sumOfLeaves(TreeNode *root) {
-
-        // Base case: if the tree is empty
-        if (!root) {
-            return 0;
-        }
-
-        // If it's a leaf node, return its value
-        if (!root->left && !root->right) {
-            return root->val;
-        }
-
-        // Recursively sum up leaf nodes in left and right subtrees
-        int leftSum = sumOfLeaves(root->left);
-        int rightSum = sumOfLeaves(root->right);
-
-        // Return the sum of leaf nodes in left and right subtrees
-        return leftSum + rightSum;
-    }
-};
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    R(("1<br/>height=2"))
+    A(("2<br/>height=1"))
+    B(("1<br/>height=1"))
+    C(("7<br/>height=0"))
+    D(("1<br/>height=0"))
+    R --> A
+    R --> B
+    A --> C
+    B --> D
+    style C fill:#dcfce7,stroke:#22c55e
+    style D fill:#dcfce7,stroke:#22c55e
+    style A fill:#fef9c3,stroke:#f59e0b
+    style B fill:#fef9c3,stroke:#f59e0b
+    style R fill:#fee2e2,stroke:#ef4444
 ```
 
-Java
-
-```java
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-class Solution {
-    public int sumOfLeaves(TreeNode root) {
-
-        // Base case: if the tree is empty
-        if (root == null) {
-            return 0;
-        }
-
-        // If it's a leaf node, return its value
-        if (root.left == null && root.right == null) {
-            return root.val;
-        }
-
-        // Recursively sum up leaf nodes in left and right subtrees
-        int leftSum = sumOfLeaves(root.left);
-        int rightSum = sumOfLeaves(root.right);
-
-        // Return the sum of leaf nodes in left and right subtrees
-        return leftSum + rightSum;
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-export class Solution {
-    sumOfLeaves(root: TreeNode | null): number {
-
-        // Base case: if the tree is empty
-        if (!root) {
-            return 0;
-        }
-
-        // If it's a leaf node, return its value
-        if (!root.left && !root.right) {
-            return root.val;
-        }
-
-        // Recursively sum up leaf nodes in left and right subtrees
-        const leftSum = this.sumOfLeaves(root.left);
-        const rightSum = this.sumOfLeaves(root.right);
-
-        // Return the sum of leaf nodes in left and right subtrees
-        return leftSum + rightSum;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-    sumOfLeaves(root) {
-
-        // Base case: if the tree is empty
-        if (!root) {
-            return 0;
-        }
-
-        // If it's a leaf node, return its value
-        if (!root.left && !root.right) {
-            return root.val;
-        }
-
-        // Recursively sum up leaf nodes in left and right subtrees
-        const leftSum = this.sumOfLeaves(root.left);
-        const rightSum = this.sumOfLeaves(root.right);
-
-        // Return the sum of leaf nodes in left and right subtrees
-        return leftSum + rightSum;
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import List, Optional
-
-class Solution:
-    def sum_of_leaves(self, root: Optional[TreeNode]) -> int:
-
-        # Base case: if the tree is empty
-        if not root:
-            return 0
-
-        # If it's a leaf node, return its value
-        if not root.left and not root.right:
-            return root.val
-
-        # Recursively sum up leaf nodes in left and right subtrees
-        left_sum = self.sum_of_leaves(root.left)
-        right_sum = self.sum_of_leaves(root.right)
-
-        # Return the sum of leaf nodes in left and right subtrees
-        return left_sum + right_sum
-```
-
-The stateless postorder traversal can solve this problem in linear time and a single pass using a very small and concise recursive implementation.
-
-## Example problems
-
-Most problems that fall under this category are**easy**problems; a list of a few is given below.
-
-> -   **[Sum of leaves](https://www.codeintuition.io/courses/binary-tree/QHxIbEyUDSpAdwnh4cLUe)**
-> -   **[Height of binary tree](https://www.codeintuition.io/courses/binary-tree/GXFycvfMF94E4A14c4kdA)**
-> -   **[Maximum path sum](https://www.codeintuition.io/courses/binary-tree/CcYCZ_L78G0WUZuAl79GI)**
-> -   **[Full binary tree](https://www.codeintuition.io/courses/binary-tree/3hGrmGdmfToloxwvwOnW2)**
-> -   **[Perfect binary tree](https://www.codeintuition.io/courses/binary-tree/zR72stwj9vKOH5MyCVooC)**
-> -   **[Collect leaves](https://www.codeintuition.io/courses/binary-tree/o9xBIUwXA7q8D4kRWOlwE)**
-
-We will now solve these problems to understand the stateless postorder traversal technique better.
-
-***
-
-# Sum of leaves
-
-## Problem Statement
-
-Given the **root** of a binary tree, write a function to calculate and return the sum of all its leaf nodes.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 5, 7, null, null, 3\]
-> -   **Output:** 10
-> -   **Explanation:** The sum of leaves of the given binary trees is 7 + 3 = 10.
-
-### Example 2
-
-> -   **Input:** root = \[1, 8, 4, null, null, 9, 7\]
-> -   **Output:** 24
-> -   **Explanation:** The sum of leaves in the given binary tree is 8 + 9 + 7 = 24.
+<p align="center"><strong>Collect leaves by height — every node ends up in the bucket matching its <em>height</em>. Bucket 0 is the originals; bucket 1 is the leaves after peeling; etc. One postorder pass and we're done.</strong></p>
 
 ## Solution
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+<div class="lang-tabs">
 
-using namespace std;
-
-class Solution {
-public:
-    int sumOfLeaves(TreeNode *root) {
-
-        // Base case: if the tree is empty
-        if (!root) {
-            return 0;
-        }
-
-        // If it's a leaf node, return its value
-        if (!root->left && !root->right) {
-            return root->val;
-        }
-
-        // Recursively sum up leaf nodes in left and right subtrees
-        int leftSum = sumOfLeaves(root->left);
-        int rightSum = sumOfLeaves(root->right);
-
-        // Return the sum of leaf nodes in left and right subtrees
-        return leftSum + rightSum;
-    }
-};
+```python,editable
+def collect_leaves(root):
+    out = []
+    def go(n):
+        if n is None: return -1
+        h = 1 + max(go(n.left), go(n.right))
+        if h == len(out): out.append([])
+        out[h].append(n.val)
+        return h
+    go(root)
+    return out
 ```
+
+```java,editable
+static List<List<Integer>> collectLeaves(TreeNode root) {
+    List<List<Integer>> out = new ArrayList<>();
+    clHelper(root, out);
+    return out;
+}
+static int clHelper(TreeNode n, List<List<Integer>> out) {
+    if (n == null) return -1;
+    int h = 1 + Math.max(clHelper(n.left, out), clHelper(n.right, out));
+    if (h == out.size()) out.add(new ArrayList<>());
+    out.get(h).add(n.val);
+    return h;
+}
+```
+
+```c,editable
+// out is a 2D array; for brevity in C, store as out[64][32] with sizes[].
+static int out[64][32], sizes[64], depth_count;
+int cl_helper(TreeNode *n) {
+    if (!n) return -1;
+    int l = cl_helper(n->left), r = cl_helper(n->right);
+    int h = 1 + (l > r ? l : r);
+    if (h == depth_count) depth_count++;
+    out[h][sizes[h]++] = n->val;
+    return h;
+}
+void collect_leaves(TreeNode *root) {
+    depth_count = 0;
+    for (int i = 0; i < 64; i++) sizes[i] = 0;
+    cl_helper(root);
+}
+```
+
+```cpp,editable
+int clHelper(TreeNode *n, std::vector<std::vector<int>>& out) {
+    if (!n) return -1;
+    int h = 1 + std::max(clHelper(n->left, out), clHelper(n->right, out));
+    if (h == (int)out.size()) out.push_back({});
+    out[h].push_back(n->val);
+    return h;
+}
+std::vector<std::vector<int>> collectLeaves(TreeNode *root) {
+    std::vector<std::vector<int>> out;
+    clHelper(root, out);
+    return out;
+}
+```
+
+```scala,editable
+def collectLeaves(root: TreeNode): List[List[Int]] = {
+  val out = scala.collection.mutable.ArrayBuffer[scala.collection.mutable.ListBuffer[Int]]()
+  def go(n: TreeNode): Int = {
+    if (n == null) return -1
+    val h = 1 + math.max(go(n.left), go(n.right))
+    if (h == out.length) out += scala.collection.mutable.ListBuffer[Int]()
+    out(h) += n.value
+    h
+  }
+  go(root)
+  out.map(_.toList).toList
+}
+```
+
+```javascript,editable
+function collectLeaves(root) {
+    const out = [];
+    function go(n) {
+        if (!n) return -1;
+        const h = 1 + Math.max(go(n.left), go(n.right));
+        if (h === out.length) out.push([]);
+        out[h].push(n.val);
+        return h;
+    }
+    go(root);
+    return out;
+}
+```
+
+```typescript,editable
+function collectLeaves(root: TreeNode | null): number[][] {
+    const out: number[][] = [];
+    function go(n: TreeNode | null): number {
+        if (!n) return -1;
+        const h = 1 + Math.max(go(n.left), go(n.right));
+        if (h === out.length) out.push([]);
+        out[h].push(n.val);
+        return h;
+    }
+    go(root);
+    return out;
+}
+```
+
+```go,editable
+func collectLeaves(root *TreeNode) [][]int {
+    var out [][]int
+    var go_ func(*TreeNode) int
+    go_ = func(n *TreeNode) int {
+        if n == nil { return -1 }
+        l, r := go_(n.Left), go_(n.Right)
+        h := 1 + l
+        if r > l { h = 1 + r }
+        if h == len(out) { out = append(out, []int{}) }
+        out[h] = append(out[h], n.Val)
+        return h
+    }
+    go_(root)
+    return out
+}
+```
+
+```kotlin,editable
+fun collectLeaves(root: TreeNode?): List<List<Int>> {
+    val out = mutableListOf<MutableList<Int>>()
+    fun go(n: TreeNode?): Int {
+        if (n == null) return -1
+        val h = 1 + maxOf(go(n.left), go(n.right))
+        if (h == out.size) out += mutableListOf<Int>()
+        out[h] += n.value
+        return h
+    }
+    go(root)
+    return out
+}
+```
+
+```rust,editable
+fn cl_go(node: &Option<Box<TreeNode>>, out: &mut Vec<Vec<i32>>) -> i32 {
+    match node {
+        None => -1,
+        Some(n) => {
+            let h = 1 + std::cmp::max(cl_go(&n.left, out), cl_go(&n.right, out));
+            if h as usize == out.len() { out.push(Vec::new()); }
+            out[h as usize].push(n.val);
+            h
+        }
+    }
+}
+pub fn collect_leaves(root: &Option<Box<TreeNode>>) -> Vec<Vec<i32>> {
+    let mut out = Vec::new();
+    cl_go(root, &mut out);
+    out
+}
+```
+
+</div>
 
 ***
 
-# Height of binary tree
+## Final Takeaway
 
-## Problem Statement
+Stateless postorder is the most-used pattern in the chapter. Three things to walk away with:
 
-Given the **root** of a binary tree, write a function to find and return the height of this binary tree.
+1. **`baseCase` + `combine` is the entire algorithm.** Every problem reduces to choosing those two correctly. Once you've internalised the shape, you stop *reading* the algorithm and start *writing* it directly from the problem statement.
+2. **The recurrence is the spec.** `f(node) = combine(f(left), f(right), node.val)`. If you can write the recurrence on paper, you've already written the program — the implementation is a five-line transcription. Practice writing the recurrence *first*; the code follows mechanically.
+3. **Empty-tree base case is where the off-by-one bugs live.** Choose your base case to make the recurrence *uniformly applicable* — height of an empty tree is 0 (or -1, depending on convention), sum is 0, max is `-∞`, count is 0, "is a valid X" is `true`. Pick the one that makes the combine work cleanly without special-casing leaves.
 
-A binary height is the number of nodes along the longest path from the root node down to the farthest leaf node.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 3, 4, null, null, 7\]
-> -   **Output:** 3
-> -   **Explanation:** The height of the given tree is 3 as shown in the diagram above.
-
-### Example 2
-
-> -   **Input:** root = \[1, 8, 4, null, null, 2, 7\]
-> -   **Output:** 3
-> -   **Explanation:** The height of the given tree is 3 as shown in the diagram above.
-
-## Solution
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-    int heightOfBinaryTree(TreeNode *root) {
-
-        // Empty tree has height 0
-        if (root == nullptr) {
-            return 0;
-        }
-
-        // Recursively calculate the height of the left and right
-        // subtrees
-        int leftHeight = heightOfBinaryTree(root->left);
-        int rightHeight = heightOfBinaryTree(root->right);
-
-        // Return the maximum height among the left and right subtrees
-        // plus 1 for the current node
-        return max(leftHeight, rightHeight) + 1;
-    }
-};
-```
-
-***
-
-# Maximum path sum
-
-## Problem Statement
-
-Given the **root** of a binary tree, write a function to calculate and return the maximum sum of all the **root to leaf** paths.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 3, 4, null, null, 7\]
-> -   **Output:** 11
-> -   **Explanation:** The given tree has a maximum root to leaf path sum = 11 as shown in the diagram above.
-
-### Example 2
-
-> -   **Input:** root = \[1, 8, 4, null, null, 2, 7\]
-> -   **Output:** 12
-> -   **Explanation:** The given tree has a maximum root to leaf path sum = 12 as shown in the diagram above.
-
-## Solution
-
-```cpp
-#include <climits>
-
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-    int maximumPathSum(TreeNode *root) {
-
-        // Empty tree
-        if (root == nullptr) {
-            return 0;
-        }
-
-        // Recursive calls to calculate the maximum sum of left and
-        // right subtrees
-        int leftSum = maximumPathSum(root->left);
-        int rightSum = maximumPathSum(root->right);
-
-        // Return the maximum sum of root-to-leaf paths
-        return root->val + max(leftSum, rightSum);
-    }
-};
-```
-
-***
-
-# Full binary tree
-
-## Problem Statement
-
-Given the **root** of a binary tree, write a function that returns `true` if it is a full binary tree and `false` otherwise.
-
-A full Binary tree is a binary tree in which every node has two or no children. It is also known as a **proper** binary tree.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 3, null, null, 2\]
-> -   **Output:** false
-> -   **Explanation:** The given binary tree is not a full binary tree as shown in the diagram above.
-
-### Example 2
-
-> -   **Input:** root = \[1, 8, 4, null, null, 3, 5\]
-> -   **Output:** true
-> -   **Explanation:** The given binary tree is a full binary tree as shown in the diagram above.
-
-## Solution
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-    bool fullBinaryTree(TreeNode *root) {
-
-        // An empty tree is a full binary tree
-        if (!root) {
-            return true;
-        }
-
-        // A node with no children is a full binary tree
-        if (!root->left && !root->right) {
-            return true;
-        }
-
-        // A node with only one child is not a full binary tree
-        if (!root->left || !root->right) {
-            return false;
-        }
-
-        // Check if the left and right subtrees are also full binary
-        // trees
-        bool isLeftSubtreeFull = fullBinaryTree(root->left);
-        bool isRightSubtreeFull = fullBinaryTree(root->right);
-
-        // Return true if both subtrees are full binary trees
-        return isLeftSubtreeFull && isRightSubtreeFull;
-    }
-};
-```
-
-***
-
-# Perfect binary tree
-
-## Problem Statement
-
-Given the **root** of a binary tree, write a function that returns `true` if it is a perfect binary tree and `false` otherwise.
-
-A perfect binary tree is a special binary tree in which all the leaf nodes are at the same depth, and all non-leaf nodes have two children.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 3, 4, null, null, 7\]
-> -   **Output:** false
-> -   **Explanation:** The given binary tree is not a perfect binary tree as shown in the diagram above.
-
-### Example 2
-
-> -   **Input:** root = \[1, 8, 4, 3, 5, 2, 7\]
-> -   **Output:** true
-> -   **Explanation:** The given binary tree is a perfect binary tree as shown in the diagram above.
-
-## Solution
-
-```cpp
-#include <math.h>
-
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-    int findDepth(TreeNode *root) {
-        int depth = 0;
-        while (root) {
-            depth++;
-            root = root->left;
-        }
-        return depth;
-    }
-
-    bool isPerfectBinaryTree(TreeNode *root, int depth, int level) {
-
-        // An empty tree is a perfect binary tree
-        if (!root) {
-            return true;
-        }
-
-        // If it is a leaf node, check if it is at the correct depth
-        if (!root->left && !root->right) {
-            return depth == level + 1;
-        }
-
-        // If an internal node has only one child, it's not a perfect
-        // binary tree
-        if (!root->left || !root->right) {
-            return false;
-        }
-
-        // Recursively check the left and right subtrees
-        bool isLeftSubtreePerfect =
-            isPerfectBinaryTree(root->left, depth, level + 1);
-        bool isRightSubtreePerfect =
-            isPerfectBinaryTree(root->right, depth, level + 1);
-
-        // Return true if both subtrees are perfect
-        return isLeftSubtreePerfect && isRightSubtreePerfect;
-    }
-
-    bool perfectBinaryTree(TreeNode *root) {
-
-        // An empty tree is a perfect binary tree
-        if (!root) {
-            return true;
-        }
-
-        // Find the depth of the leftmost leaf
-        int depth = findDepth(root);
-
-        // Check if the tree is perfect
-        return isPerfectBinaryTree(root, depth, 0);
-    }
-};
-```
-
-***
-
-# Collect leaves
-
-## Problem Statement
-
-Given the **root** of a binary tree, write a function to return a list of lists containing the leaves of this binary tree. The leaves must be collected in the following order.
-
-> -   Collect all the leaves of the binary tree from left to right.
-> -   Remove all the leaves of this binary tree.
-> -   Repeat the above process until the tree is empty.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 1, 7, null, null, 1\]
-> -   **Output:** \[\[7, 1\], \[2, 1\], \[1\]\]
-> -   **Explanation:** The collection of leaves is shown in the above diagram.
-
-### Example 2
-
-> -   **Input:** root = \[1, 6, 5, null, null, 2, 7\]
-> -   **Output:** \[\[6, 2, 7\], \[5\], \[1\]\]
-> -   **Explanation:** The collection of leaves is shown in the above diagram.
-
-## Solution
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-    int findHeight(TreeNode *root, vector<vector<int>> &result) {
-
-        // If root is nullptr, return -1.
-        if (root == nullptr) {
-            return -1;
-        }
-
-        // Recursively find the height of the left and right subtrees.
-        int leftHeight = findHeight(root->left, result);
-        int rightHeight = findHeight(root->right, result);
-
-        // Calculate the height of the current node.
-        int height = max(leftHeight, rightHeight) + 1;
-
-        // If the result vector's size is less than or equal to the
-        // height of the node, add a new empty vector to the result
-        // vector.
-        if (result.size() <= height) {
-            result.push_back(vector<int>());
-        }
-
-        // Add the current node's value to the vector at the current
-        // node's height.
-        result[height].push_back(root->val);
-
-        // Return the height of the current node.
-        return height;
-    }
-
-    vector<vector<int>> collectLeaves(TreeNode *root) {
-
-        // Vector of vectors to store leaf nodes at each height.
-        vector<vector<int>> result;
-
-        // Find the height of the tree and collect leaf nodes.
-        findHeight(root, result);
-
-        // Return result vector.
-        return result;
-    }
-};
-```
+> *Coming up — the <strong>stateful</strong> postorder pattern. When a single returned value isn't enough — for instance when each subtree must report both <em>"the longest path entirely within me"</em> AND <em>"the longest path from my root downward"</em> — we either return tuples or thread a shared best-so-far through the recursion. That covers diameter, longest monotonic path, distribute-coins, frequent-subtree-sums, and many more "two answers per call" problems.*

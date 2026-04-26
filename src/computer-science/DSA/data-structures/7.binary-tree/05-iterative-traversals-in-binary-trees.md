@@ -1,2047 +1,1199 @@
-# Iterative traversals in binary trees
+# 5. Iterative Traversals in Binary Trees
 
-## Table of Contents
+## The Hook
 
-1. [Understanding the problem](#understanding-the-problem)
-2. [Understanding iterative preorder traversal](#understanding-iterative-preorder-traversal)
-3. [Implement iterative preorder traversal](#understanding-iterative-preorder-traversal)
-4. [Understanding iterative inorder traversal](#understanding-iterative-inorder-traversal)
-5. [Implement iterative inorder traversal](#understanding-iterative-inorder-traversal)
-6. [Understanding iterative postorder traversal](#understanding-iterative-postorder-traversal)
-7. [Implement iterative postorder traversal](#understanding-iterative-postorder-traversal)
-8. [Understanding level order traversal](#understanding-level-order-traversal)
-9. [Implement level order traversal](#understanding-level-order-traversal)
+The recursive traversals from the last lesson are *beautiful* — three lines, no state, the tree's recursive shape mirrored exactly in the function's recursive shape. So why does this lesson exist?
 
-***
+Because **recursion is not free**. Every recursive call eats a frame on the **call stack** — a thread-local memory region the operating system gives every program. That stack is *small* by default: 1 MB on Linux, 512 KB on macOS, 1 MB on Windows for the main thread, much less for worker threads. A single stack frame is ~64 bytes. Do the arithmetic: a tree of height 16,000 will blow the stack on Linux. A *skew* tree of 16,000 nodes — a perfectly legal data structure — will *crash* the recursive traversal you just wrote.
 
-# Understanding the problem
+Production code that processes user-supplied trees (parsers, deserialisers, deeply-nested JSON, network protocols) cannot afford this risk. The fix is to write the traversal **iteratively** — same algorithm, same output, but using an *explicit* stack we manage on the heap (which is gigabytes of headroom) instead of the call stack (which is megabytes). We trade a bit of code clarity for a guarantee that the algorithm tolerates *arbitrarily deep* trees without crashing.
 
-The recursive tree traversal algorithms we learned earlier in the course are quite easy and can be implemented neatly. However, they all have a major limitation: They rely on recursive function calls, which rely on **stack memory**. 
+Along the way, the iterative versions teach you something the recursive versions hide: **what the call stack actually is**. The recursion's "magic" turns out to be just a stack of pending work — and once you've simulated it explicitly, you understand recursion at a deeper level.
 
-## Call stack
+This lesson covers all four classical iterative traversals: **preorder, inorder, postorder** (each with an explicit stack), and the bonus **level-order** traversal (which uses a *queue* instead of a stack — and is what you reach for whenever a problem says "by level"). Implementations in 10 languages each.
 
-Let us revisit how function calls work for a computer program. All computer programs have stack memory available to manage function calls. Whenever a function call is made in the program, a stack frame with all the information related to that function (local variables, return address, etc.) is created and pushed on top of the stack. When the function execution finishes and the control returns to the caller, this stack frame is destroyed by a stack pop operation.
+---
 
-// Diagram: Every function call creates a stack frame of its own in the stack memory
+## Table of contents
 
-## Stack overflow
-
-Recursive function calls repeatedly call the same function until a base case is reached. Consequently, the call stack **grows** linearly with the number of function calls before reaching the base case. The call stack, however, is **limited** in space, so it can only accommodate a certain number of stack frames, after which there is a stack overflow and the program crashes. For all the recursive tree traversal algorithms we learned earlier, it is impossible to traverse the tree recursively if the tree's height exceeds the number of frames the call stack can accommodate.
-
-// Diagram: Too many nested function calls leads to stack overflow
-
-Iterative tree traversal algorithms overcome this limitation by not relying on recursive function calls. The iterative preorder, inorder, and postorder traversal versions don't rely on the call stack and use an explicit stack to simulate the same LIFO behavior. Other traversal algorithms, like level order traversal, do not require a stack. We will learn the iterative traversal algorithms that can be used to traverse a binary tree in more detail.
+1. [Why iterative? — the call stack is small](#why-iterative--the-call-stack-is-small)
+2. [Iterative preorder — the simplest one](#iterative-preorder--the-simplest-one)
+3. [Iterative inorder — drain the left spine](#iterative-inorder--drain-the-left-spine)
+4. [Iterative postorder — the elegant trick](#iterative-postorder--the-elegant-trick)
+5. [Level-order traversal — using a queue](#level-order-traversal--using-a-queue)
 
 ***
 
-# Understanding iterative preorder traversal
+# Why iterative? — the call stack is small
 
-To understand the iterative implementation of preorder traversal, we need to split the whole process into small steps and understand how each step functions. Once we get the intuition behind these individual steps, we can connect them to devise an algorithm for iterative preorder traversal. Let us start by looking at how preorder traversal is done. 
+Every running thread in your program has a **call stack** — a fixed-size memory region used to track function calls. When a function `f` calls `g`, a *frame* for `g` is pushed onto the stack containing its local variables and return address. When `g` returns, its frame is popped and execution resumes in `f`. *Recursion* uses this same machinery — every recursive call pushes a frame; every base case + return pops one.
 
-> -   **Step 1:** Visit the node.
-> -   **Step 2:** Recursively traverse the node's \`left\` subtree.
-> -   **Step 3:** Recursively traverse the node's \`right\` subtree.
+The catch is the stack's *size*. By default:
 
-## Iterative Steps
+| Platform                    | Default main-thread stack |
+|-----------------------------|---------------------------|
+| Linux (most distros)        | 8 MB                      |
+| macOS                       | 8 MB                      |
+| Windows                     | 1 MB                      |
+| Worker threads (most JVMs)  | 512 KB – 1 MB             |
+| Browser JavaScript engines  | ~1 MB                     |
 
-This traversal is recursive as the second and third steps of preorder traversal use preorder traversal again. Let us look at this traversal's distinct iterative processes and how we can implement these steps. Once we have implemented these individual steps, we can glue them together to create an iterative algorithm for the entire traversal. Preorder traversal can be broken down into two iterative steps :
+A typical stack frame for a tree traversal is around 64–128 bytes. Divide:
 
-> -   **Step 1:** Visit the node and traverse its \`left\` subtree.
-> -   **Step 2:** Traverse the node's \`right\` subtree.
+> **A 1 MB stack supports roughly 8,000–16,000 nested recursive calls.** A skewed binary tree of 50,000 nodes — which is *trivially* small — will blow it.
 
-## 1\. Visit the node and traverse its left subtree.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph CS["Call stack — small (1–8 MB)"]
+        direction TB
+        F1["frame: walk(node 1)"]
+        F2["frame: walk(node 2)"]
+        F3["frame: walk(node 3)"]
+        F4["..."]
+        F5["frame: walk(node 16,000) — STACK OVERFLOW"]
+    end
+    subgraph HEAP["Heap stack — huge (gigabytes)"]
+        direction TB
+        H1["explicit Stack<TreeNode>"]
+        H2["push, pop, peek"]
+        H3["bounded only by free heap"]
+    end
+    CS ~~~ HEAP
+```
 
-The first step of preorder traversal is to visit the current node. The next step is to traverse the left subtree. Following the definition, for a tree rooted at node **R,** we visit the node **R** and then go to its left subtree. We then visit the root node of the left subtree and then go further to its left subtree. This process goes on and on and on until we finally hit a `null`. We stop at `null` because there is nowhere to go beyond that. Let's say this `null` was the **left** child of node **N**
+<p align="center"><strong>Two stacks, two scales — the call stack lives in a small fixed region; the explicit stack lives on the heap and grows as needed. Iterative traversals trade three clean lines of recursion for an explicit stack that survives deep trees.</strong></p>
 
-In the recursive implementation of preorder traversal, hitting a `null` is the base case of recursion, and if we hit it, we backtrack to the parent with the help of the function call stack. However, we can't leverage the function call stack in the iterative implementation, so we use our own stack to replicate this behavior.
+The recursive form is fine for *known-bounded* trees (a parsed AST you produced yourself, a configured BST in a server with a tested depth). The iterative form is what you reach for when the input could come from anywhere — particularly anything user- or network-controlled.
 
-**What do we store in the stack?**
+***
 
-Before traversing the current node's left subtree, we push its reference to a stack. This stack holds a list of nodes for which we are still traversing the left subtree. The top of the stack holds the address of the **most recent** node for which we are **still visiting the left subtree**.
+# Iterative preorder — the simplest one
 
-To visit the node and traverse its left subtree, we initialize a `current` variable and set it to hold the node **R**. Once we are done visiting the node, we push `current` to the stack and set `current` to hold to its left child. We repeat this process until we hit a `null` 
-
-// Diagram: Step 1: Visit the node and traverse its left subtree
-
-> **Algorithm**
->
-> -   **Step 1:** While \`current\` is not equal to \`null\`, do the following:
->     -   **Step 1.1:** Visit the \`current\` node.
->     -   **Step 1.2:** Push the \`current\` node to the stack.
->     -   **Step 1.3:** Set the \`current\` pointer to hold the reference of the \`current\` node's \`left\` child.
-
-## 2\. Traverse the node's right subtree
-
-Once we hit a `null` it means that we are done traversing a node's left subtree. The next step is to identify that node and preorder traverse its right subtree.
-
-**How do we identify which node has the left subtree completely visited on hitting `null`?**
-
-The top of the stack holds the reference to the most recent node for which we are still traversing the left subtree. Once we hit a `null`, it means that this node(top of the stack) is the one for which the left subtree has been completely traversed. 
-
-We look at the top of the stack to get the node for which the left subtree has been completely traversed and set `current` to this node to effectively **jump** back to this node. Once we have made the jump, we remove the top of the stack by doing a pop operation. 
-
-**Why do we pop the top of the stack?**
-
-Once we have identified the node for which we just finished traversing the left subtree, we pop it from the top of the stack to ensure that the top always holds the node whose left subtree is being traversed.
-
-Next, we move to the right subtree by setting `current` to the popped node's right child. Then, we repeat the entire process from **Step 1: Visit the node and traverse its left subtree** for the subtree rooted at the node held by `current`.
-
-// Diagram: Step 2: Traverse the node's right subtree
-
-> **Algorithm**
->
-> -   **Step 1:** If the stack is not empty, do the following:
->     -   **Step 1.1:** Set the \`current\` pointer to store the reference of the node at the top of the stack.
->     -   **Step 1.2:** Pop the top of the stack.
->     -   **Step 1.3:** Set the \`current\` pointer to hold the reference of the \`current\` node's \`right\` child.
+Of the three depth-first traversals, preorder is the easiest to convert to iterative form because *the visit happens first* — there's no "wait until later" complication.
 
 ## Algorithm
 
-By combining all the individual steps, we can understand the high-level idea of the iterative preorder traversal algorithm. 
+Push the root onto a stack. Then loop: pop a node, visit it, and push its children onto the stack — **right child first, then left child**. Because the stack is LIFO, the next iteration will pop the left child first, exactly mimicking the recursive "left before right" preference.
 
 > **Algorithm**
 >
-> -   **Step 1:** Set the \`current\` pointer to hold the reference of the \`root\` node.
-> -   **Step 2:** While \`current\` is not equal to \`null\` or the stack is not empty, do the following:
->     -   **Step 2.1:** While \`current\` is not equal to \`null\`, do the following:
->         -   **Step 2.1.1:** Visit the \`current\` node.
->         -   **Step 2.1.2:** Push the \`current\` node to the stack.
->         -   **Step 2.1.3:** Set the \`current\` pointer to hold the reference of the \`current\` node's \`left\` child.
->     -   **Step 2.2:** Set the \`current\` pointer to store the reference of the node at the top of the stack.
->     -   **Step 2.3:** Pop the top of the stack.
->     -   **Step 2.4:** Set the \`current\` pointer to hold the reference of the \`current\` node's \`right\` child.
+> -   **Step 1:** Push the root onto a stack (if root is `null`, return).
+> -   **Step 2:** While the stack is non-empty:
+>     -   Pop the top node `n`.
+>     -   Visit `n` (append `n.val` to output).
+>     -   If `n.right` is non-null, push it.
+>     -   If `n.left` is non-null, push it.
 
-**When does the algorithm terminate?**
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph T["the tree"]
+        R((1))
+        A((2))
+        B((3))
+        C((4))
+        D((5))
+        R --> A
+        R --> B
+        A --> C
+        A --> D
+    end
+    subgraph S["stack evolution (top on the right)"]
+        direction TB
+        S1["push 1            stack=[1]"]
+        S2["pop 1, visit 1     stack=[]
+push 3, push 2     stack=[3,2]"]
+        S3["pop 2, visit 2     stack=[3]
+push 5, push 4     stack=[3,5,4]"]
+        S4["pop 4, visit 4     stack=[3,5]"]
+        S5["pop 5, visit 5     stack=[3]"]
+        S6["pop 3, visit 3     stack=[]"]
+        S1 --> S2 --> S3 --> S4 --> S5 --> S6
+    end
+```
 
-The algorithm will terminate when we can no longer find a node in the stack. 
+<p align="center"><strong>Trace of iterative preorder on the example tree — the visit order ends up <strong><code>1 → 2 → 4 → 5 → 3</code></strong>, identical to recursive preorder. Notice the right-child-first push: it's what makes the left child come out of the stack first.</strong></p>
+
+> *Predict before reading on — what would happen if you pushed the <em>left</em> child before the <em>right</em> child?*
+>
+> The traversal would visit nodes in the *mirror* order — root, then *right* subtree (preorder), then *left* subtree (preorder). That's a perfectly valid traversal too (sometimes called "reverse preorder" or "right-first preorder"), useful for printing trees right-to-left or for one of the postorder tricks below. The key insight: a stack reverses the order you put things in, so to get "left first" out, push "right first" in.
 
 ## Implementation
 
-The algorithm above can be implemented using a nested while loop.
+<div class="lang-tabs">
 
-C++
-
-```cpp
-#include <stack>
-
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    vector<int> iterativePreorderTraversal(TreeNode *root) {
-
-        // Create a vector to store the result of preorder traversal
-        vector<int> result;
-
-        // Create a stack to help traverse the binary tree iteratively
-        stack<TreeNode *> stack;
-
-        // Start from the root node
-        TreeNode *current = root;
-
-        // Continue traversal until we reach the end of the tree (current
-        // is null) and the stack is empty
-        while (current || !stack.empty()) {
-
-            // Traverse to the leftmost node and store the node values in
-            // the result vector
-            while (current) {
-                result.push_back(current->val);
-                stack.push(current);
-                current = current->left;
-            }
-
-            // If the current node is null, reached the leftmost leaf or
-            // subtree we backtrack to the parent node by popping from
-            // the stack and move to its right subtree.
-            current = stack.top();
-            stack.pop();
-            current = current->right;
-        }
-
-        // Return the result vector containing the preorder traversal of
-        // the binary tree
-        return result;
-    }
-};
-```
-
-Java
-
-```java
-import java.util.*;
-
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-class Solution {
-    public List<Integer> iterativePreorderTraversal(TreeNode root) {
-
-        // Create a list to store the result of preorder traversal
-        List<Integer> result = new ArrayList<>();
-
-        // Create a stack to help traverse the binary tree iteratively
-        Stack<TreeNode> stack = new Stack<>();
-
-        // Start from the root node
-        TreeNode current = root;
-
-        // Continue traversal until we reach the end of the tree (current
-        // is null) and the stack is empty
-        while (current != null || !stack.isEmpty()) {
-
-            // Traverse to the leftmost node and store the node values in
-            // the result list
-            while (current != null) {
-                result.add(current.val);
-                stack.push(current);
-                current = current.left;
-            }
-
-            // If the current node is null, we reached the leftmost leaf
-            // or subtree We backtrack to the parent node by popping from
-            // the stack and move to its right subtree.
-            current = stack.pop();
-            current = current.right;
-        }
-
-        // Return the result list containing the preorder traversal of
-        // the binary tree
-        return result;
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-export class Solution {
-    iterativePreorderTraversal(root: TreeNode | null): number[] {
-
-        // Create a vector to store the result of preorder traversal
-        const result: number[] = [];
-
-        // Create a stack to help traverse the binary tree iteratively
-        const stack: (TreeNode | null)[] = [];
-
-        // Start from the root node
-        let current: TreeNode | null = root;
-
-        // Continue traversal until we reach the end of the tree (current
-        // is null) and the stack is empty
-        while (current || stack.length > 0) {
-
-            // Traverse to the leftmost node and store the node values in
-            // the result vector
-            while (current) {
-                result.push(current.val);
-                stack.push(current);
-                current = current.left;
-            }
-
-            // If the current node is null, reached the leftmost leaf or
-            // subtree we backtrack to the parent node by popping from
-            // the stack and move to its right subtree.
-            current = stack.pop()!;
-            current = current.right;
-        }
-
-        // Return the result vector containing the preorder traversal of
-        // the binary tree
-        return result;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-    iterativePreorderTraversal(root) {
-
-        // Create a vector to store the result of preorder traversal
-        const result = [];
-
-        // Create a stack to help traverse the binary tree iteratively
-        const stack = [];
-
-        // Start from the root node
-        let current = root;
-
-        // Continue traversal until we reach the end of the tree (current
-        // is null) and the stack is empty
-        while (current || stack.length > 0) {
-
-            // Traverse to the leftmost node and store the node values in
-            // the result vector
-            while (current) {
-                result.push(current.val);
-                stack.push(current);
-                current = current.left;
-            }
-
-            // If the current node is null, reached the leftmost leaf or
-            // subtree we backtrack to the parent node by popping from
-            // the stack and move to its right subtree.
-            current = stack.pop();
-            current = current.right;
-        }
-
-        // Return the result vector containing the preorder traversal of
-        // the binary tree
-        return result;
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import Optional, List
-
-class Solution:
-    def iterative_preorder_traversal(
-        self, root: Optional[TreeNode]
-    ) -> List[int]:
-
-        # Create a list to store the result of preorder traversal
-        result: List[int] = []
-
-        # Create a stack to help traverse the binary tree iteratively
-        stack: List[TreeNode] = []
-
-        # Start from the root node
-        current: Optional[TreeNode] = root
-
-        # Continue traversal until we reach the end of the tree (current
-        # is None) and the stack is empty
-        while current or stack:
-
-            # Traverse to the leftmost node and store the node values in
-            # the result list
-            while current:
-                result.append(current.val)
-                stack.append(current)
-                current = current.left
-
-            # If the current node is None, reached the leftmost leaf or
-            # subtree we backtrack to the parent node by popping from the
-            # stack and move to its right subtree.
-            current = stack.pop()
-            current = current.right
-
-        # Return the result list containing the preorder traversal of the
-        # binary tree
-        return result
-```
-
-## Complexity Analysis
-
-Looking at the logic, it is easy to understand that the number of computational operations in the iterative version of preorder traversal is directly proportional to the number of nodes in a tree, as every node is visited only once. Since we are also using a stack to store the addresses of nodes, we have a space complexity that is directly proportional to the length of the tree's longest root-to-leaf path (height).
-
-> **Best Case** - The binary tree is height-balanced
->
-> -   Space Complexity - **O(logN)**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case** - The binary tree is skewed to the left or right
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
-
-***
-
-# Iterative preorder traversal
-
-## Problem Statement
-
-Fundamental
-
-Given the **root** of a binary tree, write a function to return an array containing all the nodes in the order in which they would appear in a preorder traversal.
-
-You must do this **iteratively**.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 3, 4, null, null, 7\]
-> -   **Output:** \[1, 2, 4, 3, 7\]
-> -   **Explanation:** This is the preorder traversal as per the above diagram.
-
-### Example 2
-
-> -   **Input:** root = \[1, 8, 4, null, null, 2, 7\]
-> -   **Output:** \[1, 8, 4, 2, 7\]
-> -   **Explanation:** This is the preorder traversal as per the above diagram.
-
-## Solution
-
-```cpp
-#include <stack>
-
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-    vector<int> iterativePreorderTraversal(TreeNode *root) {
-
-        // Create a vector to store the result of preorder traversal
-        vector<int> result;
-
-        // Create a stack to help traverse the binary tree iteratively
-        stack<TreeNode *> stack;
-
-        // Start from the root node
-        TreeNode *current = root;
-
-        // Continue traversal until we reach the end of the tree (current
-        // is null) and the stack is empty
-        while (current || !stack.empty()) {
-
-            // Traverse to the leftmost node and store the node values in
-            // the result vector
-            while (current) {
-                result.push_back(current->val);
-                stack.push(current);
-                current = current->left;
-            }
-
-            // If the current node is null, reached the leftmost leaf or
-            // subtree we backtrack to the parent node by popping from
-            // the stack and move to its right subtree.
-            current = stack.top();
-            stack.pop();
-            current = current->right;
-        }
-
-        // Return the result vector containing the preorder traversal of
-        // the binary tree
-        return result;
-    }
-};
-```
-
-***
-
-# Understanding iterative inorder traversal
-
-Just like the preorder traversal, to understand the iterative implementation of inorder traversal, we need to split the whole process into small steps and understand how each step functions.  Let us start by looking at how inorder traversal is done. 
-
-> -   **Step 1:** Recursively traverse the node's \`left\` subtree.
-> -   **Step 2:** Visit the node.
-> -   **Step 3:** Recursively traverse the node's \`right\` subtree.
-
-## Iterative Steps
-
-Inorder traversal is recursive, as the first and last steps of traversal use inorder traversal again. Let us now look at the distinct iterative steps this traversal follows and how we can implement these steps. Once we have implemented these individual steps, we can glue them together to create an iterative algorithm for the entire traversal. Inorder traversal can be broken down into three iterative steps :
-
-> -   **Step 1:** Traverse the node's \`left\` subtree.
-> -   **Step 2:** Visit the node.
-> -   **Step 3:** Traverse the node's \`right\` subtree.
-
-## 1\. Traverse the node's left subtree
-
-The first step of inorder traversal is to visit the left subtree using inorder traversal. Following this definition, for a tree rooted at node **R**, we start from the node **R** and then keep going left until we reach a `null`. We stop at `null` because there is nowhere to go beyond that. Let's say this `null` was the left child of node **N**
-
-In the recursive implementation of inorder traversal, hitting a `null` is the base case of recursion, and if we hit it, we backtrack to the parent with the help of the function call stack. However, we can't leverage the function call stack in the iterative implementation, so we use our own stack to replicate this behavior.
-
-**What do we store in the stack?**
-
-While traversing the left subtree, we push the nodes' references to a stack. The stack holds a list of nodes for which we are still traversing the left subtree, and the top holds the address of the **most recent** node for which we are **still** traversing the left subtree.
-
-To traverse the left subtree, we initialize a `current` variable and set it to hold the node **R**. We push `current` to the stack and set `current` to hold its left child. We repeat this process until we hit a `null`
-
-// Diagram: Step 1: Traverse the node's left subtree
-
-> **Algorithm**
->
-> -   **Step 1:** While \`current\` is not equal to \`null\`, do the following:
->     -   **Step 1.1:** Push the \`current\` node to the stack.
->     -   **Step 1.2:** Set the \`current\` pointer to hold the reference of the \`current\` node's \`left\` child.
-
-## 2\. Visit the node
-
-Once we hit a `null` it means that we are done traversing a node's left subtree. The next step is to identify that node and visit it.
-
-**How do we identify which node has the left subtree completely traversed on hitting `null`?**
-
-The top of the stack holds the reference to the most recent node for which we are still traversing the left subtree. Once we hit a `null`, it means that this node(top of the stack) is the one for which the left subtree has been completely traversed. 
-
-We look at the top of the stack to get the node for which the left subtree has been completely traversed and set `current` to this node to effectively **jump** back to this node. Once we have made the jump, we remove the top of the stack.
-
-**Why do we pop the top of the stack?**
-
-Once we have identified the node for which we just finished traversing the left subtree, we pop it from the top of the stack to ensure that the top always holds the node whose left subtree is being traversed.
-
-We then go ahead and visit the node held in `current`.
-
-// Diagram: Step 2: Visit the node
-
-> **Algorithm**
->
-> -   **Step 1:** If the stack is not empty, do the following:
->     -   **Step 1.1:** Set the \`current\` pointer to store the reference of the node at the top of the stack.
->     -   **Step 1.2:** Pop the top of the stack.
->     -   **Step 1.3:** Visit the \`current\` node.
-
-## 3\. Traverse the node's right subtree
-
-Once the traversing of the left subtree and the node itself is complete, the next step is to traverse its right subtree. We move to the right subtree by setting `current` to hold its right child. Then, we repeat the entire process from **Step 1: Traverse the node's left subtree** for the subtree rooted at the node held by `current`.
-
-// Diagram: Step 3: Traverse the node's right subtree
-
-> **Algorithm**
->
-> -   **Step 1:** Set the \`current\` pointer to hold the reference of the \`current\` node's \`right\` child.
-> -   **Step 2:** Go the initial step of traversing the node's \`left\` subtree
-
-## Algorithm
-
-By combining all the individual steps, we can understand the high-level idea of the iterative inorder traversal algorithm. 
-
-> **Algorithm**
->
-> -   **Step 1:** Set the \`current\` pointer to hold the reference of the \`root\` node.
-> -   **Step 2:** While \`current\` is not equal to \`null\` or the stack is not empty, do the following:
->     -   **Step 2.1:** While \`current\` is not equal to \`null\`, do the following:
->         -   **Step 2.1.1:** Push the \`current\` node to the stack.
->         -   **Step 2.1.2:** Set the \`current\` pointer to hold the reference of the \`current\` node's \`left\` child.
->     -   **Step 2.2:** Set the \`current\` pointer to store the reference of the node at the top of the stack.
->     -   **Step 2.3:** Pop the top of the stack.
->     -   **Step 2.4:** Visit the \`current\` node.
->     -   **Step 2.5:** Set the \`current\` pointer to hold the reference of the \`current\` node's \`right\` child.
-
-**When does the algorithm terminate?**
-
-The algorithm will terminate when we can no longer find a node in the stack. 
-
-## Implementation
-
-The algorithm above can be implemented using a nested while loop.
-
-C++
-
-```cpp
-#include <stack>
-
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    vector<int> iterativeInorderTraversal(TreeNode *root) {
-
-        // Create a vector to store the result of inorder traversal
-        vector<int> result;
-
-        // Create a stack to help traverse the binary tree iteratively
-        stack<TreeNode *> stack;
-
-        // Start from the root node
-        TreeNode *current = root;
-
-        // Continue traversal until we reach the end of the tree (current
-        // is null) and the stack is empty
-        while (current || !stack.empty()) {
-
-            // Traverse to the leftmost node and store the node values in
-            // the result vector
-            while (current) {
-                stack.push(current);
-                current = current->left;
-            }
-
-            // If the current node is null, reached the leftmost leaf or
-            // subtree we backtrack to the parent node by popping from
-            // the stack, process the current node, and move to its right
-            // subtree.
-            current = stack.top();
-            stack.pop();
-            result.push_back(current->val);
-            current = current->right;
-        }
-
-        // Return the result vector containing the inorder traversal of
-        // the binary tree
-        return result;
-    }
-};
-```
-
-Java
-
-```java
-import java.util.*;
-
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-class Solution {
-    public List<Integer> iterativeInorderTraversal(TreeNode root) {
-
-        // Create a list to store the result of inorder traversal
-        List<Integer> result = new ArrayList<>();
-
-        // Create a stack to help traverse the binary tree iteratively
-        Stack<TreeNode> stack = new Stack<>();
-
-        // Start from the root node
-        TreeNode current = root;
-
-        // Continue traversal until we reach the end of the tree (current
-        // is null) and the stack is empty
-        while (current != null || !stack.empty()) {
-
-            // Traverse to the leftmost node and store the node values in
-            // the result list
-            while (current != null) {
-                stack.push(current);
-                current = current.left;
-            }
-
-            // If the current node is null, we have reached the leftmost
-            // leaf or subtree We backtrack to the parent node by popping
-            // from the stack, process the current node and move to its
-            // right subtree.
-            current = stack.pop();
-            result.add(current.val);
-            current = current.right;
-        }
-
-        // Return the result list containing the inorder traversal of the
-        // binary tree
-        return result;
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-export class Solution {
-    iterativeInorderTraversal(root: TreeNode | null): number[] {
-
-        // Create an array to store the result of inorder traversal
-        const result: number[] = [];
-
-        // Create a stack to help traverse the binary tree iteratively
-        const stack: (TreeNode | null)[] = [];
-
-        // Start from the root node
-        let current: TreeNode | null = root;
-
-        // Continue traversal until we reach the end of the tree (current
-        // is null) and the stack is empty
-        while (current || stack.length > 0) {
-
-            // Traverse to the leftmost node and store the node values in
-            // the result array
-            while (current) {
-                stack.push(current);
-                current = current.left;
-            }
-
-            // If the current node is null, we have reached the leftmost
-            // leaf or subtree We backtrack to the parent node by popping
-            // from the stack, process the current node, and move to its
-            // right subtree.
-            current = stack.pop()!;
-            result.push(current.val);
-            current = current.right;
-        }
-
-        // Return the result array containing the inorder traversal of
-        // the binary tree
-        return result;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-    iterativeInorderTraversal(root) {
-
-        // Create an array to store the result of inorder traversal
-        const result = [];
-
-        // Create a stack to help traverse the binary tree iteratively
-        const stack = [];
-
-        // Start from the root node
-        let current = root;
-
-        // Continue traversal until we reach the end of the tree (current
-        // is null) and the stack is empty
-        while (current || stack.length > 0) {
-
-            // Traverse to the leftmost node and store the node values in
-            // the result array
-            while (current) {
-                stack.push(current);
-                current = current.left;
-            }
-
-            // If the current node is null, we have reached the leftmost
-            // leaf or subtree We backtrack to the parent node by popping
-            // from the stack, process the current node, and move to its
-            // right subtree.
-            current = stack.pop();
-            result.push(current.val);
-            current = current.right;
-        }
-
-        // Return the result array containing the inorder traversal of
-        // the binary tree
-        return result;
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import Optional, List
-
-class Solution:
-    def iterative_inorder_traversal(
-        self, root: Optional[TreeNode]
-    ) -> List[int]:
-
-        # Create a list to store the result of inorder traversal
-        result: List[int] = []
-
-        # Create a stack to help traverse the binary tree iteratively
-        stack: List[TreeNode] = []
-
-        # Start from the root node
-        current: Optional[TreeNode] = root
-
-        # Continue traversal until we reach the end of the tree (current
-        # is None) and the stack is empty
-        while current or stack:
-
-            # Traverse to the leftmost node and store the node values in
-            # the result list
-            while current:
-                stack.append(current)
-                current = current.left
-
-            # If the current node is None, we have reached the leftmost
-            # leaf or subtree. We backtrack to the parent node by popping
-            # from the stack, process the current node, and move to its
-            # right subtree.
-            current = stack.pop()
-            result.append(current.val)
-            current = current.right
-
-        # Return the result list containing the inorder traversal of the
-        # binary tree
-        return result
-```
-
-## Complexity Analysis
-
-Looking at the logic, it is easy to understand that the number of computational operations in the iterative version of inorder traversal is directly proportional to the number of nodes in a tree, as every node is visited only once. Since we are also using a stack to store the addresses of nodes, we have a space complexity that is directly proportional to the length of the tree's longest root-to-leaf path (height).
-
-> **Best Case** - The binary tree is height-balanced
->
-> -   Space Complexity - **O(logN)**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case** - The binary tree is skewed to the left or right
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
-
-***
-
-# Iterative inorder traversal
-
-## Problem Statement
-
-Fundamental
-
-Given the **root** of a binary tree, write a function to return an array containing all the nodes in the order in which they would appear in an inorder traversal.
-
-You must do this **iteratively**.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 3, 4, null, null, 7\]
-> -   **Output:** \[4, 2, 1, 3, 7\]
-> -   **Explanation:** This is the inorder traversal as per the above diagram.
-
-### Example 2
-
-> -   **Input:** root = \[1, 8, 4, null, null, 2, 7\]
-> -   **Output:** \[8, 1, 2, 4, 7\]
-> -   **Explanation:** This is the inorder traversal as per the above diagram.
-
-## Solution
-
-```cpp
-#include <stack>
-
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-    vector<int> iterativeInorderTraversal(TreeNode *root) {
-
-        // Create a vector to store the result of inorder traversal
-        vector<int> result;
-
-        // Create a stack to help traverse the binary tree iteratively
-        stack<TreeNode *> stack;
-
-        // Start from the root node
-        TreeNode *current = root;
-
-        // Continue traversal until we reach the end of the tree (current
-        // is null) and the stack is empty
-        while (current || !stack.empty()) {
-
-            // Traverse to the leftmost node and store the node values in
-            // the result vector
-            while (current) {
-                stack.push(current);
-                current = current->left;
-            }
-
-            // If the current node is null, reached the leftmost leaf or
-            // subtree we backtrack to the parent node by popping from
-            // the stack, process the current node, and move to its right
-            // subtree.
-            current = stack.top();
-            stack.pop();
-            result.push_back(current->val);
-            current = current->right;
-        }
-
-        // Return the result vector containing the inorder traversal of
-        // the binary tree
-        return result;
-    }
-};
-```
-
-***
-
-# Understanding iterative postorder traversal
-
-Just like preorder and inorder traversal, to understand the iterative implementation of postorder traversal, we need to split the whole process into small steps and understand how each step functions. Let us start by looking at how postorder traversal is done. 
-
-> **Algorithm**
->
-> -   **Step 1:** Recursively traverse the node's \`left\` subtree.
-> -   **Step 2:** Recursively traverse the node's \`right\` subtree.
-> -   **Step 3:** Visit the node.
-
-## Iterative Steps
-
-Postorder traversal is recursive, as the first and second steps use postorder traversal again. Let us now look at the distinct iterative steps this traversal follows and how we can implement these steps. Once we have implemented these individual steps, we can glue them together to create an iterative algorithm for the entire traversal. Postorder traversal can be broken down into three iterative steps :
-
-> -   **Step 1:** Traverse the node's \`left\` subtree.
-> -   **Step 2:** Traverse the node's \`right\` subtree.
-> -   **Step 3:** Visit the node.
-
-To create an iterative algorithm, we will first follow these steps sequentially. The complete algorithm will make sense when we combine all these steps and consider the big picture.
-
-## 1\. Traverse the node's left subtree
-
-The first step of postorder traversal is to traverse the left subtree using postorder traversal. Following this definition, for a tree rooted at node **R**, we start from the node **R** and then keep going left until we reach a `null`. We stop at `null` because there is nowhere to go beyond that. Let's say this `null` was the left child of node **N.**
-
-In the recursive implementation of postorder traversal, hitting a `null` is the base case of recursion, and we backtrack to the parent with the help of the function call stack and move to the node's right subtree.
-
-**How is this step different from iterative preorder and inorder traversals?**
-
-It's essential to understand that, unlike preorder and inorder traversal, where the last step involves a recursive function call, in postorder traversal, the last step is to visit the node itself. This means that, unlike preorder and inorder traversal, we need to make a **second stop** at a node to visit it once its left and right subtrees are traversed instead of simply backtracking up. Consequently, there can be two cases when we backtrack to node **N**.
-
-// Diagram: Two possible cases when we backtrack to the node N are
-
-> 1.  If the right subtree of N has not yet been traversed, then we should traverse it (common with preorder and inorder traversals).
-> 2.  If the right subtree of N has already been traversed, we should stop here and visit the node (specific to postorder traversal).
-
-In the recursive implementation of postorder traversal, we do not need any extra information to decide between the cases as we place the recursive function calls and code to process the node in the proper sequence in the recursive function. However, we can't leverage the function call stack and this execution sequence in the iterative implementation, so we use our own stack to replicate this behavior.
-
-**What do we store in the stack?**
-
-While traversing the left subtree, we push the reference to the nodes to a stack **two** times. This way, the top of the stack holds the **most recent** node for which the traversal of the right subtree **or** traversing of the node itself is **due**.
-
-**Why do we push the node two times in the stack?**
-
-As we learned earlier, we must make **two stops** at every node in postorder traversal while backtracking up. To make this possible, we need two copies of a node in the stack. As we will learn shortly, the two copies also help us determine whether it is the first or second time we backtracked to this node. We can compare the node just popped from the stack and the top of the stack to determine if it is the first or second time that we are at any node. It will determine if we traverse the node's right subtree or visit the node itself.
-
-To go left, we initialize a `current` variable and set it to hold the node **R**. We push `current` to the stack **two times** and set `current` to hold its left child. We repeat this process until we hit a `null`
-
-// Diagram: Step 1: Traverse the node's left subtree
-
-> **Algorithm**
->
-> -   **Step 1:** While \`current\` is not equal to \`null\`, do the following:
->     -   **Step 1.1:** Push the \`current\` node to the stack.
->     -   **Step 1.2:** Push the \`current\` node again to the stack.
->     -   **Step 1.3:** Set the \`current\` pointer to hold the reference of the \`current\` node's \`left\` child.
-
-## 2\. Traverse the node's right subtree
-
-We must traverse a node's right subtree(go right) once we traverse its left subtree. Since `null` is the termination of a tree, hitting a `null` as the left child for a node means that we are done traversing the **left** subtree for that node.
-
-There is one other way we can reach this step without hitting `null`  but we will learn that in **Step 3: Visit the node**. The next step is to identify that node(**N**) and traverse its right subtree.
-
-**How do we identify which node has the left subtree completely traversed?**
-
-At this point, the top of the stack should hold the **most recent** node for which the traversal of the right subtree is **due**.  Once the traversal of the left subtree of a node is finished, we can look at the top of the stack to find the node.
-
-We look at the top of the stack to get the node for which the left subtree has been completely traversed and set `current` to this node to effectively **jump** back to this node and pop the address from the top of the stack.
-
-**We only removed one copy from the stack. What about the second copy?**After traversing the left subtree for a node, we use the first copy of the node to make our first stop. Since this is the first stop when backtracking to this node, following postorder traversal, we start the traversal for the right subtree of the node and pop it from the top of the stack to mark that the traversal of the right subtree is in progress and visiting of the node itself is due. We do not pop the second copy from the top of the stack to make a **second stop** at the node to visit it once the traversal for the right subtree is also finished.
-
-Then, we move to the right subtree by setting `current` to its right child. Then, we repeat the entire process from **Step 1: Traverse the node's left subtree** for the subtree rooted at the node held in `current`.
-
-// Diagram: Step 2: Traverse the node's right subtree
-
-> **Algorithm**
->
-> -   **Step 1:** If the stack is not empty, do the following:
->     -   **Step 1.1:** Set the \`current\` pointer to store the reference of the node at the top of the stack.
->     -   **Step 1.2:** Pop the top of the stack.
->     -   **Step 1.3:** If the stack is not empty, and the top of the stack is the same as the \`current\` node, do the following:
->         -   **Step 1.3.1:** Set the \`current\` pointer to hold the reference of the \`current\` node's \`right\` child.
->         -   **Step 1.3.2:** Go to the initial step of traversing the node's \`left\` subtree.
-
-**What if there is no right child?**If there is no right child, it means we are done traversing both the left and right subtree for a node, and we now need to process the node itself. More details on this in **Step 3: Process the node**
-
-## 3\. Visit the node
-
-We reach this step when we hit a `null` as the **right** child of a node. Hitting a `null` as the right child means that the traversal of the right subtree for some node(say N) has finished. Since we are following postorder traversal, the traversal of both the left and right subtree for the node has finished, and we need to process the node itself now. 
-
-**How do we identify which node has both left and right subtree completely traversed?**This is where the second copy of the nodes we pushed in the stack comes into action. At this point, the top of the stack should be the most recent node for which the traversal of the right subtree is in progress and the node's processing is due. We can use the top of the stack to find this node.
-
-Let us continue the traversal for our example tree to understand this better.
-
-// Diagram: The second copy of the node in stack is used to backtrack and stop at the node for the second time
-
-We look at the top of the stack to get the node(N) for which both the left and right subtree have been completely traversed and set `current` to this node to effectively **jump** back to this node and pop it from the top of the stack.
-
-**Why do we pop the node from the stack?**Once we are done processing the node, we will finish the postorder traversal of the subtree at that node. We do not wish to make any further stops at this node, so we pop it from the top of the stack to ensure we do not revisit it.
-
-// Diagram: Step 3: Visit the node
-
-Once the node(N) is processed, we will complete the postorder traversal for the entire subtree at node N. This also means we have completely traversed the **left** subtree of the parent of node N, say P. This is logically equivalent to hitting a `null` as the **left** child of P. The next step is to traverse the right subtree of P, so we repeat the steps from **Step 2: Traverse the node's right subtree**. 
-
-// Diagram: We go to Step 2: Traverse the node's right subtree once the left subtree for a node is traversed
-
-> **Algorithm**
->
-> -   **Step 1:** If the stack is not empty, do the following:
->     -   **Step 1.1:** Set the \`current\` pointer to store the reference of the node at the top of the stack.
->     -   **Step 1.2:** Pop the top of the stack.
->     -   **Step 1.3:** If the stack is empty, or the top of the stack is not equal to the \`current\` node, do the following:
->         -   **Step 1.3.1:** Visit the \`current\` node.
->         -   **Step 1.3.2:** Set the \`current\` pointer to \`null\` so that in the next iteration, the algorithm goes to the second step of traversing the node's \`right\` subtree.
-
-## Algorithm
-
-By combining all the individual steps, we can understand the high-level idea of the iterative postorder traversal algorithm. 
-
-> **Algorithm**
->
-> -   **Step 1:** Set the \`current\` pointer to hold the reference of the \`root\` node.
-> -   **Step 2:** While \`current\` is not equal to \`null\` or the stack is not empty, do the following:
->     -   **Step 2.1:** While \`current\` is not equal to \`null\`, do the following:
->         -   **Step 2.1.1:** Push the \`current\` node to the stack.
->         -   **Step 2.1.2:** Push the \`current\` node again to the stack.
->         -   **Step 2.1.3:** Set the \`current\` pointer to hold the reference of the \`current\` node's \`left\` child.
->     -   **Step 2.2:** Set the \`current\` pointer to store the reference of the node at the top of the stack.
->     -   **Step 2.3:** Pop the top of the stack.
->     -   **Step 2.4:** If the stack is not empty, and the top of the stack is the same as the \`current\` node, do the following:
->         -   **Step 2.4.1:** Set the \`current\` pointer to hold the reference of the \`current\` node's \`right\` child.
->     -   **Step 2.5:** Else, if the stack is empty, or the top of the stack is not equal to the \`current\` node, do the following:
->         -   **Step 2.5.1:** Visit the \`current\` node.
->         -   **Step 2.5.2:** Set the \`current\` pointer to \`null\` so that in the next iteration, the algorithm goes to the second step of traversing the node's \`right\` subtree.
-
-**When does the algorithm terminate?**
-
-The algorithm will terminate when we can no longer find a node in the stack. 
-
-## Implementation
-
-The algorithm above can be implemented using a nested while loop.
-
-C++
-
-```cpp
-#include <stack>
-
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    vector<int> iterativePostorderTraversal(TreeNode *root) {
-        vector<int> result;
-        stack<TreeNode *> stack;
-        TreeNode *current = root;
-
-        // Iterate until the current node is null and the stack is empty
-        while (current || !stack.empty()) {
-
-            // Traverse the left subtree and push nodes twice into the
-            // stack
-            while (current) {
-                stack.push(current);
-
-                // Push the node twice to indicate it's not yet processed
-                stack.push(current);
-                current = current->left;
-            }
-
-            // Retrieve the top node from the stack
-            current = stack.top();
-            stack.pop();
-
-            // Check if the next node on top of the stack is the same as
-            // the current node If yes, it means the right subtree of the
-            // current node hasn't been processed yet
-            if (!stack.empty() && current == stack.top()) {
-
-                // Move to the right subtree
-                current = current->right;
-            }
-
-            // Otherwise, the right subtree has been processed and we can
-            // add the current node to the result list and set current to
-            // null
-            else {
-
-                // Add the value of the current node to the result
-                result.push_back(current->val);
-
-                // Set current to nullptr to avoid revisiting the node
-                current = nullptr;
-            }
-
-        return result;
-    }
-};
-```
-
-Java
-
-```java
-import java.util.*;
-
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-class Solution {
-    public List<Integer> iterativePostorderTraversal(TreeNode root) {
-        List<Integer> result = new ArrayList<>();
-        Stack<TreeNode> stack = new Stack<>();
-        TreeNode current = root;
-
-        // Iterate until the current node is null and the stack is empty
-        while (current != null || !stack.isEmpty()) {
-
-            // Traverse the left subtree and push nodes twice into the
-            // stack
-            while (current != null) {
-                stack.push(current);
-
-                // Push the node twice to indicate it's not yet processed
-                stack.push(current);
-                current = current.left;
-            }
-
-            // Retrieve the top node from the stack
-            current = stack.pop();
-
-            // Check if the next node on top of the stack is the same as
-            // the current node If yes, it means the right subtree of the
-            // current node hasn't been processed yet
-            if (!stack.isEmpty() && current == stack.peek()) {
-
-                // Move to the right subtree
-                current = current.right;
-            }
-
-            // Otherwise, the right subtree has been processed and we can
-            // add the current node to the result list and set current to
-            // null
-            else {
-
-                // Add the value of the current node to the result
-                result.add(current.val);
-
-                // Set current to null to avoid revisiting the node
-                current = null;
-            }
-
-        return result;
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-export class Solution {
-    iterativePostorderTraversal(root: TreeNode | null): number[] {
-        const result: number[] = [];
-        const stack: (TreeNode | null)[] = [];
-        let current: TreeNode | null = root;
-
-        // Iterate until the current node is null and the stack is empty
-        while (current || stack.length > 0) {
-
-            // Traverse the left subtree and push nodes twice into the
-            // stack
-            while (current) {
-                stack.push(current);
-
-                // Push the node twice to indicate it's not yet processed
-                stack.push(current);
-                current = current.left;
-            }
-
-            // Retrieve the top node from the stack
-            current = stack.pop()!;
-
-            // Check if the next node on top of the stack is the same as
-            // the current node If yes, it means the right subtree of the
-            // current node hasn't been processed yet
-            if (
-                stack.length > 0 &&
-                current === stack[stack.length - 1]
-            ) {
-
-                // Move to the right subtree
-                current = current.right;
-            }
-
-            // Otherwise, the right subtree has been processed and we can
-            // add the current node to the result list and set current to
-            // null
-            else {
-
-                // Add the value of the current node to the result
-                result.push(current.val);
-
-                // Set current to null to avoid revisiting the node
-                current = null;
-            }
-
-        return result;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-    iterativePostorderTraversal(root) {
-        const result = [];
-        const stack = [];
-        let current = root;
-
-        // Iterate until the current node is null and the stack is empty
-        while (current || stack.length > 0) {
-
-            // Traverse the left subtree and push nodes twice into the
-            // stack
-            while (current) {
-                stack.push(current);
-
-                // Push the node twice to indicate it's not yet processed
-                stack.push(current);
-                current = current.left;
-            }
-
-            // Retrieve the top node from the stack
-            current = stack.pop();
-
-            // Check if the next node on top of the stack is the same as
-            // the current node If yes, it means the right subtree of the
-            // current node hasn't been processed yet
-            if (
-                stack.length > 0 &&
-                current === stack[stack.length - 1]
-            ) {
-
-                // Move to the right subtree
-                current = current.right;
-            }
-
-            // Otherwise, the right subtree has been processed and we can
-            // add the current node to the result list and set current to
-            // null
-            else {
-
-                // Add the value of the current node to the result
-                result.push(current.val);
-
-                // Set current to null to avoid revisiting the node
-                current = null;
-            }
-        return result;
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import Optional, List
-
-class Solution:
-    def iterative_postorder_traversal(
-        self, root: Optional[TreeNode]
-    ) -> List[int]:
-        result: List[int] = []
-        stack: List[TreeNode] = []
-        current: Optional[TreeNode] = root
-
-        # Iterate until the current node is None and the stack is empty
-        while current or stack:
-
-            # Traverse the left subtree and push nodes twice into the
-            # stack
-            while current:
-                stack.append(current)
-
-                # Push the node twice to indicate it's not yet processed
-                stack.append(current)
-                current = current.left
-
-            # Retrieve the top node from the stack
-            current = stack.pop()
-
-            # Check if the next node on top of the stack is the same as
-            # the current node. If yes, it means the right subtree of the
-            # current node hasn't been processed yet
-            if stack and current == stack[-1]:
-
-                # Move to the right subtree
-                current = current.right
-
-            # Otherwise, the right subtree has been processed and we can
-            # add the current node to the result list and set current to
-            # null
-            else:
-
-                # Add the value of the current node to the result
-                result.append(current.val)
-
-                # Set current to None to avoid revisiting the node
-                current = None
-
-        return result
-```
-
-## Complexity Analysis
-
-Looking at the logic, it is easy to understand that the number of computational operations in the iterative version of postorder traversal is directly proportional to the number of nodes in a tree, as every node is visited only once. Since we are also using a stack to store the references to nodes, we have a space complexity directly proportional to the length of the tree's longest root-to-leaf path (height).
-
-> **Best Case** - The binary tree is height-balanced
->
-> -   Space Complexity - **O(logN)**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case** - The binary tree is skewed to the left or right
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
-
-***
-
-# Iterative postorder traversal
-
-## Problem Statement
-
-Fundamental
-
-Given the **root** of a binary tree, write a function to return an array containing all the nodes in the order in which they would appear in a postorder traversal.
-
-You must do this **iteratively**.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 3, 4, null, null, 7\]
-> -   **Output:** \[4, 2, 7, 3, 1\]
-> -   **Explanation:** This is the postorder traversal as per the above diagram.
-
-### Example 2
-
-> -   **Input:** root = \[1, 8, 4, null, null, 2, 7\]
-> -   **Output:** \[8, 2, 7, 4, 1\]
-> -   **Explanation:** This is the postorder traversal as per the above diagram.
-
-## Solution
-
-```cpp
-#include <stack>
-
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-    vector<int> iterativePostorderTraversal(TreeNode *root) {
-        vector<int> result;
-        stack<TreeNode *> stack;
-        TreeNode *current = root;
-
-        // Iterate until the current node is null and the stack is empty
-        while (current || !stack.empty()) {
-
-            // Traverse the left subtree and push nodes twice into the
-            // stack
-            while (current) {
-                stack.push(current);
-
-                // Push the node twice to indicate it's not yet processed
-                stack.push(current);
-                current = current->left;
-            }
-
-            // Retrieve the top node from the stack
-            current = stack.top();
-            stack.pop();
-
-            // Check if the next node on top of the stack is the same as
-            // the current node If yes, it means the right subtree of the
-            // current node hasn't been processed yet
-            if (!stack.empty() && current == stack.top()) {
-
-                // Move to the right subtree
-                current = current->right;
-            }
-
-            // Otherwise, the right subtree has been processed and we can
-            // add the current node to the result list and set current to
-            // null
-            else {
-
-                // Add the value of the current node to the result
-                result.push_back(current->val);
-
-                // Set current to nullptr to avoid revisiting the node
-                current = nullptr;
-            }
-        }
-
-        return result;
-    }
-};
-```
-
-***
-
-# Understanding level order traversal
-
-Level order traversal is a way of traversing a tree, where we traverse one level at a time. The nodes in the tree are traversed from top to bottom, from left to right.
-
-// Diagram: Lever Order Traversal
-
-> Level order traversal follows the following order:
->
-> 1.  Process level 0
-> 2.  Process level 1
-> 3.  ...
-> 4.  ...
-
-## Example
-
-Level order traversal is straightforward and easy to visualize. To understand it better, let's look at a simple binary tree as an example.
-
-// Diagram: Level Order Traversal Example
-
-## Algorithm
-
-Level order traversal is implemented quite differently than all the other traversals we have seen. It has a non-recursive implementation that uses a `queue` data structure. The traversal is the same as a **Breadth First Search** in a graph that follows exactly the same order.
-
-// Diagram: Level Order Traversal Algorithm
-
-> **Algorithm**
->
-> -   **Step 1:** Create a queue and a list of lists called \`levels\` to store all the levels of the tree.
-> -   **Step 2:** Add the \`root\` node to the queue.
-> -   **Step 3:** While the queue is not empty, do the following:
->     -   **Step 3.1:** Store the queue size (also the size of the current level) in a variable \`levelSize\`.
->     -   **Step 3.2:** Iterate over this level using the \`levelSize\` and do the following:
->         -   **Step 3.2.1:** Pop the first node from the queue and process it.
->         -   **Step 3.2.2:** If the \`left\` child of the popped node is not \`null\`, add it to the queue.
->         -   **Step 3.2.3:** If the \`right\` child of the popped node is not \`null\`, add it to the queue.
->         -   **Step 3.2.4:** Decrement the \`size\` by \`1\`.
->     -   **Step 3.3:** Add the processed level to the \`levels\` list.
-
-## Implementation
-
-C++
-
-```cpp
-#include <queue>
-
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    vector<vector<int>> levelOrderTraversal(TreeNode *root) {
-
-        // Create a queue to perform level-order traversal
-        queue<TreeNode *> queue;
-
-        // Create a vector to store the final result
-        vector<vector<int>> levels;
-
-        // If the tree is empty, return an empty result
-        if (root == nullptr) {
-            return levels;
-        }
-
-        // Start the traversal by pushing the root node into the queue
-        queue.push(root);
-
-        // Perform level-order traversal using the queue
-        while (!queue.empty()) {
-
-            // Get the number of nodes in the current level
-            int levelSize = queue.size();
-
-            // Create a vector to store the nodes in the current level
-            vector<int> level;
-
-            // Process all nodes in the current level
-            for (int i = 0; i < levelSize; i++) {
-
-                // Get the front node from the queue
-                TreeNode *node = queue.front();
-
-// Diagram: queue.pop();
-
-                // Add the value of the current node to the level vector
-                level.push_back(node->val);
-
-                // Add the left child of the current node to the queue if
-                // it exists
-                if (node->left) {
-                    queue.push(node->left);
-                }
-
-                // Add the right child of the current node to the queue
-                // if it exists
-                if (node->right) {
-                    queue.push(node->right);
-                }
-
-            // Add the current level vector to the levels vector
-            levels.push_back(level);
-        }
-
-        // Return the final result after completing the traversal
-        return levels;
-    }
-};
-```
-
-Java
-
-```java
-import java.util.*;
-
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-class Solution {
-    public List<List<Integer>> levelOrderTraversal(TreeNode root) {
-
-        // Create a queue to perform level-order traversal
-        Queue<TreeNode> queue = new LinkedList<>();
-
-        // Create a list to store the final result
-        List<List<Integer>> levels = new ArrayList<>();
-
-        // If the tree is empty, return an empty result
-        if (root == null) {
-            return levels;
-        }
-
-        // Start the traversal by adding the root node into the queue
-        queue.add(root);
-
-        // Perform level-order traversal using the queue
-        while (!queue.isEmpty()) {
-
-            // Get the number of nodes in the current level
-            int levelSize = queue.size();
-
-            // Create a list to store the nodes in the current level
-            List<Integer> level = new ArrayList<>();
-
-            // Process all nodes in the current level
-            for (int i = 0; i < levelSize; i++) {
-
-                // Get the front node from the queue
-                TreeNode node = queue.poll();
-
-                // Add the value of the current node to the level list
-                level.add(node.val);
-
-                // Add the left child of the current node to the queue if
-                // it exists
-                if (node.left != null) {
-                    queue.add(node.left);
-                }
-
-                // Add the right child of the current node to the queue
-                // if it exists
-                if (node.right != null) {
-                    queue.add(node.right);
-                }
-
-            // Add the current level list to the levels list
-            levels.add(level);
-        }
-
-        // Return the final result after completing the traversal
-        return levels;
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-export class Solution {
-    levelOrderTraversal(root: TreeNode | null): number[][] {
-
-        // Create a queue to perform level-order traversal
-        const queue: TreeNode[] = [];
-
-        // Create an array to store the final result
-        const levels: number[][] = [];
-
-        // If the tree is empty, return an empty result
-        if (!root) {
-            return levels;
-        }
-
-        // Start the traversal by pushing the root node into the queue
-        queue.push(root);
-
-        // Perform level-order traversal using the queue
-        while (queue.length > 0) {
-
-            // Get the number of nodes in the current level
-            const levelSize = queue.length;
-
-            // Create an array to store the nodes in the current level
-            const level: number[] = [];
-
-            // Process all nodes in the current level
-            for (let i = 0; i < levelSize; i++) {
-
-                // Get the front node from the queue
-                const node = queue.shift()!;
-
-                // Add the value of the current node to the level array
-                level.push(node.val);
-
-                // Add the left child of the current node to the queue if
-                // it exists
-                if (node.left) {
-                    queue.push(node.left);
-                }
-
-                // Add the right child of the current node to the queue
-                // if it exists
-                if (node.right) {
-                    queue.push(node.right);
-                }
-
-            // Add the current level array to the levels array
-            levels.push(level);
-        }
-
-        // Return the final result after completing the traversal
-        return levels;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-    levelOrderTraversal(root) {
-
-        // Create a queue to perform level-order traversal
-        const queue = [];
-
-        // Create an array to store the final result
-        const levels = [];
-
-        // If the tree is empty, return an empty result
-        if (!root) {
-            return levels;
-        }
-
-        // Start the traversal by pushing the root node into the queue
-        queue.push(root);
-
-        // Perform level-order traversal using the queue
-        while (queue.length > 0) {
-
-            // Get the number of nodes in the current level
-            const levelSize = queue.length;
-
-            // Create an array to store the nodes in the current level
-            const level = [];
-
-            // Process all nodes in the current level
-            for (let i = 0; i < levelSize; i++) {
-
-                // Get the front node from the queue
-                const node = queue.shift();
-
-                // Add the value of the current node to the level array
-                level.push(node.val);
-
-                // Add the left child of the current node to the queue if
-                // it exists
-                if (node.left) {
-                    queue.push(node.left);
-                }
-
-                // Add the right child of the current node to the queue
-                // if it exists
-                if (node.right) {
-                    queue.push(node.right);
-                }
-
-            // Add the current level array to the levels array
-            levels.push(level);
-        }
-
-        // Return the final result after completing the traversal
-        return levels;
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-from queue import Queue
+```python,editable
 from typing import List, Optional
 
-class Solution:
-    def level_order_traversal(
-        self, root: Optional[TreeNode]
-    ) -> List[List[int]]:
+class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
 
-        # Create a queue to perform level-order traversal
-        queue = Queue()
+def preorder_iter(root: Optional[TreeNode]) -> List[int]:
+    if root is None: return []
+    out: List[int] = []
+    stack = [root]
+    while stack:
+        n = stack.pop()
+        out.append(n.val)
+        if n.right: stack.append(n.right)   # right first
+        if n.left:  stack.append(n.left)    # so left is on top
+    return out
 
-        # Create a list to store the final result
-        levels = []
-
-        # If the tree is empty, return an empty result
-        if not root:
-            return levels
-
-        # Start the traversal by pushing the root node into the queue
-        queue.put(root)
-
-        # Perform level-order traversal using the queue
-        while not queue.empty():
-
-            # Get the number of nodes in the current level
-            level_size = queue.qsize()
-
-            # Create a list to store the nodes in the current level
-            level = []
-
-            # Process all nodes in the current level
-            for _ in range(level_size):
-
-                # Get the front node from the queue
-                node = queue.get()
-
-                # Add the value of the current node to the level list
-                level.append(node.val)
-
-                # Add the left child of the current node to the queue if
-                # it exists
-                if node.left:
-                    queue.put(node.left)
-
-                # Add the right child of the current node to the queue if
-                # it exists
-                if node.right:
-                    queue.put(node.right)
-
-            # Add the current level list to the levels list
-            levels.append(level)
-
-        # Return the final result after completing the traversal
-        return levels
+# tree:    1
+#         / \
+#        2   3
+#       / \
+#      4   5
+root = TreeNode(1, TreeNode(2, TreeNode(4), TreeNode(5)), TreeNode(3))
+print(preorder_iter(root))   # [1, 2, 4, 5, 3]
 ```
 
-## Complexity Analysis
+```java,editable
+import java.util.*;
+public class Main {
+    static class TreeNode {
+        int val; TreeNode left, right;
+        TreeNode(int v) { val = v; }
+        TreeNode(int v, TreeNode l, TreeNode r) { val = v; left = l; right = r; }
+    }
+    public static List<Integer> preorderIter(TreeNode root) {
+        List<Integer> out = new ArrayList<>();
+        if (root == null) return out;
+        Deque<TreeNode> stack = new ArrayDeque<>();
+        stack.push(root);
+        while (!stack.isEmpty()) {
+            TreeNode n = stack.pop();
+            out.add(n.val);
+            if (n.right != null) stack.push(n.right);
+            if (n.left  != null) stack.push(n.left);
+        }
+        return out;
+    }
+    public static void main(String[] args) {
+        TreeNode root = new TreeNode(1, new TreeNode(2, new TreeNode(4), new TreeNode(5)), new TreeNode(3));
+        System.out.println(preorderIter(root));
+    }
+}
+```
 
-Looking at the logic, it is easy to understand that the number of computational operations in level-order traversal is directly proportional to the number of nodes in a tree, as every node is visited only once. Since we also use a queue to store the references to nodes, our space complexity is directly proportional to the maximum number of nodes in a level.
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
 
-> **Best Case** - H is the height of the tree
->
-> -   Space Complexity - **O(2^H)**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case** - H is the height of the tree
->
-> -   Space Complexity - **O(2^H)**
-> -   Time Complexity - **O(N)**
+typedef struct TreeNode { int val; struct TreeNode *left, *right; } TreeNode;
+
+static TreeNode* mk(int v, TreeNode *l, TreeNode *r) {
+    TreeNode *n = malloc(sizeof(*n)); n->val = v; n->left = l; n->right = r; return n;
+}
+
+int main() {
+    TreeNode *root = mk(1, mk(2, mk(4, NULL, NULL), mk(5, NULL, NULL)), mk(3, NULL, NULL));
+
+    TreeNode *stk[64]; int top = -1;
+    int out[64], k = 0;
+    if (root) stk[++top] = root;
+    while (top >= 0) {
+        TreeNode *n = stk[top--];
+        out[k++] = n->val;
+        if (n->right) stk[++top] = n->right;
+        if (n->left)  stk[++top] = n->left;
+    }
+    for (int i = 0; i < k; i++) printf("%d ", out[i]);
+    printf("\n");
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <stack>
+#include <vector>
+
+struct TreeNode {
+    int val; TreeNode *left, *right;
+    TreeNode(int v, TreeNode *l = nullptr, TreeNode *r = nullptr) : val(v), left(l), right(r) {}
+};
+
+std::vector<int> preorderIter(TreeNode *root) {
+    std::vector<int> out;
+    if (!root) return out;
+    std::stack<TreeNode*> stk;
+    stk.push(root);
+    while (!stk.empty()) {
+        TreeNode *n = stk.top(); stk.pop();
+        out.push_back(n->val);
+        if (n->right) stk.push(n->right);
+        if (n->left)  stk.push(n->left);
+    }
+    return out;
+}
+
+int main() {
+    auto root = new TreeNode(1, new TreeNode(2, new TreeNode(4), new TreeNode(5)), new TreeNode(3));
+    for (int v : preorderIter(root)) std::cout << v << " ";
+    std::cout << "\n";
+}
+```
+
+```scala,editable
+import scala.collection.mutable
+
+class TreeNode(var value: Int, var left: TreeNode = null, var right: TreeNode = null)
+
+object Main extends App {
+  def preorderIter(root: TreeNode): List[Int] = {
+    if (root == null) return Nil
+    val out = mutable.ListBuffer[Int]()
+    val stk = mutable.Stack[TreeNode](root)
+    while (stk.nonEmpty) {
+      val n = stk.pop()
+      out += n.value
+      if (n.right != null) stk.push(n.right)
+      if (n.left  != null) stk.push(n.left)
+    }
+    out.toList
+  }
+
+  val root = new TreeNode(1, new TreeNode(2, new TreeNode(4), new TreeNode(5)), new TreeNode(3))
+  println(preorderIter(root))
+}
+```
+
+```javascript,editable
+class TreeNode {
+    constructor(val = 0, left = null, right = null) { this.val = val; this.left = left; this.right = right; }
+}
+
+function preorderIter(root) {
+    const out = [];
+    if (!root) return out;
+    const stk = [root];
+    while (stk.length) {
+        const n = stk.pop();
+        out.push(n.val);
+        if (n.right) stk.push(n.right);
+        if (n.left)  stk.push(n.left);
+    }
+    return out;
+}
+
+const root = new TreeNode(1, new TreeNode(2, new TreeNode(4), new TreeNode(5)), new TreeNode(3));
+console.log(preorderIter(root));
+```
+
+```typescript,editable
+class TreeNode {
+    val: number;
+    left: TreeNode | null;
+    right: TreeNode | null;
+    constructor(val = 0, left: TreeNode | null = null, right: TreeNode | null = null) {
+        this.val = val; this.left = left; this.right = right;
+    }
+}
+
+function preorderIter(root: TreeNode | null): number[] {
+    const out: number[] = [];
+    if (!root) return out;
+    const stk: TreeNode[] = [root];
+    while (stk.length) {
+        const n = stk.pop()!;
+        out.push(n.val);
+        if (n.right) stk.push(n.right);
+        if (n.left)  stk.push(n.left);
+    }
+    return out;
+}
+
+const root = new TreeNode(1, new TreeNode(2, new TreeNode(4), new TreeNode(5)), new TreeNode(3));
+console.log(preorderIter(root));
+```
+
+```go,editable
+package main
+import "fmt"
+
+type TreeNode struct {
+    Val         int
+    Left, Right *TreeNode
+}
+
+func preorderIter(root *TreeNode) []int {
+    var out []int
+    if root == nil { return out }
+    stk := []*TreeNode{root}
+    for len(stk) > 0 {
+        n   := stk[len(stk)-1]
+        stk  = stk[:len(stk)-1]
+        out  = append(out, n.Val)
+        if n.Right != nil { stk = append(stk, n.Right) }
+        if n.Left  != nil { stk = append(stk, n.Left) }
+    }
+    return out
+}
+
+func main() {
+    root := &TreeNode{Val: 1,
+        Left:  &TreeNode{Val: 2, Left: &TreeNode{Val: 4}, Right: &TreeNode{Val: 5}},
+        Right: &TreeNode{Val: 3}}
+    fmt.Println(preorderIter(root))
+}
+```
+
+```kotlin,editable
+class TreeNode(var value: Int, var left: TreeNode? = null, var right: TreeNode? = null)
+
+fun preorderIter(root: TreeNode?): List<Int> {
+    val out = mutableListOf<Int>()
+    if (root == null) return out
+    val stk = ArrayDeque<TreeNode>()
+    stk.addLast(root)
+    while (stk.isNotEmpty()) {
+        val n = stk.removeLast()
+        out += n.value
+        n.right?.let { stk.addLast(it) }
+        n.left ?.let { stk.addLast(it) }
+    }
+    return out
+}
+
+fun main() {
+    val root = TreeNode(1, TreeNode(2, TreeNode(4), TreeNode(5)), TreeNode(3))
+    println(preorderIter(root))
+}
+```
+
+```rust,editable
+#[derive(Debug)]
+pub struct TreeNode {
+    pub val:   i32,
+    pub left:  Option<Box<TreeNode>>,
+    pub right: Option<Box<TreeNode>>,
+}
+
+pub fn preorder_iter(root: &Option<Box<TreeNode>>) -> Vec<i32> {
+    let mut out = Vec::new();
+    let mut stk: Vec<&Box<TreeNode>> = Vec::new();
+    if let Some(r) = root { stk.push(r); }
+    while let Some(n) = stk.pop() {
+        out.push(n.val);
+        if let Some(r) = &n.right { stk.push(r); }
+        if let Some(l) = &n.left  { stk.push(l); }
+    }
+    out
+}
+
+fn main() {
+    let l4 = Some(Box::new(TreeNode { val: 4, left: None, right: None }));
+    let l5 = Some(Box::new(TreeNode { val: 5, left: None, right: None }));
+    let l3 = Some(Box::new(TreeNode { val: 3, left: None, right: None }));
+    let n2 = Some(Box::new(TreeNode { val: 2, left: l4,   right: l5 }));
+    let root = Some(Box::new(TreeNode { val: 1, left: n2, right: l3 }));
+    println!("{:?}", preorder_iter(&root));
+}
+```
+
+</div>
+
+## Complexity
+
+Each node pushed once, popped once → **O(N) time**. Stack holds at most *height* of nodes at any moment (along one root-to-leaf path) → **O(h) space**. Same as recursive — but the space is on the heap, where there's lots of room.
 
 ***
 
-# Level order traversal
+# Iterative inorder — drain the left spine
 
-## Problem Statement
+Inorder is harder. The visit happens *between* the left and right recursive calls, so we need to defer it: walk all the way down the left spine first (pushing each node we pass), then visit-and-pivot at each pop.
 
-Fundamental
+## Algorithm
 
-Given the **root** of a binary tree, write a function to return an array of arrays containing all the nodes in the order they would appear in a level-order traversal.
+Maintain a `current` pointer (where we are now, may be `null`) and a stack (nodes whose left subtree we've already descended into and whose visit is *pending*).
 
-Level order traversal of a tree is a traversal of the tree from left to right, level by level.
+> **Algorithm**
+>
+> -   **Step 1:** Initialise `current = root`, empty stack.
+> -   **Step 2:** While `current` is non-null *or* the stack is non-empty:
+>     -   **Inner loop:** While `current` is non-null, push it and move `current = current.left`.
+>     -   When `current` is null, pop a node, visit it, and set `current = popped.right`.
 
-### Example 1
+The inner loop drains the left spine; the outer loop pivots to the right subtree once we've drained.
 
-> -   **Input:** root = \[1, 2, 3, 4, null, null, 7\]
-> -   **Output:** \[\[1\], \[2, 3\], \[4, 7\]\]
-> -   **Explanation:** This is the level order traversal as per the above diagram.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph T["the tree"]
+        R((1))
+        A((2))
+        B((3))
+        C((4))
+        D((5))
+        R --> A
+        R --> B
+        A --> C
+        A --> D
+    end
+    subgraph S["trace (top of stack on the right)"]
+        direction TB
+        S1["current=1, push 1, go left
+current=2, push 2, go left
+current=4, push 4, go left
+current=null    stack=[1,2,4]"]
+        S2["pop 4 → visit 4
+current = 4.right = null    stack=[1,2]"]
+        S3["pop 2 → visit 2
+current = 2.right = 5
+push 5, go left
+current=null    stack=[1,5]"]
+        S4["pop 5 → visit 5
+current = null    stack=[1]"]
+        S5["pop 1 → visit 1
+current = 1.right = 3
+push 3, go left
+current=null    stack=[3]"]
+        S6["pop 3 → visit 3    stack=[]"]
+        S1 --> S2 --> S3 --> S4 --> S5 --> S6
+    end
+```
 
-### Example 2
+<p align="center"><strong>Trace of iterative inorder — output sequence <strong><code>4 → 2 → 5 → 1 → 3</code></strong>. The "drain the left spine, then pivot right" pattern is the iterative analogue of "recurse fully into left, visit, then recurse into right".</strong></p>
 
-> -   **Input:** root = \[1, 8, 4, null, null, 2, 7\]
-> -   **Output:** \[\[1\], \[8, 4\], \[2, 7\]\]
-> -   **Explanation:** This is the level order traversal as per the above diagram.
+## Implementation
 
-## Solution
+<div class="lang-tabs">
 
-```cpp
+```python,editable
+def inorder_iter(root):
+    out, stk, cur = [], [], root
+    while cur or stk:
+        while cur:
+            stk.append(cur)
+            cur = cur.left
+        cur = stk.pop()
+        out.append(cur.val)
+        cur = cur.right
+    return out
+```
+
+```java,editable
+public static List<Integer> inorderIter(TreeNode root) {
+    List<Integer> out = new ArrayList<>();
+    Deque<TreeNode> stk = new ArrayDeque<>();
+    TreeNode cur = root;
+    while (cur != null || !stk.isEmpty()) {
+        while (cur != null) {
+            stk.push(cur);
+            cur = cur.left;
+        }
+        cur = stk.pop();
+        out.add(cur.val);
+        cur = cur.right;
+    }
+    return out;
+}
+```
+
+```c,editable
+// (assume mk(), TreeNode as above)
+int* inorder_iter(TreeNode *root, int *count) {
+    static int out[64]; int k = 0;
+    TreeNode *stk[64]; int top = -1;
+    TreeNode *cur = root;
+    while (cur || top >= 0) {
+        while (cur) {
+            stk[++top] = cur;
+            cur = cur->left;
+        }
+        cur = stk[top--];
+        out[k++] = cur->val;
+        cur = cur->right;
+    }
+    *count = k;
+    return out;
+}
+```
+
+```cpp,editable
+std::vector<int> inorderIter(TreeNode *root) {
+    std::vector<int> out;
+    std::stack<TreeNode*> stk;
+    TreeNode *cur = root;
+    while (cur || !stk.empty()) {
+        while (cur) {
+            stk.push(cur);
+            cur = cur->left;
+        }
+        cur = stk.top(); stk.pop();
+        out.push_back(cur->val);
+        cur = cur->right;
+    }
+    return out;
+}
+```
+
+```scala,editable
+def inorderIter(root: TreeNode): List[Int] = {
+  val out = scala.collection.mutable.ListBuffer[Int]()
+  val stk = scala.collection.mutable.Stack[TreeNode]()
+  var cur = root
+  while (cur != null || stk.nonEmpty) {
+    while (cur != null) {
+      stk.push(cur)
+      cur = cur.left
+    }
+    cur = stk.pop()
+    out += cur.value
+    cur = cur.right
+  }
+  out.toList
+}
+```
+
+```javascript,editable
+function inorderIter(root) {
+    const out = [], stk = [];
+    let cur = root;
+    while (cur || stk.length) {
+        while (cur) {
+            stk.push(cur);
+            cur = cur.left;
+        }
+        cur = stk.pop();
+        out.push(cur.val);
+        cur = cur.right;
+    }
+    return out;
+}
+```
+
+```typescript,editable
+function inorderIter(root: TreeNode | null): number[] {
+    const out: number[] = [];
+    const stk: TreeNode[] = [];
+    let cur: TreeNode | null = root;
+    while (cur || stk.length) {
+        while (cur) {
+            stk.push(cur);
+            cur = cur.left;
+        }
+        cur = stk.pop()!;
+        out.push(cur.val);
+        cur = cur.right;
+    }
+    return out;
+}
+```
+
+```go,editable
+func inorderIter(root *TreeNode) []int {
+    var out []int
+    var stk []*TreeNode
+    cur := root
+    for cur != nil || len(stk) > 0 {
+        for cur != nil {
+            stk = append(stk, cur)
+            cur = cur.Left
+        }
+        cur  = stk[len(stk)-1]
+        stk  = stk[:len(stk)-1]
+        out  = append(out, cur.Val)
+        cur  = cur.Right
+    }
+    return out
+}
+```
+
+```kotlin,editable
+fun inorderIter(root: TreeNode?): List<Int> {
+    val out = mutableListOf<Int>()
+    val stk = ArrayDeque<TreeNode>()
+    var cur = root
+    while (cur != null || stk.isNotEmpty()) {
+        while (cur != null) {
+            stk.addLast(cur)
+            cur = cur.left
+        }
+        cur = stk.removeLast()
+        out += cur.value
+        cur = cur.right
+    }
+    return out
+}
+```
+
+```rust,editable
+pub fn inorder_iter(root: &Option<Box<TreeNode>>) -> Vec<i32> {
+    let mut out = Vec::new();
+    let mut stk: Vec<&Box<TreeNode>> = Vec::new();
+    let mut cur = root.as_ref();
+    while cur.is_some() || !stk.is_empty() {
+        while let Some(n) = cur {
+            stk.push(n);
+            cur = n.left.as_ref();
+        }
+        let n = stk.pop().unwrap();
+        out.push(n.val);
+        cur = n.right.as_ref();
+    }
+    out
+}
+```
+
+</div>
+
+## Complexity
+
+**O(N) time, O(h) space** — same as recursive.
+
+***
+
+# Iterative postorder — the elegant trick
+
+Postorder is the trickiest because you can't visit a node until *both* of its children have been processed. There are two clean approaches; we'll cover both.
+
+## Approach 1 (recommended) — reverse-of-modified-preorder
+
+Here's the elegant insight:
+
+> **Postorder (L R V)** is the **reverse** of **modified-preorder (V R L)**.
+
+That is, if you do a *preorder* traversal but visit the **right subtree before the left**, then reverse the output, you get postorder. Why? Because reversing `V R L` element-wise gives `L R V` — exactly postorder. So we run an iterative preorder with right-first, prepend each visit to the output (or append and reverse at the end), and we're done.
+
+```text
+preorder of root visits         V R L → 1 3 2 5 4
+reverse                         L R V → 4 5 2 3 1
+this IS the postorder!
+```
+
+> **Algorithm (reverse-of-modified-preorder)**
+>
+> -   **Step 1:** Push root onto stack (handle empty case).
+> -   **Step 2:** While stack non-empty:
+>     -   Pop `n`. Insert `n.val` at the **front** of output (or append and reverse later).
+>     -   If `n.left`  is non-null, push it.
+>     -   If `n.right` is non-null, push it.
+>
+> The push order is the *reverse* of the preorder version (left first, so right comes out first).
+
+This is *much* simpler than the "single-stack with state-tracking" approach the original lesson uses, and uses no extra bookkeeping per node.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph T["the tree"]
+        R((1))
+        A((2))
+        B((3))
+        C((4))
+        D((5))
+        R --> A
+        R --> B
+        A --> C
+        A --> D
+    end
+    subgraph S["modified preorder (V R L) trace"]
+        direction TB
+        S1["push 1 → stack=[1]"]
+        S2["pop 1, prepend 1 → out=[1]
+push 2, push 3 → stack=[2,3]"]
+        S3["pop 3, prepend 3 → out=[3,1]
+no children"]
+        S4["pop 2, prepend 2 → out=[2,3,1]
+push 4, push 5 → stack=[4,5]"]
+        S5["pop 5, prepend 5 → out=[5,2,3,1]"]
+        S6["pop 4, prepend 4 → out=[4,5,2,3,1]"]
+        S1 --> S2 --> S3 --> S4 --> S5 --> S6
+    end
+```
+
+<p align="center"><strong>Trace — modified preorder visits in order <code>1, 3, 2, 5, 4</code>; prepending each gives <code>4, 5, 2, 3, 1</code> — the postorder of the tree. One stack, no per-node state, no node-pushed-twice trick. The reverse turns the algorithm inside-out.</strong></p>
+
+## Approach 2 (alternative) — the "push twice" approach
+
+The original CodeIntuition approach pushes each node onto the stack *twice* — once to mark "right subtree pending", once to mark "visit pending". When you pop a node, if the next item on the stack is the same node, you know it's the first pop (so descend right); otherwise it's the second pop (so visit). This works but doubles the stack usage and adds a conditional. The reverse-preorder approach above is cleaner; we mention this for completeness only.
+
+## Implementation (Approach 1)
+
+We'll push the values onto the output and reverse once at the end — *appending* is O(1) while *prepending* a list/vector is O(N). For Python's `deque` you can use `appendleft` directly.
+
+<div class="lang-tabs">
+
+```python,editable
+from collections import deque
+
+def postorder_iter(root):
+    if root is None: return []
+    out = deque()
+    stk = [root]
+    while stk:
+        n = stk.pop()
+        out.appendleft(n.val)             # prepend = same as reverse-of-append
+        if n.left:  stk.append(n.left)    # left first (so right comes off the stack first → V R L)
+        if n.right: stk.append(n.right)
+    return list(out)
+```
+
+```java,editable
+public static List<Integer> postorderIter(TreeNode root) {
+    LinkedList<Integer> out = new LinkedList<>();
+    if (root == null) return out;
+    Deque<TreeNode> stk = new ArrayDeque<>();
+    stk.push(root);
+    while (!stk.isEmpty()) {
+        TreeNode n = stk.pop();
+        out.addFirst(n.val);                 // prepend
+        if (n.left  != null) stk.push(n.left);
+        if (n.right != null) stk.push(n.right);
+    }
+    return out;
+}
+```
+
+```c,editable
+int* postorder_iter(TreeNode *root, int *count) {
+    static int out[64]; int k = 0;
+    TreeNode *stk[64]; int top = -1;
+    if (root) stk[++top] = root;
+    while (top >= 0) {
+        TreeNode *n = stk[top--];
+        out[k++] = n->val;
+        if (n->left)  stk[++top] = n->left;
+        if (n->right) stk[++top] = n->right;
+    }
+    // reverse
+    for (int i = 0, j = k - 1; i < j; i++, j--) {
+        int t = out[i]; out[i] = out[j]; out[j] = t;
+    }
+    *count = k;
+    return out;
+}
+```
+
+```cpp,editable
+#include <algorithm>
+
+std::vector<int> postorderIter(TreeNode *root) {
+    std::vector<int> out;
+    if (!root) return out;
+    std::stack<TreeNode*> stk;
+    stk.push(root);
+    while (!stk.empty()) {
+        TreeNode *n = stk.top(); stk.pop();
+        out.push_back(n->val);
+        if (n->left)  stk.push(n->left);
+        if (n->right) stk.push(n->right);
+    }
+    std::reverse(out.begin(), out.end());
+    return out;
+}
+```
+
+```scala,editable
+def postorderIter(root: TreeNode): List[Int] = {
+  if (root == null) return Nil
+  val out = scala.collection.mutable.ListBuffer[Int]()
+  val stk = scala.collection.mutable.Stack[TreeNode](root)
+  while (stk.nonEmpty) {
+    val n = stk.pop()
+    out.prepend(n.value)
+    if (n.left  != null) stk.push(n.left)
+    if (n.right != null) stk.push(n.right)
+  }
+  out.toList
+}
+```
+
+```javascript,editable
+function postorderIter(root) {
+    const out = [];
+    if (!root) return out;
+    const stk = [root];
+    while (stk.length) {
+        const n = stk.pop();
+        out.push(n.val);
+        if (n.left)  stk.push(n.left);
+        if (n.right) stk.push(n.right);
+    }
+    return out.reverse();
+}
+```
+
+```typescript,editable
+function postorderIter(root: TreeNode | null): number[] {
+    const out: number[] = [];
+    if (!root) return out;
+    const stk: TreeNode[] = [root];
+    while (stk.length) {
+        const n = stk.pop()!;
+        out.push(n.val);
+        if (n.left)  stk.push(n.left);
+        if (n.right) stk.push(n.right);
+    }
+    return out.reverse();
+}
+```
+
+```go,editable
+func postorderIter(root *TreeNode) []int {
+    var out []int
+    if root == nil { return out }
+    stk := []*TreeNode{root}
+    for len(stk) > 0 {
+        n   := stk[len(stk)-1]
+        stk  = stk[:len(stk)-1]
+        out  = append(out, n.Val)
+        if n.Left  != nil { stk = append(stk, n.Left) }
+        if n.Right != nil { stk = append(stk, n.Right) }
+    }
+    // reverse
+    for i, j := 0, len(out)-1; i < j; i, j = i+1, j-1 {
+        out[i], out[j] = out[j], out[i]
+    }
+    return out
+}
+```
+
+```kotlin,editable
+fun postorderIter(root: TreeNode?): List<Int> {
+    val out = mutableListOf<Int>()
+    if (root == null) return out
+    val stk = ArrayDeque<TreeNode>()
+    stk.addLast(root)
+    while (stk.isNotEmpty()) {
+        val n = stk.removeLast()
+        out += n.value
+        n.left ?.let { stk.addLast(it) }
+        n.right?.let { stk.addLast(it) }
+    }
+    out.reverse()
+    return out
+}
+```
+
+```rust,editable
+pub fn postorder_iter(root: &Option<Box<TreeNode>>) -> Vec<i32> {
+    let mut out = Vec::new();
+    let mut stk: Vec<&Box<TreeNode>> = Vec::new();
+    if let Some(r) = root { stk.push(r); }
+    while let Some(n) = stk.pop() {
+        out.push(n.val);
+        if let Some(l) = &n.left  { stk.push(l); }
+        if let Some(r) = &n.right { stk.push(r); }
+    }
+    out.reverse();
+    out
+}
+```
+
+</div>
+
+## Complexity
+
+**O(N) time** (every node pushed and popped once; the reverse at the end is O(N)). **O(h) space** for the stack, plus O(N) for the output (which is unavoidable).
+
+***
+
+# Level-order traversal — using a queue
+
+The fourth traversal is structurally different — it visits nodes **breadth-first**, level by level, left to right within each level.
+
+```text
+        1                  level 0:  1
+       / \
+      2   3                level 1:  2, 3
+     / \   \
+    4   5   7              level 2:  4, 5, 7
+
+level-order: [1, 2, 3, 4, 5, 7]
+```
+
+The depth-first traversals all used a **stack** (LIFO) — implicitly via recursion or explicitly via an iterative stack. Level-order uses a **queue** (FIFO). The intuition: at any moment, the queue holds *the next nodes to visit, in the order we'll visit them*. Pop from the front, enqueue children at the back, and the FIFO discipline naturally produces level-by-level visit order.
+
+This algorithm has a name in the wider algorithms world: **breadth-first search** (BFS). The same machinery works on graphs, on grids, on game-state spaces. Level-order is BFS specialised to trees.
+
+## Algorithm
+
+> **Algorithm**
+>
+> -   **Step 1:** Initialise a queue containing just `root` (if root is null, return).
+> -   **Step 2:** While queue is non-empty:
+>     -   Dequeue a node `n`.
+>     -   Visit `n`.
+>     -   If `n.left` is non-null, enqueue it.
+>     -   If `n.right` is non-null, enqueue it.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph T["the tree"]
+        R((1))
+        A((2))
+        B((3))
+        C((4))
+        D((5))
+        E((7))
+        R --> A
+        R --> B
+        A --> C
+        A --> D
+        B --> E
+    end
+    subgraph Q["queue evolution (front on the left)"]
+        direction TB
+        Q1["enqueue 1 → q=[1]"]
+        Q2["dequeue 1 → visit 1
+enqueue 2, 3 → q=[2, 3]"]
+        Q3["dequeue 2 → visit 2
+enqueue 4, 5 → q=[3, 4, 5]"]
+        Q4["dequeue 3 → visit 3
+enqueue 7 → q=[4, 5, 7]"]
+        Q5["dequeue 4 → visit 4 → q=[5, 7]"]
+        Q6["dequeue 5 → visit 5 → q=[7]"]
+        Q7["dequeue 7 → visit 7 → q=[]"]
+        Q1 --> Q2 --> Q3 --> Q4 --> Q5 --> Q6 --> Q7
+    end
+```
+
+<p align="center"><strong>Trace of level-order — output <strong><code>1 → 2 → 3 → 4 → 5 → 7</code></strong>. Every level is fully drained from the queue before the next level starts to drain, because we always enqueue children to the back and dequeue from the front. The FIFO discipline <em>is</em> the level-by-level structure.</strong></p>
+
+> **Why a queue and not a stack?** A stack would visit one branch all the way down before backtracking — that's depth-first, which is precisely what level-order is *not*. Swap the queue for a stack and you'd get a (slightly different) preorder traversal. The choice of container is the choice of traversal *family* — DFS uses stacks, BFS uses queues.
+
+## Implementation
+
+<div class="lang-tabs">
+
+```python,editable
+from collections import deque
+
+def level_order(root):
+    out = []
+    if root is None: return out
+    q = deque([root])
+    while q:
+        n = q.popleft()
+        out.append(n.val)
+        if n.left:  q.append(n.left)
+        if n.right: q.append(n.right)
+    return out
+
+# tree:    1
+#         / \
+#        2   3
+#       / \   \
+#      4   5   7
+root = TreeNode(1, TreeNode(2, TreeNode(4), TreeNode(5)), TreeNode(3, None, TreeNode(7)))
+print(level_order(root))   # [1, 2, 3, 4, 5, 7]
+```
+
+```java,editable
+public static List<Integer> levelOrder(TreeNode root) {
+    List<Integer> out = new ArrayList<>();
+    if (root == null) return out;
+    Queue<TreeNode> q = new ArrayDeque<>();
+    q.offer(root);
+    while (!q.isEmpty()) {
+        TreeNode n = q.poll();
+        out.add(n.val);
+        if (n.left  != null) q.offer(n.left);
+        if (n.right != null) q.offer(n.right);
+    }
+    return out;
+}
+```
+
+```c,editable
+// Simple ring-buffer queue for the demo
+int* level_order(TreeNode *root, int *count) {
+    static int out[64]; int k = 0;
+    TreeNode *q[64]; int head = 0, tail = 0;
+    if (root) q[tail++] = root;
+    while (head < tail) {
+        TreeNode *n = q[head++];
+        out[k++] = n->val;
+        if (n->left)  q[tail++] = n->left;
+        if (n->right) q[tail++] = n->right;
+    }
+    *count = k;
+    return out;
+}
+```
+
+```cpp,editable
 #include <queue>
 
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-    vector<vector<int>> levelOrderTraversal(TreeNode *root) {
-
-        // Create a queue to perform level-order traversal
-        queue<TreeNode *> queue;
-
-        // Create a vector to store the final result
-        vector<vector<int>> levels;
-
-        // If the tree is empty, return an empty result
-        if (root == nullptr) {
-            return levels;
-        }
-
-        // Start the traversal by pushing the root node into the queue
-        queue.push(root);
-
-        // Perform level-order traversal using the queue
-        while (!queue.empty()) {
-
-            // Get the number of nodes in the current level
-            int levelSize = queue.size();
-
-            // Create a vector to store the nodes in the current level
-            vector<int> level;
-
-            // Process all nodes in the current level
-            for (int i = 0; i < levelSize; i++) {
-
-                // Get the front node from the queue
-                TreeNode *node = queue.front();
-
-                queue.pop();
-
-                // Add the value of the current node to the level vector
-                level.push_back(node->val);
-
-                // Add the left child of the current node to the queue if
-                // it exists
-                if (node->left) {
-                    queue.push(node->left);
-                }
-
-                // Add the right child of the current node to the queue
-                // if it exists
-                if (node->right) {
-                    queue.push(node->right);
-                }
-            }
-
-            // Add the current level vector to the levels vector
-            levels.push_back(level);
-        }
-
-        // Return the final result after completing the traversal
-        return levels;
+std::vector<int> levelOrder(TreeNode *root) {
+    std::vector<int> out;
+    if (!root) return out;
+    std::queue<TreeNode*> q;
+    q.push(root);
+    while (!q.empty()) {
+        TreeNode *n = q.front(); q.pop();
+        out.push_back(n->val);
+        if (n->left)  q.push(n->left);
+        if (n->right) q.push(n->right);
     }
-};
+    return out;
+}
 ```
+
+```scala,editable
+def levelOrder(root: TreeNode): List[Int] = {
+  val out = scala.collection.mutable.ListBuffer[Int]()
+  if (root == null) return Nil
+  val q   = scala.collection.mutable.Queue[TreeNode](root)
+  while (q.nonEmpty) {
+    val n = q.dequeue()
+    out += n.value
+    if (n.left  != null) q.enqueue(n.left)
+    if (n.right != null) q.enqueue(n.right)
+  }
+  out.toList
+}
+```
+
+```javascript,editable
+function levelOrder(root) {
+    const out = [];
+    if (!root) return out;
+    const q = [root];
+    while (q.length) {
+        const n = q.shift();
+        out.push(n.val);
+        if (n.left)  q.push(n.left);
+        if (n.right) q.push(n.right);
+    }
+    return out;
+}
+```
+
+```typescript,editable
+function levelOrder(root: TreeNode | null): number[] {
+    const out: number[] = [];
+    if (!root) return out;
+    const q: TreeNode[] = [root];
+    while (q.length) {
+        const n = q.shift()!;
+        out.push(n.val);
+        if (n.left)  q.push(n.left);
+        if (n.right) q.push(n.right);
+    }
+    return out;
+}
+```
+
+```go,editable
+func levelOrder(root *TreeNode) []int {
+    var out []int
+    if root == nil { return out }
+    q := []*TreeNode{root}
+    for len(q) > 0 {
+        n   := q[0]
+        q    = q[1:]
+        out  = append(out, n.Val)
+        if n.Left  != nil { q = append(q, n.Left) }
+        if n.Right != nil { q = append(q, n.Right) }
+    }
+    return out
+}
+```
+
+```kotlin,editable
+fun levelOrder(root: TreeNode?): List<Int> {
+    val out = mutableListOf<Int>()
+    if (root == null) return out
+    val q = ArrayDeque<TreeNode>()
+    q.addLast(root)
+    while (q.isNotEmpty()) {
+        val n = q.removeFirst()
+        out += n.value
+        n.left ?.let { q.addLast(it) }
+        n.right?.let { q.addLast(it) }
+    }
+    return out
+}
+```
+
+```rust,editable
+use std::collections::VecDeque;
+
+pub fn level_order(root: &Option<Box<TreeNode>>) -> Vec<i32> {
+    let mut out = Vec::new();
+    let mut q: VecDeque<&Box<TreeNode>> = VecDeque::new();
+    if let Some(r) = root { q.push_back(r); }
+    while let Some(n) = q.pop_front() {
+        out.push(n.val);
+        if let Some(l) = &n.left  { q.push_back(l); }
+        if let Some(r) = &n.right { q.push_back(r); }
+    }
+    out
+}
+```
+
+</div>
+
+## Complexity
+
+Each node enqueued and dequeued once → **O(N) time**. Queue holds at most one *level's* worth of nodes at a time → **O(W) space**, where `W` is the *maximum width* of the tree. For a perfect binary tree of `N` nodes, the bottom level holds about `N/2` nodes, so worst-case **O(N) space**. For a skew tree, width is 1 and space is O(1) — the *opposite* trade-off from depth-first traversals (which used O(h) space — small for skew, large for balanced).
+
+> **Important comparison:** DFS uses O(h) space — best for **wide, shallow** trees. BFS uses O(W) space — best for **tall, narrow** trees. For balanced trees the two are roughly equivalent.
+
+***
+
+## Final Takeaway
+
+Iterative traversals are the production-grade siblings of the recursive ones. Same outputs, different mechanism, different trade-offs. Three things to walk away with:
+
+1. **Stack vs. queue is the entire DFS-vs-BFS distinction.** Swap the container in any traversal and you swap traversal *families*. Stack → DFS (preorder, inorder, postorder all variants). Queue → BFS (level-order). Memorise this — it's one of the deepest unifying ideas in algorithms, and it generalises straight from trees to graphs.
+2. **Postorder gets simpler when you flip it.** The `L R V` ordering is the *reverse* of `V R L` — a modified preorder traversal that reverses left/right. Don't reach for the "push-twice" hack; reach for the reverse-of-modified-preorder trick. Clean, no per-node state, easy to remember.
+3. **Iterative trades clarity for safety.** Recursive code is *much* easier to read; iterative code never blows the call stack. In a coding interview where the input is bounded and friendly, recursion is fine. In production code where the input could be adversarial (deeply nested user data, parsed protocols, untrusted JSON), iterative is mandatory. Pick based on the threat model, not on what *looks* nicer.
+
+> *Coming up — now that we can <em>read</em> trees in any order, the next lesson tackles the inverse: <strong>building trees from traversal sequences</strong>. Given just two orderings (typically <em>preorder + inorder</em> or <em>postorder + inorder</em>), can we reconstruct the unique tree that produced them? The answer is yes — and the construction is one of the prettiest divide-and-conquer algorithms in the entire course.*

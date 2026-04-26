@@ -1,1216 +1,1403 @@
-# Pattern: Level order traversal
+# 14. Pattern: Level-Order Traversal
 
-## Table of Contents
+## The Hook
 
-1. [Understanding the level order traversal pattern](#understanding-the-level-order-traversal-pattern)
-2. [Identifying the level order traversal pattern](#identifying-the-level-order-traversal-pattern)
-3. [Level sum](#level-sum)
-4. [Deepest leaves sum](#deepest-leaves-sum)
-5. [Complete binary tree](#complete-binary-tree)
-6. [Zigzag traversal](#zigzag-traversal)
-7. [Cousin check](#cousin-check)
+Every pattern in the chapter so far has been **depth-first**. The recursion barrels down one branch all the way to a leaf, then unwinds, then plunges down the next. That's a beautifully recursive shape, and it's what makes preorder, inorder, and postorder all natural fits for the recursive structure of a tree.
+
+But many real questions about trees aren't *vertical* — they're **horizontal**. *"What's the largest value at each level?"* requires you to fan out across all the nodes at depth 0, then all at depth 1, then all at depth 2. *"Is this a complete binary tree?"* requires walking left-to-right across each level, looking for gaps. *"What does the tree look like from the top? from the side?"* requires processing nodes level by level. None of these questions can be answered cleanly by depth-first traversal — you'd have to do all the depth-first work, then group your results by depth as a post-processing step.
+
+The natural fit for these *horizontal* questions is **breadth-first search** — the level-order traversal you saw in lesson 5, powered by a *queue* instead of a stack. The recursion is replaced by an explicit loop: dequeue a node, do something with it, enqueue its children. The FIFO discipline naturally produces level-by-level visit order. Once you augment the loop to track *level boundaries* — a small trick where you record `queue.size()` at the start of each iteration to know how many nodes belong to the current level — you can compute *anything per level*: sums, maxes, lists, leftmost or rightmost nodes, you name it.
+
+This lesson defines the level-boundary template, walks through five canonical problems (per-level sum, deepest-leaves sum, completeness check, zigzag traversal, cousin check), and implements each in 10 languages.
+
+---
+
+## Table of contents
+
+1. [The level-order pattern](#the-level-order-pattern)
+2. [How to recognise it](#how-to-recognise-it)
+3. [Problem 1 — Level sum](#problem-1--level-sum)
+4. [Problem 2 — Deepest leaves sum](#problem-2--deepest-leaves-sum)
+5. [Problem 3 — Complete binary tree check](#problem-3--complete-binary-tree-check)
+6. [Problem 4 — Zigzag traversal](#problem-4--zigzag-traversal)
+7. [Problem 5 — Cousin check](#problem-5--cousin-check)
 
 ***
 
-# Understanding the level order traversal pattern
+# The level-order pattern
 
-The level order traversal starts from the top of the binary tree and processes all nodes from left to right in a level before doing the same for the subsequent level. Because all nodes of a level are processed before moving on to the next level, the level order traversal is ideal for solving problems where we need to apply some function on all nodes of a level, one level at a time. Moreover, since nodes at a level are processed from left to right, we also solve problems where the processing of subsequent nodes at a level depends on the processing of previous nodes at the same level.
+The classic level-order traversal from lesson 5 dequeues *one node at a time*. That visits everything in the right *order* but loses the *level boundaries* — once you've dequeued five nodes, you have no easy way to know which were on level 1 and which on level 2.
 
-The level order traversal pattern is a classification of problems that can be solved using the level order traversal technique.
+The fix is one of the most important small tricks in tree algorithms:
 
-// Diagram: The order of processing of nodes in level order traversal.
+```text
+while queue is non-empty:
+  levelSize = queue.size()                       # snapshot how many nodes are on the current level
+  for i in 0..levelSize:
+    n = queue.pop()
+    process(n)                                   # all work for THIS level happens here
+    if n.left:  queue.push(n.left)               # enqueueing children populates the NEXT level
+    if n.right: queue.push(n.right)
+  # any per-level summary (sum, max, snapshot) goes here, after the inner loop
+```
 
-## The level order traversal technique
+The genius is the **`levelSize = queue.size()`** snapshot. At the moment the outer loop's body starts, the queue holds exactly the nodes of the current level — *and nothing else*. So `queue.size()` is the number of nodes on this level, and the inner loop processes precisely that many. By the time the inner loop ends, the queue holds exactly the *next* level (because every dequeued node enqueued its children, who all live on the next level). The boundary is preserved without any per-node bookkeeping.
 
-Consider we are given a binary tree, and for all levels in the tree, we need the aggregated value of a function `f` over all nodes in a level. The aggregates for each level are further aggregated using some function `g` to return a single value.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph TREE["the tree"]
+        T1((1))
+        T2((2))
+        T3((3))
+        T4((4))
+        T5((5))
+        T1 --> T2
+        T1 --> T3
+        T2 --> T4
+        T3 --> T5
+    end
+    subgraph BFS["BFS with level boundaries"]
+        S1["q=[1]    levelSize=1
+process 1, enqueue 2,3
+q=[2,3]"]
+        S2["q=[2,3]  levelSize=2
+process 2,3, enqueue 4,5
+q=[4,5]"]
+        S3["q=[4,5]  levelSize=2
+process 4,5
+q=[]"]
+        S1 --> S2 --> S3
+    end
+    TREE ~~~ BFS
+```
 
-// Diagram: Aggregate all nodes in a level over function f and return the aggregated value over function g
+<p align="center"><strong>BFS with level boundaries — at each iteration of the outer loop, the queue holds exactly one level. The snapshot <code>levelSize = queue.size()</code> at the top of the loop is the entire trick that keeps levels separate.</strong></p>
 
-The level order traversal technique can easily solve this problem. We create a `queue` to hold tree nodes for level order traversal and initialize a variable `aggregate` that will store the aggregated value of aggregates of all levels with some default value.
-
-We start the traversal by adding the root node and iterating until `queue` is empty. At the beginning of each iteration, all nodes in the queue belong to the same level, and the size of the queue is the number of nodes at that level. We create a variable `levelSize` to store the current size of the queue and initialize a variable `levelAggregate` with a default value. We then iterate `levelSize` times, and in each iteration, pop an item from the front of `queue`, add its contribution to `levelAggregate` using the function `f` , and then add both its left and right children to the end of `queue`. This way, at the end of this internal iteration, `levelAggregate` will have the aggregated value of `f` over all the nodes of the level and `queue` will have all nodes of the next level. We then add the contribution of `levelAggregate` to `aggregate` using the function `g`. This process is repeated until `queue` becomes empty and level order traversal is finished.
-
-At the end of all iterations, `levelAggregate` will have held the aggregated value of the function `f` over all nodes of each level and `aggregate` will have the aggregated value of all such aggregates over the function `g`.
-
-// Diagram: Aggregate all nodes in a level over function f and return the aggregated value over function g
-
-## Algorithm
-
-The generic algorithm given below uses the level order traversal to find the aggregated value of a function `f` over all nodes in a level for all levels. All these aggregates are then aggregated into a single value using the function `g`.
-
-> **Algorithm**
+> *Predict before reading on — what would happen if you forgot the <code>levelSize</code> snapshot and just kept dequeueing?*
 >
-> -   **Step 1:** Create a variable \`aggregate\` to store the aggregated value of level aggregates
-> -   **Step 2:** Create a \`queue\` for level order traversal and push the root node to it
-> -   **Step 3:** Iterate while the \`queue\` is not empty and do the following:
->     -   **Step 3.1:** Initialize a variable \`levelSize\` with the size of the queue
->     -   **Step 3.2:** Initialize a variable \`levelAggregate\` with a default value
->     -   **Step 3.4:** Iterate \`levelSize\` times and do the following:
->         -   **Step 3.4.1:** Pop a \`node\` from the queue
->         -   **Step 3.4.2:** Add the contribution of \`node\` to \`levelAggregate\` using the function \`f\`
->         -   **Step 3.4.3:** Push the left child of \`node\` to \`queue\` if it exists
->         -   **Step 3.4.4:** Push the right child of \`node\` to \`queue\` if it exists
->     -   **Step 3.5:** Add the contribution of \`levelAggregate\` to \`aggregate\` using the function \`g\`
-> -   **Step 4:** Return \`aggregate\`
+> You'd flatten everything into a single global stream and lose the level boundaries — exactly what the basic level-order traversal from lesson 5 produces. Forgetting the snapshot is fine when you only need a flat list. It's catastrophic when you need *per-level* aggregates.
 
-### Implementation
+## Generic pattern in 10 languages
 
-The implementation of the level order traversal technique is given below. The level order traversal uses a queue and nested loops where the outer loop iterates until the queue is empty, and the inner loop iterates over all nodes of a level.
+The "list each level's values" template — the simplest member of the family.
 
-C++
+<div class="lang-tabs">
 
-```cpp
-#include <queue>
+```python,editable
+from collections import deque
+from typing import List, Optional
 
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
 
-// Diagram: using namespace std;
+def levels(root: Optional[TreeNode]) -> List[List[int]]:
+    out: List[List[int]] = []
+    if root is None: return out
+    q = deque([root])
+    while q:
+        level_size = len(q)
+        level: List[int] = []
+        for _ in range(level_size):
+            n = q.popleft()
+            level.append(n.val)
+            if n.left:  q.append(n.left)
+            if n.right: q.append(n.right)
+        out.append(level)
+    return out
+```
 
-// Diagram: int levelOrder(TreeNode root) {
-
-    // Initialize aggregate with a default value
-    int aggregate = 0;
-
-    // Create a queue for level order traversal
-    // and add the root node to it
-    queue<TreeNode *> queue;
-    queue.push(root);
-
-    // Loop through each level in the tree
-    while (!queue.empty()) {
-
-        // Get the size of the current level
-        int levelSize = queue.size();
-
-        // Initialize levelAggregate to a default value
-        int levelAggregate = 0;
-
-        // Loop through each node in the current level
+```java,editable
+public static List<List<Integer>> levels(TreeNode root) {
+    List<List<Integer>> out = new ArrayList<>();
+    if (root == null) return out;
+    Queue<TreeNode> q = new ArrayDeque<>();
+    q.offer(root);
+    while (!q.isEmpty()) {
+        int levelSize = q.size();
+        List<Integer> level = new ArrayList<>();
         for (int i = 0; i < levelSize; i++) {
-
-            // Get the node from the front of the queue and pop
-            // it from the queue
-            TreeNode *node = queue.front();
-            queue.pop();
-
-            // Add the contribution of the current node
-            // to levelAggregate using the function f
-            levelAggregate = f(aggreate, node->val);
-
-            // Add the node's children to the queue if they exist
-            if (node->left) {
-                queue.push(node->left);
-            }
-
-            if (node->right) {
-                queue.push(node->right);
-            }
-
-        // Add the contribution of the levelAggregate for the
-        // current level to aggregate using the function g
-        aggregate = g(aggregate, levelAggregate);
+            TreeNode n = q.poll();
+            level.add(n.val);
+            if (n.left  != null) q.offer(n.left);
+            if (n.right != null) q.offer(n.right);
+        }
+        out.add(level);
     }
-
-    return aggregate;
+    return out;
 }
 ```
 
-Java
-
-```java
-import java.util.*;
-
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-// Diagram: class LevelOrder {
-
-    public int levelOrder(TreeNode root) {
-        // Initialize aggregate with a default value
-        int aggregate = 0;
-
-        // Create a queue for level order traversal
-        // and add the root node to it
-        Queue<TreeNode> queue = new LinkedList<>();
-        queue.add(root);
-
-        // Loop through each level in the tree
-        while (!queue.isEmpty()) {
-
-            // Get the size of the current level
-            int levelSize = queue.size();
-
-            // Initialize levelAggregate to a default value
-            int levelAggregate = 0;
-
-            // Loop through each node in the current level
-            for (int i = 0; i < levelSize; i++) {
-
-                // Get the node from the front of the queue and remove it
-                TreeNode node = queue.poll();
-
-                // Add the contribution of the current node
-                // to levelAggregate using the function f
-                levelAggregate = f(levelAggregate, node.val);
-
-                // Add the node's children to the queue if they exist
-                if (node.left != null) {
-                    queue.add(node.left);
-                }
-
-                if (node.right != null) {
-                    queue.add(node.right);
-                }
-
-            // Add the contribution of the levelAggregate for the
-            // current level to aggregate using the function g
-            aggregate = g(aggregate, levelAggregate);
+```c,editable
+// Output is allocated dynamically; for brevity we assume a fixed cap.
+int** levels(TreeNode *root, int *out_levels, int **out_sizes) {
+    static int *out[64]; static int sizes[64]; int level_count = 0;
+    if (!root) { *out_levels = 0; *out_sizes = sizes; return out; }
+    TreeNode *q[1024]; int head = 0, tail = 0;
+    q[tail++] = root;
+    while (head < tail) {
+        int level_size = tail - head;
+        out[level_count] = malloc(sizeof(int) * level_size);
+        sizes[level_count] = level_size;
+        for (int i = 0; i < level_size; i++) {
+            TreeNode *n = q[head++];
+            out[level_count][i] = n->val;
+            if (n->left)  q[tail++] = n->left;
+            if (n->right) q[tail++] = n->right;
         }
-
-        return aggregate;
+        level_count++;
     }
+    *out_levels = level_count; *out_sizes = sizes;
+    return out;
+}
 ```
 
-Typescript
+```cpp,editable
+#include <queue>
 
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-export class Solution {
-  levelOrder(root: TreeNode | null): number {
-    if (!root) {
-      return 0; // Return a default value if the root is null
-    }
-
-    // Initialize aggregate with a default value
-    let aggregate = 0;
-
-    // Create a queue for level order traversal
-    // and add the root node to it
-    const queue: TreeNode[] = [];
-    queue.push(root);
-
-    // Loop through each level in the tree
-    while (queue.length > 0) {
-      // Get the size of the current level
-      const levelSize = queue.length;
-
-      // Initialize levelAggregate to a default value
-      let levelAggregate = 0;
-
-      // Loop through each node in the current level
-      for (let i = 0; i < levelSize; i++) {
-        // Get the node from the front of the queue and remove it
-        const node = queue.shift()!;
-
-        // Add the contribution of the current node
-        // to levelAggregate using the function f
-        levelAggregate = f(levelAggregate, node.val);
-
-        // Add the node's children to the queue if they exist
-        if (node.left) {
-          queue.push(node.left);
+std::vector<std::vector<int>> levels(TreeNode *root) {
+    std::vector<std::vector<int>> out;
+    if (!root) return out;
+    std::queue<TreeNode*> q;
+    q.push(root);
+    while (!q.empty()) {
+        int levelSize = q.size();
+        std::vector<int> level;
+        for (int i = 0; i < levelSize; i++) {
+            TreeNode *n = q.front(); q.pop();
+            level.push_back(n->val);
+            if (n->left)  q.push(n->left);
+            if (n->right) q.push(n->right);
         }
-        if (node.right) {
-          queue.push(node.right);
-        }
-
-      // Add the contribution of the levelAggregate for the
-      // current level to aggregate using the function g
-      aggregate = g(aggregate, levelAggregate);
+        out.push_back(level);
     }
+    return out;
+}
+```
 
-    return aggregate;
+```scala,editable
+def levels(root: TreeNode): List[List[Int]] = {
+  val out = scala.collection.mutable.ListBuffer[List[Int]]()
+  if (root == null) return Nil
+  val q = scala.collection.mutable.Queue[TreeNode](root)
+  while (q.nonEmpty) {
+    val levelSize = q.size
+    val level = scala.collection.mutable.ListBuffer[Int]()
+    for (_ <- 0 until levelSize) {
+      val n = q.dequeue()
+      level += n.value
+      if (n.left  != null) q.enqueue(n.left)
+      if (n.right != null) q.enqueue(n.right)
+    }
+    out += level.toList
   }
+  out.toList
+}
 ```
 
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-  levelOrder(root) {
-    if (!root) {
-      return 0; // Return a default value if the root is null
-    }
-
-    // Initialize aggregate with a default value
-    let aggregate = 0;
-
-    // Create a queue for level order traversal
-    // and add the root node to it
-    const queue = [];
-    queue.push(root);
-
-    // Loop through each level in the tree
-    while (queue.length > 0) {
-      // Get the size of the current level
-      const levelSize = queue.length;
-
-      // Initialize levelAggregate to a default value
-      let levelAggregate = 0;
-
-      // Loop through each node in the current level
-      for (let i = 0; i < levelSize; i++) {
-        // Get the node from the front of the queue and remove it
-        const node = queue.shift();
-
-        // Add the contribution of the current node
-        // to levelAggregate using the function f
-        levelAggregate = f(levelAggregate, node.val);
-
-        // Add the node's children to the queue if they exist
-        if (node.left) {
-          queue.push(node.left);
+```javascript,editable
+function levels(root) {
+    const out = [];
+    if (!root) return out;
+    const q = [root];
+    while (q.length) {
+        const levelSize = q.length;
+        const level = [];
+        for (let i = 0; i < levelSize; i++) {
+            const n = q.shift();
+            level.push(n.val);
+            if (n.left)  q.push(n.left);
+            if (n.right) q.push(n.right);
         }
-        if (node.right) {
-          queue.push(node.right);
-        }
-
-      // Add the contribution of the levelAggregate for the
-      // current level to aggregate using the function g
-      aggregate = g(aggregate, levelAggregate);
+        out.push(level);
     }
+    return out;
+}
+```
 
-    return aggregate;
+```typescript,editable
+function levels(root: TreeNode | null): number[][] {
+    const out: number[][] = [];
+    if (!root) return out;
+    const q: TreeNode[] = [root];
+    while (q.length) {
+        const levelSize = q.length;
+        const level: number[] = [];
+        for (let i = 0; i < levelSize; i++) {
+            const n = q.shift()!;
+            level.push(n.val);
+            if (n.left)  q.push(n.left);
+            if (n.right) q.push(n.right);
+        }
+        out.push(level);
+    }
+    return out;
+}
+```
+
+```go,editable
+func levels(root *TreeNode) [][]int {
+    var out [][]int
+    if root == nil { return out }
+    q := []*TreeNode{root}
+    for len(q) > 0 {
+        levelSize := len(q)
+        level := make([]int, 0, levelSize)
+        for i := 0; i < levelSize; i++ {
+            n := q[0]; q = q[1:]
+            level = append(level, n.Val)
+            if n.Left  != nil { q = append(q, n.Left) }
+            if n.Right != nil { q = append(q, n.Right) }
+        }
+        out = append(out, level)
+    }
+    return out
+}
+```
+
+```kotlin,editable
+fun levels(root: TreeNode?): List<List<Int>> {
+    val out = mutableListOf<List<Int>>()
+    if (root == null) return out
+    val q = ArrayDeque<TreeNode>(); q.addLast(root)
+    while (q.isNotEmpty()) {
+        val levelSize = q.size
+        val level = mutableListOf<Int>()
+        repeat(levelSize) {
+            val n = q.removeFirst()
+            level += n.value
+            n.left ?.let { q.addLast(it) }
+            n.right?.let { q.addLast(it) }
+        }
+        out += level
+    }
+    return out
+}
+```
+
+```rust,editable
+use std::collections::VecDeque;
+
+pub fn levels(root: &Option<Box<TreeNode>>) -> Vec<Vec<i32>> {
+    let mut out = Vec::new();
+    let mut q: VecDeque<&Box<TreeNode>> = VecDeque::new();
+    if let Some(r) = root { q.push_back(r); }
+    while !q.is_empty() {
+        let level_size = q.len();
+        let mut level = Vec::with_capacity(level_size);
+        for _ in 0..level_size {
+            let n = q.pop_front().unwrap();
+            level.push(n.val);
+            if let Some(l) = &n.left  { q.push_back(l); }
+            if let Some(r) = &n.right { q.push_back(r); }
+        }
+        out.push(level);
+    }
+    out
+}
+```
+
+</div>
+
+## Complexity
+
+> **Time:** O(N). **Space:** O(W) for the queue, where W is the maximum width (worst case ~N/2 on a perfect tree).
+
+***
+
+# How to recognise it
+
+The pattern fits when:
+
+- The answer at any node depends on its **level** (depth from root) — sum per level, max per level, leftmost per level, etc.
+- You need to compute something *per level* and the result is a list-of-things-by-level, or
+- Structural completeness needs a *left-to-right* sweep across each level (e.g. "is this tree complete?")
+
+Concrete cues:
+
+- *"… per level"* — almost always BFS with the snapshot trick.
+- *"deepest / shallowest level …"* — track the *last* (or first) level's data.
+- *"complete / perfect / balanced check (with row-major fill)"* — left-to-right sweep checks for gaps.
+- *"zigzag / spiral / boustrophedon"* — alternate direction per level.
+- *"width / cousins / left view / right view"* — per-level positional questions.
+
+Anti-pattern: if there's no notion of "level" in the question (path sums, subtree sizes, ancestry checks), depth-first patterns will be cleaner.
+
+***
+
+# Problem 1 — Level sum
+
+> Return a list where the *i*-th entry is the sum of all node values at level *i*.
+
+Apply the template directly: at the top of each outer-loop iteration, accumulate `levelSum = 0`; in the inner loop, add each node's value; after the inner loop, append `levelSum` to the output.
+
+## Solution
+
+<div class="lang-tabs">
+
+```python,editable
+def level_sum(root):
+    out = []
+    if root is None: return out
+    q = deque([root])
+    while q:
+        sz = len(q); s = 0
+        for _ in range(sz):
+            n = q.popleft()
+            s += n.val
+            if n.left:  q.append(n.left)
+            if n.right: q.append(n.right)
+        out.append(s)
+    return out
+```
+
+```java,editable
+public static List<Integer> levelSum(TreeNode root) {
+    List<Integer> out = new ArrayList<>();
+    if (root == null) return out;
+    Queue<TreeNode> q = new ArrayDeque<>(); q.offer(root);
+    while (!q.isEmpty()) {
+        int sz = q.size(), s = 0;
+        for (int i = 0; i < sz; i++) {
+            TreeNode n = q.poll();
+            s += n.val;
+            if (n.left  != null) q.offer(n.left);
+            if (n.right != null) q.offer(n.right);
+        }
+        out.add(s);
+    }
+    return out;
+}
+```
+
+```c,editable
+int* level_sum(TreeNode *root, int *count) {
+    static int out[64]; *count = 0;
+    if (!root) return out;
+    TreeNode *q[1024]; int h = 0, t = 0;
+    q[t++] = root;
+    while (h < t) {
+        int sz = t - h, s = 0;
+        for (int i = 0; i < sz; i++) {
+            TreeNode *n = q[h++];
+            s += n->val;
+            if (n->left)  q[t++] = n->left;
+            if (n->right) q[t++] = n->right;
+        }
+        out[(*count)++] = s;
+    }
+    return out;
+}
+```
+
+```cpp,editable
+std::vector<int> levelSum(TreeNode *root) {
+    std::vector<int> out;
+    if (!root) return out;
+    std::queue<TreeNode*> q; q.push(root);
+    while (!q.empty()) {
+        int sz = q.size(), s = 0;
+        for (int i = 0; i < sz; i++) {
+            TreeNode *n = q.front(); q.pop();
+            s += n->val;
+            if (n->left)  q.push(n->left);
+            if (n->right) q.push(n->right);
+        }
+        out.push_back(s);
+    }
+    return out;
+}
+```
+
+```scala,editable
+def levelSum(root: TreeNode): List[Int] = {
+  if (root == null) return Nil
+  val out = scala.collection.mutable.ListBuffer[Int]()
+  val q = scala.collection.mutable.Queue[TreeNode](root)
+  while (q.nonEmpty) {
+    val sz = q.size; var s = 0
+    for (_ <- 0 until sz) {
+      val n = q.dequeue()
+      s += n.value
+      if (n.left  != null) q.enqueue(n.left)
+      if (n.right != null) q.enqueue(n.right)
+    }
+    out += s
   }
+  out.toList
+}
 ```
 
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import Optional, List
-
-class Solution:
-    def levelOrder(root: Optional[TreeNode]) -> int:
-        # Initialize aggregate with a default value
-        aggregate: int = 0
-
-        # Create a queue for level order traversal
-        # and add the root node to it
-        queue: deque[TreeNode] = deque()
-
-        if root:
-            queue.append(root)
-
-        # Loop through each level in the tree
-        while queue:
-
-            # Get the size of the current level
-            level_size: int = len(queue)
-
-            # Initialize level_aggregate to a default value
-            level_aggregate: int = 0
-
-            # Loop through each node in the current level
-            for _ in range(level_size):
-
-                # Get the node from the front of the queue and remove it
-                node: TreeNode = queue.popleft()
-
-                # Add the contribution of the current node
-                # to level_aggregate using the function f
-                level_aggregate = f(level_aggregate, node.val)
-
-                # Add the node's children to the queue if they exist
-                if node.left:
-                    queue.append(node.left)
-
-                if node.right:
-                    queue.append(node.right)
-
-            # Add the contribution of the level_aggregate for the
-            # current level to aggregate using the function g
-            aggregate = g(aggregate, level_aggregate)
-
-        return aggregate
+```javascript,editable
+function levelSum(root) {
+    const out = [];
+    if (!root) return out;
+    const q = [root];
+    while (q.length) {
+        let sz = q.length, s = 0;
+        for (let i = 0; i < sz; i++) {
+            const n = q.shift();
+            s += n.val;
+            if (n.left)  q.push(n.left);
+            if (n.right) q.push(n.right);
+        }
+        out.push(s);
+    }
+    return out;
+}
 ```
 
-### Complexity Analysis
+```typescript,editable
+function levelSum(root: TreeNode | null): number[] {
+    const out: number[] = [];
+    if (!root) return out;
+    const q: TreeNode[] = [root];
+    while (q.length) {
+        let sz = q.length, s = 0;
+        for (let i = 0; i < sz; i++) {
+            const n = q.shift()!;
+            s += n.val;
+            if (n.left)  q.push(n.left);
+            if (n.right) q.push(n.right);
+        }
+        out.push(s);
+    }
+    return out;
+}
+```
 
-The time and space complexity of the level order traversal technique is quite easy to understand. We traverse the entire tree using the level order traversal that takes linear **O(N)** time and apply the function `f` on every node. And so, the overall time complexity depends on the time complexity of the function `f`. Considering it is a constant time **O(1)** operation, the overall time complexity is linear **O(N)** in any case.
+```go,editable
+func levelSum(root *TreeNode) []int {
+    var out []int
+    if root == nil { return out }
+    q := []*TreeNode{root}
+    for len(q) > 0 {
+        sz := len(q); s := 0
+        for i := 0; i < sz; i++ {
+            n := q[0]; q = q[1:]
+            s += n.Val
+            if n.Left  != nil { q = append(q, n.Left) }
+            if n.Right != nil { q = append(q, n.Right) }
+        }
+        out = append(out, s)
+    }
+    return out
+}
+```
 
-The space complexity of level order traversal depends on the maximum size of the queue, which will be equal to the maximum number of nodes in a level. For a perfect binary tree with **N** nodes, the last level can have **N/2** nodes, and so the worst-case space complexity is linear **O(N)** if the tree is a perfect binary tree. However, in the best case, if we have a degenerate tree, every level only has one node, and so the space complexity is constant **O(1)**. We also create a fixed number of local variables, but each of them only makes a constant contribution to the size, so the overall space complexity is the same as the space required by the queue.
+```kotlin,editable
+fun levelSum(root: TreeNode?): List<Int> {
+    if (root == null) return emptyList()
+    val out = mutableListOf<Int>()
+    val q = ArrayDeque<TreeNode>(); q.addLast(root)
+    while (q.isNotEmpty()) {
+        val sz = q.size; var s = 0
+        repeat(sz) {
+            val n = q.removeFirst()
+            s += n.value
+            n.left ?.let { q.addLast(it) }
+            n.right?.let { q.addLast(it) }
+        }
+        out += s
+    }
+    return out
+}
+```
 
-> **Best Case:** Degenerate binary tree
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case:** Perfect binary tree
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
+```rust,editable
+pub fn level_sum(root: &Option<Box<TreeNode>>) -> Vec<i32> {
+    let mut out = Vec::new();
+    let mut q: VecDeque<&Box<TreeNode>> = VecDeque::new();
+    if let Some(r) = root { q.push_back(r); }
+    while !q.is_empty() {
+        let sz = q.len(); let mut s = 0;
+        for _ in 0..sz {
+            let n = q.pop_front().unwrap();
+            s += n.val;
+            if let Some(l) = &n.left  { q.push_back(l); }
+            if let Some(r) = &n.right { q.push_back(r); }
+        }
+        out.push(s);
+    }
+    out
+}
+```
+
+</div>
 
 ***
 
-# Identifying the level order traversal pattern
+# Problem 2 — Deepest leaves sum
 
-The level order traversal can only solve some specific types of binary tree problems. These are generally easy or medium problems where we need to find the aggregate value of some function `f` over all nodes in a level for all levels in the tree. Some problems may require further aggregating the aggregates for each level into a single value using some other function `g`. In some cases, we may also need to maintain some shared state information throughout the traversal, which can be easily done by creating local variables before starting the traversal, as level order traversal is fully iterative and not recursive.
+> Return the sum of the values of the leaves on the deepest level of the tree.
 
-If the problem statement or its solution follows the generic template below, it can be solved using the level order traversal technique.
-
-**Template:**
-
-Given a binary tree, find the aggregate value of a function `f` over all nodes in a level for all the levels in the tree. Further aggregate the aggregates for all the levels into a single value using a function `g`. The processing of a node may require some shared state variables.
-
-## Example
-
-Let's consider the following problem as an example to better understand how to identify and solve a problem using the level order traversal technique.
-
-> **Problem statement:** Given a binary tree, return a list containing the sum of all nodes at each level from top to bottom.
-
-// Diagram: Return the level wise sum of nodes in a binary tree.
-
-## The level order traversal technique
-
-The problem statement fits the template description for the level order traversal pattern that we learned earlier.
-
-**Template:**
-
-Given a binary tree, find the aggregate value of a function `f` (sum) over all nodes in a level for all the levels in the tree. Further, aggregate the aggregates for all the levels into a single value using a function `g` (add to a list).
-
-We create a queue for the level order traversal and a list `levelSums` to store the sum of each level. We then push the root node to `queue` and iterate while the queue is not empty to start the traversal. In each iteration, we store the size of the queue in a variable `levelSize` and initialize a variable `sum` with 0 to aggregate the sum of this level. We then iterate `levelSize` times and, in each iteration, pop a node from the front of the queue and add its value to `sum`. We then push the left and right child nodes of this node to `queue` if they exist. At the end of the inner iterations, we append `sum` to the `levelSums` list.
-
-This way, at the end of level order traversal, the `levelSums` list will have the sum of all nodes in a level for all levels in the binary tree.
-
-// Diagram: Return a list of level-wise sum of nodes of a binary tree
-
-The implementation of the level order traversal technique is given below. Instead of creating the levelSum list in the function, we receive it as a reference from the caller. This does not make any difference to the remaining implementation, as the scope of the `levelSum` variable is still the same, and it is accessible to all nodes when processing them.
-
-C++
-
-```cpp
-#include <queue>
-
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    vector<int> levelSum(TreeNode *root) {
-        vector<int> levelSums;
-        if (!root) {
-            return levelSums;
-        }
-
-        queue<TreeNode *> queue;
-        queue.push(root);
-
-        // Loop through each level in the tree
-        while (!queue.empty()) {
-
-            // Get the size of the current level
-            int levelSize = queue.size();
-            int levelSum = 0;
-
-            // Loop through each node in the current level
-            for (int i = 0; i < levelSize; i++) {
-                TreeNode *node = queue.front();
-                queue.pop();
-
-                // Add the node's value to the current level sum
-                levelSum += node->val;
-
-                // Add the node's children to the queue if they exist
-                if (node->left) {
-                    queue.push(node->left);
-                }
-
-                if (node->right) {
-                    queue.push(node->right);
-                }
-
-            // Add the current level sum to the levelSums vector
-            levelSums.push_back(levelSum);
-        }
-
-        return levelSums;
-    }
-};
-```
-
-Java
-
-```java
-import java.util.*;
-
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-class Solution {
-    public List<Integer> levelSum(TreeNode root) {
-        List<Integer> levelSums = new ArrayList<>();
-        if (root == null) {
-            return levelSums;
-        }
-
-        Queue<TreeNode> queue = new LinkedList<>();
-        queue.add(root);
-
-        // Loop through each level in the tree
-        while (!queue.isEmpty()) {
-
-            // Get the size of the current level
-            int levelSize = queue.size();
-            int levelSum = 0;
-
-            // Loop through each node in the current level
-            for (int i = 0; i < levelSize; i++) {
-
-                // Get the front node in the queue and remove it
-                TreeNode node = queue.poll();
-
-                // Add the node's value to the current level sum
-                levelSum += node.val;
-
-                // Add the node's children to the queue if they exist
-                if (node.left != null) {
-                    queue.add(node.left);
-                }
-
-                if (node.right != null) {
-                    queue.add(node.right);
-                }
-
-            // Add the current level sum to the levelSums list
-            levelSums.add(levelSum);
-        }
-
-        return levelSums;
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-export class Solution {
-    levelSum(root: TreeNode | null): number[] {
-        const levelSums: number[] = [];
-        if (!root) {
-            return levelSums;
-        }
-
-// Diagram: const queue: TreeNode[] = [root];
-
-        // Loop through each level in the tree
-        while (queue.length > 0) {
-
-            // Get the size of the current level
-            const levelSize = queue.length;
-            let levelSum = 0;
-
-            // Loop through each node in the current level
-            for (let i = 0; i < levelSize; i++) {
-
-                // Get the front node in the queue and remove it
-                const node = queue.shift()!;
-
-                // Add the node's value to the current level sum
-                levelSum += node.val;
-
-                // Add the node's children to the queue if they exist
-                if (node.left) {
-                    queue.push(node.left);
-                }
-
-                if (node.right) {
-                    queue.push(node.right);
-                }
-
-            // Add the current level sum to the levelSums array
-            levelSums.push(levelSum);
-        }
-
-        return levelSums;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-    levelSum(root) {
-        const levelSums = [];
-        if (!root) {
-            return levelSums;
-        }
-
-// Diagram: const queue = [root];
-
-        // Loop through each level in the tree
-        while (queue.length > 0) {
-
-            // Get the size of the current level
-            const levelSize = queue.length;
-            let levelSum = 0;
-
-            // Loop through each node in the current level
-            for (let i = 0; i < levelSize; i++) {
-
-                // Get the front node in the queue and remove it
-                const node = queue.shift();
-
-                // Add the node's value to the current level sum
-                levelSum += node.val;
-
-                // Add the node's children to the queue if they exist
-                if (node.left) {
-                    queue.push(node.left);
-                }
-
-                if (node.right) {
-                    queue.push(node.right);
-                }
-
-            // Add the current level sum to the levelSums array
-            levelSums.push(levelSum);
-        }
-
-        return levelSums;
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-from queue import Queue
-from typing import List, Optional
-
-class Solution:
-    def level_sum(self, root: Optional[TreeNode]) -> List[int]:
-        level_sums: List[int] = []
-        if not root:
-            return level_sums
-
-        queue = Queue()
-        queue.put(root)
-
-        # Loop through each level in the tree
-        while not queue.empty():
-
-            # Get the size of the current level
-            level_size = queue.qsize()
-            level_sum = 0
-
-            # Loop through each node in the current level
-            for _ in range(level_size):
-
-                # Get the front node in the queue and remove it
-                node = queue.get()
-
-                # Add the node's value to the current level sum
-                level_sum += node.val
-
-                # Add the node's children to the queue if they exist
-                if node.left:
-                    queue.put(node.left)
-
-                if node.right:
-                    queue.put(node.right)
-
-            # Add the current level sum to the level_sums list
-            level_sums.append(level_sum)
-
-        return level_sums
-```
-
-## Example problems
-
-Most problems that fall under this category are**medium**problems. A list of a few is given below.
-
-> -   **[Level sum](https://www.codeintuition.io/courses/binary-tree/9fL3An4CoPeH5uygVkUQh)**
-> -   **[Deepest leaves sum](https://www.codeintuition.io/courses/binary-tree/0WFuKutxXjHP8wXGFO9VO)**
-> -   **[Complete binary tree](https://www.codeintuition.io/courses/binary-tree/jv2oyC9UyvGM7IiXn-E8j)**
-> -   **[Zigzag traversal](https://www.codeintuition.io/courses/binary-tree/Rf5y4h0H5prvgmDUU27SF)**
-> -   **[Cousin check](https://www.codeintuition.io/courses/binary-tree/mFim0xWeWp8b9jhB5XPuy)**
-
-We will now solve these problems to understand the stateful root-to-leaf path technique better.
-
-***
-
-# Level sum
-
-## Problem Statement
-
-Given the **root** of a binary tree, write a function to return a list containing the **sum** of all nodes at each level from top to bottom.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 3, 4, null, null, 7\]
-> -   **Output:** \[1, 5, 11\]
-> -   **Explanation:** The sum of all nodes in the first, second, and third levels is 1, 5, and 11 respectively.
-
-### Example 2
-
-> -   **Input:** root = \[1, 8, 4, null, null, 2, 7\]
-> -   **Output:** \[1, 12, 9\]
-> -   **Explanation:** The sum of all nodes in the first, second, and third levels is 1, 12, and 9 respectively.
+Same shape as level-sum, but instead of recording every level we just *overwrite* a single `levelSum` variable each iteration. After the loop ends, `levelSum` holds the sum of the deepest level. (Note: every node on the deepest level is a leaf.)
 
 ## Solution
 
-```cpp
-#include <queue>
+<div class="lang-tabs">
 
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-    vector<int> levelSum(TreeNode *root) {
-        vector<int> levelSums;
-        if (!root) {
-            return levelSums;
-        }
-
-        queue<TreeNode *> queue;
-        queue.push(root);
-
-        // Loop through each level in the tree
-        while (!queue.empty()) {
-
-            // Get the size of the current level
-            int levelSize = queue.size();
-            int levelSum = 0;
-
-            // Loop through each node in the current level
-            for (int i = 0; i < levelSize; i++) {
-                TreeNode *node = queue.front();
-                queue.pop();
-
-                // Add the node's value to the current level sum
-                levelSum += node->val;
-
-                // Add the node's children to the queue if they exist
-                if (node->left) {
-                    queue.push(node->left);
-                }
-
-                if (node->right) {
-                    queue.push(node->right);
-                }
-            }
-
-            // Add the current level sum to the levelSums vector
-            levelSums.push_back(levelSum);
-        }
-
-        return levelSums;
-    }
-};
+```python,editable
+def deepest_leaves_sum(root):
+    if root is None: return 0
+    q = deque([root]); s = 0
+    while q:
+        s = 0
+        for _ in range(len(q)):
+            n = q.popleft()
+            s += n.val
+            if n.left:  q.append(n.left)
+            if n.right: q.append(n.right)
+    return s
 ```
 
+```java,editable
+public static int deepestLeavesSum(TreeNode root) {
+    if (root == null) return 0;
+    Queue<TreeNode> q = new ArrayDeque<>(); q.offer(root);
+    int s = 0;
+    while (!q.isEmpty()) {
+        int sz = q.size(); s = 0;
+        for (int i = 0; i < sz; i++) {
+            TreeNode n = q.poll();
+            s += n.val;
+            if (n.left  != null) q.offer(n.left);
+            if (n.right != null) q.offer(n.right);
+        }
+    }
+    return s;
+}
+```
+
+```c,editable
+int deepest_leaves_sum(TreeNode *root) {
+    if (!root) return 0;
+    TreeNode *q[1024]; int h = 0, t = 0; q[t++] = root;
+    int s = 0;
+    while (h < t) {
+        int sz = t - h; s = 0;
+        for (int i = 0; i < sz; i++) {
+            TreeNode *n = q[h++];
+            s += n->val;
+            if (n->left)  q[t++] = n->left;
+            if (n->right) q[t++] = n->right;
+        }
+    }
+    return s;
+}
+```
+
+```cpp,editable
+int deepestLeavesSum(TreeNode *root) {
+    if (!root) return 0;
+    std::queue<TreeNode*> q; q.push(root);
+    int s = 0;
+    while (!q.empty()) {
+        int sz = q.size(); s = 0;
+        for (int i = 0; i < sz; i++) {
+            TreeNode *n = q.front(); q.pop();
+            s += n->val;
+            if (n->left)  q.push(n->left);
+            if (n->right) q.push(n->right);
+        }
+    }
+    return s;
+}
+```
+
+```scala,editable
+def deepestLeavesSum(root: TreeNode): Int = {
+  if (root == null) return 0
+  val q = scala.collection.mutable.Queue[TreeNode](root); var s = 0
+  while (q.nonEmpty) {
+    val sz = q.size; s = 0
+    for (_ <- 0 until sz) {
+      val n = q.dequeue()
+      s += n.value
+      if (n.left  != null) q.enqueue(n.left)
+      if (n.right != null) q.enqueue(n.right)
+    }
+  }
+  s
+}
+```
+
+```javascript,editable
+function deepestLeavesSum(root) {
+    if (!root) return 0;
+    const q = [root]; let s = 0;
+    while (q.length) {
+        const sz = q.length; s = 0;
+        for (let i = 0; i < sz; i++) {
+            const n = q.shift();
+            s += n.val;
+            if (n.left)  q.push(n.left);
+            if (n.right) q.push(n.right);
+        }
+    }
+    return s;
+}
+```
+
+```typescript,editable
+function deepestLeavesSum(root: TreeNode | null): number {
+    if (!root) return 0;
+    const q: TreeNode[] = [root]; let s = 0;
+    while (q.length) {
+        const sz = q.length; s = 0;
+        for (let i = 0; i < sz; i++) {
+            const n = q.shift()!;
+            s += n.val;
+            if (n.left)  q.push(n.left);
+            if (n.right) q.push(n.right);
+        }
+    }
+    return s;
+}
+```
+
+```go,editable
+func deepestLeavesSum(root *TreeNode) int {
+    if root == nil { return 0 }
+    q := []*TreeNode{root}; s := 0
+    for len(q) > 0 {
+        sz := len(q); s = 0
+        for i := 0; i < sz; i++ {
+            n := q[0]; q = q[1:]
+            s += n.Val
+            if n.Left  != nil { q = append(q, n.Left) }
+            if n.Right != nil { q = append(q, n.Right) }
+        }
+    }
+    return s
+}
+```
+
+```kotlin,editable
+fun deepestLeavesSum(root: TreeNode?): Int {
+    if (root == null) return 0
+    val q = ArrayDeque<TreeNode>(); q.addLast(root); var s = 0
+    while (q.isNotEmpty()) {
+        val sz = q.size; s = 0
+        repeat(sz) {
+            val n = q.removeFirst()
+            s += n.value
+            n.left ?.let { q.addLast(it) }
+            n.right?.let { q.addLast(it) }
+        }
+    }
+    return s
+}
+```
+
+```rust,editable
+pub fn deepest_leaves_sum(root: &Option<Box<TreeNode>>) -> i32 {
+    if root.is_none() { return 0; }
+    let mut q: VecDeque<&Box<TreeNode>> = VecDeque::new();
+    q.push_back(root.as_ref().unwrap());
+    let mut s = 0;
+    while !q.is_empty() {
+        let sz = q.len(); s = 0;
+        for _ in 0..sz {
+            let n = q.pop_front().unwrap();
+            s += n.val;
+            if let Some(l) = &n.left  { q.push_back(l); }
+            if let Some(r) = &n.right { q.push_back(r); }
+        }
+    }
+    s
+}
+```
+
+</div>
+
 ***
 
-# Level sum
+# Problem 3 — Complete binary tree check
 
-***
+> Return `true` iff the tree is *complete* — every level full except possibly the last, which is filled left-to-right with no gaps.
 
-# Deepest leaves sum
+Trick: do a level-order traversal that **enqueues `null` children too** (don't skip them). Walk the queue; the moment you see a `null`, set a flag; if you ever see a *non-null* node *after* the flag is set, the tree is not complete (gap detected). If you finish without that happening, it's complete.
 
-## Problem Statement
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph BAD["NOT complete — gap then a node"]
+        B1((1)) --> B2((2))
+        B1 --> B3((3))
+        B2 -.- BN[null]
+        B3 --> B5((5))
+        style BN fill:#fee2e2,stroke:#ef4444
+        style B5 fill:#fee2e2,stroke:#ef4444
+    end
+    subgraph GOOD["complete — all nulls cluster on the right end"]
+        G1((1)) --> G2((2))
+        G1 --> G3((3))
+        G2 --> G4((4))
+        G2 -.- GN[null]
+        G3 -.- GN2[null]
+        G3 -.- GN3[null]
+        style GN fill:#fee2e2,stroke:#ef4444
+        style GN2 fill:#fee2e2,stroke:#ef4444
+        style GN3 fill:#fee2e2,stroke:#ef4444
+    end
+```
 
-Given the **root** of a binary tree, write a function to find and return the sum of the deepest leaves of this tree.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 1, 7, null, null, 1\]
-> -   **Output:** 8
-> -   **Explanation:** The deepest level is level 3 which contains where the sum of leaves nodes is 8.
-
-### Example 2
-
-> -   **Input:** root = \[1, 6, 5, null, null, 2, 7\]
-> -   **Output:** 9
-> -   **Explanation:** The deepest level is level 3 which contains where the sum of leaves nodes is 9.
+<p align="center"><strong>Completeness check — enqueue every child including nulls. Walk the resulting queue; once you've seen a null, no real node may follow. The left tree fails because node 5 follows a null.</strong></p>
 
 ## Solution
 
-```cpp
-#include <queue>
+<div class="lang-tabs">
 
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+```python,editable
+def is_complete(root):
+    if root is None: return True
+    q = deque([root]); seen_null = False
+    while q:
+        n = q.popleft()
+        if n is None:
+            seen_null = True
+        else:
+            if seen_null: return False
+            q.append(n.left); q.append(n.right)
+    return True
+```
 
-using namespace std;
-
-class Solution {
-public:
-    int deepestLeavesSum(TreeNode *root) {
-
-        // If the tree is empty, return 0
-        if (!root) {
-            return 0;
+```java,editable
+public static boolean isComplete(TreeNode root) {
+    if (root == null) return true;
+    Deque<TreeNode> q = new ArrayDeque<>();
+    // ArrayDeque can't store null; use LinkedList for null support, OR use a sentinel.
+    Queue<TreeNode> qq = new java.util.LinkedList<>();
+    qq.offer(root);
+    boolean seenNull = false;
+    while (!qq.isEmpty()) {
+        TreeNode n = qq.poll();
+        if (n == null) seenNull = true;
+        else {
+            if (seenNull) return false;
+            qq.offer(n.left); qq.offer(n.right);
         }
+    }
+    return true;
+}
+```
 
-        queue<TreeNode *> queue;
-        queue.push(root);
+```c,editable
+int is_complete(TreeNode *root) {
+    if (!root) return 1;
+    TreeNode *q[1024]; int h = 0, t = 0;
+    q[t++] = root;
+    int seen_null = 0;
+    while (h < t) {
+        TreeNode *n = q[h++];
+        if (!n) seen_null = 1;
+        else {
+            if (seen_null) return 0;
+            q[t++] = n->left; q[t++] = n->right;
+        }
+    }
+    return 1;
+}
+```
 
-        // Variable to store the levelSum of the deepest leaves
-        int levelSum = 0;
+```cpp,editable
+bool isComplete(TreeNode *root) {
+    if (!root) return true;
+    std::queue<TreeNode*> q; q.push(root);
+    bool seenNull = false;
+    while (!q.empty()) {
+        TreeNode *n = q.front(); q.pop();
+        if (!n) seenNull = true;
+        else {
+            if (seenNull) return false;
+            q.push(n->left); q.push(n->right);
+        }
+    }
+    return true;
+}
+```
 
-        // Loop through each level in the tree
-        while (!queue.empty()) {
+```scala,editable
+def isComplete(root: TreeNode): Boolean = {
+  if (root == null) return true
+  val q = scala.collection.mutable.Queue[TreeNode](root)
+  var seenNull = false
+  while (q.nonEmpty) {
+    val n = q.dequeue()
+    if (n == null) seenNull = true
+    else {
+      if (seenNull) return false
+      q.enqueue(n.left); q.enqueue(n.right)
+    }
+  }
+  true
+}
+```
 
-            // Get the size of the current level
-            int levelSize = queue.size();
+```javascript,editable
+function isComplete(root) {
+    if (!root) return true;
+    const q = [root]; let seenNull = false;
+    while (q.length) {
+        const n = q.shift();
+        if (n === null) seenNull = true;
+        else {
+            if (seenNull) return false;
+            q.push(n.left); q.push(n.right);
+        }
+    }
+    return true;
+}
+```
 
-            // Reset levelSum for the current level
-            levelSum = 0;
+```typescript,editable
+function isComplete(root: TreeNode | null): boolean {
+    if (!root) return true;
+    const q: (TreeNode | null)[] = [root]; let seenNull = false;
+    while (q.length) {
+        const n = q.shift();
+        if (n === null) seenNull = true;
+        else {
+            if (seenNull) return false;
+            q.push(n!.left); q.push(n!.right);
+        }
+    }
+    return true;
+}
+```
 
-            // Loop through each node in the current level
-            for (int i = 0; i < levelSize; ++i) {
+```go,editable
+func isComplete(root *TreeNode) bool {
+    if root == nil { return true }
+    q := []*TreeNode{root}
+    seenNull := false
+    for len(q) > 0 {
+        n := q[0]; q = q[1:]
+        if n == nil { seenNull = true; continue }
+        if seenNull { return false }
+        q = append(q, n.Left, n.Right)
+    }
+    return true
+}
+```
 
-                // Get the front node in the queue and remove it
-                TreeNode *node = queue.front();
-                queue.pop();
+```kotlin,editable
+fun isComplete(root: TreeNode?): Boolean {
+    if (root == null) return true
+    val q = ArrayDeque<TreeNode?>(); q.addLast(root)
+    var seenNull = false
+    while (q.isNotEmpty()) {
+        val n = q.removeFirst()
+        if (n == null) seenNull = true
+        else {
+            if (seenNull) return false
+            q.addLast(n.left); q.addLast(n.right)
+        }
+    }
+    return true
+}
+```
 
-                // Add its value to the levelSum
-                levelSum += node->val;
-
-                // Add the node's children to the queue if they exist
-                if (node->left) {
-                    queue.push(node->left);
-                }
-
-                if (node->right) {
-                    queue.push(node->right);
-                }
+```rust,editable
+pub fn is_complete(root: &Option<Box<TreeNode>>) -> bool {
+    if root.is_none() { return true; }
+    let mut q: VecDeque<Option<&Box<TreeNode>>> = VecDeque::new();
+    q.push_back(root.as_ref());
+    let mut seen_null = false;
+    while let Some(n) = q.pop_front() {
+        match n {
+            None => seen_null = true,
+            Some(node) => {
+                if seen_null { return false; }
+                q.push_back(node.left.as_ref());
+                q.push_back(node.right.as_ref());
             }
         }
-
-        // The last computed levelSum is for the deepest level
-        return levelSum;
     }
-};
+    true
+}
 ```
+
+</div>
 
 ***
 
-# Complete binary tree
+# Problem 4 — Zigzag traversal
 
-## Problem Statement
+> Return the level-order traversal where the *direction* alternates per level: level 0 left-to-right, level 1 right-to-left, level 2 left-to-right, …
 
-Given the **root** of a binary tree, write a function that returns `true` if it is a complete binary tree and `false` otherwise.
-
-A complete binary tree is a binary tree in which all the levels are completely filled except possibly the lowest one, which is filled from the left.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 3, null, null, 2, 7\]
-> -   **Output:** false
-> -   **Explanation:** The given binary tree is not a complete binary tree, as shown in the diagram above.
-
-### Example 2
-
-> -   **Input:** root = \[1, 8, 4, 3, 5\]
-> -   **Output:** true
-> -   **Explanation:** The given binary tree is a complete binary tree, as shown in the diagram above.
+Same template, but pre-allocate the level array and *write into it from either end* depending on a `reverse` boolean that flips each iteration. Avoids per-level reversal at the cost of one extra index.
 
 ## Solution
 
-```cpp
-#include <queue>
+<div class="lang-tabs">
 
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-    bool completeBinaryTree(TreeNode *root) {
-
-        // Create a queue to perform level order traversal
-        queue<TreeNode *> queue;
-
-        // Start the traversal by pushing the root node into the queue
-        queue.push(root);
-
-        // Flag to check if we've encountered a null node
-        bool foundNull = false;
-
-        // Perform level-order traversal using the queue
-        while (!queue.empty()) {
-
-            // Get the number of nodes in the current level
-            int levelSize = queue.size();
-
-            // Process all nodes in the current level
-            for (int i = 0; i < levelSize; i++) {
-
-                // Get the front node from the queue
-                TreeNode *node = queue.front();
-                queue.pop();
-
-                // If the node is NULL, set the flag to true
-                if (!node) {
-                    foundNull = true;
-                    continue;
-                }
-
-                // If we found a NULL node before, but now there's a
-                // non-null node -> Not complete
-                if (foundNull) {
-                    return false;
-                }
-
-                // Push left and right children to the queue
-                // (even if they are NULL)
-                queue.push(node->left);
-                queue.push(node->right);
-            }
-        }
-
-        // If traversal completes without issue, tree is complete
-        return true;
-    }
-};
+```python,editable
+def zigzag_traversal(root):
+    out = []
+    if root is None: return out
+    q = deque([root]); reverse = False
+    while q:
+        sz = len(q)
+        level = [0] * sz
+        for i in range(sz):
+            n = q.popleft()
+            level[sz - 1 - i if reverse else i] = n.val
+            if n.left:  q.append(n.left)
+            if n.right: q.append(n.right)
+        out.append(level)
+        reverse = not reverse
+    return out
 ```
+
+```java,editable
+public static List<List<Integer>> zigzagTraversal(TreeNode root) {
+    List<List<Integer>> out = new ArrayList<>();
+    if (root == null) return out;
+    Queue<TreeNode> q = new ArrayDeque<>(); q.offer(root);
+    boolean reverse = false;
+    while (!q.isEmpty()) {
+        int sz = q.size();
+        Integer[] level = new Integer[sz];
+        for (int i = 0; i < sz; i++) {
+            TreeNode n = q.poll();
+            level[reverse ? sz - 1 - i : i] = n.val;
+            if (n.left  != null) q.offer(n.left);
+            if (n.right != null) q.offer(n.right);
+        }
+        out.add(Arrays.asList(level));
+        reverse = !reverse;
+    }
+    return out;
+}
+```
+
+```c,editable
+// (omitted — output is a 2D array; algorithm same as above)
+```
+
+```cpp,editable
+std::vector<std::vector<int>> zigzagTraversal(TreeNode *root) {
+    std::vector<std::vector<int>> out;
+    if (!root) return out;
+    std::queue<TreeNode*> q; q.push(root);
+    bool reverse = false;
+    while (!q.empty()) {
+        int sz = q.size();
+        std::vector<int> level(sz);
+        for (int i = 0; i < sz; i++) {
+            TreeNode *n = q.front(); q.pop();
+            level[reverse ? sz - 1 - i : i] = n->val;
+            if (n->left)  q.push(n->left);
+            if (n->right) q.push(n->right);
+        }
+        out.push_back(level);
+        reverse = !reverse;
+    }
+    return out;
+}
+```
+
+```scala,editable
+def zigzagTraversal(root: TreeNode): List[List[Int]] = {
+  val out = scala.collection.mutable.ListBuffer[List[Int]]()
+  if (root == null) return Nil
+  val q = scala.collection.mutable.Queue[TreeNode](root)
+  var reverse = false
+  while (q.nonEmpty) {
+    val sz = q.size
+    val level = Array.ofDim[Int](sz)
+    for (i <- 0 until sz) {
+      val n = q.dequeue()
+      level(if (reverse) sz - 1 - i else i) = n.value
+      if (n.left  != null) q.enqueue(n.left)
+      if (n.right != null) q.enqueue(n.right)
+    }
+    out += level.toList
+    reverse = !reverse
+  }
+  out.toList
+}
+```
+
+```javascript,editable
+function zigzagTraversal(root) {
+    const out = [];
+    if (!root) return out;
+    const q = [root]; let reverse = false;
+    while (q.length) {
+        const sz = q.length;
+        const level = new Array(sz);
+        for (let i = 0; i < sz; i++) {
+            const n = q.shift();
+            level[reverse ? sz - 1 - i : i] = n.val;
+            if (n.left)  q.push(n.left);
+            if (n.right) q.push(n.right);
+        }
+        out.push(level);
+        reverse = !reverse;
+    }
+    return out;
+}
+```
+
+```typescript,editable
+function zigzagTraversal(root: TreeNode | null): number[][] {
+    const out: number[][] = [];
+    if (!root) return out;
+    const q: TreeNode[] = [root]; let reverse = false;
+    while (q.length) {
+        const sz = q.length;
+        const level: number[] = new Array(sz);
+        for (let i = 0; i < sz; i++) {
+            const n = q.shift()!;
+            level[reverse ? sz - 1 - i : i] = n.val;
+            if (n.left)  q.push(n.left);
+            if (n.right) q.push(n.right);
+        }
+        out.push(level);
+        reverse = !reverse;
+    }
+    return out;
+}
+```
+
+```go,editable
+func zigzagTraversal(root *TreeNode) [][]int {
+    var out [][]int
+    if root == nil { return out }
+    q := []*TreeNode{root}; reverse := false
+    for len(q) > 0 {
+        sz := len(q)
+        level := make([]int, sz)
+        for i := 0; i < sz; i++ {
+            n := q[0]; q = q[1:]
+            idx := i
+            if reverse { idx = sz - 1 - i }
+            level[idx] = n.Val
+            if n.Left  != nil { q = append(q, n.Left) }
+            if n.Right != nil { q = append(q, n.Right) }
+        }
+        out = append(out, level)
+        reverse = !reverse
+    }
+    return out
+}
+```
+
+```kotlin,editable
+fun zigzagTraversal(root: TreeNode?): List<List<Int>> {
+    if (root == null) return emptyList()
+    val out = mutableListOf<List<Int>>()
+    val q = ArrayDeque<TreeNode>(); q.addLast(root)
+    var reverse = false
+    while (q.isNotEmpty()) {
+        val sz = q.size
+        val level = IntArray(sz)
+        for (i in 0 until sz) {
+            val n = q.removeFirst()
+            level[if (reverse) sz - 1 - i else i] = n.value
+            n.left ?.let { q.addLast(it) }
+            n.right?.let { q.addLast(it) }
+        }
+        out += level.toList()
+        reverse = !reverse
+    }
+    return out
+}
+```
+
+```rust,editable
+pub fn zigzag_traversal(root: &Option<Box<TreeNode>>) -> Vec<Vec<i32>> {
+    let mut out = Vec::new();
+    if root.is_none() { return out; }
+    let mut q: VecDeque<&Box<TreeNode>> = VecDeque::new();
+    q.push_back(root.as_ref().unwrap());
+    let mut reverse = false;
+    while !q.is_empty() {
+        let sz = q.len();
+        let mut level = vec![0; sz];
+        for i in 0..sz {
+            let n = q.pop_front().unwrap();
+            let idx = if reverse { sz - 1 - i } else { i };
+            level[idx] = n.val;
+            if let Some(l) = &n.left  { q.push_back(l); }
+            if let Some(r) = &n.right { q.push_back(r); }
+        }
+        out.push(level);
+        reverse = !reverse;
+    }
+    out
+}
+```
+
+</div>
 
 ***
 
-# Zigzag traversal
+# Problem 5 — Cousin check
 
-## Problem Statement
+> Two nodes are *cousins* if they're at the same depth and have *different* parents. Given two values `valA` and `valB`, return `true` iff their nodes are cousins.
 
-Given the **root** of a binary tree, write a function to return all its nodes as in a zigzag traversal.
-
-A zigzag traversal is a level-order traversal starting from the root node where the direction of traversal is flipped at every level. The initial direction is left to right.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 3, 4, null, null, 7\]
-> -   **Output:** \[\[1\], \[3, 2\], \[4, 7\]\]
-> -   **Explanation:** The zigzag traversal of the given tree is shown in the diagram above.
-
-### Example 2
-
-> -   **Input:** root = \[1, 8, 4, null, null, 2, 7\]
-> -   **Output:** \[\[1\], \[4, 8\], \[2, 7\]\]
-> -   **Explanation:** The zigzag traversal of the given tree is shown in the diagram above.
+Augment the BFS so each enqueued item carries *both* the node and its parent. As we walk a level, look for the two target values; if both are found on the same level *and* they have different parents, return `true`. If only one is found on a level, they're not at the same depth, return `false`.
 
 ## Solution
 
-```cpp
-#include <queue>
+<div class="lang-tabs">
 
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-    vector<vector<int>> zigzagTraversal(TreeNode *root) {
-        vector<vector<int>> zigzagLevels;
-        if (!root) {
-            return zigzagLevels;
-        }
-
-        queue<TreeNode *> queue;
-        queue.push(root);
-
-        // Flag to indicate the direction of traversal
-        bool reverse = false;
-
-        // Loop through each level in the tree
-        while (!queue.empty()) {
-
-            // Get the size of the current level
-            int levelSize = queue.size();
-
-            // Initialize the vector to store the nodes in the current
-            // level. The size of the vector is equal to the number of
-            // nodes in the current level.
-            vector<int> level(levelSize);
-
-            // Loop through each node in the current level
-            for (int i = 0; i < levelSize; i++) {
-                TreeNode *node = queue.front();
-                queue.pop();
-
-                // Fill level vector based on the direction of traversal
-                if (reverse) {
-                    level[levelSize - i - 1] = node->val;
-
-                } else {
-                    level[i] = node->val;
-                }
-
-                // Add the node's children to the queue if they exist
-                if (node->left) {
-                    queue.push(node->left);
-                }
-
-                if (node->right) {
-                    queue.push(node->right);
-                }
-            }
-
-            // Add the current level vector to the levels vector
-            zigzagLevels.push_back(level);
-
-            // Flip the direction for the next level
-            reverse = !reverse;
-        }
-
-        return zigzagLevels;
-    }
-};
+```python,editable
+def cousin_check(root, val_a, val_b):
+    if root is None: return False
+    q = deque([(root, None)])
+    while q:
+        sz = len(q); pa, pb = None, None
+        for _ in range(sz):
+            n, p = q.popleft()
+            if n.val == val_a: pa = p
+            if n.val == val_b: pb = p
+            if n.left:  q.append((n.left,  n))
+            if n.right: q.append((n.right, n))
+        if pa and pb: return pa is not pb
+        if pa or  pb: return False
+    return False
 ```
+
+```java,editable
+static class NP { TreeNode n, p; NP(TreeNode n, TreeNode p){ this.n=n; this.p=p; } }
+public static boolean cousinCheck(TreeNode root, int valA, int valB) {
+    if (root == null) return false;
+    Queue<NP> q = new ArrayDeque<>(); q.offer(new NP(root, null));
+    while (!q.isEmpty()) {
+        int sz = q.size();
+        TreeNode pa = null, pb = null;
+        for (int i = 0; i < sz; i++) {
+            NP cur = q.poll();
+            if (cur.n.val == valA) pa = cur.p;
+            if (cur.n.val == valB) pb = cur.p;
+            if (cur.n.left  != null) q.offer(new NP(cur.n.left,  cur.n));
+            if (cur.n.right != null) q.offer(new NP(cur.n.right, cur.n));
+        }
+        if (pa != null && pb != null) return pa != pb;
+        if (pa != null || pb != null) return false;
+    }
+    return false;
+}
+```
+
+```c,editable
+typedef struct { TreeNode *n; TreeNode *p; } NP;
+int cousin_check(TreeNode *root, int valA, int valB) {
+    if (!root) return 0;
+    NP q[1024]; int h = 0, t = 0;
+    q[t++] = (NP){root, NULL};
+    while (h < t) {
+        int sz = t - h;
+        TreeNode *pa = NULL, *pb = NULL;
+        for (int i = 0; i < sz; i++) {
+            NP cur = q[h++];
+            if (cur.n->val == valA) pa = cur.p;
+            if (cur.n->val == valB) pb = cur.p;
+            if (cur.n->left)  q[t++] = (NP){cur.n->left,  cur.n};
+            if (cur.n->right) q[t++] = (NP){cur.n->right, cur.n};
+        }
+        if (pa && pb) return pa != pb;
+        if (pa || pb) return 0;
+    }
+    return 0;
+}
+```
+
+```cpp,editable
+struct NP { TreeNode *n, *p; };
+bool cousinCheck(TreeNode *root, int valA, int valB) {
+    if (!root) return false;
+    std::queue<NP> q; q.push({root, nullptr});
+    while (!q.empty()) {
+        int sz = q.size();
+        TreeNode *pa = nullptr, *pb = nullptr;
+        for (int i = 0; i < sz; i++) {
+            NP cur = q.front(); q.pop();
+            if (cur.n->val == valA) pa = cur.p;
+            if (cur.n->val == valB) pb = cur.p;
+            if (cur.n->left)  q.push({cur.n->left,  cur.n});
+            if (cur.n->right) q.push({cur.n->right, cur.n});
+        }
+        if (pa && pb) return pa != pb;
+        if (pa || pb) return false;
+    }
+    return false;
+}
+```
+
+```scala,editable
+def cousinCheck(root: TreeNode, valA: Int, valB: Int): Boolean = {
+  if (root == null) return false
+  case class NP(n: TreeNode, p: TreeNode)
+  val q = scala.collection.mutable.Queue[NP](NP(root, null))
+  while (q.nonEmpty) {
+    val sz = q.size
+    var pa: TreeNode = null; var pb: TreeNode = null
+    for (_ <- 0 until sz) {
+      val cur = q.dequeue()
+      if (cur.n.value == valA) pa = cur.p
+      if (cur.n.value == valB) pb = cur.p
+      if (cur.n.left  != null) q.enqueue(NP(cur.n.left,  cur.n))
+      if (cur.n.right != null) q.enqueue(NP(cur.n.right, cur.n))
+    }
+    if (pa != null && pb != null) return pa ne pb
+    if (pa != null || pb != null) return false
+  }
+  false
+}
+```
+
+```javascript,editable
+function cousinCheck(root, valA, valB) {
+    if (!root) return false;
+    const q = [[root, null]];
+    while (q.length) {
+        const sz = q.length;
+        let pa = null, pb = null;
+        for (let i = 0; i < sz; i++) {
+            const [n, p] = q.shift();
+            if (n.val === valA) pa = p;
+            if (n.val === valB) pb = p;
+            if (n.left)  q.push([n.left,  n]);
+            if (n.right) q.push([n.right, n]);
+        }
+        if (pa && pb) return pa !== pb;
+        if (pa || pb) return false;
+    }
+    return false;
+}
+```
+
+```typescript,editable
+function cousinCheck(root: TreeNode | null, valA: number, valB: number): boolean {
+    if (!root) return false;
+    type NP = [TreeNode, TreeNode | null];
+    const q: NP[] = [[root, null]];
+    while (q.length) {
+        const sz = q.length;
+        let pa: TreeNode | null = null, pb: TreeNode | null = null;
+        for (let i = 0; i < sz; i++) {
+            const [n, p] = q.shift()!;
+            if (n.val === valA) pa = p;
+            if (n.val === valB) pb = p;
+            if (n.left)  q.push([n.left,  n]);
+            if (n.right) q.push([n.right, n]);
+        }
+        if (pa && pb) return pa !== pb;
+        if (pa || pb) return false;
+    }
+    return false;
+}
+```
+
+```go,editable
+func cousinCheck(root *TreeNode, valA, valB int) bool {
+    if root == nil { return false }
+    type NP struct { n, p *TreeNode }
+    q := []NP{{root, nil}}
+    for len(q) > 0 {
+        sz := len(q)
+        var pa, pb *TreeNode
+        for i := 0; i < sz; i++ {
+            cur := q[0]; q = q[1:]
+            if cur.n.Val == valA { pa = cur.p }
+            if cur.n.Val == valB { pb = cur.p }
+            if cur.n.Left  != nil { q = append(q, NP{cur.n.Left,  cur.n}) }
+            if cur.n.Right != nil { q = append(q, NP{cur.n.Right, cur.n}) }
+        }
+        if pa != nil && pb != nil { return pa != pb }
+        if pa != nil || pb != nil { return false }
+    }
+    return false
+}
+```
+
+```kotlin,editable
+fun cousinCheck(root: TreeNode?, valA: Int, valB: Int): Boolean {
+    if (root == null) return false
+    data class NP(val n: TreeNode, val p: TreeNode?)
+    val q = ArrayDeque<NP>(); q.addLast(NP(root, null))
+    while (q.isNotEmpty()) {
+        val sz = q.size
+        var pa: TreeNode? = null; var pb: TreeNode? = null
+        repeat(sz) {
+            val cur = q.removeFirst()
+            if (cur.n.value == valA) pa = cur.p
+            if (cur.n.value == valB) pb = cur.p
+            cur.n.left ?.let { q.addLast(NP(it, cur.n)) }
+            cur.n.right?.let { q.addLast(NP(it, cur.n)) }
+        }
+        if (pa != null && pb != null) return pa !== pb
+        if (pa != null || pb != null) return false
+    }
+    return false
+}
+```
+
+```rust,editable
+// Cousin check is awkward in safe Rust because tracking `parent` references
+// needs Rc<RefCell<...>> or unsafe pointers; the algorithm shape mirrors the
+// other languages. Sketch using raw pointers:
+pub fn cousin_check(root: &Option<Box<TreeNode>>, val_a: i32, val_b: i32) -> bool {
+    if root.is_none() { return false; }
+    let mut q: VecDeque<(*const TreeNode, *const TreeNode)> = VecDeque::new();
+    q.push_back((root.as_ref().unwrap().as_ref() as *const _, std::ptr::null()));
+    while !q.is_empty() {
+        let sz = q.len();
+        let mut pa: *const TreeNode = std::ptr::null();
+        let mut pb: *const TreeNode = std::ptr::null();
+        for _ in 0..sz {
+            let (np, pp) = q.pop_front().unwrap();
+            unsafe {
+                if (*np).val == val_a { pa = pp; }
+                if (*np).val == val_b { pb = pp; }
+                if let Some(l) = &(*np).left  { q.push_back((l.as_ref() as *const _, np)); }
+                if let Some(r) = &(*np).right { q.push_back((r.as_ref() as *const _, np)); }
+            }
+        }
+        if !pa.is_null() && !pb.is_null() { return pa != pb; }
+        if !pa.is_null() || !pb.is_null() { return false; }
+    }
+    false
+}
+```
+
+</div>
 
 ***
 
-# Cousin check
+## Final Takeaway
 
-## Problem Statement
+Level-order is your hammer for any *horizontal* question about a tree. Three things to walk away with:
 
-Given the **root** of a binary tree and two values **valA** and **valB**, write a function that returns `true` if the two nodes with the given values are **cousins** in this tree.
+1. **`levelSize = queue.size()` is the entire trick.** That single snapshot at the top of each outer-loop iteration is what separates "flat BFS" from "BFS with level boundaries". Once it's muscle memory, every per-level question becomes mechanical.
+2. **Enqueue children, not always non-null.** For most problems (sum, max, list per level) you skip null children. For *completeness* checks you enqueue them deliberately so you can spot gaps. The choice depends on the question.
+3. **Augment the queue when you need parents.** The cousin-check trick — enqueueing `(node, parent)` pairs — generalises: any per-node side-info you need (depth, column, path-from-root, sibling) can travel alongside the node. Don't try to retrofit it; bake it into the queue's element type.
 
-Two nodes of a binary tree are cousins if they have the same depth with different parents.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 3, 4, null, null, 7\], valA = 4, valB = 7
-> -   **Output:** true
-> -   **Explanation:** The nodes with the given value are cousins as they are at the same depth but have different parents.
-
-### Example 2
-
-> -   **Input:** root = \[1, 8, 4, null, null, 2, 7, null, 9\], valA = 2, valB = 8
-> -   **Output:** false
-> -   **Explanation:** The nodes with the given value are not cousins as they are on different depths.
-
-## Solution
-
-```cpp
-#include <queue>
-
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-// Define a struct to store the node and its parent
-struct NodeInfo {
-    TreeNode *node;
-    TreeNode *parent;
-};
-
-class Solution {
-public:
-    bool cousinCheck(TreeNode *root, int valA, int valB) {
-        if (!root) {
-            return false;
-        }
-
-        // Use a queue to store the nodes and their parents
-        queue<NodeInfo> queue;
-        queue.push(NodeInfo{root, nullptr});
-
-        // Loop through each level in the tree
-        while (!queue.empty()) {
-
-            // Get the size of the current level
-            int levelSize = queue.size();
-
-            // Initialize the parent nodes for A and B
-            TreeNode *parentA = nullptr;
-            TreeNode *parentB = nullptr;
-
-            // Loop through each node in the current level
-            for (int i = 0; i < levelSize; ++i) {
-
-                // Get the node and the parent node for the first node
-                // in the queue
-                NodeInfo current = queue.front();
-                TreeNode *node = current.node;
-                TreeNode *parent = current.parent;
-                queue.pop();
-
-                // Check and assign parents for A and B
-                if (node->val == valA) {
-                    parentA = parent;
-                }
-
-                if (node->val == valB) {
-                    parentB = parent;
-                }
-
-                // Add the node's children to the queue if they exist
-                if (node->left) {
-                    queue.push(NodeInfo{node->left, node});
-                }
-
-                if (node->right) {
-                    queue.push(NodeInfo{node->right, node});
-                }
-            }
-
-            // If both nodes found at the same level
-            if (parentA && parentB) {
-                return parentA != parentB;
-            }
-
-            // If only one is found, return false (not same depth)
-            if (parentA || parentB) {
-                return false;
-            }
-        }
-
-        // If neither node is found, return false
-        return false;
-    }
-};
-```
-
-***
-
-# Cousin check
+> *Coming up — the next lesson takes level-order to <strong>two dimensions</strong>. Instead of grouping nodes by their <em>level</em>, we'll group by their <em>horizontal column</em> — yielding the tree's "top view", "bottom view", and "vertical traversal". Same BFS engine, an extra coordinate per queue entry.*

@@ -1,167 +1,325 @@
-# Array implementation of binary trees
+# 2. Array Implementation of Binary Trees
 
-## Table of Contents
+## The Hook
 
-1. [Introduction to array based binary trees](#introduction-to-array-based-binary-trees)
-2. [Defining a node in binary tree](#defining-a-node-in-binary-tree)
-3. [Structure of a binary tree](#structure-of-a-binary-tree)
-4. [Understanding a generic binary tree](#understanding-a-generic-binary-tree)
+A binary tree feels like a *pointer-y* thing — every node has two child references, parents and children scatter across the heap, you traverse by *chasing pointers*. So it's surprising the first time you see it: **a binary tree can live entirely inside a flat array**, with no pointers, no nodes, no allocations. The trick is a single piece of arithmetic.
 
-***
+If you walk a complete binary tree level by level (root first, then left-to-right within each level) and number the nodes `0, 1, 2, 3, …`, a beautiful pattern emerges. The two children of the node at index `i` are *always* at indices `2i + 1` (left) and `2i + 2` (right). The parent of the node at index `i` is *always* at index `(i − 1) / 2` (integer division). No pointers — pure index arithmetic. Everything you'd reach with a pointer in the linked version, you reach in this version with one multiplication and one addition.
 
-# Introduction to array based binary trees
+This is the layout that lives at the heart of **binary heaps** (the data structure behind every priority queue, every Dijkstra, every A*, every event-loop timer queue). It's also how segment trees, Fenwick trees, and most array-based tree libraries work under the hood. The cost of memory accesses is constant (no pointer dereference), the cache behaviour is excellent (contiguous memory), and a tree with `N` nodes consumes *exactly* `N` slots — no node-overhead, no fragmentation.
 
-Let us look at a **complete binary tree**. We can see a pattern if we try to **enumerate** the nodes of a complete binary tree, starting from the root and going top to bottom, left to right.
+The catch: this elegant arithmetic only works when the tree is **complete** (every level full except possibly the last, filled left-to-right). For trees of *arbitrary* shape, you can either fake completeness with sentinel "dummy" slots — wasting memory — or fall back to the linked representation we'll cover next lesson. This lesson explores both: the clean case (complete trees), the index arithmetic that powers it, and the trade-offs you face when the tree isn't complete.
 
-// Diagram: Enumerating nodes of a complete binary tree
+---
 
-> We can see that for any node n:
->
-> -   The left child = (2 \* n) + 1
-> -   The right child = (2 \* n) + 2
+## Table of contents
 
-This pattern is a special property of a complete binary tree.
-
-We can use the enumeration of a complete binary tree to represent a binary tree in an array. The enumeration of a node can be used as an index in an array that stores the value of a given node.
-
-// Diagram: Array implementation of a binary tree
-
-Later in this course, we will learn how to implement any binary tree using arrays and how to move around between nodes without pointers and references using pure mathematics.
+1. [Numbering nodes — the arithmetic that makes it work](#numbering-nodes--the-arithmetic-that-makes-it-work)
+2. [The node — there isn't one](#the-node--there-isnt-one)
+3. [Layout in memory](#layout-in-memory)
+4. [Navigating without pointers](#navigating-without-pointers)
+5. [Generic binary trees — paying for incompleteness](#generic-binary-trees--paying-for-incompleteness)
 
 ***
 
-# Defining a node in binary tree
+# Numbering nodes — the arithmetic that makes it work
 
-The array implementation of a binary tree is based on individual nodes making up the entire tree. These individual nodes, however, don't have **left** and **right** sections to hold references like nodes in a linked list. As we will see later in the course, the array implementation of a tree relies on simple math and the properties of a full binary tree to figure out the left and right child of a node.
+Take a complete binary tree and number its nodes in **level order** — root at `0`, then its two children at `1, 2`, then *their* children at `3, 4, 5, 6`, and so on. Pure left-to-right, top-to-bottom enumeration.
 
-## Structure of a node
-
-In the array implementation, the data stored in the node is the node itself. It does not need left and right sections, as moving around in the array implementation of a binary tree is accomplished using simple math, as we will learn later.
-
-// Diagram: Binary tree node
-
-## Implementing a node
-
-Since the binary tree node in the array implementation is the data itself, a class is not needed to implement it. 
-
-C++
-
-```cpp
-// datatype of the data stored in the node
-// is the datatype of the node as well
-datatype node;
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    R(("[0] root"))
+    A(("[1]"))
+    B(("[2]"))
+    C(("[3]"))
+    D(("[4]"))
+    E(("[5]"))
+    F(("[6]"))
+    R --> A
+    R --> B
+    A --> C
+    A --> D
+    B --> E
+    B --> F
+    style R fill:#fef9c3,stroke:#f59e0b
 ```
 
-Java
+<p align="center"><strong>Level-order numbering of a perfect binary tree of height 2 — seven nodes labelled <code>0..6</code>. Notice the pattern: the children of node <code>1</code> are <code>3</code> and <code>4</code>; the children of node <code>2</code> are <code>5</code> and <code>6</code>. Look closer — those are <code>2·1+1, 2·1+2</code> and <code>2·2+1, 2·2+2</code>. The pattern is exact.</strong></p>
 
-```java
-// datatype of the data stored in the node
-// is the datatype of the node as well
-datatype node;
-```
+The pattern generalises:
 
-Typescript
+> **For the node at index `n` in a complete binary tree:**
+>
+> - **Left child**  → index `2n + 1`
+> - **Right child** → index `2n + 2`
+> - **Parent**     → index `(n − 1) / 2` (integer division)
 
-```typescript
-// datatype of the data stored in the node
-// is the datatype of the node as well
-const node: datatype = {};
-```
+Why does this work? Each level of a perfect binary tree is twice the size of the previous. Level `k` starts at index `2^k − 1` and contains `2^k` nodes. The `j`-th node on level `k` (counting from 0) has its two children at positions `2j` and `2j + 1` on level `k + 1`. Thread that bookkeeping through the cumulative offsets and you fall out with `2n + 1` and `2n + 2`. We'll spare the algebra; the formulas are cleaner than the proof.
 
-Javascript
-
-```javascript
-// datatype of the data stored in the node
-// is the datatype of the node as well
-node = {};
-```
-
-Python
-
-```python
-# datatype of the data stored in the node
-# is the datatype of the node as well
-node: datatype = {};
-```
+> *Predict before reading on — what's the index of node <code>5</code>'s left child? Of node <code>5</code>'s parent?*
+>
+> Left child of `5`: `2·5 + 1 = 11`. Parent of `5`: `(5 − 1) / 2 = 2`. Both are O(1) — *one multiplication, one addition, no memory dereferences*. That's the entire performance argument for this representation.
 
 ***
 
-# Structure of a binary tree
+# The node — there isn't one
 
-Now that we know how individual nodes of a binary tree look in the array implementation, let us look at how they link up together to form a binary tree. Multiple nodes link up together to create the binary tree structure. When implemented as an array, the node's enumeration in its tree representation is used as an index in the array where the data associated with that node is stored. 
+In the linked-list implementation (next lesson), each node is a small object holding a value and two child pointers. In the array implementation, **nodes don't exist as a separate construct** — the array slot *is* the node. The value at `arr[i]` is the only thing that node "is". The structure of the tree (who's whose child, who's whose parent) is entirely *implicit* in the index, recovered on the fly with arithmetic.
 
-// Diagram: Individual nodes arranged sequentially in an array
+This is why the array version has *zero per-node overhead*. A linked node typically eats 24 bytes (8 for the value, 8 for left, 8 for right) on a 64-bit system; an array slot eats 4–8 bytes for just the value. For a million-node integer tree, that's the difference between **24 MB** and **4 MB** — a 6× reduction, and that's before accounting for allocator metadata.
 
-What looks like a tree on paper looks very different when implemented as an array in the computer memory. The resulting binary tree looks like a regular array of nodes in the memory. Let us look at what a binary tree implemented as an array looks like in the computer memory.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph LL["Linked node — ~24 bytes"]
+        direction TB
+        V["val (8B)"]
+        L["left ptr (8B)"]
+        R["right ptr (8B)"]
+    end
+    subgraph AR["Array slot — ~4-8 bytes"]
+        direction TB
+        AV["val (4-8B)"]
+    end
+    LL ~~~ AR
+```
 
-// Diagram: Binary tree array implementation in computer memory
-
-## Root node
-
-Unlike when implementing a binary tree using linked lists, we don't need to store the reference to the root node when the binary tree is implemented using an array. This is because the first node of the array will always be the root node as the node has the enumeration 0.
-
-## Moving down
-
-Unlike a binary tree implemented using a linked list, a binary tree implemented as an array does not have **left** and **right** sections to help move from a parent node to the child node. However, there is a relationship between the enumeration of a node in the tree and the index of the array in which it is stored. Using this enumeration and the special properties of a **complete** binary tree, we can move from a parent node to a child node using simple mathematics.
-
-> For a node at index n:
->
-> -   Index of left child = (2 \* n) + 1
-> -   Index of right child = (2 \* n) + 2
-
-// Diagram: Moving around in the tree
-
-## Moving up
-
-There is a special benefit of implementing a binary tree using arrays. The linked list implementation of a binary tree uses **unidirectional** references. This is why we can only move from a parent node to a child node by following these references and not vice versa. In the array representation, however, since arrays provide **random access** capabilities, we can move up the tree from a child node to a parent node if we know the index of the parent node. The index of the parent node can be easily calculated from the index of a child node.
-
-// Diagram: This method relies on integer division that truncates the fractional part of the result. Eg - 5 / 2 = 2
-
-> For a node at index n:
->
-> -   Index of parent node = (n - 1) / 2
-
-// Diagram: Moving around in the tree
-
-## Leaf nodes
-
-Unlike when implementing a binary tree using linked lists, a binary tree, when implemented using arrays, does not make use of `null` to identify leaf nodes. In the array implementation, nodes do not store any information about their children. However, the index of the node in the array is used to identify whether a given node is a leaf node or not.
-
-If the index of the left and right child of a node in the array is out of bounds of the array, it means that the given node does not have a left and a right child and hence is a leaf node.
+<p align="center"><strong>Per-node memory comparison — the array version is dramatically more compact because it eliminates the two child pointers. The structural information they carried is recovered through index arithmetic, not memory.</strong></p>
 
 ***
 
-# Understanding a generic binary tree
+# Layout in memory
 
-Now that we know how **complete binary trees** are implemented using arrays, let's try to understand how we can **extend** the same idea to any generic binary tree. Generic binary trees cannot be implemented using an array as easily as complete binary trees. This is because the implementation relies on some structural properties of a complete binary tree. Let us look at the problem we face when implementing a generic binary tree using arrays and how we can overcome it.
+What looks like a tree on paper is just a contiguous run of values in memory. Here's what a perfect height-2 tree storing `[1, 2, 3, 4, 5, 6, 7]` looks like physically:
 
-## Understanding the problem
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+block-beta
+  columns 8
+  L["index"]:1 I0["0"]:1 I1["1"]:1 I2["2"]:1 I3["3"]:1 I4["4"]:1 I5["5"]:1 I6["6"]:1
+  V["value"]:1 V0["1"]:1 V1["2"]:1 V2["3"]:1 V3["4"]:1 V4["5"]:1 V5["6"]:1 V6["7"]:1
+  M["meaning"]:1 M0["root"]:1 M1["L of 1"]:1 M2["R of 1"]:1 M3["L of 2"]:1 M4["R of 2"]:1 M5["L of 3"]:1 M6["R of 3"]:1
+  style V0 fill:#fef9c3,stroke:#f59e0b
+```
 
-The problem here is pretty clear. To implement a binary tree using an array and be able to move around easily, the tree should follow some structural characteristic properties. The properties are given below.
+<p align="center"><strong>The complete tree <code>[1, 2, 3, 4, 5, 6, 7]</code> stored in seven contiguous slots. The "tree shape" is not stored anywhere — it's purely a way of <em>interpreting</em> the indices. Reading <code>arr[3]</code> gives you the left child of the root's left child without any pointer chasing.</strong></p>
 
-> When the nodes of the tree are enumerated:
+## Cache behaviour
+
+Modern CPUs read memory in *cache lines* of ~64 bytes — meaning when you fetch one value, you essentially get its 8-or-so neighbours for free. In an array tree, those neighbours are the next nodes in level order, which is *exactly* the order most traversals access them in. Linked trees, by contrast, scatter their nodes across the heap — every parent-to-child step is potentially a cache miss.
+
+For real numerical workloads (heaps in scientific computing, segment trees in competitive programming), array-backed trees are routinely **5–10× faster** than equivalent linked structures despite identical asymptotic complexity. The cache wins.
+
+***
+
+# Navigating without pointers
+
+Three operations cover all the navigation you'll ever need on an array-backed binary tree.
+
+## Root
+
+The root is *always* `arr[0]` — no special bookkeeping, no separate field. The tree is empty if the array is empty.
+
+```text
+root() → arr[0]   if size > 0, else "empty"
+```
+
+## Moving down — left and right children
+
+```text
+left(i)  → 2·i + 1
+right(i) → 2·i + 2
+```
+
+A child *exists* if its computed index is in bounds — i.e. `< size`. A node has *no left child* when `2i + 1 >= size`; *no right child* when `2i + 2 >= size`. Falling off the end of the array *is* the array equivalent of hitting a `null` child pointer.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    P(("parent<br/>index n"))
+    L(("left<br/>index 2n+1"))
+    R(("right<br/>index 2n+2"))
+    P --> L
+    P --> R
+    style P fill:#fef9c3,stroke:#f59e0b
+```
+
+<p align="center"><strong>Parent at index <code>n</code>; children at <code>2n+1</code> and <code>2n+2</code>. The arithmetic is the entire navigation API.</strong></p>
+
+## Moving up — parent
+
+```text
+parent(i) → (i − 1) / 2          (integer division)
+```
+
+The root (index 0) has no parent — by convention `parent(0)` returns a sentinel like `-1` or is simply not called.
+
+This is one of the *quiet superpowers* of the array representation: linked binary trees, by default, only carry a downward pointer (parent → child). Going *up* requires either an extra parent pointer per node (more memory), or a traversal from the root (O(height) per query). The array representation gets parent navigation **for free** — `(i − 1) / 2` is O(1).
+
+> **Why integer division?** Both children of node `n` (i.e., `2n+1` and `2n+2`) have parent `n`. Plug them in:
 >
-> -   For any node **n**, the **left** child should be enumerated as **(2 \* n ) + 1**
-> -   For any node **n**, the **right** child should be enumerated as **(2 \* n ) + 2**
+> - `(2n + 1 − 1) / 2 = 2n / 2 = n` ✓
+> - `(2n + 2 − 1) / 2 = (2n + 1) / 2 = n` (with truncation toward zero) ✓
+>
+> The `/2` collapses both odd and even children to the same parent index. *Truncation* is the magic — `(2n + 1) / 2` would equal `n + 0.5` in real arithmetic; integer division floors it back to `n`. Use floored integer division (which is what `/` does in C/Java/JS for positive integers, and what `//` does in Python). Don't accidentally use `/` in Python — that's float division and will break the formula.
 
-However, only **complete binary trees** have this property. This means it is not possible to implement non-complete binary trees using arrays.
+## Identifying leaves
 
-// Diagram: Non Complete Binary Trees
+A node is a *leaf* iff *both* of its computed child indices are out of bounds:
 
-## Exploring a possible solution
+```text
+isLeaf(i) → 2·i + 1 >= size
+```
 
-The fix to this problem, however, is straightforward. We can first convert any given tree into a complete binary tree by filling in the empty spaces with **dummy** nodes. These dummy nodes hold a **garbage** value that helps us identify them as dummy nodes. This way, a non-complete binary tree is first converted to a complete binary tree, which is then enumerated and implemented as an array.
+Why is checking just the *left* child enough? Because the left child has the *smaller* index — if the left child is out of bounds, the right child certainly is. (And in a complete tree, "missing left, present right" can never happen — the last level fills left-first.)
 
-// Diagram: Implementing generic binary trees using arrays
+***
 
-**Do we have to modify the original tree by adding dummy nodes?**
+# Generic binary trees — paying for incompleteness
 
-We do **not** have to modify the original tree. You can think of it as implementing the original tree in the **skeleton** of the closest complete binary tree. In that skeleton, we mark the dummy nodes to clarify that they are not in the original tree. We also modify all our algorithms that traverse or operate on the tree to ignore the dummy nodes completely. We use these dummy nodes to ensure our mathematical equations to hop around the tree still work as before.
+The array representation lives by one invariant: **the index pattern only works if the tree is complete**. The instant a node is missing somewhere in the middle, all the indices after it are *off by however many nodes are missing* — and the arithmetic falls apart.
 
-## Limitations
+The fix: pretend the tree *is* complete by inserting **dummy** (sentinel) values for the missing nodes. Pick a sentinel that can't appear as real data — `null`, `None`, `Optional.empty()`, or for integer trees a value like `-1` or `INT_MIN`. The arithmetic stays valid; you just check for the sentinel before using a value.
 
-The limitations of implementing a non-complete binary tree using arrays should be pretty clear now. Dummy nodes do not store any data but still use the same amount of memory as any other node in the array implementation. Depending on the structure of the tree we are trying to implement, this extra wasted space maybe even more than the size of the actual tree.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    R((1))
+    A((2))
+    B((3))
+    C(("·<br/>(missing)"))
+    D((5))
+    E(("·<br/>(missing)"))
+    F((7))
+    R --> A
+    R --> B
+    A --> C
+    A --> D
+    B --> E
+    B --> F
+    style C fill:#fee2e2,stroke:#ef4444
+    style E fill:#fee2e2,stroke:#ef4444
+```
 
-// Diagram: More dummy nodes than real nodes in array implementation
+<p align="center"><strong>A non-complete tree — node 2 has only a right child, node 3 has only a right child. To shoehorn this into an array we insert <em>dummy slots</em> where the missing nodes "would have been"; the array ends up <code>[1, 2, 3, null, 5, null, 7]</code>. Algorithms that walk the tree must check for <code>null</code> before recursing into a child.</strong></p>
 
-Even with these limitations, the array implementation of a binary tree is quite handy when we know the number of nodes in a binary tree in advance. We can create an array of appropriate sizes and fill it with values in the correct places. In this course, however, we will focus only on the linked list representation of a binary tree as it is the most widely used one.
+## Worst case — when sentinels eat your memory
+
+For a *skew* tree (every node has just one child), the sentinel cost is catastrophic. A right-skew tree of `N` real nodes wedged into the array layout requires `2^N − 1` slots — *exponential* in the number of real nodes — because each level only has one node, but the array layout reserves space for a *full* level either way.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    R((1))
+    A(("·"))
+    B((2))
+    C(("·"))
+    D(("·"))
+    E(("·"))
+    F((3))
+    R --> A
+    R --> B
+    B --> C
+    B --> F
+    A -.- D
+    A -.- E
+    style A fill:#fee2e2,stroke:#ef4444
+    style C fill:#fee2e2,stroke:#ef4444
+    style D fill:#fee2e2,stroke:#ef4444
+    style E fill:#fee2e2,stroke:#ef4444
+```
+
+<p align="center"><strong>A right-skew tree with 3 real nodes (1, 2, 3) needs the array <code>[1, null, 2, null, null, null, 3]</code> — <strong>4 wasted slots out of 7</strong>. Add another level and the array grows to 15 slots for 4 real nodes. The wastage is <em>exponential</em> in the worst case.</strong></p>
+
+> *Predict before reading on — for a left-skew tree of <em>10</em> real nodes, how many array slots would the array representation need?*
+>
+> `2^10 − 1 = 1023` slots, of which only 10 are real and 1013 are sentinels — about a *0.98% utilization rate*. This is exactly why we use the linked representation (next lesson) for trees of unpredictable shape, and reserve the array representation for cases where the tree's shape is known to be complete or near-complete (heaps, segment trees, etc.).
+
+## When does the array representation make sense?
+
+Use it when you can *guarantee* the tree is at least *near-complete*:
+
+- **Binary heaps** — by definition complete, so the array layout has *zero* waste. This is why every priority queue in every language standard library uses an array internally.
+- **Segment trees and Fenwick trees** — built on a fixed-size complete (or near-complete) shape. Array layout is mandatory for the index arithmetic that powers their O(log N) range queries.
+- **Static lookup trees in numerical code** — when the tree shape is decided once at construction and never modified, even some waste is fine for the cache wins.
+
+Avoid it when:
+
+- The tree shape is *arbitrary or skewed* — the sentinel waste destroys the memory advantage.
+- The tree must support *arbitrary insertions and deletions in the middle* — the array layout is rigid; insertions in non-leaf positions can require shifting half the array.
+- You need *parent pointers stored explicitly* — though the array representation gives parent navigation for free, you can't attach extra metadata to the implicit edges.
+
+For trees of arbitrary shape, the **linked-list representation** in the next lesson is the right tool. Most interview problems and most production code paths in real applications (DOM trees, syntax trees, BSTs in standard libraries) use the linked representation precisely because they need shape-flexibility more than they need cache locality.
+
+***
+
+## Final Takeaway
+
+The array representation is the cleanest expression of binary-tree-as-data: pure index arithmetic, zero pointer overhead, perfect cache locality. It's also the most *constrained* representation — only complete (or near-complete) trees pay off. Three things to walk away with:
+
+1. **`2i+1`, `2i+2`, `(i−1)/2` is the entire navigation API.** Memorise these three formulas. They appear in every heap implementation, every segment tree, every priority queue, every iterative tree algorithm that needs to address children by index. The arithmetic is *the* idea behind array-backed trees.
+2. **Cost is paid in completeness, not nodes.** A linked tree of `N` nodes uses `O(N)` memory regardless of shape; an array tree of `N` *real* nodes uses `O(2^h)` memory where `h` is the tree's height. Balanced and complete trees pay near-`O(N)`; skew trees pay `O(2^N)`. Match the representation to the workload.
+3. **Heaps are the killer app.** Every priority queue you've ever used — heaps in `std::priority_queue`, `java.util.PriorityQueue`, Python's `heapq`, the timer wheels in event loops, Dijkstra's frontier in pathfinding — uses an array-backed binary tree as its internal storage. The array representation is the *enabling technology* for one of the most-used data structures in computing.
+
+> *Coming up — the next lesson covers the **linked-list implementation**, which trades the index arithmetic for a per-node <code>left</code>/<code>right</code> pointer. Less compact, less cache-friendly, but flexible enough to store arbitrarily-shaped trees without paying any sentinel tax. That representation is what every traversal, construction, and pattern lesson in the rest of the chapter will use.*

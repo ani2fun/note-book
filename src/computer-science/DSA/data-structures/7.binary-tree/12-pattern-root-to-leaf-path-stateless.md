@@ -1,891 +1,685 @@
-# Pattern: Root to leaf path (Stateless)
+# 12. Pattern: Root-to-Leaf Path (Stateless)
 
-## Table of Contents
+## The Hook
 
-1. [Understanding the stateless root to leaf path pattern](#understanding-the-stateless-root-to-leaf-path-pattern)
-2. [Identifying the stateless root to leaf path pattern](#identifying-the-stateless-root-to-leaf-path-pattern)
-3. [Root to leaf path](#root-to-leaf-path)
-4. [Binary summation of tree](#binary-summation-of-tree)
-5. [Even path](#even-path)
-6. [Odd count](#odd-count)
+The previous patterns all asked questions about *individual nodes*. The preorder ones gave each node info about its ancestors; the postorder ones gave each node info about its descendants. This lesson zooms out one more level — the **whole root-to-leaf path** is the unit of interest.
+
+A root-to-leaf path is exactly what it sounds like: the sequence of nodes from the root, walking child references, ending at a leaf. Every leaf defines exactly one such path. *"Does any root-to-leaf path sum to N?"* — yes if and only if at least one leaf can be reached with an accumulator that ends up at N. *"How many root-to-leaf paths have an odd length?"* — count the leaves whose path-length is odd. *"Is there a path where every node is even?"* — does a leaf exist whose path was all-even on the way down?
+
+Each of these problems is the *same recipe*: the **accumulator descends preorder-style** from the root, the **answer is decided at leaves** (where the path completes), and **internal nodes combine the children's answers postorder-style**. It's a hybrid of preorder and postorder, written as a single recursive function.
+
+The "stateless" qualifier carries the same meaning as before — the accumulator is a small immutable value (a number, a flag, a count) that's *passed down* the recursion by parameter. No mutable shared state. The recursive shape is unmistakably similar to what you've already seen, but the *interpretation* shifts: each leaf says "here's my path's verdict", and the OR / + / max combiner up the tree decides what the answer for the *whole* tree is.
+
+This lesson sets up the recipe and walks through four canonical problems — *path sum exists*, *binary summation of leaf paths*, *all-even path exists*, and *count of odd-length paths*. Each gets a clean implementation in 10 languages.
+
+---
+
+## Table of contents
+
+1. [The stateless root-to-leaf path pattern](#the-stateless-root-to-leaf-path-pattern)
+2. [How to recognise it](#how-to-recognise-it)
+3. [Problem 1 — Root to leaf path (sum check)](#problem-1--root-to-leaf-path-sum-check)
+4. [Problem 2 — Binary summation of tree](#problem-2--binary-summation-of-tree)
+5. [Problem 3 — Even path](#problem-3--even-path)
+6. [Problem 4 — Odd count](#problem-4--odd-count)
 
 ***
 
-# Understanding the stateless root to leaf path pattern
+# The stateless root-to-leaf path pattern
 
-A root-to-leaf path in a binary tree is a path made up of nodes starting from the root node and ending at a leaf node, and there are as many root-to-leaf paths in a binary tree as there are leaves. Many binary tree problems require us to find, for all root-to-leaf paths, the aggregated value of a function `f` over some or all nodes in a root-to-leaf path. Some problems go even further to find the aggregated value of some other function `g` over all aggregated values of all the root-to-leaf paths and return a single result.
+```text
+recurse(node, accumulator):
+  if node is null: return identity            # propagate "no path here"
+  newAcc = update(accumulator, node)
+  if node is a leaf:                          # path is complete
+    return verdict(newAcc)
+  leftAnswer  = recurse(node.left,  newAcc)
+  rightAnswer = recurse(node.right, newAcc)
+  return combine(leftAnswer, rightAnswer)
+```
 
-There are two ways to solve this problem: one requires some shared state to be maintained, while the other is completely stateless. The choice between these options depends on the function `f`and`g`and the complexity of the problem. Depending on the functions `f`and`g`, the problem can be solved using the stateless root-to-leaf path technique.
+Three pieces to specialise:
 
-The stateless root-to-leaf path pattern is a classification of problems that can be solved using the stateless root-to-leaf path technique to find aggregated values over all root-to-leaf paths in a binary tree.
+1. **`update`** — how the accumulator changes as we descend through the current node (preorder-style).
+2. **`verdict`** — at a leaf, what's the answer for *this* root-to-leaf path?
+3. **`combine`** — how to combine two children's answers into one parent answer (postorder-style). Common combinators: `OR` for "any path satisfies …", `+` for "count / sum across paths", `max` for "best path".
 
-// Diagram: All the root-to-leaf paths of a binary tree.
+The *identity* in the base case is whatever value makes `combine` ignore the empty subtree — `false` for OR, `0` for sum, `-∞` for max.
 
-In this lesson, we will learn more about using the stateless root-to-leaf path technique to solve binary tree problems and how to identify a problem as a root-to-leaf path pattern problem.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    R(("(1)<br/>acc=0"))
+    A(("(2)<br/>acc=1"))
+    B(("(3)<br/>acc=1"))
+    C(("(4)<br/>LEAF: verdict(acc=3)"))
+    D(("(7)<br/>LEAF: verdict(acc=4)"))
+    R --> A
+    R --> B
+    A --> C
+    B --> D
+    style R fill:#fef9c3,stroke:#f59e0b
+    style C fill:#dcfce7,stroke:#22c55e
+    style D fill:#dcfce7,stroke:#22c55e
+```
 
-## The stateless root to leaf path technique
+<p align="center"><strong>Stateless root-to-leaf path pattern — accumulator <strong>descends</strong> with updates from each node; leaves <strong>emit</strong> their per-path verdict; internal nodes <strong>combine</strong> their children's verdicts back up. It's preorder going down + postorder coming up, fused into one recursion.</strong></p>
 
-Consider we are given a binary tree, and we need to find, for each root-to-leaf path, the aggregated value of a function `f` over all nodes in a root-to-leaf path. Once we get the results for all root-to-leaf paths, we need to apply some other function `g` to aggregate values for every path further into a single value.
-
-// Diagram: Aggregate the value of function f over all root-to-leaf paths and further aggregate the root-to-leaf path aggregates over a function g.
-
-The stateless solution to the problem uses a mix of preorder and postorder traversal where the function `f` is incrementally aggregated over a path by passing the incremental aggregates down the tree, and the aggregated value of a path over function `g` is passed up from the leaf nodes, and every other node combines the aggregates for both its subtrees before passing it back.
-
-// Diagram: Aggregate function f by passing incremental results down to leaves and aggregate root-to-leaf paths by passing results up from leaves
-
-We perform the preorder traversal and pass a variable `pathAggregate` down to every node, starting with a default value for the root node. We then apply the function `f` to add the contribution of the current node to `pathAggregate` and pass this updated value further down in the preorder traversal. And so, for a node, the variable `pathAggregate` denotes the aggregated value of the function `f` over all the nodes in the path traversed so far (root to the current node). On reaching a leaf node, the `pathAggregate` now holds the aggregated value of `f` over the root-to-leaf path to this leaf.
-
-// Diagram: The aggregate of a root-to-leaf path over function f is finally computed at the leaf nodes.
-
-In every leaf node, the value of `pathAggregate` is aggregated using the function `g` with a default value if needed and passed back **up** to the parent node. In case we hit a `null` reference, we return a default value.
-
-The parent node receives these values from both its left and right subtrees which are stored in local variables `left` and `right` respectively. These variables denote the aggregated value of function g over all root-to-leaf paths passing through the left and right subtrees, respectively. The parent node aggregates them using the function `g` before passing it back up to its parent. This way, every node returns to its parent the aggregated value of the function `g` over the aggregates of all root-to-leaf paths passing through them.
-
-// Diagram: All the root-to-leaf path aggregates are passed up from the leaves and aggregated on the way.
-
-And so, at the end of the traversal, the value returned from the root node is the aggregated value of the function `g` over the aggregates (using the function `f`) of all root-to-leaf paths.
-
-It is important to note that we pass the aggregated value of the function `f` **down** the tree and the aggregated value of the function `g` **up** the tree. This way, both these values are local to every stack frame, and we don't need to keep any global or shared variables.
-
-// Diagram: Aggregate function f over all root to leaf paths and return aggregated value over function g
-
-## Algorithm
-
-The generic algorithm for stateless execution of the root-to-leaf path technique is given below. It applies a function `f` on nodes of all the root-to-leaf paths of a binary tree and then applies a function `g` over all the aggregated values to return a single result. Note that the preorder function is created separately so that the initial value of aggregate can be passed to it. The final result is returned from the the preorder function when the execution ends.
-
-> **Algorithm**
+> *Predict before reading on — what's the difference between this pattern and the stateless preorder pattern from lesson 8?*
 >
-> -   **Step 1:** Return \`rootToLeafPath(root, defaultValue)\`
->
-> **rootToLeafPath(node, pathAggregate)**
->
-> -   **Step 1:** If \`node\` is a \`null\` node, return \`defaultValue\`
-> -   **Step 2:** Add contribution of \`node\` to \`pathAggregate\` using function \`f \`
-> -   **Step 3:** If \`node\` is a leaf node, return the output of \`g(pathAggregate, default)\`
-> -   **Step 4:** Calculate \`left\` = \`rootToLeafPath(node.left, pathAggregate)\`
-> -   **Step 5:** Calculate \`right\` = \`rootToLeafPath(node.right, pathAggregate)\`
-> -   **Step 6:** Return the output of \`g(left, right)\`
+> Stateless preorder *processes every node* — the answer is whatever each node computes from its ancestor chain. Root-to-leaf-path *only emits an answer at leaves* — the answer for an internal node is combined from its descendants' leaf-emissions. They share the "accumulator down" mechanic but differ in *where* the answer is born and how it propagates back up.
 
-## Implementation
+## Generic pattern in 10 languages
 
-The generic implementation of the stateless execution is given below. The preorder function is separate from the calling function as we need to pass an initial value of aggregate to the preorder function which may be different for each problem.
+We'll show "does any root-to-leaf path sum to target?" as the canonical generic example.
 
-C++
+<div class="lang-tabs">
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+```python,editable
+from typing import Optional
 
-// Diagram: using namespace std;
-
- class Solution {
- public:
-     int rootToLeafPath(TreeNode *node, int pathAggregate) {
-         if (!node) {
-            // Return a default value if this is a null node
-            return 0;
-         }
-
-         // Add contribution of the current node to the pathAggregate
-         // using the funciton f
-         pathAggregate = f(pathAggregate, node->val);
-
-         // If it's a leaf node, pathAggregate is the aggregated value
-         // of function f over a root-to-leaf path
-         if (!node->left && !node->right) {
-              // Return the aggregated value of pathAggregate
-              // over function g with a default value dictated by the
-              // problem
-              return g(pathAggregate, 0);
-         }
-
-         // Pass the updated pathAggregate to recursively find the
-         // aggregated value of all root-to-leaf path aggregates passing
-         // through the left and right subtrees
-         int left = rootToLeafPath(node->left, pathAggregate);
-         int right = rootToLeafPath(node->right, pathAggregate);
-
-         // Aggregate the left and right aggregates using function g
-         // This is the aggregated value of all root-to-leaf path aggregates
-         // passing through this node
-         return g(leftSum, rightSum);
-     }
-
- };
-```
-
-Java
-
-```java
-import java.util.*;
-
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-class Solution {
-    public int rootToLeafPath(TreeNode node, int pathAggregate) {
-        if (node == null) {
-            // Return a default value if this is a null node
-            return 0;
-        }
-
-        // Add contribution of the current node to the pathAggregate
-        // using the function f
-        pathAggregate = f(pathAggregate, node.val);
-
-        // If it's a leaf node, pathAggregate is the aggregated value
-        // of function f over a root-to-leaf path
-        if (node.left == null && node.right == null) {
-            // Return the aggregated value of pathAggregate
-            // over function g with a default value dictated by the problem
-            return g(pathAggregate, 0);
-        }
-
-        // Pass the updated pathAggregate to recursively find the
-        // aggregated value of all root-to-leaf path aggregates passing
-        // through the left and right subtrees
-        int leftSum = rootToLeafPath(node.left, pathAggregate);
-        int rightSum = rootToLeafPath(node.right, pathAggregate);
-
-        // Aggregate the left and right aggregates using function g
-        // This is the aggregated value of all root-to-leaf path aggregates
-        // passing through this node
-        return g(leftSum, rightSum);
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-export class Solution {
-  rootToLeafPath(node: TreeNode | null, pathAggregate: number): number {
-    if (!node) {
-      // Return a default value if this is a null node
-      return 0;
-    }
-
-    // Add contribution of the current node to the pathAggregate
-    // using the function f
-    pathAggregate = f(pathAggregate, node.val);
-
-    // If it's a leaf node, pathAggregate is the aggregated value
-    // of function f over a root-to-leaf path
-    if (!node.left && !node.right) {
-      // Return the aggregated value of pathAggregate
-      // over function g with a default value dictated by the problem
-      return g(pathAggregate, 0);
-    }
-
-    // Pass the updated pathAggregate to recursively find the
-    // aggregated value of all root-to-leaf path aggregates passing
-    // through the left and right subtrees
-    let leftSum = this.rootToLeafPath(node.left, pathAggregate);
-    let rightSum = this.rootToLeafPath(node.right, pathAggregate);
-
-    // Aggregate the left and right aggregates using function g
-    // This is the aggregated value of all root-to-leaf path aggregates
-    // passing through this node
-    return g(leftSum, rightSum);
-  }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-  rootToLeafPath(node, pathAggregate) {
-    if (!node) {
-      // Return a default value if this is a null node
-      return 0;
-    }
-
-    // Add contribution of the current node to the pathAggregate
-    // using the function f
-    pathAggregate = f(pathAggregate, node.val);
-
-    // If it's a leaf node, pathAggregate is the aggregated value
-    // of function f over a root-to-leaf path
-    if (!node.left && !node.right) {
-      // Return the aggregated value of pathAggregate
-      // over function g with a default value dictated by the problem
-      return g(pathAggregate, 0);
-    }
-
-    // Pass the updated pathAggregate to recursively find the
-    // aggregated value of all root-to-leaf path aggregates passing
-    // through the left and right subtrees
-    let leftSum = this.rootToLeafPath(node.left, pathAggregate);
-    let rightSum = this.rootToLeafPath(node.right, pathAggregate);
-
-    // Aggregate the left and right aggregates using function g
-    // This is the aggregated value of all root-to-leaf path aggregates
-    // passing through this node
-    return g(leftSum, rightSum);
-  }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
 class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
+    def __init__(self, val=0, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
 
-// Diagram: from typing import Optional, List
+def has_path_sum(root: Optional[TreeNode], target: int) -> bool:
+    def go(n, remaining):
+        if n is None: return False                     # identity for OR
+        remaining -= n.val
+        if n.left is None and n.right is None:         # leaf
+            return remaining == 0                      # verdict
+        return go(n.left, remaining) or go(n.right, remaining)
+    return go(root, target)
+```
 
-class Solution:
-    def root_to_leaf_path(self, node: Optional[TreeNode], path_aggregate: int) -> int:
-        if not node:
-            # Return a default value if this is a null node
+```java,editable
+public static boolean hasPathSum(TreeNode root, int target) {
+    if (root == null) return false;
+    target -= root.val;
+    if (root.left == null && root.right == null) return target == 0;
+    return hasPathSum(root.left, target) || hasPathSum(root.right, target);
+}
+```
+
+```c,editable
+int has_path_sum(TreeNode *root, int target) {
+    if (!root) return 0;
+    target -= root->val;
+    if (!root->left && !root->right) return target == 0;
+    return has_path_sum(root->left, target) || has_path_sum(root->right, target);
+}
+```
+
+```cpp,editable
+bool hasPathSum(TreeNode *root, int target) {
+    if (!root) return false;
+    target -= root->val;
+    if (!root->left && !root->right) return target == 0;
+    return hasPathSum(root->left, target) || hasPathSum(root->right, target);
+}
+```
+
+```scala,editable
+def hasPathSum(root: TreeNode, target: Int): Boolean = {
+  if (root == null) return false
+  val rem = target - root.value
+  if (root.left == null && root.right == null) return rem == 0
+  hasPathSum(root.left, rem) || hasPathSum(root.right, rem)
+}
+```
+
+```javascript,editable
+function hasPathSum(root, target) {
+    if (!root) return false;
+    target -= root.val;
+    if (!root.left && !root.right) return target === 0;
+    return hasPathSum(root.left, target) || hasPathSum(root.right, target);
+}
+```
+
+```typescript,editable
+function hasPathSum(root: TreeNode | null, target: number): boolean {
+    if (!root) return false;
+    target -= root.val;
+    if (!root.left && !root.right) return target === 0;
+    return hasPathSum(root.left, target) || hasPathSum(root.right, target);
+}
+```
+
+```go,editable
+func hasPathSum(root *TreeNode, target int) bool {
+    if root == nil { return false }
+    target -= root.Val
+    if root.Left == nil && root.Right == nil { return target == 0 }
+    return hasPathSum(root.Left, target) || hasPathSum(root.Right, target)
+}
+```
+
+```kotlin,editable
+fun hasPathSum(root: TreeNode?, target: Int): Boolean {
+    if (root == null) return false
+    val rem = target - root.value
+    if (root.left == null && root.right == null) return rem == 0
+    return hasPathSum(root.left, rem) || hasPathSum(root.right, rem)
+}
+```
+
+```rust,editable
+pub fn has_path_sum(root: &Option<Box<TreeNode>>, target: i32) -> bool {
+    match root {
+        None => false,
+        Some(n) => {
+            let rem = target - n.val;
+            if n.left.is_none() && n.right.is_none() { return rem == 0; }
+            has_path_sum(&n.left, rem) || has_path_sum(&n.right, rem)
+        }
+    }
+}
+```
+
+</div>
+
+## Complexity
+
+> **Time:** O(N). **Space:** O(h) for recursion.
+
+***
+
+# How to recognise it
+
+The pattern fits when:
+
+- The unit of interest is a **complete root-to-leaf path** (not an arbitrary path inside the tree).
+- The check at each leaf depends on info accumulated *along the way down* (path sum, parity status, depth, concatenated value).
+- The whole-tree answer combines per-leaf verdicts via `OR` (does any path …), `AND` (do all paths …), `+` (count / sum), or `max` / `min` (best path).
+
+Concrete cues:
+
+- *"Does any root-to-leaf path …"* → `OR` combiner.
+- *"Do all root-to-leaf paths …"* → `AND` combiner.
+- *"Count root-to-leaf paths where …"* → `+` combiner.
+- *"What's the max / min root-to-leaf path …"* → `max` / `min` combiner.
+
+Anti-pattern: if the path can start or end *anywhere* (not just root and leaf), this isn't the right pattern — use the postorder stateful one (diameter, longest monotonic) instead. If the answer needs the *list of nodes* in each path (not just an aggregate), use the *stateful* root-to-leaf-path pattern (next lesson).
+
+***
+
+# Problem 1 — Root to leaf path (sum check)
+
+> Return `true` if there exists at least one root-to-leaf path whose node values sum to `target`.
+
+Already covered in the generic skeleton. The accumulator is the *remaining target after subtracting nodes seen*; the verdict at a leaf is *"is remaining exactly 0?"*; the combine is `OR`.
+
+The implementation is exactly the generic template — see the 10-language code block above.
+
+***
+
+# Problem 2 — Binary summation of tree
+
+> Each node's value is `0` or `1`. Each root-to-leaf path is a binary number (most significant bit at root). Return the sum of these binary numbers, in decimal.
+>
+> **Example:** `[1, 0, 1, 1, null, null, 1]` → paths `[1,0,1,1]=11(₂)=11(₁₀)`... wait, the example output is 12. Let me recompute. The tree:
+> ```
+>     1
+>    / \
+>   0   1
+>  / \   \
+> 1       1
+> ```
+> Paths from root to leaves:
+> - `1 → 0 → 1` = binary `101` = 5
+> - `1 → 1 → 1` = binary `111` = 7
+>
+> Sum = 5 + 7 = **12**.
+
+The accumulator is the *binary number so far* — at each node, shift left and OR in the current bit (`acc = (acc << 1) | node.val`). At a leaf, *return the accumulator itself*. Internal nodes sum their children.
+
+## Solution
+
+<div class="lang-tabs">
+
+```python,editable
+def binary_summation_of_tree(root):
+    def go(n, acc):
+        if n is None: return 0
+        acc = (acc << 1) | n.val
+        if n.left is None and n.right is None: return acc
+        return go(n.left, acc) + go(n.right, acc)
+    return go(root, 0)
+```
+
+```java,editable
+static int bsHelper(TreeNode n, int acc) {
+    if (n == null) return 0;
+    acc = (acc << 1) | n.val;
+    if (n.left == null && n.right == null) return acc;
+    return bsHelper(n.left, acc) + bsHelper(n.right, acc);
+}
+public static int binarySummationOfTree(TreeNode root) { return bsHelper(root, 0); }
+```
+
+```c,editable
+int bs_helper(TreeNode *n, int acc) {
+    if (!n) return 0;
+    acc = (acc << 1) | n->val;
+    if (!n->left && !n->right) return acc;
+    return bs_helper(n->left, acc) + bs_helper(n->right, acc);
+}
+int binary_summation_of_tree(TreeNode *root) { return bs_helper(root, 0); }
+```
+
+```cpp,editable
+int bsHelper(TreeNode *n, int acc) {
+    if (!n) return 0;
+    acc = (acc << 1) | n->val;
+    if (!n->left && !n->right) return acc;
+    return bsHelper(n->left, acc) + bsHelper(n->right, acc);
+}
+int binarySummationOfTree(TreeNode *root) { return bsHelper(root, 0); }
+```
+
+```scala,editable
+def binarySummationOfTree(root: TreeNode): Int = {
+  def go(n: TreeNode, acc: Int): Int = {
+    if (n == null) return 0
+    val a = (acc << 1) | n.value
+    if (n.left == null && n.right == null) return a
+    go(n.left, a) + go(n.right, a)
+  }
+  go(root, 0)
+}
+```
+
+```javascript,editable
+function binarySummationOfTree(root) {
+    function go(n, acc) {
+        if (!n) return 0;
+        acc = (acc << 1) | n.val;
+        if (!n.left && !n.right) return acc;
+        return go(n.left, acc) + go(n.right, acc);
+    }
+    return go(root, 0);
+}
+```
+
+```typescript,editable
+function binarySummationOfTree(root: TreeNode | null): number {
+    function go(n: TreeNode | null, acc: number): number {
+        if (!n) return 0;
+        acc = (acc << 1) | n.val;
+        if (!n.left && !n.right) return acc;
+        return go(n.left, acc) + go(n.right, acc);
+    }
+    return go(root, 0);
+}
+```
+
+```go,editable
+func binarySummationOfTree(root *TreeNode) int {
+    var go_ func(*TreeNode, int) int
+    go_ = func(n *TreeNode, acc int) int {
+        if n == nil { return 0 }
+        acc = (acc << 1) | n.Val
+        if n.Left == nil && n.Right == nil { return acc }
+        return go_(n.Left, acc) + go_(n.Right, acc)
+    }
+    return go_(root, 0)
+}
+```
+
+```kotlin,editable
+fun binarySummationOfTree(root: TreeNode?): Int {
+    fun go(n: TreeNode?, acc: Int): Int {
+        if (n == null) return 0
+        val a = (acc shl 1) or n.value
+        if (n.left == null && n.right == null) return a
+        return go(n.left, a) + go(n.right, a)
+    }
+    return go(root, 0)
+}
+```
+
+```rust,editable
+fn bs_go(node: &Option<Box<TreeNode>>, acc: i32) -> i32 {
+    match node {
+        None => 0,
+        Some(n) => {
+            let a = (acc << 1) | n.val;
+            if n.left.is_none() && n.right.is_none() { return a; }
+            bs_go(&n.left, a) + bs_go(&n.right, a)
+        }
+    }
+}
+pub fn binary_summation_of_tree(root: &Option<Box<TreeNode>>) -> i32 { bs_go(root, 0) }
+```
+
+</div>
+
+***
+
+# Problem 3 — Even path
+
+> Return `true` if there's at least one root-to-leaf path where *every* value is even.
+
+The accumulator is a *boolean*: "has the path so far been all-even?". Update at each node: `still_even = previously_even AND (current is even)`. At a leaf, return `still_even`. Combine with OR.
+
+## Solution
+
+<div class="lang-tabs">
+
+```python,editable
+def even_path(root):
+    if root is None: return False
+    def go(n, ok):
+        if n is None: return False
+        ok = ok and (n.val % 2 == 0)
+        if n.left is None and n.right is None: return ok
+        return go(n.left, ok) or go(n.right, ok)
+    return go(root, True)
+```
+
+```java,editable
+static boolean evenHelper(TreeNode n, boolean ok) {
+    if (n == null) return false;
+    ok = ok && (n.val % 2 == 0);
+    if (n.left == null && n.right == null) return ok;
+    return evenHelper(n.left, ok) || evenHelper(n.right, ok);
+}
+public static boolean evenPath(TreeNode root) {
+    if (root == null) return false;
+    return evenHelper(root, true);
+}
+```
+
+```c,editable
+int even_helper(TreeNode *n, int ok) {
+    if (!n) return 0;
+    ok = ok && (n->val % 2 == 0);
+    if (!n->left && !n->right) return ok;
+    return even_helper(n->left, ok) || even_helper(n->right, ok);
+}
+int even_path(TreeNode *root) {
+    if (!root) return 0;
+    return even_helper(root, 1);
+}
+```
+
+```cpp,editable
+bool evenHelper(TreeNode *n, bool ok) {
+    if (!n) return false;
+    ok = ok && (n->val % 2 == 0);
+    if (!n->left && !n->right) return ok;
+    return evenHelper(n->left, ok) || evenHelper(n->right, ok);
+}
+bool evenPath(TreeNode *root) { if (!root) return false; return evenHelper(root, true); }
+```
+
+```scala,editable
+def evenPath(root: TreeNode): Boolean = {
+  if (root == null) return false
+  def go(n: TreeNode, ok: Boolean): Boolean = {
+    if (n == null) return false
+    val ok2 = ok && (n.value % 2 == 0)
+    if (n.left == null && n.right == null) return ok2
+    go(n.left, ok2) || go(n.right, ok2)
+  }
+  go(root, true)
+}
+```
+
+```javascript,editable
+function evenPath(root) {
+    if (!root) return false;
+    function go(n, ok) {
+        if (!n) return false;
+        ok = ok && (n.val % 2 === 0);
+        if (!n.left && !n.right) return ok;
+        return go(n.left, ok) || go(n.right, ok);
+    }
+    return go(root, true);
+}
+```
+
+```typescript,editable
+function evenPath(root: TreeNode | null): boolean {
+    if (!root) return false;
+    function go(n: TreeNode | null, ok: boolean): boolean {
+        if (!n) return false;
+        ok = ok && (n.val % 2 === 0);
+        if (!n.left && !n.right) return ok;
+        return go(n.left, ok) || go(n.right, ok);
+    }
+    return go(root, true);
+}
+```
+
+```go,editable
+func evenPath(root *TreeNode) bool {
+    if root == nil { return false }
+    var go_ func(*TreeNode, bool) bool
+    go_ = func(n *TreeNode, ok bool) bool {
+        if n == nil { return false }
+        ok = ok && (n.Val % 2 == 0)
+        if n.Left == nil && n.Right == nil { return ok }
+        return go_(n.Left, ok) || go_(n.Right, ok)
+    }
+    return go_(root, true)
+}
+```
+
+```kotlin,editable
+fun evenPath(root: TreeNode?): Boolean {
+    if (root == null) return false
+    fun go(n: TreeNode?, ok: Boolean): Boolean {
+        if (n == null) return false
+        val ok2 = ok && (n.value % 2 == 0)
+        if (n.left == null && n.right == null) return ok2
+        return go(n.left, ok2) || go(n.right, ok2)
+    }
+    return go(root, true)
+}
+```
+
+```rust,editable
+fn ep_go(node: &Option<Box<TreeNode>>, ok: bool) -> bool {
+    match node {
+        None => false,
+        Some(n) => {
+            let ok2 = ok && (n.val % 2 == 0);
+            if n.left.is_none() && n.right.is_none() { return ok2; }
+            ep_go(&n.left, ok2) || ep_go(&n.right, ok2)
+        }
+    }
+}
+pub fn even_path(root: &Option<Box<TreeNode>>) -> bool {
+    if root.is_none() { return false; }
+    ep_go(root, true)
+}
+```
+
+</div>
+
+***
+
+# Problem 4 — Odd count
+
+> Count the number of root-to-leaf paths whose **length** (number of nodes) is odd.
+
+Accumulator: current path length (just an integer counter). At a leaf, verdict is `1` if length is odd, `0` otherwise. Combine via `+` to count across all paths.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    R(("1<br/>len=1"))
+    A(("2<br/>len=2"))
+    B(("3<br/>len=2"))
+    C(("4<br/>len=3 ODD ✓"))
+    D(("7<br/>len=3 ODD ✓"))
+    R --> A
+    R --> B
+    A --> C
+    B --> D
+    style C fill:#dcfce7,stroke:#22c55e
+    style D fill:#dcfce7,stroke:#22c55e
+```
+
+<p align="center"><strong>Odd count — both leaves are at depth 3 (path length 3, which is odd), so the answer is <strong>2</strong>. Each leaf's verdict is bubbled up via <code>+</code>.</strong></p>
+
+## Solution
+
+<div class="lang-tabs">
+
+```python,editable
+def odd_count(root):
+    def go(n, length):
+        if n is None: return 0
+        length += 1
+        if n.left is None and n.right is None:
+            return 1 if length % 2 == 1 else 0
+        return go(n.left, length) + go(n.right, length)
+    return go(root, 0)
+```
+
+```java,editable
+static int ocHelper(TreeNode n, int length) {
+    if (n == null) return 0;
+    length++;
+    if (n.left == null && n.right == null) return length % 2 == 1 ? 1 : 0;
+    return ocHelper(n.left, length) + ocHelper(n.right, length);
+}
+public static int oddCount(TreeNode root) { return ocHelper(root, 0); }
+```
+
+```c,editable
+int oc_helper(TreeNode *n, int length) {
+    if (!n) return 0;
+    length++;
+    if (!n->left && !n->right) return length % 2 == 1 ? 1 : 0;
+    return oc_helper(n->left, length) + oc_helper(n->right, length);
+}
+int odd_count(TreeNode *root) { return oc_helper(root, 0); }
+```
+
+```cpp,editable
+int ocHelper(TreeNode *n, int length) {
+    if (!n) return 0;
+    length++;
+    if (!n->left && !n->right) return length % 2 == 1 ? 1 : 0;
+    return ocHelper(n->left, length) + ocHelper(n->right, length);
+}
+int oddCount(TreeNode *root) { return ocHelper(root, 0); }
+```
+
+```scala,editable
+def oddCount(root: TreeNode): Int = {
+  def go(n: TreeNode, length: Int): Int = {
+    if (n == null) return 0
+    val l2 = length + 1
+    if (n.left == null && n.right == null) return if (l2 % 2 == 1) 1 else 0
+    go(n.left, l2) + go(n.right, l2)
+  }
+  go(root, 0)
+}
+```
+
+```javascript,editable
+function oddCount(root) {
+    function go(n, length) {
+        if (!n) return 0;
+        length++;
+        if (!n.left && !n.right) return length % 2 === 1 ? 1 : 0;
+        return go(n.left, length) + go(n.right, length);
+    }
+    return go(root, 0);
+}
+```
+
+```typescript,editable
+function oddCount(root: TreeNode | null): number {
+    function go(n: TreeNode | null, length: number): number {
+        if (!n) return 0;
+        length++;
+        if (!n.left && !n.right) return length % 2 === 1 ? 1 : 0;
+        return go(n.left, length) + go(n.right, length);
+    }
+    return go(root, 0);
+}
+```
+
+```go,editable
+func oddCount(root *TreeNode) int {
+    var go_ func(*TreeNode, int) int
+    go_ = func(n *TreeNode, length int) int {
+        if n == nil { return 0 }
+        length++
+        if n.Left == nil && n.Right == nil {
+            if length % 2 == 1 { return 1 }
             return 0
-
-        # Add contribution of the current node to path_aggregate using function f
-        path_aggregate = f(path_aggregate, node.val)
-
-        # If it's a leaf node, path_aggregate is the aggregated value
-        # of function f over a root-to-leaf path
-        if not node.left and not node.right:
-            # Return the aggregated value of path_aggregate over function g
-            # with a default value dictated by the problem
-            return g(path_aggregate, 0)
-
-        # Pass the updated path_aggregate to recursively find the
-        # aggregated value of all root-to-leaf path aggregates passing
-        # through the left and right subtrees
-        left_sum: int = self.root_to_leaf_path(node.left, path_aggregate)
-        right_sum: int = self.root_to_leaf_path(node.right, path_aggregate)
-
-        # Aggregate the left and right aggregates using function g
-        # This is the aggregated value of all root-to-leaf path aggregates
-        # passing through this node
-        return g(left_sum, right_sum)
+        }
+        return go_(n.Left, length) + go_(n.Right, length)
+    }
+    return go_(root, 0)
+}
 ```
 
-## Complexity Analysis
-
-For the stateless execution, we traverse the entire tree using the preorder traversal that takes linear **O(N)** time. We apply the function `f` on entering any node and the function `g` on hitting a leaf node. And so, the overall time complexity depends on the `f`, number of leaf node and function `g`. Considering applying the function `f` and `g` are constant time **O(1)** operations, the overall time complexity is linear **O(N)** in any case.
-
-The space complexity of preorder traversal depends on the maximum size of the function call stack, which can be linear **O(N)** if the tree is a degenerate tree where every node only has one child and **O(log(N))** if it is a complete binary tree. However, we also create extra stack variables like `pathAggregate` ,  `left`, `right` and the return value for each node. Since every stack frame only has a constant number of extra variables, the preorder traversal still dictates the space complexity.
-
-> **Best Case:** Degenerate binary tree
->
-> -   Space Complexity - **O(log(N))**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case:** Complete binary tree
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
-
-***
-
-# Identifying the stateless root to leaf path pattern
-
-The stateless root-to-leaf path technique can only solve a certain type of binary tree problem. These are generally**easy** or **medium**problems where we need to find the aggregated value of a function `f` over all nodes in every root-to-leaf path. For most problems, we need to further aggregate these aggregated values over another function `g`.
-
-The stateless solution works by incrementally aggregating values over function `f` by passing the aggregated value of a path down from the parent to child nodes, computing the root-to-leaf aggregate on reaching a leaf node, and returning and merging all root-to-leaf path aggregates using the function `g` on the way up.
-
-If the problem statement or its solution follows the generic template below, it can be solved by applying the stateless root-to-leaf path technique.
-
-**Template:**Given a binary tree, find the aggregated value of a function `f` over all root-to-leaf paths and further aggregate these aggregated values over a function `g`.
-
-## Example
-
-Let's consider the following problem as an example to better understand how to identify and solve a problem using the stateless root-to-leaf path technique.
-
-> **Problem statement:** Given a binary tree and a target, find if there is any root-to-leaf path for which the sum of nodes in the path is equal to the target.
-
-// Diagram: Find if the tree has any root-to-leaf path with sum 9
-
-## The stateless root-to-leaf path technique
-
-The problem description fits the generic template from the stateless root-to-leaf path pattern we learned earlier.
-
-**Template:**
-
-Given a binary tree, find the aggregated value of function `f` (sum) over all root-to-leaf paths and further aggregate these aggregated values over a function `g` (Does sum equals target?).
-
-We do a preorder traversal starting from the root node and pass a value `pathSum` (0 for the root node) to every node that denotes the sum of all nodes in the path from the root node to the current node. Every node can add its value to the `pathSum` it receives from its parent and pass it down to its children. This way, on reaching the leaf node`pathSum` will be the sum of all nodes in the root-to-leaf path to the current leaf. However, to verify if it is equal to `target` or not, we also need to pass the `target` down along with the `pathSum`.
-
-// Diagram: Pass pathSum and target down from every node and compare pathSum to target at the leaf node.
-
-While this is correct, in this solution, we must pass down two variables from every node. We can simplify this further by passing down the **target value remaining** instead of the sum of all nodes in the path from the root node to the parent node. We start from the root node with`target`, and as we enter a node, we subtract the node's value from `target` received from the parent and pass down the updated value to the child node. Since `target` is a local variable, every node has its own copy of `target` which is unaffected by the values in other nodes. This way, on reaching a leaf node, we only need to check if `target` is equal to the value of the leaf node or not to verify if the sum of all nodes in the root-to-leaf path to this leaf is equal to the `target` passed to the root node or not.
-
-// Diagram: Pass the target remaining down from every node and check if it is equal to the value of the leaf node on reaching it
-
-On reaching a leaf node, if `target` equals the value of the leaf node, it means the sum of all nodes in the root-to-leaf path to the current leaf is equal to the `target` passed to the root node. We return `true` back to the parent node in this case; otherwise, we return `false`. The parent node gets these values from both the left and right subtrees and stores them in local variables `leftPathExists` and `rightPathExists` which denotes if a root-to-leaf path with sum equal to `target` passed to the root node exists in the left and right subtrees.
-
-If any of `leftPathExists` or `rightPathExists` is true, it means there is a root-to-leaf path going through the current node where the sum of all nodes is equal to `target` passed to the root node, and so we return `true` back to its parent; otherwise, we return `false`.
-
-This way, at the end of the traversal, the root node returns either `true` or `false` denoting the existence of a root-to-leaf path where the sum of all nodes is equal to `target`.
-
-// Diagram: Find if the tree has any root to leaf path with sum 9
-
-The implementation of the stateless root-to-leaf path technique to solve the problem is given below.
-
-C++
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    bool rootToLeafPath(TreeNode *root, int target) {
-
-        // If the root is null, there is no path, so return false
-        if (!root) {
-            return false;
-        }
-
-        // If it's a leaf node, check if the current sum equals the
-        // target sum
-        if (!root->left && !root->right) {
-            return root->val == target;
-        }
-
-        // Otherwise, subtract the current node's value from target and
-        // continue DFS on left and right subtrees
-        target -= root->val;
-
-        // Check if there is a path with the remaining sum in the left or
-        // right subtree
-        bool leftPathExists = rootToLeafPath(root->left, target);
-        bool rightPathExists = rootToLeafPath(root->right, target);
-
-        return leftPathExists || rightPathExists;
+```kotlin,editable
+fun oddCount(root: TreeNode?): Int {
+    fun go(n: TreeNode?, length: Int): Int {
+        if (n == null) return 0
+        val l2 = length + 1
+        if (n.left == null && n.right == null) return if (l2 % 2 == 1) 1 else 0
+        return go(n.left, l2) + go(n.right, l2)
     }
-};
+    return go(root, 0)
+}
 ```
 
-Java
-
-```java
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-class Solution {
-    public boolean rootToLeafPath(TreeNode root, int target) {
-
-        // If the root is null, there is no path, so return false
-        if (root == null) {
-            return false;
-        }
-
-        // If it's a leaf node, check if the current sum equals the
-        // target sum
-        if (root.left == null && root.right == null) {
-            return root.val == target;
-        }
-
-        // Otherwise, subtract the current node's value from target and
-        // continue DFS on left and right subtrees
-        target -= root.val;
-
-        // Check if there is a path with the remaining sum in the left or
-        // right subtree
-        boolean leftPathExists = rootToLeafPath(root.left, target);
-        boolean rightPathExists = rootToLeafPath(root.right, target);
-
-        return leftPathExists || rightPathExists;
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-export class Solution {
-    rootToLeafPath(root: TreeNode | null, target: number): boolean {
-
-        // If the root is null, there is no path, so return false
-        if (root === null) {
-            return false;
-        }
-
-        // If it's a leaf node, check if the current sum equals the
-        // target sum
-        if (root.left === null && root.right === null) {
-            return root.val === target;
-        }
-
-        // Otherwise, subtract the current node's value from target and
-        // continue DFS on left and right subtrees
-        target -= root.val;
-
-        // Check if there is a path with the remaining sum in the left or
-        // right subtree
-        const leftPathExists = this.rootToLeafPath(root.left, target);
-        const rightPathExists = this.rootToLeafPath(root.right, target);
-
-        return leftPathExists || rightPathExists;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-    rootToLeafPath(root, target) {
-
-        // If the root is null, there is no path, so return false
-        if (root === null) {
-            return false;
-        }
-
-        // If it's a leaf node, check if the current sum equals the
-        // target sum
-        if (root.left === null && root.right === null) {
-            return root.val === target;
-        }
-
-        // Otherwise, subtract the current node's value from target and
-        // continue DFS on left and right subtrees
-        target -= root.val;
-
-        // Check if there is a path with the remaining sum in the left or
-        // right subtree
-        const leftPathExists = this.rootToLeafPath(root.left, target);
-        const rightPathExists = this.rootToLeafPath(root.right, target);
-
-        return leftPathExists || rightPathExists;
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import Optional
-
-class Solution:
-    def root_to_leaf_path(
-        self, root: Optional[TreeNode], target: int
-    ) -> bool:
-
-        # If the root is null, there is no path, so return false
-        if root is None:
-            return False
-
-        # If it's a leaf node, check if the current sum equals the target
-        # sum
-        if root.left is None and root.right is None:
-            return root.val == target
-
-        # Otherwise, subtract the current node's value from target and
-        # continue DFS on left and right subtrees
-        target -= root.val
-
-        # Check if there is a path with the remaining sum in the left or
-        # right subtree
-        left_path_exists = self.root_to_leaf_path(root.left, target)
-        right_path_exists = self.root_to_leaf_path(root.right, target)
-
-        return left_path_exists or right_path_exists
-```
-
-The stateless root-to-leaf path technique can solve this problem in linear time and a single pass using a very small and concise recursive implementation.
-
-## Example problems
-
-Most problems that fall under this category are**easy**problems; a list of a few is given below.
-
-> -   **[Root to leaf path](https://www.codeintuition.io/courses/binary-tree/IckowtD69rO9P0aniL50f)**
-> -   **[Binary summation of tree](https://www.codeintuition.io/courses/binary-tree/nwe92HqLC7bef7PxDTfY-)**
-> -   **[Even path](https://www.codeintuition.io/courses/binary-tree/ogd3wlw28tBX5upbj1IeS)**
-> -   **[Odd count](https://www.codeintuition.io/courses/binary-tree/3sqCjRSiKeubpwhkDULom)**
-
-We will now solve these problems to understand the stateless root-to-leaf path technique better.
-
-***
-
-# Root to leaf path
-
-## Problem Statement
-
-Given the **root** of a binary tree and a **target**, write a function that returns `true` if there exists at least one root-to-leaf path for which the sum of nodes in the path is equal to the target. Otherwise, return `false`.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 3, 4, null, null, 7\], target = 11
-> -   **Output:** true
-> -   **Explanation:** The given tree has a root-to-leaf path with sum = 11 as shown in the diagram above.
-
-### Example 2
-
-> -   **Input:** root = \[1, 8, 4, null, null, 2, 7\], target = 20
-> -   **Output:** false
-> -   **Explanation:** The given tree does not have any root-to-leaf path with sum = 20 as shown in the diagram above.
-
-## Solution
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-    bool rootToLeafPath(TreeNode *root, int target) {
-
-        // If the root is null, there is no path, so return false
-        if (!root) {
-            return false;
-        }
-
-        // If it's a leaf node, check if the current sum equals the
-        // target sum
-        if (!root->left && !root->right) {
-            return root->val == target;
-        }
-
-        // Otherwise, subtract the current node's value from target and
-        // continue DFS on left and right subtrees
-        target -= root->val;
-
-        // Check if there is a path with the remaining sum in the left or
-        // right subtree
-        bool leftPathExists = rootToLeafPath(root->left, target);
-        bool rightPathExists = rootToLeafPath(root->right, target);
-
-        return leftPathExists || rightPathExists;
-    }
-};
-```
-
-***
-
-# Binary summation of tree
-
-## Problem Statement
-
-Given the **root** of a binary tree where the value of each node is either `0` or `1`. Each root-to-leaf path represents a binary number starting with the most significant bit. Write a function to calculate and return the sum of all the numbers formed after converting the root-to-leaf paths to decimal numbers.
-
-### Example 1
-
-> -   **Input:** root = \[1, 0, 1, 1, null, null, 1\]
-> -   **Output:** 12
-> -   **Explanation:** The sum of the two root-to-leaf paths is 5(101) + 7(111) = 12.
-
-### Example 2
-
-> -   **Input:** root = \[0, 1, 0, null, null, 1, 0\]
-> -   **Output:** 2
-> -   **Explanation:** The sum of the three root-to-leaf paths is 1(01) + 1(001) + 0(000) = 2.
-
-## Solution
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-    int binarySummationOfTreeHelper(TreeNode *root, int currentSum) {
-        if (!root) {
-            return 0;
-        }
-
-        // Update the current sum by shifting left and adding current
-        // node's value
-        currentSum = (currentSum << 1) | root->val;
-
-        // If it's a leaf node, return the current sum
-        if (!root->left && !root->right) {
-            return currentSum;
-        }
-
-        // Recursively sum up the left and right subtrees
-        int leftSum =
-            binarySummationOfTreeHelper(root->left, currentSum);
-        int rightSum =
-            binarySummationOfTreeHelper(root->right, currentSum);
-
-        // Return the total sum from both left and right subtrees
-        return leftSum + rightSum;
-    }
-
-    int binarySummationOfTree(TreeNode *root) {
-
-        // Start binarySummationOfTreeHelper with currentSum = 0
-        return binarySummationOfTreeHelper(root, 0);
-    }
-};
-```
-
-***
-
-# Even path
-
-## Problem Statement
-
-Given the **root** of a binary tree, write a function that returns `true` if there exists at least one root-to-leaf path in which all node values are even. Otherwise, return `false`.
-
-### Example 1
-
-> -   **Input:** root = \[2, 4, 6, 8, null, null, 9\]
-> -   **Output:** true
-> -   **Explanation:** The given tree has a root-to-leaf path where all node values are even, as shown in the diagram above.
-
-### Example 2
-
-> -   **Input:** root = \[1, 8, 4, null, null, 2, 7\]
-> -   **Output:** false
-> -   **Explanation:** The given tree has no root-to-leaf path where all node values are even.
-
-## Solution
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-    bool evenPathHelper(TreeNode *root, int evenSoFar) {
-
-        // Base case: if the current node is null, return false
-        if (!root) {
-            return false;
-        }
-
-        // Update current path status: 1 if path so far is all even and
-        // current node is even
-        int currentStatus = evenSoFar && (root->val % 2 == 0);
-
-        // If this is a leaf, check if current path is valid
-        if (!root->left && !root->right) {
-            return currentStatus == 1;
-        }
-
-        // Check left and right subtrees for valid paths
-        bool leftPath = evenPathHelper(root->left, currentStatus);
-        bool rightPath = evenPathHelper(root->right, currentStatus);
-
-        return leftPath || rightPath;
-    }
-
-    bool evenPath(TreeNode *root) {
-        if (!root) {
-            return false;
-        }
-
-        // Root path is valid if root is even
-        return evenPathHelper(root, 1);
-    }
-};
-```
-
-***
-
-# Even path
-
-***
-
-# Odd count
-
-## Problem Statement
-
-Given the **root** of a binary tree, write a function to find and return the number of root-to-leaf paths that have an odd number of nodes in the path.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 3, 4, null, null, 7\]
-> -   **Output:** 2
-> -   **Explanation:** There are two root-to-leaf paths with an odd number of nodes, as shown in the diagram above.
-
-### Example 2
-
-> -   **Input:** root = \[1, 8, 4, null, null, 2, 7\]
-> -   **Output:** 2
-> -   **Explanation:** There are two root-to-leaf paths with an odd number of nodes, as shown in the diagram above.
-
-## Solution
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-    int oddCountHelper(TreeNode *root, int pathLen) {
-
-        // Base case: if the current node is null, return 0
-        if (!root) {
-            return 0;
-        }
-
-        // Include current node in path length
-        pathLen++;
-
-        // If this is a leaf, check if path length is odd
-        if (!root->left && !root->right) {
-
-            // Return 1 if path length is odd
-            if (pathLen % 2 == 1) {
-                return 1;
+```rust,editable
+fn oc_go(node: &Option<Box<TreeNode>>, length: i32) -> i32 {
+    match node {
+        None => 0,
+        Some(n) => {
+            let l2 = length + 1;
+            if n.left.is_none() && n.right.is_none() {
+                return if l2 % 2 == 1 { 1 } else { 0 };
             }
-
-            // Return 0 if path length is even
-            else {
-                return 0;
-            }
+            oc_go(&n.left, l2) + oc_go(&n.right, l2)
         }
-
-        // Recurse separately into left and right subtrees
-        int leftCount = oddCountHelper(root->left, pathLen);
-        int rightCount = oddCountHelper(root->right, pathLen);
-
-        // Return total count of odd-length paths from both subtrees
-        return leftCount + rightCount;
     }
-
-    int oddCount(TreeNode *root) {
-
-        // Start oddCountHelper with pathLen = 0
-        return oddCountHelper(root, 0);
-    }
-};
+}
+pub fn odd_count(root: &Option<Box<TreeNode>>) -> i32 { oc_go(root, 0) }
 ```
+
+</div>
 
 ***
 
-# Odd count
+## Final Takeaway
+
+The stateless root-to-leaf path pattern fuses preorder and postorder mechanics: **descend with an accumulator, decide at leaves, combine on the way back up**. Three things to walk away with:
+
+1. **The combinator picks the question.** `OR` answers "does *any* path …?". `AND` answers "do *all* paths …?". `+` counts. `max`/`min` find the extreme. The accumulator and verdict change with the problem; the combinator changes with the question.
+2. **Leaves are special — internal nodes are not.** Only leaves emit a verdict. Internal nodes are pass-through routers that combine. This is the structural difference from preorder-stateless (where every node is a "process" point) — root-to-leaf-path explicitly waits until the path is *complete*.
+3. **The base case identity matters.** When `node` is `null`, return whatever value makes the combine ignore that subtree: `false` for OR, `true` for AND (yes — for AND, an empty subtree should *not* defeat its sibling), `0` for `+`, `-∞` for `max`. Get the identity wrong and you'll silently produce garbage on degenerate trees.
+
+> *Coming up — the <strong>stateful</strong> root-to-leaf path pattern. When you need not just a per-path verdict but the actual <em>nodes</em> in each path (e.g., "list every root-to-leaf path that sums to N"), the accumulator becomes a mutable list with the canonical push-pop discipline. Same recipe, but now we collect actual paths instead of just counting them.*

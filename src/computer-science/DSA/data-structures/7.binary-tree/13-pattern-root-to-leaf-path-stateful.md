@@ -1,1129 +1,1091 @@
-# Pattern: Root to leaf path (Stateful)
+# 13. Pattern: Root-to-Leaf Path (Stateful)
 
-## Table of Contents
+## The Hook
 
-1. [Understanding the stateful root to leaf path pattern](#understanding-the-stateful-root-to-leaf-path-pattern)
-2. [Identifying the stateful root to leaf path pattern](#identifying-the-stateful-root-to-leaf-path-pattern)
-3. [Root to leaf paths](#root-to-leaf-paths)
-4. [Equal paths](#equal-paths)
-5. [Duplicate paths](#duplicate-paths)
-6. [Prefix paths](#prefix-paths)
+The previous lesson handled root-to-leaf path problems where the per-path *answer* was a single small value — a boolean ("does the path satisfy …?"), a count, a sum. The accumulator was an immutable scalar and the recursion stayed pure.
+
+But what about *"return the actual list of nodes in every root-to-leaf path that sums to 17"*? Or *"return all paths whose values are equal-numbers of evens and odds"*? Or *"find all root-to-leaf paths that appear more than once in the tree"*? These problems still walk the tree the same way, but the answer at each leaf is *the path itself* — and the path is a list of N nodes, not a number. Copying a list of length N at every recursive call would blow the algorithm to O(N²) time and O(N²) extra space. We need to *share* the list across the recursion.
+
+The solution is the **mutate-then-undo** discipline you already met in stateful preorder (lesson 9): push the current node onto a shared `path` list as we descend, do the work at each leaf (record a copy of the path if it satisfies the condition), and pop the node off as we return. The recursion behaves *as if* each call had its own private path snapshot — but only the deltas are mutated, in O(1) per node, so the total cost stays O(N) plus the cost of recording matched paths.
+
+This is the **stateful root-to-leaf path pattern**. It's the workhorse for any tree problem where the *answer is the path*, not just a property of the path. *Path enumeration*, *equal-counts paths*, *duplicate path detection*, *prefix-sum tricks on paths* — all the same recipe with different per-leaf checks.
+
+This lesson defines the recipe, walks through four canonical problems (collect paths summing to a target, equal-evens-and-odds paths, duplicate paths, prefix-sum paths), and implements each in 10 languages.
+
+---
+
+## Table of contents
+
+1. [The stateful root-to-leaf path pattern](#the-stateful-root-to-leaf-path-pattern)
+2. [How to recognise it](#how-to-recognise-it)
+3. [Problem 1 — Root-to-leaf paths summing to target](#problem-1--root-to-leaf-paths-summing-to-target)
+4. [Problem 2 — Equal evens-and-odds paths](#problem-2--equal-evens-and-odds-paths)
+5. [Problem 3 — Duplicate paths](#problem-3--duplicate-paths)
+6. [Problem 4 — Prefix paths](#problem-4--prefix-paths)
 
 ***
 
-# Understanding the stateful root to leaf path pattern
+# The stateful root-to-leaf path pattern
 
-Many binary tree problems require us to find, for all root-to-leaf paths, the aggregated value of a function `f` over some or all nodes in a root-to-leaf path with some problems going even further to find the aggregated value of some other function `g` over all root-to-leaf path aggregates and return a single result. We learned the stateless solution to this problem that doesn't require creating shared variables that all nodes can access during the recursive execution. While the stateless solution can solve many such problems, some problems are easier to solve using the stateful solution.
-
-The stateful root-to-leaf path pattern is a classification of problems that can be solved using the stateful root-to-leaf path technique to find aggregated values over all root-to-leaf paths in a binary tree.
-
-// Diagram: All the root-to-leaf paths of a binary tree.
-
-In this lesson, we will learn more about using the stateful root-to-leaf path technique to solve binary tree problems and how to identify a problem as a root-to-leaf path pattern problem.
-
-## The stateful root to leaf path technique
-
-Consider we are given a binary tree, and we need to find, for each root-to-leaf path, the aggregated value of a function `f` over all nodes in a root-to-leaf path. Once we get the results for all root-to-leaf paths, we need to apply some other function `g` to aggregate values for every path further into a single value.
-
-// Diagram: Aggregate the value of function f over all root-to-leaf paths and further aggregate the root-to-leaf path aggregates over a function g.
-
-The stateful solution to the problem is quite intuitive and easy to understand as it only uses the basic preorder traversal.
-
-We create two variables `pathAggregate` and `aggregate` where `pathAggregate` holds the aggregated value of the function `f` over all the nodes for a **single** root-to-leaf path and `aggregate` holds the aggregated value of the function `g` over the aggregates of all root-to-leaf paths. We initialize these variables with default values, and since both these variables must be shared between all nodes as we traverse the tree, we can either create them as global variables or pass them by reference to the preorder function call.
-
-The idea is quite simple: we do a preorder traversal and use the function `f` to add the contribution of the current node to `pathAggregate` as we enter it and remove its contribution from `pathAggregate` as we exit. This way, when doing a preorder traversal, `pathAggregate` always holds the aggregated value of the function `f` over all nodes in the path from the root to the current node. So, when hitting a leaf node, `pathAggregate` has the aggregated value of `f` over all nodes in the root-to-leaf path for the current leaf.
-
-On hitting a leaf node, we use the function `g` to add the contribution of `pathAggregate` (that has aggregated value for a root-to-leaf path) to `aggregate`. This way, at the end of the preorder traversal, `pathAggregate` would have had the aggregated value of `f` over all the root-to-leaf paths in it once, and `aggregate` will have the aggregated values of the function `g` over all those aggregates.
-
-It is important to note that the same copy of both the variables `pathAggregate` and `aggregate` must be shared between all nodes, so they should either be created as global variables or passed by reference from the caller. 
-
-// Diagram: Aggregate function f over all root to leaf paths and return aggregated value over function g
-
-## Algorithm
-
-The generic algorithm for stateful execution of the root-to-leaf path technique is given below. It applies a function `f` on nodes of all the root-to-leaf paths of a binary tree and then applies a function `g` over all the aggregated values to return a single result. Note that the preorder function is created separately so that the shared values can be created in the calling function and passed to preorder by reference.
-
-> **Algorithm**
->
-> -   **Step 1:** Create a variable \`pathAggregate\` and initialize it with a default value to aggregate the output of function \`f\` over a root-to-leaf path.
-> -   **Step 2:** Create a variable \`aggregate\` and initialize it with a default value to aggregate the output of function \`g\` over aggregates of all root-to-leaf paths.
-> -   **Step 2:** Call \`preorder(root, pathAggregate, aggregate)\` passing \`pathAggregate\` and \`aggregate\` as reference.
-> -   **Step 3:** Return \`aggregate\`
->
-> **preorder(node, \[ref\] pathAggregate, \[ref\] aggregate)**
->
-> -   **Step 1:** If \`node\` is a \`null\` node return
-> -   **Step 2:** Add contribution of \`node\` to \`pathAggregate\` using function \`f \`
-> -   **Step 3:** If \`node\` is a leaf node:
->     -   **Step 3.1:** Add contribution of \`pathAggregate\` to \`aggregate\` using function \`g\`
->     -   **Step 3.2:** Remove the contribution of \`node\` from \`pathAggregate\` using the inverse of function \`f \`
->     -   **Step 3.3:** Return
-> -   **Step 4:** Call \`preorder(node.left, pathAggregate, aggregate)\`
-> -   **Step 5:** Call \`preorder(node.right, pathAggregate, aggregate)\`
-> -   **Step 6:** Remove the contribution of \`node\` from \`pathAggregate\` using the inverse of function \`f \`
-
-## Implementation
-
-The generic implementation of the stateful execution is given below. The preorder function is separate from the calling function as we create all the state variables (`pathAggregate` and `aggregate`) in the calling function and pass them to the preorder function by reference, which then uses/updates them to solve the problem. This is done so that all stack frames in the preorder function share the same copy of state variables.
-
-C++
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
- class Solution {
- public:
-      int callingFunction(TreeNode *node) {
-        // Initialize pathAggregate to a default value
-        int pathAggregate = 0;
-
-        // Initialize aggregate to a default value
-        int aggregate = 0;
-
-        // Call rootToLeafPath and pass pathAggregate and
-        // aggregate as references
-        rootToLeafPath(node, pathAggregate, aggregate);
-
-        // aggregate should now have the aggregated value of function
-        // g over all root-to-leaf path aggregates (over function f)
-        // in the tree
-        return aggregate;
-
-      }
-      void rootToLeafPath(TreeNode *node, int& pathAggregate, int& aggregate) {
-         if (!node) {
-            // Return if this is a null node
-             return;
-         }
-
-         // Add contribution of the current node to the pathAggregate
-         // using the funciton f
-         pathAggregate = f(pathAggregate, node->val);
-
-         // If it's a leaf node, pathAggregate is the aggregated value
-         // of function f over a root-to-leaf path
-         if (!node->left && !node->right) {
-              // Add contribution of pathAggregate to aggregate
-              // using the function g
-              g(aggregate, pathAggregate);
-              return;
-         }
-
-         // Recursively calculate aggregates of function over the
-         // root-to-leaf paths in the left and right subtree and update
-         // aggregate with it
-         rootToLeafPath(node->left, pathAggregate);
-         rootToLeafPath(node->right, pathAggregate);
-
-         // Remove the contribution of the current node from pathAggregate
-         // using the function fInverse
-         pathAggregate = fInverse(pathAggregate, node->val);
-
-         return;
-     }
-
- };
+```text
+recurse(node, sharedPath):
+  if node is null: return
+  push(sharedPath, node)                  # mutate
+  if node is a leaf:
+    if check(sharedPath): record(sharedPath)
+  else:
+    recurse(node.left,  sharedPath)
+    recurse(node.right, sharedPath)
+  pop(sharedPath)                         # undo
 ```
 
-Java
+The discipline is **identical** to stateful preorder: push on entry, recurse, pop on exit. The only difference from lesson 9 is *when* and *what* you check — only at leaves, and you record a *copy* of the path (not the live shared list, which would mutate out from under you).
 
-```java
-import java.util.*;
-
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-class Solution {
-    // Global variables to share between recursive calls
-    private int pathAggregate;
-    private int aggregate;
-
-    public int callingFunction(TreeNode node) {
-        // Initialize pathAggregate to a default value
-        pathAggregate = 0;
-
-        // Initialize aggregate to a default value
-        aggregate = 0;
-
-        // Call rootToLeafPath and pass pathAggregate and aggregate
-        rootToLeafPath(node);
-
-        // aggregate should now have the aggregated value of function
-        // g over all root-to-leaf path aggregates (over function f)
-        // in the tree
-        return aggregate;
-    }
-
-    private void rootToLeafPath(TreeNode node) {
-        if (node == null) {
-            // Return if this is a null node
-            return;
-        }
-
-        // Add contribution of the current node to the pathAggregate
-        // using the function f
-        pathAggregate = f(pathAggregate, node.val);
-
-        // If it's a leaf node, pathAggregate is the aggregated value
-        // of function f over a root-to-leaf path
-        if (node.left == null && node.right == null) {
-            // Add contribution of pathAggregate to aggregate
-            // using the function g
-            aggregate = g(aggregate, pathAggregate);
-            return;
-        }
-
-        // Recursively calculate aggregates of function over the
-        // root-to-leaf paths in the left and right subtree and update
-        // aggregate with it
-        rootToLeafPath(node.left);
-        rootToLeafPath(node.right);
-
-        // Remove the contribution of the current node from pathAggregate
-        // using the function fInverse
-        pathAggregate = fInverse(pathAggregate, node.val);
-    }
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    R(("(1)<br/>path=[1]"))
+    A(("(2)<br/>path=[1,2]"))
+    B(("(3)<br/>path=[1,3]"))
+    C(("(4)<br/>LEAF<br/>path=[1,2,4]"))
+    D(("(7)<br/>LEAF<br/>path=[1,3,7]"))
+    R --> A
+    R --> B
+    A --> C
+    B --> D
+    style C fill:#dcfce7,stroke:#22c55e
+    style D fill:#dcfce7,stroke:#22c55e
 ```
 
-Typescript
+<p align="center"><strong>Stateful root-to-leaf — the shared <code>path</code> contains exactly the current root-to-current-node sequence at every recursive call. At each leaf, we have a complete root-to-leaf path; record a <em>copy</em> if it qualifies.</strong></p>
 
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
+> **Why copy at the leaf?** Because the live `path` list is going to be popped from on the way back up. If you saved a *reference*, you'd end up with a dozen different paths in your output that all secretly point at the same (now empty) list. Always copy when extracting from a shared mutable.
 
-export class Solution {
-  private pathAggregate: number = 0; // Shared across recursive calls
-  private aggregate: number = 0; // Shared across recursive calls
+## Generic pattern in 10 languages
 
-  callingFunction(node: TreeNode | null): number {
-    // Initialize pathAggregate to a default value
-    this.pathAggregate = 0;
+The "collect all root-to-leaf paths" template — the simplest member of the family.
 
-    // Initialize aggregate to a default value
-    this.aggregate = 0;
+<div class="lang-tabs">
 
-    // Call rootToLeafPath
-    this.rootToLeafPath(node);
+```python,editable
+from typing import List, Optional
 
-    // aggregate should now have the aggregated value of function
-    // g over all root-to-leaf path aggregates (over function f)
-    // in the tree
-    return this.aggregate;
-  }
-
-  private rootToLeafPath(node: TreeNode | null): void {
-    if (!node) {
-      // Return if this is a null node
-      return;
-    }
-
-    // Add contribution of the current node to the pathAggregate
-    // using the function f
-    this.pathAggregate = f(this.pathAggregate, node.val);
-
-    // If it's a leaf node, pathAggregate is the aggregated value
-    // of function f over a root-to-leaf path
-    if (!node.left && !node.right) {
-      // Add contribution of pathAggregate to aggregate
-      // using the function g
-      this.aggregate = g(this.aggregate, this.pathAggregate);
-      return;
-    }
-
-    // Recursively calculate aggregates of function over the
-    // root-to-leaf paths in the left and right subtree and update
-    // aggregate with it
-    this.rootToLeafPath(node.left);
-    this.rootToLeafPath(node.right);
-
-    // Remove the contribution of the current node from pathAggregate
-    // using the function fInverse
-    this.pathAggregate = fInverse(this.pathAggregate, node.val);
-  }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-  pathAggregate = 0; // Shared across recursive calls
-  aggregate = 0; // Shared across recursive calls
-
-  callingFunction(node) {
-    // Initialize pathAggregate to a default value
-    this.pathAggregate = 0;
-
-    // Initialize aggregate to a default value
-    this.aggregate = 0;
-
-    // Call rootToLeafPath
-    this.rootToLeafPath(node);
-
-    // aggregate should now have the aggregated value of function
-    // g over all root-to-leaf path aggregates (over function f)
-    // in the tree
-    return this.aggregate;
-  }
-
-  rootToLeafPath(node) {
-    if (!node) {
-      // Return if this is a null node
-      return;
-    }
-
-    // Add contribution of the current node to the pathAggregate
-    // using the function f
-    this.pathAggregate = f(this.pathAggregate, node.val);
-
-    // If it's a leaf node, pathAggregate is the aggregated value
-    // of function f over a root-to-leaf path
-    if (!node.left && !node.right) {
-      // Add contribution of pathAggregate to aggregate
-      // using the function g
-      this.aggregate = g(this.aggregate, this.pathAggregate);
-      return;
-    }
-
-    // Recursively calculate aggregates of function over the
-    // root-to-leaf paths in the left and right subtree and update
-    // aggregate with it
-    this.rootToLeafPath(node.left);
-    this.rootToLeafPath(node.right);
-
-    // Remove the contribution of the current node from pathAggregate
-    // using the function fInverse
-    this.pathAggregate = fInverse(this.pathAggregate, node.val);
-  }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
 class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
+    def __init__(self, val=0, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
 
-// Diagram: from typing import Optional, List
-
-class Solution:
-    def __init__(self):
-        # Initialize path_aggregate and aggregate as class variables
-        self.path_aggregate: int = 0
-        self.aggregate: int = 0
-
-    def calling_function(self, node: Optional[TreeNode]) -> int:
-        # Initialize path_aggregate to a default value
-        self.path_aggregate = 0
-
-        # Initialize aggregate to a default value
-        self.aggregate = 0
-
-        # Call root_to_leaf_path and update class variables
-        self.root_to_leaf_path(node)
-
-        # self.aggregate now holds the aggregated value over all root-to-leaf paths
-        return self.aggregate
-
-    def root_to_leaf_path(self, node: Optional[TreeNode]) -> None:
-        if not node:
-            # Return if this is a null node
-            return
-
-        # Add contribution of the current node to path_aggregate using function f
-        self.path_aggregate = f(self.path_aggregate, node.val)
-
-        # If it's a leaf node, path_aggregate is the aggregated value
-        # of function f over a root-to-leaf path
-        if not node.left and not node.right:
-            # Add contribution of path_aggregate to aggregate using function g
-            self.aggregate = g(self.aggregate, self.path_aggregate)
-            return
-
-        # Recursively calculate aggregates over the root-to-leaf paths
-        # in the left and right subtrees
-        self.root_to_leaf_path(node.left)
-        self.root_to_leaf_path(node.right)
-
-        # Remove the contribution of the current node from pathAggregate
-        # using the function fInverse
-        self.path_aggregate = fInverse(self.path_aggregate, node.val);
+def all_root_to_leaf_paths(root: Optional[TreeNode]) -> List[List[int]]:
+    out: List[List[int]] = []
+    path: List[int] = []
+    def go(n):
+        if n is None: return
+        path.append(n.val)                              # push
+        if n.left is None and n.right is None:
+            out.append(path.copy())                     # leaf: snapshot the path
+        else:
+            go(n.left); go(n.right)
+        path.pop()                                       # pop
+    go(root)
+    return out
 ```
 
-## Complexity Analysis
+```java,editable
+static List<Integer> path;
+static List<List<Integer>> out;
+static void allHelper(TreeNode n) {
+    if (n == null) return;
+    path.add(n.val);
+    if (n.left == null && n.right == null) {
+        out.add(new ArrayList<>(path));                 // copy
+    } else {
+        allHelper(n.left); allHelper(n.right);
+    }
+    path.remove(path.size() - 1);
+}
+public static List<List<Integer>> allRootToLeafPaths(TreeNode root) {
+    out = new ArrayList<>(); path = new ArrayList<>();
+    allHelper(root);
+    return out;
+}
+```
 
-It is quite easy to figure out the time and space complexity of the solution. We traverse the entire tree using the preorder traversal that takes linear **O(N)** time. We apply the function `f` on entering any node and the function `g` on hitting a leaf node. And so, the overall time complexity depends on the `f`, number of leaf node and function `g`. Considering applying the function `f` and `g` are constant time **O(1)** operations, the overall time complexity is linear **O(N)** in any case.
+```c,editable
+// out is a 2D array; path is a stack; both bounded for the demo
+static int path[64], path_top = -1;
+static int out[64][64], out_lens[64], out_count = 0;
+void all_helper(TreeNode *n) {
+    if (!n) return;
+    path[++path_top] = n->val;
+    if (!n->left && !n->right) {
+        for (int i = 0; i <= path_top; i++) out[out_count][i] = path[i];
+        out_lens[out_count++] = path_top + 1;
+    } else {
+        all_helper(n->left); all_helper(n->right);
+    }
+    path_top--;
+}
+```
 
-The space complexity of preorder traversal depends on the maximum size of the function call stack, which can be linear **O(N)** if the tree is a degenerate binary tree where every node only has one child and **O(log(N))** if it is a complete binary tree. We only create two extra variables `pathAggregate` and `aggregate` and since all stack frames share them, they only make a constant contribution.
+```cpp,editable
+std::vector<int> path;
+std::vector<std::vector<int>> out;
+void allHelper(TreeNode *n) {
+    if (!n) return;
+    path.push_back(n->val);
+    if (!n->left && !n->right) out.push_back(path);
+    else { allHelper(n->left); allHelper(n->right); }
+    path.pop_back();
+}
+std::vector<std::vector<int>> allRootToLeafPaths(TreeNode *root) {
+    out.clear(); path.clear();
+    allHelper(root);
+    return out;
+}
+```
 
-> **Best Case:** Degenerate binary tree
+```scala,editable
+def allRootToLeafPaths(root: TreeNode): List[List[Int]] = {
+  val path = scala.collection.mutable.ListBuffer[Int]()
+  val out  = scala.collection.mutable.ListBuffer[List[Int]]()
+  def go(n: TreeNode): Unit = {
+    if (n == null) return
+    path += n.value
+    if (n.left == null && n.right == null) out += path.toList
+    else { go(n.left); go(n.right) }
+    path.remove(path.length - 1)
+  }
+  go(root)
+  out.toList
+}
+```
+
+```javascript,editable
+function allRootToLeafPaths(root) {
+    const out = [], path = [];
+    function go(n) {
+        if (!n) return;
+        path.push(n.val);
+        if (!n.left && !n.right) out.push([...path]);
+        else { go(n.left); go(n.right); }
+        path.pop();
+    }
+    go(root);
+    return out;
+}
+```
+
+```typescript,editable
+function allRootToLeafPaths(root: TreeNode | null): number[][] {
+    const out: number[][] = []; const path: number[] = [];
+    function go(n: TreeNode | null): void {
+        if (!n) return;
+        path.push(n.val);
+        if (!n.left && !n.right) out.push([...path]);
+        else { go(n.left); go(n.right); }
+        path.pop();
+    }
+    go(root);
+    return out;
+}
+```
+
+```go,editable
+func allRootToLeafPaths(root *TreeNode) [][]int {
+    var out [][]int
+    var path []int
+    var go_ func(*TreeNode)
+    go_ = func(n *TreeNode) {
+        if n == nil { return }
+        path = append(path, n.Val)
+        if n.Left == nil && n.Right == nil {
+            cp := make([]int, len(path)); copy(cp, path)
+            out = append(out, cp)
+        } else { go_(n.Left); go_(n.Right) }
+        path = path[:len(path)-1]
+    }
+    go_(root); return out
+}
+```
+
+```kotlin,editable
+fun allRootToLeafPaths(root: TreeNode?): List<List<Int>> {
+    val out = mutableListOf<List<Int>>(); val path = mutableListOf<Int>()
+    fun go(n: TreeNode?) {
+        if (n == null) return
+        path += n.value
+        if (n.left == null && n.right == null) out += path.toList()
+        else { go(n.left); go(n.right) }
+        path.removeAt(path.size - 1)
+    }
+    go(root); return out
+}
+```
+
+```rust,editable
+fn arl_go(node: &Option<Box<TreeNode>>, path: &mut Vec<i32>, out: &mut Vec<Vec<i32>>) {
+    if let Some(n) = node {
+        path.push(n.val);
+        if n.left.is_none() && n.right.is_none() {
+            out.push(path.clone());
+        } else {
+            arl_go(&n.left,  path, out);
+            arl_go(&n.right, path, out);
+        }
+        path.pop();
+    }
+}
+pub fn all_root_to_leaf_paths(root: &Option<Box<TreeNode>>) -> Vec<Vec<i32>> {
+    let mut out = Vec::new(); let mut path = Vec::new();
+    arl_go(root, &mut path, &mut out);
+    out
+}
+```
+
+</div>
+
+## Complexity
+
+> **Time:** O(N · L) where L is the average path length — every path that gets recorded is copied. **Space:** O(h) for recursion + path stack, plus O(answer size) for output.
+
+***
+
+# How to recognise it
+
+The pattern fits when:
+
+- The unit of interest is a **complete root-to-leaf path** (same as the previous lesson), AND
+- The answer needs the **actual nodes** in each path (not just a per-path verdict you can fold into a number).
+
+Concrete cues:
+
+- *"Return all root-to-leaf paths where …"* — collect path snapshots.
+- *"Find all paths whose nodes satisfy …"* — same.
+- *"Detect duplicate / prefix / palindromic / specially-structured paths"* — push-pop + per-path data structure (hash, multiset, prefix-sum map).
+
+Anti-pattern: if all you need is a count, sum, or boolean per path, use the *stateless* variant from the previous lesson — it's strictly cheaper.
+
+***
+
+# Problem 1 — Root-to-leaf paths summing to target
+
+> Return *all* root-to-leaf paths whose node values sum to `target`.
+
+The accumulator is *the path so far* (push-pop) plus *the running sum* (passed by value). At each leaf, if the running sum equals the target, snapshot the path.
+
+## Solution
+
+<div class="lang-tabs">
+
+```python,editable
+def root_to_leaf_paths(root, target):
+    out, path = [], []
+    def go(n, remaining):
+        if n is None: return
+        path.append(n.val)
+        remaining -= n.val
+        if n.left is None and n.right is None:
+            if remaining == 0: out.append(path.copy())
+        else:
+            go(n.left, remaining); go(n.right, remaining)
+        path.pop()
+    go(root, target)
+    return out
+```
+
+```java,editable
+static List<Integer> path;
+static List<List<Integer>> out;
+static void rtlpHelper(TreeNode n, int remaining) {
+    if (n == null) return;
+    path.add(n.val);
+    remaining -= n.val;
+    if (n.left == null && n.right == null) {
+        if (remaining == 0) out.add(new ArrayList<>(path));
+    } else {
+        rtlpHelper(n.left, remaining); rtlpHelper(n.right, remaining);
+    }
+    path.remove(path.size() - 1);
+}
+public static List<List<Integer>> rootToLeafPaths(TreeNode root, int target) {
+    out = new ArrayList<>(); path = new ArrayList<>();
+    rtlpHelper(root, target);
+    return out;
+}
+```
+
+```c,editable
+static int path[64], path_top = -1;
+static int out[64][64], out_lens[64], out_count = 0;
+void rtlp_helper(TreeNode *n, int remaining) {
+    if (!n) return;
+    path[++path_top] = n->val;
+    remaining -= n->val;
+    if (!n->left && !n->right) {
+        if (remaining == 0) {
+            for (int i = 0; i <= path_top; i++) out[out_count][i] = path[i];
+            out_lens[out_count++] = path_top + 1;
+        }
+    } else {
+        rtlp_helper(n->left, remaining); rtlp_helper(n->right, remaining);
+    }
+    path_top--;
+}
+```
+
+```cpp,editable
+std::vector<int> g_path;
+std::vector<std::vector<int>> g_out;
+void rtlpHelper(TreeNode *n, int remaining) {
+    if (!n) return;
+    g_path.push_back(n->val);
+    remaining -= n->val;
+    if (!n->left && !n->right) {
+        if (remaining == 0) g_out.push_back(g_path);
+    } else {
+        rtlpHelper(n->left, remaining); rtlpHelper(n->right, remaining);
+    }
+    g_path.pop_back();
+}
+std::vector<std::vector<int>> rootToLeafPaths(TreeNode *root, int target) {
+    g_out.clear(); g_path.clear();
+    rtlpHelper(root, target);
+    return g_out;
+}
+```
+
+```scala,editable
+def rootToLeafPaths(root: TreeNode, target: Int): List[List[Int]] = {
+  val path = scala.collection.mutable.ListBuffer[Int]()
+  val out  = scala.collection.mutable.ListBuffer[List[Int]]()
+  def go(n: TreeNode, remaining: Int): Unit = {
+    if (n == null) return
+    path += n.value
+    val rem = remaining - n.value
+    if (n.left == null && n.right == null) {
+      if (rem == 0) out += path.toList
+    } else { go(n.left, rem); go(n.right, rem) }
+    path.remove(path.length - 1)
+  }
+  go(root, target); out.toList
+}
+```
+
+```javascript,editable
+function rootToLeafPaths(root, target) {
+    const out = [], path = [];
+    function go(n, remaining) {
+        if (!n) return;
+        path.push(n.val);
+        remaining -= n.val;
+        if (!n.left && !n.right) {
+            if (remaining === 0) out.push([...path]);
+        } else { go(n.left, remaining); go(n.right, remaining); }
+        path.pop();
+    }
+    go(root, target);
+    return out;
+}
+```
+
+```typescript,editable
+function rootToLeafPaths(root: TreeNode | null, target: number): number[][] {
+    const out: number[][] = []; const path: number[] = [];
+    function go(n: TreeNode | null, remaining: number): void {
+        if (!n) return;
+        path.push(n.val);
+        remaining -= n.val;
+        if (!n.left && !n.right) {
+            if (remaining === 0) out.push([...path]);
+        } else { go(n.left, remaining); go(n.right, remaining); }
+        path.pop();
+    }
+    go(root, target);
+    return out;
+}
+```
+
+```go,editable
+func rootToLeafPaths(root *TreeNode, target int) [][]int {
+    var out [][]int; var path []int
+    var go_ func(*TreeNode, int)
+    go_ = func(n *TreeNode, remaining int) {
+        if n == nil { return }
+        path = append(path, n.Val)
+        remaining -= n.Val
+        if n.Left == nil && n.Right == nil {
+            if remaining == 0 {
+                cp := make([]int, len(path)); copy(cp, path)
+                out = append(out, cp)
+            }
+        } else { go_(n.Left, remaining); go_(n.Right, remaining) }
+        path = path[:len(path)-1]
+    }
+    go_(root, target); return out
+}
+```
+
+```kotlin,editable
+fun rootToLeafPaths(root: TreeNode?, target: Int): List<List<Int>> {
+    val out = mutableListOf<List<Int>>(); val path = mutableListOf<Int>()
+    fun go(n: TreeNode?, remaining: Int) {
+        if (n == null) return
+        path += n.value
+        val rem = remaining - n.value
+        if (n.left == null && n.right == null) {
+            if (rem == 0) out += path.toList()
+        } else { go(n.left, rem); go(n.right, rem) }
+        path.removeAt(path.size - 1)
+    }
+    go(root, target); return out
+}
+```
+
+```rust,editable
+fn rtlp_go(node: &Option<Box<TreeNode>>, remaining: i32, path: &mut Vec<i32>, out: &mut Vec<Vec<i32>>) {
+    if let Some(n) = node {
+        path.push(n.val);
+        let rem = remaining - n.val;
+        if n.left.is_none() && n.right.is_none() {
+            if rem == 0 { out.push(path.clone()); }
+        } else {
+            rtlp_go(&n.left,  rem, path, out);
+            rtlp_go(&n.right, rem, path, out);
+        }
+        path.pop();
+    }
+}
+pub fn root_to_leaf_paths(root: &Option<Box<TreeNode>>, target: i32) -> Vec<Vec<i32>> {
+    let mut out = Vec::new(); let mut path = Vec::new();
+    rtlp_go(root, target, &mut path, &mut out);
+    out
+}
+```
+
+</div>
+
+***
+
+# Problem 2 — Equal evens-and-odds paths
+
+> Return all root-to-leaf paths where the number of even-valued nodes equals the number of odd-valued nodes.
+
+Same shape as Problem 1, but the per-path bookkeeping is *two counters* (`evenCount`, `oddCount`) instead of one running sum. At each leaf, snapshot the path if the counts match.
+
+## Solution
+
+<div class="lang-tabs">
+
+```python,editable
+def equal_paths(root):
+    out, path = [], []
+    def go(n, even, odd):
+        if n is None: return
+        path.append(n.val)
+        if n.val % 2 == 0: even += 1
+        else:              odd  += 1
+        if n.left is None and n.right is None:
+            if even == odd: out.append(path.copy())
+        else:
+            go(n.left, even, odd); go(n.right, even, odd)
+        path.pop()
+    go(root, 0, 0)
+    return out
+```
+
+```java,editable
+static List<Integer> path;
+static List<List<Integer>> out;
+static void epHelper(TreeNode n, int even, int odd) {
+    if (n == null) return;
+    path.add(n.val);
+    if (n.val % 2 == 0) even++; else odd++;
+    if (n.left == null && n.right == null) {
+        if (even == odd) out.add(new ArrayList<>(path));
+    } else { epHelper(n.left, even, odd); epHelper(n.right, even, odd); }
+    path.remove(path.size() - 1);
+}
+public static List<List<Integer>> equalPaths(TreeNode root) {
+    out = new ArrayList<>(); path = new ArrayList<>();
+    epHelper(root, 0, 0); return out;
+}
+```
+
+```c,editable
+void ep_helper(TreeNode *n, int even, int odd) {
+    if (!n) return;
+    path[++path_top] = n->val;
+    if (n->val % 2 == 0) even++; else odd++;
+    if (!n->left && !n->right) {
+        if (even == odd) {
+            for (int i = 0; i <= path_top; i++) out[out_count][i] = path[i];
+            out_lens[out_count++] = path_top + 1;
+        }
+    } else { ep_helper(n->left, even, odd); ep_helper(n->right, even, odd); }
+    path_top--;
+}
+```
+
+```cpp,editable
+void epHelper(TreeNode *n, int even, int odd) {
+    if (!n) return;
+    g_path.push_back(n->val);
+    if (n->val % 2 == 0) even++; else odd++;
+    if (!n->left && !n->right) {
+        if (even == odd) g_out.push_back(g_path);
+    } else { epHelper(n->left, even, odd); epHelper(n->right, even, odd); }
+    g_path.pop_back();
+}
+std::vector<std::vector<int>> equalPaths(TreeNode *root) {
+    g_out.clear(); g_path.clear();
+    epHelper(root, 0, 0); return g_out;
+}
+```
+
+```scala,editable
+def equalPaths(root: TreeNode): List[List[Int]] = {
+  val path = scala.collection.mutable.ListBuffer[Int]()
+  val out  = scala.collection.mutable.ListBuffer[List[Int]]()
+  def go(n: TreeNode, even: Int, odd: Int): Unit = {
+    if (n == null) return
+    path += n.value
+    val (e, o) = if (n.value % 2 == 0) (even + 1, odd) else (even, odd + 1)
+    if (n.left == null && n.right == null) {
+      if (e == o) out += path.toList
+    } else { go(n.left, e, o); go(n.right, e, o) }
+    path.remove(path.length - 1)
+  }
+  go(root, 0, 0); out.toList
+}
+```
+
+```javascript,editable
+function equalPaths(root) {
+    const out = [], path = [];
+    function go(n, even, odd) {
+        if (!n) return;
+        path.push(n.val);
+        if (n.val % 2 === 0) even++; else odd++;
+        if (!n.left && !n.right) {
+            if (even === odd) out.push([...path]);
+        } else { go(n.left, even, odd); go(n.right, even, odd); }
+        path.pop();
+    }
+    go(root, 0, 0); return out;
+}
+```
+
+```typescript,editable
+function equalPaths(root: TreeNode | null): number[][] {
+    const out: number[][] = []; const path: number[] = [];
+    function go(n: TreeNode | null, even: number, odd: number): void {
+        if (!n) return;
+        path.push(n.val);
+        if (n.val % 2 === 0) even++; else odd++;
+        if (!n.left && !n.right) {
+            if (even === odd) out.push([...path]);
+        } else { go(n.left, even, odd); go(n.right, even, odd); }
+        path.pop();
+    }
+    go(root, 0, 0); return out;
+}
+```
+
+```go,editable
+func equalPaths(root *TreeNode) [][]int {
+    var out [][]int; var path []int
+    var go_ func(*TreeNode, int, int)
+    go_ = func(n *TreeNode, even, odd int) {
+        if n == nil { return }
+        path = append(path, n.Val)
+        if n.Val % 2 == 0 { even++ } else { odd++ }
+        if n.Left == nil && n.Right == nil {
+            if even == odd {
+                cp := make([]int, len(path)); copy(cp, path)
+                out = append(out, cp)
+            }
+        } else { go_(n.Left, even, odd); go_(n.Right, even, odd) }
+        path = path[:len(path)-1]
+    }
+    go_(root, 0, 0); return out
+}
+```
+
+```kotlin,editable
+fun equalPaths(root: TreeNode?): List<List<Int>> {
+    val out = mutableListOf<List<Int>>(); val path = mutableListOf<Int>()
+    fun go(n: TreeNode?, even: Int, odd: Int) {
+        if (n == null) return
+        path += n.value
+        val (e, o) = if (n.value % 2 == 0) (even + 1) to odd else even to (odd + 1)
+        if (n.left == null && n.right == null) {
+            if (e == o) out += path.toList()
+        } else { go(n.left, e, o); go(n.right, e, o) }
+        path.removeAt(path.size - 1)
+    }
+    go(root, 0, 0); return out
+}
+```
+
+```rust,editable
+fn ep_go(node: &Option<Box<TreeNode>>, even: i32, odd: i32, path: &mut Vec<i32>, out: &mut Vec<Vec<i32>>) {
+    if let Some(n) = node {
+        path.push(n.val);
+        let (e, o) = if n.val % 2 == 0 { (even + 1, odd) } else { (even, odd + 1) };
+        if n.left.is_none() && n.right.is_none() {
+            if e == o { out.push(path.clone()); }
+        } else {
+            ep_go(&n.left,  e, o, path, out);
+            ep_go(&n.right, e, o, path, out);
+        }
+        path.pop();
+    }
+}
+pub fn equal_paths(root: &Option<Box<TreeNode>>) -> Vec<Vec<i32>> {
+    let mut out = Vec::new(); let mut path = Vec::new();
+    ep_go(root, 0, 0, &mut path, &mut out);
+    out
+}
+```
+
+</div>
+
+***
+
+# Problem 3 — Duplicate paths
+
+> Return all root-to-leaf paths that appear *more than once* in the tree (i.e. two different leaves produce the same value sequence).
+
+Two ingredients: the push-pop path discipline, plus a **hash map of path-string → count**. At each leaf, serialise the path into a hash-friendly key (e.g. comma-joined string), bump its count, and record the path *exactly once* — when the count first hits 2.
+
+## Solution
+
+<div class="lang-tabs">
+
+```python,editable
+def duplicate_paths(root):
+    out, path, seen = [], [], {}
+    def go(n):
+        if n is None: return
+        path.append(n.val)
+        if n.left is None and n.right is None:
+            key = ",".join(map(str, path))
+            seen[key] = seen.get(key, 0) + 1
+            if seen[key] == 2: out.append(path.copy())
+        else:
+            go(n.left); go(n.right)
+        path.pop()
+    go(root)
+    return out
+```
+
+```java,editable
+static List<Integer> path;
+static List<List<Integer>> out;
+static Map<String, Integer> seen;
+static void dpHelper(TreeNode n) {
+    if (n == null) return;
+    path.add(n.val);
+    if (n.left == null && n.right == null) {
+        String key = path.toString();
+        int c = seen.merge(key, 1, Integer::sum);
+        if (c == 2) out.add(new ArrayList<>(path));
+    } else { dpHelper(n.left); dpHelper(n.right); }
+    path.remove(path.size() - 1);
+}
+public static List<List<Integer>> duplicatePaths(TreeNode root) {
+    out = new ArrayList<>(); path = new ArrayList<>(); seen = new HashMap<>();
+    dpHelper(root); return out;
+}
+```
+
+```cpp,editable
+std::vector<int> g_path;
+std::vector<std::vector<int>> g_out;
+std::unordered_map<std::string, int> g_seen;
+std::string serialize(const std::vector<int>& v) {
+    std::string s; for (int x : v) { s += std::to_string(x); s += ','; } return s;
+}
+void dpHelper(TreeNode *n) {
+    if (!n) return;
+    g_path.push_back(n->val);
+    if (!n->left && !n->right) {
+        std::string k = serialize(g_path);
+        if (++g_seen[k] == 2) g_out.push_back(g_path);
+    } else { dpHelper(n->left); dpHelper(n->right); }
+    g_path.pop_back();
+}
+std::vector<std::vector<int>> duplicatePaths(TreeNode *root) {
+    g_out.clear(); g_path.clear(); g_seen.clear();
+    dpHelper(root); return g_out;
+}
+```
+
+```c,editable
+// Practical C requires a string-keyed hash map; the algorithm is identical:
+// serialise the path into a comma-joined string, increment its count,
+// emit the path when the count reaches 2. (Implementation omitted for brevity.)
+```
+
+```scala,editable
+def duplicatePaths(root: TreeNode): List[List[Int]] = {
+  val path = scala.collection.mutable.ListBuffer[Int]()
+  val out  = scala.collection.mutable.ListBuffer[List[Int]]()
+  val seen = scala.collection.mutable.Map[String, Int]()
+  def go(n: TreeNode): Unit = {
+    if (n == null) return
+    path += n.value
+    if (n.left == null && n.right == null) {
+      val key = path.mkString(",")
+      seen(key) = seen.getOrElse(key, 0) + 1
+      if (seen(key) == 2) out += path.toList
+    } else { go(n.left); go(n.right) }
+    path.remove(path.length - 1)
+  }
+  go(root); out.toList
+}
+```
+
+```javascript,editable
+function duplicatePaths(root) {
+    const out = [], path = [], seen = new Map();
+    function go(n) {
+        if (!n) return;
+        path.push(n.val);
+        if (!n.left && !n.right) {
+            const key = path.join(",");
+            const c = (seen.get(key) || 0) + 1;
+            seen.set(key, c);
+            if (c === 2) out.push([...path]);
+        } else { go(n.left); go(n.right); }
+        path.pop();
+    }
+    go(root); return out;
+}
+```
+
+```typescript,editable
+function duplicatePaths(root: TreeNode | null): number[][] {
+    const out: number[][] = []; const path: number[] = [];
+    const seen = new Map<string, number>();
+    function go(n: TreeNode | null): void {
+        if (!n) return;
+        path.push(n.val);
+        if (!n.left && !n.right) {
+            const key = path.join(",");
+            const c = (seen.get(key) || 0) + 1;
+            seen.set(key, c);
+            if (c === 2) out.push([...path]);
+        } else { go(n.left); go(n.right); }
+        path.pop();
+    }
+    go(root); return out;
+}
+```
+
+```go,editable
+import "strings"
+import "strconv"
+
+func duplicatePaths(root *TreeNode) [][]int {
+    var out [][]int; var path []int
+    seen := map[string]int{}
+    serialize := func(p []int) string {
+        ss := make([]string, len(p))
+        for i, v := range p { ss[i] = strconv.Itoa(v) }
+        return strings.Join(ss, ",")
+    }
+    var go_ func(*TreeNode)
+    go_ = func(n *TreeNode) {
+        if n == nil { return }
+        path = append(path, n.Val)
+        if n.Left == nil && n.Right == nil {
+            k := serialize(path)
+            seen[k]++
+            if seen[k] == 2 {
+                cp := make([]int, len(path)); copy(cp, path)
+                out = append(out, cp)
+            }
+        } else { go_(n.Left); go_(n.Right) }
+        path = path[:len(path)-1]
+    }
+    go_(root); return out
+}
+```
+
+```kotlin,editable
+fun duplicatePaths(root: TreeNode?): List<List<Int>> {
+    val out = mutableListOf<List<Int>>(); val path = mutableListOf<Int>()
+    val seen = HashMap<String, Int>()
+    fun go(n: TreeNode?) {
+        if (n == null) return
+        path += n.value
+        if (n.left == null && n.right == null) {
+            val key = path.joinToString(",")
+            val c = (seen[key] ?: 0) + 1
+            seen[key] = c
+            if (c == 2) out += path.toList()
+        } else { go(n.left); go(n.right) }
+        path.removeAt(path.size - 1)
+    }
+    go(root); return out
+}
+```
+
+```rust,editable
+use std::collections::HashMap;
+fn dp_go(node: &Option<Box<TreeNode>>, path: &mut Vec<i32>, seen: &mut HashMap<String, i32>, out: &mut Vec<Vec<i32>>) {
+    if let Some(n) = node {
+        path.push(n.val);
+        if n.left.is_none() && n.right.is_none() {
+            let key: String = path.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(",");
+            let c = seen.entry(key).or_insert(0); *c += 1;
+            if *c == 2 { out.push(path.clone()); }
+        } else {
+            dp_go(&n.left,  path, seen, out);
+            dp_go(&n.right, path, seen, out);
+        }
+        path.pop();
+    }
+}
+pub fn duplicate_paths(root: &Option<Box<TreeNode>>) -> Vec<Vec<i32>> {
+    let mut out = Vec::new(); let mut path = Vec::new(); let mut seen = HashMap::new();
+    dp_go(root, &mut path, &mut seen, &mut out);
+    out
+}
+```
+
+</div>
+
+***
+
+# Problem 4 — Prefix paths
+
+> Return all root-to-leaf paths whose *total sum* equals the sum of some non-empty *prefix* of the same path.
 >
-> -   Space Complexity - **O(log(N))**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case:** Complete binary tree
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
+> **Example:** path `[1, -3, 3]` has total sum 1 — and the prefix `[1]` also has sum 1. So this path qualifies.
 
-***
-
-# Identifying the stateful root to leaf path pattern
-
-The stateful root-to-leaf path technique can only solve a certain type of binary tree problem. These are generally**easy** or **medium**problems where we need to find the aggregated value of a function `f` over all nodes in every root-to-leaf path. For most problems, we need to further aggregate these aggregated values over another function `g`.
-
-The stateful solution works by maintaining two state variables, one to aggregate the value of nodes in a path over function `f` and the other to aggregate all root-to-leaf path aggregates over function `g`. These two variables are either created in the calling function and passed as references to the recursive traversal function or created in the enclosing scope so that all nodes can access the same copy of these two variables.
-
-The stateful solution is the generic solution to all root-to-leaf path problems in a binary tree and can be used to solve all problems that can be solved using the stateless solution. It is used over the stateless version when the values that need to be passed down and up between the nodes are too big
-
-If the problem statement or its solution follows the generic template below, it can be solved by applying the stateful root-to-leaf path technique.
-
-**Template:**Given a binary tree, find the aggregated value of a function `f` over all root-to-leaf paths and further aggregate these aggregated values over a function `g`.
-
-## Example
-
-Let's consider the following problem as an example to better understand how to identify and solve a problem using the stateful root-to-leaf path technique.
-
-> **Problem statement:** Given a binary tree and a target, return a list of lists with all root-to-leaf paths where the sum of nodes in the path is equal to the target.
-
-// Diagram: Find all root-to-leaf paths with a sum of 9.
-
-## The stateful root-to-leaf path technique
-
-The problem description fits the generic template from the stateful root-to-leaf path pattern we learned earlier.
-
-**Template:**
-
-Given a binary tree, find the aggregated value of a function `f` (sum) over all root-to-leaf paths and further aggregate these aggregated values over a function `g` (add to list)
-
-We do a preorder traversal of the binary tree and pass down three variables from every node: the **target value remaining,**  reference to a list `path` that keeps track of all the nodes in the path from the root to the current node and reference to a list of lists `result` that will store all the root-to-leaf paths with a sum equal to the target.
-
-// Diagram: Pass the remaining target and references to the path and result list down from every node.
-
-We start from the root node with `target`, and empty `path` and `result` lists, and as we enter a node, we add the current node to the list `path`. Next, we subtract the node's value from `target` received from the parent and continue the traversal by passing down the updated value to the left and right child nodes. Once the preorder traversal for a node is finished, we remove it from the `path` list before exiting from the node. This way `path` always has the list of nodes from the root node to the current node in that order.
-
-Since `target` is a local variable, every node has its own copy of `target` which is unaffected by the values in other nodes. On the other hand, the same copy of `path` is shared between all nodes, and so the child node is also appended to the same list. This way, on reaching a leaf node, we only need to check if `target` is equal to the value of the leaf node or not to verify if the sum of all nodes in the root-to-leaf path to this leaf is equal to the `target` passed to the root node or not. On reaching a leaf node, if `target` equals the value of the leaf node, we add the list `path` to the `result` list, remove the current node from the `path` list and return back to the parent node. 
-
-This way, at the end of the traversal, `path` will be empty and `result` will have all the root-to-leaf paths where the sum of nodes is equal to the target.
-
-Find all root-to-leaf paths with a sum of 9.
-
-The implementation of the stateful root-to-leaf path technique to solve the problem is given below.
-
-C++
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    void findPaths(
-        TreeNode *root,
-        int target,
-        vector<int> &path,
-        vector<vector<int>> &result
-    ) {
-
-        // If the root is null, there is no path, so return false
-        if (!root) {
-            return;
-        }
-
-        // Add the current node to the path
-        path.push_back(root->val);
-
-        // If it is a leaf node and the target matches the node value,
-        // add the current path to the result
-        if (!root->left && !root->right && root->val == target) {
-            result.push_back(path);
-        }
-
-        // Otherwise, subtract the current node's value from target and
-        // continue traversal to left and right subtrees
-        target -= root->val;
-
-        // Recursively search in left and right subtrees with updated
-        // target
-        findPaths(root->left, target, path, result);
-        findPaths(root->right, target, path, result);
-
-        // Backtrack by removing the current node from the path
-        path.pop_back();
-    }
-
-// Diagram: vector<vector<int>> rootToLeafPathII(TreeNode root, int target) {
-
-        // To store all valid paths
-        vector<vector<int>> result;
-
-        // To store the current path as we traverse
-        vector<int> path;
-
-        // Start the recursive search from the root node
-        findPaths(root, target, path, result);
-
-        // Return the list of all valid paths
-        return result;
-    }
-};
-```
-
-Java
-
-```java
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-class Solution {
-    public boolean rootToLeafPath(TreeNode root, int target) {
-
-        // If the root is null, there is no path, so return false
-        if (root == null) {
-            return false;
-        }
-
-        // If it's a leaf node, check if the current sum equals the
-        // target sum
-        if (root.left == null && root.right == null) {
-            return root.val == target;
-        }
-
-        // Otherwise, subtract the current node's value from target and
-        // continue DFS on left and right subtrees
-        target -= root.val;
-
-        // Check if there is a path with the remaining sum in the left or
-        // right subtree
-        boolean leftPathExists = rootToLeafPath(root.left, target);
-        boolean rightPathExists = rootToLeafPath(root.right, target);
-
-        return leftPathExists || rightPathExists;
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-export class Solution {
-    rootToLeafPath(root: TreeNode | null, target: number): boolean {
-
-        // If the root is null, there is no path, so return false
-        if (root === null) {
-            return false;
-        }
-
-        // If it's a leaf node, check if the current sum equals the
-        // target sum
-        if (root.left === null && root.right === null) {
-            return root.val === target;
-        }
-
-        // Otherwise, subtract the current node's value from target and
-        // continue DFS on left and right subtrees
-        target -= root.val;
-
-        // Check if there is a path with the remaining sum in the left or
-        // right subtree
-        const leftPathExists = this.rootToLeafPath(root.left, target);
-        const rightPathExists = this.rootToLeafPath(root.right, target);
-
-        return leftPathExists || rightPathExists;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-    rootToLeafPath(root, target) {
-
-        // If the root is null, there is no path, so return false
-        if (root === null) {
-            return false;
-        }
-
-        // If it's a leaf node, check if the current sum equals the
-        // target sum
-        if (root.left === null && root.right === null) {
-            return root.val === target;
-        }
-
-        // Otherwise, subtract the current node's value from target and
-        // continue DFS on left and right subtrees
-        target -= root.val;
-
-        // Check if there is a path with the remaining sum in the left or
-        // right subtree
-        const leftPathExists = this.rootToLeafPath(root.left, target);
-        const rightPathExists = this.rootToLeafPath(root.right, target);
-
-        return leftPathExists || rightPathExists;
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import Optional
-
-class Solution:
-    def root_to_leaf_path(
-        self, root: Optional[TreeNode], target: int
-    ) -> bool:
-
-        # If the root is null, there is no path, so return false
-        if root is None:
-            return False
-
-        # If it's a leaf node, check if the current sum equals the target
-        # sum
-        if root.left is None and root.right is None:
-            return root.val == target
-
-        # Otherwise, subtract the current node's value from target and
-        # continue DFS on left and right subtrees
-        target -= root.val
-
-        # Check if there is a path with the remaining sum in the left or
-        # right subtree
-        left_path_exists = self.root_to_leaf_path(root.left, target)
-        right_path_exists = self.root_to_leaf_path(root.right, target)
-
-        return left_path_exists or right_path_exists
-```
-
-The stateful root-to-leaf path technique can solve this problem in linear time and a single pass using a very small and concise recursive implementation.
-
-## Example problems
-
-Most problems that fall under this category are**easy**problems; a list of a few is given below.
-
-> -   **[Root to leaf paths](https://www.codeintuition.io/courses/binary-tree/AeXH6FknJNkFz0Je1Rw5y)**
-> -   **[Equal paths](https://www.codeintuition.io/courses/binary-tree/ARsmRsSslpsO-t9Cf7yjG)**
-> -   **[Duplicate paths](https://www.codeintuition.io/courses/binary-tree/5jucIlHrd11dkk3v5JbQg)**
-> -   **[Prefix paths](https://www.codeintuition.io/courses/binary-tree/nwyeV0lWrNGPK18VhqO9-)**
-
-We will now solve these problems to understand the stateful root-to-leaf path technique better.
-
-***
-
-# Root to leaf paths
-
-## Problem Statement
-
-Given the **root** of a binary tree and a **target**, write a function to find and return all root-to-leaf paths where the sum of nodes in the path is equal to the target.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 3, 4, null, null, 7\], target = 11
-> -   **Output:** \[\[1, 3, 7\]\]
-> -   **Explanation:** The given tree has a path with sum = 11 as shown in the diagram above.
-
-### Example 2
-
-> -   **Input:** root = \[1, 8, 4, null, null, 2, 4\], target = 13
-> -   **Output:** \[\]
-> -   **Explanation:** The given tree has no paths where the sum is 13.
+Combine the path discipline with a **prefix-sum frequency map**. As we descend, increment the count of the running prefix-sum at the current depth. At a leaf, if the running sum has been seen *more than once* (count > 1), it means a strictly earlier prefix of the path had the same sum — qualifying the path.
 
 ## Solution
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+<div class="lang-tabs">
 
-using namespace std;
-
-class Solution {
-public:
-
-    // To store the current path as we traverse
-    vector<int> path;
-
-    void rootToLeafPathsHelper(
-        TreeNode *root,
-        int target,
-        vector<vector<int>> &result
-    ) {
-
-        // If the root is null, there is no path, so return
-        if (!root) {
-            return;
-        }
-
-        // Add the current node to the path
-        path.push_back(root->val);
-
-        // If it is a leaf node and the target matches the node value,
-        // add the current path to the result
-        if (!root->left && !root->right && root->val == target) {
-            result.push_back(path);
-        }
-
-        // Otherwise, subtract the current node's value from target and
-        // continue traversal to left and right subtrees
-        target -= root->val;
-
-        // Recursively search in left and right subtrees with updated
-        // target
-        rootToLeafPathsHelper(root->left, target, result);
-        rootToLeafPathsHelper(root->right, target, result);
-
-        // Backtrack by removing the current node from the path
-        path.pop_back();
-    }
-
-    vector<vector<int>> rootToLeafPaths(TreeNode *root, int target) {
-
-        // To store all valid paths
-        vector<vector<int>> result;
-
-        // Start the recursive search from the root node
-        rootToLeafPathsHelper(root, target, result);
-
-        // Return the list of all valid paths
-        return result;
-    }
-};
+```python,editable
+def prefix_paths(root):
+    out, path, freq = [], [], {}
+    def go(n, run):
+        if n is None: return
+        path.append(n.val)
+        run += n.val
+        freq[run] = freq.get(run, 0) + 1
+        if n.left is None and n.right is None:
+            if freq[run] > 1: out.append(path.copy())
+        else:
+            go(n.left, run); go(n.right, run)
+        freq[run] -= 1
+        if freq[run] == 0: del freq[run]
+        path.pop()
+    go(root, 0)
+    return out
 ```
 
-***
-
-# Equal paths
-
-## Problem Statement
-
-Given the **root** of a binary tree, write a function to find and return all root-to-leaf paths that have an equal number of even and odd-valued nodes in them.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 4\]
-> -   **Output:** \[\[1, 2\], \[1, 4\]\]
-> -   **Explanation:** The given tree has two such paths as shown above.
-
-### Example 2
-
-> -   **Input:** root = \[1, 8, 4, null, null, 2, 4\]
-> -   **Output:** \[\[1, 8\]\]
-> -   **Explanation:** The given tree has one such path as shown above.
-
-## Solution
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-
-    // To store the current path as we traverse
-    vector<int> path;
-
-    void equalPathsHelper(
-        TreeNode *root,
-        int evenCount,
-        int oddCount,
-        vector<vector<int>> &result
-    ) {
-
-        // If the root is null, there is no path, so return
-        if (!root) {
-            return;
-        }
-
-        // Add the current node to the path
-        path.push_back(root->val);
-
-        // If the current node is even, increment even count
-        if (root->val % 2 == 0) {
-            evenCount++;
-        }
-
-        // Else, increment odd count
-        else {
-            oddCount++;
-        }
-
-        // If current node is a leaf, check if even and odd counts are
-        // equal
-        if (!root->left && !root->right) {
-
-            // If the counts are equal, add the current path to the
-            // result
-            if (evenCount == oddCount) {
-                result.push_back(path);
-            }
-        }
-
-        // Recursively traverse left and right subtrees
-        equalPathsHelper(root->left, evenCount, oddCount, result);
-        equalPathsHelper(root->right, evenCount, oddCount, result);
-
-        // Backtrack by removing the current node from the path
-        path.pop_back();
-    }
-
-    vector<vector<int>> equalPaths(TreeNode *root) {
-
-        // To store all valid paths
-        vector<vector<int>> result;
-
-        // Start the recursive search from the root node with initial
-        // even and odd counts as 0
-        equalPathsHelper(root, 0, 0, result);
-        return result;
-    }
-};
+```java,editable
+static List<Integer> path;
+static List<List<Integer>> out;
+static Map<Integer, Integer> freq;
+static void ppHelper(TreeNode n, int run) {
+    if (n == null) return;
+    path.add(n.val);
+    run += n.val;
+    int c = freq.merge(run, 1, Integer::sum);
+    if (n.left == null && n.right == null) {
+        if (c > 1) out.add(new ArrayList<>(path));
+    } else { ppHelper(n.left, run); ppHelper(n.right, run); }
+    if (freq.get(run) == 1) freq.remove(run); else freq.merge(run, -1, Integer::sum);
+    path.remove(path.size() - 1);
+}
+public static List<List<Integer>> prefixPaths(TreeNode root) {
+    out = new ArrayList<>(); path = new ArrayList<>(); freq = new HashMap<>();
+    ppHelper(root, 0); return out;
+}
 ```
 
-***
-
-# Equal paths
-
-***
-
-# Duplicate paths
-
-## Problem Statement
-
-Given the **root** of a binary tree, write a function to find and return all root-to-leaf paths that appear more than once in the tree.
-
-### Example 1
-
-> -   **Input:** root = \[1, 2, 2\]
-> -   **Output:** \[\[1, 2\]\]
-> -   **Explanation:** The given tree has one such path that appears more than once in the tree, as shown in the above diagram.
-
-### Example 2
-
-> -   **Input:** root = \[1, 8, 4, null, null, 2, 4\]
-> -   **Output:** \[\]
-> -   **Explanation:** The given tree has no root-to-leaf path that appears more than once.
-
-## Solution
-
-```cpp
-#include <sstream>
-#include <unordered_map>
-
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-
-    // To store the current path as we traverse
-    vector<int> path;
-
-    // To store frequency of each root-to-leaf path (serialized as a
-    // string)
-    unordered_map<string, int> pathCount;
-
-    string serializePath(const vector<int> &path) {
-        ostringstream oss;
-        for (int i = 0; i < path.size(); i++) {
-
-            // Add comma separator for all but the first element
-            if (i > 0) {
-                oss << ",";
-            }
-
-            // Append the current node value
-            oss << path[i];
-        }
-
-        // Return the serialized path
-        return oss.str();
-    }
-
-    void duplicatePathsHelper(
-        TreeNode *root,
-        vector<vector<int>> &result
-    ) {
-
-        // If the root is null, there is no path, so return
-        if (!root) {
-            return;
-        }
-
-        // Add the current node to the path
-        path.push_back(root->val);
-
-        // If it's a leaf, serialize and check frequency
-        if (!root->left && !root->right) {
-
-            // Serialize current path
-            string serializedPath = serializePath(path);
-
-            // Increment frequency count for this path
-            pathCount[serializedPath]++;
-
-            // If path occurs exactly twice, record it as duplicate
-            if (pathCount[serializedPath] == 2) {
-                result.push_back(path);
-            }
-        }
-
-        // Recursively traverse left and right subtrees
-        duplicatePathsHelper(root->left, result);
-        duplicatePathsHelper(root->right, result);
-
-        // Backtrack by removing the current node from the path
-        path.pop_back();
-    }
-
-    vector<vector<int>> duplicatePaths(TreeNode *root) {
-
-        // To store all valid paths
-        vector<vector<int>> result;
-
-        // Start the recursive search from the root node
-        duplicatePathsHelper(root, result);
-
-        // Return the list of all valid paths
-        return result;
-    }
-};
+```c,editable
+// Same as duplicate-paths: requires a hash map. Algorithm omitted for brevity.
 ```
 
-***
-
-# Prefix paths
-
-## Problem Statement
-
-Given the **root** of a binary tree, write a function to find and return all root-to-leaf paths for which the sum of the nodes along the path appears at least once in a subpath within the same path.
-
-A subpath is a path that starts at the root of the tree and ends at any ancestor on that root-to-leaf path (i.e. a prefix of that path).
-
-### Example 1
-
-> -   **Input:** root = \[1, -3, null, null, 3\]
-> -   **Output:** \[\[1, -3, 3\]\]
-> -   **Explanation:** The given tree contains a root-to-leaf path \[1, -3, 3\] where the sum of all nodes along the path (1 + (-3) + 3 = 1) matches the sum of a subpath within the same path, the subpath consisting of just the root node \[1\].
-
-### Example 2
-
-> -   **Input:** root = \[1, 8, 4, null, null, 2, 4\]
-> -   **Output:** \[\]
-> -   **Explanation:** There is no root-to-leaf path in which the sum of any subpath equals the total sum of the entire root-to-leaf path.
-
-## Solution
-
-```cpp
-#include <unordered_map>
-
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-class Solution {
-public:
-
-    // To store the current path as we traverse
-    vector<int> path;
-
-    // To store prefix sum counts for paths
-    unordered_map<int, int> prefixSumCount;
-
-    void prefixPathsHelper(
-        TreeNode *root,
-        int pathSum,
-        vector<vector<int>> &result
-    ) {
-
-        // If the root is null, there is no path, so return
-        if (!root) {
-            return;
-        }
-
-        // Add the current node to the path
-        path.push_back(root->val);
-
-        // Calculate the current sum by adding the value of the
-        // current node to the previous sum.
-        pathSum += root->val;
-
-        // Add the current sum to the prefixSumCount map to keep track of
-        // it. This is to be used by future nodes in the recursive
-        // traversal.
-        prefixSumCount[pathSum]++;
-
-        // If it's a leaf node, check if the total sum has occurred
-        if (!root->left && !root->right) {
-
-            // Check if total sum already exists as a prefix (excluding
-            // last occurrence)
-            if (prefixSumCount[pathSum] > 1) {
-                result.push_back(path);
-            }
-        }
-
-        // Recursively traverse left and right subtrees
-        prefixPathsHelper(root->left, pathSum, result);
-        prefixPathsHelper(root->right, pathSum, result);
-
-        // Backtrack by removing the current sum from the prefix sum
-        // count map.This is to ensure that the prefix sum count is
-        // accurate for future nodes.
-        prefixSumCount[pathSum]--;
-
-        // Backtrack by removing the current node from the path
-        path.pop_back();
-    }
-
-    vector<vector<int>> prefixPaths(TreeNode *root) {
-
-        // To store all valid paths
-        vector<vector<int>> result;
-
-        // Start the recursive search from the root node
-        prefixPathsHelper(root, 0, result);
-
-        // Return the list of all valid paths
-        return result;
-    }
-};
+```cpp,editable
+std::unordered_map<int, int> g_freq;
+void ppHelper(TreeNode *n, int run) {
+    if (!n) return;
+    g_path.push_back(n->val);
+    run += n->val;
+    int c = ++g_freq[run];
+    if (!n->left && !n->right) {
+        if (c > 1) g_out.push_back(g_path);
+    } else { ppHelper(n->left, run); ppHelper(n->right, run); }
+    if (--g_freq[run] == 0) g_freq.erase(run);
+    g_path.pop_back();
+}
+std::vector<std::vector<int>> prefixPaths(TreeNode *root) {
+    g_out.clear(); g_path.clear(); g_freq.clear();
+    ppHelper(root, 0); return g_out;
+}
 ```
 
+```scala,editable
+def prefixPaths(root: TreeNode): List[List[Int]] = {
+  val path = scala.collection.mutable.ListBuffer[Int]()
+  val out  = scala.collection.mutable.ListBuffer[List[Int]]()
+  val freq = scala.collection.mutable.Map[Int, Int]()
+  def go(n: TreeNode, run: Int): Unit = {
+    if (n == null) return
+    path += n.value
+    val newRun = run + n.value
+    freq(newRun) = freq.getOrElse(newRun, 0) + 1
+    if (n.left == null && n.right == null) {
+      if (freq(newRun) > 1) out += path.toList
+    } else { go(n.left, newRun); go(n.right, newRun) }
+    val c = freq(newRun) - 1
+    if (c == 0) freq.remove(newRun) else freq(newRun) = c
+    path.remove(path.length - 1)
+  }
+  go(root, 0); out.toList
+}
+```
+
+```javascript,editable
+function prefixPaths(root) {
+    const out = [], path = [], freq = new Map();
+    function go(n, run) {
+        if (!n) return;
+        path.push(n.val);
+        run += n.val;
+        const c = (freq.get(run) || 0) + 1;
+        freq.set(run, c);
+        if (!n.left && !n.right) {
+            if (c > 1) out.push([...path]);
+        } else { go(n.left, run); go(n.right, run); }
+        const newC = freq.get(run) - 1;
+        if (newC === 0) freq.delete(run); else freq.set(run, newC);
+        path.pop();
+    }
+    go(root, 0); return out;
+}
+```
+
+```typescript,editable
+function prefixPaths(root: TreeNode | null): number[][] {
+    const out: number[][] = []; const path: number[] = [];
+    const freq = new Map<number, number>();
+    function go(n: TreeNode | null, run: number): void {
+        if (!n) return;
+        path.push(n.val);
+        run += n.val;
+        const c = (freq.get(run) || 0) + 1;
+        freq.set(run, c);
+        if (!n.left && !n.right) {
+            if (c > 1) out.push([...path]);
+        } else { go(n.left, run); go(n.right, run); }
+        const newC = (freq.get(run) || 0) - 1;
+        if (newC === 0) freq.delete(run); else freq.set(run, newC);
+        path.pop();
+    }
+    go(root, 0); return out;
+}
+```
+
+```go,editable
+func prefixPaths(root *TreeNode) [][]int {
+    var out [][]int; var path []int
+    freq := map[int]int{}
+    var go_ func(*TreeNode, int)
+    go_ = func(n *TreeNode, run int) {
+        if n == nil { return }
+        path = append(path, n.Val)
+        run += n.Val
+        freq[run]++
+        if n.Left == nil && n.Right == nil {
+            if freq[run] > 1 {
+                cp := make([]int, len(path)); copy(cp, path)
+                out = append(out, cp)
+            }
+        } else { go_(n.Left, run); go_(n.Right, run) }
+        freq[run]--
+        if freq[run] == 0 { delete(freq, run) }
+        path = path[:len(path)-1]
+    }
+    go_(root, 0); return out
+}
+```
+
+```kotlin,editable
+fun prefixPaths(root: TreeNode?): List<List<Int>> {
+    val out = mutableListOf<List<Int>>(); val path = mutableListOf<Int>()
+    val freq = HashMap<Int, Int>()
+    fun go(n: TreeNode?, run: Int) {
+        if (n == null) return
+        path += n.value
+        val newRun = run + n.value
+        val c = (freq[newRun] ?: 0) + 1
+        freq[newRun] = c
+        if (n.left == null && n.right == null) {
+            if (c > 1) out += path.toList()
+        } else { go(n.left, newRun); go(n.right, newRun) }
+        val newC = freq[newRun]!! - 1
+        if (newC == 0) freq.remove(newRun) else freq[newRun] = newC
+        path.removeAt(path.size - 1)
+    }
+    go(root, 0); return out
+}
+```
+
+```rust,editable
+use std::collections::HashMap;
+fn pp_go(node: &Option<Box<TreeNode>>, run: i32, path: &mut Vec<i32>, freq: &mut HashMap<i32, i32>, out: &mut Vec<Vec<i32>>) {
+    if let Some(n) = node {
+        path.push(n.val);
+        let new_run = run + n.val;
+        let c = freq.entry(new_run).or_insert(0); *c += 1;
+        let count_now = *c;
+        if n.left.is_none() && n.right.is_none() {
+            if count_now > 1 { out.push(path.clone()); }
+        } else {
+            pp_go(&n.left,  new_run, path, freq, out);
+            pp_go(&n.right, new_run, path, freq, out);
+        }
+        let c = freq.get_mut(&new_run).unwrap(); *c -= 1;
+        if *c == 0 { freq.remove(&new_run); }
+        path.pop();
+    }
+}
+pub fn prefix_paths(root: &Option<Box<TreeNode>>) -> Vec<Vec<i32>> {
+    let mut out = Vec::new(); let mut path = Vec::new(); let mut freq = HashMap::new();
+    pp_go(root, 0, &mut path, &mut freq, &mut out);
+    out
+}
+```
+
+</div>
+
 ***
 
-# Prefix paths
+## Final Takeaway
+
+The stateful root-to-leaf path pattern is the natural sibling of stateless preorder backtracking. Three things to walk away with:
+
+1. **Push-pop is sacred — and the leaf needs a *copy*.** The shared `path` is being mutated; if you record a reference to it and then return, the path you stored will get clobbered as the recursion backs out. Always copy on extract — `path.copy()`, `new ArrayList<>(path)`, `[...path]`, `path.clone()` — never store the live reference.
+2. **Auxiliary data per problem.** Sum target → running integer. Equal evens-and-odds → two counters. Duplicate paths → hash map of serialised paths. Prefix paths → hash map of running prefix sums. The path itself is the canonical accumulator; the per-problem aux is what *interprets* the path.
+3. **Returning paths is expensive even when the algorithm is cheap.** Recording matched paths is O(L) per match. If you're collecting *every* path, total output size is O(N · L) — that's irreducible. The recursion stays O(N) but the output dominates the cost.
+
+> *Coming up — the chapter shifts from depth-first patterns to **level-order** patterns. The next two lessons cover BFS-based tree problems: per-level aggregations, deepest-leaf computations, completeness checks, zigzag traversal, cousin checks, and column-based traversals (top view, bottom view, vertical, diagonal). The queue from chapter 6 finally takes centre stage.*
