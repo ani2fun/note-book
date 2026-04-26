@@ -254,3 +254,69 @@ const p2: Point = { x: 3, y: 4 };
 console.log("Identity:", identity("hello TypeScript"));
 console.log(`Distance from (0,0) to (3,4): ${distance(p1, p2)}`);
 ```
+
+---
+
+## Diagrams — Mermaid
+
+Rendered client-side by `mermaid` loaded from jsDelivr. Theme follows the page (light vs. dark).
+
+```mermaid
+flowchart LR
+    A[Client] -->|HTTP request| B(API Server)
+    B --> C{Authenticated?}
+    C -->|Yes| D[(Database)]
+    C -->|No| E[401 Response]
+    D --> B
+    B -->|JSON| A
+```
+
+---
+
+## Diagrams — D2
+
+Rendered server-side via [kroki.io](https://kroki.io) using the `language-d2` fenced block. Source is POSTed and the SVG is injected inline.
+
+```d2
+direction: right
+
+users: Users {
+  shape: person
+}
+
+api: API Server {
+  shape: rectangle
+}
+
+cache: Redis Cache {
+  shape: cylinder
+}
+
+db: PostgreSQL {
+  shape: cylinder
+}
+
+users -> api: HTTP request
+api -> cache: lookup {style.stroke-dash: 3}
+cache -> api: hit / miss
+api -> db: SQL query
+db -> api: result set
+api -> users: JSON response
+```
+
+A second D2 block to verify multiple diagrams on the same page render independently:
+
+```d2
+classes: {
+  done: {style.fill: "#bbf7d0"}
+  todo: {style.fill: "#fed7aa"}
+}
+
+plan: Sprint Plan {
+  design.class: done
+  build.class: todo
+  ship.class: todo
+
+  design -> build -> ship
+}
+```

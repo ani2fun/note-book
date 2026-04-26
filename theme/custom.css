@@ -47,6 +47,33 @@
     max-width: none;
 }
 
+.d2 {
+    margin: 1.5rem 0;
+    text-align: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.d2 svg {
+    display: block;
+    height: auto;
+    margin: 0 auto;
+    max-width: 100%;
+}
+
+.d2--error {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-left: 4px solid #c2410c;
+    background: var(--quote-bg);
+    border-radius: 8px;
+}
+
+.d2--error pre {
+    margin-top: 0.5rem;
+    white-space: pre-wrap;
+}
+
 .python-playground .buttons {
     display: flex;
     gap: 0.25rem;
