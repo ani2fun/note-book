@@ -52,27 +52,24 @@ The CPU uses tiny internal slots called **registers** to hold values during comp
 
 RAM is its own chip on your motherboard. It doesn't compute anything — that's the CPU's job. Its entire purpose is to **store data** so it can be retrieved and updated later.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph CPU["CPU chip"]
-        ALU["ALU"]
-        Reg["Registers"]
-    end
-    subgraph RAM["RAM chip"]
-        C0[" "] --- C1[" "] --- C2[" "] --- C3[" "] --- C4[" "]
-    end
-    CPU -- "separate chips,\ndifferent jobs" --- RAM
+```d2
+direction: right
+
+cpu: CPU chip {
+  ALU
+  Registers
+}
+
+ram: RAM chip {
+  grid-columns: 5
+  c0: ""
+  c1: ""
+  c2: ""
+  c3: ""
+  c4: ""
+}
+
+cpu <-> ram: separate chips, different jobs
 ```
 
 <p align="center"><strong>CPU computes. RAM stores. They are two separate chips on your motherboard.</strong></p>
@@ -104,20 +101,19 @@ The mental model is dead simple:
 
 > Imagine memory as a **long chain of numbered boxes**, starting at `0` and ending at `n - 1`, where `n` is the total number of boxes. That's it. This picture covers 99% of what you need when writing software.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    b0["0"] --- b1["1"] --- b2["2"] --- b3["3"] --- b4["4"] --- b5["5"] --- b6["6"] --- b7["n-1"]
+```d2
+mem: Memory {
+  grid-columns: 8
+  grid-gap: 0
+  b0: "0"
+  b1: "1"
+  b2: "2"
+  b3: "3"
+  b4: "4"
+  b5: "5"
+  b6: "6"
+  b7: "n-1"
+}
 ```
 
 <p align="center"><strong>Memory can be visualized as a linear sequence of numbered blocks.</strong></p>
@@ -143,21 +139,46 @@ Storing data is easy. But how do you *find* it again?
 
 Each byte has a unique identifier based on its position — its **address**. It's just the index of the box, counting from 0.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    b0["0<br/>8 bits"] --- b1["1<br/>8 bits"] --- b2["2<br/>8 bits"] --- b3["3<br/>8 bits"] --- b4["4<br/>8 bits"] --- b5["5<br/>8 bits"]
-    addr(["Address = 3"]) --> b3
+```d2
+mem: Memory {
+  grid-columns: 6
+  grid-gap: 0
+  b0: |md
+    **0**
+
+    8 bits
+  |
+  b1: |md
+    **1**
+
+    8 bits
+  |
+  b2: |md
+    **2**
+
+    8 bits
+  |
+  b3: |md
+    **3**
+
+    8 bits
+  |
+  b4: |md
+    **4**
+
+    8 bits
+  |
+  b5: |md
+    **5**
+
+    8 bits
+  |
+}
+
+addr: Address = 3 {
+  shape: oval
+}
+addr -> mem.b3
 ```
 
 <p align="center"><strong>Each box is 1 byte (8 bits). Its position number is its address.</strong></p>
@@ -252,20 +273,14 @@ When writing a program, we often need to store a **collection of related data it
 
 If there are only a few students, storing them in separate variables feels fine:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    A["  ageStudent1 = 12  "] ~~~ B["  ageStudent2 = 13  "] ~~~ C["  ageStudent3 = 13  "]
+```d2
+vars: {
+  grid-columns: 3
+  grid-gap: 24
+  a: "ageStudent1 = 12"
+  b: "ageStudent2 = 13"
+  c: "ageStudent3 = 13"
+}
 ```
 
 <p align="center"><strong>Using variables to store the ages of 3 students.</strong></p>
@@ -274,23 +289,27 @@ Easy enough. Three students, three variables. Done.
 
 But what happens when the class has **hundreds of students**? Now you need hundreds of variables:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    s1["  ageStudent1 = 12  "] ~~~ s2["  ageStudent2 = 13  "] ~~~ s3["  ageStudent3 = 13  "] ~~~ s4["  ageStudent4 = 11  "]
-    s5["  ageStudent5 = 11  "] ~~~ s6["  ageStudent6 = 12  "] ~~~ s7["  ageStudent7 = 12  "] ~~~ s8["  ageStudent8 = 13  "]
-    s9["  ......  "] ~~~ s10["  ......  "] ~~~ s11["  ......  "] ~~~ s12["  ......  "]
-    s13["  ageStudent105 = 13  "] ~~~ s14["  ageStudent106 = 11  "] ~~~ s15["  ageStudent107 = 13  "] ~~~ s16["  ageStudent108 = 11  "]
+```d2
+vars: {
+  grid-columns: 4
+  grid-gap: 16
+  s1: "ageStudent1 = 12"
+  s2: "ageStudent2 = 13"
+  s3: "ageStudent3 = 13"
+  s4: "ageStudent4 = 11"
+  s5: "ageStudent5 = 11"
+  s6: "ageStudent6 = 12"
+  s7: "ageStudent7 = 12"
+  s8: "ageStudent8 = 13"
+  s9: "......"
+  s10: "......"
+  s11: "......"
+  s12: "......"
+  s13: "ageStudent105 = 13"
+  s14: "ageStudent106 = 11"
+  s15: "ageStudent107 = 13"
+  s16: "ageStudent108 = 11"
+}
 ```
 
 <p align="center"><strong>Using variables to store ages of 108 students.</strong></p>
@@ -355,21 +374,23 @@ Let's break that definition down:
 
 Visually, an array looks like a row of labelled boxes, all the same size, sitting side by side:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    v1["value1"] --- v2["value2"] --- v3["value3"] --- v4["value4"] --- v5["value5"] --- v6["value6"] --- v7["value7"]
-    size["◄─────────────── size ───────────────►"] -.- v1
+```d2
+arr: array {
+  grid-columns: 7
+  grid-gap: 0
+  v1: value1
+  v2: value2
+  v3: value3
+  v4: value4
+  v5: value5
+  v6: value6
+  v7: value7
+}
+
+size: "◄────── size ──────►" {
+  shape: text
+}
+size -> arr: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>An array data structure.</strong></p>
@@ -392,20 +413,18 @@ ageStudent3 = 13
 
 You create **one** array that holds all the ages:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    a1["age1"] --- a2["age2"] --- a3["age3"] --- a4["age4"] --- a5["age5"] --- a6["age6"] --- a7["age7"]
+```d2
+ages: ages {
+  grid-columns: 7
+  grid-gap: 0
+  a1: age1
+  a2: age2
+  a3: age3
+  a4: age4
+  a5: age5
+  a6: age6
+  a7: age7
+}
 ```
 
 <p align="center"><strong>Storing the ages of students in a class in an array.</strong></p>
@@ -447,20 +466,16 @@ Now that we know the logical representation of an array, let's examine how to **
 
 The syntax and rules for creating an array depend on the programming language. An array with a fixed size cannot be modified after creation, and all data items in an array must be of the same type.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    v1["value1"] --- v2["value2"] --- v3["value3"] --- v4["value4"] --- v5["value5"]
+```d2
+arr: array {
+  grid-columns: 5
+  grid-gap: 0
+  v1: value1
+  v2: value2
+  v3: value3
+  v4: value4
+  v5: value5
+}
 ```
 
 <p align="center"><strong>Creating an array of fixed size and datatype.</strong></p>
@@ -498,20 +513,36 @@ An array is a collection of data items stored in **contiguous memory**. This lay
 >
 > Array indices represent an element's **relative** position from the array's beginning. The first element is 0 steps away from the start, the second is 1 step away, and so on. This is not a convention — it's a direct reflection of how address arithmetic works in memory.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    v1["value1<br/>─────<br/>0"] --- v2["value2<br/>─────<br/>1"] --- v3["value3<br/>─────<br/>2"] --- v4["value4<br/>─────<br/>3"] --- v5["value5<br/>─────<br/>4"]
+```d2
+arr: array {
+  grid-columns: 5
+  grid-gap: 0
+  v1: |md
+    value1
+
+    `0`
+  |
+  v2: |md
+    value2
+
+    `1`
+  |
+  v3: |md
+    value3
+
+    `2`
+  |
+  v4: |md
+    value4
+
+    `3`
+  |
+  v5: |md
+    value5
+
+    `4`
+  |
+}
 ```
 
 <p align="center"><strong>Array elements are accessed via their indices.</strong></p>
@@ -540,23 +571,36 @@ print("Last value:", numbers[-1]) # → 5
 
 Elements in an array can be modified in place, just like variables. To update a value, use `array[index]` on the left side of the assignment operator.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    v1["value1<br/>─────<br/>0"] --- v2["value2<br/>─────<br/>1"] --- v3["value3<br/>─────<br/>2"] --- v4["value4<br/>─────<br/>3"] --- v5["value5<br/>─────<br/>4"]
+```d2
+arr: array {
+  grid-columns: 5
+  grid-gap: 0
+  v1: |md
+    value1
 
-    style v2 fill:#fde68a,stroke:#d97706,color:#1a1a1a
-    style v3 fill:#fde68a,stroke:#d97706,color:#1a1a1a
+    `0`
+  |
+  v2: |md
+    value2
+
+    `1`
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  v3: |md
+    value3
+
+    `2`
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  v4: |md
+    value4
+
+    `3`
+  |
+  v5: |md
+    value5
+
+    `4`
+  |
+}
 ```
 
 <p align="center"><strong>Array elements can be modified via their indices (highlighted = being updated).</strong></p>
@@ -707,21 +751,56 @@ Array elements are accessed using indices because arrays are stored **contiguous
 
 Memory in RAM is logically organized as a sequence of blocks, each **1 byte (8 bits)** long. Every block has a unique identifier — its **address** — which is simply its relative position from the start (starting from 0).
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    b0["0<br/>8 bits"] --- b1["1<br/>8 bits"] --- b2["2<br/>8 bits"] --- b3["3<br/>8 bits"] --- b4["4<br/>8 bits"] --- b5["5<br/>8 bits"] --- b6["6<br/>8 bits"] --- b7["7<br/>8 bits"]
-    addr(["Address = 3"]) --> b3
+```d2
+mem: Memory {
+  grid-columns: 8
+  grid-gap: 0
+  b0: |md
+    **0**
+
+    8 bits
+  |
+  b1: |md
+    **1**
+
+    8 bits
+  |
+  b2: |md
+    **2**
+
+    8 bits
+  |
+  b3: |md
+    **3**
+
+    8 bits
+  |
+  b4: |md
+    **4**
+
+    8 bits
+  |
+  b5: |md
+    **5**
+
+    8 bits
+  |
+  b6: |md
+    **6**
+
+    8 bits
+  |
+  b7: |md
+    **7**
+
+    8 bits
+  |
+}
+
+addr: Address = 3 {
+  shape: oval
+}
+addr -> mem.b3
 ```
 
 <p align="center"><strong>Memory is logically organized as a linear sequence of blocks.</strong></p>
@@ -740,28 +819,51 @@ The address of the memory block where an array starts is called the array's **ba
 
 Here's what an array of 5 integers looks like in memory, with a base address of `2` and each `int` occupying **4 bytes**:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    base(["base address = 2"]) --> e0
+```d2
+arr: "array (5 ints, base address = 2)" {
+  grid-columns: 5
+  grid-gap: 0
+  e0: |md
+    **value1**
 
-    e0["value1<br/>index: 0<br/>addr: 2 → 5"]
-    e1["value2<br/>index: 1<br/>addr: 6 → 9"]
-    e2["value3<br/>index: 2<br/>addr: 10 → 13"]
-    e3["value4<br/>index: 3<br/>addr: 14 → 17"]
-    e4["value5<br/>index: 4<br/>addr: 18 → 21"]
+    index: `0`
 
-    e0 --- e1 --- e2 --- e3 --- e4
+    addr: `2 → 5`
+  |
+  e1: |md
+    **value2**
+
+    index: `1`
+
+    addr: `6 → 9`
+  |
+  e2: |md
+    **value3**
+
+    index: `2`
+
+    addr: `10 → 13`
+  |
+  e3: |md
+    **value4**
+
+    index: `3`
+
+    addr: `14 → 17`
+  |
+  e4: |md
+    **value5**
+
+    index: `4`
+
+    addr: `18 → 21`
+  |
+}
+
+base: base address = 2 {
+  shape: oval
+}
+base -> arr.e0
 ```
 
 <p align="center"><strong>Structure of an array in memory. Each element spans 4 consecutive bytes (size of int).</strong></p>
@@ -780,30 +882,7 @@ Now that we know how an array maps into continuous memory, we can derive a simpl
 - the **size of the datatype** (bytes per element)
 - the **index** (which element we want)
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    F["address(index)"] --> EQ["="]
-    EQ --> B["base_address"]
-    B --> PLUS["+"]
-    PLUS --> PAREN["( size_of_datatype  ×  index )"]
-
-    style F fill:#ede9fe,stroke:#7c3aed,color:#3b0764
-    style B fill:#fef9c3,stroke:#d97706,color:#78350f
-    style PAREN fill:#dcfce7,stroke:#16a34a,color:#14532d
-```
-
-<p align="center"><strong>Calculating the address of a data item stored at a given index in an array.</strong></p>
+> $$\text{address}(index) = base\_address + (size\_of\_datatype \times index)$$
 
 Let's verify with our example (base address = `2`, int = `4` bytes):
 
@@ -862,21 +941,22 @@ Now that we know how an array is stored in memory, let's walk through a **comple
 
 Given below is the logical representation of an integer array with 5 data items:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    decl["array[5]"] -->|"logical representation"| v1
-    v1["value1"] --- v2["value2"] --- v3["value3"] --- v4["value4"] --- v5["value5"]
+```d2
+decl: "array[5]" {
+  shape: oval
+}
+
+arr: array {
+  grid-columns: 5
+  grid-gap: 0
+  v1: value1
+  v2: value2
+  v3: value3
+  v4: value4
+  v5: value5
+}
+
+decl -> arr: logical representation
 ```
 
 <p align="center"><strong>Logical representation of an integer array with 5 data items.</strong></p>
@@ -887,28 +967,51 @@ flowchart LR
 
 We map the array into memory starting at **base address 2**. Because this is an integer array, we consider the size of each data item to be **4 bytes** for this example.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    base(["base address = 2"]) --> e0
+```d2
+arr: "array (mapped into memory)" {
+  grid-columns: 5
+  grid-gap: 0
+  e0: |md
+    **value1**
 
-    e0["value1<br/>index: 0<br/>addr: 2 → 5"]
-    e1["value2<br/>index: 1<br/>addr: 6 → 9"]
-    e2["value3<br/>index: 2<br/>addr: 10 → 13"]
-    e3["value4<br/>index: 3<br/>addr: 14 → 17"]
-    e4["value5<br/>index: 4<br/>addr: 18 → 21"]
+    index: `0`
 
-    e0 --- e1 --- e2 --- e3 --- e4
+    addr: `2 → 5`
+  |
+  e1: |md
+    **value2**
+
+    index: `1`
+
+    addr: `6 → 9`
+  |
+  e2: |md
+    **value3**
+
+    index: `2`
+
+    addr: `10 → 13`
+  |
+  e3: |md
+    **value4**
+
+    index: `3`
+
+    addr: `14 → 17`
+  |
+  e4: |md
+    **value5**
+
+    index: `4`
+
+    addr: `18 → 21`
+  |
+}
+
+base: base address = 2 {
+  shape: oval
+}
+base -> arr.e0
 ```
 
 <p align="center"><strong>An array of 5 integers mapped into continuous memory starting at address 2.</strong></p>
@@ -925,34 +1028,51 @@ When we write `array[2]` or `array[3]`, the program uses the formula we learned 
 
 The program already knows the base address and the size of the data type — this is all it needs. Let's see it in action for two accesses:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    c2["array[2]<br/>2 + (2 × 4) = 10"] --> e2
-    c3["array[3]<br/>2 + (3 × 4) = 14"] --> e3
+```d2
+c2: |md
+  **array[2]**
 
-    e0["value1<br/>addr: 2"]
-    e1["value2<br/>addr: 6"]
-    e2["value3<br/>addr: 10"]
-    e3["value4<br/>addr: 14"]
-    e4["value5<br/>addr: 18"]
+  `2 + (2 × 4) = 10`
+| {style.fill: "#fef9c3"; style.stroke: "#d97706"}
 
-    e0 --- e1 --- e2 --- e3 --- e4
+c3: |md
+  **array[3]**
 
-    style c2 fill:#fef9c3,stroke:#d97706,color:#78350f
-    style c3 fill:#dcfce7,stroke:#16a34a,color:#14532d
-    style e2 fill:#fef9c3,stroke:#d97706,color:#78350f
-    style e3 fill:#dcfce7,stroke:#16a34a,color:#14532d
+  `2 + (3 × 4) = 14`
+| {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+
+arr: array {
+  grid-columns: 5
+  grid-gap: 0
+  e0: |md
+    value1
+
+    addr: `2`
+  |
+  e1: |md
+    value2
+
+    addr: `6`
+  |
+  e2: |md
+    value3
+
+    addr: `10`
+  | {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+  e3: |md
+    value4
+
+    addr: `14`
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  e4: |md
+    value5
+
+    addr: `18`
+  |
+}
+
+c2 -> arr.e2
+c3 -> arr.e3
 ```
 
 <p align="center"><strong>Calculating the address for <code>array[2]</code> and <code>array[3]</code> using the subscript operator.</strong></p>
@@ -969,26 +1089,16 @@ The program knows the type of data stored in the array (integer, in our case). S
 
 > **Dereferencing:** Accessing the value stored at the memory address held by a pointer. The pointer's data type determines how many bytes to read and how to interpret them.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    a2["array[2] = 10"] -->|"read 4 bytes at addr 10"| v3["value3"]
-    a3["array[3] = 14"] -->|"read 4 bytes at addr 14"| v4["value4"]
+```d2
+direction: right
 
-    style a2 fill:#fef9c3,stroke:#d97706,color:#78350f
-    style a3 fill:#dcfce7,stroke:#16a34a,color:#14532d
-    style v3 fill:#fef9c3,stroke:#d97706,color:#78350f
-    style v4 fill:#dcfce7,stroke:#16a34a,color:#14532d
+a2: "array[2] = 10" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+v3: value3 {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+a2 -> v3: read 4 bytes at addr 10
+
+a3: "array[3] = 14" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+v4: value4 {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+a3 -> v4: read 4 bytes at addr 14
 ```
 
 <p align="center"><strong>Dereferencing: reading the value at the calculated address using the datatype to determine how many bytes to interpret.</strong></p>
