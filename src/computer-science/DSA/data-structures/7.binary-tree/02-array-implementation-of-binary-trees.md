@@ -14,11 +14,22 @@ The catch: this elegant arithmetic only works when the tree is **complete** (eve
 
 ## Table of contents
 
-1. [Numbering nodes — the arithmetic that makes it work](#numbering-nodes--the-arithmetic-that-makes-it-work)
-2. [The node — there isn't one](#the-node--there-isnt-one)
-3. [Layout in memory](#layout-in-memory)
-4. [Navigating without pointers](#navigating-without-pointers)
-5. [Generic binary trees — paying for incompleteness](#generic-binary-trees--paying-for-incompleteness)
+- [2. Array Implementation of Binary Trees](#2-array-implementation-of-binary-trees)
+  - [The Hook](#the-hook)
+  - [Table of contents](#table-of-contents)
+- [Numbering nodes — the arithmetic that makes it work](#numbering-nodes--the-arithmetic-that-makes-it-work)
+- [The node — there isn't one](#the-node--there-isnt-one)
+- [Layout in memory](#layout-in-memory)
+  - [Cache behaviour](#cache-behaviour)
+- [Navigating without pointers](#navigating-without-pointers)
+  - [Root](#root)
+  - [Moving down — left and right children](#moving-down--left-and-right-children)
+  - [Moving up — parent](#moving-up--parent)
+  - [Identifying leaves](#identifying-leaves)
+- [Generic binary trees — paying for incompleteness](#generic-binary-trees--paying-for-incompleteness)
+  - [Worst case — when sentinels eat your memory](#worst-case--when-sentinels-eat-your-memory)
+  - [When does the array representation make sense?](#when-does-the-array-representation-make-sense)
+  - [Final Takeaway](#final-takeaway)
 
 ***
 
