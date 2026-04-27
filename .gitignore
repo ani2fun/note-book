@@ -8,3 +8,5 @@ book
 CLAUDE.md
 AGENTS.md
 .mdbook-d2-cache/
+theme/pagetoc.css
+theme/pagetoc.js

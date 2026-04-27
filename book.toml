@@ -14,7 +14,7 @@ preferred-dark-theme = "navy"
 smart-punctuation = true
 mathjax-support = true
 git-repository-url = "https://github.com/ani2fun/note-book/tree/main"
-additional-css = ["theme/custom.css", "theme/extra-themes.css"]
+additional-css = ["theme/custom.css", "theme/extra-themes.css", "theme/pagetoc.css"]
 additional-js = [
   "theme/mermaid-init.js",
   "theme/extra-themes.js",
@@ -23,12 +23,16 @@ additional-js = [
   "theme/sql-playground.js",
   "theme/js-playground.js",
   "theme/ts-playground.js",
-  "theme/piston-playground.js"
+  "theme/piston-playground.js",
+  "theme/pagetoc.js"
 ]
 
 [preprocessor.d2]
 command = "mdbook-d2"
 renderer = ["html"]
+
+[preprocessor.pagetoc]
+scroll_offset = 10
 
 [output.html.playground]
 editable = true
