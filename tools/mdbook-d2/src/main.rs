@@ -5,17 +5,41 @@
 //     Exit 0 = supported; non-zero = skipped.
 //   * Invoked as `mdbook-d2` to preprocess: reads `[ctx, book]` JSON from stdin,
 //     writes the modified `book` JSON to stdout.
+//
+// Performance: we render in three passes so kroki calls happen concurrently
+// across all chapters (rather than one block at a time).
+//   1. Walk every chapter; replace each ```d2 fence with an HTML-comment
+//      placeholder and collect the source into a flat Vec.
+//   2. Render all sources in parallel (8 worker threads), with disk caching
+//      keyed on the source content. Cache hits skip the network entirely.
+//   3. Walk every chapter again, substituting each placeholder with its SVG
+//      (or a visible error block on render failure).
 
+use std::collections::hash_map::DefaultHasher;
 use std::env;
+use std::fs;
+use std::hash::{Hash, Hasher};
 use std::io::{self, Read, Write};
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::Arc;
+use std::time::Instant;
 
 use serde_json::Value;
 
 const KROKI_URL_ENV: &str = "MDBOOK_D2_KROKI_URL";
 const DEFAULT_KROKI_URL: &str = "https://kroki.io/d2/svg";
+const CACHE_DIR_ENV: &str = "MDBOOK_D2_CACHE_DIR";
+const DEFAULT_CACHE_DIR: &str = ".mdbook-d2-cache";
+// Bumped on any change that would invalidate previously-cached SVGs (e.g.
+// switching kroki versions, post-processing tweaks). Doesn't have to bump
+// on every preprocessor change — only when output bytes would differ.
+const CACHE_VERSION: u32 = 1;
 const FENCE_OPEN: &str = "```d2";
 const FENCE_CLOSE: &str = "```";
+const PLACEHOLDER_PREFIX: &str = "<!--MDBOOK_D2_BLOCK_";
+const PLACEHOLDER_SUFFIX: &str = "-->";
+const MAX_CONCURRENT: usize = 8;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -53,43 +77,66 @@ fn run() -> Result<(), String> {
         .ok_or_else(|| "book.items missing or not an array".to_string())?;
 
     let kroki_url = env::var(KROKI_URL_ENV).unwrap_or_else(|_| DEFAULT_KROKI_URL.to_string());
+    let cache_dir = PathBuf::from(env::var(CACHE_DIR_ENV).unwrap_or_else(|_| DEFAULT_CACHE_DIR.to_string()));
+    fs::create_dir_all(&cache_dir).map_err(|e| format!("create cache dir {}: {e}", cache_dir.display()))?;
 
+    // Pass 1: collect all D2 sources, replace blocks with placeholders.
+    let mut sources: Vec<String> = Vec::new();
+    rewrite_with_placeholders(items, &mut sources);
+
+    if sources.is_empty() {
+        // No D2 in this book; just emit it back unchanged.
+        return serde_json::to_writer(io::stdout(), book)
+            .map_err(|e| format!("write stdout: {e}"));
+    }
+
+    // Pass 2: parallel render (cache-aware).
+    let started = Instant::now();
+    let (results, stats) = render_all(sources, &kroki_url, &cache_dir);
+    let elapsed = started.elapsed();
+    eprintln!(
+        "[mdbook-d2] {} blocks in {:.2}s ({} cached, {} fetched, {} failed)",
+        stats.total,
+        elapsed.as_secs_f64(),
+        stats.cached,
+        stats.fetched,
+        stats.failed
+    );
+
+    // Pass 3: substitute placeholders with SVGs (or error blocks).
     let mut errors: Vec<String> = Vec::new();
-    process_items(items, &kroki_url, &mut errors);
+    substitute_placeholders(items, &results, &mut errors);
 
     serde_json::to_writer(io::stdout(), book).map_err(|e| format!("write stdout: {e}"))?;
 
-    if !errors.is_empty() {
-        // Non-fatal: surface to build log but let the book still render with the
-        // raw fence + error text injected by render_d2_blocks.
-        for err in &errors {
-            eprintln!("[mdbook-d2] {err}");
-        }
+    for err in &errors {
+        eprintln!("[mdbook-d2] {err}");
     }
     Ok(())
 }
 
-fn process_items(items: &mut Vec<Value>, kroki_url: &str, errors: &mut Vec<String>) {
+// ---------------------------------------------------------------------------
+// Pass 1: walk chapters; replace each ```d2 block with a placeholder.
+// ---------------------------------------------------------------------------
+
+fn rewrite_with_placeholders(items: &mut Vec<Value>, sources: &mut Vec<String>) {
     for item in items.iter_mut() {
         let Some(chapter) = item.get_mut("Chapter") else {
             continue;
         };
 
         if let Some(content_str) = chapter.get("content").and_then(|v| v.as_str()) {
-            let new_content = render_d2_blocks(content_str, kroki_url, errors);
+            let new_content = replace_d2_blocks_with_placeholders(content_str, sources);
             chapter["content"] = Value::String(new_content);
         }
 
         if let Some(sub_items) = chapter.get_mut("sub_items").and_then(|v| v.as_array_mut()) {
-            process_items(sub_items, kroki_url, errors);
+            rewrite_with_placeholders(sub_items, sources);
         }
     }
 }
 
-// Walk markdown line-by-line; replace each ```d2 fenced block with inline SVG.
-// We respect non-d2 fenced blocks so we don't accidentally rewrite content that
-// happens to contain `````d2` inside, e.g., a docs-about-d2 example block.
-fn render_d2_blocks(markdown: &str, kroki_url: &str, errors: &mut Vec<String>) -> String {
+fn replace_d2_blocks_with_placeholders(markdown: &str, sources: &mut Vec<String>) -> String {
     enum State {
         Outside,
         InsideD2 { source: String },
@@ -118,29 +165,10 @@ fn render_d2_blocks(markdown: &str, kroki_url: &str, errors: &mut Vec<String>) -
             }
             State::InsideD2 { source } => {
                 if stripped == FENCE_CLOSE {
-                    let svg = match render_one(source, kroki_url) {
-                        Ok(svg) => svg,
-                        Err(e) => {
-                            errors.push(format!("kroki render failed: {e}"));
-                            // Fall back to a visible error block so the issue is
-                            // obvious in the rendered page.
-                            out.push_str("<div class=\"d2 d2--error\">\n");
-                            out.push_str(&format!(
-                                "<strong>D2 render error:</strong> {}\n<pre>",
-                                html_escape(&e)
-                            ));
-                            out.push_str(&html_escape(source));
-                            out.push_str("</pre>\n</div>\n");
-                            state = State::Outside;
-                            continue;
-                        }
-                    };
-                    out.push_str("<div class=\"d2\">\n");
-                    out.push_str(&svg);
-                    if !svg.ends_with('\n') {
-                        out.push('\n');
-                    }
-                    out.push_str("</div>\n");
+                    let idx = sources.len();
+                    sources.push(std::mem::take(source));
+                    out.push_str(&placeholder_for(idx));
+                    out.push('\n');
                     state = State::Outside;
                 } else {
                     source.push_str(line);
@@ -177,7 +205,122 @@ fn leading_fence(line: &str) -> Option<&str> {
     Some(&trimmed[..backticks])
 }
 
-fn render_one(source: &str, kroki_url: &str) -> Result<String, String> {
+fn placeholder_for(idx: usize) -> String {
+    format!("{PLACEHOLDER_PREFIX}{idx}{PLACEHOLDER_SUFFIX}")
+}
+
+// ---------------------------------------------------------------------------
+// Pass 2: parallel render with disk cache.
+// ---------------------------------------------------------------------------
+
+#[derive(Default)]
+struct RenderStats {
+    total: usize,
+    cached: usize,
+    fetched: usize,
+    failed: usize,
+}
+
+enum RenderOutcome {
+    Cached(String),
+    Fetched(String),
+    Failed(String),
+}
+
+fn render_all(
+    sources: Vec<String>,
+    kroki_url: &str,
+    cache_dir: &Path,
+) -> (Vec<Result<String, String>>, RenderStats) {
+    let total = sources.len();
+    if total == 0 {
+        return (Vec::new(), RenderStats::default());
+    }
+
+    let kroki_url = Arc::new(kroki_url.to_string());
+    let cache_dir = Arc::new(cache_dir.to_path_buf());
+
+    // Round-robin partition into N buckets.
+    let workers = MAX_CONCURRENT.min(total);
+    let mut buckets: Vec<Vec<(usize, String)>> = (0..workers).map(|_| Vec::new()).collect();
+    for (i, src) in sources.into_iter().enumerate() {
+        buckets[i % workers].push((i, src));
+    }
+
+    let mut outcomes: Vec<Option<RenderOutcome>> = (0..total).map(|_| None).collect();
+
+    std::thread::scope(|scope| {
+        let mut handles = Vec::with_capacity(workers);
+        for bucket in buckets {
+            let kroki_url = Arc::clone(&kroki_url);
+            let cache_dir = Arc::clone(&cache_dir);
+            let handle = scope.spawn(move || {
+                bucket
+                    .into_iter()
+                    .map(|(idx, src)| (idx, render_one_cached(&src, &kroki_url, &cache_dir)))
+                    .collect::<Vec<_>>()
+            });
+            handles.push(handle);
+        }
+        for handle in handles {
+            let chunk = handle.join().expect("worker thread panicked");
+            for (idx, outcome) in chunk {
+                outcomes[idx] = Some(outcome);
+            }
+        }
+    });
+
+    let mut stats = RenderStats {
+        total,
+        ..Default::default()
+    };
+    let results: Vec<Result<String, String>> = outcomes
+        .into_iter()
+        .map(|o| match o.expect("missing outcome — bug") {
+            RenderOutcome::Cached(svg) => {
+                stats.cached += 1;
+                Ok(svg)
+            }
+            RenderOutcome::Fetched(svg) => {
+                stats.fetched += 1;
+                Ok(svg)
+            }
+            RenderOutcome::Failed(e) => {
+                stats.failed += 1;
+                Err(e)
+            }
+        })
+        .collect();
+
+    (results, stats)
+}
+
+fn render_one_cached(source: &str, kroki_url: &str, cache_dir: &Path) -> RenderOutcome {
+    let key = cache_key(source);
+    let path = cache_dir.join(format!("{key}.svg"));
+
+    if let Ok(svg) = fs::read_to_string(&path) {
+        return RenderOutcome::Cached(svg);
+    }
+
+    match render_via_kroki(source, kroki_url) {
+        Ok(svg) => {
+            // Best-effort cache write; failure here doesn't fail the build.
+            let _ = fs::write(&path, &svg);
+            RenderOutcome::Fetched(svg)
+        }
+        Err(e) => RenderOutcome::Failed(e),
+    }
+}
+
+fn cache_key(source: &str) -> String {
+    let mut hasher = DefaultHasher::new();
+    CACHE_VERSION.hash(&mut hasher);
+    source.hash(&mut hasher);
+    format!("{:016x}", hasher.finish())
+}
+
+fn render_via_kroki(source: &str, kroki_url: &str) -> Result<String, String> {
     let mut child = Command::new("curl")
         .args([
             "-sS",
@@ -262,6 +405,87 @@ fn collapse_blank_lines(s: &str) -> String {
     if !last_was_newline {
         out.push('\n');
     }
+    out
+}
+
+// ---------------------------------------------------------------------------
+// Pass 3: substitute placeholders with rendered SVGs (or error blocks).
+// ---------------------------------------------------------------------------
+
+fn substitute_placeholders(
+    items: &mut Vec<Value>,
+    results: &[Result<String, String>],
+    errors: &mut Vec<String>,
+) {
+    for item in items.iter_mut() {
+        let Some(chapter) = item.get_mut("Chapter") else {
+            continue;
+        };
+
+        if let Some(content_str) = chapter.get("content").and_then(|v| v.as_str()) {
+            let new_content = replace_placeholders_in_string(content_str, results, errors);
+            chapter["content"] = Value::String(new_content);
+        }
+
+        if let Some(sub_items) = chapter.get_mut("sub_items").and_then(|v| v.as_array_mut()) {
+            substitute_placeholders(sub_items, results, errors);
+        }
+    }
+}
+
+fn replace_placeholders_in_string(
+    content: &str,
+    results: &[Result<String, String>],
+    errors: &mut Vec<String>,
+) -> String {
+    let mut out = String::with_capacity(content.len());
+    let mut remaining = content;
+
+    while let Some(start) = remaining.find(PLACEHOLDER_PREFIX) {
+        out.push_str(&remaining[..start]);
+        let after_prefix = &remaining[start + PLACEHOLDER_PREFIX.len()..];
+
+        let Some(suffix_offset) = after_prefix.find(PLACEHOLDER_SUFFIX) else {
+            // Malformed placeholder — emit the rest verbatim.
+            out.push_str(&remaining[start..]);
+            return out;
+        };
+
+        let idx_str = &after_prefix[..suffix_offset];
+        let idx_parsed: Result<usize, _> = idx_str.parse();
+        let idx_valid = idx_parsed.as_ref().map(|i| *i < results.len()).unwrap_or(false);
+
+        if !idx_valid {
+            // Not one of ours — could be a literal HTML comment that happens
+            // to start with our prefix. Emit verbatim.
+            let end = start + PLACEHOLDER_PREFIX.len() + suffix_offset + PLACEHOLDER_SUFFIX.len();
+            out.push_str(&remaining[start..end]);
+            remaining = &remaining[end..];
+            continue;
+        }
+
+        let idx = idx_parsed.expect("validated above");
+        match &results[idx] {
+            Ok(svg) => {
+                out.push_str("<div class=\"d2\">\n");
+                out.push_str(svg);
+                if !svg.ends_with('\n') {
+                    out.push('\n');
+                }
+                out.push_str("</div>");
+            }
+            Err(e) => {
+                errors.push(format!("kroki render failed: {e}"));
+                out.push_str("<div class=\"d2 d2--error\">\n<strong>D2 render error:</strong> ");
+                out.push_str(&html_escape(e));
+                out.push_str("\n</div>");
+            }
+        }
+
+        remaining = &after_prefix[suffix_offset + PLACEHOLDER_SUFFIX.len()..];
+    }
+
+    out.push_str(remaining);
     out
 }
 
