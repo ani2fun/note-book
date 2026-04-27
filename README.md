@@ -57,8 +57,11 @@ rustc --version
 
 ```bash
 cargo install mdbook
-cargo install mdbook-pagetoc   # right-side per-page table of contents
+cargo install mdbook-pagetoc                # right-side per-page table of contents
+cargo install --path tools/mdbook-d2        # vendored: renders ```d2 fenced blocks to SVG via kroki.io
 ```
+
+The `mdbook-d2` preprocessor lives in `tools/mdbook-d2` and is built from source so the version stays pinned with the repo.
 
 ---
 
