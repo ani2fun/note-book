@@ -294,7 +294,7 @@ fn main() {
 
 ### 11. **Escaping Special Characters**
 
-To match characters that have special meanings in regex (such as `.`, `*`, `?`, `+`), use a backslash (`\`) to escape
+To match characters that have special meanings in regex (such as `.`, `*`, `?`, `+`), use a backslash (``) to escape
 them.
 
 - **Example**:

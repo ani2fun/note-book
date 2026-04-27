@@ -72,16 +72,16 @@ The algorithm below summarises the depth-first search on such a grid.
 >
 > **dfs(row, col, \[ref\] grid, \[ref\] visited)**
 >
-> -   **Step 1:** Set \`visited\[row\]\[col\]\` to \`true\`
-> -   **Step 2:** Compute coordinates in all four (up, right, bottom, top) in \`(newRow, newCol)\` and for each, do the following:
->     -   **Step 2.1:** If \`(newRow, newCol)\` is within the bounds of \`grid\` and \`grid\[newRow\]\[newCol\]\` is \`1\` and \`visited\[newRow\]\[newCol\]\` is \`false\`, do the following
->         -   **Step 2.1.1:** Call \`dfs(newRow, newCol, grid, visited)\`
+> -   **Step 1:** Set `visited\[row\]\[col\]` to `true`
+> -   **Step 2:** Compute coordinates in all four (up, right, bottom, top) in `(newRow, newCol)` and for each, do the following:
+>     -   **Step 2.1:** If `(newRow, newCol)` is within the bounds of `grid` and `grid\[newRow\]\[newCol\]` is `1` and `visited\[newRow\]\[newCol\]` is `false`, do the following
+>         -   **Step 2.1.1:** Call `dfs(newRow, newCol, grid, visited)`
 >
 > **callingFunction(\[ref\] grid)**
 >
-> -   **Step 1:** Create a \`visited\` array of the same size as \`grid\` and initialize it to \`false\`
-> -   **Step 2:** Iterate in \`grid\` using \`row\` and \`col\` and do the following for each cell:
->     -   **Step 2.1:** If \`grid\[row\]\[col\]\` is \`1\` and \`visited\[row\]\[col\]\` is \`false\`, call \`dfs(row, col, grid, visited)\`
+> -   **Step 1:** Create a `visited` array of the same size as `grid` and initialize it to `false`
+> -   **Step 2:** Iterate in `grid` using `row` and `col` and do the following for each cell:
+>     -   **Step 2.1:** If `grid\[row\]\[col\]` is `1` and `visited\[row\]\[col\]` is `false`, call `dfs(row, col, grid, visited)`
 
 Depth first search on a grid.
 
@@ -484,13 +484,13 @@ Fundamental
 
 Given a **grid** filled with values of either `0`, or `1`, write a function to return a list of coordinate pairs `(row, col)` in the order in which they would appear in a depth-first search traversal starting from the cell `(0, 0)`.
 
-> -   A value of \`1\` in a cell means the cell can be visited.
-> -   A value of \`0\` in a cell means the call cannot be visited.
+> -   A value of `1` in a cell means the cell can be visited.
+> -   A value of `0` in a cell means the call cannot be visited.
 
 > You must abide by the following constraint:
 >
-> -   You can only move in the four cardinal directions, i.e., \`up\`, \`right\`, \`down\`, and \`left\`.
-> -   When exploring neighbouring cells, you must follow this exact order: \`up\` → \`right\` → \`down\` → \`left\`.
+> -   You can only move in the four cardinal directions, i.e., `up`, `right`, `down`, and `left`.
+> -   When exploring neighbouring cells, you must follow this exact order: `up` → `right` → `down` → `left`.
 
 ### Example 1
 
@@ -635,21 +635,21 @@ The algorithm below summarises the breadth-first search on such a grid.
 >
 > **bfs(row, col, \[ref\] grid, \[ref\] visited)**
 >
-> -   **Step 1:** Create a queue \`q\` to hold coordinates
-> -   **Step 2:** Add the pair \`(row, col)\` to \`q\`
-> -   **Step 3:** Iterate while \`q\` is not empty and do the following:
->     -   **Step 3.1:** Pop the coordinate at the front of \`q\` as \`(currentRow, currentCol)\`
->     -   **Step 3.2:** Set \`visited\[currentRow\]\[currentCol\]\` to \`true\`
->     -   **Step 3.3:** Compute coordinates in all four (up, right, bottom, top) in \`(newRow, newCol)\` and for each, do the following:
->         -   **Step 3.3.1:** If \`(newRow, newCol)\` is within the bounds of \`grid\` and \`grid\[newRow\]\[newCol\]\` is \`1\` and \`visited\[newRow\]\[newCol\]\` is \`false\`, do the following:
->             -   **Step 3.3.1.1:** Add \`(newRow, newCol)\` to \`q\`
->             -   **Step 3.3.1.2:** Set \`visited\[newRow\]\[newCol\]\` to \`true\`
+> -   **Step 1:** Create a queue `q` to hold coordinates
+> -   **Step 2:** Add the pair `(row, col)` to `q`
+> -   **Step 3:** Iterate while `q` is not empty and do the following:
+>     -   **Step 3.1:** Pop the coordinate at the front of `q` as `(currentRow, currentCol)`
+>     -   **Step 3.2:** Set `visited\[currentRow\]\[currentCol\]` to `true`
+>     -   **Step 3.3:** Compute coordinates in all four (up, right, bottom, top) in `(newRow, newCol)` and for each, do the following:
+>         -   **Step 3.3.1:** If `(newRow, newCol)` is within the bounds of `grid` and `grid\[newRow\]\[newCol\]` is `1` and `visited\[newRow\]\[newCol\]` is `false`, do the following:
+>             -   **Step 3.3.1.1:** Add `(newRow, newCol)` to `q`
+>             -   **Step 3.3.1.2:** Set `visited\[newRow\]\[newCol\]` to `true`
 >
 > **callingFunction(\[ref\] grid)**
 >
-> -   **Step 1:** Create a \`visited\` array of the same size as \`grid\` and initialize it to \`false\`
-> -   **Step 2:** Iterate in \`grid\` using \`row\` and \`col\` and do the following for each cell:
->     -   **Step 2.1:** If \`grid\[row\]\[col\]\` is \`1\` and \`visited\[row\]\[col\]\` is \`false\`, call \`bfs(row, col, grid, visited)\`
+> -   **Step 1:** Create a `visited` array of the same size as `grid` and initialize it to `false`
+> -   **Step 2:** Iterate in `grid` using `row` and `col` and do the following for each cell:
+>     -   **Step 2.1:** If `grid\[row\]\[col\]` is `1` and `visited\[row\]\[col\]` is `false`, call `bfs(row, col, grid, visited)`
 
 Let's examine an example to understand how the breadth-first search works on such a grid.
 
@@ -1221,13 +1221,13 @@ Fundamental
 
 Given a **grid** filled with values of either `0`, or `1`, write a function to return a list of coordinate pairs `(row, col)` in the order in which they would appear in a breadth-first search traversal starting from the cell `(0, 0)`.
 
-> -   A value of \`1\` in a cell means the cell can be visited.
-> -   A value of \`0\` in a cell means the call cannot be visited.
+> -   A value of `1` in a cell means the cell can be visited.
+> -   A value of `0` in a cell means the call cannot be visited.
 
 > You must abide by the following constraint:
 >
-> -   You can only move in the four cardinal directions, i.e., \`up\`, \`right\`, \`down\`, and \`left\`.
-> -   When exploring neighbouring cells, you must follow this exact order: \`up\` → \`right\` → \`down\` → \`left\`.
+> -   You can only move in the four cardinal directions, i.e., `up`, `right`, `down`, and `left`.
+> -   When exploring neighbouring cells, you must follow this exact order: `up` → `right` → `down` → `left`.
 
 ### Example 1
 

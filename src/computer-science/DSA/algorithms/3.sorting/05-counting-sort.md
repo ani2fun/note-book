@@ -71,7 +71,7 @@ For example, given the input array `[5, 6, 100]`, the count array would need a 
 
 In this step, the algorithm modifies the `count` array so that each element stores the cumulative count of values up to that index. Starting from index `1` and continuing to `` `k`, `` each element in the count array is updated as:
 
-> \`count\[i\] = count\[i\] + count\[i - 1\]\`
+> `count\[i\] = count\[i\] + count\[i - 1\]`
 
 After this transformation, `count[i]` represents the total number of elements in the input array that are less than or equal to `i`.
 
@@ -95,17 +95,17 @@ Iterating in **reverse order** ensures that the relative order of equal elements
 
 > **Algorithm**
 >
-> -   **Step 1:** Create a count array of size \`k + 1\` (where \`k\` is the maximum value in the input array) and initialise all elements to \`0\`
->     -   **Step 1.1:** Iterate over the input array and increment \`count\[arr\[i\]\]\` for each element to record its frequency
-> -   **Step 2:** Convert the \`count\` array into a cumulative sum array
->     -   **Step 2.1:** For each \`i\` from \`1\` to \`k\`, update \`count\[i\] += count\[i - 1\]\`
+> -   **Step 1:** Create a count array of size `k + 1` (where `k` is the maximum value in the input array) and initialise all elements to `0`
+>     -   **Step 1.1:** Iterate over the input array and increment `count\[arr\[i\]\]` for each element to record its frequency
+> -   **Step 2:** Convert the `count` array into a cumulative sum array
+>     -   **Step 2.1:** For each `i` from `1` to `k`, update `count\[i\] += count\[i - 1\]`
 >     -   **Step 2.2:** The cumulative count now indicates the position of each element in the sorted output array
 > -   **Step 3:** Build the sorted output array
 >     -   **Step 3.1:** Create an empty result array of the same size as the input array
 >     -   **Step 3.2:** Iterate over the input array in reverse order
->         -   **Step 3.2.1:** Place each element \`arr\[i\]\` at \`result\[count\[arr\[i\]\] - 1\]\`
->         -   **Step 3.2.2:** Decrement \`count\[arr\[i\]\]\` by \`1\`
-> -   **Step 4:** Return the \`result\` array, which now contains the elements in sorted order
+>         -   **Step 3.2.1:** Place each element `arr\[i\]` at `result\[count\[arr\[i\]\] - 1\]`
+>         -   **Step 3.2.2:** Decrement `count\[arr\[i\]\]` by `1`
+> -   **Step 4:** Return the `result` array, which now contains the elements in sorted order
 
 ## Implementation
 

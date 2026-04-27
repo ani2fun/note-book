@@ -88,11 +88,11 @@ We repeat these steps until `set` is empty. Since we obtain the shortest distan
 
 > **Algorithm**
 >
-> -   Step 1: Create a map \`distance\` and initialize it with \`infinite\` for every node and 0 for the source node.
-> -   Step 2: Create a sorted set \`set\` to hold a pair of (distance, node) and add all the (distance, node) pairs from the \`distance\` map to it.
-> -   Step 3: Iterate until the \`set\` is empty and do the following:
->     -   Step 3.1: Get the (distance, node) pair with the smallest distance from the front of the \`set\`. The distance value of this \`node\` is its shortest distance from the source.
->     -   Step 3.2: For all neighbours of this node, calculate their distance via the extracted node as \`distance\[node\]\` + \`edge weight\` to the neighbour. If this value is less than \`distance\[neighbour\]\`, then update the \`distance\` map and corresponding (distance, node) pair in \`set\` with the new value.
+> -   Step 1: Create a map `distance` and initialize it with `infinite` for every node and 0 for the source node.
+> -   Step 2: Create a sorted set `set` to hold a pair of (distance, node) and add all the (distance, node) pairs from the `distance` map to it.
+> -   Step 3: Iterate until the `set` is empty and do the following:
+>     -   Step 3.1: Get the (distance, node) pair with the smallest distance from the front of the `set`. The distance value of this `node` is its shortest distance from the source.
+>     -   Step 3.2: For all neighbours of this node, calculate their distance via the extracted node as `distance\[node\]` + `edge weight` to the neighbour. If this value is less than `distance\[neighbour\]`, then update the `distance` map and corresponding (distance, node) pair in `set` with the new value.
 
 Let's examine a weighted graph example to see how Dijkstra's algorithm finds the shortest distance from a given source to all nodes in the graph.
 
@@ -174,13 +174,13 @@ Since the minimum priority queue `queue` always keeps the smallest pair at the 
 
 > **Algorithm**
 >
-> -   Step 1: Create a map \`distance\` and initialize it with \`inf\` for every node and 0 for the source node.
-> -   Step 2: Create a minimum priority queue \`queue\` to hold (distance, node) pairs and **olny** the (distance, node) pair for the source node to it.
+> -   Step 1: Create a map `distance` and initialize it with `inf` for every node and 0 for the source node.
+> -   Step 2: Create a minimum priority queue `queue` to hold (distance, node) pairs and **olny** the (distance, node) pair for the source node to it.
 > -   Step 3: Iterate until the queue is empty and do the following:
->     -   Step 3.1: Pop the (distance, node) pair from the top of the \`queue\` and initialize a variable \`node\` with its node value
->     -   Step 3.2: Iterate in all the neighbours of \`node\` in a variable \`neighbuor\` and do the following:
->         -   Step 3.2.1: \`distanceToNeighbour\` = \`distance\[node\]\` + edge weight from \`node\` to \`neighbour\`
->         -   Step 3.2.2: If \`distanceToNeighbour\` < \`distance\[neighbour\]\`, set \`distance\[neighbour\]\` to \`distanceToNeighbour\` and push the pair (\`distanceToNeighbour\`, \`neighbour\`) to the \`queue\`
+>     -   Step 3.1: Pop the (distance, node) pair from the top of the `queue` and initialize a variable `node` with its node value
+>     -   Step 3.2: Iterate in all the neighbours of `node` in a variable `neighbuor` and do the following:
+>         -   Step 3.2.1: `distanceToNeighbour` = `distance\[node\]` + edge weight from `node` to `neighbour`
+>         -   Step 3.2.2: If `distanceToNeighbour` < `distance\[neighbour\]`, set `distance\[neighbour\]` to `distanceToNeighbour` and push the pair (`distanceToNeighbour`, `neighbour`) to the `queue`
 
 Let's examine a weighted graph example to see how the modified Dijkstra's algorithm finds the shortest distance from a given source to all nodes in the graph.
 
@@ -618,7 +618,7 @@ The graph is given as follows: `graph[i]` is a list of pairs `[neighbour, weight
 
 > You must abide by the following constraints:
 >
-> -   If a node is not reachable from the source, mark that node's distance as \`-1\`.
+> -   If a node is not reachable from the source, mark that node's distance as `-1`.
 > -   You can assume that the graph has no edges with negative weight.
 
 ### Example 1
@@ -777,12 +777,12 @@ The Bellman-Ford algorithm provides a stopping condition to detect a negative we
 
 > **Algorithm**
 >
-> -   Step 1: Create a \`distance\` map and initialize it to 0 for the source node and \`infinite\` for all other nodes.
-> -   Step 2: Iterate \`N-1\` times where \`N\` is the number of nodes and, in each iteration, do the following:
+> -   Step 1: Create a `distance` map and initialize it to 0 for the source node and `infinite` for all other nodes.
+> -   Step 2: Iterate `N-1` times where `N` is the number of nodes and, in each iteration, do the following:
 >     -   Step 2.1: Iterate over all the edges (u, v) in the graph and do the following:
->         -   Step 2.1.1: Update \`distance\[v\]\` if \`distance\[u\]\` + weight of edge from \`u\` to \`v\` < \`distance\[v\]\`
+>         -   Step 2.1.1: Update `distance\[v\]` if `distance\[u\]` + weight of edge from `u` to `v` < `distance\[v\]`
 >     -   Step 2.2: To check for negative weight cycle, iterate over all the edges (u, v) in the graph once and do the following:
->         -   Step 2.2.1: If \`distance\[u\]\` + weight of edge from \`u\` to \`v\` < distance\[v\], terminate as graph has negative weight cycle
+>         -   Step 2.2.1: If `distance\[u\]` + weight of edge from `u` to `v` < distance\[v\], terminate as graph has negative weight cycle
 > -   Step 3: The distance map now has the shortest distance of all nodes from the source.
 
 Let's examine a **directed** graph that has some negative-weight edges and see how the Bellman-Ford algorithm finds the shortest distance from a given source to all nodes. Note that this is a directed graph, and the same algorithm can be used for an undirected graph as well.
@@ -1214,8 +1214,8 @@ The graph is given as follows: `graph[i]` is a list of pairs `[neighbour, wei
 
 > You must abide by the following constraints:
 >
-> -   If a node is not reachable from the source, mark that node's distance as \`-1\`.
-> -   If the graph contains a negative cycle, return an array filled with \`-1\`.
+> -   If a node is not reachable from the source, mark that node's distance as `-1`.
+> -   If the graph contains a negative cycle, return an array filled with `-1`.
 > -   A negative cycle is a cycle whose edges are such that the sum of their weights is a negative value.
 
 ### Example 1

@@ -19,11 +19,11 @@ Now that we know that a heap is a complete binary tree, it is easy to understand
 
 // Diagram: Enumeration of nodes in a complete binary tree
 
-> For any given node at the given \`index\` :
+> For any given node at the given `index` :
 >
-> -   **Parent** = (\`index\` - \`1\`) / \`2\`
-> -   **Left child** = (\`2\` \* \`index\`) + \`1\`
-> -   **Right child** = (\`2\` \* \`index\`) + \`2\`
+> -   **Parent** = (`index` - `1`) / `2`
+> -   **Left child** = (`2` \* `index`) + `1`
+> -   **Right child** = (`2` \* `index`) + `2`
 
 We can use the enumeration of a complete binary tree to implement the tree in an array. The enumeration of a node can be used as an index in an array that stores the value of the respective node.
 
@@ -1777,7 +1777,7 @@ Let's look at the diagram below to understand the worst-case time complexity bet
 
 // Diagram: Relationship between height, number of nodes and number of swap operations in a heap
 
-> For a heap of height \`h\` that has \`N\` number of nodes:
+> For a heap of height `h` that has `N` number of nodes:
 >
 > -   Number of nodes at height j = **2^(h-j)**
 > -   Maximum possible swap operations on running down heapify for a node at height j = **j**

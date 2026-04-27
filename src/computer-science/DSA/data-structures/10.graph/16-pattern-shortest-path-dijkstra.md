@@ -483,7 +483,7 @@ Given an **NxM** **grid** filled with each cell containing an integer cost to 
 
 > You must abide by the following constraint:
 >
-> -   You can only move in the four cardinal directions, i.e., \`up\`, \`right\`, \`down\`, and \`left\`.
+> -   You can only move in the four cardinal directions, i.e., `up`, `right`, `down`, and `left`.
 
 ### Example 1
 
@@ -720,7 +720,7 @@ The routes are given as follows: `routes[i]` is a list of pairs `[city, time]`, 
 
 > You must abide by the following constraint:
 >
-> -   If you arrive at a city at an odd time, you must wait \`1\` extra unit of time before you can continue travelling.
+> -   If you arrive at a city at an odd time, you must wait `1` extra unit of time before you can continue travelling.
 > -   If you arrive at an even time, you can continue immediately.
 
 ### Example 1
@@ -832,15 +832,15 @@ public:
 
 Given an **NxM** **grid**, a **source** cell `(r1, c1)`, and a **destination** cell `(r2, c2)`, write a function to find and return the minimum cost to reach from the source to the destination. 
 
-> -   The cost to move from a cell to its adjacent cell is \`1\`.
-> -   A value of \`0\` in a cell means the call cannot be visited.
-> -   A value of \`1\` in a cell means the cell can be visited.
-> -   A value greater than \`1\` in a cell is a teleporter cell. All cells with the same number represent linked teleporters. Moving into a teleporter costs \`1\`, and you may instantly teleport to any other teleporter with the same ID at a cost of \`1\`.
+> -   The cost to move from a cell to its adjacent cell is `1`.
+> -   A value of `0` in a cell means the call cannot be visited.
+> -   A value of `1` in a cell means the cell can be visited.
+> -   A value greater than `1` in a cell is a teleporter cell. All cells with the same number represent linked teleporters. Moving into a teleporter costs `1`, and you may instantly teleport to any other teleporter with the same ID at a cost of `1`.
 > -   Each teleporter may be used at most once during the path.
 
 > You must abide by the following constraint:
 >
-> -   You can only move in the four cardinal directions, i.e., \`up\`, \`right\`, \`down\`, and \`left\`.
+> -   You can only move in the four cardinal directions, i.e., `up`, `right`, `down`, and `left`.
 
 ### Example 1
 

@@ -273,9 +273,9 @@ Stack overflow can also occur when a single function attempts to allocate an exc
 > The list summarises the types of errors that are likely to occur with the following languages.
 >
 > -   **C++**: Local arrays are stored on the stack. Allocating a very large array will likely cause a stack overflow.
-> -   **Java**: Arrays are objects stored on the heap. A huge allocation may result in an \`OutOfMemoryError\` rather than a stack overflow.
-> -   **Javascript**: Arrays are stored on the heap. Extremely large arrays may lead to memory exhaustion or a \`RangeError\`.
-> -   **Python**: Lists are stored on the heap. Huge lists typically trigger a \`MemoryError\`. Stack overflow only happens with deep recursion.
+> -   **Java**: Arrays are objects stored on the heap. A huge allocation may result in an `OutOfMemoryError` rather than a stack overflow.
+> -   **Javascript**: Arrays are stored on the heap. Extremely large arrays may lead to memory exhaustion or a `RangeError`.
+> -   **Python**: Lists are stored on the heap. Huge lists typically trigger a `MemoryError`. Stack overflow only happens with deep recursion.
 
 C++
 

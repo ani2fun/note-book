@@ -117,13 +117,13 @@ The full dry run of the algorithm is given below.
 
 > **Algorithm**
 >
-> -   **Step 1:** Iterate through the array using \`i\` from \`1\` to \`n-1\`
->     -   **Step 1.1:** Select \`arr\[i\]\` as the \`key\`
->     -   **Step 1.2:** Initialize \`j = i - 1\` to compare the \`key\` with the sorted portion
->     -   **Step 1.3:** While \`j >= 0\` and \`arr\[j\] > key\`
->         -   **Step 1.3.1:** Shift \`arr\[j\]\` one position to the right \`arr\[j + 1\] = arr\[j\]\`
->         -   **Step 1.3.2:** Decrement \`j\` by \`1\`
->     -   **Step 1.4:** Insert the key at its correct position \`arr\[j + 1\] = key\`
+> -   **Step 1:** Iterate through the array using `i` from `1` to `n-1`
+>     -   **Step 1.1:** Select `arr\[i\]` as the `key`
+>     -   **Step 1.2:** Initialize `j = i - 1` to compare the `key` with the sorted portion
+>     -   **Step 1.3:** While `j >= 0` and `arr\[j\] > key`
+>         -   **Step 1.3.1:** Shift `arr\[j\]` one position to the right `arr\[j + 1\] = arr\[j\]`
+>         -   **Step 1.3.2:** Decrement `j` by `1`
+>     -   **Step 1.4:** Insert the key at its correct position `arr\[j + 1\] = key`
 
 ## Implementation
 

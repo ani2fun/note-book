@@ -14,7 +14,7 @@ Given a sorted search space and a target value, find the first item greater than
 
 Let's consider the following problem as an example to better understand how to identify and solve a problem using the lower bound algorithm.
 
-> **Problem statement:** Given an integer array \`arr\` that is sorted in non-decreasing order and an integer \`target\`, find and return the first and last positions of the target in the array. If the target doesn't exist, return \`\[-1, -1\]\` instead.
+> **Problem statement:** Given an integer array `arr` that is sorted in non-decreasing order and an integer `target`, find and return the first and last positions of the target in the array. If the target doesn't exist, return `\[-1, -1\]` instead.
 
 // Diagram: Search for the first and last occurrence of target (4) in arr.
 

@@ -72,25 +72,25 @@ The steps given below summarize the generic quickselect algorithm to find the to
 
 > **partition(\[ref\]arr, left, right)**
 >
-> -   **Step 1:** Set \`pivot\` = Randomly select an index between \`left\` and \`right\`
-> -   **Step 2:** Set \`pivotScore\` = Call \`f(arr\[pivot\])\`
-> -   **Step 3:** Swap \`arr\[pivot\]\` with \`arr\[right\]\`
-> -   **Step 4:** Initialize \`nextGreaterIndex\` = \`left\`
-> -   **Step 5:** Iterate from \`left\` to \`right - 1\` using \`i\` and do the following:
->     -   **Step 5.1:** Set \`elementScore\` = \`f(arr\[i\])\`
->     -   **Step 5.2:** If \`elementScore\` > \`pivotScore\` do the following:
->         -   **Step 5.2.1:** Swap \`arr\[i\]\` with \`arr\[nextGreaterIndex\]\`
->         -   **Step 5.2.2:** Increment \`nextGreaterIndex\`
-> -   **Step 6:** Swap \`arr\[nextGreaterIndex\]\` with \`arr\[right\]\` to place pivot in its final position
-> -   **Step 6:** Return \`nextGreaterIndex\`
+> -   **Step 1:** Set `pivot` = Randomly select an index between `left` and `right`
+> -   **Step 2:** Set `pivotScore` = Call `f(arr\[pivot\])`
+> -   **Step 3:** Swap `arr\[pivot\]` with `arr\[right\]`
+> -   **Step 4:** Initialize `nextGreaterIndex` = `left`
+> -   **Step 5:** Iterate from `left` to `right - 1` using `i` and do the following:
+>     -   **Step 5.1:** Set `elementScore` = `f(arr\[i\])`
+>     -   **Step 5.2:** If `elementScore` > `pivotScore` do the following:
+>         -   **Step 5.2.1:** Swap `arr\[i\]` with `arr\[nextGreaterIndex\]`
+>         -   **Step 5.2.2:** Increment `nextGreaterIndex`
+> -   **Step 6:** Swap `arr\[nextGreaterIndex\]` with `arr\[right\]` to place pivot in its final position
+> -   **Step 6:** Return `nextGreaterIndex`
 >
 > **quickselect(\[ref\]arr, left, right, k)**
 >
-> -   **Step 1:** If \`left\` >= \`right\`, return
-> -   **Step 2:** Call \`pivot\` = \`partition(arr, left, right)\`
-> -   **Step 3:** If \`pivot\` == \`k - 1\`, pivot is correctly positioned; return
-> -   **Step 4:** Otherwise, If \`pivot\` > \`k - 1\`, recursively call \`quickselect(arr, left, pivot - 1, k)\`
-> -   **Step 5:** Otherwise, recursively call \`quickselect(arr, pivot + 1, right, k)\`
+> -   **Step 1:** If `left` >= `right`, return
+> -   **Step 2:** Call `pivot` = `partition(arr, left, right)`
+> -   **Step 3:** If `pivot` == `k - 1`, pivot is correctly positioned; return
+> -   **Step 4:** Otherwise, If `pivot` > `k - 1`, recursively call `quickselect(arr, left, pivot - 1, k)`
+> -   **Step 5:** Otherwise, recursively call `quickselect(arr, pivot + 1, right, k)`
 
 ## Implementaion
 
@@ -526,12 +526,12 @@ Given an array of data elements, find the elements with the top `k` or bottom `k
 
 Let's consider the following problem as an example to better understand how to identify and solve a problem using the generic quickselect algorithm.
 
-> **Problem statement:** Given an integer array \`arr\`, an integer \`k\` and a \`target\`. Find the \`k\` closest elements to the \`target\`.
+> **Problem statement:** Given an integer array `arr`, an integer `k` and a `target`. Find the `k` closest elements to the `target`.
 >
-> And integer \`x\` is closer to \`target\` that \`y\` if:
+> And integer `x` is closer to `target` that `y` if:
 >
-> -   \`|x-target|\` < \`|y-target|\` OR
-> -   \`|x-target|\` == \`|y-target|\` AND \`x\` < \`y\`
+> -   `|x-target|` < `|y-target|` OR
+> -   `|x-target|` == `|y-target|` AND `x` < `y`
 
 // Diagram: Find the k(3) closest elements to the target(5)
 

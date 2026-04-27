@@ -39,12 +39,12 @@ Consider the example below, where we terminate when the value of the node in `le
 
 The algorithm given below outlines the generic two-pointer traversal technique on a binary search tree using a forward and reverse iterator. It terminates when both the pointers meet in the middle.
 
-> -   **Step 1:** Initialize \`left\` with a forward iterator and \`leftNode\` with \`left.next()\`
-> -   **Step 2:** Initialize \`right\` with a reverse iterator and \`rightNode\` with \`right.next()\`
-> -   **Step 3:** Loop while \`leftNode.val\` < \`rightNode.val\` and do the following
->     -   **Step 3.1:** Process \`leftNode\` and \`rightNode\`
->     -   **Step 3.2:** If \`f(leftNode)\` set \`leftNode\` = \`left.next()\`
->     -   **Step 3.3:** If \`f(rightNode)\` set \`rightNode\` = \`right.next()\`
+> -   **Step 1:** Initialize `left` with a forward iterator and `leftNode` with `left.next()`
+> -   **Step 2:** Initialize `right` with a reverse iterator and `rightNode` with `right.next()`
+> -   **Step 3:** Loop while `leftNode.val` < `rightNode.val` and do the following
+>     -   **Step 3.1:** Process `leftNode` and `rightNode`
+>     -   **Step 3.2:** If `f(leftNode)` set `leftNode` = `left.next()`
+>     -   **Step 3.3:** If `f(rightNode)` set `rightNode` = `right.next()`
 
 ## Implementation
 
@@ -626,7 +626,7 @@ Given a binary search tree, traverse the nodes simultaneously in the sorted and 
 
 Let's consider the following problem as an example to better understand how to identify and solve a problem using the two-pointer technique.
 
-> **Problem statement:** Given a binary search tree and a \`target\`, find if there is a pair of nodes with a sum equal to \`target\`.
+> **Problem statement:** Given a binary search tree and a `target`, find if there is a pair of nodes with a sum equal to `target`.
 
 // Diagram: Find the pair of nodes with the given sum in the binary search tree.
 

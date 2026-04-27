@@ -110,8 +110,8 @@ The algorithm given below summarizes the reorder technique for **two** lists. It
 
 > **Algorithm**
 >
-> -   **Step 1:** Use the split technique to split the list in **two** using the function \`f1\`
-> -   **Step 2:** Use the merge technique to merge the **two** lists using the function \`f2\`.
+> -   **Step 1:** Use the split technique to split the list in **two** using the function `f1`
+> -   **Step 2:** Use the merge technique to merge the **two** lists using the function `f2`.
 > -   **Step 3:** Return the head of the merged list.
 
 ## Implementation

@@ -156,19 +156,19 @@ The steps below summarise the dynamic programming algorithm to solve the 0/1 kna
 
 > **knapsack(i, c, \[ref\] weights, \[ref\] values, \[ref\] memo):**
 >
-> -   **Step 1:** If \`c == 0\` or \`i < 0\`, return \`0\`
-> -   **Step 2:** If \`memo\[i\]\[c\] != -1\`, return \`memo\[i\]\[c\]\`
-> -   **Step 3:** Set \`memo\[i\]\[c\]\` to the return value of call to \`knapsack(i - 1, c, weights, values, memo)\`
-> -   **Step 4:** If \`weights\[i\] <= c\`:
->     -   **Step 4.1:** Set \`include\` to \`values\[i\]\` plus the return value of call to \`knapsack(i - 1, c - weights\[i\], weights, values, memo)\`
->     -   **Step 4.2:** Set \`memo\[i\]\[c\]\` to the maximum of \`memo\[i\]\[c\]\` and \`include\`
-> -   **Step 5:** Return \`memo\[i\]\[c\]\`
+> -   **Step 1:** If `c == 0` or `i < 0`, return `0`
+> -   **Step 2:** If `memo\[i\]\[c\] != -1`, return `memo\[i\]\[c\]`
+> -   **Step 3:** Set `memo\[i\]\[c\]` to the return value of call to `knapsack(i - 1, c, weights, values, memo)`
+> -   **Step 4:** If `weights\[i\] <= c`:
+>     -   **Step 4.1:** Set `include` to `values\[i\]` plus the return value of call to `knapsack(i - 1, c - weights\[i\], weights, values, memo)`
+>     -   **Step 4.2:** Set `memo\[i\]\[c\]` to the maximum of `memo\[i\]\[c\]` and `include`
+> -   **Step 5:** Return `memo\[i\]\[c\]`
 >
 > **callingFunction(\[ref\] weights, \[ref\] values, capacity):**
 >
-> -   **Step 1:** Initialize a variable \`n\` with the size of \`weights\`
-> -   **Step 2:** Create a 2D array \`memo\` of size \`n x (capacity + 1)\` and initialize it to \`-1\`
-> -   **Step 3:** Return the return value of call to \`knapsack(n - 1, capacity, weights, values, memo)\`
+> -   **Step 1:** Initialize a variable `n` with the size of `weights`
+> -   **Step 2:** Create a 2D array `memo` of size `n x (capacity + 1)` and initialize it to `-1`
+> -   **Step 3:** Return the return value of call to `knapsack(n - 1, capacity, weights, values, memo)`
 
 ## Implementation
 

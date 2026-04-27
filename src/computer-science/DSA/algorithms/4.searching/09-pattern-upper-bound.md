@@ -14,7 +14,7 @@ Given a sorted search space and a target value, find the first item greater than
 
 Let's consider the following problem as an example to better understand how to identify and solve a problem using the upper bound algorithm.
 
-> **Problem statement:** Given an integer array \`arr\` that is sorted in ascending order, write a function to find and return the index of the first positive element in the array. If there are no positive elements, return -1 instead.
+> **Problem statement:** Given an integer array `arr` that is sorted in ascending order, write a function to find and return the index of the first positive element in the array. If there are no positive elements, return -1 instead.
 
 // Diagram: Find the index of the first positive integer.
 

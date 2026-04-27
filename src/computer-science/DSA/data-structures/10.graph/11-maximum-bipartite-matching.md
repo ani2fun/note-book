@@ -79,44 +79,44 @@ The steps below summarize the algorithm to find the maximum bipartite matching u
 >
 > **dfs(\[ref\] residualGraph, \[re\] visited, \[ref\] path, node, sink)**
 >
-> -   **Step 1:** Add \`node\` to \`visited\` set
-> -   **Step 2:** Append \`node\` to \`path\`
-> -   **Step 3:** if \`node\` is \`sink\` return \`true\`
-> -   **Step 4:** Iterate over all the neighbours of \`node\` in a variable \`neighbour\` and do the following
->     -   **Step 4.1:** If \`neighbour\` not in \`visited\` and \`residualGraph\[node\]\[neighbour\]\` > 0 do the following:
->         -   **Step 4.1.1:** If the call to \`dfs(residualGraph, visited, path, neighbour, sink)\` returns \`true\`, return \`true\`
-> -   **Step 5:** Pop the \`node\` from the end of \`path\`
-> -   **Step 6:** Return \`false\`
+> -   **Step 1:** Add `node` to `visited` set
+> -   **Step 2:** Append `node` to `path`
+> -   **Step 3:** if `node` is `sink` return `true`
+> -   **Step 4:** Iterate over all the neighbours of `node` in a variable `neighbour` and do the following
+>     -   **Step 4.1:** If `neighbour` not in `visited` and `residualGraph\[node\]\[neighbour\]` > 0 do the following:
+>         -   **Step 4.1.1:** If the call to `dfs(residualGraph, visited, path, neighbour, sink)` returns `true`, return `true`
+> -   **Step 5:** Pop the `node` from the end of `path`
+> -   **Step 6:** Return `false`
 >
 > **fordFulkersonMethod(\[ref\] graph, source, sink)**
 >
-> -   **Step 1:** Create a two-dimensional array \`residualGraph\` to hold the adjacency matrix of the residual graph
-> -   **Step 2:** Initialize \`residualGraph\` with the weights between nodes in \`graph\`
-> -   **Step 3:** Initialize a variable \`maxFlow\` to 0
-> -   **Step 4:** Iterate while call to \`dfs(residualGraph, visited, path, source, sink)\` returns true:
->     -   **Step 4.1:** Initilize a variable \`pathFlow\` to \`infinite\`
->     -   **Step 4.2:** Iterate in \`path\` taking two items at a time in variables \`u\` and \`v\` and for each do the following:
->         -   **Step 4.2.1:** Set \`pathFlow\` to \`min(pathFlow, residualGraph\[u\]\[v\])\`
->     -   **Step 4.3:** Iterate in \`path\` taking two items at a time in variables \`u\` and \`v\` and for each do the following:
->         -   **Step 4.3.1:** Reduce \`pathFlow\` from \`residualGraph\[u\]\[v\]\`
->         -   **Step 4.3.2:** Add \`pathFlow\` to \`residualGraph\[v\]\[u\]\`
->     -   **Step 4.4:** Add \`pathFlow\` to \`maxFlow\`
-> -   **Step 5:** Return \`maxFlow\`
+> -   **Step 1:** Create a two-dimensional array `residualGraph` to hold the adjacency matrix of the residual graph
+> -   **Step 2:** Initialize `residualGraph` with the weights between nodes in `graph`
+> -   **Step 3:** Initialize a variable `maxFlow` to 0
+> -   **Step 4:** Iterate while call to `dfs(residualGraph, visited, path, source, sink)` returns true:
+>     -   **Step 4.1:** Initilize a variable `pathFlow` to `infinite`
+>     -   **Step 4.2:** Iterate in `path` taking two items at a time in variables `u` and `v` and for each do the following:
+>         -   **Step 4.2.1:** Set `pathFlow` to `min(pathFlow, residualGraph\[u\]\[v\])`
+>     -   **Step 4.3:** Iterate in `path` taking two items at a time in variables `u` and `v` and for each do the following:
+>         -   **Step 4.3.1:** Reduce `pathFlow` from `residualGraph\[u\]\[v\]`
+>         -   **Step 4.3.2:** Add `pathFlow` to `residualGraph\[v\]\[u\]`
+>     -   **Step 4.4:** Add `pathFlow` to `maxFlow`
+> -   **Step 5:** Return `maxFlow`
 >
 > **maximumBipartiteMatching(\[ref\] graph, \[ref\] left, \[ref\] right)**
 >
-> -   **Step 1:** Create a two-dimensional list of pairs \`flowGraph\` with the same size as \`graph\`
-> -   **Step 2:** Iterate in \`graph\` using a variable \`node\` and do the following:
->     -   **Step 2.1:** Iterate in \`graph\[node\]\` using a variable \`neighbur\` and do the following:
->         -   **Step 2.1.1:** Append a pair \`(neighbour, 1)\` to \`flowGraph\[node\]\`
-> -   **Step 3:** Set a variable \`source\` to the size \`flowGraph\` and append an empty list of pairs at the end of \`flowGraph\`
-> -   **Step 4:** Iterate in the list \`left\` using a variable \`node\` and do the following:
->     -   **Step 4.1:** Append a pair \`(node, 1)\` to \`flowGraph\[source\]\`
-> -   **Step 5:** Set a variable \`sink\` to the size \`flowGraph\` and append an empty list of piars at the end of \`flowGraph\`
-> -   **Step 6:** Iterate in the list \`right\` using a variable \`node\` and do the following:
->     -   **Step 6.1:** Append a pair \`(sink, 1)\` to \`flowGraph\[node\]\`
-> -   **Step 7:** Set a varible \`maxMatching\` as the return value of call to \`fordFulkersonMethod(\[ref\] flowGraph, source, sink)\`
-> -   **Step 8:** Return \`maxMatching\`
+> -   **Step 1:** Create a two-dimensional list of pairs `flowGraph` with the same size as `graph`
+> -   **Step 2:** Iterate in `graph` using a variable `node` and do the following:
+>     -   **Step 2.1:** Iterate in `graph\[node\]` using a variable `neighbur` and do the following:
+>         -   **Step 2.1.1:** Append a pair `(neighbour, 1)` to `flowGraph\[node\]`
+> -   **Step 3:** Set a variable `source` to the size `flowGraph` and append an empty list of pairs at the end of `flowGraph`
+> -   **Step 4:** Iterate in the list `left` using a variable `node` and do the following:
+>     -   **Step 4.1:** Append a pair `(node, 1)` to `flowGraph\[source\]`
+> -   **Step 5:** Set a variable `sink` to the size `flowGraph` and append an empty list of piars at the end of `flowGraph`
+> -   **Step 6:** Iterate in the list `right` using a variable `node` and do the following:
+>     -   **Step 6.1:** Append a pair `(sink, 1)` to `flowGraph\[node\]`
+> -   **Step 7:** Set a varible `maxMatching` as the return value of call to `fordFulkersonMethod(\[ref\] flowGraph, source, sink)`
+> -   **Step 8:** Return `maxMatching`
 
 ## Implementation
 
@@ -1104,7 +1104,7 @@ Given an **NxM** **matrix** filled with values that are either `0`, or `1` 
 
 > You must abide by the following constraints:
 >
-> -   A value of 1 in a cell \`matrix\[i\]\[j\]\` signifies that the applicant \`i\` is interested in the job \`j\`.
+> -   A value of 1 in a cell `matrix\[i\]\[j\]` signifies that the applicant `i` is interested in the job `j`.
 > -   Each job can be assigned to **at most one** applicant, and each applicant can be assigned to **at most one** job.
 
 ### Example 1

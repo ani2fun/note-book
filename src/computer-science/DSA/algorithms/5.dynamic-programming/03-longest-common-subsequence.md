@@ -139,20 +139,20 @@ The steps below summarise the dynamic programming algorithm to solve the longest
 
 > **lcs(i, j, \[ref\] s1, \[ref\] s2, \[ref\] memo):**
 >
-> -   **Step 1:** If \`i < 0\` or \`j < 0\`, return \`0\`
-> -   **Step 2:** If \`memo\[i\]\[j\] != -1\`, return \`memo\[i\]\[j\]\`
-> -   **Step 3:** If \`s1\[i\] == s2\[j\]\`:
->     -   **Step 3.1:** Set \`memo\[i\]\[j\]\` to \`1 + lcs(i - 1, j - 1, s1, s2, memo)\` and return \`memo\[i\]\[j\]\`
-> -   **Step 4:** Set \`memo\[i\]\[j\]\` = \`max( lcs(i - 1, j, s1, s2, memo) , lcs(i, j - 1, s1, s2, memo) )\`
+> -   **Step 1:** If `i < 0` or `j < 0`, return `0`
+> -   **Step 2:** If `memo\[i\]\[j\] != -1`, return `memo\[i\]\[j\]`
+> -   **Step 3:** If `s1\[i\] == s2\[j\]`:
+>     -   **Step 3.1:** Set `memo\[i\]\[j\]` to `1 + lcs(i - 1, j - 1, s1, s2, memo)` and return `memo\[i\]\[j\]`
+> -   **Step 4:** Set `memo\[i\]\[j\]` = `max( lcs(i - 1, j, s1, s2, memo) , lcs(i, j - 1, s1, s2, memo) )`
 
-> -   **Step 5:** Return \`memo\[i\]\[j\]\`
+> -   **Step 5:** Return `memo\[i\]\[j\]`
 >
 > **callingFunction(\[ref\] s1, \[ref\] s2):**
 >
-> -   **Step 1:** Initialize a variable \`m\` with the length of \`s1\`
-> -   **Step 2:** Initialize a variable \`n\` with the length of \`s2\`
-> -   **Step 3:** Create a 2D array \`memo\` of size \`m x n\` and initialize it to \`-1\`
-> -   **Step 4:** Return the return value of call to \`lcs(m - 1, n - 1, s1, s2, memo)\`
+> -   **Step 1:** Initialize a variable `m` with the length of `s1`
+> -   **Step 2:** Initialize a variable `n` with the length of `s2`
+> -   **Step 3:** Create a 2D array `memo` of size `m x n` and initialize it to `-1`
+> -   **Step 4:** Return the return value of call to `lcs(m - 1, n - 1, s1, s2, memo)`
 
 ## Implementation
 
@@ -415,13 +415,13 @@ Find the length of the longest common subsequence of "ab" and "acb".
 
 The steps below summarise the dynamic programming algorithm to find the longest common subsequence using a bottom-up approach.
 
-> -   **Step 1:** If \`s1\` or \`s2\` is empty, return \`0\`
-> -   **Step 2:** Create a 2D array \`lcs\` of size \`(m + 1) x (n + 1)\` where \`m\` is the length of \`s1\` and \`n\` is the length of \`s2\`, and initialize all entries to \`0\`
-> -   **Step 3:** Iterate from \`1\` to \`m\` using a variable \`i\` and do the following:
->     -   **Step 3.1:** Iterate from \`1\` to \`n\` using a variable \`j\` and do the following:
->         -   **Step 3.1.1:** If \`s1\[i - 1\] == s2\[j - 1\]\`, set \`lcs\[i\]\[j\]\` to \`lcs\[i - 1\]\[j - 1\] + 1\`
->         -   **Step 3.1.2:** Otherwise, set \`lcs\[i\]\[j\]\` to the maximum of \`lcs\[i - 1\]\[j\]\` and \`lcs\[i\]\[j - 1\]\`
-> -   **Step 4:** Return \`lcs\[m\]\[n\]\`
+> -   **Step 1:** If `s1` or `s2` is empty, return `0`
+> -   **Step 2:** Create a 2D array `lcs` of size `(m + 1) x (n + 1)` where `m` is the length of `s1` and `n` is the length of `s2`, and initialize all entries to `0`
+> -   **Step 3:** Iterate from `1` to `m` using a variable `i` and do the following:
+>     -   **Step 3.1:** Iterate from `1` to `n` using a variable `j` and do the following:
+>         -   **Step 3.1.1:** If `s1\[i - 1\] == s2\[j - 1\]`, set `lcs\[i\]\[j\]` to `lcs\[i - 1\]\[j - 1\] + 1`
+>         -   **Step 3.1.2:** Otherwise, set `lcs\[i\]\[j\]` to the maximum of `lcs\[i - 1\]\[j\]` and `lcs\[i\]\[j - 1\]`
+> -   **Step 4:** Return `lcs\[m\]\[n\]`
 
 ## Implementation
 

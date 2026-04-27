@@ -83,19 +83,19 @@ The steps given below summarize the topological sort algorithm for a graph.
 >
 > **dfs(node, \[ref\] graph, \[ref\] visited, \[ref\] result)**
 >
-> -   **Step 1:** Add \`node\` to \`visited\` set
-> -   **Step 2:** Iterate over all the neighbours of \`node\` in a variable \`neighbour\` and do the following
->     -   **Step 2.1:** If \`neighbour\` not in \`visited\` set call \`dfs(neighbour, graph, visited, result)\`
-> -   **Step 3:** Add \`node\` to \`result\` list
+> -   **Step 1:** Add `node` to `visited` set
+> -   **Step 2:** Iterate over all the neighbours of `node` in a variable `neighbour` and do the following
+>     -   **Step 2.1:** If `neighbour` not in `visited` set call `dfs(neighbour, graph, visited, result)`
+> -   **Step 3:** Add `node` to `result` list
 >
 > **topologicalSort(\[ref\] graph)**
 >
-> -   **Step 1:** Create a \`visited\` set
-> -   **Step 2:** Create a \`visitedresult\` list
-> -   **Step 3:** Iterate over all the nodes in the graph in a variable \`node\` and do the following
->     -   **Step 3.1:** If \`node\` not in \`visited\` set call \`dfs(node, graph, visited, result)\`
-> -   **Step 4:** Reverse the \`result\` list
-> -   **Step 5:** Return \`result\`
+> -   **Step 1:** Create a `visited` set
+> -   **Step 2:** Create a `visitedresult` list
+> -   **Step 3:** Iterate over all the nodes in the graph in a variable `node` and do the following
+>     -   **Step 3.1:** If `node` not in `visited` set call `dfs(node, graph, visited, result)`
+> -   **Step 4:** Reverse the `result` list
+> -   **Step 5:** Return `result`
 
 Let's examine the execution of the topological sort algorithm on a directed acyclic graph to understand the it better.
 

@@ -145,22 +145,22 @@ The steps below summarize the algorithm to find the longest common substring bet
 
 > **lcs(i, j, \[ref\] s1, \[ref\] s2, \[ref\] memo):**
 >
-> -   **Step 1:** If \`i < 0\` or \`j < 0\`, return \`0\`
-> -   **Step 2:** If \`memo\[i\]\[j\] != -1\`, return \`memo\[i\]\[j\]\`
-> -   **Step 3:** If \`s1\[i\] != s2\[j\]\`, set \`memo\[i\]\[j\]\` to \`0\` and return \`0\`
-> -   **Step 4:** Set \`memo\[i\]\[j\]\` to \`1 + lcs(i - 1, j - 1, s1, s2, memo)\`
-> -   **Step 5:** Return \`memo\[i\]\[j\]\`
+> -   **Step 1:** If `i < 0` or `j < 0`, return `0`
+> -   **Step 2:** If `memo\[i\]\[j\] != -1`, return `memo\[i\]\[j\]`
+> -   **Step 3:** If `s1\[i\] != s2\[j\]`, set `memo\[i\]\[j\]` to `0` and return `0`
+> -   **Step 4:** Set `memo\[i\]\[j\]` to `1 + lcs(i - 1, j - 1, s1, s2, memo)`
+> -   **Step 5:** Return `memo\[i\]\[j\]`
 >
 > **callingFunction(\[ref\] s1, \[ref\] s2):**
 >
-> -   **Step 1:** Initialize \`m\` and \`n\` with the lengths of \`s1\` and \`s2\`
-> -   **Step 2:** If \`m == 0\` or \`n == 0\`, return \`0\`
-> -   **Step 3:** Create a 2D array \`memo\` of size \`m x n\` and initialize it to \`-1\`
-> -   **Step 4:** Initialize \`result\` to \`0\`
-> -   **Step 5:** Iterate from \`0\` to \`m - 1\` using a variable \`i\` and do the following:
->     -   **Step 5.1:** Iterate from \`0\` to \`n - 1\` using a variable \`j\` and do the following:
->         -   **Step 5.1.1:** Set \`result\` to the maximum of \`result\` and \`lcs(i, j, s1, s2, memo)\`
-> -   **Step 6:** Return \`result\`
+> -   **Step 1:** Initialize `m` and `n` with the lengths of `s1` and `s2`
+> -   **Step 2:** If `m == 0` or `n == 0`, return `0`
+> -   **Step 3:** Create a 2D array `memo` of size `m x n` and initialize it to `-1`
+> -   **Step 4:** Initialize `result` to `0`
+> -   **Step 5:** Iterate from `0` to `m - 1` using a variable `i` and do the following:
+>     -   **Step 5.1:** Iterate from `0` to `n - 1` using a variable `j` and do the following:
+>         -   **Step 5.1.1:** Set `result` to the maximum of `result` and `lcs(i, j, s1, s2, memo)`
+> -   **Step 6:** Return `result`
 
 ## Implementation
 
@@ -441,14 +441,14 @@ Find the length of the longest common substring of "aba" and "adab".
 
 The steps below summarize the algorithm to find the longest common substring between two strings using bottom-up dynamic programming.
 
-> -   **Step 1:** If \`s1\` or \`s2\` is empty, return \`0\`
-> -   **Step 2:** Create a 2D array \`lcs\` of size \`(m + 1) x (n + 1)\` where \`m\` is the length of \`s1\` and \`n\` is the length of \`s2\`, and initialize all entries to \`0\`
-> -   **Step 3:** Initialize \`result\` to \`0\`
-> -   **Step 4:** Iterate from \`1\` to \`m\` using a variable \`i\` and do the following:
->     -   **Step 4.1:** Iterate from \`1\` to \`n\` using a variable \`j\` and do the following:
->         -   **Step 4.1.1:** If \`s1\[i - 1\] == s2\[j - 1\]\`, set \`lcs\[i\]\[j\]\` to \`lcs\[i - 1\]\[j - 1\] + 1\`
->         -   **Step 4.1.2:** Set \`result\` to the maximum of \`result\` and \`lcs\[i\]\[j\]\`
-> -   **Step 5:** Return \`result\`
+> -   **Step 1:** If `s1` or `s2` is empty, return `0`
+> -   **Step 2:** Create a 2D array `lcs` of size `(m + 1) x (n + 1)` where `m` is the length of `s1` and `n` is the length of `s2`, and initialize all entries to `0`
+> -   **Step 3:** Initialize `result` to `0`
+> -   **Step 4:** Iterate from `1` to `m` using a variable `i` and do the following:
+>     -   **Step 4.1:** Iterate from `1` to `n` using a variable `j` and do the following:
+>         -   **Step 4.1.1:** If `s1\[i - 1\] == s2\[j - 1\]`, set `lcs\[i\]\[j\]` to `lcs\[i - 1\]\[j - 1\] + 1`
+>         -   **Step 4.1.2:** Set `result` to the maximum of `result` and `lcs\[i\]\[j\]`
+> -   **Step 5:** Return `result`
 
 ## Implementation
 

@@ -98,16 +98,16 @@ The recursive procedure receives the array along with its start and end boundari
 
 If `left < right`, the procedure calls `partition(arr, left, right, i, j)`, which rearranges the elements around a pivot into three regions and returns two indices, `i` and `j`. These indices mark the starting and ending boundaries of the pivot element, such that all elements between `i` and `j` are equal to the pivot. More formally:
 
-> -   Elements from \`left\` to \`i\` are **smaller than** the pivot.
-> -   Elements from \`i + 1\` to \`j - 1\` are **equal** to the pivot.
-> -   Elements from \`j\` to \`right\` are **greater than** the pivot.
+> -   Elements from `left` to `i` are **smaller than** the pivot.
+> -   Elements from `i + 1` to `j - 1` are **equal** to the pivot.
+> -   Elements from `j` to `right` are **greater than** the pivot.
 
 // Diagram: The smaller, middle, unsorted and largest sections in the array
 
 After partitioning, the algorithm recursively sorts the subarrays to the left and right of the pivot.
 
-> -   \`quicksort(arr, left, i)\` - sort elements smaller than the pivot
-> -   \`quicksort(arr, j, right)\` - sort elements greater than the pivot
+> -   `quicksort(arr, left, i)` - sort elements smaller than the pivot
+> -   `quicksort(arr, j, right)` - sort elements greater than the pivot
 
 **Why are the recursive calls split around the pivot region?**
 
@@ -123,9 +123,9 @@ The partition function is responsible for reorganizing the subarray into three s
 
 The algorithm begins by handling small subarrays with `0` or `1` element. For larger subarrays, it initializes `mid = left` and selects the `pivot` as the last element `arr[right]`. The three pointers have the same roles as in DNF:
 
-> -   \`left\` - Marks the end of the smaller-than-pivot section.
-> -   \`mid\` - Traverses the array to evaluate elements.
-> -   \`right\` - Marks the beginning of the greater-than-pivot section.
+> -   `left` - Marks the end of the smaller-than-pivot section.
+> -   `mid` - Traverses the array to evaluate elements.
+> -   `right` - Marks the beginning of the greater-than-pivot section.
 
 // Diagram: The smaller, equal, unsorted and larger sections in the array
 
@@ -137,9 +137,9 @@ When the element at `mid` index is less then the pivot element, it needs to b
 
 > Take the following steps:
 >
-> -   Swap \`arr\[mid\]\` with \`arr\[left\]\` to place the smallest value into its correct section.
-> -   The \`mid\` pointer is incremented to continue scanning the next element.
-> -   The \`left\` pointer is also incremented by one, expanding the sorted section of smallest elements
+> -   Swap `arr\[mid\]` with `arr\[left\]` to place the smallest value into its correct section.
+> -   The `mid` pointer is incremented to continue scanning the next element.
+> -   The `left` pointer is also incremented by one, expanding the sorted section of smallest elements
 
 Corresponds to the **0-region** handling in **DNF**, expanding the smaller section.
 
@@ -151,7 +151,7 @@ When the element at `mid` index is equal to the pivot element, it belongs to t
 
 > Take the following steps:
 >
-> -   The \`mid\` pointer is incremented to continue scanning the next element.
+> -   The `mid` pointer is incremented to continue scanning the next element.
 
 Corresponds to the **1-region** handling in **DNF**, leaving the equal section in place.
 
@@ -167,8 +167,8 @@ When the element at `mid` index is greater than the pivot,  it belongs to the
 
 > Take the following steps:
 >
-> -   Swap \`arr\[mid\]\` with the element at the \`arr\[right\]\` to move the largest value toward its correct section.
-> -   The \`right\` pointer is decremented by one, shrinking the unsorted section from the end.
+> -   Swap `arr\[mid\]` with the element at the `arr\[right\]` to move the largest value toward its correct section.
+> -   The `right` pointer is decremented by one, shrinking the unsorted section from the end.
 
 Corresponds to the **2-region** handling in **DNF**, expanding the larger section.
 
@@ -183,31 +183,31 @@ After the loop, the indices `i = left - 1` (last element smaller than the pivot)
 > **partition(\[ref\] arr, left, right, \[ref\] i, \[ref\] j)**
 >
 > -   **Step 1:** If the subarray has 0 or 1 element, optionally swap the two elements if out of order
-> -   **Step 2:** Initialise \`mid = left\`
-> -   **Step 3:** Choose the last element \`arr\[right\]\` as the pivot
-> -   **Step 4:** While \`mid <= right\`, do the following:
->     -   **Step 4.1:** If \`arr\[mid\] < pivot\`
->         -   **Step 4.1.1:** Swap \`arr\[mid\]\` with \`arr\[left\]\`
->         -   **Step 4.1.2:** Increment \`mid\` to move to the next element
->         -   **Step 4.1.3:** Increment \`left\` to move to the next element
->     -   **Step 4.2:** If \`arr\[mid\] == pivot\`
->         -   **Step 4.2.1:** Increment \`mid\` to move to the next element
->     -   **Step 4.3:** If \`arr\[mid\] > pivot\`
->         -   **Step 4.3.1:** Swap \`arr\[mid\]\` with \`arr\[right\]\`
->         -   **Step 4.3.2:** Decrement \`right\` to move to the previous element
-> -   **Step 5:** Set \`i = left - 1\` (last element smaller than pivot)
-> -   **Step 6:** Set \`j = mid\` (first element greater than pivot)
+> -   **Step 2:** Initialise `mid = left`
+> -   **Step 3:** Choose the last element `arr\[right\]` as the pivot
+> -   **Step 4:** While `mid <= right`, do the following:
+>     -   **Step 4.1:** If `arr\[mid\] < pivot`
+>         -   **Step 4.1.1:** Swap `arr\[mid\]` with `arr\[left\]`
+>         -   **Step 4.1.2:** Increment `mid` to move to the next element
+>         -   **Step 4.1.3:** Increment `left` to move to the next element
+>     -   **Step 4.2:** If `arr\[mid\] == pivot`
+>         -   **Step 4.2.1:** Increment `mid` to move to the next element
+>     -   **Step 4.3:** If `arr\[mid\] > pivot`
+>         -   **Step 4.3.1:** Swap `arr\[mid\]` with `arr\[right\]`
+>         -   **Step 4.3.2:** Decrement `right` to move to the previous element
+> -   **Step 5:** Set `i = left - 1` (last element smaller than pivot)
+> -   **Step 6:** Set `j = mid` (first element greater than pivot)
 >
 > **quicksort(\[ref\] arr, left, right)**
 >
-> -   **Step 1:** If \`left < right\`, do the following
->     -   **Step 1.1:** Call \`partition(arr, left, right, i, j)\` to partition the array
->     -   **Step 1.2:** Recursively call \`quicksort(arr, left, i)\` on the left subarray
->     -   **Step 1.3:** Recursively call \`quicksort(arr, j, right)\` on the right subarray
+> -   **Step 1:** If `left < right`, do the following
+>     -   **Step 1.1:** Call `partition(arr, left, right, i, j)` to partition the array
+>     -   **Step 1.2:** Recursively call `quicksort(arr, left, i)` on the left subarray
+>     -   **Step 1.3:** Recursively call `quicksort(arr, j, right)` on the right subarray
 >
 > **threeWayQuickSort(\[ref\] arr)**
 >
-> -   **Step 1:** Call \`quicksort(arr, 0, arr.size() - 1)\` to sort the entire array
+> -   **Step 1:** Call `quicksort(arr, 0, arr.size() - 1)` to sort the entire array
 
 ## Implementation
 

@@ -64,13 +64,13 @@ The steps below combine all the cases using conditional statements and outline t
 
 > **minimumInRotatedSortedArray(arr, target)**
 >
-> -   **Step 1:** Set \`low\` = 0
-> -   **Step 2:** Set \`high\` = size of \`arr\` - 1
-> -   **Step 3:** Iterate while \`low\` < \`high\` and do the following:
->     -   **Step 3.1:** Set \`mid\` = \`low\` + (\`high\` - \`low\`) / 2
->     -   **Step 3.2:** If \`arr\[mid\]\` > \`arr\[high\]\`, set \`low\` = \`mid\` + 1
->     -   **Step 3.3:** Otherwise, set \`high\` = \`mid\`
-> -   **Step 4:** Return \`low\`
+> -   **Step 1:** Set `low` = 0
+> -   **Step 2:** Set `high` = size of `arr` - 1
+> -   **Step 3:** Iterate while `low` < `high` and do the following:
+>     -   **Step 3.1:** Set `mid` = `low` + (`high` - `low`) / 2
+>     -   **Step 3.2:** If `arr\[mid\]` > `arr\[high\]`, set `low` = `mid` + 1
+>     -   **Step 3.3:** Otherwise, set `high` = `mid`
+> -   **Step 4:** Return `low`
 
 Given below is the execution of the algorithm to find the minimum in a sorted rotated array.
 
@@ -449,18 +449,18 @@ We can combine all the cases above using conditional statements to discard half 
 
 > **rotatedSortedSearch(arr, target)**
 >
-> -   **Step 1:** Set \`low\` = 0
-> -   **Step 2:** Set \`high\` = size of \`arr\` - 1
-> -   **Step 3:** Iterate while \`low\` <= \`high\` and do the following:
->     -   **Step 3.1:** Set \`mid\` = \`low\` + (\`high\` - \`low\`) / 2
->     -   **Step 3.2:** If \`arr\[mid\]\` == \`target\` return \`mid\`
->     -   **Step 3.3:** Otherwise, If \`arr\[mid\]\` > \`arr\[low\]\`, it means the left half is sorted, do the following
->         -   **Step 3.3.1:** If \`arr\[low\]\` <= \`target\` < \`arr\[mid\]\` set \`high\` = \`mid\` - 1
->         -   **Step 3.3.2:** Otherwise set \`low\` = \`mid\` + 1
+> -   **Step 1:** Set `low` = 0
+> -   **Step 2:** Set `high` = size of `arr` - 1
+> -   **Step 3:** Iterate while `low` <= `high` and do the following:
+>     -   **Step 3.1:** Set `mid` = `low` + (`high` - `low`) / 2
+>     -   **Step 3.2:** If `arr\[mid\]` == `target` return `mid`
+>     -   **Step 3.3:** Otherwise, If `arr\[mid\]` > `arr\[low\]`, it means the left half is sorted, do the following
+>         -   **Step 3.3.1:** If `arr\[low\]` <= `target` < `arr\[mid\]` set `high` = `mid` - 1
+>         -   **Step 3.3.2:** Otherwise set `low` = `mid` + 1
 >     -   **Step 3.4:** Otherwise, it means the right half is sorted, do the following
->         -   **Step 3.4.1:** If \`arr\[mid\]\` < \`target\` <= \`arr\[high\]\` set \`low\` = \`mid\` + 1
->         -   **Step 3.4.2:** Otherwise set \`high\` = \`mid\` - 1
-> -   **Step 4:** The \`target\` is not found, return -1
+>         -   **Step 3.4.1:** If `arr\[mid\]` < `target` <= `arr\[high\]` set `low` = `mid` + 1
+>         -   **Step 3.4.2:** Otherwise set `high` = `mid` - 1
+> -   **Step 4:** The `target` is not found, return -1
 
 Given below is the execution of the algorithm to find a target value in a sorted rotated array.
 

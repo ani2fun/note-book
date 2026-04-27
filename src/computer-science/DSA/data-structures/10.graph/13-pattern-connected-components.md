@@ -47,22 +47,22 @@ The steps given below summarize the connected component algorithm in an undirect
 >
 > **dfs(node, parent, \[ref\] componentAggregate, \[ref\] graph, \[ref\] visited)**
 >
-> -   **Step 1:** Add \`node\` to \`visited\`
-> -   **Step 2:** Add the contribution of \`node\` to \`componentAggregate\` using the function \`f\`
-> -   **Step 3:** Iterate in all the neighbours of \`node\` in \`neighbour\` and do the following:
->     -   **Step 3.1:** If \`neighbour\` is not \`parent\` and not in \`visited\`
->         -   **Step 3.1.1:** Call \`dfs(neighbour, node, componentAggregate, graph, visited)\`
+> -   **Step 1:** Add `node` to `visited`
+> -   **Step 2:** Add the contribution of `node` to `componentAggregate` using the function `f`
+> -   **Step 3:** Iterate in all the neighbours of `node` in `neighbour` and do the following:
+>     -   **Step 3.1:** If `neighbour` is not `parent` and not in `visited`
+>         -   **Step 3.1.1:** Call `dfs(neighbour, node, componentAggregate, graph, visited)`
 >
 > **callingFunction(\[ref\] graph)**
 >
-> -   **Step 1:** Create a \`visited\` set
-> -   **Step 2:** Initialize \`aggregate\` with a default value
-> -   **Step 3:** Iterate in all the nodes of the graph using \`node\` and do the following:
->     -   **Step 3.1:** If \`node\` is not in \`visited\`, do the following:
->         -   **Step 3.1.1:** Initialize \`componentAggregate\` with a default value
->         -   **Step 3.1.2:** Call \`dfs(node, -1, componentAggregate, graph, visited)\`
->         -   **Step 3.1.3:** Add contribution of \`componentAggregate\` to \`aggregate\` using the function \`g\`\`
-> -   **Step 3:** Return \`aggregate\`
+> -   **Step 1:** Create a `visited` set
+> -   **Step 2:** Initialize `aggregate` with a default value
+> -   **Step 3:** Iterate in all the nodes of the graph using `node` and do the following:
+>     -   **Step 3.1:** If `node` is not in `visited`, do the following:
+>         -   **Step 3.1.1:** Initialize `componentAggregate` with a default value
+>         -   **Step 3.1.2:** Call `dfs(node, -1, componentAggregate, graph, visited)`
+>         -   **Step 3.1.3:** Add contribution of `componentAggregate` to `aggregate` using the function `g``
+> -   **Step 3:** Return `aggregate`
 
 Let's look at an example to better understand the algorithm.
 
@@ -852,14 +852,14 @@ public:
 
 Given a **grid** filled with values of either `0`, or `1`, write a function to find and return the number of islands in this grid. 
 
-> -   A value of \`1\` in a cell means the land.
-> -   A value of \`0\` in a cell means water.
+> -   A value of `1` in a cell means the land.
+> -   A value of `0` in a cell means water.
 
 An island is either surrounded by water or the boundary of a grid and is formed by connecting adjacent lands horizontally, vertically, or diagonally, i.e., in all eight directions.
 
 > You must abide by the following constraint:
 >
-> -   You can move in all eight directions: the four cardinal directions — \`up\`, \`right\`, \`down\`, and \`left\` — and the four diagonal directions — \`up-right\`, \`down-right\`, \`down-left\`, and \`up-left\`.
+> -   You can move in all eight directions: the four cardinal directions — `up`, `right`, `down`, and `left` — and the four diagonal directions — `up-right`, `down-right`, `down-left`, and `up-left`.
 
 ### Example 1
 
@@ -978,14 +978,14 @@ public:
 
 Given a **grid** filled with values of either `0`, or `1`, write a function to find and return the size of the largest island in this grid. 
 
-> -   A value of \`1\` in a cell means the land.
-> -   A value of \`0\` in a cell means water.
+> -   A value of `1` in a cell means the land.
+> -   A value of `0` in a cell means water.
 
 An island is either surrounded by water or the boundary of a grid and is formed by connecting adjacent lands horizontally, vertically, or diagonally, i.e., in all eight directions.
 
 > You must abide by the following constraint:
 >
-> -   You can move in all eight directions: the four cardinal directions — \`up\`, \`right\`, \`down\`, and \`left\` — and the four diagonal directions — \`up-right\`, \`down-right\`, \`down-left\`, and \`up-left\`.
+> -   You can move in all eight directions: the four cardinal directions — `up`, `right`, `down`, and `left` — and the four diagonal directions — `up-right`, `down-right`, `down-left`, and `up-left`.
 
 ### Example 1
 

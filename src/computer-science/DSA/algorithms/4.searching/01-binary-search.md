@@ -58,10 +58,10 @@ By using the fact that the scores are already sorted, this method eliminates lar
 
 > -   **Step 1**: Start with the full list of student scores included in the search.
 > -   **Step 2**: Check the score at the midpoint of the list.
->     -   **Step 2.1**: If the middle score is \`85\`, you’ve found the student, stop the search.
->     -   **Step 2.2**: If the middle score is less than \`85\`, for example, \`78\`, eliminate the middle position and all scores below it, then repeat Step 2 with the second half.
->     -   **Step 2.3**: If the middle score is greater than \`85\`, for example, \`92\`, eliminate the middle position and all scores above it, then repeat Step 2 with the first half.
-> -   **Step 3**: If the search space reduces to zero and \`85\` is never found, no student on the list has that score.
+>     -   **Step 2.1**: If the middle score is `85`, you’ve found the student, stop the search.
+>     -   **Step 2.2**: If the middle score is less than `85`, for example, `78`, eliminate the middle position and all scores below it, then repeat Step 2 with the second half.
+>     -   **Step 2.3**: If the middle score is greater than `85`, for example, `92`, eliminate the middle position and all scores above it, then repeat Step 2 with the first half.
+> -   **Step 3**: If the search space reduces to zero and `85` is never found, no student on the list has that score.
 
 ## Advantages
 
@@ -88,8 +88,8 @@ The strategy from the earlier example could be used to create an algorithm. To e
 
 The binary search algorithm searches for a target value in a sorted array by repeatedly dividing the search space in half. It works by comparing the target value with the middle element of the current search range. The algorithm begins by initialising two indices that define the current search range in which the target value may exist.
 
-> -   \`low\` is set to the first index of the array i.e \`0\`.
-> -   \`high\` is set to the last index of the array i.e \`arr.size() - 1\`.
+> -   `low` is set to the first index of the array i.e `0`.
+> -   `high` is set to the last index of the array i.e `arr.size() - 1`.
 
 // Diagram: Initialize the low and high indices
 
@@ -103,7 +103,7 @@ When `low` becomes greater than `high`, it means the search range is empty, and 
 
 Inside the loop, the algorithm calculates the middle index using:
 
-> -   \`mid = low + (high - low ) / 2\`
+> -   `mid = low + (high - low ) / 2`
 
 **Why is the middle index calculated as** `mid = low + (high - low) / 2` **instead of** mid = (low + high) / 2 ?
 
@@ -137,16 +137,16 @@ The algorithm repeatedly compares values and narrows the search space until the 
 
 > **Algorithm**
 >
-> -   **Step 1:** Initialize search boundaries, set \`low = 0\`, \`high = arr.size() - 1\`
-> -   **Step 2:** Iterate while \`low <= high\`
->     -   **Step 2.1:** Calculate middle index \`mid = low + (high - low) / 2\`
->     -   **Step 2.2:** If \`arr\[mid\] == target\`:
->         -   **Step 2.2.1:** Return \`mid\`
->     -   **Step 2.3:** Else if \`arr\[mid\] < target\`
->         -   **Step 2.3.1:** Set \`low = mid + 1\`
->     -   **Step 2.4:** Else if \`arr\[mid\] > target\`
->         -   **Step 2.4.1:** Set \`high = mid - 1\`
-> -   **Step 3:** If the loop ends without returning, the target is not in the array, return \`-1\`
+> -   **Step 1:** Initialize search boundaries, set `low = 0`, `high = arr.size() - 1`
+> -   **Step 2:** Iterate while `low <= high`
+>     -   **Step 2.1:** Calculate middle index `mid = low + (high - low) / 2`
+>     -   **Step 2.2:** If `arr\[mid\] == target`:
+>         -   **Step 2.2.1:** Return `mid`
+>     -   **Step 2.3:** Else if `arr\[mid\] < target`
+>         -   **Step 2.3.1:** Set `low = mid + 1`
+>     -   **Step 2.4:** Else if `arr\[mid\] > target`
+>         -   **Step 2.4.1:** Set `high = mid - 1`
+> -   **Step 3:** If the loop ends without returning, the target is not in the array, return `-1`
 
 ## Implementation
 

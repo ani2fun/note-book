@@ -25,7 +25,7 @@ A binary search tree is a special type of binary tree that follows the binary se
 
 > For every node **N** in the binary search tree :
 >
-> -   All the values stored in the **left subtree** of \`N\` are **less than** the value stored in **N**
+> -   All the values stored in the **left subtree** of `N` are **less than** the value stored in **N**
 > -   All the values stored in the **right subtree** of **N** are **greater than** the value stored in **N**
 
 // Diagram: Binary Search Property

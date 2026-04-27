@@ -80,23 +80,23 @@ We also create a calling function that initializes the state variables `state` 
 
 > **unconditionalEnumeration(n, \[ref\] state, \[ref\] enumerations)**
 >
-> -   **Step 1:** Call \`isSolutionState(n, state)\` to check if it is a solution state.
->     -   **Step 1.1:** If true, add \`state\` to \`enumerations\`
+> -   **Step 1:** Call `isSolutionState(n, state)` to check if it is a solution state.
+>     -   **Step 1.1:** If true, add `state` to `enumerations`
 >     -   **Step 1.2:** Return to the caller
-> -   **Step 2:** Set \`choices\` = Call \`getChoices(n)\` to get all choices available at this step.
-> -   **Step 3:** Iterate over \`choices\` using a variable \`choice\` and do the following:
->     -   **Step 3.1:** Call \`makeChoice(state, choice)\` to add the contribution of \`choice\` to the \`state\` variable
->     -   **Step 3.2:** Set \`reducedProblemSpace\` = Call \`getReducedProblemSpace(n, choice)\` to obtain the reduced problem space for the next recursive call
->     -   **Step 3.3:** Call \`unconditionalEnumeration(reducedProblemSpace, state, enumerations)\`
->     -   **Step 3.4:** Call \`revertLastChoiceFromState(state)\` to revert the contribution of the last choice from the state variable
+> -   **Step 2:** Set `choices` = Call `getChoices(n)` to get all choices available at this step.
+> -   **Step 3:** Iterate over `choices` using a variable `choice` and do the following:
+>     -   **Step 3.1:** Call `makeChoice(state, choice)` to add the contribution of `choice` to the `state` variable
+>     -   **Step 3.2:** Set `reducedProblemSpace` = Call `getReducedProblemSpace(n, choice)` to obtain the reduced problem space for the next recursive call
+>     -   **Step 3.3:** Call `unconditionalEnumeration(reducedProblemSpace, state, enumerations)`
+>     -   **Step 3.4:** Call `revertLastChoiceFromState(state)` to revert the contribution of the last choice from the state variable
 > -   **Step 4:** Return to the caller
 >
 > **callingFunction(n)**
 >
-> -   **Step 1:** Create a variable \`state\` and initialize it to a default value
-> -   **Step 3:** Create an empty list \`enumerations\`
-> -   **Step 4:** Call \`unconditionalEnumeration(n, state, enumerations)\`
-> -   **Step 5:** Return \`enumerations\`
+> -   **Step 1:** Create a variable `state` and initialize it to a default value
+> -   **Step 3:** Create an empty list `enumerations`
+> -   **Step 4:** Call `unconditionalEnumeration(n, state, enumerations)`
+> -   **Step 5:** Return `enumerations`
 
 ## Implementation
 
@@ -534,7 +534,7 @@ If the problem statement or its solution follows the generic template below, it 
 
 Let's consider the following problem as an example to better understand how to identify and solve a problem using unconditional enumeration.
 
-> **Problem statement:** Given an integer array \`arr\` containing unique elements, write a function that returns all possible subsets (the power set) of the elements in arr. The solution set must not contain duplicate subsets. You can return the subsets in any order.
+> **Problem statement:** Given an integer array `arr` containing unique elements, write a function that returns all possible subsets (the power set) of the elements in arr. The solution set must not contain duplicate subsets. You can return the subsets in any order.
 
 // Diagram: Find all unique subsets of the items in the array.
 

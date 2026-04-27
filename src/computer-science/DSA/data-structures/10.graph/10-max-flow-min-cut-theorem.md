@@ -204,29 +204,29 @@ The steps below summarize the Ford-Fulkerson's method using a residual graph imp
 >
 > **dfs(\[ref\] residualGraph, \[re\] visited, \[ref\] path, node, sink)**
 >
-> -   **Step 1:** Add \`node\` to \`visited\` set
-> -   **Step 2:** Append \`node\` to \`path\`
-> -   **Step 3:** if \`node\` is \`sink\` return \`true\`
-> -   **Step 4:** Iterate over all the neighbours of \`node\` in a variable \`neighbour\` and do the following
->     -   **Step 4.1:** If \`neighbour\` not in \`visited\` and \`residualGraph\[node\]\[neighbour\]\` > 0 do the following:
->         -   **Step 4.1.1:** If the call to \`dfs(residualGraph, visited, path, neighbour, sink)\` returns \`true\`, return \`true\`
-> -   **Step 5:** Pop the \`node\` from the end of \`path\`
-> -   **Step 6:** Return \`false\`
+> -   **Step 1:** Add `node` to `visited` set
+> -   **Step 2:** Append `node` to `path`
+> -   **Step 3:** if `node` is `sink` return `true`
+> -   **Step 4:** Iterate over all the neighbours of `node` in a variable `neighbour` and do the following
+>     -   **Step 4.1:** If `neighbour` not in `visited` and `residualGraph\[node\]\[neighbour\]` > 0 do the following:
+>         -   **Step 4.1.1:** If the call to `dfs(residualGraph, visited, path, neighbour, sink)` returns `true`, return `true`
+> -   **Step 5:** Pop the `node` from the end of `path`
+> -   **Step 6:** Return `false`
 >
 > **fordFulkersonMethod(\[ref\] graph, source, sink)**
 >
-> -   **Step 1:** Create a two-dimensional array \`residualGraph\` to hold the adjacency matrix of the residual graph
-> -   **Step 2:** Initialize \`residualGraph\` with the weights between nodes in \`graph\`
-> -   **Step 3:** Initialize a variable \`maxFlow\` to 0
-> -   **Step 4:** Iterate while call to \`dfs(residualGraph, visited, path, source, sink)\` returns true:
->     -   **Step 4.1:** Initilize a variable \`pathFlow\` to \`infinite\`
->     -   **Step 4.2:** Iterate in \`path\` taking two items at a time in variables \`u\` and \`v\` and for each do the following:
->         -   **Step 4.2.1:** Set \`pathFlow\` to \`min(pathFlow, residualGraph\[u\]\[v\])\`
->     -   **Step 4.3:** Iterate in \`path\` taking two items at a time in variables \`u\` and \`v\` and for each do the following:
->         -   **Step 4.3.1:** Reduce \`pathFlow\` from \`residualGraph\[u\]\[v\]\`
->         -   **Step 4.3.2:** Add \`pathFlow\` to \`residualGraph\[v\]\[u\]\`
->     -   **Step 4.4:** Add \`pathFlow\` to \`maxFlow\`
-> -   **Step 5:** Return \`maxFlow\`
+> -   **Step 1:** Create a two-dimensional array `residualGraph` to hold the adjacency matrix of the residual graph
+> -   **Step 2:** Initialize `residualGraph` with the weights between nodes in `graph`
+> -   **Step 3:** Initialize a variable `maxFlow` to 0
+> -   **Step 4:** Iterate while call to `dfs(residualGraph, visited, path, source, sink)` returns true:
+>     -   **Step 4.1:** Initilize a variable `pathFlow` to `infinite`
+>     -   **Step 4.2:** Iterate in `path` taking two items at a time in variables `u` and `v` and for each do the following:
+>         -   **Step 4.2.1:** Set `pathFlow` to `min(pathFlow, residualGraph\[u\]\[v\])`
+>     -   **Step 4.3:** Iterate in `path` taking two items at a time in variables `u` and `v` and for each do the following:
+>         -   **Step 4.3.1:** Reduce `pathFlow` from `residualGraph\[u\]\[v\]`
+>         -   **Step 4.3.2:** Add `pathFlow` to `residualGraph\[v\]\[u\]`
+>     -   **Step 4.4:** Add `pathFlow` to `maxFlow`
+> -   **Step 5:** Return `maxFlow`
 
 ## Implementation
 

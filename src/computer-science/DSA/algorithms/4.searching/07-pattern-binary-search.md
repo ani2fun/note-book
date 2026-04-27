@@ -14,7 +14,7 @@ Given a sorted search space and a target value, find the target value.
 
 Let's consider the following problem as an example to better understand how to identify and solve a problem using the binary search algorithm.
 
-> **Problem statement:** Given an integer array \`recoveryCodes\` sorted in ascending order, which represents the recovery codes for a locked account, and an integer array \`attempts\` containing codes entered to unlock the account, write a function that returns \`true\` if any of the attempts successfully unlock the account. If the account cannot be unlocked, return \`false\`.
+> **Problem statement:** Given an integer array `recoveryCodes` sorted in ascending order, which represents the recovery codes for a locked account, and an integer array `attempts` containing codes entered to unlock the account, write a function that returns `true` if any of the attempts successfully unlock the account. If the account cannot be unlocked, return `false`.
 
 // Diagram: Find if any code from the attempts array can unlock the account.
 

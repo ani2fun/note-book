@@ -44,11 +44,11 @@ We can summarise the algorithm as the following recursive equation.
 
 > **Algorithm**
 >
-> -   **Step 1:** If the \`start\` index is greater than the \`end\` index, there are no elements in this subarray. In this case, return \`null\` to indicate an empty subtree (base case).
-> -   **Step 2:** Calculate the \`middle\` index of the current subarray.
-> -   **Step 3:** Create a new node with the element's value at the array's \`middle\` index.
-> -   **Step 4:** Recursively build this new node's \`left\` subtree using the elements to the left of the \`middle\` index.
-> -   **Step 5:** Recursively build this new node's \`right\` subtree using the elements to the right of the \`middle\` index.
+> -   **Step 1:** If the `start` index is greater than the `end` index, there are no elements in this subarray. In this case, return `null` to indicate an empty subtree (base case).
+> -   **Step 2:** Calculate the `middle` index of the current subarray.
+> -   **Step 3:** Create a new node with the element's value at the array's `middle` index.
+> -   **Step 4:** Recursively build this new node's `left` subtree using the elements to the left of the `middle` index.
+> -   **Step 5:** Recursively build this new node's `right` subtree using the elements to the right of the `middle` index.
 > -   **Step 6:** Return the new node at the end of recursion.
 
 ## Implementation
@@ -416,10 +416,10 @@ To construct a binary search tree from a given sequence, we start with an empty 
 
 > **Algorithm**
 >
-> -   **Step 1:** Initialize the \`root\` of the BST as \`null\` (empty tree).
+> -   **Step 1:** Initialize the `root` of the BST as `null` (empty tree).
 > -   **Step 2:** Iterate through the elements of the input array, do the following:
->     -   **Step 2.1**: Insert the \`current\` element into the BST rooted at \`root\`.
-> -   **Step 3:** Return the \`root\` of the BST, representing the \`root\` of the constructed BST.
+>     -   **Step 2.1**: Insert the `current` element into the BST rooted at `root`.
+> -   **Step 3:** Return the `root` of the BST, representing the `root` of the constructed BST.
 
 ## Implementation
 

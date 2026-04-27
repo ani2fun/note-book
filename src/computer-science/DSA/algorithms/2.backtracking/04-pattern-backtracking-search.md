@@ -90,27 +90,27 @@ We also create a calling function that initializes the variables `state`, `contr
 
 > **search(n, \[ref\] control, \[ref\] state, \[ref\] solution)**
 >
-> -   **Step 1:** Call \`isSolutionState(n, state)\` to check if it is a solution state.
->     -   **Step 1.1:** If true, set \`solution\` = \`state\`
+> -   **Step 1:** Call `isSolutionState(n, state)` to check if it is a solution state.
+>     -   **Step 1.1:** If true, set `solution` = `state`
 >     -   **Step 1.2:** Return to the caller
-> -   **Step 2:** Set \`choices\` = Call \`getChoices(n, control)\` to get all choices available at this step.
-> -   **Step 3:** Iterate over \`choices\` using a variable \`choice\` and do the following:
->     -   **Step 3.1:** Call \`makeChoice(state, choice)\` to add the contribution of \`choice\` to the \`state\` variable
->     -   **Step 3.2:** Call \`updateControl(n, control, choice)\` to update the control variable based on the current choice and input \`n\`
->     -   **Step 3.3:** Set \`reducedProblemSpace\` = Call \`getReducedProblemSpace(n, choice)\` to obtain the reduced problem space for the next recursive call
->     -   **Step 3.4:** Call \`search(reducedProblemSpace, control, state, solution)\`
->     -   **Step 3.5:** Call \`revertLastChoiceFromControl(control)\` to revert the contribution of the last choice from the control variable
->     -   **Step 3.6:** Call \`revertLastChoiceFromState(state)\` to revert the contribution of the last choice from the state variable
->     -   **Step 3.7:** If \`solution\` does not have the sentinel value, return to the caller, otherwise go to the next steps
+> -   **Step 2:** Set `choices` = Call `getChoices(n, control)` to get all choices available at this step.
+> -   **Step 3:** Iterate over `choices` using a variable `choice` and do the following:
+>     -   **Step 3.1:** Call `makeChoice(state, choice)` to add the contribution of `choice` to the `state` variable
+>     -   **Step 3.2:** Call `updateControl(n, control, choice)` to update the control variable based on the current choice and input `n`
+>     -   **Step 3.3:** Set `reducedProblemSpace` = Call `getReducedProblemSpace(n, choice)` to obtain the reduced problem space for the next recursive call
+>     -   **Step 3.4:** Call `search(reducedProblemSpace, control, state, solution)`
+>     -   **Step 3.5:** Call `revertLastChoiceFromControl(control)` to revert the contribution of the last choice from the control variable
+>     -   **Step 3.6:** Call `revertLastChoiceFromState(state)` to revert the contribution of the last choice from the state variable
+>     -   **Step 3.7:** If `solution` does not have the sentinel value, return to the caller, otherwise go to the next steps
 > -   **Step 4:** Return to the caller
 >
 > **callingFunction(n)**
 >
-> -   **Step 1:** Create a variable \`state\` and initialize it to a default value
-> -   **Step 2:** Create a variable \`control\` and initialize it to a default value
-> -   **Step 3:** Create a variable \`solution\` and initialize it with some sentinel value
-> -   **Step 4:** Call \`search(n, control, state, solution)\`
-> -   **Step 5:** Return \`solution\`
+> -   **Step 1:** Create a variable `state` and initialize it to a default value
+> -   **Step 2:** Create a variable `control` and initialize it to a default value
+> -   **Step 3:** Create a variable `solution` and initialize it with some sentinel value
+> -   **Step 4:** Call `search(n, control, state, solution)`
+> -   **Step 5:** Return `solution`
 
 ## Implementation
 
@@ -162,14 +162,14 @@ If the problem statement or its solution follows the generic template below, it 
 
 Let's consider the following problem as an example to better understand how to identify and solve a problem using backtracking search.
 
-> **Problem statement:** Given a 2D integer maze of size \`N \* M\` with walkable space denoted by \`0\` and obstacles denoted by \`1\`. Find if a rat can reach the cell (N-1, M-1) if it is placed at \`(0, 0)\`. The rat can move in four directions
+> **Problem statement:** Given a 2D integer maze of size `N \* M` with walkable space denoted by `0` and obstacles denoted by `1`. Find if a rat can reach the cell (N-1, M-1) if it is placed at `(0, 0)`. The rat can move in four directions
 >
 > 1.  Up - U
 > 2.  Down - D
 > 3.  Left - L
 > 4.  Right - R
 >
-> If the rat can reach \`(N-1, M-1)\`, also return a string denoting the path it must take.
+> If the rat can reach `(N-1, M-1)`, also return a string denoting the path it must take.
 
 // Diagram: Find the path from (0,0) to (2, 2).
 
@@ -1107,9 +1107,9 @@ public:
 
 Given a `9X9` 2D array **board** representing a partially filled Sudoku puzzle, write a function to return the solution for the puzzle by filling the empty cells. A valid solution to the Sudoku puzzle must abide by the following rules:
 
-> -   Each digit from \`1\` to \`9\` must appear exactly once in each row.
-> -   Each digit from \`1\` to \`9\` must appear exactly once in each column.
-> -   Each digit from \`1\` to \`9\` must appear exactly once in each of the \`9\` \`3x3\` sub-boxes of the grid.
+> -   Each digit from `1` to `9` must appear exactly once in each row.
+> -   Each digit from `1` to `9` must appear exactly once in each column.
+> -   Each digit from `1` to `9` must appear exactly once in each of the `9` `3x3` sub-boxes of the grid.
 
 Note that in the input puzzle, the character `X` represents an empty cell.
 

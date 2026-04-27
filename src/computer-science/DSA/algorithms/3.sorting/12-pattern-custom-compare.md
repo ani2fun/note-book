@@ -841,7 +841,7 @@ Given a sequence of data items and a transformation function `t`, sort the seque
 
 Let's consider the following problem as an example to better understand how to identify and solve a problem using the custom compare technique.
 
-> **Problem statement:** Given a string \`s\`, that contains upper case and lowercase English letters. Sort the string in decreasing order of frequency of characters. For characters with the same frequency, the lexicographically smaller one should come first
+> **Problem statement:** Given a string `s`, that contains upper case and lowercase English letters. Sort the string in decreasing order of frequency of characters. For characters with the same frequency, the lexicographically smaller one should come first
 
 // Diagram: Sort the string by frequency of characters and then lexicographically.
 

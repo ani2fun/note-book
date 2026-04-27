@@ -34,10 +34,10 @@ The iterative search operation in a binary search tree can be implemented as a v
 
 > **Algorithm**
 >
-> -   **Step 1:** While \`root\` is not \`null\`, do the following:
->     -   **Step 1.1:** If the \`root\` node's value equals the \`target\`, return it.
->     -   **Step 1.2:** Else, if the \`root\` node's value exceeds the \`target\`, update the root node to hold the reference of its \`left\` child.
->     -   **Step 1.3:** Else, if the \`root\` node's value is less than the \`target\`, update the root node to hold the reference of its \`right\` child.
+> -   **Step 1:** While `root` is not `null`, do the following:
+>     -   **Step 1.1:** If the `root` node's value equals the `target`, return it.
+>     -   **Step 1.2:** Else, if the `root` node's value exceeds the `target`, update the root node to hold the reference of its `left` child.
+>     -   **Step 1.3:** Else, if the `root` node's value is less than the `target`, update the root node to hold the reference of its `right` child.
 
 ## Implementation
 
@@ -368,9 +368,9 @@ The iterative algorithm for finding the minimum value is very similar to the rec
 
 > **Algorithm**
 >
-> -   **Step 1:** While \`root\` is not \`null\`, do the following:
->     -   **Step 1.1:** If the \`root\` node does not have a \`left\` child, return it.
->     -   **Step 1.2:** Else, if the \`root\` node has a \`left\` child, update the \`root\` node to hold the reference of its \`left\` child.
+> -   **Step 1:** While `root` is not `null`, do the following:
+>     -   **Step 1.1:** If the `root` node does not have a `left` child, return it.
+>     -   **Step 1.2:** Else, if the `root` node has a `left` child, update the `root` node to hold the reference of its `left` child.
 
 ## Implementation
 
@@ -690,9 +690,9 @@ The iterative algorithm for finding the maximum value is similar to the recursiv
 
 > **Algorithm**
 >
-> -   **Step 1:** While \`root\` is not \`null\`, do the following:
->     -   **Step 1.1:** If the \`root\` node does not have a \`right\` chil,d return it.
->     -   **Step 1.2:** Else, if the \`root\` node has a \`right\` child, update the \`root\` node to hold the reference of its \`right\` child.
+> -   **Step 1:** While `root` is not `null`, do the following:
+>     -   **Step 1.1:** If the `root` node does not have a `right` chil,d return it.
+>     -   **Step 1.2:** Else, if the `root` node has a `right` child, update the `root` node to hold the reference of its `right` child.
 
 ## Implementation
 
@@ -1034,10 +1034,10 @@ The iterative search for the lower bound of a given value in a binary search tre
 
 > **Algorithm**
 >
-> -   **Step 1:** While \`root\` is not \`null\`, do the following:
->     -   **Step 1.1:** If the \`root\` node's value exceeds the \`target\`, update the \`lowerBoundNode\` and set the \`root\` node to hold the reference of its \`left\` child.
->     -   **Step 1.2:** Else, if the \`root\` node's value equals the \`target\`, update the \`lowerBoundNode\` and return.
->     -   **Step 1.3:** Else, if the \`root\` node's value is less than the \`target\`, set the \`root\` node to hold the reference of its \`right\` child.
+> -   **Step 1:** While `root` is not `null`, do the following:
+>     -   **Step 1.1:** If the `root` node's value exceeds the `target`, update the `lowerBoundNode` and set the `root` node to hold the reference of its `left` child.
+>     -   **Step 1.2:** Else, if the `root` node's value equals the `target`, update the `lowerBoundNode` and return.
+>     -   **Step 1.3:** Else, if the `root` node's value is less than the `target`, set the `root` node to hold the reference of its `right` child.
 
 ## Implementation
 
@@ -1507,9 +1507,9 @@ The iterative search for the upper bound of a given value in a binary search tre
 
 > **Algorithm**
 >
-> -   **Step 1:** While \`root\` is not \`null\`, do the following:
-> -   **Step 2:** If the \`root\` node's value exceeds the \`target,\` update the \`upperBoundNode\` set root node to hold the reference of its \`left\` child.
-> -   **Step 3:** Else, if the \`root\` node's value is less than the target, set the \`root\` node to hold the value of its \`right\` child.
+> -   **Step 1:** While `root` is not `null`, do the following:
+> -   **Step 2:** If the `root` node's value exceeds the `target,` update the `upperBoundNode` set root node to hold the reference of its `left` child.
+> -   **Step 3:** Else, if the `root` node's value is less than the target, set the `root` node to hold the value of its `right` child.
 
 ## Implementation
 

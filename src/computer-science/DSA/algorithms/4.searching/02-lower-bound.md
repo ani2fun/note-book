@@ -52,9 +52,9 @@ By systematically narrowing the search while considering the possibility of earl
 
 > -   **Step 1**: Start with the full list of student scores included in the search.
 > -   **Step 2**: Check the score at the midpoint of the list.
->     -   **Step 2.1**: If the middle score is less than \`85\`, for example, \`78\`, eliminate the middle position and all scores below it, then repeat Step 2 with the second half.
->     -   **Step 2.2**: If the middle score is greater than or equal to \`85\`, for example, \`85\` or \`92\`, keep the middle position in the search space and continue searching in the first half, since the first occurrence could be earlier in the list.
-> -   **Step 3**: Repeat Step 2 until the search space cannot be divided further. The left boundary at this point points to the first element greater than or equal to \`85\`, which is the lower bound.
+>     -   **Step 2.1**: If the middle score is less than `85`, for example, `78`, eliminate the middle position and all scores below it, then repeat Step 2 with the second half.
+>     -   **Step 2.2**: If the middle score is greater than or equal to `85`, for example, `85` or `92`, keep the middle position in the search space and continue searching in the first half, since the first occurrence could be earlier in the list.
+> -   **Step 3**: Repeat Step 2 until the search space cannot be divided further. The left boundary at this point points to the first element greater than or equal to `85`, which is the lower bound.
 
 ## Advantages
 
@@ -82,8 +82,8 @@ The strategy from the earlier example could be used to create an algorithm. To e
 
 The lower-bound algorithm finds the first position in a sorted array where a given target value can be inserted without violating the sorted order. In other words, it returns the index of the first element that is greater than or equal to the target value. The algorithm begins by initialising two indices that define the current search range in which the lower-bound may exist.
 
-> -   \`low\` is set to the first index of the array i.e \`0\`.
-> -   \`high\` is set to the last index of the array i.e \`arr.size()\` (one position past the last valid index).
+> -   `low` is set to the first index of the array i.e `0`.
+> -   `high` is set to the last index of the array i.e `arr.size()` (one position past the last valid index).
 
 These indices define a **half-open** search range `[low, high)`, where `low` is inclusive and `high` is exclusive.
 
@@ -103,7 +103,7 @@ In lower bound, we use `low < high` because the search range is treated as a hal
 
 Inside the loop, the middle index is calculated as:
 
-> -   \`mid = low + (high - low ) / 2\`
+> -   `mid = low + (high - low ) / 2`
 
 **Why is the middle index calculated as** `mid = low + (high - low) / 2` **instead of** mid = (low + high) / 2 ?
 
@@ -151,14 +151,14 @@ If the target is larger than all existing elements in the array, the lower bound
 
 > **Algorithm**
 >
-> -   **Step 1:** Initialize search boundaries, set \`low = 0\`, \`high = arr.size() \`
-> -   **Step 2:** Iterate while \`low < high\`
->     -   **Step 2.1:** Calculate middle index \`mid = low + (high - low) / 2\`
->     -   **Step 2.2:** If \`arr\[mid\] < target\`:
->         -   **Step 2.2.1:** Set \`low = mid + 1\`
+> -   **Step 1:** Initialize search boundaries, set `low = 0`, `high = arr.size() `
+> -   **Step 2:** Iterate while `low < high`
+>     -   **Step 2.1:** Calculate middle index `mid = low + (high - low) / 2`
+>     -   **Step 2.2:** If `arr\[mid\] < target`:
+>         -   **Step 2.2.1:** Set `low = mid + 1`
 >     -   **Step 2.3:** Else:
->         -   **Step 2.3.1:** Set \`high = mid\`
-> -   **Step 3:** Return \`low\`
+>         -   **Step 2.3.1:** Set `high = mid`
+> -   **Step 3:** Return `low`
 
 ## Implementation
 

@@ -51,13 +51,13 @@ The generic algorithm given below uses a mix of binary search and postorder trav
 
 > **processRange(node, low, high)**
 >
-> -   **Step 1:** If this is a \`null\` node, return a default value.
-> -   **Step 2:** If \`node.val\` is less than low, return the result of \`processRange(node.right, low, high)
-> -   **Step 3:** If \`node.val\` is greater than high, return the result of \`processRange(node.left, low, high)
-> -   **Step 5:** \`left\` = Call \`processRange(node.left, low, high)\`
-> -   **Step 6:** \`right\` = Call \`processRange(node.right, low, high)\`
-> -   **Step 7:** Use the aggregates \`left\` and \`right\` to process this node
-> -   **Step 8:** Return \`f(left, right)\`
+> -   **Step 1:** If this is a `null` node, return a default value.
+> -   **Step 2:** If `node.val` is less than low, return the result of `processRange(node.right, low, high)
+> -   **Step 3:** If `node.val` is greater than high, return the result of `processRange(node.left, low, high)
+> -   **Step 5:** `left` = Call `processRange(node.left, low, high)`
+> -   **Step 6:** `right` = Call `processRange(node.right, low, high)`
+> -   **Step 7:** Use the aggregates `left` and `right` to process this node
+> -   **Step 8:** Return `f(left, right)`
 
 ## Implementation
 
@@ -362,7 +362,7 @@ Given a binary search tree and a range, process every node within the range usin
 
 Let's consider the following problem as an example to better understand how to identify and solve a problem using the range postorder technique.
 
-> **Problem statement:** Given a binary search tree, and a range represented by \`low\` and \`high\`. To all nodes in the tree that lie within the range, add the value of all descendant nodes that also lie within the range.
+> **Problem statement:** Given a binary search tree, and a range represented by `low` and `high`. To all nodes in the tree that lie within the range, add the value of all descendant nodes that also lie within the range.
 
 // Diagram: Add to all nodes within the given range the sum of all descendent within the same range.
 

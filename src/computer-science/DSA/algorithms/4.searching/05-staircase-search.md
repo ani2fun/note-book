@@ -70,11 +70,11 @@ By repeating this process, stepping down or left depending on the comparison, yo
 By leveraging the sorted structure of the rows and columns, staircase search efficiently narrows the search region without examining every cell, making it significantly faster than a full linear scan of the table.
 
 > -   **Step 1:** Start at the top-right corner of the 2D table of student scores.
-> -   **Step 2:** Compare the current cell’s score with \`85\`.
->     -   **Step 2.1** If the current score is exactly \`85\`, you’ve found the student, stop the search.
->     -   **Step 2.2:** If the current score is less than \`85\`, for example \`78\`, move down one row because all scores to the left are smaller and cannot contain \`85\`.
->     -   **Step 2.3:** If the current score is greater than \`85\`, for example \`92\`, move left one column because all scores below are larger and cannot contain \`85\`.
-> -   **Step 3:** Repeat the comparisons as you move down or left. If you step outside the boundaries of the table without finding \`85\`, then no student in the table has that score.
+> -   **Step 2:** Compare the current cell’s score with `85`.
+>     -   **Step 2.1** If the current score is exactly `85`, you’ve found the student, stop the search.
+>     -   **Step 2.2:** If the current score is less than `85`, for example `78`, move down one row because all scores to the left are smaller and cannot contain `85`.
+>     -   **Step 2.3:** If the current score is greater than `85`, for example `92`, move left one column because all scores below are larger and cannot contain `85`.
+> -   **Step 3:** Repeat the comparisons as you move down or left. If you step outside the boundaries of the table without finding `85`, then no student in the table has that score.
 
 ## Advantages
 
@@ -111,8 +111,8 @@ If the condition is violated, the algorithm may fail to locate the target elemen
 
 The Staircase Search algorithm searches for a target value in a 2D matrix with **N** rows and **M** columns where each row and each column is sorted in ascending order. It exploits the sorted property of the matrix by starting at the **top-right corner** and moving only in directions that eliminate impossible positions, achieving efficient linear-time search. The algorithm begins by initializing two indices that define the current search range in which the target value may exist.
 
-> -   \`row = 0\` - (first row)
-> -   \`col = M - 1\` - (last column)
+> -   `row = 0` - (first row)
+> -   `col = M - 1` - (last column)
 
 // Diagram: Initialize the row and col indices
 
@@ -146,16 +146,16 @@ The algorithm continues moving **down** or **left** at each step, comparing the 
 
 > **Algorithm**
 >
-> -   **Step 1:** Initialize matrix dimensions, set \`rows = matrix.size()\`, \`cols = matrix\[0\].size() \`
-> -   **Step 2:** Initialize starting positions, set \`row = 0\`, \`col = cols - 1 \`
-> -   **Step 3:** Iterate while \`row < rows && col >= 0\`
->     -   **Step 3.1:** If \`matrix\[row\]\[col\] == target\`:
->         -   **Step 3.1.1:** Return \`true\`
->     -   **Step 3.2:** Else If \`matrix\[row\]\[col\] < target\`:
->         -   **Step 3.2.1:** Set \`row = row + 1\`
->     -   **Step 3.3:** Else if \`matrix\[row\]\[col\] > target\`:
->         -   **Step 3.3.1:** Set \`col = col - 1\`
-> -   **Step 4:** If the loop ends without returning, the target is not in the matrix, return \`false\`
+> -   **Step 1:** Initialize matrix dimensions, set `rows = matrix.size()`, `cols = matrix\[0\].size() `
+> -   **Step 2:** Initialize starting positions, set `row = 0`, `col = cols - 1 `
+> -   **Step 3:** Iterate while `row < rows && col >= 0`
+>     -   **Step 3.1:** If `matrix\[row\]\[col\] == target`:
+>         -   **Step 3.1.1:** Return `true`
+>     -   **Step 3.2:** Else If `matrix\[row\]\[col\] < target`:
+>         -   **Step 3.2.1:** Set `row = row + 1`
+>     -   **Step 3.3:** Else if `matrix\[row\]\[col\] > target`:
+>         -   **Step 3.3.1:** Set `col = col - 1`
+> -   **Step 4:** If the loop ends without returning, the target is not in the matrix, return `false`
 
 ## Implementation
 

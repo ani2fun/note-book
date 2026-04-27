@@ -440,12 +440,12 @@ We will now solve these problems to understand the application of breadth-first 
 
 Given an **NxM** **grid** filled with values of either `0`, or `1`, write a function to find and return the minimum number of steps required to reach the cell `(N-1, M-1)` from the cell `(0, 0)`. If there is no valid path, return `-1` instead.
 
-> -   A value of \`1\` in a cell means it's walkable.
-> -   A value of \`0\` in a cell means it's a wall and not walkable.
+> -   A value of `1` in a cell means it's walkable.
+> -   A value of `0` in a cell means it's a wall and not walkable.
 
 > You must abide by the following constraint:
 >
-> -   You can only move in the four cardinal directions, i.e., \`up\`, \`right\`, \`down\`, and \`left\`.
+> -   You can only move in the four cardinal directions, i.e., `up`, `right`, `down`, and `left`.
 
 ### Example 1
 
@@ -552,7 +552,7 @@ The distance is calculated as `|row1 - row2| + |col1 - col2|`, where `row1`, `co
 
 > You must abide by the following constraint:
 >
-> -   You can only move in the four cardinal directions, i.e., \`up\`, \`right\`, \`down\`, and \`left\`.
+> -   You can only move in the four cardinal directions, i.e., `up`, `right`, `down`, and `left`.
 
 ### Example 1
 
@@ -659,7 +659,7 @@ A transformation sequence from source to target using a dictionary wordList is
 > You must abide by the following constraints:
 >
 > -   Every adjacent pair of words differs by a single letter.
-> -   Every word involved in the sequence is in the \`wordList\`. The source does not need to be in the \`wordList\`.
+> -   Every word involved in the sequence is in the `wordList`. The source does not need to be in the `wordList`.
 
 ### Example 1
 
@@ -779,12 +779,12 @@ Given an **NxM** **grid** filled with values of either `0`, or `1` and a non-n
 
 You can convert at most **k** non-walkable cells to walkable cells.
 
-> -   A value of \`1\` in a cell means it's walkable.
-> -   A value of \`0\` in a cell means it's a wall and not walkable.
+> -   A value of `1` in a cell means it's walkable.
+> -   A value of `0` in a cell means it's a wall and not walkable.
 
 > You must abide by the following constraint:
 >
-> -   You can only move in the four cardinal directions, i.e., \`up\`, \`right\`, \`down\`, and \`left\`.
+> -   You can only move in the four cardinal directions, i.e., `up`, `right`, `down`, and `left`.
 
 ### Example 1
 

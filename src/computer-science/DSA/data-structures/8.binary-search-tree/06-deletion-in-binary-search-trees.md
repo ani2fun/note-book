@@ -35,8 +35,8 @@ A binary search tree retains the binary search property if any leaf node is dele
 
 If the node to be deleted only has one child node, we cannot delete it simply as the leaf node. This is because if we delete the node, its descendent subtree will become an orphan (without a parent), and the tree will split into two trees. We do the following to delete a node **N** with only one child, **C**.
 
-> -   **Step 1:** Find the node \`N\` to be deleted.
-> -   **Step 2:** Delete node \`N\` and reconnect \`C\` to the parent on \`N\`
+> -   **Step 1:** Find the node `N` to be deleted.
+> -   **Step 2:** Delete node `N` and reconnect `C` to the parent on `N`
 
 // Diagram: Deleting a value from a binary search tree
 
@@ -52,10 +52,10 @@ The inorder successor of a node with two children will always be in its **right*
 
 We do the following to delete the value **V** at node **N**, which has two children.
 
-> -   **Step 1:** Find the node \`N\` to be deleted.
-> -   **Step 2:** Find the inorder successor \`S\` of node \`N\`.
-> -   **Step 3:** Swap of the value \`V\` at node \`N\` and the value stored in node \`S\`.
-> -   **Step 4:** Delete value \`V\` from the \`right\` subtree of node \`N\` recursively.
+> -   **Step 1:** Find the node `N` to be deleted.
+> -   **Step 2:** Find the inorder successor `S` of node `N`.
+> -   **Step 3:** Swap of the value `V` at node `N` and the value stored in node `S`.
+> -   **Step 4:** Delete value `V` from the `right` subtree of node `N` recursively.
 
 **Why do we delete the value from the right subtree after swapping?**
 
@@ -67,23 +67,23 @@ The recursive deletion of a node with the given value in a binary search tree ca
 
 > **Algorithm**
 >
-> -   **Step 1:** If the \`current\` node is \`null\`, return \`null\` (base case).
-> -   **Step 2:** If the \`key\` exceeds the \`current\` node's value, recursively search it in the \`right\` subtree.
-> -   **Step 3:** Else, if the \`key\` is smaller than the \`current\` node's value, recursively search it in the \`left\` subtree.
-> -   **Step 4:** Else, if the \`key\` matches the \`current\` node's value, do the following:
->     -   **Step 4.1:** If the \`current\` node has no \`left\` child, do the following:
->         -   **Step 4.1.1:** Save the \`right\` child of the \`current\` node in a temporary variable.
->         -   **Step 4.1.2:** Delete the \`current\` node.
->         -   **Step 4.1.3:** Return the \`right\` child to reconnect it with the parent.
->     -   **Step 4.2:** Else, if the \`current\` node has no \`right\` child, do the following:
->         -   **Step 4.2.1:** Save the \`current\` node's \`left\` child in a temporary variable.
->         -   **Step 4.2.2:** Delete the \`current\` node.
->         -   **Step 4.2.3:** Return the \`left\` child to reconnect it with the parent.
->     -   **Step 4.3:** Else, if the \`current\` node has both the \`left\` and \`right\` children, do the following:
->         -   **Step 4.3.1:** Find the in-order successor of the \`current\` node (the smallest node in the right subtree).
->         -   **Step 4.3.2:** Copy the value of the inorder successor to the \`current\` node.
->         -   **Step 4.3.3**: Recursively delete the original inorder successor from the \`right\` subtree.
-> -   **Step 5**: Return the binary search tree's updated \`root\` node at the end of recursion.
+> -   **Step 1:** If the `current` node is `null`, return `null` (base case).
+> -   **Step 2:** If the `key` exceeds the `current` node's value, recursively search it in the `right` subtree.
+> -   **Step 3:** Else, if the `key` is smaller than the `current` node's value, recursively search it in the `left` subtree.
+> -   **Step 4:** Else, if the `key` matches the `current` node's value, do the following:
+>     -   **Step 4.1:** If the `current` node has no `left` child, do the following:
+>         -   **Step 4.1.1:** Save the `right` child of the `current` node in a temporary variable.
+>         -   **Step 4.1.2:** Delete the `current` node.
+>         -   **Step 4.1.3:** Return the `right` child to reconnect it with the parent.
+>     -   **Step 4.2:** Else, if the `current` node has no `right` child, do the following:
+>         -   **Step 4.2.1:** Save the `current` node's `left` child in a temporary variable.
+>         -   **Step 4.2.2:** Delete the `current` node.
+>         -   **Step 4.2.3:** Return the `left` child to reconnect it with the parent.
+>     -   **Step 4.3:** Else, if the `current` node has both the `left` and `right` children, do the following:
+>         -   **Step 4.3.1:** Find the in-order successor of the `current` node (the smallest node in the right subtree).
+>         -   **Step 4.3.2:** Copy the value of the inorder successor to the `current` node.
+>         -   **Step 4.3.3**: Recursively delete the original inorder successor from the `right` subtree.
+> -   **Step 5**: Return the binary search tree's updated `root` node at the end of recursion.
 
 ## Implementation
 
@@ -814,8 +814,8 @@ A binary search tree retains the binary search property if any leaf node is dele
 
 If the node to be deleted only has one child node, we cannot delete it simply as the leaf node. This is because if we delete the node, its descendent subtree will become an orphan (without a parent), and the tree will split into two trees. We do the following to delete node **N** with only one child, **C**, and parent, **P**.
 
-> -   **Step 1:** Find the node \`N\` to be deleted.
-> -   **Step 2:** Delete node \`N\` and reconnect \`C\` to the parent \`P\` of \`N\` as the correct (\`left\` or \`right\`) child.
+> -   **Step 1:** Find the node `N` to be deleted.
+> -   **Step 2:** Delete node `N` and reconnect `C` to the parent `P` of `N` as the correct (`left` or `right`) child.
 
 // Diagram: Two cases to consider when reconnecting nodes to perform deletion of node with given value
 
@@ -831,15 +831,15 @@ If the node to be deleted has two children, it makes deleting the node a bit mor
 
 There are two important observations to make here.
 
-> -   The inorder successor of a node with two children will always be in its \`right\` subtree. This is because the inorder traversal follows \`left\`, \`center\`, \`right\` order.
-> -   The inorder successor node will not have any \`left\` child.
+> -   The inorder successor of a node with two children will always be in its `right` subtree. This is because the inorder traversal follows `left`, `center`, `right` order.
+> -   The inorder successor node will not have any `left` child.
 
 We do the following to delete the value **V** at node **N**, which has two children.
 
-> -   **Step 1:** Find the node \`N\` to be deleted.
-> -   **Step 2:** Find the inorder successor \`S\` of node \`N\` iteratively.
-> -   **Step 3:** Swap the value \`V\` at node \`N\` and the value stored in node \`S\`.
-> -   **Step 4:** Delete value \`V\` from the \`right\` subtree of node \`N\` iteratively.
+> -   **Step 1:** Find the node `N` to be deleted.
+> -   **Step 2:** Find the inorder successor `S` of node `N` iteratively.
+> -   **Step 3:** Swap the value `V` at node `N` and the value stored in node `S`.
+> -   **Step 4:** Delete value `V` from the `right` subtree of node `N` iteratively.
 
 Step 4 of the above algorithm is a bit tricky to implement. The inorder successor is guaranteed to be in the right subtree. However, it can be either the root node of the right subtree or any other node in the right subtree.
 
@@ -855,18 +855,18 @@ The iterative deletion of a node with the given value in a binary search tree ca
 
 > **Algorithm**
 >
-> -   **Step 1:** If the \`root\` node is \`null\`, return \`null\`.
-> -   **Step 2:** Create variables to store the \`current\` node and it's \`parent\`.
-> -   **Step 3:** While \`current\` is not \`null\` and the value in current is not equal to the \`key\`, search for the \`key\` in \`left\` and \`right\` subtrees while keeping track of \`current\` and \`parent\` nodes.
-> -   **Step 4:** Return' \`null\` if the \`key\` is not found.
-> -   **Step 5:** If the \`current\` node has zero or one child, do the following:
->     -   **Step 5.1:** Connect the \`parent\` node to the \`left\` or \`right\` child (which ever is present).
->     -   **Step 5.2:** Delete the \`current\` node.
-> -   **Step 6:** Else, if the \`current\` node has both \`left\` and \`right\` children, do the following:
->     -   **Step 6.1:** Find the in-order successor of the \`current\` node (the smallest node in the \`right\` subtree).
->     -   **Step 6.2:** Copy the value of the inorder successor to the \`current\` node.
+> -   **Step 1:** If the `root` node is `null`, return `null`.
+> -   **Step 2:** Create variables to store the `current` node and it's `parent`.
+> -   **Step 3:** While `current` is not `null` and the value in current is not equal to the `key`, search for the `key` in `left` and `right` subtrees while keeping track of `current` and `parent` nodes.
+> -   **Step 4:** Return' `null` if the `key` is not found.
+> -   **Step 5:** If the `current` node has zero or one child, do the following:
+>     -   **Step 5.1:** Connect the `parent` node to the `left` or `right` child (which ever is present).
+>     -   **Step 5.2:** Delete the `current` node.
+> -   **Step 6:** Else, if the `current` node has both `left` and `right` children, do the following:
+>     -   **Step 6.1:** Find the in-order successor of the `current` node (the smallest node in the `right` subtree).
+>     -   **Step 6.2:** Copy the value of the inorder successor to the `current` node.
 >     -   **Step 6.3**: Delete the original inorder successor node.
-> -   **Step 7**: Return the binary search tree's updated \`root\` node.
+> -   **Step 7**: Return the binary search tree's updated `root` node.
 
 ## Implementation
 

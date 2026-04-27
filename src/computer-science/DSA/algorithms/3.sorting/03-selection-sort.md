@@ -103,12 +103,12 @@ The full dry run of the algorithm is given below.
 
 > **Algorithm**
 >
-> -   **Step 1:** Iterate through the array using \`i\` from \`0\` to \`n-2\`
->     -   **Step 1.1:** Assume \`arr\[i\]\` is the smallest element, store its index in \`minIndex\`
->     -   **Step 1.2:** Iterate through the unsorted portion of the array using \`j\` from \`i+1\` to \`n-1\`
->         -   **Step 1.2.1:** If \`arr\[j\]\` < \`arr\[minIndex\]\`
->             -   **Step 1.2.1.1:** Update \`minIndex\` to \`j\`
->     -   **Step 1.3:** Swap \`arr\[i\]\` with \`arr\[minIndex\]\`
+> -   **Step 1:** Iterate through the array using `i` from `0` to `n-2`
+>     -   **Step 1.1:** Assume `arr\[i\]` is the smallest element, store its index in `minIndex`
+>     -   **Step 1.2:** Iterate through the unsorted portion of the array using `j` from `i+1` to `n-1`
+>         -   **Step 1.2.1:** If `arr\[j\]` < `arr\[minIndex\]`
+>             -   **Step 1.2.1.1:** Update `minIndex` to `j`
+>     -   **Step 1.3:** Swap `arr\[i\]` with `arr\[minIndex\]`
 
 ## Implementation
 

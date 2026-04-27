@@ -73,19 +73,19 @@ The steps given below summarize the solution to the two-colouring problem in a g
 >
 > **colourGraph(node, \[ref\] graph, \[ref\] colour, colourValue)**
 >
-> -   **Step 1:** Set \`colour\[node\]\` to \`colourValue\`
-> -   **Step 2:** Iterate in all the neighbours of \`node\` in \`neighbour\` and do the following:
->     -   **Step 2.1:** If \`neighbour\` is in \`colour\` and \`colour\[neighbour\]\` is \`colourValue\`, return \`false\` to the parent
->     -   **Step 2.2:** Else if \`neighbour\` is not in \`colour\`:
->         -   **Step 2.2.1:** Call \`colourGraph(neighbour, graph, colour, -colourValue)\` and if its return value is \`false\`, return \`false\` to the parent
-> -   **Step 3:** Return \`true\`
+> -   **Step 1:** Set `colour\[node\]` to `colourValue`
+> -   **Step 2:** Iterate in all the neighbours of `node` in `neighbour` and do the following:
+>     -   **Step 2.1:** If `neighbour` is in `colour` and `colour\[neighbour\]` is `colourValue`, return `false` to the parent
+>     -   **Step 2.2:** Else if `neighbour` is not in `colour`:
+>         -   **Step 2.2.1:** Call `colourGraph(neighbour, graph, colour, -colourValue)` and if its return value is `false`, return `false` to the parent
+> -   **Step 3:** Return `true`
 >
 > **isTwoColourable(\[ref\] graph)**
 >
-> -   **Step 1:** Create a \`colour\` map
-> -   **Step 2:** Iterate in all the nodes of the graph using \`node\` and do the following:
->     -   **Step 2.1:** If \`node\` is not in the \`colour\` map, call \`colourGraph(node, graph, colour, -1)\` and return \`false\` if it returns \`false\`
-> -   **Step 3:** Return \`true\`
+> -   **Step 1:** Create a `colour` map
+> -   **Step 2:** Iterate in all the nodes of the graph using `node` and do the following:
+>     -   **Step 2.1:** If `node` is not in the `colour` map, call `colourGraph(node, graph, colour, -1)` and return `false` if it returns `false`
+> -   **Step 3:** Return `true`
 
 Let's look at an example to better understand the algorithm.
 

@@ -63,23 +63,23 @@ The generic algorithm given below finds the aggregated value of a function`f`ove
 >
 > **dfs(\[ref\] graph, node, destination, \[ref\] nodesInPath, \[ref\] pathAggregate, \[ref\] aggregate)**
 >
-> -   **Step 1:** Add node to \`nodesInPath\`
-> -   **Step 2:** Add contribution of \`node\` to \`pathAggregate\` using the function \`f\`
-> -   **Step 3:** if \`node\` is the \`destination\` node do the following:
->     -   **Step 3.1:** Add contribution of \`pathAggregate\` to \`aggregate\` using the function \`g\`
-> -   **Step 4:** if \`node\` is not the \`destination\` node do the following:
->     -   **Step 4.1:** Iterate over all the neighbours of \`node\` in a variable \`neighbour\` and do the following
->         -   **Step 4.1.1:** If \`neighbour\` not in \`nodesInPath\` call \`dfs(graph, neighbour, destination, nodesInPath, pathAggregate, aggregate)\`
-> -   **Step 5:** Remove \`node\` from \`nodesInPath\`
-> -   **Step 6:** Remove the contribution of \`node\` from \`pathAggregate\` using the inverse of function \`f\`
+> -   **Step 1:** Add node to `nodesInPath`
+> -   **Step 2:** Add contribution of `node` to `pathAggregate` using the function `f`
+> -   **Step 3:** if `node` is the `destination` node do the following:
+>     -   **Step 3.1:** Add contribution of `pathAggregate` to `aggregate` using the function `g`
+> -   **Step 4:** if `node` is not the `destination` node do the following:
+>     -   **Step 4.1:** Iterate over all the neighbours of `node` in a variable `neighbour` and do the following
+>         -   **Step 4.1.1:** If `neighbour` not in `nodesInPath` call `dfs(graph, neighbour, destination, nodesInPath, pathAggregate, aggregate)`
+> -   **Step 5:** Remove `node` from `nodesInPath`
+> -   **Step 6:** Remove the contribution of `node` from `pathAggregate` using the inverse of function `f`
 >
 > **callingFunction(\[ref\] graph, source, destination)**
 >
-> -   **Step 1:** Create a variable \`aggregate\` and initialize it with a default value
-> -   **Step 2:** Create a variable \`pathAggregate\` and initialize it with a default value
-> -   **Step 3:** Create a set \`nodesInPath\`
-> -   **Step 4:** Call \`dfs(graph, source, destination, nodesInPath, pathAggregate, aggregate)\`
-> -   **Step 5:** Return \`aggregate\`
+> -   **Step 1:** Create a variable `aggregate` and initialize it with a default value
+> -   **Step 2:** Create a variable `pathAggregate` and initialize it with a default value
+> -   **Step 3:** Create a set `nodesInPath`
+> -   **Step 4:** Call `dfs(graph, source, destination, nodesInPath, pathAggregate, aggregate)`
+> -   **Step 5:** Return `aggregate`
 
 ## Implementation
 
@@ -451,7 +451,7 @@ If the problem statement or its solution follows the generic template below, it 
 
 Let's consider the following problem as an example to better understand how to identify and solve a problem using depth-first search.
 
-> **Problem statement:** Given a directed graph where nodes are enumerated from \`0\` to \`n-1\`, find and return all the paths from node 0 to node \`n-1\`
+> **Problem statement:** Given a directed graph where nodes are enumerated from `0` to `n-1`, find and return all the paths from node 0 to node `n-1`
 
 // Diagram: Find all paths from node(0) to node(2).
 

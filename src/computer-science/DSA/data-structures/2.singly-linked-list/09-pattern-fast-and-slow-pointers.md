@@ -118,11 +118,11 @@ flowchart TB
 
 The algorithm given below outlines the fast and slow pointer traversal technique for a linked list of size `n`.
 
-> -   **Step 1:** Initialize two references, \`slow\` and \`fast\` with the head of the list.
-> -   **Step 2:** Loop while \`fast.next\` != \`null\` and \`fast\` != \`end\` and do the following
->     -   **Step 2.1:** Move slow 1 step ahead by setting \`slow\` = \`slow.next\`
->     -   **Step 2.2:** Move \`fast\` \`n+1\` times setting \`fast\` = \`fast.next\` \`n+1\` times.
-> -   **Step 3:** Node held in \`slow\` is the solution node
+> -   **Step 1:** Initialize two references, `slow` and `fast` with the head of the list.
+> -   **Step 2:** Loop while `fast.next` != `null` and `fast` != `end` and do the following
+>     -   **Step 2.1:** Move slow 1 step ahead by setting `slow` = `slow.next`
+>     -   **Step 2.2:** Move `fast` `n+1` times setting `fast` = `fast.next` `n+1` times.
+> -   **Step 3:** Node held in `slow` is the solution node
 
 ## Implementation
 

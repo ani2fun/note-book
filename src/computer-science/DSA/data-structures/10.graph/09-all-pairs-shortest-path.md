@@ -66,12 +66,12 @@ Once we have checked this for all the pairs in the graph, we can move to the nex
 
 > **Algorithm**
 >
-> -   **Step 1**: Create a 2D \`distance\` map and initialize it with 0 for the same node pair, edge weights for node pairs with edges between them, and \`infinite\` for all other node pairs.
-> -   **Step 2**: Iterate over all the nodes using the variable \`i\` representing the intermediate node:
->     -   **Step 2.1**: Iterate over all the nodes using the variable \`s\` representing the source node:
->         -   **Step 2.1.1**: Iterate over all the nodes using the variable \`t\` representing the target node
->             -   **Step 2.1.1.1**: if \`distance\[s\]\[i\] + distance\[i\]\[t\]\` < \`distance\[s\]\[t\]\` update \`distance\[s\]\[t\]\` with this new minimum value
-> -   **Step 3**: The \`distance\` map now has the shortest distance between all the pairs of nodes
+> -   **Step 1**: Create a 2D `distance` map and initialize it with 0 for the same node pair, edge weights for node pairs with edges between them, and `infinite` for all other node pairs.
+> -   **Step 2**: Iterate over all the nodes using the variable `i` representing the intermediate node:
+>     -   **Step 2.1**: Iterate over all the nodes using the variable `s` representing the source node:
+>         -   **Step 2.1.1**: Iterate over all the nodes using the variable `t` representing the target node
+>             -   **Step 2.1.1.1**: if `distance\[s\]\[i\] + distance\[i\]\[t\]` < `distance\[s\]\[t\]` update `distance\[s\]\[t\]` with this new minimum value
+> -   **Step 3**: The `distance` map now has the shortest distance between all the pairs of nodes
 
 Let's examine a graph with a negative weight and see how the Floyd-Warshall algorithm finds the shortest distance between all pairs of nodes in the graph.
 
@@ -381,7 +381,7 @@ The graph is given as follows: `graph[i]` is a list of pairs `[neighbour, wei
 
 > You must abide by the following constraints:
 >
-> -   If a node \`i\` is not reachable from the node \`j\`, mark \`distance\[i\]\[j\]\` as \`-1\`.
+> -   If a node `i` is not reachable from the node `j`, mark `distance\[i\]\[j\]` as `-1`.
 > -   You can assume that the graph has no edges with negative weight.
 
 ### Example 1

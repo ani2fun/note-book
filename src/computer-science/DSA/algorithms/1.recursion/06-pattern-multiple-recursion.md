@@ -114,15 +114,15 @@ The steps given below summarise the implementation for the generic multiple-recu
 
 > **multipleRecursion(input, \[ref\] aggregate)**
 >
-> -   **Step 1:** If \`input\` is the base case, return known solution
-> -   **Step 2:** Initialize \`solution\` to a default value
-> -   **Step 2:** Iterate \`k\` times using the variableand do the following:
->     -   **Step 2.1:** Calculate the \`newInput\` for this iteration using the function \`h\`
->     -   **Step 2.2:** Update \`aggregate\` using the function \`g\`
->     -   **Step 2.3:** \`result\` = Call \`multipleRecursion(newInput, aggregate)\`
->     -   **Step 2.4:** Add the contribution of \`result\` in \`solution\` using the function \`G\`
->     -   **Step 2.5:** Reset aggregate to original state by using \`g\` \`
-> -   **Step 4:** Return \`solution\`
+> -   **Step 1:** If `input` is the base case, return known solution
+> -   **Step 2:** Initialize `solution` to a default value
+> -   **Step 2:** Iterate `k` times using the variableand do the following:
+>     -   **Step 2.1:** Calculate the `newInput` for this iteration using the function `h`
+>     -   **Step 2.2:** Update `aggregate` using the function `g`
+>     -   **Step 2.3:** `result` = Call `multipleRecursion(newInput, aggregate)`
+>     -   **Step 2.4:** Add the contribution of `result` in `solution` using the function `G`
+>     -   **Step 2.5:** Reset aggregate to original state by using `g` `
+> -   **Step 4:** Return `solution`
 
 ## Implementation
 
@@ -499,7 +499,7 @@ If the recursive equation for a problem fits in the template of the generic mult
 
 Let's consider the following problem as an example to better understand how to identify and solve a problem using multiple recursion.
 
-> **Problem statement:** Given an integer \`n\` and a set of integers \`steps\` where every integer is less than \`n\`, find the number of ways to climb \`n\` stairs if only steps in the \`steps\` list is allowed.
+> **Problem statement:** Given an integer `n` and a set of integers `steps` where every integer is less than `n`, find the number of ways to climb `n` stairs if only steps in the `steps` list is allowed.
 
 // Diagram: Find if the given list of digits is palindrome.
 

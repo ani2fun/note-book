@@ -61,10 +61,10 @@ By leveraging the sorted structure of the rows and columns, this method eliminat
 
 > -   **Step 1**: Start with the full 2D table of student scores included in the search.
 > -   **Step 2**: Check the score at the midpoint of the current region of the table (middle row, middle column).
->     -   **Step 2.1**: If the middle score is \`85\`, you’ve found the student, stop the search.
->     -   **Step 2.2**: If the middle score is less than \`85\`, for example, \`78\`, eliminate all cells above and to the left of the middle element, then repeat Step 2 with the remaining lower-right region.
->     -   **Step 2.3**: If the middle score is greater than \`85\`, for example, \`92\`, eliminate all cells below and to the right of the middle element, then repeat Step 2 with the remaining upper-left region.
-> -   **Step 3**: If the search space reduces to zero and \`85\` is never found, no student in the table has that score.
+>     -   **Step 2.1**: If the middle score is `85`, you’ve found the student, stop the search.
+>     -   **Step 2.2**: If the middle score is less than `85`, for example, `78`, eliminate all cells above and to the left of the middle element, then repeat Step 2 with the remaining lower-right region.
+>     -   **Step 2.3**: If the middle score is greater than `85`, for example, `92`, eliminate all cells below and to the right of the middle element, then repeat Step 2 with the remaining upper-left region.
+> -   **Step 3**: If the search space reduces to zero and `85` is never found, no student in the table has that score.
 
 ## Advantages
 
@@ -117,14 +117,14 @@ A better way to flatten the 2D matrix is to create a virtual 1D array within it,
 
 If we have a 2D matrix with **N** rows and **M** columns. This would give us a total of **(N\*M)** cells. Our virtual 1D array would also be the same size to accommodate all these cells. For a given cell `[row, col]` in the 2D matrix, the corresponding index `i` in the virtual array could be calculated using the following function
 
-> -   \`i = row \* N + col\`
+> -   `i = row \* N + col`
 
 // Diagram: 2D matrix cell to an index in the virtual array
 
 Similarly, for a given index `i` in the virtual array, the corresponding row and column numbers in the 2D matrix could be calculated using the following function
 
-> -   \`row = i / M\`
-> -   \`col = i % M\`
+> -   `row = i / M`
+> -   `col = i % M`
 
 // Diagram: Index in the virtual array to a cell in 2D matrix
 
@@ -132,8 +132,8 @@ Similarly, for a given index `i` in the virtual array, the corresponding row an
 
 The 2D Binary Search algorithm searches for a target value in a sorted 2D matrix with **N** rows and **M** columns, where each row and column is sorted in ascending order. The algorithm treats the matrix as a flattened 1D array of size **N×M** to apply standard binary search efficiently. The algorithm begins by initializing two indices that define the current search range in which the target value may exist.
 
-> -   \`low\` is set to the first index of the virtual array i.e \`0\`.
-> -   \`high\` is set to the last index of the virtual array i.e \`(N \* M) - 1\`.
+> -   `low` is set to the first index of the virtual array i.e `0`.
+> -   `high` is set to the last index of the virtual array i.e `(N \* M) - 1`.
 
 // Diagram: Initialize the low and high indices
 
@@ -147,12 +147,12 @@ In a 2D binary search mapped to a virtual 1D array, we continue while `low <= hi
 
 Inside the loop, the algorithm calculates the middle index using:
 
-> -   \`mid = low + (high - low ) / 2\`
+> -   `mid = low + (high - low ) / 2`
 >
 > The middle index is mapped to 2D indices using the number of columns M:
 >
-> -   \`row = mid / M\`
-> -   \`col = mid % M\`
+> -   `row = mid / M`
+> -   `col = mid % M`
 
 // Diagram: Compute the middle index using the formula
 
@@ -182,18 +182,18 @@ The algorithm repeatedly compares the target with the element at `matrix[row][co
 
 > **Algorithm**
 >
-> -   **Step 1:** Initialize matrix dimensions, set \`rows = matrix.size()\`, \`cols = matrix\[0\].size() \`
-> -   **Step 2:** Initialize search boundaries, set \`low = 0\`, \`high = rows \* cols - 1 \`
-> -   **Step 3:** Iterate while \`low <= high\`
->     -   **Step 3.1:** Calculate middle index \`mid = low + (high - low) / 2\`
->     -   **Step 3.2:** Map middle index to 2D coordinates, set \`row = mid / cols\`, \`col = mid % cols\`
->     -   **Step 3.3:** If \`matrix\[row\]\[col\] == target\`:
->         -   **Step 3.3.1:** Return \`true\`
->     -   **Step 3.4:** Else If \`matrix\[row\]\[col\] < target\`:
->         -   **Step 3.4.1:** Set \`low = mid + 1\`
->     -   **Step 3.5:** Else if \`matrix\[row\]\[col\] > target\`:
->         -   **Step 3.5.1:** Set \`high = mid - 1\`
-> -   **Step 4:** If the loop ends without returning, the target is not in the matrix, return \`false\`
+> -   **Step 1:** Initialize matrix dimensions, set `rows = matrix.size()`, `cols = matrix\[0\].size() `
+> -   **Step 2:** Initialize search boundaries, set `low = 0`, `high = rows \* cols - 1 `
+> -   **Step 3:** Iterate while `low <= high`
+>     -   **Step 3.1:** Calculate middle index `mid = low + (high - low) / 2`
+>     -   **Step 3.2:** Map middle index to 2D coordinates, set `row = mid / cols`, `col = mid % cols`
+>     -   **Step 3.3:** If `matrix\[row\]\[col\] == target`:
+>         -   **Step 3.3.1:** Return `true`
+>     -   **Step 3.4:** Else If `matrix\[row\]\[col\] < target`:
+>         -   **Step 3.4.1:** Set `low = mid + 1`
+>     -   **Step 3.5:** Else if `matrix\[row\]\[col\] > target`:
+>         -   **Step 3.5.1:** Set `high = mid - 1`
+> -   **Step 4:** If the loop ends without returning, the target is not in the matrix, return `false`
 
 ## Implementation
 

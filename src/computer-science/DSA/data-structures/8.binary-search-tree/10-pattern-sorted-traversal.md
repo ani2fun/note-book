@@ -41,16 +41,16 @@ The generic algorithm given below uses the inorder traversal to process all the 
 
 > **Algorithm**
 >
-> -   Step 1: Create a variable \`aggregate\` and initialize it with a default value
-> -   Step 2: Call \`inorder(root, aggregate)\`
+> -   Step 1: Create a variable `aggregate` and initialize it with a default value
+> -   Step 2: Call `inorder(root, aggregate)`
 >
 > **inorder(node, \[ref\]aggregate)**
 >
-> -   **Step 1:** If this is a \`null\` node, return
-> -   **Step 2:** Call \`inorder(node.left, aggregate)\`
-> -   **Step 3:** \`output\` = \`f(node.val)\`
-> -   **Step 4:** Use the function \`g\` to add the contribution of \`output\` to \`aggregate\`
-> -   **Step 5:** Call \`inorder(node.right, aggregate)\`
+> -   **Step 1:** If this is a `null` node, return
+> -   **Step 2:** Call `inorder(node.left, aggregate)`
+> -   **Step 3:** `output` = `f(node.val)`
+> -   **Step 4:** Use the function `g` to add the contribution of `output` to `aggregate`
+> -   **Step 5:** Call `inorder(node.right, aggregate)`
 > -   **Step 6:** Return
 
 ## Implementation

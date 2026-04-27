@@ -43,15 +43,15 @@ The steps below summarize the depth-first traversal algorithm using depth-first 
 >
 > **dfs(node, \[ref\] graph, \[ref\] visited)**
 >
-> -   **Step 1:** Add \`node\` to \`visited\` set
-> -   **Step 2:** Iterate over all the neighbours of \`node\` in a variable \`neighbour\` and do the following
->     -   **Step 2.1:** If \`neighbour\` is not in \`visited\` set call \`dfs(neighbour, graph, visited)\`
+> -   **Step 1:** Add `node` to `visited` set
+> -   **Step 2:** Iterate over all the neighbours of `node` in a variable `neighbour` and do the following
+>     -   **Step 2.1:** If `neighbour` is not in `visited` set call `dfs(neighbour, graph, visited)`
 >
 > **depthFirstTraversal(\[ref\] graph)**
 >
-> -   **Step 1:** Create a \`visited\` set
-> -   **Step 2:** Iterate over all the nodes in the graph in a variable \`node\` and do the following
->     -   **Step 2.1:** If \`node\` not in \`visited\` set call \`dfs(node, graph, visited)\`
+> -   **Step 1:** Create a `visited` set
+> -   **Step 2:** Iterate over all the nodes in the graph in a variable `node` and do the following
+>     -   **Step 2.1:** If `node` not in `visited` set call `dfs(node, graph, visited)`
 
 Let's examine a sample graph and see how the depth-first traversal algorithm is executed on it.
 
@@ -495,18 +495,18 @@ The steps below summarize the breadth-first traversal algorithm using breadth-fi
 >
 > **bfs(node, \[ref\] graph, \[ref\] visited)**
 >
-> -   **Step 1:** Create a \`queue\` and add the \`node\` to it.
-> -   **Step 2:** Add \`node\` to the \`visited\` set
-> -   **Step 3:** Iterate while \`queue\` is not empty and do the following:
->     -   **Step 3.1:** Pop a node from the front of the \`queue\` in the variable \`node\`
->     -   **Step 3.2:** Iterate over all the neighbours of \`node\` in a variable \`neighbour\` and do the following:
->         -   **Step 3.2.1:** If \`neighbour\` is not in \`visited\` set, add \`neighbour\` to the \`queue\` and \`visited\` set
+> -   **Step 1:** Create a `queue` and add the `node` to it.
+> -   **Step 2:** Add `node` to the `visited` set
+> -   **Step 3:** Iterate while `queue` is not empty and do the following:
+>     -   **Step 3.1:** Pop a node from the front of the `queue` in the variable `node`
+>     -   **Step 3.2:** Iterate over all the neighbours of `node` in a variable `neighbour` and do the following:
+>         -   **Step 3.2.1:** If `neighbour` is not in `visited` set, add `neighbour` to the `queue` and `visited` set
 >
 > **breadthFirstTraversal(\[ref\] graph)**
 >
-> -   **Step 1:** Create a \`visited\` set
-> -   **Step 2:** Iterate over all the nodes in the graph in a variable \`node\` and do the following
->     -   **Step 2.1:** If \`node\` not in \`visited\` set call \`bfs(node, graph, visited)\`
+> -   **Step 1:** Create a `visited` set
+> -   **Step 2:** Iterate over all the nodes in the graph in a variable `node` and do the following
+>     -   **Step 2.1:** If `node` not in `visited` set call `bfs(node, graph, visited)`
 
 Let's examine a sample graph and see how the breadth-first traversal algorithm is executed on it.
 

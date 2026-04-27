@@ -44,14 +44,14 @@ The steps below summarizes the minimum predicate search algorithm to find the mi
 
 > **minimumPredicate()**
 >
-> -   **Step 1:** Set \`low\` to the minimum value in the search space
-> -   **Step 2:** Set \`high\` to the maximum value in the problem search space
-> -   **Step 3:** Iterate while \`low\` < \`high\` and do the following:
->     -   **Step 3.1:** Set \`mid\` = \`low\` + (\`high\` - \`low\`) / 2
->     -   **Step 3.2:** If \`p(mid)\` is \`true\`, set \`high\` = \`mid\`
->     -   **Step 3.3:** Otherwiese if \`p(mid)\` is \`false\`, set \`low\` = \`mid\` + 1
-> -   **Step 4:** If \`p(low)\` is \`false\` return an error as there is no \`true\` predicate
-> -   **Step 5:** Return \`low\` as the solution
+> -   **Step 1:** Set `low` to the minimum value in the search space
+> -   **Step 2:** Set `high` to the maximum value in the problem search space
+> -   **Step 3:** Iterate while `low` < `high` and do the following:
+>     -   **Step 3.1:** Set `mid` = `low` + (`high` - `low`) / 2
+>     -   **Step 3.2:** If `p(mid)` is `true`, set `high` = `mid`
+>     -   **Step 3.3:** Otherwiese if `p(mid)` is `false`, set `low` = `mid` + 1
+> -   **Step 4:** If `p(low)` is `false` return an error as there is no `true` predicate
+> -   **Step 5:** Return `low` as the solution
 
 ## Implementation
 
@@ -310,7 +310,7 @@ Given a predicate function that results in a monotonic sequence that flips once 
 
 Let's consider the following problem as an example to better understand how to identify and solve a problem using the minimum predicate search algorithm.
 
-> **Problem statement:** Given an array distance of size \`n\`, where \`distance\[i\]\` denotes the distance of the \`ith\` bus ride. You are also given a decimal number of \`hours\`, representing the minimum time you must reach your house. To reach home, you must take sequential bus rides. Write a function to find and return the minimum speed that all buses must travel at so you can reach home on time. Return \`-1\` if it's not possible to reach home on time.
+> **Problem statement:** Given an array distance of size `n`, where `distance\[i\]` denotes the distance of the `ith` bus ride. You are also given a decimal number of `hours`, representing the minimum time you must reach your house. To reach home, you must take sequential bus rides. Write a function to find and return the minimum speed that all buses must travel at so you can reach home on time. Return `-1` if it's not possible to reach home on time.
 >
 > **Note:** Each bus can only depart at an integer time, so for e.g. if the 1st bus takes 2.3 hours, you must wait 0.7 hours to take the second bus
 

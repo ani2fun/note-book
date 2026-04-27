@@ -113,16 +113,16 @@ Finally, we initialize a variable `aggregate` with a default value, extract all 
 
 The algorithm given below outlines the generic algorithm to transform the given array into an array of user-defined type and find the aggregated value of a function `f` over the top (**largest**) `k` Items in the transformed array.
 
-> -   **Step 1:** Transform the given array into an array of user defined type using the function \`t\`
-> -   **Step 2:** Create a comparator to stor user define type in a min-heap and initialize \`minHeap\` using it.
+> -   **Step 1:** Transform the given array into an array of user defined type using the function `t`
+> -   **Step 2:** Create a comparator to stor user define type in a min-heap and initialize `minHeap` using it.
 > -   **Step 3:** Iterate in the transformed array and do the following:
->     -   **Step 3.1:** Add the current item to \`minHeap\`
->     -   **Step 3.2:** If the size of \`minHeap\` becomes greater than \`k\`, remove the item at the top
-> -   **Step 4:** Initialize a variable \`aggregate\` with a default value
-> -   **Step 5:** Do the following until \`minHeap\` is empty:
->     -   **Step 5.1:** Pop the item at the top of \`minHeap\`
->     -   **Step 5.2:** Add the contribution of the popped item to \`aggregate\` using function \`f\`
-> -   **Step 6:** Return \`aggregate\`
+>     -   **Step 3.1:** Add the current item to `minHeap`
+>     -   **Step 3.2:** If the size of `minHeap` becomes greater than `k`, remove the item at the top
+> -   **Step 4:** Initialize a variable `aggregate` with a default value
+> -   **Step 5:** Do the following until `minHeap` is empty:
+>     -   **Step 5.1:** Pop the item at the top of `minHeap`
+>     -   **Step 5.2:** Add the contribution of the popped item to `aggregate` using function `f`
+> -   **Step 6:** Return `aggregate`
 
 ## Implementation
 
@@ -439,7 +439,7 @@ Transform the given dataset into one with user defined types and find the aggreg
 
 Let's consider the following problem as an example to better understand how to identify and solve a problem using the custom compare technique.
 
-> **Problem statement:** Given an array of integers and an integer \`k\`, find the \`k\` most frequent intergers.
+> **Problem statement:** Given an array of integers and an integer `k`, find the `k` most frequent intergers.
 
 // Diagram: Find the k most frequent values in the array
 

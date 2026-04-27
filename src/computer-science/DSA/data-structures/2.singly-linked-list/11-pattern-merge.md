@@ -115,15 +115,15 @@ The algorithm given below summarizes the linked list merge technique for two lis
 
 > **Algorithm**
 >
-> -   **Step 1:** Create a \`dummy\` node and initialize a \`tail\` reference with it.
-> -   **Step 2:** Create two references \`currentA\` and \`currentB\` and initialize them with \`headA\` and \`headB\` respectively.
-> -   **Step 3:** Loop while \`currentA\` != \`null\` and \`currentB\` != \`null\` and do the following:
->     -   **Step 3.1:** Apply the function \`f\` to the node held in \`currentA\` and \`currentB\` to decide which node to add to the merged list.
->     -   **Step 3.2:** If \`currentA\` has to be added, add it to the end of the merged list by updating \`tail\` and moving \`currentA\` ahead.
->     -   **Step 3.3:** If \`currentB\` has to be added, add it to the end of the merged list by updating \`tail\` and moving \`currentB\` ahead.
->     -   **Step 4:** If \`currentA\` != \`null\` attach the remaining list to the merged list using \`tail\`
->     -   **Step 5:** If \`currentB\` != \`null\` attach the remaining list to the merged list using \`tail\`
->     -   **Step 6:** Delete the \`dummy\` node and return the next node as real head of merged list.
+> -   **Step 1:** Create a `dummy` node and initialize a `tail` reference with it.
+> -   **Step 2:** Create two references `currentA` and `currentB` and initialize them with `headA` and `headB` respectively.
+> -   **Step 3:** Loop while `currentA` != `null` and `currentB` != `null` and do the following:
+>     -   **Step 3.1:** Apply the function `f` to the node held in `currentA` and `currentB` to decide which node to add to the merged list.
+>     -   **Step 3.2:** If `currentA` has to be added, add it to the end of the merged list by updating `tail` and moving `currentA` ahead.
+>     -   **Step 3.3:** If `currentB` has to be added, add it to the end of the merged list by updating `tail` and moving `currentB` ahead.
+>     -   **Step 4:** If `currentA` != `null` attach the remaining list to the merged list using `tail`
+>     -   **Step 5:** If `currentB` != `null` attach the remaining list to the merged list using `tail`
+>     -   **Step 6:** Delete the `dummy` node and return the next node as real head of merged list.
 
 ## Implementation
 

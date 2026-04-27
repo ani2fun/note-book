@@ -86,26 +86,26 @@ We also create a calling function that initializes the state variables `state`, 
 
 > **conditionalEnumeration(n, \[ref\] control, \[ref\] state, \[ref\] enumerations)**
 >
-> -   **Step 1:** Call \`isSolutionState(n, state)\` to check if it is a solution state.
->     -   **Step 1.1:** If \`true\`, add \`state\` to \`enumerations\`
+> -   **Step 1:** Call `isSolutionState(n, state)` to check if it is a solution state.
+>     -   **Step 1.1:** If `true`, add `state` to `enumerations`
 >     -   **Step 1.2:** Return to the caller
-> -   **Step 2:** Set \`choices\` = Call \`getChoices(n, control)\` to get all choices available at this step.
-> -   **Step 3:** Iterate over \`choices\` using a variable \`choice\` and do the following:
->     -   **Step 3.1:** Call \`makeChoice(state, choice)\` to add the contribution of \`choice\` to the \`state\` variable
->     -   **Step 3.2:** Call \`updateControl(n, control, choice)\` to update the control variable based on the current choice and input \`n\`
->     -   **Step 3.3:** Set \`reducedProblemSpace\` = Call \`getReducedProblemSpace(n, choice)\` to obtain the reduced problem space for the next recursive call
->     -   **Step 3.4:** Call \`conditionalEnumeration(reducedProblemSpace, control, state, enumerations)\`
->     -   **Step 3.5:** Call \`revertLastChoiceFromControl(control)\` to revert the contribution of the last choice from the control variable
->     -   **Step 3.6:** Call \`revertLastChoiceFromState(state)\` to revert the contribution of the last choice from the state variable
+> -   **Step 2:** Set `choices` = Call `getChoices(n, control)` to get all choices available at this step.
+> -   **Step 3:** Iterate over `choices` using a variable `choice` and do the following:
+>     -   **Step 3.1:** Call `makeChoice(state, choice)` to add the contribution of `choice` to the `state` variable
+>     -   **Step 3.2:** Call `updateControl(n, control, choice)` to update the control variable based on the current choice and input `n`
+>     -   **Step 3.3:** Set `reducedProblemSpace` = Call `getReducedProblemSpace(n, choice)` to obtain the reduced problem space for the next recursive call
+>     -   **Step 3.4:** Call `conditionalEnumeration(reducedProblemSpace, control, state, enumerations)`
+>     -   **Step 3.5:** Call `revertLastChoiceFromControl(control)` to revert the contribution of the last choice from the control variable
+>     -   **Step 3.6:** Call `revertLastChoiceFromState(state)` to revert the contribution of the last choice from the state variable
 > -   **Step 4:** Return to the caller
 >
 > **callingFunction(n)**
 >
-> -   **Step 1:** Create a variable \`state\` and initialize it to a default value
-> -   **Step 2:** Create a variable \`control\` and initialize it to a default value
-> -   **Step 3:** Create an empty list \`enumerations\`
-> -   **Step 4:** Call \`conditionalEnumeration(n, control, state, enumerations)\`
-> -   **Step 5:** Return \`enumerations\`
+> -   **Step 1:** Create a variable `state` and initialize it to a default value
+> -   **Step 2:** Create a variable `control` and initialize it to a default value
+> -   **Step 3:** Create an empty list `enumerations`
+> -   **Step 4:** Call `conditionalEnumeration(n, control, state, enumerations)`
+> -   **Step 5:** Return `enumerations`
 
 ## Implementation
 
@@ -695,7 +695,7 @@ If the problem statement or its solution follows the generic template below, it 
 
 Let's consider the following problem as an example to better understand how to identify and solve a problem using conditional enumeration.
 
-> **Problem statement:** Given a positive integer \`n\`, write a function to generate and return a list of all possible combinations of well-formed parentheses with \`n\` pairs. You can return the output in any order.
+> **Problem statement:** Given a positive integer `n`, write a function to generate and return a list of all possible combinations of well-formed parentheses with `n` pairs. You can return the output in any order.
 
 // Diagram: Find all well-formed parentheses strings with n pairs of parentheses.
 

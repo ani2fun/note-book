@@ -86,8 +86,8 @@ If the array contains more than one element, the algorithm proceeds by finding t
 
 // Diagram: The middle index of the array
 
-> -   \`leftArr\` = \`arr\[0 … mid - 1\]\`
-> -   \`rightArr\` = \`arr\[mid … end\]\`
+> -   `leftArr` = `arr\[0 … mid - 1\]`
+> -   `rightArr` = `arr\[mid … end\]`
 
 The algorithm then recursively calls `mergeSort(leftArr)` to sort the left half and `mergeSort(rightArr)` to sort the right half. At this point, both halves are guaranteed to be sorted when the recursive calls return.
 
@@ -103,15 +103,15 @@ Once both halves, `leftArr` and `rightArr`, are sorted, the merge function combi
 
 The merge function is responsible for combining two **already sorted arrays** into one sorted array. The algorithm begins by creating an empty array, `mergedArr`, to store the merged result. Two pointers are then initialised:
 
-> -   \`i = 0\` to track the current index in \`leftArr\`
-> -   \`j = 0\` to track the current index in \`rightArr\`
+> -   `i = 0` to track the current index in `leftArr`
+> -   `j = 0` to track the current index in `rightArr`
 
 // Diagram: Initialise i and j pointers to 0 to track leftArr and rightArr respectively
 
 The algorithm enters a loop that continues while both `i < leftArr.size()` and `j < rightArr.size()`. During each iteration, the elements `leftArr[i]` and `rightArr[j]` are compared.
 
-> -   If \`leftArr\[i\] <= rightArr\[j\]\`, \`leftArr\[i\]\` is added to \`mergedArr\`, and \`i\` is incremented.
-> -   Otherwise, \`rightArr\[j\]\` is added to \`mergedArr\`, and \`j\` is incremented.
+> -   If `leftArr\[i\] <= rightArr\[j\]`, `leftArr\[i\]` is added to `mergedArr`, and `i` is incremented.
+> -   Otherwise, `rightArr\[j\]` is added to `mergedArr`, and `j` is incremented.
 
 **Why do we compare using `` `<=` ``?**
 
@@ -137,29 +137,29 @@ After all elements have been merged, the merge function returns `mergedArr`. Thi
 >
 > **merge(\[ref\] leftArr, \[ref\] rightArr)**
 >
-> -   **Step 1:** Create an empty array \`mergedArr\` to store the merged result
-> -   **Step 2:** Initialise two pointers: \`i = 0\` for \`leftArr\` and \`j = 0\` for \`rightArr\`
-> -   **Step 3:** While both \`i < leftArr.size()\` and \`j < rightArr.size()\`:
->     -   **Step 3.1:** If \`leftArr\[i\] <= rightArr\[j\]\`
->         -   **Step 3.1.1:** Add \`leftArr\[i\]\` to \`mergedArr\`
->         -   **Step 3.1.2:** Increment \`i\`
->     -   **Step 3.2:** Else if \`leftArr\[i\] > rightArr\[j\]\`
->         -   **Step 3.2.1:** Add \`rightArr\[j\]\` to \`mergedArr\`
->         -   **Step 3.2.2:** Increment \`j\`
-> -   **Step 4:** Add any remaining elements from \`leftArr\` to \`mergedArr\`
-> -   **Step 5:** Add any remaining elements from \`rightArr\` to \`mergedArr\`
-> -   **Step 6:** Return \`mergedArr\`
+> -   **Step 1:** Create an empty array `mergedArr` to store the merged result
+> -   **Step 2:** Initialise two pointers: `i = 0` for `leftArr` and `j = 0` for `rightArr`
+> -   **Step 3:** While both `i < leftArr.size()` and `j < rightArr.size()`:
+>     -   **Step 3.1:** If `leftArr\[i\] <= rightArr\[j\]`
+>         -   **Step 3.1.1:** Add `leftArr\[i\]` to `mergedArr`
+>         -   **Step 3.1.2:** Increment `i`
+>     -   **Step 3.2:** Else if `leftArr\[i\] > rightArr\[j\]`
+>         -   **Step 3.2.1:** Add `rightArr\[j\]` to `mergedArr`
+>         -   **Step 3.2.2:** Increment `j`
+> -   **Step 4:** Add any remaining elements from `leftArr` to `mergedArr`
+> -   **Step 5:** Add any remaining elements from `rightArr` to `mergedArr`
+> -   **Step 6:** Return `mergedArr`
 >
 > **mergeSort(\[ref\] arr)**
 >
-> -   **Step 1:** If \`arr.size() <= 1\`
->     -   **Step 1.1:** return \`arr\`
-> -   **Step 2:** Find the middle index: \`mid = arr.size() / 2\`
+> -   **Step 1:** If `arr.size() <= 1`
+>     -   **Step 1.1:** return `arr`
+> -   **Step 2:** Find the middle index: `mid = arr.size() / 2`
 > -   **Step 3:** Split the array into two halves
->     -   **Step 3.1:** \`leftArr = arr\[0…mid-1\]\`
->     -   **Step 3.2:** \`rightArr = arr\[mid…end\]\`
-> -   **Step 4:** Recursively call \`mergeSort(leftArr)\` to sort the left half
-> -   **Step 5:** Recursively call \`mergeSort(rightArr)\` to sort the right half
+>     -   **Step 3.1:** `leftArr = arr\[0…mid-1\]`
+>     -   **Step 3.2:** `rightArr = arr\[mid…end\]`
+> -   **Step 4:** Recursively call `mergeSort(leftArr)` to sort the left half
+> -   **Step 5:** Recursively call `mergeSort(rightArr)` to sort the right half
 > -   **Step 6:** Return the merged and fully sorted array
 
 ## Implementation

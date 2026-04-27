@@ -41,17 +41,17 @@ Given the skeleton of a **MaxHeap class**, complete this class by implementing a
 >
 > **Explanation:**
 >
-> **Operation:** MaxHeap maxHeap = new MaxHeap() **Result:** Initializes an empty \`MaxHeap\` object
+> **Operation:** MaxHeap maxHeap = new MaxHeap() **Result:** Initializes an empty `MaxHeap` object
 >
-> **Operation:** maxHeap.insert(5) **Result:** \`maxHeap = \[5\]\`
+> **Operation:** maxHeap.insert(5) **Result:** `maxHeap = \[5\]`
 >
-> **Operation:** maxHeap.insert(3) **Result:** \`maxHeap = \[5, 3\]\`
+> **Operation:** maxHeap.insert(3) **Result:** `maxHeap = \[5, 3\]`
 >
-> **Operation:** maxHeap.remove(1) **Result:** \`maxHeap = \[5\]\`
+> **Operation:** maxHeap.remove(1) **Result:** `maxHeap = \[5\]`
 >
-> **Operation:** maxHeap.getMax() **Result:** \`maxHeap = \[5\]\`, returns \`5\`
+> **Operation:** maxHeap.getMax() **Result:** `maxHeap = \[5\]`, returns `5`
 >
-> **Operation:** maxHeap.extractMax() **Result:** \`maxHeap = \[\]\`, returns \`5\`
+> **Operation:** maxHeap.extractMax() **Result:** `maxHeap = \[\]`, returns `5`
 
 ## Solution
 
@@ -181,17 +181,17 @@ Given the skeleton of a **MinHeap class**, complete this class by implementing a
 >
 > **Explanation:**
 >
-> **Operation:** MinHeap minHeap = new MinHeap() **Result:** Initializes an empty \`MinHeap\` object
+> **Operation:** MinHeap minHeap = new MinHeap() **Result:** Initializes an empty `MinHeap` object
 >
-> **Operation:** minHeap.insert(5) **Result:** \`minHeap = \[5\]\`
+> **Operation:** minHeap.insert(5) **Result:** `minHeap = \[5\]`
 >
-> **Operation:** minHeap.insert(3) **Result:** \`minHeap = \[3, 5\]\`
+> **Operation:** minHeap.insert(3) **Result:** `minHeap = \[3, 5\]`
 >
-> **Operation:** minHeap.remove(1) **Result:** \`minHeap = \[3\]\`
+> **Operation:** minHeap.remove(1) **Result:** `minHeap = \[3\]`
 >
-> **Operation:** minHeap.getMin() **Result:** \`minHeap = \[3\]\`, returns \`3\`
+> **Operation:** minHeap.getMin() **Result:** `minHeap = \[3\]`, returns `3`
 >
-> **Operation:** minHeap.extractMin() **Result:** \`minHeap = \[\]\`, returns \`3\`
+> **Operation:** minHeap.extractMin() **Result:** `minHeap = \[\]`, returns `3`
 
 ## Solution
 
@@ -314,15 +314,15 @@ Given the skeleton of a **MedianFinder class** that is supposed to find the med
 >
 > **Explanation:**
 >
-> **Operation:** MedianFinder medianFinder = new MedianFinder() **Result:** Initializes a new \`MedianFinder\` object
+> **Operation:** MedianFinder medianFinder = new MedianFinder() **Result:** Initializes a new `MedianFinder` object
 >
-> **Operation:** medianFinder.addNum(1) **Result:** \`list = \[1\]\`
+> **Operation:** medianFinder.addNum(1) **Result:** `list = \[1\]`
 >
-> **Operation:** medianFinder.addNum(2) **Result:** \`list = \[1, 2\]\`
+> **Operation:** medianFinder.addNum(2) **Result:** `list = \[1, 2\]`
 >
-> **Operation:** medianFinder.addNum(4) **Result:** \`list = \[1, 2, 4\]\`
+> **Operation:** medianFinder.addNum(4) **Result:** `list = \[1, 2, 4\]`
 >
-> **Operation:** medianFinder.findMedian() **Result:** \`list = \[1, 2, 4\]\`, returns \`2\`
+> **Operation:** medianFinder.findMedian() **Result:** `list = \[1, 2, 4\]`, returns `2`
 
 ## Solution
 

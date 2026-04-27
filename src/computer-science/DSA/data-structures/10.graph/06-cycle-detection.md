@@ -49,19 +49,19 @@ The steps given below summarize the cycle detection algorithm in an undirected g
 >
 > **hasCycle(node, parent, \[ref\] graph, \[ref\] visited)**
 >
-> -   **Step 1:** Add \`node\` to \`visited\`
-> -   **Step 2:** Iterate in all the neighbours of \`node\` in \`neighbour\` and do the following:
->     -   **Step 2.1:** If \`neighbour\` is not in \`visited\`
->         -   **Step 2.1.1:** Call \`hasCycle(neighbour, node, graph, visited)\` and if its return value is \`true\`, return \`true\` to the parent
->     -   **Step 2.2:** If \`neighbour\` is not \`parent\`, return \`true\` to the parent
-> -   **Step 3:** Return \`false\`
+> -   **Step 1:** Add `node` to `visited`
+> -   **Step 2:** Iterate in all the neighbours of `node` in `neighbour` and do the following:
+>     -   **Step 2.1:** If `neighbour` is not in `visited`
+>         -   **Step 2.1.1:** Call `hasCycle(neighbour, node, graph, visited)` and if its return value is `true`, return `true` to the parent
+>     -   **Step 2.2:** If `neighbour` is not `parent`, return `true` to the parent
+> -   **Step 3:** Return `false`
 >
 > **callingFunction(\[ref\] graph)**
 >
-> -   **Step 1:** Create a \`visited\` set
-> -   **Step 2:** Iterate in all the nodes of the graph using \`node\` and do the following:
->     -   **Step 2.1:** If \`node\` is not in \`visited\`, call \`hasCycle(node, -1, graph, visited)\` and return \`true\` if it returns \`true\`
-> -   **Step 3:** Return \`false\`
+> -   **Step 1:** Create a `visited` set
+> -   **Step 2:** Iterate in all the nodes of the graph using `node` and do the following:
+>     -   **Step 2.1:** If `node` is not in `visited`, call `hasCycle(node, -1, graph, visited)` and return `true` if it returns `true`
+> -   **Step 3:** Return `false`
 
 Let's look at an example to better understand the cycle detection algorithm in an undirected graph.
 
@@ -494,22 +494,22 @@ The steps given below summarize the cycle detection algorithm in a directed grap
 >
 > **hasCycle(node, \[ref\] graph, \[ref\] nodesInPath, \[ref\] visited)**
 >
-> -   **Step 1:** Add \`node\` to \`visited\`
-> -   **Step 2:** Add \`node\` to \`nodesInPath\`
-> -   **Step 3:** Iterate in all the neighbours of \`node\` in \`neighbour\` and do the following:
->     -   **Step 3.1:** If \`neighbour\` is not in \`visited\`
->         -   **Step 3.1.1:** Call \`hasCycle(neighbour, node, graph, nodesInPath, visited)\` and if its return value is \`true\`, return \`true\` to the parent
->     -   **Step 3.2:** If \`neighbour\` is in \`nodesInPath\`, return \`true\` to the parent
-> -   **Step 4:** Remove \`node\` from \`nodesInPath\`
-> -   **Step 5:** Return \`false\`
+> -   **Step 1:** Add `node` to `visited`
+> -   **Step 2:** Add `node` to `nodesInPath`
+> -   **Step 3:** Iterate in all the neighbours of `node` in `neighbour` and do the following:
+>     -   **Step 3.1:** If `neighbour` is not in `visited`
+>         -   **Step 3.1.1:** Call `hasCycle(neighbour, node, graph, nodesInPath, visited)` and if its return value is `true`, return `true` to the parent
+>     -   **Step 3.2:** If `neighbour` is in `nodesInPath`, return `true` to the parent
+> -   **Step 4:** Remove `node` from `nodesInPath`
+> -   **Step 5:** Return `false`
 >
 > **callingFunction(\[ref\] graph)**
 >
-> -   **Step 1:** Create a \`visited\` set
-> -   **Step 2:** Create a \`nodesInPath\` set
-> -   **Step 3:** Iterate in all the nodes of the graph using \`node\` and do the following:
->     -   **Step 2.1:** If \`node\` is not in \`visited\`, call \`hasCycle(node, graph, nodesInPath, visited)\` and return \`true\` if it returns \`true\`
-> -   **Step 3:** Return \`false\`
+> -   **Step 1:** Create a `visited` set
+> -   **Step 2:** Create a `nodesInPath` set
+> -   **Step 3:** Iterate in all the nodes of the graph using `node` and do the following:
+>     -   **Step 2.1:** If `node` is not in `visited`, call `hasCycle(node, graph, nodesInPath, visited)` and return `true` if it returns `true`
+> -   **Step 3:** Return `false`
 
 Let's look at an example to better understand the cycle detection algorithm in a directed graph.
 

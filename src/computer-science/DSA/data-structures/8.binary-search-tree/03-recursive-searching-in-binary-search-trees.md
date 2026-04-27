@@ -19,8 +19,8 @@
 
 Searching for a value in a binary search tree can be implemented by piggybacking on any of the binary tree traversal algorithms. However, if we observe the special property of a binary search tree (given below), we can quickly develop an exponentially faster algorithm. 
 
-> -   All nodes in a node's \`left\` subtree are \`less in value\` than the node's value.
-> -   All nodes in a node's \`right\` subtree are \`greater in value\` than the node's value.
+> -   All nodes in a node's `left` subtree are `less in value` than the node's value.
+> -   All nodes in a node's `right` subtree are `greater in value` than the node's value.
 
 ## Algorithm
 
@@ -34,10 +34,10 @@ Let's look at an example to understand it better.
 
 > **Algorithm**
 >
-> -   **Step 1:** If the \`current\` node is \`null\`, return it (base case).
-> -   **Step 2:** If the \`current\` node's value equals the \`target\`, return it.
-> -   **Step 3:** Else, if the \`current\` node's value exceeds the \`target\`, recursively call the search operation on the \`left\` subtree.
-> -   **Step 4:** Else, if the \`current\` node's value is less than the \`target\`, recursively call the search operation on the \`right\` subtree.
+> -   **Step 1:** If the `current` node is `null`, return it (base case).
+> -   **Step 2:** If the `current` node's value equals the `target`, return it.
+> -   **Step 3:** Else, if the `current` node's value exceeds the `target`, recursively call the search operation on the `left` subtree.
+> -   **Step 4:** Else, if the `current` node's value is less than the `target`, recursively call the search operation on the `right` subtree.
 
 ## Implementation
 
@@ -373,9 +373,9 @@ The recursive equation above can be summarised using the following algorithm.
 
 > **Algorithm**
 >
-> -   **Step 1:** If the \`current\` node is \`null\`, return it (base case).
-> -   **Step 2:** If the \`current\` node does not have a \`left\` subtree return the node.
-> -   **Step 3:** Else, if the \`current\` node has a \`left\` subtree, recursively call the search operation on the \`left\` subtree.
+> -   **Step 1:** If the `current` node is `null`, return it (base case).
+> -   **Step 2:** If the `current` node does not have a `left` subtree return the node.
+> -   **Step 3:** Else, if the `current` node has a `left` subtree, recursively call the search operation on the `left` subtree.
 
 ## Implementation
 
@@ -684,9 +684,9 @@ The recursive equation above can be summarised using the following algorithm.
 
 > **Algorithm**
 >
-> -   **Step 1:** If the \`current\` node is \`null\`, return it (base case).
-> -   **Step 2:** If the \`current\` node does not have a \`right\` subtree return the node.
-> -   **Step 3:** Else, if the \`current\` node has a \`right\` subtree, recursively call the search operation on the \`right\` subtree.
+> -   **Step 1:** If the `current` node is `null`, return it (base case).
+> -   **Step 2:** If the `current` node does not have a `right` subtree return the node.
+> -   **Step 3:** Else, if the `current` node has a `right` subtree, recursively call the search operation on the `right` subtree.
 
 ## Implementation
 
@@ -1015,10 +1015,10 @@ The recursive search for the lower bound of a given value in a binary search tre
 
 > **Algorithm**
 >
-> -   **Step 1:** If the \`current\` node is \`null\`, return (base case).
-> -   **Step 2:** If the \`current\` node's value exceeds the \`target\`, update the \`lowerBoundNode\` and recursively call the search operation on the \`left\` subtree.
-> -   **Step 3:** Else, if the \`current\` node's value equals the \`target\`, update the \`lowerBoundNode\` and return.
-> -   **Step 4:** Else, if the \`current\` node's value is less than the \`target\`, recursively call the search operation on the \`right\` subtree.
+> -   **Step 1:** If the `current` node is `null`, return (base case).
+> -   **Step 2:** If the `current` node's value exceeds the `target`, update the `lowerBoundNode` and recursively call the search operation on the `left` subtree.
+> -   **Step 3:** Else, if the `current` node's value equals the `target`, update the `lowerBoundNode` and return.
+> -   **Step 4:** Else, if the `current` node's value is less than the `target`, recursively call the search operation on the `right` subtree.
 
 ## Implementation
 
@@ -1472,9 +1472,9 @@ The recursive search for the upper bound of a given value in a binary search tre
 
 > **Algorithm**
 >
-> -   **Step 1:** If the \`current\` node is \`null\`, return (base case).
-> -   **Step 2:** If the \`current\` node's value exceeds the \`target\`, update the \`upperBoundNode\` and recursively call the search operation on the \`left\` subtree.
-> -   **Step 3:** Else, if the \`current\` node's value is less than the \`target\`, recursively call the search operation on the \`right\` subtree.
+> -   **Step 1:** If the `current` node is `null`, return (base case).
+> -   **Step 2:** If the `current` node's value exceeds the `target`, update the `upperBoundNode` and recursively call the search operation on the `left` subtree.
+> -   **Step 3:** Else, if the `current` node's value is less than the `target`, recursively call the search operation on the `right` subtree.
 
 ## Implementation
 

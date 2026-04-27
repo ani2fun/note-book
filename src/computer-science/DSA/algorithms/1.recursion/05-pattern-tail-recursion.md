@@ -90,11 +90,11 @@ The steps given below summarise the implementation for the generic tail-recursiv
 
 > **tailRecursion(input, \[ref\] aggregate)**
 >
-> -   **Step 1:** If \`input\` is the base case, return the known solution for \`(input, aggregate)\`
-> -   **Step 2:** Update \`aggregate\` by calling \`g(input, aggregate)\`
-> -   **Step 3:** Set \`newInput\` = \`h(input)\`
-> -   **Step 3:** Set \`solution\` = Call \`tailRecursion(newInput, aggregate)\`
-> -   **Step 4:** Return \`solution\`
+> -   **Step 1:** If `input` is the base case, return the known solution for `(input, aggregate)`
+> -   **Step 2:** Update `aggregate` by calling `g(input, aggregate)`
+> -   **Step 3:** Set `newInput` = `h(input)`
+> -   **Step 3:** Set `solution` = Call `tailRecursion(newInput, aggregate)`
+> -   **Step 4:** Return `solution`
 
 ## Implementation
 

@@ -43,15 +43,15 @@ We then initialize a variable `aggregate` with a default value. Finally, we extr
 
 The algorithm given below outlines the generic algorithm to find the aggregated value of a function `f` over the `k` largest items in an array using a min-heap. The same algorithm can be used for the `k` smallest items by using a max-heap in place of a min-heap.
 
-> -   **Step 1:** Create a min heap \`minHeap\`
+> -   **Step 1:** Create a min heap `minHeap`
 > -   **Step 2:** Iterate in the array and do the following:
->     -   **Step 2.1:** Add the current item to \`minHeap\`
->     -   **Step 2.2:** If the size of \`minHeap\` becomes greater than \`k\`, remove the item at the top
-> -   **Step 3:** Initialize a variable \`aggregate\` with a default value
-> -   **Step 4:** Do the following until \`minHeap\` is empty:
->     -   **Step 4.1:** Pop the item at the top of \`minHeap\`
->     -   **Step 4.2:** Add the contribution of the popped item to \`aggregate\` using function \`f\`
-> -   **Step 5:** Return \`aggregate\`
+>     -   **Step 2.1:** Add the current item to `minHeap`
+>     -   **Step 2.2:** If the size of `minHeap` becomes greater than `k`, remove the item at the top
+> -   **Step 3:** Initialize a variable `aggregate` with a default value
+> -   **Step 4:** Do the following until `minHeap` is empty:
+>     -   **Step 4.1:** Pop the item at the top of `minHeap`
+>     -   **Step 4.2:** Add the contribution of the popped item to `aggregate` using function `f`
+> -   **Step 5:** Return `aggregate`
 
 ## Implementation
 

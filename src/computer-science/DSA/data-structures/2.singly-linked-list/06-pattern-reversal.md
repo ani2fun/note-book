@@ -126,13 +126,13 @@ The algorithm below summarizes the reversal of the entire linked list in-place.
 
 > **Algorithm**
 >
-> -   **Step 1:** Create two references, \`previous\` and \`current\`, and initialize them with \`nullptr\`, and \`head\` respectively.
-> -   **Step 2:** Loop while \`current\` is not equal to \`nullptr\`, do the following:
->     -   **Step 2.1:** Initialize a reference \`next\` to store the reference of the node after the \`current\` node.
->     -   **Step 2.2:** Update the next section of the \`current\` node to hold the node held by \`previous\`.
->     -   **Step 2.3:** Update \`previous\` to hold the reference of the \`current\` node.
->     -   **Step 2.4:** Update the \`current\` to hold the node held by \`next\`
-> -   **Step 3:** Return \`previous\` as the head of the reversed list.
+> -   **Step 1:** Create two references, `previous` and `current`, and initialize them with `nullptr`, and `head` respectively.
+> -   **Step 2:** Loop while `current` is not equal to `nullptr`, do the following:
+>     -   **Step 2.1:** Initialize a reference `next` to store the reference of the node after the `current` node.
+>     -   **Step 2.2:** Update the next section of the `current` node to hold the node held by `previous`.
+>     -   **Step 2.3:** Update `previous` to hold the reference of the `current` node.
+>     -   **Step 2.4:** Update the `current` to hold the node held by `next`
+> -   **Step 3:** Return `previous` as the head of the reversed list.
 
 ### Implementation
 
@@ -449,13 +449,13 @@ The algorithm given below summarizes the linked list reversal between start and 
 
 > **Algorithm**
 >
-> -   **Step 1:** Create three references, \`previous\`, \`current\`, and \`rightBound\` and initialize them with \`end.next\`, \`start\`, and \`end.next\` respectively.
-> -   **Step 2:** Loop while \`current\` is not equal to \`rightBound\`, do the following:
->     -   **Step 2.1:** Initialize a reference \`next\` to store the reference of the node after the \`current\` node.
->     -   **Step 2.2:** Update the next section of the \`current\` node to hold the node held by \`previous\`.
->     -   **Step 2.3:** Update \`previous\` to hold the reference of the \`current\` node.
->     -   **Step 2.4:** Update the \`current\` to hold the node held by \`next\`
-> -   **Step 3:** Return \`previous\` as the new head of the list and connect the node before \`start\` to this new head in the caller of this reverse function.
+> -   **Step 1:** Create three references, `previous`, `current`, and `rightBound` and initialize them with `end.next`, `start`, and `end.next` respectively.
+> -   **Step 2:** Loop while `current` is not equal to `rightBound`, do the following:
+>     -   **Step 2.1:** Initialize a reference `next` to store the reference of the node after the `current` node.
+>     -   **Step 2.2:** Update the next section of the `current` node to hold the node held by `previous`.
+>     -   **Step 2.3:** Update `previous` to hold the reference of the `current` node.
+>     -   **Step 2.4:** Update the `current` to hold the node held by `next`
+> -   **Step 3:** Return `previous` as the new head of the list and connect the node before `start` to this new head in the caller of this reverse function.
 
 ### Implementation
 

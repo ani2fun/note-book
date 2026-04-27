@@ -123,14 +123,14 @@ flowchart TB
 
 <p align="center"><strong>Floyd's algorithm in two phases — detect first, then locate the cycle start using the reset-and-walk trick.</strong></p>
 
-> -   **Step 1:** Initialize references \`slow\` and \`fast\` with the head of the list.
-> -   **Step 2:** Loop while \`fast\` and \`fast.next\` are not \`null\` and do the following:
->     -   **Step 2.1:** Move ahead \`slow\` by one step and fast by two steps
->     -   **Step 2.2:** Check if \`slow\` == \`fast\`. If yes, break out of the loop as the list has a cycle.
-> -   **Step 3:** If \`slow\` != \`fast\` it means the list doesn't have a cycle, so terminate. Otherwise, continue to the following steps.
-> -   **Step 4:** Set \`fast\` to the head of the list
-> -   **Step 5:** Loop while \`fast\` and \`slow\` are not equal and move both one step in each iteration
-> -   **Step 6:** Return \`slow\` as the node where the cycle starts.
+> -   **Step 1:** Initialize references `slow` and `fast` with the head of the list.
+> -   **Step 2:** Loop while `fast` and `fast.next` are not `null` and do the following:
+>     -   **Step 2.1:** Move ahead `slow` by one step and fast by two steps
+>     -   **Step 2.2:** Check if `slow` == `fast`. If yes, break out of the loop as the list has a cycle.
+> -   **Step 3:** If `slow` != `fast` it means the list doesn't have a cycle, so terminate. Otherwise, continue to the following steps.
+> -   **Step 4:** Set `fast` to the head of the list
+> -   **Step 5:** Loop while `fast` and `slow` are not equal and move both one step in each iteration
+> -   **Step 6:** Return `slow` as the node where the cycle starts.
 
 ## Implementation
 

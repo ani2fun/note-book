@@ -41,16 +41,16 @@ The generic algorithm given below uses the reverse inorder traversal to process 
 
 > **Algorithm**
 >
-> -   Step 1: Create a variable \`aggregate\` and initialize it with a default value
-> -   Step 2: Call \`reverseInorder(root, aggregate)\`
+> -   Step 1: Create a variable `aggregate` and initialize it with a default value
+> -   Step 2: Call `reverseInorder(root, aggregate)`
 >
 > **reverseInorder(node, \[ref\]aggregate)**
 >
-> -   **Step 1:** If this is a \`null\` node, return
-> -   **Step 2:** Call \`reverseInorder(node.right, aggregate)\`
-> -   **Step 3:** \`output\` = \`f(node.val)\`
-> -   **Step 4:** Use the function \`g\` to add the contribution of \`output\` to \`aggregate\`
-> -   **Step 5:** Call \`reverseInorder(node.left, aggregate)\`
+> -   **Step 1:** If this is a `null` node, return
+> -   **Step 2:** Call `reverseInorder(node.right, aggregate)`
+> -   **Step 3:** `output` = `f(node.val)`
+> -   **Step 4:** Use the function `g` to add the contribution of `output` to `aggregate`
+> -   **Step 5:** Call `reverseInorder(node.left, aggregate)`
 > -   **Step 6:** Return
 
 ## Implementation
@@ -299,7 +299,7 @@ Given a binary search tree, process every node using the function `f` in the re
 
 Let's consider the following problem as an example to better understand how to identify and solve a problem using the reverse sorted traversal technique.
 
-> **Problem statement:** Given a binary search tree, and an integer \`k\`, find the kth largest value in the tree.
+> **Problem statement:** Given a binary search tree, and an integer `k`, find the kth largest value in the tree.
 
 // Diagram: Find the kth largest element in a binary search tree
 
@@ -817,7 +817,7 @@ Given the **root** of a binary search tree, `0` if its successor’s value is a
 
 > -   **Input:** root = \[6, 2, 5, 1, 4, null, 10\]
 > -   **Output:** \[6, 0, 0, 0, 4, null, 10\]
-> -   **Explanation:** After updating all nodes whose successor’s value is a multiple of their own to \`0\`, we obtain the above result.
+> -   **Explanation:** After updating all nodes whose successor’s value is a multiple of their own to `0`, we obtain the above result.
 
 ### Example 2
 

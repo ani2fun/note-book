@@ -153,14 +153,14 @@ The algorithm given below summarizes the linked list split technique to split a 
 
 > **Algorithm**
 >
-> -   **Step 1:** Create two arrays of node references \`dummy\` and \`tails\` of size \`k\` and initialize each item in both arrays with the reference of a newly created dummy node.
-> -   **Step 2:** Create a reference \`current\` and initialize it with the head of the list.
-> -   **Step 3:** Loop while \`current\` != \`null\` and do the following:
->     -   **Step 3.1:** Apply the function \`f\` to the \`current\` node and retrieve \`idx\`, which is the index of the list where this node should be placed.
->     -   **Step 3.2:** Add the \`current\` node to the end of the list stored at \`idx\` using \`tails\` array.
->     -   **Step 3.3:** Update \`tails\[idx\]\` to now store the reference of the new tail node.
->     -   **Step 3.4:** Update the \`current\` pointer to hold the reference of the node after the \`current\` node.
->     -   **Step 3.5:** Set the next section of \`tails\[idx\]\` to \`null\`
+> -   **Step 1:** Create two arrays of node references `dummy` and `tails` of size `k` and initialize each item in both arrays with the reference of a newly created dummy node.
+> -   **Step 2:** Create a reference `current` and initialize it with the head of the list.
+> -   **Step 3:** Loop while `current` != `null` and do the following:
+>     -   **Step 3.1:** Apply the function `f` to the `current` node and retrieve `idx`, which is the index of the list where this node should be placed.
+>     -   **Step 3.2:** Add the `current` node to the end of the list stored at `idx` using `tails` array.
+>     -   **Step 3.3:** Update `tails\[idx\]` to now store the reference of the new tail node.
+>     -   **Step 3.4:** Update the `current` pointer to hold the reference of the node after the `current` node.
+>     -   **Step 3.5:** Set the next section of `tails\[idx\]` to `null`
 > -   **Step 4:** Move all the dummy nodes one step ahead to obtain the heads of the split lists and delete the old dummy nodes.
 
 ## Implementation
@@ -477,7 +477,7 @@ Given a linked list, split it into to `k` lists.
 
 Let's consider the following problem as an example to better understand how to identify and solve a problem using the split technique.
 
-> **Problem statement:** Given a singly linked list and an integer \`k\` split the list into \`k\` lists such that their concatenation results in the original lists. The length of all parts should be equal. If that is not possible, the difference between the size of any two lists should not be greater than one, and the list occurring earlier should have a greater size.
+> **Problem statement:** Given a singly linked list and an integer `k` split the list into `k` lists such that their concatenation results in the original lists. The length of all parts should be equal. If that is not possible, the difference between the size of any two lists should not be greater than one, and the list occurring earlier should have a greater size.
 
 ```mermaid
 ---
@@ -1774,7 +1774,7 @@ fn split_by_modulo(mut head: Option<Box<ListNode>>, k: i32) -> Vec<Option<Box<Li
 
 Given the **head** of a singly linked list and an integer **k**, write a function to split the linked list into k consecutive linked list parts. Your function should return the heads of all the split parts.
 
-> The length of each part should be as equal as possible. No two parts should have a size differing by more than one. This may lead to some parts being \`null\`. The parts should be in the order of occurrence in the input list, and parts occurring earlier should always have a size greater than or equal to parts occurring later.
+> The length of each part should be as equal as possible. No two parts should have a size differing by more than one. This may lead to some parts being `null`. The parts should be in the order of occurrence in the input list, and parts occurring earlier should always have a size greater than or equal to parts occurring later.
 
 ### Example 1
 

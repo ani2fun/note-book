@@ -44,14 +44,14 @@ The algorithm below summarizes the binary search solution to find the maximum va
 
 > **maximumPredicate()**
 >
-> -   **Step 1:** Set \`low\` to the minimum value in the search space
-> -   **Step 2:** Set \`high\` to the maximum value in the problem search space
-> -   **Step 3:** Iterate while \`low\` < \`high\` and do the following:
->     -   **Step 3.1:** Set \`mid\` = \`low\` + (\`high\` - \`low\`) / 2
->     -   **Step 3.2:** If \`p(mid)\` is \`true\`, set \`low\` = \`mid\`
->     -   **Step 3.3:** Otherwiese if \`p(mid)\` is \`false\`, set \`high\` = \`mid\` - 1
-> -   **Step 4:** If \`p(low)\` is \`false\` return an error as there is no \`true\` predicate
-> -   **Step 5:** Return \`low\` as the solution
+> -   **Step 1:** Set `low` to the minimum value in the search space
+> -   **Step 2:** Set `high` to the maximum value in the problem search space
+> -   **Step 3:** Iterate while `low` < `high` and do the following:
+>     -   **Step 3.1:** Set `mid` = `low` + (`high` - `low`) / 2
+>     -   **Step 3.2:** If `p(mid)` is `true`, set `low` = `mid`
+>     -   **Step 3.3:** Otherwiese if `p(mid)` is `false`, set `high` = `mid` - 1
+> -   **Step 4:** If `p(low)` is `false` return an error as there is no `true` predicate
+> -   **Step 5:** Return `low` as the solution
 
 ## Implementation
 
@@ -311,7 +311,7 @@ Given a predicate function that results in a monotonic sequence that flips once 
 
 Let's consider the following problem as an example to better understand how to identify and solve a problem using the maximum predicate search algorithm.
 
-> **Problem statement:** You are given an array \`ribbons\`, where \`ribbons\[i\]\` denotes the length of the \`ith\` ribbon and a non-negative integer \`k\`. You can cut any of the ribbons in any number of segments of positive size or not cut them at all. Write a function to find and return the maximum length of ribbons so that you have \`k\` ribbons of that length. You can ignore any excess ribbons. Return \`0\` if you cannot obtain \`k\` ribbons of the same length.
+> **Problem statement:** You are given an array `ribbons`, where `ribbons\[i\]` denotes the length of the `ith` ribbon and a non-negative integer `k`. You can cut any of the ribbons in any number of segments of positive size or not cut them at all. Write a function to find and return the maximum length of ribbons so that you have `k` ribbons of that length. You can ignore any excess ribbons. Return `0` if you cannot obtain `k` ribbons of the same length.
 
 // Diagram: Find the maximum length of ribbons we can cut to get at least 10 ribbons.
 

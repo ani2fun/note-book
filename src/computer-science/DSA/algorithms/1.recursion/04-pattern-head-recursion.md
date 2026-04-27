@@ -72,11 +72,11 @@ The steps given below summarise the implementation for the generic head recursiv
 
 > **headRecursion(n)**
 >
-> -   **Step 1:** If \`input\` is the base case, return the base case solution
-> -   **Step 2:** Find the input for the next step \`input\` using the function \`h\` and \`n\`
-> -   **Step 3:** Set \`result\` = \`headRecursion (input)\`
-> -   **Step 4:** Find the \`solution\` using \`result\`, \`n\` and the function \`g\`
-> -   **Step 5:** Return \`solution\`
+> -   **Step 1:** If `input` is the base case, return the base case solution
+> -   **Step 2:** Find the input for the next step `input` using the function `h` and `n`
+> -   **Step 3:** Set `result` = `headRecursion (input)`
+> -   **Step 4:** Find the `solution` using `result`, `n` and the function `g`
+> -   **Step 5:** Return `solution`
 
 ## Implementation
 

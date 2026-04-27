@@ -138,11 +138,11 @@ flowchart TB
 
 The algorithm given below outlines the sliding window traversal technique for a window of size k.
 
-> -   **Step 1:** Initialize two references, \`start\` and \`end\` to the head of the list.
-> -   **Step 2:** Iterate k times using a loop and move \`end\` reference k steps ahead
-> -   **Step 3:** Loop while \`end\` != \`null\` and do the following
->     -   **Step 3.1:** Process nodes held in \`start\` and \`end\` as they are k steps apart
->     -   **Step 3.2:** Move both \`start\` and \`end\` one step ahead by setting them to their next nodes.
+> -   **Step 1:** Initialize two references, `start` and `end` to the head of the list.
+> -   **Step 2:** Iterate k times using a loop and move `end` reference k steps ahead
+> -   **Step 3:** Loop while `end` != `null` and do the following
+>     -   **Step 3.1:** Process nodes held in `start` and `end` as they are k steps apart
+>     -   **Step 3.2:** Move both `start` and `end` one step ahead by setting them to their next nodes.
 
 ## Implementation
 
@@ -407,7 +407,7 @@ Given a list, perform some operation on a node at a distance `k` from the end 
 
 Let's consider the following problem as an example to better understand how to identify and solve a problem using the simultaneous traversal technique
 
-> **Problem statement:** Given a list and a value \`k\` remove the kth node from the end.
+> **Problem statement:** Given a list and a value `k` remove the kth node from the end.
 
 ```d2
 before: "Before — remove the 3rd node from the end" {

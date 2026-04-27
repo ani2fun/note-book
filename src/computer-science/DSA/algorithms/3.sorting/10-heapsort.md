@@ -50,9 +50,9 @@ After this phase, the largest element in the array is guaranteed to be at the ro
 
 Once the max heap is built, the algorithm repeatedly extracts the largest element and places it at its correct position in the array. The algorithm iterates over `i` from `n-1` down to `1`. In each iteration:
 
-> -   The root element \`arr\[0\]\`, which is the largest element in the heap, is swapped with \`arr\[i\]\`.
-> -   The heap size is reduced by one, as the element at index \`i\` is now in its final sorted position.
-> -   Call \`heapify(arr, i, 0)\` to restore the max heap property in the remaining unsorted portion of the array.
+> -   The root element `arr\[0\]`, which is the largest element in the heap, is swapped with `arr\[i\]`.
+> -   The heap size is reduced by one, as the element at index `i` is now in its final sorted position.
+> -   Call `heapify(arr, i, 0)` to restore the max heap property in the remaining unsorted portion of the array.
 
 **Why do we reduce the heap size after each swap?**
 
@@ -68,8 +68,8 @@ The heapify function is responsible for maintaining the **max heap property** fo
 
 The algorithm begins by assuming that the element at `index` is the largest and stores this index in a variable `largest`. It then calculates the indices of the left and right children:
 
-> -   \`left = 2 \* index + 1\`
-> -   \`right = 2 \* index + 2\`
+> -   `left = 2 \* index + 1`
+> -   `right = 2 \* index + 2`
 
 // Diagram: Index, left child, right child, and largest indices in the array, and their representation in the heap
 
@@ -91,26 +91,26 @@ Below is the full second step: using the array obtained after building the max h
 >
 > **heapify(\[ref\] arr, n, index)**
 >
-> -   **Step 1:** Set \`largest = index\`
+> -   **Step 1:** Set `largest = index`
 > -   **Step 2:** Compute the child indices
->     -   **Step 2.1:** \`left = 2 \* index + 1\`
->     -   **Step 2.2:** \`right = 2 \* index + 2\`
-> -   **Step 3:** If \`left < n\` and \`arr\[left\] > arr\[largest\]\`
->     -   **Step 3.1:** Update \`largest = left\`
-> -   **Step 4:** If \`right < n\` and \`arr\[right\] > arr\[largest\]\`
->     -   **Step 4.1:** Update \`largest = right\`
-> -   **Step 5:** If \`largest != index\`
->     -   **Step 5.1:** Swap \`arr\[index\]\` and \`arr\[largest\]\`
->     -   **Step 5.2:** Recursively call \`heapify(arr, n, largest)\`
+>     -   **Step 2.1:** `left = 2 \* index + 1`
+>     -   **Step 2.2:** `right = 2 \* index + 2`
+> -   **Step 3:** If `left < n` and `arr\[left\] > arr\[largest\]`
+>     -   **Step 3.1:** Update `largest = left`
+> -   **Step 4:** If `right < n` and `arr\[right\] > arr\[largest\]`
+>     -   **Step 4.1:** Update `largest = right`
+> -   **Step 5:** If `largest != index`
+>     -   **Step 5.1:** Swap `arr\[index\]` and `arr\[largest\]`
+>     -   **Step 5.2:** Recursively call `heapify(arr, n, largest)`
 >
 > **heapSort(\[ref\] arr)**
 >
-> -   **Step 1:** Let \`n = arr.size()\`
-> -   **Step 2:** For \`i = n/2 - 1\` down to \`0\`
->     -   **Step 2.1:** Call \`heapify(arr, n, i)\`
-> -   **Step 4:** For \`i = n - 1\` down to \`1\`
->     -   **Step 4.1:** Swap \`arr\[0\]\` with \`arr\[i\]\`
->     -   **Step 4.2:** Call \`heapify(arr, i, 0)\` to restore heap
+> -   **Step 1:** Let `n = arr.size()`
+> -   **Step 2:** For `i = n/2 - 1` down to `0`
+>     -   **Step 2.1:** Call `heapify(arr, n, i)`
+> -   **Step 4:** For `i = n - 1` down to `1`
+>     -   **Step 4.1:** Swap `arr\[0\]` with `arr\[i\]`
+>     -   **Step 4.2:** Call `heapify(arr, i, 0)` to restore heap
 
 ## Implementation
 

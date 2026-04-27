@@ -198,27 +198,27 @@ The algorithm for the implementation of a forward iterator of a binary search tr
 >
 > **constructor(root):**
 >
-> -   **Step 1:** Initialize a stack \`stack\` to hold references of tree nodes as a member variable
-> -   **Step 2:** Call \`pushAllLeft(root)\`
+> -   **Step 1:** Initialize a stack `stack` to hold references of tree nodes as a member variable
+> -   **Step 2:** Call `pushAllLeft(root)`
 >
 > **pushAllLeft(node):**
 >
-> -   **Step 1:** Repeat the following steps while \`node\` is not a \`null\` reference:
->     -   **Step 1.1:** Push \`node\` onto the \`stack\`
->     -   **Step 1.2:** Set \`node\` to \`node.left\`
+> -   **Step 1:** Repeat the following steps while `node` is not a `null` reference:
+>     -   **Step 1.1:** Push `node` onto the `stack`
+>     -   **Step 1.2:** Set `node` to `node.left`
 >
 > **hasNext():**
 >
-> -   **Step 1:** Return \`true\` if \`stack\` is not empty otherwise return \`false\`
+> -   **Step 1:** Return `true` if `stack` is not empty otherwise return `false`
 >
 > **next():**
 >
 > -   **Step 1:** If there are no more elements in the stack
->     -   **Step 1.1:** Return \`null\`
-> -   **Step 2:** Initialize a local variable \`node\` with the node at the top of the \`stack\`
-> -   **Step 3:** Pop the item at the top of \`stack\`
-> -   **Step 4:** Call \`pushAllLeft(node.right)\`
-> -   **Step 5:** Return \`node\`
+>     -   **Step 1.1:** Return `null`
+> -   **Step 2:** Initialize a local variable `node` with the node at the top of the `stack`
+> -   **Step 3:** Pop the item at the top of `stack`
+> -   **Step 4:** Call `pushAllLeft(node.right)`
+> -   **Step 5:** Return `node`
 
 ## Implementation
 
@@ -550,12 +550,12 @@ We only keep all the nodes in the path from the root node to the node coming up 
 > **Best Case** - The binary search tree is height-balanced
 >
 > -   Space Complexity - **O(logN)**
-> -   Time Complexity of \`next()\` - **Amortized O(1)**
+> -   Time Complexity of `next()` - **Amortized O(1)**
 >
 > **Worst Case** - The binary search tree is degenerate
 >
 > -   Space Complexity - **O(N)**
-> -   Time Complexity of \`next()\` - **Amortized O(1)**
+> -   Time Complexity of `next()` - **Amortized O(1)**
 
 ***
 
@@ -586,25 +586,25 @@ Given the skeleton of a **ForwardBstIterator class** that helps iterate through
 >
 > **Explanation:**
 >
-> **Operation:** ForwardBstIterator forwardBstIterator = new ForwardBstIterator(\[7, 3, 15, null, null, 9, 20\]) **Result:** Initializes a \`ForwardBstIterator\` for the given BST
+> **Operation:** ForwardBstIterator forwardBstIterator = new ForwardBstIterator(\[7, 3, 15, null, null, 9, 20\]) **Result:** Initializes a `ForwardBstIterator` for the given BST
 >
-> **Operation:** forwardBstIterator.next() **Result:** Returns \`3\`
+> **Operation:** forwardBstIterator.next() **Result:** Returns `3`
 >
-> **Operation:** forwardBstIterator.next() **Result:** Returns \`7\`
+> **Operation:** forwardBstIterator.next() **Result:** Returns `7`
 >
-> **Operation:** forwardBstIterator.hasNext() **Result:** Returns \`true\`
+> **Operation:** forwardBstIterator.hasNext() **Result:** Returns `true`
 >
-> **Operation:** forwardBstIterator.next() **Result:** Returns \`9\`
+> **Operation:** forwardBstIterator.next() **Result:** Returns `9`
 >
-> **Operation:** forwardBstIterator.hasNext() **Result:** Returns \`true\`
+> **Operation:** forwardBstIterator.hasNext() **Result:** Returns `true`
 >
-> **Operation:** forwardBstIterator.next() **Result:** Returns \`15\`
+> **Operation:** forwardBstIterator.next() **Result:** Returns `15`
 >
-> **Operation:** forwardBstIterator.hasNext() **Result:** Returns \`true\`
+> **Operation:** forwardBstIterator.hasNext() **Result:** Returns `true`
 >
-> **Operation:** forwardBstIterator.next() **Result:** Returns \`20\`
+> **Operation:** forwardBstIterator.next() **Result:** Returns `20`
 >
-> **Operation:** forwardBstIterator.hasNext() **Result:** Returns \`false\`
+> **Operation:** forwardBstIterator.hasNext() **Result:** Returns `false`
 
 ## Solution
 
@@ -704,27 +704,27 @@ The algorithm for the implementation of a reverse iterator of a binary search tr
 >
 > **constructor(root):**
 >
-> -   **Step 1:** Initialize a stack \`stack\` to hold references of tree nodes as a member variable
-> -   **Step 2:** Call \`pushAllRight(root)\`
+> -   **Step 1:** Initialize a stack `stack` to hold references of tree nodes as a member variable
+> -   **Step 2:** Call `pushAllRight(root)`
 >
 > **pushAllRight(node):**
 >
-> -   **Step 1:** Repeat the following steps while \`node\` is not a \`null\` reference:
->     -   **Step 1.1:** Push \`node\` onto the \`stack\`
->     -   **Step 1.2:** Set \`node\` to \`node.right\`
+> -   **Step 1:** Repeat the following steps while `node` is not a `null` reference:
+>     -   **Step 1.1:** Push `node` onto the `stack`
+>     -   **Step 1.2:** Set `node` to `node.right`
 >
 > **hasNext():**
 >
-> -   **Step 1:** Return \`true\` if \`stack\` is not empty otherwise return \`false\`
+> -   **Step 1:** Return `true` if `stack` is not empty otherwise return `false`
 >
 > **next():**
 >
 > -   **Step 1:** If there are no more elements in the stack
->     -   **Step 1.1:** Return \`null\`
-> -   **Step 2:** Initialize a local variable \`node\` with the node at the top of the \`stack\`
-> -   **Step 3:** Pop the item at the top of \`stack\`
-> -   **Step 4:** Call \`pushAllRight(node.left)\`
-> -   **Step 5:** Return \`node\`
+>     -   **Step 1.1:** Return `null`
+> -   **Step 2:** Initialize a local variable `node` with the node at the top of the `stack`
+> -   **Step 3:** Pop the item at the top of `stack`
+> -   **Step 4:** Call `pushAllRight(node.left)`
+> -   **Step 5:** Return `node`
 
 ## Implementation
 
@@ -1056,12 +1056,12 @@ We only keep all the nodes in the path from the root node to the node coming up 
 > **Best Case** - The binary search tree is height-balanced
 >
 > -   Space Complexity - **O(logN)**
-> -   Time Complexity of \`next()\` - **Amortized O(1)**
+> -   Time Complexity of `next()` - **Amortized O(1)**
 >
 > **Worst Case** - The binary search tree is degenerate
 >
 > -   Space Complexity - **O(N)**
-> -   Time Complexity of \`next()\` - **Amortized O(1)**
+> -   Time Complexity of `next()` - **Amortized O(1)**
 
 ***
 
@@ -1092,25 +1092,25 @@ Given the skeleton of a **ReverseBstIterator class** that helps iterate through
 >
 > **Explanation:**
 >
-> **Operation:** ReverseBstIterator reverseBstIterator = new ReverseBstIterator(\[7, 3, 15, null, null, 9, 20\]) **Result:** Initializes a \`ReverseBstIterator\` for the given BST
+> **Operation:** ReverseBstIterator reverseBstIterator = new ReverseBstIterator(\[7, 3, 15, null, null, 9, 20\]) **Result:** Initializes a `ReverseBstIterator` for the given BST
 >
-> **Operation:** reverseBstIterator.next() **Result:** Returns \`20\`
+> **Operation:** reverseBstIterator.next() **Result:** Returns `20`
 >
-> **Operation:** reverseBstIterator.next() **Result:** Returns \`15\`
+> **Operation:** reverseBstIterator.next() **Result:** Returns `15`
 >
-> **Operation:** reverseBstIterator.hasNext() **Result:** Returns \`true\`
+> **Operation:** reverseBstIterator.hasNext() **Result:** Returns `true`
 >
-> **Operation:** reverseBstIterator.next() **Result:** Returns \`9\`
+> **Operation:** reverseBstIterator.next() **Result:** Returns `9`
 >
-> **Operation:** reverseBstIterator.hasNext() **Result:** Returns \`true\`
+> **Operation:** reverseBstIterator.hasNext() **Result:** Returns `true`
 >
-> **Operation:** reverseBstIterator.next() **Result:** Returns \`7\`
+> **Operation:** reverseBstIterator.next() **Result:** Returns `7`
 >
-> **Operation:** reverseBstIterator.hasNext() **Result:** Returns \`true\`
+> **Operation:** reverseBstIterator.hasNext() **Result:** Returns `true`
 >
-> **Operation:** reverseBstIterator.next() **Result:** Returns \`3\`
+> **Operation:** reverseBstIterator.next() **Result:** Returns `3`
 >
-> **Operation:** reverseBstIterator.hasNext() **Result:** Returns \`false\`
+> **Operation:** reverseBstIterator.hasNext() **Result:** Returns `false`
 
 ## Solution
 

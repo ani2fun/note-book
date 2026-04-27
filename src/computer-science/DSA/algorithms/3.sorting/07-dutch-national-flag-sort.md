@@ -57,18 +57,18 @@ Now that we have explored the significance, advantages, and limitations of the D
 
 The Dutch National Flag algorithm is designed to sort an array containing only three distinct values (commonly `0`, `1`, and `2`) by partitioning the array into three sections and expanding them as the algorithm progresses. The algorithm uses three pointers to keep track of the boundaries between the sections.
 
-> -   The \`left\` pointer is set to \`0\` and marks the boundary of the section containing elements equal to \`0\`.
-> -   The \`mid\` pointer is set to \`0\` and is used to traverse the array.
-> -   The \`right\` pointer is set to \`n - 1\` and marks the boundary of the section containing the elements equal to \`2\`.
+> -   The `left` pointer is set to `0` and marks the boundary of the section containing elements equal to `0`.
+> -   The `mid` pointer is set to `0` and is used to traverse the array.
+> -   The `right` pointer is set to `n - 1` and marks the boundary of the section containing the elements equal to `2`.
 
 // Diagram: Set the left, mid and right pointers
 
 At any point during execution, the array maintains the following structure:
 
-> -   Elements from index \`0\` to \`left - 1\` are all \`0s\` (sorted smallest section).
-> -   Elements from index \`left\` to \`mid - 1\` are all \`1s\` (sorted middle section).
-> -   Elements from index \`mid\` to \`right\` are unsorted.
-> -   Elements from index \`right + 1\` to \`n - 1\` are all \`2s\` (sorted largest section).
+> -   Elements from index `0` to `left - 1` are all `0s` (sorted smallest section).
+> -   Elements from index `left` to `mid - 1` are all `1s` (sorted middle section).
+> -   Elements from index `mid` to `right` are unsorted.
+> -   Elements from index `right + 1` to `n - 1` are all `2s` (sorted largest section).
 
 // Diagram: The smallest, middle, unsorted and largest sections in the array
 
@@ -86,9 +86,9 @@ When the element at `mid` index is `0`, it needs to be moved to the front secti
 
 > Take the following steps:
 >
-> -   Swap \`arr\[mid\]\` with \`arr\[left\]\` to place the smallest value into its correct section.
-> -   The \`mid\` pointer is incremented to continue scanning the next element.
-> -   The \`left\` pointer is also incremented by one, expanding the sorted section of smallest elements
+> -   Swap `arr\[mid\]` with `arr\[left\]` to place the smallest value into its correct section.
+> -   The `mid` pointer is incremented to continue scanning the next element.
+> -   The `left` pointer is also incremented by one, expanding the sorted section of smallest elements
 
 This ensures that the `0` is placed in its correct region while preserving the sorted structure of previously processed elements.
 
@@ -100,7 +100,7 @@ When the element at `mid` index is `1`, it belongs to the middle section. It i
 
 > Take the following steps:
 >
-> -   The \`mid\` pointer is incremented to continue scanning the next element.
+> -   The `mid` pointer is incremented to continue scanning the next element.
 
 This step makes the Dutch National Flag algorithm more efficient: middle elements do not require unnecessary swaps, keeping it fast and simple.
 
@@ -112,8 +112,8 @@ When the element at `mid` index is `2`,  it belongs to the largest section. It 
 
 > Take the following steps:
 >
-> -   Swap \`arr\[mid\]\` with the element at the \`arr\[right\]\` to move the largest value toward its correct section.
-> -   The \`right\` pointer is decremented by one, shrinking the unsorted section from the end.
+> -   Swap `arr\[mid\]` with the element at the `arr\[right\]` to move the largest value toward its correct section.
+> -   The `right` pointer is decremented by one, shrinking the unsorted section from the end.
 
 **Why do we not increment `mid` in this case?**
 
@@ -127,17 +127,17 @@ This process continues until the `mid` pointer surpasses the `right` pointer, at
 
 > **Algorithm**
 >
-> -   **Step 1:** Initialize the three pointers \`left = 0\`, \`mid = 0\`, and \`right = n - 1\`.
-> -   **Step 2:** Iterate while \`mid <= right\`:
->     -   **Step 2.1:** If \`arr\[mid\] == 0\`.
->         -   **Step 2.1.2:** Swap \`arr\[mid\]\` with \`arr\[left\]\`
->         -   **Step 2.1.3:** Increment \`mid\` to evaluate the next element
->         -   **Step 2.1.4:** Increment \`left\` to extend the sorted smallest region
->     -   **Step 2.2:** If \`arr\[mid\] == 1\`.
->         -   **Step 2.2.1:** Increment \`mid\` to evaluate the next element
->     -   **Step 2.3:** If \`arr\[mid\] == 2\`.
->         -   **Step 2.3.1:** Swap \`arr\[mid\]\` with \`arr\[right\]\`
->         -   **Step 2.3.2:** Decrement \`right\` to shrink the sorted largest region
+> -   **Step 1:** Initialize the three pointers `left = 0`, `mid = 0`, and `right = n - 1`.
+> -   **Step 2:** Iterate while `mid <= right`:
+>     -   **Step 2.1:** If `arr\[mid\] == 0`.
+>         -   **Step 2.1.2:** Swap `arr\[mid\]` with `arr\[left\]`
+>         -   **Step 2.1.3:** Increment `mid` to evaluate the next element
+>         -   **Step 2.1.4:** Increment `left` to extend the sorted smallest region
+>     -   **Step 2.2:** If `arr\[mid\] == 1`.
+>         -   **Step 2.2.1:** Increment `mid` to evaluate the next element
+>     -   **Step 2.3:** If `arr\[mid\] == 2`.
+>         -   **Step 2.3.1:** Swap `arr\[mid\]` with `arr\[right\]`
+>         -   **Step 2.3.2:** Decrement `right` to shrink the sorted largest region
 
 ## Implementation
 

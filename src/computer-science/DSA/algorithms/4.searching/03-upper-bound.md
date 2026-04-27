@@ -50,9 +50,9 @@ By systematically narrowing the search while accounting for the possibility that
 
 > -   **Step 1:** Start with the full list of student scores included in the search.
 > -   **Step 2:** Check the score at the midpoint of the current search range.
->     -   **Step 2.1:** If the middle score is less than or equal to \`85\`, for example, \`78\` or \`85\`, eliminate the middle position and all scores below it, then continue searching in the second half, since the first element strictly greater than 85 must be higher up.
->     -   **Step 2.2:** If the middle score is greater than \`85\`, for example, \`92\`, keep the middle position in the search space and continue searching in the first half, because this could be the first element strictly greater than \`85\`.
-> -   **Step 3:** Repeat Step 2 until the search space cannot be divided further. The left boundary at this point points to the first element strictly greater than \`85\`, which is the upper bound.
+>     -   **Step 2.1:** If the middle score is less than or equal to `85`, for example, `78` or `85`, eliminate the middle position and all scores below it, then continue searching in the second half, since the first element strictly greater than 85 must be higher up.
+>     -   **Step 2.2:** If the middle score is greater than `85`, for example, `92`, keep the middle position in the search space and continue searching in the first half, because this could be the first element strictly greater than `85`.
+> -   **Step 3:** Repeat Step 2 until the search space cannot be divided further. The left boundary at this point points to the first element strictly greater than `85`, which is the upper bound.
 
 ## Advantages
 
@@ -80,8 +80,8 @@ The strategy from the earlier example could be used to create an algorithm. To e
 
 The upper-bound algorithm is used to find the first position in a sorted array where a given target value can be exceeded. In other words, it returns the index of the first element that is strictly greater than the target value. This is useful for insertion, range queries, and counting elements greater than a value. The algorithm begins by initializing two indices that define the current search range in which the upper-bound may exist.
 
-> -   \`low\` is set to the first index of the array i.e \`0\`.
-> -   \`high\` is set to the last index of the array i.e \`arr.size()\` (one position past the last valid index).
+> -   `low` is set to the first index of the array i.e `0`.
+> -   `high` is set to the last index of the array i.e `arr.size()` (one position past the last valid index).
 
 These indices define a **half-open** search range `[low, high)`, where `low` is inclusive and `high` is exclusive.
 
@@ -101,7 +101,7 @@ In upper bound, we also use `low < high` because the search range is treated as 
 
 Inside the loop, the middle index is calculated as:
 
-> -   \`mid = low + (high - low ) / 2\`
+> -   `mid = low + (high - low ) / 2`
 
 **Why is the middle index calculated as** `mid = low + (high - low) / 2` **instead of** mid = (low + high) / 2 ?
 
@@ -143,14 +143,14 @@ If the target is larger than all existing elements in the array, the upper bound
 
 > **Algorithm**
 >
-> -   **Step 1:** Initialize search boundaries, set \`low = 0\`, \`high = arr.size() \`
-> -   **Step 2:** Iterate while \`low < high\`
->     -   **Step 2.1:** Calculate middle index \`mid = low + (high - low) / 2\`
->     -   **Step 2.2:** If \`arr\[mid\] <= target\`:
->         -   **Step 2.2.1:** Set \`low = mid + 1\`
+> -   **Step 1:** Initialize search boundaries, set `low = 0`, `high = arr.size() `
+> -   **Step 2:** Iterate while `low < high`
+>     -   **Step 2.1:** Calculate middle index `mid = low + (high - low) / 2`
+>     -   **Step 2.2:** If `arr\[mid\] <= target`:
+>         -   **Step 2.2.1:** Set `low = mid + 1`
 >     -   **Step 2.3:** Else:
->         -   **Step 2.3.1:** Set \`high = mid\`
-> -   **Step 3:** Return \`low\`
+>         -   **Step 2.3.1:** Set `high = mid`
+> -   **Step 3:** Return `low`
 
 ## Implementation
 

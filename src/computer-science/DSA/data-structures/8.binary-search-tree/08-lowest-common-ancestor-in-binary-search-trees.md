@@ -45,12 +45,12 @@ Let's look at an example to understand it better.
 >
 > **lowestCommonAncestor(node, nodeA, nodeB):**
 >
-> -   **Step 1:** If \`node\` == \`null\` or \`node\` == \`nodeA\` or \`node\` == \`nodeB\`, return \`node\`
-> -   **Step 2:** If \`node.val\` > \`nodeA.val\` and \`node.val\` > \`nodeB.val\`:
->     -   **Step 2.1:** Return the value returned by \`lowestCommonAncestor(root.left, nodeA, nodeB)\`
-> -   **Step 3:** If \`node.val\` < \`nodeA.val\` and \`node.val\` < \`nodeB.val\`:
->     -   **Step 3.1:** Return the value returned by \`lowestCommonAncestor(root.right, nodeA, nodeB)\`
-> -   **Step 4:** return \`node\`
+> -   **Step 1:** If `node` == `null` or `node` == `nodeA` or `node` == `nodeB`, return `node`
+> -   **Step 2:** If `node.val` > `nodeA.val` and `node.val` > `nodeB.val`:
+>     -   **Step 2.1:** Return the value returned by `lowestCommonAncestor(root.left, nodeA, nodeB)`
+> -   **Step 3:** If `node.val` < `nodeA.val` and `node.val` < `nodeB.val`:
+>     -   **Step 3.1:** Return the value returned by `lowestCommonAncestor(root.right, nodeA, nodeB)`
+> -   **Step 4:** return `node`
 
 ## Implementation
 

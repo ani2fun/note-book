@@ -36,10 +36,10 @@ The recursive insertion of a node with the given value in a binary search tree c
 
 > **Algorithm**
 >
-> -   **Step 1:** If the \`current\` node is \`null\`, create a new node and return it (base case).
-> -   **Step 2:** If the \`current\` node's value exceeds the new value, recursively call the insert operation on the \`left\` subtree and store its result in the \`left\` child.
-> -   **Step 3:** Else, if the \`current\` node's value is less than the new value, recursively call the insert operation on the \`right\` subtree and store its result in the \`right\` child.
-> -   **Step 4:** Return the \`current\` node when the recursion exits.
+> -   **Step 1:** If the `current` node is `null`, create a new node and return it (base case).
+> -   **Step 2:** If the `current` node's value exceeds the new value, recursively call the insert operation on the `left` subtree and store its result in the `left` child.
+> -   **Step 3:** Else, if the `current` node's value is less than the new value, recursively call the insert operation on the `right` subtree and store its result in the `right` child.
+> -   **Step 4:** Return the `current` node when the recursion exits.
 
 ## Implementation
 
@@ -360,13 +360,13 @@ The iterative insertion of a node with the given value in a binary search tree c
 
 > **Algorithm**
 >
-> -   **Step 1:** Store the reference of the root node in a new variable called \`current\`.
-> -   **Step 2:** While \`current\` is not \`null\`, do the following:
->     -   **Step 2.1:** If the \`current\` node's value exceeds the new value, do the following:
->         -   **Step 2.1.1**: If the \`current\` node's \`left\` child is \`null\`, insert data as the \`left\` child. Otherwise, move to the \`left\` child and continue searching.
->     -   **Step 2.2:** Else, if the \`current\` node's value is less than or equal to the new value, do the following:
->         -   **Step 2.2.1:** If the \`current\` node's \`right\` child is \`null\`, insert data as the right child. Otherwise, move to the \`right\` child and continue searching.
-> -   **Step 3:** Return the tree's \`root\` after the successful insertion.
+> -   **Step 1:** Store the reference of the root node in a new variable called `current`.
+> -   **Step 2:** While `current` is not `null`, do the following:
+>     -   **Step 2.1:** If the `current` node's value exceeds the new value, do the following:
+>         -   **Step 2.1.1**: If the `current` node's `left` child is `null`, insert data as the `left` child. Otherwise, move to the `left` child and continue searching.
+>     -   **Step 2.2:** Else, if the `current` node's value is less than or equal to the new value, do the following:
+>         -   **Step 2.2.1:** If the `current` node's `right` child is `null`, insert data as the right child. Otherwise, move to the `right` child and continue searching.
+> -   **Step 3:** Return the tree's `root` after the successful insertion.
 
 ## Implementation
 

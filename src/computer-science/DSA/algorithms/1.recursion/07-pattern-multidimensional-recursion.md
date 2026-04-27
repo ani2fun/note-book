@@ -100,13 +100,13 @@ The steps given below summarise the implementation for the generic multidimensio
 
 > **multiDimensionalRecursion(d1, d2, . . ., dn)**
 >
-> -   **Step 1:** If \`d1, d2, . . ., dn\` is the base case, return known solution
-> -   **Step 2:** Initialize \`solution\` to a default value
-> -   **Step 3:** \`shifts\` = Call \`S(d1, d2, . . ., dn)\`
-> -   **Step 4:** Iterate in the list \`shifts\` using a variable \`i\` and do the following:
->     -   **Step 4.1:** \`result\` = Call \`multipleRecursion(d1 + shifts\[i\]\[0\], d2 + shifts\[i\]\[1\], . . . , dn + shifts\[i\]\[n-1\])\`
->     -   **Step 4.2:** Add the contribution of \`result\` in \`solution\` using the function \`G\`
-> -   **Step 4:** Return \`solution\`
+> -   **Step 1:** If `d1, d2, . . ., dn` is the base case, return known solution
+> -   **Step 2:** Initialize `solution` to a default value
+> -   **Step 3:** `shifts` = Call `S(d1, d2, . . ., dn)`
+> -   **Step 4:** Iterate in the list `shifts` using a variable `i` and do the following:
+>     -   **Step 4.1:** `result` = Call `multipleRecursion(d1 + shifts\[i\]\[0\], d2 + shifts\[i\]\[1\], . . . , dn + shifts\[i\]\[n-1\])`
+>     -   **Step 4.2:** Add the contribution of `result` in `solution` using the function `G`
+> -   **Step 4:** Return `solution`
 
 ## Implementation
 
@@ -452,9 +452,9 @@ If the recursive equation for a problem fits in the template of the generic mult
 
 Let's consider the following problem as an example to better understand how to identify and solve a problem using multidimensional recursion.
 
-> **Problem statement:** Given \`N\` and \`K\`, recursively find the value of **N choose K**
+> **Problem statement:** Given `N` and `K`, recursively find the value of **N choose K**
 >
-> In mathematics, the binomial coefficient of \`N\` from \`K\` is the number of ways of selecting \`K\` elements out of a set of \`N\` elements, which is also called **N choose K**.
+> In mathematics, the binomial coefficient of `N` from `K` is the number of ways of selecting `K` elements out of a set of `N` elements, which is also called **N choose K**.
 
 // Diagram: Find the value of N choose K for N = 5 and K = 3.
 

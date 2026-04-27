@@ -738,7 +738,7 @@ Deleting the last node is the same as deleting the first node when only one node
 > **Algorithm**
 >
 > -   **Step 1:** Delete the head node to free up memory.
-> -   **Step 2:** Return \`null\` as the list is now empty.
+> -   **Step 2:** Return `null` as the list is now empty.
 
 ## 3\. The list has more than one node
 
@@ -805,8 +805,8 @@ before -> after: "unlink tail"
 
 > **Algorithm**
 >
-> -   **Step 1:** Traverse the list while keeping track of the \`current\` and \`previous\` nodes until reaching the last node.
-> -   **Step 2:** Set the \`next\` pointer of the \`previous\` node to \`null\`.
+> -   **Step 1:** Traverse the list while keeping track of the `current` and `previous` nodes until reaching the last node.
+> -   **Step 2:** Set the `next` pointer of the `previous` node to `null`.
 > -   **Step 3:** Delete the last node to free up memory.
 > -   **Step 4:** Return the original head node.
 
@@ -1756,9 +1756,9 @@ before -> after: "prev.next = current.next; free current"
 
 > **Algorithm**
 >
-> -   **Step 1:** Traverse the list, keeping track of \`current\` and \`previous\` nodes until reaching the \`given\` node.
-> -   **Step 2:** Set the \`previous\` node's \`next\` pointer to hold the node's reference stored in the \`next\` pointer of the \`current\` node.
-> -   **Step 3:** Delete the \`current\` node to free up memory.
+> -   **Step 1:** Traverse the list, keeping track of `current` and `previous` nodes until reaching the `given` node.
+> -   **Step 2:** Set the `previous` node's `next` pointer to hold the node's reference stored in the `next` pointer of the `current` node.
+> -   **Step 3:** Delete the `current` node to free up memory.
 > -   **Step 4:** Return the original head node.
 
 ## 4\. The node to be deleted could not be found
@@ -1798,7 +1798,7 @@ n4.next -> result: "" {style.stroke-dash: 3}
 
 > **Algorithm**
 >
-> -   **Step 1:** Traverse the list, keeping track of \`current\` and \`previous\` nodes until reaching the \`given\` node.
+> -   **Step 1:** Traverse the list, keeping track of `current` and `previous` nodes until reaching the `given` node.
 > -   **Step 2:** Return the original head node.
 
 ## Implementation
@@ -3406,8 +3406,8 @@ before -> after: "one pointer hop"
 
 > **Algorithm:**
 >
-> -   **Step 1:** Create a temporary pointer to store the reference of the node after the \`given\` node.
-> -   **Step 2:** Set the \`next\` pointer of the \`given\` node to hold the node's reference stored in the \`next\` pointer of the node after the \`given\` node.
+> -   **Step 1:** Create a temporary pointer to store the reference of the node after the `given` node.
+> -   **Step 2:** Set the `next` pointer of the `given` node to hold the node's reference stored in the `next` pointer of the node after the `given` node.
 > -   **Step 3:** Delete the node after the given node to free up memory.
 > -   **Step 4:** Return the original head node.
 
@@ -3886,9 +3886,9 @@ before -> after: "prev.next = current.next; free current"
 
 > **Algorithm**
 >
-> -   **Step 1:** Traverse the list, keeping track of \`current\`, \`previous\` and \`previousToPrevious\` nodes until reaching the given node.
-> -   **Step 2:** Set the \`previousToPrevious\` node's \`next\` pointer to hold the reference of the \`current\` node.
-> -   **Step 3:** Delete the \`previous\` node to free up memory.
+> -   **Step 1:** Traverse the list, keeping track of `current`, `previous` and `previousToPrevious` nodes until reaching the given node.
+> -   **Step 2:** Set the `previousToPrevious` node's `next` pointer to hold the reference of the `current` node.
+> -   **Step 3:** Delete the `previous` node to free up memory.
 > -   **Step 4:** Return the original head node.
 
 ## Implementation
@@ -4591,9 +4591,9 @@ before -> after: "prev.next = current.next; free current"
 
 > **Algorithm**
 >
-> -   **Step 1:** Traverse the list, keeping track of \`current\` and \`previous\` nodes until reaching the given node.
-> -   **Step 2:** Set the \`previous\` node's \`next\` pointer to hold the node's reference stored in the \`next\` pointer of the \`current\` node.
-> -   **Step 3:** Delete the \`current\` node to free up memory.
+> -   **Step 1:** Traverse the list, keeping track of `current` and `previous` nodes until reaching the given node.
+> -   **Step 2:** Set the `previous` node's `next` pointer to hold the node's reference stored in the `next` pointer of the `current` node.
+> -   **Step 3:** Delete the `current` node to free up memory.
 > -   **Step 4:** Return the original head node.
 
 ## Implementation
@@ -5245,9 +5245,9 @@ before -> after: "walk X−1 hops to predecessor; prev.next = prev.next.next"
 
 > **Algorithm**
 >
-> -   **Step 1:** Traverse the distance X - 1 while keeping track of the \`current\` node.
-> -   **Step 2:** Set the \`next\` pointer of the \`current\` node to hold the node's reference stored in the \`next\` pointer of the node to be deleted.
-> -   **Step 3:** Delete the node after the \`current\` node to free up memory.
+> -   **Step 1:** Traverse the distance X - 1 while keeping track of the `current` node.
+> -   **Step 2:** Set the `next` pointer of the `current` node to hold the node's reference stored in the `next` pointer of the node to be deleted.
+> -   **Step 3:** Delete the node after the `current` node to free up memory.
 > -   **Step 4:** Return the original head node.
 
 ## 4\. X >= the size of the list
@@ -5286,7 +5286,7 @@ n2.next -> result: "" {style.stroke-dash: 3}
 
 > **Algorithm**
 >
-> -   **Step 1:** Traverse the distance X - 1 while keeping track of the \`current\` node.
+> -   **Step 1:** Traverse the distance X - 1 while keeping track of the `current` node.
 > -   **Step 2:** Return the original head node.
 
 ## Implementation
