@@ -33,26 +33,24 @@ Inserting at the beginning of a linked list is a fundamental and commonly used o
 
 In this scenario, if the linked list is empty, the **head** would be `null`. We need to initialize the **head** node of the linked list and ensure that the pointer of this newly created **head** node is `null`, as this new node will also be the last node of the list.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph BEFORE["Before — empty list"]
-        H1(["head = null"])
-    end
-    subgraph AFTER["After — insert val=6"]
-        H2(["head"]) --> N["val: 6<br/>next: null"]
-    end
-    BEFORE -->|"create new node,<br/>head = newNode"| AFTER
+```d2
+before: "Before — empty list" {
+  h1: "head = null" {shape: oval}
+}
+
+after: "After — insert val=6" {
+  direction: right
+  h2: head {shape: oval}
+  n: {
+    val: 6
+    next: "null"
+    style.fill: "#dcfce7"
+    style.stroke: "#16a34a"
+  }
+  h2 -> n.val
+}
+
+before -> after: "create new node,\nhead = newNode"
 ```
 
 <p align="center"><strong>Case 1 — empty list: create a single node and make it the head; its <code>next</code> is <code>null</code> since it is also the tail.</strong></p>
@@ -67,29 +65,37 @@ flowchart LR
 
 In this scenario, we already have some data in the linked list, so the **head** is not `null`. Therefore, to insert a new node at the beginning of the list, we need to update the pointer of the newly created node to store the reference of the existing **head** node.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before — list = [5, 7, 3]"]
-        direction LR
-        A1(["head"]) --> B1["val: 5<br/>next: ●"] --> B2["val: 7<br/>next: ●"] --> B3["val: 3<br/>next: null"]
-    end
-    subgraph AFTER["After — insert val=6 at beginning"]
-        direction LR
-        A2(["head"]) --> NEW["val: 6<br/>next: ●"] --> C1["val: 5<br/>next: ●"] --> C2["val: 7<br/>next: ●"] --> C3["val: 3<br/>next: null"]
-        style NEW fill:#fef9c3,stroke:#3b82f6
-    end
-    BEFORE -->|"newNode.next = head<br/>head = newNode"| AFTER
+```d2
+before: "Before — list = [5, 7, 3]" {
+  direction: right
+  h: head {shape: oval}
+  b1: {val: 5; next}
+  b2: {val: 7; next}
+  b3: {val: 3; next: "null"}
+  h -> b1.val
+  b1.next -> b2.val
+  b2.next -> b3.val
+}
+
+after: "After — insert val=6 at beginning" {
+  direction: right
+  h: head {shape: oval}
+  new: {
+    val: 6
+    next
+    style.fill: "#dcfce7"
+    style.stroke: "#16a34a"
+  }
+  c1: {val: 5; next}
+  c2: {val: 7; next}
+  c3: {val: 3; next: "null"}
+  h -> new.val
+  new.next -> c1.val
+  c1.next -> c2.val
+  c2.next -> c3.val
+}
+
+before -> after: "newNode.next = head\nhead = newNode"
 ```
 
 <p align="center"><strong>Case 2 — non-empty list: point the new node's <code>next</code> to the old head, then make the new node the new head.</strong></p>
@@ -318,21 +324,23 @@ fn main() {
 
 The time complexity of the above function does not depend on the list size. In all cases, we always need to insert the node at the start of the list, which takes **constant** time, i.e., **O(1)**.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    NEW["New node<br/>val: 6"] -->|"newNode.next = head<br/>head = newNode<br/>— 2 pointer ops, O(1)"| N1["val: 5"] --> N2["val: 7"] --> N3["val: 3<br/>next: null"]
-    style NEW fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+new: |md
+  **New node**
+
+  val: 6
+| {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+n1: "val: 5"
+n2: "val: 7"
+n3: |md
+  val: 3
+
+  `next: null`
+|
+new -> n1: "newNode.next = head\nhead = newNode\n— 2 pointer ops, O(1)"
+n1 -> n2
+n2 -> n3
 ```
 
 <p align="center"><strong>Insert before the head node — only 2 pointer assignments needed, regardless of list size: always O(1) time.</strong></p>
@@ -570,26 +578,24 @@ Inserting at the end of a list is a common operation used to extend the list. Un
 
 If the linked list is empty, the **head** is `null`. We create a new node and make it the head — it is also the tail since it's the only node.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph BEFORE["Before — empty list"]
-        H1(["head = null"])
-    end
-    subgraph AFTER["After — insert val=6"]
-        H2(["head"]) --> N["val: 6<br/>next: null"]
-    end
-    BEFORE -->|"create new node,<br/>head = newNode"| AFTER
+```d2
+before: "Before — empty list" {
+  h1: "head = null" {shape: oval}
+}
+
+after: "After — insert val=6" {
+  direction: right
+  h2: head {shape: oval}
+  n: {
+    val: 6
+    next: "null"
+    style.fill: "#dcfce7"
+    style.stroke: "#16a34a"
+  }
+  h2 -> n.val
+}
+
+before -> after: "create new node,\nhead = newNode"
 ```
 
 <p align="center"><strong>Case 1 — empty list: the new node becomes both head and tail.</strong></p>
@@ -604,29 +610,34 @@ flowchart LR
 
 We traverse to the last node (whose `next` is `null`) and link the new node after it.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before — list = [5, 7, 3]"]
-        direction LR
-        B1["val: 5"] --> B2["val: 7"] --> B3["val: 3<br/>next: null"]
-    end
-    subgraph AFTER["After — insert val=6 at end"]
-        direction LR
-        C1["val: 5"] --> C2["val: 7"] --> C3["val: 3<br/>next: ●"] --> NEW["val: 6<br/>next: null"]
-        style NEW fill:#fef9c3,stroke:#3b82f6
-    end
-    BEFORE -->|"traverse to tail,<br/>tail.next = newNode"| AFTER
+```d2
+before: "Before — list = [5, 7, 3]" {
+  direction: right
+  b1: "val: 5"
+  b2: "val: 7"
+  b3: |md
+    val: 3
+
+    `next: null`
+  |
+  b1 -> b2 -> b3
+}
+
+after: "After — insert val=6 at end" {
+  direction: right
+  c1: "val: 5"
+  c2: "val: 7"
+  c3: "val: 3"
+  new: {
+    val: 6
+    next: "null"
+    style.fill: "#dcfce7"
+    style.stroke: "#16a34a"
+  }
+  c1 -> c2 -> c3 -> new.val
+}
+
+before -> after: "traverse to tail,\ntail.next = newNode"
 ```
 
 <p align="center"><strong>Case 2 — non-empty list: traverse to the tail, then set <code>tail.next = newNode</code>.</strong></p>
@@ -885,22 +896,28 @@ fn main() {
 
 To insert at the end, we must traverse the entire list to reach the tail node.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    N1["val: 5"] --> N2["val: 7"] --> N3["val: 3<br/>next: null<br/>(tail)"] -->|"tail.next = newNode"| NEW["val: 6<br/>next: null"]
-    CUR(["current<br/>traverses n nodes"]) -.->|"O(n) walk"| N3
-    style NEW fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+n1: "val: 5"
+n2: "val: 7"
+n3: |md
+  val: 3
+
+  `next: null`
+
+  (tail)
+|
+new: {
+  val: 6
+  next: "null"
+  style.fill: "#dcfce7"
+  style.stroke: "#16a34a"
+}
+n1 -> n2 -> n3
+n3 -> new.val: "tail.next = newNode"
+
+cur: "current\ntraverses n nodes" {shape: oval}
+cur -> n3: "O(n) walk" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Insert after the tail node — O(n) traversal to reach the tail, then O(1) pointer update.</strong></p>
@@ -1172,24 +1189,13 @@ Inserting after a given node in a singly linked list is a relatively straightfor
 
 If the list is empty and contains no elements, we cannot find the given node because it does not exist within the list. Inserting a new node after the given node is not possible because there is no reference point within the list to perform the insertion. In such a case, the method would return without making any changes.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    N1(["node = null"])
-    N2(["head = null"])
-    N3(["Return — nothing to do"])
-    N2 --> N3
-    N1 --> N3
+```d2
+direction: right
+n1: "node = null" {shape: oval}
+n2: "head = null" {shape: oval}
+n3: "Return — nothing to do" {shape: oval; style.fill: "#fee2e2"; style.stroke: "#dc2626"}
+n1 -> n3
+n2 -> n3
 ```
 
 <p align="center"><strong>Case 1 — empty list or null node: the function returns immediately with no changes.</strong></p>
@@ -1476,23 +1482,32 @@ It is crucial to update the newly created node **before** modifying the pointer 
 
 The time complexity of the above function is not affected by the length of the linked list because it only involves inserting a new node after the given node and performing pointer manipulations around the given node. Since these operations take constant time, the function's time complexity is **O(1)**.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    N1["val: 5"] --> GIVEN["val: 7<br/>(given node)"] --> NEW["val: 6<br/>next: ●"] --> N3["val: 3"] --> N4["val: 10<br/>next: null"]
-    NOTE(["Only 2 pointer ops<br/>O(1) — no traversal"])
-    NOTE -.-> GIVEN
-    style NEW fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+n1: "val: 5"
+given: |md
+  val: 7
+
+  (given node)
+|
+new: {
+  val: 6
+  next
+  style.fill: "#dcfce7"
+  style.stroke: "#16a34a"
+}
+n3: "val: 3"
+n4: |md
+  val: 10
+
+  `next: null`
+|
+n1 -> given -> new.val
+new.next -> n3
+n3 -> n4
+
+note: "Only 2 pointer ops\nO(1) — no traversal" {shape: oval}
+note -> given: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Insert after the given node — only 2 pointer assignments regardless of list size: always O(1) time.</strong></p>
@@ -1741,20 +1756,11 @@ Inserting before a given node may seem simple, just like inserting after a node.
 
 If the list is empty and contains no elements, we cannot find the given node because it does not exist within the list. Inserting a new node before the given node is not possible. In such a case, we return the **head** node as-is.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head = null"]) --> R(["Return head — nothing to do"])
+```d2
+direction: right
+h: "head = null" {shape: oval}
+r: "Return head — nothing to do" {shape: oval; style.fill: "#fee2e2"; style.stroke: "#dc2626"}
+h -> r
 ```
 
 <p align="center"><strong>Case 1 — empty list: return the head immediately with no changes.</strong></p>
@@ -1767,29 +1773,50 @@ flowchart LR
 
 This is similar to **inserting at the beginning**, which we learned earlier. To determine if the given node is the first node, we compare it to the **head** node. If both are the same object, the given node is the head.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before — node == head"]
-        direction LR
-        H1(["head"]) --> B1["val: 7<br/>(given)"] --> B2["val: 3"] --> B3["val: 10<br/>next: null"]
-    end
-    subgraph AFTER["After — insert val=6 before node(7)"]
-        direction LR
-        H2(["head"]) --> NEW["val: 6<br/>next: ●"] --> C1["val: 7<br/>(given)"] --> C2["val: 3"] --> C3["val: 10<br/>next: null"]
-        style NEW fill:#fef9c3,stroke:#3b82f6
-    end
-    BEFORE -->|"newNode.next = head<br/>return newNode"| AFTER
+```d2
+before: "Before — node == head" {
+  direction: right
+  h: head {shape: oval}
+  b1: |md
+    val: 7
+
+    (given)
+  |
+  b2: "val: 3"
+  b3: |md
+    val: 10
+
+    `next: null`
+  |
+  h -> b1 -> b2 -> b3
+}
+
+after: "After — insert val=6 before node(7)" {
+  direction: right
+  h: head {shape: oval}
+  new: {
+    val: 6
+    next
+    style.fill: "#dcfce7"
+    style.stroke: "#16a34a"
+  }
+  c1: |md
+    val: 7
+
+    (given)
+  |
+  c2: "val: 3"
+  c3: |md
+    val: 10
+
+    `next: null`
+  |
+  h -> new.val
+  new.next -> c1
+  c1 -> c2 -> c3
+}
+
+before -> after: "newNode.next = head\nreturn newNode"
 ```
 
 <p align="center"><strong>Case 2 — given node is the head: same as insert-at-beginning; the new node becomes the new head.</strong></p>
@@ -1804,24 +1831,25 @@ flowchart TB
 
 This case is not easy, but it becomes simpler once we understand the concept behind it. The problem is that we don't have a reference to the node just before the given node. Without that predecessor, we can't rewire its `next` pointer after inserting.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph PROBLEM["Problem — no predecessor reference"]
-        direction LR
-        P1["val: 5"] --> P2["val: 7"] --> P3["val: 3<br/>(given)"] --> P4["val: 10<br/>next: null"]
-        Q(["We want to insert<br/>BEFORE node(3)<br/>but who points to it?"]) -.-> P3
-    end
+```d2
+problem: "Problem — no predecessor reference" {
+  direction: right
+  p1: "val: 5"
+  p2: "val: 7"
+  p3: |md
+    val: 3
+
+    (given)
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  p4: |md
+    val: 10
+
+    `next: null`
+  |
+  p1 -> p2 -> p3 -> p4
+  q: "We want to insert\nBEFORE node(3)\nbut who points to it?" {shape: oval}
+  q -> p3: "" {style.stroke-dash: 3}
+}
 ```
 
 <p align="center"><strong>The challenge: we have a reference to the given node but not to the node before it — that predecessor is the one whose pointer must change.</strong></p>
@@ -1830,31 +1858,54 @@ flowchart LR
 
 We create a `previous` pointer initialised to `null`. As we traverse, we update both `current` and `previous` together at each step. When `current` reaches the given node, `previous` holds its predecessor. The problem then reduces to **inserting after the previous node** — which we already know how to do.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before — list = [5, 7, 3, 10], insert 6 before node(3)"]
-        direction LR
-        B1["val: 5"] --> B2["val: 7"] --> B3["val: 3<br/>(given)"] --> B4["val: 10<br/>next: null"]
-        PR(["previous"]) -.-> B2
-        CR(["current"]) -.-> B3
-    end
-    subgraph AFTER["After — previous.next rewired through new node"]
-        direction LR
-        C1["val: 5"] --> C2["val: 7"] --> NEW["val: 6<br/>next: ●"] --> C3["val: 3<br/>(given)"] --> C4["val: 10<br/>next: null"]
-        style NEW fill:#fef9c3,stroke:#3b82f6
-    end
-    BEFORE -->|"newNode.next = current<br/>previous.next = newNode"| AFTER
+```d2
+before: "Before — list = [5, 7, 3, 10], insert 6 before node(3)" {
+  direction: right
+  b1: "val: 5"
+  b2: "val: 7"
+  b3: |md
+    val: 3
+
+    (given)
+  |
+  b4: |md
+    val: 10
+
+    `next: null`
+  |
+  b1 -> b2 -> b3 -> b4
+  pr: previous {shape: oval}
+  cr: current {shape: oval}
+  pr -> b2: "" {style.stroke-dash: 3}
+  cr -> b3: "" {style.stroke-dash: 3}
+}
+
+after: "After — previous.next rewired through new node" {
+  direction: right
+  c1: "val: 5"
+  c2: "val: 7"
+  new: {
+    val: 6
+    next
+    style.fill: "#dcfce7"
+    style.stroke: "#16a34a"
+  }
+  c3: |md
+    val: 3
+
+    (given)
+  |
+  c4: |md
+    val: 10
+
+    `next: null`
+  |
+  c1 -> c2 -> new.val
+  new.next -> c3
+  c3 -> c4
+}
+
+before -> after: "newNode.next = current\nprevious.next = newNode"
 ```
 
 <p align="center"><strong>Case 3 — non-head node: traverse with two pointers until <code>current == given</code>, then wire the new node between <code>previous</code> and <code>current</code>.</strong></p>
@@ -2268,21 +2319,26 @@ The time complexity depends on where the given node sits in the list.
 
 The given node is the head. No traversal needed — just a pointer update. **O(1)**.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    NEW["val: 6<br/>(new)"] -->|"newNode.next = head<br/>— 1 pointer op, O(1)"| N1["val: 7<br/>(was head)"] --> N2["val: 3"] --> N3["val: 10<br/>next: null"]
-    style NEW fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+new: |md
+  val: 6
+
+  (new)
+| {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+n1: |md
+  val: 7
+
+  (was head)
+|
+n2: "val: 3"
+n3: |md
+  val: 10
+
+  `next: null`
+|
+new -> n1: "newNode.next = head\n— 1 pointer op, O(1)"
+n1 -> n2 -> n3
 ```
 
 <p align="center"><strong>Best case — given node is the head: O(1), no traversal required.</strong></p>
@@ -2291,22 +2347,25 @@ flowchart LR
 
 The given node is the tail. The traversal visits every node to find its predecessor. **O(N)**.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    N1["val: 5"] --> N2["val: 7"] --> N3["val: 3"] --> NEW["val: 6<br/>(new)"] --> N4["val: 10<br/>(given, tail)"]
-    CUR(["current traverses<br/>n−1 nodes"]) -.->|"O(n) walk"| N3
-    style NEW fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+n1: "val: 5"
+n2: "val: 7"
+n3: "val: 3"
+new: |md
+  val: 6
+
+  (new)
+| {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+n4: |md
+  val: 10
+
+  (given, tail)
+|
+n1 -> n2 -> n3 -> new -> n4
+
+cur: "current traverses\nn−1 nodes" {shape: oval}
+cur -> n3: "O(n) walk" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Worst case — given node is the tail: O(N) traversal to find the predecessor.</strong></p>
@@ -2715,22 +2774,15 @@ Just as inserting before a given node is accomplished by piggybacking on the sea
 
 Attempting to insert a node at a position greater than 0 in an empty list is invalid. The only valid position in an empty list is position 0 (making the new node the head). When X > 0 but no nodes exist, we return the existing **head**.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head = null"]) --> C{"X > 0?"}
-    C -->|"Yes"| R(["Return head — invalid position"])
-    C -->|"No (X=0)"| N(["Create node, return it as head"])
+```d2
+direction: right
+h: "head = null" {shape: oval}
+c: "X > 0?" {shape: diamond}
+r: "Return head — invalid position" {shape: oval; style.fill: "#fee2e2"; style.stroke: "#dc2626"}
+n: "Create node, return it as head" {shape: oval; style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+h -> c
+c -> r: "Yes"
+c -> n: "No (X=0)"
 ```
 
 <p align="center"><strong>Case 1 — empty list with X > 0: no position exists to insert at, return unchanged.</strong></p>
@@ -2743,21 +2795,22 @@ flowchart LR
 
 Inserting at distance 0 means inserting at the **beginning** of the list — exactly what we covered in the very first insertion lesson.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    NEW["val: 6<br/>(new)"] -->|"newNode.next = head"| N1["val: 5"] --> N2["val: 7"] --> N3["val: 3<br/>next: null"]
-    style NEW fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+new: |md
+  val: 6
+
+  (new)
+| {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+n1: "val: 5"
+n2: "val: 7"
+n3: |md
+  val: 3
+
+  `next: null`
+|
+new -> n1: "newNode.next = head"
+n1 -> n2 -> n3
 ```
 
 <p align="center"><strong>Case 2 — X = 0: insert-at-beginning; new node becomes the new head.</strong></p>
@@ -2772,30 +2825,56 @@ flowchart LR
 
 Traverse the list while keeping a counter starting at 0. Increment the counter on each step. Stop when `counter == X - 1` — this lands us at the node just **before** where we want to insert. The problem then reduces to **inserting after that node**, which we already know.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before — list = [5, 7, 3, 10], X = 2"]
-        direction LR
-        B1["val: 5<br/>idx 0"] --> B2["val: 7<br/>idx 1"] --> B3["val: 3<br/>idx 2"] --> B4["val: 10<br/>next: null"]
-        CUR(["current stops<br/>at idx X−1 = 1"]) -.-> B2
-    end
-    subgraph AFTER["After — insert val=6 at distance 2"]
-        direction LR
-        C1["val: 5"] --> C2["val: 7"] --> NEW["val: 6<br/>next: ●"] --> C3["val: 3"] --> C4["val: 10<br/>next: null"]
-        style NEW fill:#fef9c3,stroke:#3b82f6
-    end
-    BEFORE -->|"newNode.next = current.next<br/>current.next = newNode"| AFTER
+```d2
+before: "Before — list = [5, 7, 3, 10], X = 2" {
+  direction: right
+  b1: |md
+    val: 5
+
+    `idx 0`
+  |
+  b2: |md
+    val: 7
+
+    `idx 1`
+  |
+  b3: |md
+    val: 3
+
+    `idx 2`
+  |
+  b4: |md
+    val: 10
+
+    `next: null`
+  |
+  b1 -> b2 -> b3 -> b4
+  cur: "current stops\nat idx X−1 = 1" {shape: oval}
+  cur -> b2: "" {style.stroke-dash: 3}
+}
+
+after: "After — insert val=6 at distance 2" {
+  direction: right
+  c1: "val: 5"
+  c2: "val: 7"
+  new: {
+    val: 6
+    next
+    style.fill: "#dcfce7"
+    style.stroke: "#16a34a"
+  }
+  c3: "val: 3"
+  c4: |md
+    val: 10
+
+    `next: null`
+  |
+  c1 -> c2 -> new.val
+  new.next -> c3
+  c3 -> c4
+}
+
+before -> after: "newNode.next = current.next\ncurrent.next = newNode"
 ```
 
 <p align="center"><strong>Case 3 — valid position: traverse X−1 steps to land at the predecessor, then splice in the new node.</strong></p>
@@ -2812,21 +2891,20 @@ flowchart TB
 
 If `X` exceeds the list's length, the position doesn't exist. For example, inserting at position 5 in a 4-element list is invalid — we return the existing **head** unchanged.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    N1["val: 5"] --> N2["val: 7"] --> N3["val: 3"] --> N4["val: 10<br/>next: null"]
-    OOB(["X = 5 > size (4)<br/>current reaches null<br/>→ return head unchanged"]) -.-> N4
+```d2
+direction: right
+n1: "val: 5"
+n2: "val: 7"
+n3: "val: 3"
+n4: |md
+  val: 10
+
+  `next: null`
+|
+n1 -> n2 -> n3 -> n4
+
+oob: "X = 5 > size (4)\ncurrent reaches null\n→ return head unchanged" {shape: oval; style.fill: "#fee2e2"; style.stroke: "#dc2626"}
+oob -> n4: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Case 4 — X exceeds list size: traversal hits null before reaching X−1, return unchanged.</strong></p>
@@ -3221,21 +3299,22 @@ The time complexity depends on the insertion position X relative to the list's l
 
 X = 0 — insert at the beginning. No traversal needed. **O(1)**.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    NEW["val: 6<br/>(new)"] -->|"newNode.next = head<br/>— O(1)"| N1["val: 5"] --> N2["val: 7"] --> N3["val: 3<br/>next: null"]
-    style NEW fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+new: |md
+  val: 6
+
+  (new)
+| {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+n1: "val: 5"
+n2: "val: 7"
+n3: |md
+  val: 3
+
+  `next: null`
+|
+new -> n1: "newNode.next = head\n— O(1)"
+n1 -> n2 -> n3
 ```
 
 <p align="center"><strong>Best case — X = 0: insert at head, constant time.</strong></p>
@@ -3244,22 +3323,25 @@ flowchart LR
 
 X = length of the list — insert at the tail. Must traverse the entire list. **O(N)**.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    N1["val: 5"] --> N2["val: 7"] --> N3["val: 3"] --> N4["val: 10<br/>next: null"] --> NEW["val: 6<br/>(new)"]
-    CUR(["current traverses<br/>n nodes — O(n)"]) -.->|"walks to tail"| N4
-    style NEW fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+n1: "val: 5"
+n2: "val: 7"
+n3: "val: 3"
+n4: |md
+  val: 10
+
+  `next: null`
+|
+new: |md
+  val: 6
+
+  (new)
+| {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+n1 -> n2 -> n3 -> n4 -> new
+
+cur: "current traverses\nn nodes — O(n)" {shape: oval}
+cur -> n4: "walks to tail" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Worst case — X = list length: traverse to the tail, then append. O(N).</strong></p>

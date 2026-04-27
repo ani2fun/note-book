@@ -25,24 +25,33 @@ Arrays and singly linked lists are both linear data structures. To better unders
 
 In arrays, we have indexes to access the individual items of the array, e.g. `0`, `1`, `2`, etc, and for traversal, we just loop on the size of the array and traverse it with the loop control variable as our array index.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph ARR["Array in memory — contiguous, index-addressable"]
-        direction LR
-        A0["[0]<br/>5"] --- A1["[1]<br/>7"] --- A2["[2]<br/>3"] --- A3["[3]<br/>10"]
-    end
-    IDX(["i = 0, 1, 2, 3"]) -->|"arr[i]"| A0
+```d2
+arr: "Array in memory — contiguous, index-addressable" {
+  grid-columns: 4
+  grid-gap: 0
+  a0: |md
+    `[0]`
+
+    **5**
+  |
+  a1: |md
+    `[1]`
+
+    **7**
+  |
+  a2: |md
+    `[2]`
+
+    **3**
+  |
+  a3: |md
+    `[3]`
+
+    **10**
+  |
+}
+idx: "i = 0, 1, 2, 3" {shape: oval}
+idx -> arr.a0: "arr[i]"
 ```
 
 <p align="center"><strong>Array traversal uses an integer index <code>i</code> that increments from <code>0</code> to <code>n-1</code> — direct O(1) access at each step.</strong></p>

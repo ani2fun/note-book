@@ -25,78 +25,83 @@ The linked list is the most important data structure you'll ever learn. Everythi
 
 To better understand a linked list, let us first look at some common problems programmers face when designing software systems. When writing a program, we often need a collection of data items that can be accessed sequentially. E.g., a collection of names of all the students in a class. It is common for people to think this is not such a complex problem. What's so hard with it? We can use an **array** to store this data where the size of the array is equal to the number of students.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 4
-  A["Alice"] B["Bob"] C["Carol"] D["David"]
-  a["[0]"] b["[1]"] c["[2]"] d["[3]"]
+```d2
+arr: array {
+  grid-columns: 4
+  grid-gap: 0
+  a0: |md
+    **Alice**
+
+    `[0]`
+  |
+  a1: |md
+    **Bob**
+
+    `[1]`
+  |
+  a2: |md
+    **Carol**
+
+    `[2]`
+  |
+  a3: |md
+    **David**
+
+    `[3]`
+  |
+}
 ```
 
 <p align="center"><strong>An array of size 4 storing student names at contiguous indices.</strong></p>
 
 This is an easy way to store data, but what if a new student joins the class? In this case, we will have to increase the size of the array by one, which is **not** possible. Well, we can solve this problem by creating a new array of a larger size, copying all the data from the previous array, and then adding the new student to it. However, this will be quite inefficient in terms of space and time complexity.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Original array  (size = 4)"]
-        direction LR
-        A1["Alice"] --- A2["Bob"] --- A3["Carol"] --- A4["David"]
-    end
-    subgraph AFTER["New array  (size = 5)  —  copy all + append"]
-        direction LR
-        B1["Alice"] --- B2["Bob"] --- B3["Carol"] --- B4["David"] --- B5["Eve ✦"]
-    end
-    BEFORE -->|"allocate new array,<br/>copy 4 elements,<br/>add Eve"| AFTER
+```d2
+before: "Original array (size = 4)" {
+  grid-columns: 4
+  grid-gap: 0
+  a0: Alice
+  a1: Bob
+  a2: Carol
+  a3: David
+}
+
+after: "New array (size = 5) — copy all + append" {
+  grid-columns: 5
+  grid-gap: 0
+  a0: Alice
+  a1: Bob
+  a2: Carol
+  a3: David
+  a4: Eve {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+
+before -> after: "allocate new array,\ncopy 4 elements,\nadd Eve"
 ```
 
 <p align="center"><strong>Adding a new student requires allocating a brand-new array and copying every existing element — O(n) time and O(n) extra space.</strong></p>
 
 Now, let's consider another scenario. What if a student leaves the class? We can use the same process again. This time, we create a new array of smaller size and copy all the data items except the one we want to delete.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Original array  (size = 4)"]
-        direction LR
-        A1["Alice"] --- A2["Bob ✗"] --- A3["Carol"] --- A4["David"]
-    end
-    subgraph AFTER["New array  (size = 3)  —  skip Bob"]
-        direction LR
-        B1["Alice"] --- B2["Carol"] --- B3["David"]
-    end
-    BEFORE -->|"allocate smaller array,<br/>copy all except Bob"| AFTER
+```d2
+before: "Original array (size = 4)" {
+  grid-columns: 4
+  grid-gap: 0
+  a0: Alice
+  a1: Bob {style.fill: "#fee2e2"; style.stroke: "#dc2626"}
+  a2: Carol
+  a3: David
+}
+
+after: "New array (size = 3) — skip Bob" {
+  grid-columns: 3
+  grid-gap: 0
+  a0: Alice
+  a1: Carol
+  a2: David
+}
+
+before -> after: "allocate smaller array,\ncopy all except Bob"
 ```
 
 <p align="center"><strong>Deleting a student requires another full copy into a smaller array — the same O(n) cost applies for every insertion or deletion.</strong></p>
@@ -112,24 +117,38 @@ Even though we can solve the problem using an array, it is inefficient if we hav
 
 An array has other fundamental problems that make it a bad choice for problems like these. For example, we cannot insert or delete data items **in place** in an array.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph MEM["Contiguous memory — each cell is fixed in place"]
-        direction LR
-        C1["addr 100<br/>Alice"] --- C2["addr 104<br/>Bob"] --- C3["addr 108<br/>Carol"] --- C4["addr 112<br/>David"]
-    end
-    INS["Insert 'Zara'<br/>between Bob & Carol?"] -->|"No free slot!<br/>Must shift Carol & David<br/>or reallocate everything"| C3
+```d2
+mem: "Contiguous memory — each cell is fixed in place" {
+  grid-columns: 4
+  grid-gap: 0
+  c0: |md
+    **Alice**
+
+    `addr 100`
+  |
+  c1: |md
+    **Bob**
+
+    `addr 104`
+  |
+  c2: |md
+    **Carol**
+
+    `addr 108`
+  |
+  c3: |md
+    **David**
+
+    `addr 112`
+  |
+}
+
+ins: "Insert 'Zara'\nbetween Bob & Carol?" {
+  shape: oval
+  style.fill: "#fde68a"
+  style.stroke: "#d97706"
+}
+ins -> mem.c2: "No free slot!\nMust shift Carol & David\nor reallocate everything"
 ```
 
 <p align="center"><strong>Arrays occupy a contiguous block of memory — there is no physical gap between elements to insert into, so every in-place insertion forces a cascade of element shifts.</strong></p>
@@ -151,20 +170,27 @@ Now that we know arrays' limitations and the situations where those limitations 
 
 A linked list is a linear and dynamic data structure that stores data sequentially at random memory locations. Instead of storing all the data items in a contiguous block of memory like arrays, a linked list stores them at random locations in memory. Whenever a new item is to be added, a new memory block is dynamically created to store this new value, which is then added to the chain of already existing items, effectively extending the **linked list**.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    N1["val: Alice<br/>next: ●"] --> N2["val: Bob<br/>next: ●"] --> N3["val: Carol<br/>next: ●"] --> N4["val: David<br/>next: null"]
+```d2
+direction: right
+n1: {
+  val: Alice
+  next
+}
+n2: {
+  val: Bob
+  next
+}
+n3: {
+  val: Carol
+  next
+}
+n4: {
+  val: David
+  next: "null"
+}
+n1.next -> n2.val
+n2.next -> n3.val
+n3.next -> n4.val
 ```
 
 <p align="center"><strong>Abstract representation of a singly linked list — each node holds a value and a pointer to the next node; the last node points to null.</strong></p>
@@ -173,56 +199,73 @@ flowchart LR
 
 A linked list guarantees the insertion and deletion of items from the **start** and **end** of the list in **O(1)** space and **O(1)** time. It also guarantees the insertion and deletion of any data item **without** using any extra space. You can imagine it as a dynamic sequential container whose size can be increased or decreased at will.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph INSERT["Insert at head — O(1)"]
-        direction LR
-        I0["NEW<br/>val: Zara<br/>next: ●"] -->|"point to old head"| I1["val: Alice<br/>next: ●"] --> I2["val: Bob<br/>next: null"]
-    end
-    subgraph DELETE["Delete head — O(1)"]
-        direction LR
-        D1["val: Alice<br/>next: ●"] -->|"advance head"| D2["val: Bob<br/>next: ●"] --> D3["val: Carol<br/>next: null"]
-        D_OLD["~~Alice~~ freed"] -.->|"was head"| D1
-    end
+```d2
+insert: "Insert at head — O(1)" {
+  direction: right
+  i0: {
+    val: Zara
+    next
+    style.fill: "#dcfce7"
+    style.stroke: "#16a34a"
+  }
+  i1: {
+    val: Alice
+    next
+  }
+  i2: {
+    val: Bob
+    next: "null"
+  }
+  i0.next -> i1.val: "point to old head"
+  i1.next -> i2.val
+}
+
+delete: "Delete head — O(1)" {
+  direction: right
+  d1: {
+    val: Alice
+    next
+    style.fill: "#fee2e2"
+    style.stroke: "#dc2626"
+  }
+  d2: {
+    val: Bob
+    next
+  }
+  d3: {
+    val: Carol
+    next: "null"
+  }
+  d1.next -> d2.val: "advance head"
+  d2.next -> d3.val
+}
 ```
 
 <p align="center"><strong>Insertion and deletion at the head of a linked list are O(1) — no copying, no shifting, just pointer updates.</strong></p>
 
 Let us look at an example of insertion in a singly linked list to understand this better.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before insertion"]
-        direction LR
-        A1["Alice"] --> A2["Bob"] --> A3["Carol"] --> A4["David"]
-    end
-    subgraph STEP["Insert 'Zara' after 'Bob'"]
-        direction LR
-        B1["Alice"] --> B2["Bob"] --> NEW["Zara ✦"] --> B3["Carol"] --> B4["David"]
-    end
-    BEFORE -->|"1. Create new node<br/>2. new.next = Bob.next<br/>3. Bob.next = new"| STEP
+```d2
+before: "Before insertion" {
+  direction: right
+  a1: Alice
+  a2: Bob
+  a3: Carol
+  a4: David
+  a1 -> a2 -> a3 -> a4
+}
+
+after: "Insert 'Zara' after 'Bob'" {
+  direction: right
+  b1: Alice
+  b2: Bob
+  new: Zara {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b3: Carol
+  b4: David
+  b1 -> b2 -> new -> b3 -> b4
+}
+
+before -> after: "1. Create new node\n2. new.next = Bob.next\n3. Bob.next = new"
 ```
 
 <p align="center"><strong>Inserting 'Zara' after 'Bob' — redirect two pointers; no shifting, no copying, O(1) once the insertion point is known.</strong></p>
@@ -256,25 +299,26 @@ A singly linked list node has two sections.
 > -   **val:** The actual data item a node holds. This could be of any type.
 > -   **next:** This is a reference to the next node in the list
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph NODE["A single node"]
-        direction LR
-        VAL["val<br/>(data)"] --- NEXT["next<br/>(pointer)"]
-    end
-    NEXT -->|"points to"| N2["next node..."]
-    NEXT -->|"or"| NULL(["null — if tail"])
+```d2
+direction: right
+node: "A single node" {
+  grid-columns: 2
+  grid-gap: 0
+  val: |md
+    **val**
+
+    (data)
+  |
+  next: |md
+    **next**
+
+    (pointer)
+  |
+}
+n2: "next node..."
+nullnode: "null — if tail" {shape: oval}
+node.next -> n2: "points to"
+node.next -> nullnode: "or"
 ```
 
 <p align="center"><strong>A singly linked list node stores two fields: <code>val</code> (the data) and <code>next</code> (the address of the following node, or <code>null</code> if it is the last).</strong></p>
@@ -464,45 +508,66 @@ fn main() {
 
 A linked list is just a chain of nodes. Below is how these nodes chain together to form a singly linked list.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    N1["val: 5<br/>next: ●"] --> N2["val: 7<br/>next: ●"] --> N3["val: 3<br/>next: ●"] --> N4["val: 9<br/>next: null"]
+```d2
+direction: right
+n1: {
+  val: 5
+  next
+}
+n2: {
+  val: 7
+  next
+}
+n3: {
+  val: 3
+  next
+}
+n4: {
+  val: 9
+  next: "null"
+}
+n1.next -> n2.val
+n2.next -> n3.val
+n3.next -> n4.val
 ```
 
 <p align="center"><strong>Logical representation — nodes appear sequential left to right, each pointing to the next, with the tail pointing to null.</strong></p>
 
 When represented logically in a diagram, these nodes might look sequential (left to right, one after the other), but in reality, they are scattered all around in memory at random locations, and the only way to access a node is by using its address in memory.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph MEM["Physical memory — nodes live at arbitrary addresses"]
-        direction LR
-        N1["addr 0x1A4<br/>val: 5<br/>next: 0x3F2"] -.->|"jump to 0x3F2"| N2["addr 0x3F2<br/>val: 7<br/>next: 0x0B8"]
-        N2 -.->|"jump to 0x0B8"| N3["addr 0x0B8<br/>val: 3<br/>next: 0x2C1"]
-        N3 -.->|"jump to 0x2C1"| N4["addr 0x2C1<br/>val: 9<br/>next: null"]
-    end
+```d2
+direction: right
+n1: |md
+  `addr 0x1A4`
+
+  **val: 5**
+
+  `next: 0x3F2`
+|
+n2: |md
+  `addr 0x3F2`
+
+  **val: 7**
+
+  `next: 0x0B8`
+|
+n3: |md
+  `addr 0x0B8`
+
+  **val: 3**
+
+  `next: 0x2C1`
+|
+n4: |md
+  `addr 0x2C1`
+
+  **val: 9**
+
+  `next: null`
+|
+n1 -> n2: "jump to 0x3F2" {style.stroke-dash: 3}
+n2 -> n3: "jump to 0x0B8" {style.stroke-dash: 3}
+n3 -> n4: "jump to 0x2C1" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Physical memory — the four nodes are scattered at unrelated addresses; each node stores the address of the next one so the chain can be followed.</strong></p>
@@ -511,20 +576,24 @@ flowchart LR
 
 The first node of a linked list is also called the **head** node. As we know, a node in the linked list can only be accessed using its memory reference. This reference, however, is stored in the node before it in the logical representation, and this is true for every node except the first node, as it does not have any previous node. This is why, to access a linked list, we should always have the reference to the head node stored somewhere.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    HEAD(["head"]) -->|"entry point"| N1["val: 5<br/>next: ●"] --> N2["val: 7<br/>next: ●"] --> N3["val: 3<br/>next: null"]
+```d2
+direction: right
+head: head { shape: oval }
+n1: {
+  val: 5
+  next
+}
+n2: {
+  val: 7
+  next
+}
+n3: {
+  val: 3
+  next: "null"
+}
+head -> n1.val: "entry point"
+n1.next -> n2.val
+n2.next -> n3.val
 ```
 
 <p align="center"><strong>The <code>head</code> pointer is the only entry point to the list — without it, all nodes become unreachable.</strong></p>
@@ -533,22 +602,26 @@ flowchart LR
 
 The last node of a linked list is called a **tail** node. Just like the first node does not have any node before it, the last node does not have any node after it. You may wonder what is stored in the pointer of the tail node. The pointer of the tail node stores a reference to `null`, which means nothing. As we will see later, this also helps us determine the end of the linked list.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    N1["val: 5<br/>next: ●"] --> N2["val: 7<br/>next: ●"] --> N3["val: 3<br/>next: null"]
-    N3 --> TAIL(["null — end of list"])
-    style N3 fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+n1: {
+  val: 5
+  next
+}
+n2: {
+  val: 7
+  next
+}
+n3: {
+  val: 3
+  next
+  style.fill: "#fef9c3"
+  style.stroke: "#d97706"
+}
+tail: "null — end of list" { shape: oval }
+n1.next -> n2.val
+n2.next -> n3.val
+n3.next -> tail
 ```
 
 <p align="center"><strong>The tail node's <code>next</code> pointer holds <code>null</code>, signalling the end of the list — traversal stops here.</strong></p>
@@ -567,27 +640,39 @@ Every data structure is essentially used to store, retrieve, and manipulate data
 
 All other complex operations can be implemented by mixing or piggybacking these fundamental operations. Let's examine some operations we can perform on a singly linked list.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph OPS["Operations on a singly linked list"]
-        direction TB
-        T["Traversal<br/>Visit each node once<br/>O(n)"]
-        I["Insertion<br/>At head / tail / position<br/>O(1) head · O(n) middle"]
-        D["Deletion<br/>By value / position<br/>O(1) head · O(n) middle"]
-        S["Search<br/>Find node by value<br/>O(n)"]
-    end
-    T ~~~ I ~~~ D ~~~ S
+```d2
+ops: "Operations on a singly linked list" {
+  grid-columns: 2
+  grid-gap: 24
+  t: |md
+    **Traversal**
+
+    Visit each node once
+
+    `O(n)`
+  |
+  i: |md
+    **Insertion**
+
+    At head / tail / position
+
+    `O(1) head · O(n) middle`
+  |
+  d: |md
+    **Deletion**
+
+    By value / position
+
+    `O(1) head · O(n) middle`
+  |
+  s: |md
+    **Search**
+
+    Find node by value
+
+    `O(n)`
+  |
+}
 ```
 
 <p align="center"><strong>The four fundamental operations on a singly linked list — traversal and search are always O(n); head insertion and deletion are O(1).</strong></p>
@@ -634,24 +719,38 @@ A linked list has exactly two structural landmarks: the **head** (entry point, n
 - *Is this node the one the head reference points to?*
 - *Is this node's `next` pointer null?*
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    HEAD(["head"]) --> N1["5<br/>next: ●"] --> N2["7<br/>next: ●"] --> N3["3<br/>next: ●"] --> N4["10<br/>next: null"]
-    Q1["Q1: node == head?"] -.-> N1
-    Q2["Q2: node.next == null?"] -.-> N4
-    style N1 fill:#dbeafe,stroke:#3b82f6
-    style N4 fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+head: head { shape: oval }
+n1: {
+  val: 5
+  next
+  style.fill: "#dbeafe"
+  style.stroke: "#3b82f6"
+}
+n2: {
+  val: 7
+  next
+}
+n3: {
+  val: 3
+  next
+}
+n4: {
+  val: 10
+  next: "null"
+  style.fill: "#fef9c3"
+  style.stroke: "#d97706"
+}
+head -> n1.val
+n1.next -> n2.val
+n2.next -> n3.val
+n3.next -> n4.val
+
+q1: "Q1: node == head?" {shape: oval}
+q2: "Q2: node.next == null?" {shape: oval}
+q1 -> n1: "" {style.stroke-dash: 3}
+q2 -> n4: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Two questions identify the four cases. The head answers yes to Q1 only, the tail to Q2 only, a single-node list to both, and every interior node to neither.</strong></p>
