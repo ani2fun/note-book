@@ -367,6 +367,16 @@
     background: var(--sidebar-bg);
 }
 
+/* mdBook ships the chevrons as SVG <path> elements with no `fill`
+   attribute, so they render solid black regardless of theme. Make them
+   inherit the chrome.css color (`var(--icons)`, `var(--icons-hover)`),
+   which is defined per-theme in book/css/variables*.css and
+   theme/extra-themes.css. */
+.nav-wide-wrapper .nav-chapters svg,
+.nav-wide-wrapper .nav-chapters svg path {
+    fill: currentColor;
+}
+
 .nav-wide-wrapper .nav-chapters.previous {
     left: 1rem;
     right: auto !important;
