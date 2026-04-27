@@ -4,5 +4,5 @@ A compact DSA library organized as comprehensive single-file guides. Start with 
 
 ## Guides
 
-- [Data Structures](./data-structures/index.md)
-- [Algorithms](./algorithms/index.md)
+- [Data Structures](/computer-science/DSA/data-structures/index.html)
+- [Algorithms](/computer-science/DSA/algorithms/index.html)
