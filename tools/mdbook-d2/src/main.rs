@@ -23,7 +23,8 @@ use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Arc;
-use std::time::Instant;
+use std::thread;
+use std::time::{Duration, Instant};
 
 use serde_json::Value;
 
@@ -40,6 +41,10 @@ const FENCE_CLOSE: &str = "```";
 const PLACEHOLDER_PREFIX: &str = "<!--MDBOOK_D2_BLOCK_";
 const PLACEHOLDER_SUFFIX: &str = "-->";
 const MAX_CONCURRENT: usize = 8;
+// Public kroki occasionally returns 504/429/transient network errors during a
+// large build burst. Retry with exponential backoff before giving up.
+const MAX_ATTEMPTS: u32 = 4;
+const RETRY_BASE_DELAY_MS: u64 = 250;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -321,10 +326,61 @@ fn cache_key(source: &str) -> String {
 }
 
 fn render_via_kroki(source: &str, kroki_url: &str) -> Result<String, String> {
+    let mut last_err = String::new();
+    for attempt in 1..=MAX_ATTEMPTS {
+        match render_via_kroki_once(source, kroki_url) {
+            Ok(svg) => return Ok(svg),
+            Err(e) => {
+                let retryable = is_retryable(&e);
+                if !retryable || attempt == MAX_ATTEMPTS {
+                    return Err(if attempt > 1 {
+                        format!("after {attempt} attempts: {e}")
+                    } else {
+                        e
+                    });
+                }
+                last_err = e;
+                // 250ms, 500ms, 1000ms.
+                let backoff = RETRY_BASE_DELAY_MS * (1u64 << (attempt - 1));
+                thread::sleep(Duration::from_millis(backoff));
+            }
+        }
+    }
+    Err(last_err)
+}
+
+fn is_retryable(err: &str) -> bool {
+    // curl network / connection / timeout errors.
+    for code in ["(6)", "(7)", "(18)", "(28)", "(52)", "(55)", "(56)"] {
+        if err.contains(code) {
+            return true;
+        }
+    }
+    // HTTP statuses worth retrying.
+    if let Some(status) = parse_http_status(err) {
+        return status >= 500 || status == 408 || status == 425 || status == 429;
+    }
+    false
+}
+
+fn parse_http_status(err: &str) -> Option<u16> {
+    // curl --fail-with-body emits: "curl: (22) The requested URL returned error: 504"
+    let needle = "returned error: ";
+    let idx = err.find(needle)?;
+    let after = &err[idx + needle.len()..];
+    let digits: String = after.chars().take_while(|c| c.is_ascii_digit()).collect();
+    digits.parse().ok()
+}
+
+fn render_via_kroki_once(source: &str, kroki_url: &str) -> Result<String, String> {
     let mut child = Command::new("curl")
         .args([
             "-sS",
             "--fail-with-body",
+            "--connect-timeout",
+            "10",
+            "--max-time",
+            "60",
             "-X",
             "POST",
             "-H",

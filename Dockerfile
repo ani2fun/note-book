@@ -38,7 +38,11 @@ COPY . .
 RUN cargo install --path tools/mdbook-d2 --locked \
  && strip /usr/local/cargo/bin/mdbook-d2 || true
 
-RUN mdbook build
+# Cache mdbook-d2's per-block kroki SVG cache across builds. Public kroki
+# occasionally rate-limits or returns 504 on burst renders; persisting the
+# cache means repeat builds only need to fetch SVGs that actually changed.
+RUN --mount=type=cache,target=/app/.mdbook-d2-cache,sharing=locked \
+    mdbook build
 
 # ---- Runtime stage ----
 FROM alpine:${ALPINE_VERSION} AS runtime
