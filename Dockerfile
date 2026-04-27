@@ -21,6 +21,10 @@ RUN apk add --no-cache \
 RUN cargo install mdbook --version "${MDBOOK_VERSION}" --locked \
  && strip /usr/local/cargo/bin/mdbook || true
 
+# Per-page right-side TOC preprocessor.
+RUN cargo install mdbook-pagetoc --locked \
+ && strip /usr/local/cargo/bin/mdbook-pagetoc || true
+
 WORKDIR /app
 
 # ---- Build stage ----

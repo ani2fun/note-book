@@ -57,6 +57,7 @@ rustc --version
 
 ```bash
 cargo install mdbook
+cargo install mdbook-pagetoc   # right-side per-page table of contents
 ```
 
 ---
