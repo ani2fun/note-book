@@ -903,24 +903,22 @@ So slide the window; track frequencies; track `maxFreq` (the highest count any l
 
 A subtle but allowed shortcut: when contracting, we *don't* need to shrink `maxFreq` — even a stale `maxFreq` is a valid lower bound, and the answer only cares about the maximum window seen, which only grows when `maxFreq` grows. This makes the algorithm clean and still correct.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    W["window 'AABA'<br/>size 4<br/>most freq A → 3"] --> CHK["replacements needed = 4 - 3 = 1"]
-    CHK --> Q{"≤ k=2 ?"}
-    Q -->|"yes"| OK["window valid"]
-    Q -->|"no"| BAD["contract"]
-    style OK fill:#dcfce7,stroke:#22c55e
+```d2
+direction: right
+
+w: |md
+  **window 'AABA'**
+
+  size 4
+
+  most freq: A -> 3
+| {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+
+calc: "replacements needed = 4 - 3 = 1"
+
+ok: "<= k = 2 ? yes -> window valid" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+
+w -> calc -> ok
 ```
 
 <p align="center"><strong>Maximal character swap — replacements needed = window size − count of most frequent letter. As long as that count is ≤ K, the window is achievable.</strong></p>
@@ -1421,23 +1419,25 @@ Given an array `arr` and integer `k`, return `true` if there are two distinct in
 
 A sliding **set** (size at most `k+1`) of recent values: when adding `arr[end]`, if it's already in the set, we've found a twin within distance `k`. Otherwise, add it; if the set has grown past size `k`, evict the leftmost element.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    Q["arr = [1,2,3,4,1], k=5"] --> S1["set after [1,2,3,4]<br/>{1,2,3,4}"]
-    S1 --> S2["read 1 → already in set"]
-    S2 --> R["return true"]
-    style R fill:#dcfce7,stroke:#22c55e
+```d2
+direction: right
+
+inp: "arr = [1, 2, 3, 4, 1], k = 5"
+
+s: "set after [1, 2, 3, 4]" {
+  grid-columns: 4
+  grid-gap: 0
+  e1: "1"
+  e2: "2"
+  e3: "3"
+  e4: "4"
+}
+
+check: "read 1 -> already in set"
+
+r: "return true" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+
+inp -> s -> check -> r
 ```
 
 <p align="center"><strong>Twin in proximity — maintain a set of the last <code>k+1</code> values; if the new element is already in the set, a twin exists within distance <code>k</code>.</strong></p>

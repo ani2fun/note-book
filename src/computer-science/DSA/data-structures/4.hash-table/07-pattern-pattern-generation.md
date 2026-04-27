@@ -27,36 +27,38 @@ The skill is *inventing the right key*. Once you can see what makes two inputs "
 
 A **key** (or "pattern" or "signature" or "fingerprint") is a transformation that collapses many inputs to one. The transformation should obey one rule: *two inputs are "the same" (in whatever sense the problem cares about) if and only if their keys are byte-for-byte equal*. Once you have such a transformation, the rest of the algorithm is trivial — you just feed keys into a hash map and let collisions become groups.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph IN["raw inputs"]
-        A["add"]
-        B["qpp"]
-        C["dad"]
-        D["mom"]
-        E["abc"]
-    end
-    A -->|"key()"| K1["0,1,1"]
-    B -->|"key()"| K1
-    C -->|"key()"| K2["0,1,0"]
-    D -->|"key()"| K2
-    E -->|"key()"| K3["0,1,2"]
-    subgraph BUCKETS["hash-map buckets"]
-        K1 --> G1["[add, qpp]"]
-        K2 --> G2["[dad, mom]"]
-        K3 --> G3["[abc]"]
-    end
+```d2
+direction: right
+
+inp: raw inputs {
+  a: add
+  b: qpp
+  c: dad
+  d: mom
+  e: abc
+}
+
+keys: keys {
+  k1: "0,1,1"
+  k2: "0,1,0"
+  k3: "0,1,2"
+}
+
+buckets: hash-map buckets {
+  g1: "[add, qpp]"
+  g2: "[dad, mom]"
+  g3: "[abc]"
+}
+
+inp.a -> keys.k1: "key()"
+inp.b -> keys.k1: "key()"
+inp.c -> keys.k2: "key()"
+inp.d -> keys.k2: "key()"
+inp.e -> keys.k3: "key()"
+
+keys.k1 -> buckets.g1
+keys.k2 -> buckets.g2
+keys.k3 -> buckets.g3
 ```
 
 <p align="center"><strong>The key-generation pattern in one picture — every input is fingerprinted into a key; equal keys land in the same bucket; the buckets <em>are</em> the answer. The whole problem reduces to "design a good key."</strong></p>
@@ -1211,26 +1213,32 @@ The key per string is the **gap-sequence**, with negative gaps wrapped to `+ 26`
 
 Single-character strings have an empty gap sequence and all cluster together — but the example shows them split. The catch: a single-character string has gap-sequence `""`, which is the same key for every single-character string. The example actually splits them; this happens because the example uses a different rule (each of `b`, `c` alone is its own class? — re-checking: example 1 puts `b` and `c` together as `[b, c]`, which is the empty-sequence cluster). So our keying works — single-char strings form one cluster, two-char strings clustered by their single gap, etc.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    S1["abc → gaps (1,1)"] --> K1["1,1,"]
-    S2["ghi → gaps (1,1)"] --> K1
-    S3["xyz → gaps (1,1)"] --> K1
-    S4["ab → gap (1,)"] --> K2["1,"]
-    S5["cd → gap (1,)"] --> K2
-    S6["b → no gaps"] --> K3["empty"]
-    S7["c → no gaps"] --> K3
+```d2
+direction: right
+
+inputs: input strings {
+  s1: abc
+  s2: ghi
+  s3: xyz
+  s4: ab
+  s5: cd
+  s6: b
+  s7: c
+}
+
+keys: gap-sequence keys {
+  k1: "1,1,"
+  k2: "1,"
+  k3: "(empty)"
+}
+
+inputs.s1 -> keys.k1: "gaps (1,1)"
+inputs.s2 -> keys.k1: "gaps (1,1)"
+inputs.s3 -> keys.k1: "gaps (1,1)"
+inputs.s4 -> keys.k2: "gap (1,)"
+inputs.s5 -> keys.k2: "gap (1,)"
+inputs.s6 -> keys.k3: "no gaps"
+inputs.s7 -> keys.k3: "no gaps"
 ```
 
 <p align="center"><strong>Cluster displaced strings — the key is the sequence of consecutive-character gaps (modulo 26 to handle wrap). Strings with identical gap sequences belong to the same displacing class and collide into the same hash-map bucket.</strong></p>

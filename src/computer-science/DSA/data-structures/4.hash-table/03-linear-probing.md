@@ -30,26 +30,25 @@ Now that we know how a hash table is implemented using separate chaining and hav
 
 In linear probing, every slot in the internal array stores **one** key-value pair (or nothing). The size of the internal array therefore caps the size of the hash table — you cannot fit 10 keys into an array of length 8. The huge upside is **cache locality**: the entire table is one slab of memory the CPU can stream through with prefetching, and walking N slots is *brutally* faster than chasing N linked-list nodes scattered around the heap.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 8
-  H0["[0]"] H1["[1]"] H2["[2]"] H3["[3]"] H4["[4]"] H5["[5]"] H6["[6]"] H7["[7]"]
-  C0["EMPTY"] C1["(9, B)"] C2["(13, C)"] C3["(17, D)"] C4["EMPTY"] C5["(5, A)"] C6["EMPTY"] C7["EMPTY"]
-  style C1 fill:#dbeafe,stroke:#3b82f6
-  style C2 fill:#dbeafe,stroke:#3b82f6
-  style C3 fill:#dbeafe,stroke:#3b82f6
-  style C5 fill:#dbeafe,stroke:#3b82f6
+```d2
+grid-columns: 8
+grid-gap: 0
+h0: "[0]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h1: "[1]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h2: "[2]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h3: "[3]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h4: "[4]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h5: "[5]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h6: "[6]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h7: "[7]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+c0: "EMPTY"
+c1: "(9, B)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+c2: "(13, C)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+c3: "(17, D)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+c4: "EMPTY"
+c5: "(5, A)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+c6: "EMPTY"
+c7: "EMPTY"
 ```
 
 <p align="center"><strong>Logical view of a linear-probing hash table — the internal array stores key-value pairs directly. Some slots are occupied, others are empty. Everything lives in one contiguous block of memory; there are no chains.</strong></p>
@@ -108,30 +107,17 @@ The probe is bounded — we never iterate more than `capacity` steps, because af
 > -   **Step 2:** Linear-probe from that index until either the key is found or an empty slot is hit.
 > -   **Step 3:** Return the value if the key is found; otherwise return `-1`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph OA["Open addressing"]
-        direction TB
-        A["Collisions resolved by<br/>probing other slots in<br/>the SAME array"]
-        subgraph FAM["family of probe sequences"]
-            direction LR
-            L["Linear<br/>probing"]
-            Q["Quadratic<br/>probing"]
-            D["Double<br/>hashing"]
-        end
-        A --> FAM
-    end
+```d2
+oa: Open addressing {
+  desc: "Collisions resolved by probing other slots in the SAME array"
+  fam: family of probe sequences {
+    direction: right
+    L: Linear probing
+    Q: Quadratic probing
+    D: Double hashing
+  }
+  desc -> fam
+}
 ```
 
 <p align="center"><strong>Linear probing belongs to the broader family called <strong>open addressing</strong> — the address (slot index) is "open" because a key can end up at <em>any</em> slot, not just the one its hash points to. The next two lessons will explore the other two probe sequences in this family.</strong></p>
@@ -154,25 +140,26 @@ In linear probing, each slot stores exactly one record (or nothing). But "nothin
 
 We'll see exactly why `DELETED` is necessary (and not just "set the slot to `EMPTY`") when we get to the delete operation. For now, take the three states as a given.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph REC["A single Record"]
-        direction LR
-        S["state<br/>(EMPTY / OCCUPIED / DELETED)"] --- K["key"] --- V["value"]
-    end
-    NOTE["The state field is what makes<br/>the array searchable after deletes"] -.-> S
-    style S fill:#fef9c3,stroke:#f59e0b
+```d2
+direction: right
+
+rec: A single Record {
+  s: |md
+    **state**
+
+    EMPTY / OCCUPIED / DELETED
+  | {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+  k: key
+  v: value
+}
+
+note: |md
+  The state field is what
+  makes the array searchable
+  after deletes
+| {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+
+note -> rec.s {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>A linear-probing record carries three fields — the state tag plus the (key, value) payload. The state field is the secret ingredient that lets the table survive deletions without losing data; we'll see why in the delete section.</strong></p>
@@ -397,22 +384,21 @@ fn main() {
 
 The internal array is just `capacity` records sitting back-to-back. Every slot starts in the `EMPTY` state. Inserts flip slots to `OCCUPIED`; deletes flip occupied slots to `DELETED`; the array's *length* never changes.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 6
-  H0["[0]"] H1["[1]"] H2["[2]"] H3["[3]"] H4["[4]"] H5["[5]"]
-  E0["EMPTY"] E1["EMPTY"] E2["EMPTY"] E3["EMPTY"] E4["EMPTY"] E5["EMPTY"]
+```d2
+grid-columns: 6
+grid-gap: 0
+h0: "[0]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h1: "[1]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h2: "[2]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h3: "[3]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h4: "[4]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h5: "[5]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+e0: EMPTY
+e1: EMPTY
+e2: EMPTY
+e3: EMPTY
+e4: EMPTY
+e5: EMPTY
 ```
 
 <p align="center"><strong>An empty linear-probing hash table — one contiguous array, every slot in <code>EMPTY</code> state. Compare with separate chaining, where the array contained chain references; here the array contains the records themselves.</strong></p>
@@ -446,35 +432,22 @@ flowchart LR
 
 We now wrap everything into a `MyHashTable` class. The constructor builds an array of `capacity` records, all `EMPTY`; the public methods are stubs we'll fill in next.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph CLS["MyHashTable class"]
-        direction TB
-        subgraph PRIV["private internals"]
-            CAP["capacity"]
-            TBL["table: Record[]"]
-            HF["hashFunction(key)"]
-            PROBE_O["probeForOccupied(key)"]
-            PROBE_E["probeForEmpty(start)"]
-        end
-        subgraph PUB["public API"]
-            S["search(key)"]
-            I["insert(key, value)"]
-            R["remove(key)"]
-        end
-        PUB -.-> PRIV
-    end
+```d2
+cls: MyHashTable class {
+  priv: private internals {
+    cap: "capacity"
+    tbl: "table: Record[]"
+    hf: "hashFunction(key)"
+    po: "probeForOccupied(key)"
+    pe: "probeForEmpty(start)"
+  }
+  pub: public API {
+    s: "search(key)"
+    i: "insert(key, value)"
+    r: "remove(key)"
+  }
+  pub -> priv {style.stroke-dash: 3}
+}
 ```
 
 <p align="center"><strong>The class wraps two helpers around the hash function — <code>probeForOccupied</code> finds an existing key, <code>probeForEmpty</code> finds the next free slot. Every public operation will call one or both.</strong></p>
@@ -854,27 +827,19 @@ flowchart LR
 
 If we walk the entire array (`capacity` probes) without finding either the key or an `EMPTY` slot, the table is completely full and the key is not present. Return `-1`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 5
-  H0["[0]"] H1["[1]"] H2["[2]"] H3["[3]"] H4["[4]"]
-  C0["(20)"] C1["(31)"] C2["(13)"] C3["(7)"] C4["(99)"]
-  style C0 fill:#dbeafe,stroke:#3b82f6
-  style C1 fill:#dbeafe,stroke:#3b82f6
-  style C2 fill:#dbeafe,stroke:#3b82f6
-  style C3 fill:#dbeafe,stroke:#3b82f6
-  style C4 fill:#dbeafe,stroke:#3b82f6
+```d2
+grid-columns: 5
+grid-gap: 0
+h0: "[0]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h1: "[1]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h2: "[2]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h3: "[3]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h4: "[4]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+c0: "(20)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+c1: "(31)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+c2: "(13)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+c3: "(7)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+c4: "(99)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
 ```
 
 <p align="center"><strong>A full table — every slot OCCUPIED. A search for a key not in the table walks the entire array and returns -1 only after <code>capacity</code> probes.</strong></p>
@@ -1288,26 +1253,20 @@ fn main() {
 
 ## Complexity analysis
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEST["Best — slot at hash matches"]
-        B0["[5] (k, v) ✓"]
-    end
-    subgraph WORST["Worst — every slot occupied, target at end (or absent)"]
-        W0["[5] ≠"] --> W1["[6] ≠"] --> W2["[7] ≠"] --> W3["..."] --> W4["[4] ≠ → -1"]
-    end
-    BEST ~~~ WORST
+```d2
+best: "Best — slot at hash matches" {
+  b: "[5] (k, v)" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+
+worst: "Worst — every slot occupied, target absent or at end" {
+  direction: right
+  w0: "[5] !="
+  w1: "[6] !="
+  w2: "[7] !="
+  w3: "..."
+  w4: "[4] != -> -1"
+  w0 -> w1 -> w2 -> w3 -> w4
+}
 ```
 
 <p align="center"><strong>Search performance — best case is one comparison; worst case (table full of collisions) requires walking every slot. The cache-friendliness of the contiguous array means linear probing typically beats separate chaining in wall-clock time even when the asymptotic complexity is identical.</strong></p>
@@ -1386,27 +1345,19 @@ flowchart LR
 
 If the entire array is OCCUPIED and the key is not present, insert fails — return `false`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 5
-  H0["[0]"] H1["[1]"] H2["[2]"] H3["[3]"] H4["[4]"]
-  C0["(20)"] C1["(31)"] C2["(13)"] C3["(7)"] C4["(99)"]
-  style C0 fill:#dbeafe,stroke:#3b82f6
-  style C1 fill:#dbeafe,stroke:#3b82f6
-  style C2 fill:#dbeafe,stroke:#3b82f6
-  style C3 fill:#dbeafe,stroke:#3b82f6
-  style C4 fill:#dbeafe,stroke:#3b82f6
+```d2
+grid-columns: 5
+grid-gap: 0
+h0: "[0]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h1: "[1]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h2: "[2]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h3: "[3]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h4: "[4]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+c0: "(20)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+c1: "(31)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+c2: "(13)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+c3: "(7)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+c4: "(99)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
 ```
 
 <p align="center"><strong>Insert into a full table fails. In production, this is the trigger for resizing — copy every record into a larger array. Our fixed-capacity teaching version simply returns <code>false</code>.</strong></p>
@@ -2016,32 +1967,31 @@ Now we meet the most subtle operation — and the reason `DELETED` exists as a s
 >
 > The fix is the `DELETED` tombstone: marking `[6]` as `DELETED` keeps the probe chain alive ("keep searching past me"), so the search continues to `[7]` and finds the record. Subsequent inserts can still reuse the slot (it's not OCCUPIED), so the table doesn't bloat with tombstones.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BAD["Naïve delete — set [6] to EMPTY"]
-        direction LR
-        B5["[5] (5, A)"] --> B6["[6] EMPTY"] --> B7["[7] (13, C)"]
-        BNOTE["search(13) hits EMPTY at [6] →<br/>returns -1 — record at [7] is UNREACHABLE"]
-        style B6 fill:#fee2e2,stroke:#ef4444
-    end
-    subgraph GOOD["Tombstone delete — set [6] to DELETED"]
-        direction LR
-        G5["[5] (5, A)"] --> G6["[6] DELETED"] --> G7["[7] (13, C)"]
-        GNOTE["search(13) skips DELETED at [6],<br/>finds record at [7] ✓"]
-        style G6 fill:#fef9c3,stroke:#f59e0b
-    end
-    BAD ~~~ GOOD
+```d2
+bad: "Naive delete — set [6] to EMPTY" {
+  direction: right
+  b5: "[5] (5, A)"
+  b6: "[6] EMPTY" {style.fill: "#fee2e2"; style.stroke: "#ef4444"}
+  b7: "[7] (13, C)"
+  b5 -> b6 -> b7
+  note: |md
+    search(13) hits EMPTY at [6]
+    -> returns -1; record at [7]
+    is UNREACHABLE
+  | {style.fill: "#fee2e2"; style.stroke: "#ef4444"}
+}
+
+good: "Tombstone delete — set [6] to DELETED" {
+  direction: right
+  g5: "[5] (5, A)"
+  g6: "[6] DELETED" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+  g7: "[7] (13, C)"
+  g5 -> g6 -> g7
+  note: |md
+    search(13) skips DELETED at [6],
+    finds record at [7]
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
 ```
 
 <p align="center"><strong>Why the DELETED tombstone exists — naïvely setting a deleted slot to EMPTY breaks the probe chain and orphans every record beyond it. The DELETED tombstone keeps the chain walkable for searches while still letting inserts reuse the slot.</strong></p>
@@ -2700,25 +2650,12 @@ Given the skeleton of a `MyHashTable` class, complete it by implementing:
 > -   **remove(int key)** — Remove the mapping (no-op if absent).
 > -   **getKeyAtIndex(int index)** — Return the key currently stored at `table[index]`, or `-1` if the slot isn't `OCCUPIED`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph CONS["Constraints"]
-        direction TB
-        C1["No built-in hash table libraries"]
-        C2["Linear probing for collisions"]
-        C3["Hash function: index = key % capacity"]
-    end
+```d2
+cons: Constraints {
+  c1: "No built-in hash table libraries"
+  c2: "Linear probing for collisions"
+  c3: "Hash function: index = key % capacity"
+}
 ```
 
 <p align="center"><strong>Constraints — implement everything from scratch with linear probing and the simple division-method hash.</strong></p>

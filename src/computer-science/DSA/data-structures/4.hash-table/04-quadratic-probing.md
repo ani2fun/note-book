@@ -28,25 +28,25 @@ There's still a price (every cure has its bug), and we'll meet it: **secondary c
 
 Now that we've seen linear probing and felt its limitation — primary clustering — let's introduce a small but powerful change to the probe sequence. **Quadratic probing** is an open-addressing scheme that keeps everything else about linear probing the same (single contiguous array, three-state records, cache-friendly storage) but replaces the linear walk with a *quadratic* one: the i-th probe is at `(startIndex + a·i² + b·i) % capacity` for some constants `a` and `b`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 8
-  H0["[0]"] H1["[1]"] H2["[2]"] H3["[3]"] H4["[4]"] H5["[5]"] H6["[6]"] H7["[7]"]
-  C0["EMPTY"] C1["(9, B)"] C2["EMPTY"] C3["EMPTY"] C4["(13, C)"] C5["(5, A)"] C6["EMPTY"] C7["EMPTY"]
-  style C1 fill:#dbeafe,stroke:#3b82f6
-  style C4 fill:#dbeafe,stroke:#3b82f6
-  style C5 fill:#dbeafe,stroke:#3b82f6
+```d2
+grid-columns: 8
+grid-gap: 0
+h0: "[0]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h1: "[1]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h2: "[2]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h3: "[3]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h4: "[4]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h5: "[5]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h6: "[6]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h7: "[7]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+c0: "EMPTY"
+c1: "(9, B)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+c2: "EMPTY"
+c3: "EMPTY"
+c4: "(13, C)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+c5: "(5, A)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+c6: "EMPTY"
+c7: "EMPTY"
 ```
 
 <p align="center"><strong>Logical view of a quadratic-probing hash table — like linear probing, every slot stores one (key, value) pair directly. Unlike linear probing, colliding keys land at <em>scattered</em> positions instead of consecutive ones.</strong></p>
@@ -145,23 +145,18 @@ A quadratic-probing hash table has the same three components as linear probing �
 
 Identical to linear probing: each slot stores a key, a value, and a state (`EMPTY` / `DELETED` / `OCCUPIED`). The state field plays exactly the same role — `EMPTY` short-circuits searches, `DELETED` keeps probe chains alive after deletions.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph REC["A single Record"]
-        direction LR
-        S["state<br/>(EMPTY / OCCUPIED / DELETED)"] --- K["key"] --- V["value"]
-    end
+```d2
+direction: right
+
+rec: A single Record {
+  s: |md
+    **state**
+
+    EMPTY / OCCUPIED / DELETED
+  | {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+  k: key
+  v: value
+}
 ```
 
 <p align="center"><strong>Quadratic-probing record — exactly the same shape as linear probing's record. The only difference between the two schemes is in <em>how</em> the probe sequence walks the array.</strong></p>
@@ -336,22 +331,23 @@ fn main() {
 
 Identical to linear probing — `capacity` records sitting back-to-back, all `EMPTY` at construction time. The contiguous layout is what gives both schemes their cache-friendly performance.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 7
-  H0["[0]"] H1["[1]"] H2["[2]"] H3["[3]"] H4["[4]"] H5["[5]"] H6["[6]"]
-  E0["EMPTY"] E1["EMPTY"] E2["EMPTY"] E3["EMPTY"] E4["EMPTY"] E5["EMPTY"] E6["EMPTY"]
+```d2
+grid-columns: 7
+grid-gap: 0
+h0: "[0]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h1: "[1]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h2: "[2]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h3: "[3]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h4: "[4]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h5: "[5]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h6: "[6]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+e0: EMPTY
+e1: EMPTY
+e2: EMPTY
+e3: EMPTY
+e4: EMPTY
+e5: EMPTY
+e6: EMPTY
 ```
 
 <p align="center"><strong>An empty quadratic-probing hash table — same structural layout as linear probing. The behavioural difference shows up only when collisions start happening.</strong></p>
@@ -385,36 +381,27 @@ flowchart LR
 
 Now we wrap everything into `MyHashTable`. The class signature gains two extra parameters — the quadratic constants `a` and `b` — so the same code can support different probe sequences (`a=1, b=0` for the textbook `i²`, or any other choice the user wants to experiment with).
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph CLS["MyHashTable class"]
-        direction TB
-        subgraph PRIV["private internals"]
-            CAP["capacity"]
-            AB["a, b<br/>(quadratic constants)"]
-            TBL["table: Record[]"]
-            HF["hashFunction(key)"]
-            PROBE_O["probeForOccupied(key)"]
-            PROBE_E["probeForFree(start)"]
-        end
-        subgraph PUB["public API"]
-            S["search(key)"]
-            I["insert(key, value)"]
-            R["remove(key)"]
-        end
-        PUB -.-> PRIV
-    end
+```d2
+cls: MyHashTable class {
+  priv: private internals {
+    cap: "capacity"
+    ab: |md
+      **a, b**
+
+      (quadratic constants)
+    |
+    tbl: "table: Record[]"
+    hf: "hashFunction(key)"
+    po: "probeForOccupied(key)"
+    pe: "probeForFree(start)"
+  }
+  pub: public API {
+    s: "search(key)"
+    i: "insert(key, value)"
+    r: "remove(key)"
+  }
+  pub -> priv {style.stroke-dash: 3}
+}
 ```
 
 <p align="center"><strong>The quadratic-probing class adds two private fields (a and b) on top of the linear-probing class. Everything else — the array, the hash function, the public API — is unchanged.</strong></p>
@@ -2452,25 +2439,16 @@ Given the skeleton of a `MyHashTable` class, complete it by implementing:
 > -   **remove(int key)** — Remove the mapping (no-op if absent).
 > -   **getKeyAtIndex(int index)** — Return the key at `table[index]`, or `-1` if not `OCCUPIED`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph CONS["Constraints"]
-        direction TB
-        C1["No built-in hash table libraries"]
-        C2["Quadratic probing for collisions<br/>(formula: a·i² + b·i, supplied as input)"]
-        C3["Hash function: index = key % capacity"]
-    end
+```d2
+cons: Constraints {
+  c1: "No built-in hash table libraries"
+  c2: |md
+    Quadratic probing for collisions
+
+    (formula: a*i^2 + b*i, supplied as input)
+  |
+  c3: "Hash function: index = key % capacity"
+}
 ```
 
 <p align="center"><strong>Constraints — quadratic probing with supplied <code>a</code> and <code>b</code> coefficients. Choosing them well is critical: with the wrong combination, the probe can fail to visit every slot of the array, even when slots are free.</strong></p>

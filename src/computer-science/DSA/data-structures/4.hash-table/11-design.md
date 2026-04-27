@@ -30,24 +30,11 @@ Implement an LRU (Least-Recently-Used) cache:
 > -   **`get(int key)`** — Return the value if the key exists, else `-1`. Accessing a key marks it as the most recently used.
 > -   **`put(int key, int value)`** — Insert or update the mapping. If inserting causes the size to exceed `capacity`, evict the least recently used key.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph CONS["Constraints"]
-        direction TB
-        C1["No built-in LRU libraries"]
-        C2["get and put must each run in amortised O(1)"]
-    end
+```d2
+cons: Constraints {
+  c1: "No built-in LRU libraries"
+  c2: "get and put must each run in amortised O(1)"
+}
 ```
 
 <p align="center"><strong>Constraints — both operations have to be amortised O(1). The naïve "scan a list for the LRU element" is O(N) per put and breaks the contract.</strong></p>
@@ -76,31 +63,26 @@ The two requirements pull in opposite directions:
 
 The classic answer: **doubly-linked list + hash map**. The list stores the entries in MRU-to-LRU order: front of list = most recently used, back of list = least recently used. The hash map stores `key → pointer to that key's node`. Both structures hold the *same* nodes (the list owns them; the map references them).
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph MAP["hash map"]
-        M1["1 → ●"]
-        M2["3 → ●"]
-    end
-    subgraph LIST["doubly-linked list (front = MRU, back = LRU)"]
-        direction LR
-        H["[head]"] --> N1["(1, 10)"]
-        N1 <--> N3["(3, 30)"]
-        N3 --> T["[tail]"]
-    end
-    M1 -.-> N1
-    M2 -.-> N3
+```d2
+map: hash map {
+  m1: "1 -> *"
+  m2: "3 -> *"
+}
+
+list: "doubly-linked list (front = MRU, back = LRU)" {
+  direction: right
+  h: "[head]"
+  n1: "(1, 10)"
+  n3: "(3, 30)"
+  t: "[tail]"
+  h -> n1
+  n1 -> n3
+  n3 -> n1
+  n3 -> t
+}
+
+map.m1 -> list.n1 {style.stroke-dash: 3}
+map.m2 -> list.n3 {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>The LRU cache as a hash-map-plus-doubly-linked-list — the map gives O(1) lookup of any key's node; the list keeps the recency order with O(1) splice. Both structures point to the <em>same</em> nodes.</strong></p>
@@ -612,32 +594,23 @@ The composite trick: **dynamic array + hash map**, where the array stores the va
 
 That swap-with-last is what avoids the O(N) shift. The only constraint: ordering inside the array doesn't matter — perfect for a *set* (which is order-agnostic by definition).
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["before remove(2)"]
-        A1["arr: [2, 4, 6]"]
-        M1["map: {2→0, 4→1, 6→2}"]
-    end
-    subgraph SWAP["swap arr[0] with arr[last]"]
-        A2["arr: [6, 4, 2]"]
-        M2["map: {2→0, 4→1, 6→0}"]
-    end
-    subgraph AFTER["pop array tail; delete 2 from map"]
-        A3["arr: [6, 4]"]
-        M3["map: {4→1, 6→0}"]
-    end
-    BEFORE --> SWAP --> AFTER
+```d2
+before: "before remove(2)" {
+  a1: "arr: [2, 4, 6]"
+  m1: "map: {2->0, 4->1, 6->2}"
+}
+
+swap: "swap arr[0] with arr[last]" {
+  a2: "arr: [6, 4, 2]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+  m2: "map: {2->0, 4->1, 6->0}" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+}
+
+after: "pop array tail; delete 2 from map" {
+  a3: "arr: [6, 4]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  m3: "map: {4->1, 6->0}" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+
+before -> swap -> after
 ```
 
 <p align="center"><strong>RandomisedSet remove — swap target with tail (O(1)), pop tail (O(1)), update the swapped element's index in the map (O(1)). The set's contents are correct; the order changed, but the set didn't care about order anyway.</strong></p>

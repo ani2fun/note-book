@@ -26,30 +26,27 @@ The pattern is so plain it almost looks like cheating: *traverse once, record wh
 
 Some problems hand you a *sequence* — an array, a string, a linked list — and ask you something whose answer depends on **how often** each item appears. "Which character is unique?" "Can string A be rearranged into string B?" "How many anagrams in this list?" The naïve approach is to walk the sequence twice (or N times), comparing items to each other and racking up O(N²) work. The clever approach is to walk *once*, building a hash map from item to frequency. After that single pass, the question collapses into a constant-time lookup.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph IN["Input array"]
-        direction LR
-        A0["a"] --- A1["b"] --- A2["a"] --- A3["c"] --- A4["b"] --- A5["a"]
-    end
-    IN -->|"single pass"| MAP
-    subgraph MAP["frequency map"]
-        direction TB
-        M1["'a' → 3"]
-        M2["'b' → 2"]
-        M3["'c' → 1"]
-    end
+```d2
+direction: right
+
+inp: Input array {
+  grid-columns: 6
+  grid-gap: 0
+  a0: "a"
+  a1: "b"
+  a2: "a"
+  a3: "c"
+  a4: "b"
+  a5: "a"
+}
+
+map: frequency map {
+  m1: "'a' -> 3"
+  m2: "'b' -> 2"
+  m3: "'c' -> 1"
+}
+
+inp -> map: single pass
 ```
 
 <p align="center"><strong>The counting technique — one linear sweep over the input builds a complete frequency map. After this single pass, every "how often did X appear?" question is a constant-time lookup.</strong></p>

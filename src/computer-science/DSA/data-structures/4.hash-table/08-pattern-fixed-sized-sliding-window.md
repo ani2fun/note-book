@@ -29,27 +29,24 @@ Some problems hand you a sequence and ask a question about *every contiguous win
 
 The sliding-window technique cuts this to **O(N)** by exploiting a beautiful observation: when the window moves one step right, *almost everything inside it stays the same*. Only **two** elements change: the one being added on the right, and the one falling off on the left. If we keep a running summary of the window in a hash map, we can update it in O(1) per shift instead of recomputing from scratch.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 7
-  A0["a"] A1["b"] A2["a"] A3["c"] A4["b"] A5["d"] A6["a"]
-  W1["window 1: [a, b, a, c]"]:4 _:3
-  _2:1 W2["window 2: [b, a, c, b]"]:4 _3:2
-  style A0 fill:#fef9c3,stroke:#f59e0b
-  style A1 fill:#fef9c3,stroke:#f59e0b
-  style A2 fill:#fef9c3,stroke:#f59e0b
-  style A3 fill:#fef9c3,stroke:#f59e0b
+```d2
+arr: input array {
+  grid-columns: 7
+  grid-gap: 0
+  a0: a {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a1: b {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a2: a {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a3: c {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a4: b
+  a5: d
+  a6: a
+}
+
+w1: "window 1: [a, b, a, c]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+w2: "window 2: [b, a, c, b]" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+
+arr -> w1: "positions 0..3"
+arr -> w2: "positions 1..4 (slide by 1)"
 ```
 
 <p align="center"><strong>Sliding by one step — windows 1 and 2 share three elements (b, a, c); only <code>a</code> drops off the left and <code>b</code> arrives on the right. Recomputing from scratch wastes work on the three shared elements; the sliding-window technique avoids it entirely.</strong></p>
@@ -663,22 +660,31 @@ Given `arr` and a positive integer `k`, return an array containing the count of 
 
 The number of *distinct* elements in the window is exactly `len(freq_map)` — the number of keys with non-zero count. The trick: when a frequency drops to zero on contraction, **delete the key** from the map so the size reflects only currently-present elements.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    W["window contents:<br/>[2, 1, 2, 3, 2]"] --> M["freq: {2:3, 1:1, 3:1}"]
-    M --> D["distinct = len(freq) = 3 ✓"]
-    style D fill:#dcfce7,stroke:#22c55e
+```d2
+direction: right
+
+w: "window contents" {
+  grid-columns: 5
+  grid-gap: 0
+  a0: "2"
+  a1: "1"
+  a2: "2"
+  a3: "3"
+  a4: "2"
+}
+
+m: "freq map" {
+  m1: "2 -> 3"
+  m2: "1 -> 1"
+  m3: "3 -> 1"
+}
+
+d: |md
+  **distinct = len(freq) = 3**
+| {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+
+w -> m
+m -> d
 ```
 
 <p align="center"><strong>Distinct count via map size — every distinct element is one key in the map. Maintain the map's invariant that "count is non-zero" by deleting zero-count keys on contraction, and <code>len(map)</code> is your answer.</strong></p>

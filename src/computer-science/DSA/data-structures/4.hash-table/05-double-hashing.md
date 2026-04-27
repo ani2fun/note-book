@@ -30,25 +30,23 @@ We've now seen quadratic probing's secondary-clustering bug — keys that hash t
 
 Like quadratic probing, double hashing is an **open-addressing** scheme. The internal array stores key-value pairs directly. The size of the internal array bounds the table; the contiguous layout buys cache locality. None of that has changed.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 7
-  H0["[0]"] H1["[1]"] H2["[2]"] H3["[3]"] H4["[4]"] H5["[5]"] H6["[6]"]
-  C0["EMPTY"] C1["(1, A)"] C2["EMPTY"] C3["(8, B)"] C4["EMPTY"] C5["(15, C)"] C6["EMPTY"]
-  style C1 fill:#dbeafe,stroke:#3b82f6
-  style C3 fill:#dbeafe,stroke:#3b82f6
-  style C5 fill:#dbeafe,stroke:#3b82f6
+```d2
+grid-columns: 7
+grid-gap: 0
+h0: "[0]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h1: "[1]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h2: "[2]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h3: "[3]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h4: "[4]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h5: "[5]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+h6: "[6]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+c0: "EMPTY"
+c1: "(1, A)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+c2: "EMPTY"
+c3: "(8, B)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+c4: "EMPTY"
+c5: "(15, C)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+c6: "EMPTY"
 ```
 
 <p align="center"><strong>Logical view of a double-hashing hash table — like the other open-addressing schemes, every slot directly stores a key-value pair. The difference shows up when you trace where colliding keys actually land.</strong></p>
@@ -149,23 +147,18 @@ A double-hashing hash table has the same three components as quadratic probing �
 
 Same three-state record as the other open-addressing schemes — `state ∈ {EMPTY, DELETED, OCCUPIED}` plus the `(key, value)` pair. The state machine is identical; the only thing that's different is which slots get visited during a probe.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph REC["A single Record"]
-        direction LR
-        S["state<br/>(EMPTY / OCCUPIED / DELETED)"] --- K["key"] --- V["value"]
-    end
+```d2
+direction: right
+
+rec: A single Record {
+  s: |md
+    **state**
+
+    EMPTY / OCCUPIED / DELETED
+  | {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+  k: key
+  v: value
+}
 ```
 
 <p align="center"><strong>Double-hashing record — same shape and same state machine as the linear and quadratic probing records. Open-addressing schemes share their record type; only the probe walks differ.</strong></p>
@@ -380,37 +373,32 @@ flowchart LR
 
 We now wrap everything into `MyHashTable`. The constructor takes `capacity` and `hashPrime`. The class adds `hashPrime` as a private field and a private `hashFunction2` method on top of the linear/quadratic-probing class.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph CLS["MyHashTable class"]
-        direction TB
-        subgraph PRIV["private internals"]
-            CAP["capacity"]
-            HP["hashPrime"]
-            TBL["table: Record[]"]
-            HF1["hash1(key)<br/>(starting slot)"]
-            HF2["hash2(key)<br/>(step size)"]
-            PROBE_O["probeForOccupied(key)"]
-            PROBE_E["probeForFree(key)"]
-        end
-        subgraph PUB["public API"]
-            S["search(key)"]
-            I["insert(key, value)"]
-            R["remove(key)"]
-        end
-        PUB -.-> PRIV
-    end
+```d2
+cls: MyHashTable class {
+  priv: private internals {
+    cap: "capacity"
+    hp: "hashPrime"
+    tbl: "table: Record[]"
+    hf1: |md
+      **hash1(key)**
+
+      (starting slot)
+    |
+    hf2: |md
+      **hash2(key)**
+
+      (step size)
+    |
+    po: "probeForOccupied(key)"
+    pe: "probeForFree(key)"
+  }
+  pub: public API {
+    s: "search(key)"
+    i: "insert(key, value)"
+    r: "remove(key)"
+  }
+  pub -> priv {style.stroke-dash: 3}
+}
 ```
 
 <p align="center"><strong>Class layout — adds <code>hashPrime</code> and <code>hash2</code> on top of the open-addressing template. Notice that <code>probeForOccupied</code> and <code>probeForFree</code> now both depend on the key (because the step is per-key), unlike linear/quadratic where they depended only on the start.</strong></p>
@@ -2515,26 +2503,13 @@ Given the skeleton of a `MyHashTable` class, complete it by implementing:
 > -   **remove(int key)** — Remove the mapping (no-op if absent).
 > -   **getKeyAtIndex(int index)** — Return the key at `table[index]`, or `-1` if not `OCCUPIED`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph CONS["Constraints"]
-        direction TB
-        C1["No built-in hash table libraries"]
-        C2["Double hashing for collisions"]
-        C3["hash₁(key) = key % capacity"]
-        C4["hash₂(key) = hashPrime − (key % hashPrime)"]
-    end
+```d2
+cons: Constraints {
+  c1: "No built-in hash table libraries"
+  c2: "Double hashing for collisions"
+  c3: "hash1(key) = key % capacity"
+  c4: "hash2(key) = hashPrime - (key % hashPrime)"
+}
 ```
 
 <p align="center"><strong>Constraints — primary hash is the standard division method; secondary hash is the classic non-zero double-hashing form. <code>hashPrime</code> is supplied as input so the same code can be tested with different secondary-hash configurations.</strong></p>

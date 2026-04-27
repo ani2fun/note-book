@@ -27,23 +27,35 @@ This is the last hash-table pattern in the section, and it's the one that finish
 
 The **prefix sum** of an array `arr` at index `i` is the sum of all elements from `arr[0]` through `arr[i]`, inclusive. Define `P[0] = 0` and `P[i] = arr[0] + arr[1] + ... + arr[i-1]` for `i ≥ 1`. With this convention, the sum of any subarray `arr[l..r]` equals **`P[r+1] − P[l]`** — a single subtraction once the prefix sums are computed.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 6
-  A0["arr[0]=3"] A1["arr[1]=1"] A2["arr[2]=4"] A3["arr[3]=1"] A4["arr[4]=5"] A5["arr[5]=9"]
-  P0["P[0]=0"]:1 P1["P[1]=3"]:1 P2["P[2]=4"]:1 P3["P[3]=8"]:1 P4["P[4]=9"]:1 P5["P[5]=14"]:1
-  Q1["sum arr[2..4] = P[5] − P[2] = 14 − 4 = 10  ✓"]:6
+```d2
+arr: arr {
+  grid-columns: 6
+  grid-gap: 0
+  a0: "arr[0] = 3"
+  a1: "arr[1] = 1"
+  a2: "arr[2] = 4"
+  a3: "arr[3] = 1"
+  a4: "arr[4] = 5"
+  a5: "arr[5] = 9"
+}
+
+p: prefix sums P {
+  grid-columns: 6
+  grid-gap: 0
+  p0: "P[0] = 0"
+  p1: "P[1] = 3"
+  p2: "P[2] = 4"
+  p3: "P[3] = 8"
+  p4: "P[4] = 9"
+  p5: "P[5] = 14"
+}
+
+q: |md
+  **sum arr[2..4] = P[5] - P[2] = 14 - 4 = 10**
+| {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+
+arr -> p
+p -> q
 ```
 
 <p align="center"><strong>Prefix sums in action — once <code>P</code> is built, any subarray sum is <em>one subtraction</em>. Every subarray-sum question becomes a question about <em>differences</em> between prefix sums, which is exactly the kind of question a hash map answers in O(1).</strong></p>
@@ -57,28 +69,20 @@ Two flavours of the technique come up over and over:
 - **Difference search** — given target `K`, find subarrays summing to `K`. Iterate while maintaining `P` and a map `{prefixSum → index/count}`. At each step, look up `P_current − K`; if it exists, we've found a subarray.
 - **Same-value search** — given a property "subarray X is balanced" (zero-sum, equal 0s and 1s, etc.), encode the property so that "balanced" means *the same prefix value appears twice*. Iterate maintaining `P` and `{prefixSum → first-index}`; whenever `P_current` reappears, the slice between the two indices is balanced.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph DIFF["Difference search — subarray sum = K"]
-        D1["maintain P_current"] --> D2["look up P_current − K in map"]
-        D2 --> D3["if hit → subarray found"]
-    end
-    subgraph SAME["Same-value search — balanced subarray"]
-        S1["encode '+1/-1' so balanced = sum 0"] --> S2["look up P_current in map"]
-        S2 --> S3["if seen earlier → balanced subarray"]
-    end
-    DIFF ~~~ SAME
+```d2
+diff: "Difference search — subarray sum = K" {
+  d1: "maintain P_current"
+  d2: "look up P_current - K in map"
+  d3: "if hit -> subarray found"
+  d1 -> d2 -> d3
+}
+
+same: "Same-value search — balanced subarray" {
+  s1: "encode '+1/-1' so balanced = sum 0"
+  s2: "look up P_current in map"
+  s3: "if seen earlier -> balanced subarray"
+  s1 -> s2 -> s3
+}
 ```
 
 <p align="center"><strong>Two flavours of the prefix-sum trick — both convert a hard subarray question into a fast lookup. The difference-search flavour solves "sum equals K"; the same-value-search flavour solves "balanced/zero-net" via clever encoding.</strong></p>
@@ -342,23 +346,46 @@ If the problem can be rephrased as "two prefix values that differ by D" (or "two
 
 The encoding trick: **treat 0 as −1 and 1 as +1**. Now "equal counts" becomes "subarray sum = 0", which becomes "two prefix sums are equal" — and the same-value-search flavour kicks in.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 8
-  A0["1"]:1 A1["0"]:1 A2["1"]:1 A3["1"]:1 A4["1"]:1 A5["0"]:1 A6["0"]:1 _:1
-  E0["+1"]:1 E1["-1"]:1 E2["+1"]:1 E3["+1"]:1 E4["+1"]:1 E5["-1"]:1 E6["-1"]:1 _2:1
-  P0["P[0]=0"]:1 P1["P[1]=1"]:1 P2["P[2]=0"]:1 P3["P[3]=1"]:1 P4["P[4]=2"]:1 P5["P[5]=3"]:1 P6["P[6]=2"]:1 P7["P[7]=1"]:1
+```d2
+arr: arr {
+  grid-columns: 7
+  grid-gap: 0
+  a0: "1"
+  a1: "0"
+  a2: "1"
+  a3: "1"
+  a4: "1"
+  a5: "0"
+  a6: "0"
+}
+
+enc: "encoded (0 -> -1, 1 -> +1)" {
+  grid-columns: 7
+  grid-gap: 0
+  e0: "+1"
+  e1: "-1"
+  e2: "+1"
+  e3: "+1"
+  e4: "+1"
+  e5: "-1"
+  e6: "-1"
+}
+
+p: prefix sums P {
+  grid-columns: 8
+  grid-gap: 0
+  p0: "P[0]=0"
+  p1: "P[1]=1"
+  p2: "P[2]=0"
+  p3: "P[3]=1"
+  p4: "P[4]=2"
+  p5: "P[5]=3"
+  p6: "P[6]=2"
+  p7: "P[7]=1"
+}
+
+arr -> enc
+enc -> p
 ```
 
 <p align="center"><strong>Equal 0s/1s via re-encoding — turning <code>0 → −1</code> makes "equal counts" equivalent to "prefix-sum difference is 0". The longest subarray with equal counts is the longest gap between two equal prefix sums.</strong></p>
@@ -606,24 +633,42 @@ This is the prefix-sum trick generalised to **prefix products**. Build two array
 
 Then `product[i] = prefix[i] * suffix[i]`. Two passes (one left-to-right, one right-to-left), no division, O(N) time and O(N) space (which can be optimised to O(1) extra by computing one direction in-place).
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 5
-  L1["arr"]:1 A0["1"]:1 A1["2"]:1 A2["3"]:1 A3["4"]:1
-  L2["prefix"]:1 P0["1"]:1 P1["1"]:1 P2["2"]:1 P3["6"]:1
-  L3["suffix"]:1 S0["24"]:1 S1["12"]:1 S2["4"]:1 S3["1"]:1
-  L4["product"]:1 R0["24"]:1 R1["12"]:1 R2["8"]:1 R3["6"]:1
+```d2
+arr: "arr" {
+  grid-columns: 4
+  grid-gap: 0
+  a0: "1"
+  a1: "2"
+  a2: "3"
+  a3: "4"
+}
+
+prefix: "prefix (product of arr[0..i-1])" {
+  grid-columns: 4
+  grid-gap: 0
+  p0: "1"
+  p1: "1"
+  p2: "2"
+  p3: "6"
+}
+
+suffix: "suffix (product of arr[i+1..n-1])" {
+  grid-columns: 4
+  grid-gap: 0
+  s0: "24"
+  s1: "12"
+  s2: "4"
+  s3: "1"
+}
+
+product: "product = prefix * suffix" {
+  grid-columns: 4
+  grid-gap: 0
+  r0: "24" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  r1: "12" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  r2: "8" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  r3: "6" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
 ```
 
 <p align="center"><strong>Self-excluded product — prefix product holds "everything before me", suffix product holds "everything after me", and their pointwise product is the answer. The technique is prefix-sum's multiplicative cousin.</strong></p>
