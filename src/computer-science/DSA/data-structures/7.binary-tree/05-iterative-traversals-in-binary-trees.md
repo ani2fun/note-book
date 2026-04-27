@@ -101,6 +101,7 @@ config:
 ---
 flowchart LR
     subgraph T["the tree"]
+        direction TB
         R((1))
         A((2))
         B((3))
@@ -444,6 +445,7 @@ config:
 ---
 flowchart LR
     subgraph T["the tree"]
+        direction TB
         R((1))
         A((2))
         B((3))
@@ -712,6 +714,7 @@ config:
 ---
 flowchart LR
     subgraph T["the tree"]
+        direction TB
         R((1))
         A((2))
         B((3))
@@ -967,6 +970,7 @@ config:
 ---
 flowchart LR
     subgraph T["the tree"]
+        direction TB
         R((1))
         A((2))
         B((3))

@@ -188,7 +188,7 @@ config:
     secondaryColor: "#ede9fe"
     tertiaryColor: "#fef9c3"
 ---
-flowchart LR
+flowchart TB
     P(("parent<br/>index n"))
     L(("left<br/>index 2n+1"))
     R(("right<br/>index 2n+2"))

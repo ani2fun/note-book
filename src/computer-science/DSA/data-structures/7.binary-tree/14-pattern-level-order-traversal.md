@@ -57,6 +57,7 @@ config:
 ---
 flowchart LR
     subgraph TREE["the tree"]
+        direction TB
         T1((1))
         T2((2))
         T3((3))
@@ -744,6 +745,7 @@ config:
 ---
 flowchart LR
     subgraph BAD["NOT complete — gap then a node"]
+        direction TB
         B1((1)) --> B2((2))
         B1 --> B3((3))
         B2 -.- BN[null]
@@ -752,6 +754,7 @@ flowchart LR
         style B5 fill:#fee2e2,stroke:#ef4444
     end
     subgraph GOOD["complete — all nulls cluster on the right end"]
+        direction TB
         G1((1)) --> G2((2))
         G1 --> G3((3))
         G2 --> G4((4))

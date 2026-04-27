@@ -45,6 +45,7 @@ config:
 ---
 flowchart LR
     subgraph BEFORE["before — root = (1)"]
+        direction TB
         B1((1))
         B2((2))
         B3((3))
@@ -52,6 +53,7 @@ flowchart LR
         B1 --> B3
     end
     subgraph AFTER["after insertRoot(99) — root = (99)"]
+        direction TB
         A99((99))
         A1((1))
         A2((2))
@@ -204,6 +206,7 @@ config:
 ---
 flowchart LR
     subgraph BEFORE["before"]
+        direction TB
         B1((1))
         B2((2))
         B1 --> B2
@@ -211,6 +214,7 @@ flowchart LR
         style BN fill:none,stroke:none
     end
     subgraph AFTER["after insertLeaf(value=9)"]
+        direction TB
         A1((1))
         A2((2))
         A9((9))
@@ -367,6 +371,7 @@ config:
 ---
 flowchart LR
     subgraph BEFORE["before — last level has a gap"]
+        direction TB
         B1((1))
         B2((2))
         B3((3))
@@ -378,6 +383,7 @@ flowchart LR
         style BN fill:none,stroke:none
     end
     subgraph AFTER["after — gap filled left-first"]
+        direction TB
         A1((1))
         A2((2))
         A3((3))
@@ -609,6 +615,7 @@ config:
 ---
 flowchart LR
     subgraph BEFORE["before — node 2 has no left child"]
+        direction TB
         B1((1))
         B2((2))
         B3((3))
@@ -620,6 +627,7 @@ flowchart LR
         style BN fill:none,stroke:none
     end
     subgraph AFTER["after insertChild(parent=2, value=9)"]
+        direction TB
         A1((1))
         A2((2))
         A3((3))
@@ -847,6 +855,7 @@ config:
 ---
 flowchart LR
     subgraph BEFORE["before — target = 5"]
+        direction TB
         B1((1))
         B2((2))
         B3((3))
@@ -858,6 +867,7 @@ flowchart LR
         style BN fill:none,stroke:none
     end
     subgraph AFTER["after insertParent(target=5, value=9)"]
+        direction TB
         A1((1))
         A2((2))
         A3((3))
