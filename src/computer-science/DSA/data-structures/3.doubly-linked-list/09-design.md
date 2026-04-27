@@ -61,27 +61,38 @@ Trace:
 
 Every method below is a thin wrapper around the primitives we already know. Three pieces of internal state hold the entire structure together:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph CLASS["DoublyLinkedList instance"]
-        direction TB
-        H["head<br/>(first node or null)"]
-        T["tail<br/>(last node or null)"]
-        S["size<br/>(int counter)"]
-    end
-    H --> N1["val: 3"] <--> N2["val: 8"] <--> N3["val: 2"] <--> N4["val: 1"]
-    T --> N4
+```d2
+direction: right
+
+dll: "DoublyLinkedList instance" {
+  h: |md
+    **head**
+
+    first node or null
+  |
+  t: |md
+    **tail**
+
+    last node or null
+  |
+  s: |md
+    **size**
+
+    int counter
+  |
+}
+
+n1: "val: 3"
+n2: "val: 8"
+n3: "val: 2"
+n4: "val: 1"
+
+n1 <-> n2
+n2 <-> n3
+n3 <-> n4
+
+dll.h -> n1
+dll.t -> n4
 ```
 
 <p align="center"><strong>Three fields are enough to support every operation in O(1) at the boundaries — <code>head</code> and <code>tail</code> for endpoint access, <code>size</code> for instant <code>size()</code> / <code>empty()</code> queries.</strong></p>

@@ -26,20 +26,38 @@ Despite the many amazing benefits that singly linked lists offer, they still hav
 
 Let's revisit our example from the singly linked list course. In that course, we collected the names of all the students in a class and used a singly linked list to represent that information.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    HEAD(["head"]) --> N1["Riya<br/>next: ●"] --> N2["Hari<br/>next: ●"] --> N3["Neha<br/>next: ●"] --> N4["Karan<br/>next: null"]
+```d2
+direction: right
+
+head: head {
+  shape: oval
+}
+
+n1: |md
+  **Riya**
+
+  next: ●
+|
+n2: |md
+  **Hari**
+
+  next: ●
+|
+n3: |md
+  **Neha**
+
+  next: ●
+|
+n4: |md
+  **Karan**
+
+  next: null
+|
+
+head -> n1
+n1 -> n2
+n2 -> n3
+n3 -> n4
 ```
 
 <p align="center"><strong>Names of students in the class represented as a singly linked list — each node points only forward, and the list is entered through the <code>head</code> reference.</strong></p>
@@ -142,22 +160,50 @@ Now that we know the limitations of singly linked lists and the situations where
 
 A **doubly linked list** is a bidirectional, linear, dynamic data structure that stores data sequentially at random memory locations. The single design change is small but transformative: instead of storing only a `next` pointer, every node *also* stores a `prev` pointer that references the node before it. The chain becomes walkable in **both** directions.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    HEAD(["head"]) --> N1
-    N1["prev: null<br/>val: Riya<br/>next: ●"] <--> N2["prev: ●<br/>val: Hari<br/>next: ●"] <--> N3["prev: ●<br/>val: Neha<br/>next: ●"] <--> N4["prev: ●<br/>val: Karan<br/>next: null"]
-    N4 --> TAIL(["tail"])
+```d2
+direction: right
+
+head: head {
+  shape: oval
+}
+tail: tail {
+  shape: oval
+}
+
+n1: |md
+  prev: null
+
+  **Riya**
+
+  next: ●
+|
+n2: |md
+  prev: ●
+
+  **Hari**
+
+  next: ●
+|
+n3: |md
+  prev: ●
+
+  **Neha**
+
+  next: ●
+|
+n4: |md
+  prev: ●
+
+  **Karan**
+
+  next: null
+|
+
+head -> n1
+n4 <- tail
+n1 <-> n2
+n2 <-> n3
+n3 <-> n4
 ```
 
 <p align="center"><strong>Abstract representation of a doubly linked list — each node carries two pointers (<code>prev</code> and <code>next</code>), and the list is anchored at both ends by <code>head</code> and <code>tail</code> references.</strong></p>
@@ -244,25 +290,43 @@ The node of a doubly linked list is a simple yet highly effective extension of t
 > -   **prev:** A reference to the previous node in the list (or `null` if this is the head).
 > -   **next:** A reference to the next node in the list (or `null` if this is the tail).
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph NODE["A single node"]
-        direction LR
-        PREV["prev<br/>(pointer)"] --- VAL["val<br/>(data)"] --- NEXT["next<br/>(pointer)"]
-    end
-    PREV -->|"points to"| P(["previous node<br/>or null if head"])
-    NEXT -->|"points to"| N(["next node<br/>or null if tail"])
+```d2
+direction: right
+
+node: "A single node" {
+  grid-columns: 3
+  grid-gap: 0
+  prev: |md
+    **prev**
+
+    pointer
+  |
+  val: |md
+    **val**
+
+    data
+  |
+  next: |md
+    **next**
+
+    pointer
+  |
+}
+
+prev_target: |md
+  previous node
+
+  or null if head
+| {shape: oval}
+
+next_target: |md
+  next node
+
+  or null if tail
+| {shape: oval}
+
+node.prev -> prev_target: "points to"
+node.next -> next_target: "points to"
 ```
 
 <p align="center"><strong>A doubly linked list node has three fields: <code>prev</code> (address of the predecessor), <code>val</code> (the data), and <code>next</code> (address of the successor). The <code>prev</code> field is the only structural difference from a singly linked node — and it is what unlocks O(1) bidirectional operations.</strong></p>
@@ -492,48 +556,92 @@ fn main() {
 
 Like a singly linked list, a doubly linked list is a chain of nodes — but every link in the chain is now made of **two** pointers pulling in opposite directions, like a row of magnets attracting both neighbours.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    N1["prev: null<br/>val: 5<br/>next: ●"] <--> N2["prev: ●<br/>val: 7<br/>next: ●"] <--> N3["prev: ●<br/>val: 3<br/>next: ●"] <--> N4["prev: ●<br/>val: 9<br/>next: null"]
+```d2
+direction: right
+
+n1: |md
+  prev: null
+
+  **val: 5**
+
+  next: ●
+|
+n2: |md
+  prev: ●
+
+  **val: 7**
+
+  next: ●
+|
+n3: |md
+  prev: ●
+
+  **val: 3**
+
+  next: ●
+|
+n4: |md
+  prev: ●
+
+  **val: 9**
+
+  next: null
+|
+
+n1 <-> n2
+n2 <-> n3
+n3 <-> n4
 ```
 
 <p align="center"><strong>A chain of nodes makes up a doubly linked list — each interior node holds a live <code>prev</code> and <code>next</code> reference, while the head's <code>prev</code> and the tail's <code>next</code> are <code>null</code>.</strong></p>
 
 When represented logically in a diagram, these nodes might look sequential (left to right, one after the other), but in reality, they are scattered all around in memory at random locations, and the only way to access a node is by using its address in memory.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph MEM["Physical memory — nodes live at arbitrary addresses"]
-        direction LR
-        N1["addr 0x1A4<br/>prev: null<br/>val: 5<br/>next: 0x3F2"]
-        N2["addr 0x3F2<br/>prev: 0x1A4<br/>val: 7<br/>next: 0x0B8"]
-        N3["addr 0x0B8<br/>prev: 0x3F2<br/>val: 3<br/>next: 0x2C1"]
-        N4["addr 0x2C1<br/>prev: 0x0B8<br/>val: 9<br/>next: null"]
-        N1 -.->|"next"| N2 -.->|"next"| N3 -.->|"next"| N4
-        N4 -.->|"prev"| N3 -.->|"prev"| N2 -.->|"prev"| N1
-    end
+```d2
+mem: "Physical memory — nodes live at arbitrary addresses" {
+  n1: |md
+    addr 0x1A4
+
+    prev: null
+
+    val: 5
+
+    next: 0x3F2
+  |
+  n2: |md
+    addr 0x3F2
+
+    prev: 0x1A4
+
+    val: 7
+
+    next: 0x0B8
+  |
+  n3: |md
+    addr 0x0B8
+
+    prev: 0x3F2
+
+    val: 3
+
+    next: 0x2C1
+  |
+  n4: |md
+    addr 0x2C1
+
+    prev: 0x0B8
+
+    val: 9
+
+    next: null
+  |
+  n1 -> n2: "next"
+  n2 -> n3: "next"
+  n3 -> n4: "next"
+  n4 -> n3: "prev"
+  n3 -> n2: "prev"
+  n2 -> n1: "prev"
+}
 ```
 
 <p align="center"><strong>Doubly linked list in memory — the four nodes are scattered at unrelated addresses; each node stores both the predecessor's and the successor's address so the chain can be walked in either direction.</strong></p>
@@ -542,23 +650,35 @@ flowchart LR
 
 Similar to a singly linked list, the first node of a doubly linked list is also called its **head**. The only difference between a singly and doubly linked list head arises from the fact that a doubly linked node also has a `prev` pointer. The `prev` pointer of the **head** node of a doubly-linked list is `null` — exactly the way the `next` pointer of the **tail** node in a singly linked list is `null`. This signals "there is nothing to walk *backward* into from here." A representation of a doubly linked list with its head highlighted is given below.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    NULL_L(["null"]) --- H["prev: null<br/>val: 5<br/>next: ●"]
-    HEAD(["head"]) -->|"entry from the front"| H
-    H <--> N2["val: 7"] <--> N3["val: 3<br/>next: null"]
-    style H fill:#dbeafe,stroke:#3b82f6
+```d2
+direction: right
+
+null_l: "null" {shape: oval}
+
+h: |md
+  prev: null
+
+  **val: 5**
+
+  next: ●
+| {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+
+n2: |md
+  **val: 7**
+|
+
+n3: |md
+  **val: 3**
+
+  next: null
+|
+
+head: head {shape: oval}
+
+null_l -- h
+head -> h: "entry from the front"
+h <-> n2
+n2 <-> n3
 ```
 
 <p align="center"><strong>Head of a doubly linked list — the head's <code>prev</code> pointer is <code>null</code>, signalling "no predecessor". The <code>head</code> reference is the entry point used for forward traversal.</strong></p>
@@ -567,23 +687,35 @@ flowchart LR
 
 Similar to a singly linked list, the **last** node of a doubly linked list is also called its **tail**. However, unlike a singly linked list, we can traverse a doubly linked list from the last node all the way back to the first. For this to be useful in O(1), however, we must always keep a reference to the **tail** node — just like we always have a reference to the **head**. Without an explicit `tail` reference, finding the tail still costs O(N), even though *walking backward from it* once we have it is free.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H["prev: null<br/>val: 5"] <--> N2["val: 7"] <--> T["prev: ●<br/>val: 3<br/>next: null"]
-    T --- NULL_R(["null"])
-    TAIL(["tail"]) -->|"entry from the back"| T
-    style T fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+
+h: |md
+  prev: null
+
+  **val: 5**
+|
+
+n2: |md
+  **val: 7**
+|
+
+t: |md
+  prev: ●
+
+  **val: 3**
+
+  next: null
+| {style.fill: "#fef9c3"; style.stroke: "#3b82f6"}
+
+null_r: "null" {shape: oval}
+
+tail: tail {shape: oval}
+
+h <-> n2
+n2 <-> t
+t -- null_r
+tail -> t: "entry from the back"
 ```
 
 <p align="center"><strong>Tail of a doubly linked list — the tail's <code>next</code> pointer is <code>null</code>, signalling "no successor". A separate <code>tail</code> reference lets us start a backward traversal in O(1).</strong></p>
