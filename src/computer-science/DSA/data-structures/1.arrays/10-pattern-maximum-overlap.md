@@ -28,25 +28,32 @@ Once you see the sweep as "an ordered walk over points that fire events", you'll
 
 Forget stripes for a moment. Picture a single horizontal axis with **points** marked on it — each point labelled with a letter, a number, or a tag telling you *what kind of event it is*.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Axis["x-axis with an interval marked as two points"]
-        direction LR
-        S["s<br/>start"] --- G1["·"] --- G2["·"] --- G3["·"] --- E["e<br/>end"]
+```d2
+axis: "x-axis with an interval marked as two points" {
+  grid-columns: 5
+  grid-gap: 0
+  s: |md
+    **s**
+
+    start
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  g1: "·"
+  g2: "·"
+  g3: "·"
+  e: |md
+    **e**
+
     end
-    Lbl["interval = [s, e] <br/>represented as two independent points (s, 'start') and (e, 'end')"]
-    Axis --> Lbl
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
+
+lbl: |md
+  `interval = [s, e]`
+
+  represented as two independent points (s, 'start') and (e, 'end')
+|
+
+axis -> lbl
 ```
 
 <p align="center"><strong>An interval can always be decomposed into two labelled points on the x-axis: a <code>start</code> and an <code>end</code>. The algorithm processes points, not intervals.</strong></p>
@@ -65,28 +72,27 @@ Because overlap is a **local** phenomenon. At any instant, overlap is determined
 
 Walk the interval array once and emit two point records per interval.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph Intervals["arr (intervals)"]
-        direction LR
-        I1["[1, 4]"] ~~~ I2["[2, 5]"] ~~~ I3["[6, 8]"]
-    end
-    subgraph Points["points (after split)"]
-        direction LR
-        P1["(1, 's')"] ~~~ P2["(4, 'e')"] ~~~ P3["(2, 's')"] ~~~ P4["(5, 'e')"] ~~~ P5["(6, 's')"] ~~~ P6["(8, 'e')"]
-    end
-    Intervals --> Points
+```d2
+intervals: "arr (intervals)" {
+  grid-columns: 3
+  grid-gap: 16
+  i1: "[1, 4]"
+  i2: "[2, 5]"
+  i3: "[6, 8]"
+}
+
+points: "points (after split)" {
+  grid-columns: 6
+  grid-gap: 8
+  p1: "(1, 's')" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  p2: "(4, 'e')" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  p3: "(2, 's')" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  p4: "(5, 'e')" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  p5: "(6, 's')" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  p6: "(8, 'e')" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
+
+intervals -> points
 ```
 
 <p align="center"><strong>Each interval produces two records in the <code>points</code> array: a tagged <code>start</code> and a tagged <code>end</code>. The size grows to <strong>2 × N</strong>.</strong></p>
@@ -99,28 +105,30 @@ The split doubles memory cost to `O(N)` — but it gives us a **flat, homogeneou
 
 Sort the combined array in **non-decreasing order of coordinate value**. When two points share a coordinate, most problems break ties by putting **`'end'` before `'start'`** — we'll see why in the next section. For now, notice a beautiful coincidence: in ASCII, `'e' < 's'`, so sorting tuples `(coord, tag)` naturally produces the right order at no extra cost.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph Before["Unsorted points"]
-        direction LR
-        U1["(1, 's')"] ~~~ U2["(4, 'e')"] ~~~ U3["(2, 's')"] ~~~ U4["(5, 'e')"] ~~~ U5["(6, 's')"] ~~~ U6["(8, 'e')"]
-    end
-    subgraph After["Sorted points<br/>(ascending by coordinate; 'e' before 's' on ties)"]
-        direction LR
-        S1["(1, 's')"] ~~~ S2["(2, 's')"] ~~~ S3["(4, 'e')"] ~~~ S4["(5, 'e')"] ~~~ S5["(6, 's')"] ~~~ S6["(8, 'e')"]
-    end
-    Before --> After
+```d2
+before: "Unsorted points" {
+  grid-columns: 6
+  grid-gap: 8
+  u1: "(1, 's')"
+  u2: "(4, 'e')"
+  u3: "(2, 's')"
+  u4: "(5, 'e')"
+  u5: "(6, 's')"
+  u6: "(8, 'e')"
+}
+
+after: "Sorted points (ascending by coordinate; 'e' before 's' on ties)" {
+  grid-columns: 6
+  grid-gap: 8
+  s1: "(1, 's')" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  s2: "(2, 's')" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  s3: "(4, 'e')" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  s4: "(5, 'e')" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  s5: "(6, 's')" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  s6: "(8, 'e')" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
+
+before -> after
 ```
 
 <p align="center"><strong>Sorting lines every event up along the x-axis. Iterating the sorted array becomes equivalent to walking the axis left to right.</strong></p>
@@ -133,26 +141,30 @@ After this step, the `points` array is just the x-axis laid flat. Each index is 
 
 Walk the sorted array from left to right. At each point, update a **state variable** that captures the answer-so-far. The sweep line is no longer a real line — it's the **loop counter**. Each iteration is equivalent to having the imaginary line cross one more event on the axis.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Axis["sorted points on the x-axis"]
-        direction LR
-        P1["(1, 's')"] --- P2["(2, 's')"] --- P3["(4, 'e')"] --- P4["(5, 'e')"] --- P5["(6, 's')"] --- P6["(8, 'e')"]
-    end
-    Sweep["▲ sweep cursor walks index 0 → end"]
-    State["State updates at each point:<br/>'s' ⇒ something opens<br/>'e' ⇒ something closes"]
-    Axis --> Sweep --> State
+```d2
+axis: "sorted points on the x-axis" {
+  grid-columns: 6
+  grid-gap: 0
+  p1: "(1, 's')" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  p2: "(2, 's')" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  p3: "(4, 'e')" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  p4: "(5, 'e')" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  p5: "(6, 's')" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  p6: "(8, 'e')" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
+
+sweep: "▲ sweep cursor walks index 0 → end" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+
+state: |md
+  **State updates at each point:**
+
+  's' ⇒ something opens
+
+  'e' ⇒ something closes
+|
+
+axis -> sweep
+sweep -> state
 ```
 
 <p align="center"><strong>Iterating the sorted array is equivalent to sweeping a vertical line through the points and processing each one in order.</strong></p>
@@ -193,29 +205,58 @@ Imagine a tiny integer floating just above the x-axis, labelled `overlap`. As th
 
 At every instant, `overlap` tells you **exactly how many intervals are active right now**. And because the counter only changes at event points (never between them), you don't need to check every instant — just every point. The maximum value `overlap` ever reaches is the answer we're after.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph Timeline["Three intervals on the axis"]
-        direction LR
-        A1["[1, 4]"] ~~~ A2["[2, 6]"] ~~~ A3["[3, 5]"]
-    end
-    subgraph Events["Sweep processes 6 events left-to-right"]
-        direction LR
-        E1["x=1 s<br/>overlap=1"] --- E2["x=2 s<br/>overlap=2"] --- E3["x=3 s<br/>overlap=3 ★"] --- E4["x=4 e<br/>overlap=2"] --- E5["x=5 e<br/>overlap=1"] --- E6["x=6 e<br/>overlap=0"]
-    end
-    Result["maxOverlap = 3<br/>(attained between x=3 and x=4)"]
-    Timeline --> Events --> Result
+```d2
+timeline: "Three intervals on the axis" {
+  grid-columns: 3
+  grid-gap: 16
+  a1: "[1, 4]"
+  a2: "[2, 6]"
+  a3: "[3, 5]"
+}
+
+events: "Sweep processes 6 events left-to-right" {
+  grid-columns: 6
+  grid-gap: 0
+  e1: |md
+    `x=1 s`
+
+    overlap=1
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  e2: |md
+    `x=2 s`
+
+    overlap=2
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  e3: |md
+    `x=3 s`
+
+    overlap=3 ★
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  e4: |md
+    `x=4 e`
+
+    overlap=2
+  |
+  e5: |md
+    `x=5 e`
+
+    overlap=1
+  |
+  e6: |md
+    `x=6 e`
+
+    overlap=0
+  |
+}
+
+result: |md
+  **maxOverlap = 3**
+
+  (attained between x=3 and x=4)
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+
+timeline -> events
+events -> result
 ```
 
 <p align="center"><strong>The counter <code>overlap</code> rides the sweep line. Its peak value — <strong>3</strong> here — is the maximum number of intervals active at any single instant.</strong></p>
@@ -228,51 +269,44 @@ That's the whole idea. Everything else in this lesson is bookkeeping around that
 
 Start exactly the same way as the previous section: split every interval into two labelled points.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph In["arr (intervals)"]
-        direction LR
-        I1["[1, 4]"] ~~~ I2["[2, 6]"] ~~~ I3["[3, 5]"]
-    end
-    subgraph Out["points (split + tagged)"]
-        direction LR
-        P1["(1,'s')"] ~~~ P2["(4,'e')"] ~~~ P3["(2,'s')"] ~~~ P4["(6,'e')"] ~~~ P5["(3,'s')"] ~~~ P6["(5,'e')"]
-    end
-    In --> Out
+```d2
+in_arr: "arr (intervals)" {
+  grid-columns: 3
+  grid-gap: 16
+  i1: "[1, 4]"
+  i2: "[2, 6]"
+  i3: "[3, 5]"
+}
+
+out_arr: "points (split + tagged)" {
+  grid-columns: 6
+  grid-gap: 8
+  p1: "(1,'s')" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  p2: "(4,'e')" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  p3: "(2,'s')" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  p4: "(6,'e')" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  p5: "(3,'s')" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  p6: "(5,'e')" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
+
+in_arr -> out_arr
 ```
 
 <p align="center"><strong>Every interval becomes two entries in a flat <code>points</code> array. Nothing else about the input matters — the sweep only sees points.</strong></p>
 
 Now sort `points` ascending. Remember the tiebreaker: when two points share a coordinate, the **end** comes before the **start**. `'e' < 's'` in ASCII, so sorting tuples achieves this for free.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Sorted["Sorted points (ascending; 'e' before 's' on ties)"]
-        direction LR
-        S1["(1,'s')"] --- S2["(2,'s')"] --- S3["(3,'s')"] --- S4["(4,'e')"] --- S5["(5,'e')"] --- S6["(6,'e')"]
-    end
+```d2
+sorted: "Sorted points (ascending; 'e' before 's' on ties)" {
+  grid-columns: 6
+  grid-gap: 0
+  s1: "(1,'s')" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  s2: "(2,'s')" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  s3: "(3,'s')" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  s4: "(4,'e')" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  s5: "(5,'e')" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  s6: "(6,'e')" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
 ```
 
 <p align="center"><strong>Sorted view of the same input. Walking this array from left to right <em>is</em> the sweep.</strong></p>
@@ -285,28 +319,58 @@ This is the one place you can get subtly wrong. Consider two intervals `[1, 3]` 
 
 **Convention:** two intervals overlap iff one is still active *strictly before* the other begins. Touching intervals like these are treated as **non-overlapping** — the first closes **at the exact instant** the second opens. To make the sweep honour that convention, we must process the `end` event at `x = 3` **before** the `start` event at the same coordinate. Otherwise the counter briefly reads `overlap = 2` at `x = 3` and misreports a false overlap.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph Wrong["'s' before 'e' on ties (WRONG for touching = non-overlapping)"]
-        direction LR
-        W1["x=1 s<br/>overlap=1"] --- W2["x=3 s<br/>overlap=2 ✗"] --- W3["x=3 e<br/>overlap=1"] --- W4["x=5 e<br/>overlap=0"]
-    end
-    subgraph Right["'e' before 's' on ties (correct)"]
-        direction LR
-        R1["x=1 s<br/>overlap=1"] --- R2["x=3 e<br/>overlap=0"] --- R3["x=3 s<br/>overlap=1"] --- R4["x=5 e<br/>overlap=0"]
-    end
-    Wrong --> Right
+```d2
+wrong: "'s' before 'e' on ties (WRONG for touching = non-overlapping)" {
+  grid-columns: 4
+  grid-gap: 0
+  w1: |md
+    `x=1 s`
+
+    overlap=1
+  |
+  w2: |md
+    `x=3 s`
+
+    overlap=2 ✗
+  | {style.fill: "#fecaca"; style.stroke: "#dc2626"}
+  w3: |md
+    `x=3 e`
+
+    overlap=1
+  |
+  w4: |md
+    `x=5 e`
+
+    overlap=0
+  |
+}
+
+right: "'e' before 's' on ties (correct)" {
+  grid-columns: 4
+  grid-gap: 0
+  r1: |md
+    `x=1 s`
+
+    overlap=1
+  |
+  r2: |md
+    `x=3 e`
+
+    overlap=0
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  r3: |md
+    `x=3 s`
+
+    overlap=1
+  |
+  r4: |md
+    `x=5 e`
+
+    overlap=0
+  |
+}
+
+wrong -> right
 ```
 
 <p align="center"><strong>When two events share a coordinate, processing <code>end</code> first ensures the closing interval has already been accounted for before the new one opens — preserving the "touching = non-overlapping" rule.</strong></p>
@@ -778,30 +842,27 @@ flowchart TB
 
 > **Problem statement:** Given an array of meeting times `meetings` where each `meetings[i] = [start_i, end_i]`, find the **minimum number of meeting rooms** required so that every meeting can happen without being interrupted.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph Meetings["4 meeting windows"]
-        direction LR
-        M1["[0, 30]"] ~~~ M2["[5, 10]"] ~~~ M3["[15, 20]"] ~~~ M4["[25, 40]"]
-    end
-    subgraph Rooms["Assign each meeting to a room"]
-        direction LR
-        R1["Room A: [0,30]"]
-        R2["Room B: [5,10] → [15,20] → [25,40]"]
-    end
-    Answer["Answer: 2 rooms"]
-    Meetings --> Rooms --> Answer
+```d2
+meetings: "4 meeting windows" {
+  grid-columns: 4
+  grid-gap: 16
+  m1: "[0, 30]"
+  m2: "[5, 10]"
+  m3: "[15, 20]"
+  m4: "[25, 40]"
+}
+
+rooms: "Assign each meeting to a room" {
+  grid-columns: 1
+  grid-gap: 8
+  r1: "Room A: [0,30]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  r2: "Room B: [5,10] → [15,20] → [25,40]" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+}
+
+answer: "Answer: 2 rooms" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+
+meetings -> rooms
+rooms -> answer
 ```
 
 <p align="center"><strong>The minimum number of rooms equals the peak number of meetings running at the same instant. Here two meetings overlap at their busiest — so two rooms suffice.</strong></p>
@@ -1167,26 +1228,26 @@ Explanation: No meetings means no rooms needed.
 
 The minimum number of rooms is exactly the maximum number of meetings running at any single instant. Not "most meetings in a day" (that could be hundreds spread over time) — the **peak concurrency**. Think of rooms as a pool: a room is in use while its meeting runs and is returned the moment the meeting ends. The question is: during the busiest instant of the day, how deep does the pool have to be?
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph Day["Day with 4 meetings"]
-        direction LR
-        A["[1,5]"] ~~~ B["[2,6]"] ~~~ C["[3,7]"] ~~~ D["[9,10]"]
-    end
-    Peak["At t=3 through t=5, meetings A, B, C all active → 3 rooms<br/>D is alone later → reuses room, doesn't increase peak"]
-    Ans["minRooms = 3"]
-    Day --> Peak --> Ans
+```d2
+day: "Day with 4 meetings" {
+  grid-columns: 4
+  grid-gap: 16
+  a: "[1,5]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b: "[2,6]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  c: "[3,7]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  d: "[9,10]"
+}
+
+peak: |md
+  At t=3 through t=5, meetings A, B, C all active → 3 rooms
+
+  D is alone later → reuses room, doesn't increase peak
+|
+
+ans: "minRooms = 3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+
+day -> peak
+peak -> ans
 ```
 
 <p align="center"><strong>Only the <em>simultaneous</em> meetings matter. A room freed up can be handed to the next meeting — the peak concurrency is the bottleneck.</strong></p>
@@ -1650,29 +1711,32 @@ Explanation: All four active at t=4 → peak 4. Remove two to bring peak down to
 
 Think of `k` as a **capacity** — the number of lanes on a highway, parallel servers, concurrent calls a receptionist can handle. Whenever more than `k` intervals are active simultaneously, the excess must go — someone gets turned away. The question: what is the smallest number of intervals we can drop so the peak concurrency never exceeds `k`?
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph Before["Before: peak overlap = 3"]
-        direction LR
-        B1["[1,4]"] ~~~ B2["[2,5]"] ~~~ B3["[3,6]"] ~~~ B4["[7,9]"]
-    end
-    Cap["Capacity k = 2<br/>At t∈[3,4] three are active — excess of 1"]
-    subgraph After["After removing [3,6]: peak = 2"]
-        direction LR
-        A1["[1,4]"] ~~~ A2["[2,5]"] ~~~ A3["[7,9]"]
-    end
-    Before --> Cap --> After
+```d2
+before: "Before: peak overlap = 3" {
+  grid-columns: 4
+  grid-gap: 16
+  b1: "[1,4]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b2: "[2,5]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b3: "[3,6]" {style.fill: "#fecaca"; style.stroke: "#dc2626"}
+  b4: "[7,9]"
+}
+
+cap: |md
+  **Capacity** k = 2
+
+  At `t∈[3,4]` three are active — excess of 1
+|
+
+after: "After removing [3,6]: peak = 2" {
+  grid-columns: 3
+  grid-gap: 16
+  a1: "[1,4]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  a2: "[2,5]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  a3: "[7,9]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+
+before -> cap
+cap -> after
 ```
 
 <p align="center"><strong>Whenever the live count exceeds <code>k</code>, we must evict interval(s) until the count is back within capacity. The question is which ones to evict — and how few.</strong></p>
@@ -2314,29 +2378,56 @@ Explanation: Peak = 1 (no actual overlap). Earliest active window is [1,2).
 
 Not a single *instant* — a continuous **time range** during which concurrency stays at its peak. Between events, concurrency is constant (nothing changes until the next start or end). So the busiest interval is always bounded by **two consecutive event coordinates**: it begins at the moment concurrency hits its peak and ends at the next event that changes the count.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph Timeline["Three intervals"]
-        direction LR
-        A1["[1,4]"] ~~~ A2["[2,6]"] ~~~ A3["[3,5]"]
-    end
-    subgraph Events["Event timeline + live count between events"]
-        direction LR
-        E1["t=1 s<br/>count=1"] --- E2["t=2 s<br/>count=2"] --- E3["t=3 s<br/>count=3 ★"] --- E4["t=4 e<br/>count=2"] --- E5["t=5 e<br/>count=1"] --- E6["t=6 e<br/>count=0"]
-    end
-    Busiest["Between t=3 and t=4, count = 3 (peak) → busiest = [3, 4]"]
-    Timeline --> Events --> Busiest
+```d2
+timeline: "Three intervals" {
+  grid-columns: 3
+  grid-gap: 16
+  a1: "[1,4]"
+  a2: "[2,6]"
+  a3: "[3,5]"
+}
+
+events: "Event timeline + live count between events" {
+  grid-columns: 6
+  grid-gap: 0
+  e1: |md
+    `t=1 s`
+
+    count=1
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  e2: |md
+    `t=2 s`
+
+    count=2
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  e3: |md
+    `t=3 s`
+
+    count=3 ★
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  e4: |md
+    `t=4 e`
+
+    count=2
+  |
+  e5: |md
+    `t=5 e`
+
+    count=1
+  |
+  e6: |md
+    `t=6 e`
+
+    count=0
+  |
+}
+
+busiest: |md
+  Between `t=3` and `t=4`, count = 3 (peak) → busiest = `[3, 4]`
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+
+timeline -> events
+events -> busiest
 ```
 
 <p align="center"><strong>Count stays constant between consecutive events. The busiest interval spans the first event that pushes the counter to its peak and the very next event.</strong></p>
@@ -2874,29 +2965,66 @@ Explanation: A single task with load 100 → peak is 100.
 
 Instead of counting **how many** intervals are active (each contributing +1 to the counter), we sum **how much** they contribute — each interval adds its own `load` at its start and removes the same `load` at its end. The sweep is identical; the delta is weighted.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph Loads["Three tasks with loads"]
-        direction LR
-        L1["[1,4] load=3"] ~~~ L2["[2,6] load=2"] ~~~ L3["[3,5] load=1"]
-    end
-    subgraph Sweep["Running total across events"]
-        direction LR
-        E1["t=1 +3<br/>load=3"] --- E2["t=2 +2<br/>load=5"] --- E3["t=3 +1<br/>load=6 ★"] --- E4["t=4 -3<br/>load=3"] --- E5["t=5 -1<br/>load=2"] --- E6["t=6 -2<br/>load=0"]
-    end
-    Ans["peakLoad = 6"]
-    Loads --> Sweep --> Ans
+```d2
+loads: "Three tasks with loads" {
+  grid-columns: 3
+  grid-gap: 16
+  l1: |md
+    `[1,4]`
+
+    load=3
+  |
+  l2: |md
+    `[2,6]`
+
+    load=2
+  |
+  l3: |md
+    `[3,5]`
+
+    load=1
+  |
+}
+
+sweep: "Running total across events" {
+  grid-columns: 6
+  grid-gap: 0
+  e1: |md
+    `t=1 +3`
+
+    load=3
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  e2: |md
+    `t=2 +2`
+
+    load=5
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  e3: |md
+    `t=3 +1`
+
+    load=6 ★
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  e4: |md
+    `t=4 -3`
+
+    load=3
+  |
+  e5: |md
+    `t=5 -1`
+
+    load=2
+  |
+  e6: |md
+    `t=6 -2`
+
+    load=0
+  |
+}
+
+ans: "peakLoad = 6" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+
+loads -> sweep
+sweep -> ans
 ```
 
 <p align="center"><strong>Each event is a ±load delta instead of ±1. The peak value of the running sum is the answer.</strong></p>

@@ -33,34 +33,35 @@ There has to be a better way. And there is — but it demands a harder question:
 
 Forget the train car with fixed seats. Picture a **rubber band** stretched across the array. The left end is pinned at index `start`. The right end is held at index `end`. As you move through the array, the band can **stretch** (moving `end` forward to include more elements) or **compress** (moving `start` forward to shrink from the left).
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Expand["Stretch right → end moves forward"]
-        direction LR
-        A1["2"] --- B1["5"] --- C1["1"] --- D1["3"] --- E1["7"] --- F1["4"]
-        S1["▲ start"] -.-> A1
-        E1p["▲ end"] -.-> C1
-        Ex["end slides: C → D → E → F"]
-    end
-    subgraph Contract["Compress → start moves forward"]
-        direction LR
-        A2["2"] --- B2["5"] --- C2["1"] --- D2["3"] --- E2["7"] --- F2["4"]
-        S2["▲ start"] -.-> A2
-        En2["▲ end"] -.-> D2
-        Co["start slides: A → B → C"]
-    end
-    Expand ~~~ Contract
+```d2
+expand: "Stretch right → end moves forward" {
+  grid-columns: 6
+  grid-gap: 0
+  a0: "2" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a1: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a2: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a3: "3"
+  a4: "7"
+  a5: "4"
+}
+
+ex_note: "end slides: C → D → E → F"
+
+contract: "Compress → start moves forward" {
+  grid-columns: 6
+  grid-gap: 0
+  b0: "2"
+  b1: "5"
+  b2: "1"
+  b3: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b4: "7"
+  b5: "4"
+}
+
+co_note: "start slides: A → B → C"
+
+expand -> ex_note: "" {style.stroke-dash: 3}
+contract -> co_note: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>The variable-sized window breathes — <code>end</code> stretches it right, <code>start</code> compresses it from the left. At any moment the window covers exactly <code>arr[start..end]</code>.</strong></p>
@@ -75,62 +76,59 @@ The window always starts with `start = 0` and `end = 0`, representing a zero-siz
 
 Some problems require computing the output of an aggregate function over **all** subarrays of an array and then aggregating those results into a single value. To solve these naively, you would need to run fixed-sized sliding windows of every size from 1 to N through the array — one pass per size. That is O(N²) total work.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph s0["Starting at index 0"]
-        direction LR
-        w0a["[2]"] ~~~ w0b["[2,5]"] ~~~ w0c["[2,5,1]"] ~~~ w0d["[2,5,1,3]"]
-    end
-    subgraph s1["Starting at index 1"]
-        direction LR
-        w1a["[5]"] ~~~ w1b["[5,1]"] ~~~ w1c["[5,1,3]"]
-    end
-    subgraph s2["Starting at index 2"]
-        direction LR
-        w2a["[1]"] ~~~ w2b["[1,3]"]
-    end
-    subgraph s3["Starting at index 3"]
-        direction LR
-        w3a["[3]"]
-    end
-    s0 ~~~ s1 ~~~ s2 ~~~ s3
+```d2
+s0: "Starting at index 0" {
+  grid-columns: 4
+  grid-gap: 16
+  w0a: "[2]"
+  w0b: "[2,5]"
+  w0c: "[2,5,1]"
+  w0d: "[2,5,1,3]"
+}
+
+s1: "Starting at index 1" {
+  grid-columns: 3
+  grid-gap: 16
+  w1a: "[5]"
+  w1b: "[5,1]"
+  w1c: "[5,1,3]"
+}
+
+s2: "Starting at index 2" {
+  grid-columns: 2
+  grid-gap: 16
+  w2a: "[1]"
+  w2b: "[1,3]"
+}
+
+s3: "Starting at index 3" {
+  w3a: "[3]"
+}
 ```
 
 <p align="center"><strong>All 10 distinct subarrays of <code>[2, 5, 1, 3]</code>. An array of size N has N(N+1)/2 subarrays — for N=1000 that is 500,500; for N=10,000 that is over 50 million.</strong></p>
 
 However, for some problems we may only need to find results for **some** subarrays and can safely skip the remaining ones. These problems can be solved by the variable-sized sliding window technique, which contracts or expands the window in each iteration as it slides through the array. It is a powerful technique that solves many problems in a single pass that would otherwise need nested loops.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Window["Variable-sized window: arr[start..end]"]
-        direction LR
-        A["2"] --- B["▶5"] --- C["▶1"] --- D["▶3"] --- E["7"] --- F["4"]
-        S["▲ start"] -.-> B
-        En["▲ end"] -.-> D
-        Agg["aggregate = f(arr[1..3])"]
-    end
+```d2
+arr: "Variable-sized window: arr[start..end]" {
+  grid-columns: 6
+  grid-gap: 0
+  a0: "2"
+  a1: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a2: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a3: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a4: "7"
+  a5: "4"
+}
+
+s: "▲ start" {shape: oval; style.fill: "#fde68a"; style.stroke: "#d97706"}
+e: "▲ end" {shape: oval; style.fill: "#fde68a"; style.stroke: "#d97706"}
+agg: "aggregate = f(arr[1..3])"
+
+s -> arr.a1
+e -> arr.a3
+arr -> agg: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>At any point in time the window spans <code>arr[start..end]</code> and <code>aggregate</code> holds the value of function <code>f</code> computed over exactly those elements.</strong></p>
@@ -152,28 +150,28 @@ The variable-sized sliding window uses `start` and `end` for boundaries and `agg
 
 We update `aggregate` by adding the contribution of `arr[end]` to it so that `aggregate` always reflects the function `f` computed over all elements in the current window, including the one at `end`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Before["Before: window = arr[1..2], aggregate = 6"]
-        direction LR
-        A["2"] --- B["▶5"] --- C["▶1"] --- D["3"] --- E["7"] --- F["4"]
-        S["▲ start"] -.-> B
-        En["▲ end"] -.-> D
-    end
-    Op["aggregate = f(aggregate, arr[end])<br/>= f(6, arr[3]) = f(6, 3) = 9"]
-    After["aggregate now reflects arr[1..3]"]
-    Before --> Op --> After
+```d2
+before: "Before: window = arr[1..2], aggregate = 6" {
+  grid-columns: 6
+  grid-gap: 0
+  a0: "2"
+  a1: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a2: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a3: "3"
+  a4: "7"
+  a5: "4"
+}
+
+op: |md
+  `aggregate = f(aggregate, arr[end])`
+
+  `= f(6, arr[3]) = f(6, 3) = 9`
+|
+
+after_note: "aggregate now reflects arr[1..3]"
+
+before -> op
+op -> after_note
 ```
 
 <p align="center"><strong>Operation 1: add <code>arr[end]</code>'s contribution to <code>aggregate</code>. After this step, <code>aggregate</code> holds the value of <code>f</code> over the entire current window <code>arr[start..end]</code>.</strong></p>
@@ -209,33 +207,41 @@ flowchart LR
 
 If we can skip all remaining subarrays starting at `start` — specifically the ones that would end beyond `end` — we increment `start` by 1, which contracts the window from the left. We also update `aggregate` to remove the contribution of `arr[start]` (the item being removed from the window).
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Before["Before: window = arr[1..3], invariant violated"]
-        direction LR
-        A["2"] --- B["▶5"] --- C["▶1"] --- D["▶3"] --- E["7"] --- F["4"]
-        S1["▲ start"] -.-> B
-        En1["▲ end"] -.-> D
-    end
-    Op["aggregate = f_inverse(aggregate, arr[start])<br/>start += 1<br/>All subarrays starting at old start<br/>and ending beyond end are now ignored"]
-    subgraph After["After: window = arr[2..3], invariant restored"]
-        direction LR
-        A2["2"] --- B2["5"] --- C2["▶1"] --- D2["▶3"] --- E2["7"] --- F2["4"]
-        S2["▲ start"] -.-> C2
-        En2["▲ end"] -.-> D2
-    end
-    Before --> Op --> After
+```d2
+before: "Before: window = arr[1..3], invariant violated" {
+  grid-columns: 6
+  grid-gap: 0
+  a0: "2"
+  a1: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a2: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a3: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a4: "7"
+  a5: "4"
+}
+
+op: |md
+  `aggregate = f_inverse(aggregate, arr[start])`
+
+  `start += 1`
+
+  All subarrays starting at old start
+
+  and ending beyond end are now ignored
+|
+
+after: "After: window = arr[2..3], invariant restored" {
+  grid-columns: 6
+  grid-gap: 0
+  b0: "2"
+  b1: "5"
+  b2: "1" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b3: "3" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b4: "7"
+  b5: "4"
+}
+
+before -> op
+op -> after
 ```
 
 <p align="center"><strong>Operation 3: remove <code>arr[start]</code>'s contribution from <code>aggregate</code> and advance <code>start</code>. This permanently discards all subarrays beginning at the old <code>start</code> that extend beyond <code>end</code>.</strong></p>
@@ -251,33 +257,39 @@ Critical: one contraction isn't always enough. Many problems require a **while l
 
 If we want to consider the next subarray starting at `start` — that is, the subarray from `start` to `end+1` — in the next iteration, we increment `end` by 1, which expands the window to the right. We do **not** add the contribution of the newly added item to `aggregate` yet — that will be done in the next iteration's Operation 1.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Before["Current window: arr[1..3]"]
-        direction LR
-        A["2"] --- B["▶5"] --- C["▶1"] --- D["▶3"] --- E["7"] --- F["4"]
-        S1["▲ start"] -.-> B
-        En1["▲ end"] -.-> D
-    end
-    Op["end += 1<br/>arr[end] = 7 will be added to<br/>aggregate in the next iteration"]
-    subgraph After["After: window will grow to arr[1..4] next iteration"]
-        direction LR
-        A2["2"] --- B2["▶5"] --- C2["▶1"] --- D2["▶3"] --- E2["▶7"] --- F2["4"]
-        S2["▲ start"] -.-> B2
-        En2["▲ end"] -.-> E2
-    end
-    Before --> Op --> After
+```d2
+before: "Current window: arr[1..3]" {
+  grid-columns: 6
+  grid-gap: 0
+  a0: "2"
+  a1: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a2: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a3: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a4: "7"
+  a5: "4"
+}
+
+op: |md
+  `end += 1`
+
+  `arr[end] = 7` will be added to
+
+  aggregate in the next iteration
+|
+
+after: "After: window will grow to arr[1..4] next iteration" {
+  grid-columns: 6
+  grid-gap: 0
+  b0: "2"
+  b1: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b2: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b3: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b4: "7" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b5: "4"
+}
+
+before -> op
+op -> after
 ```
 
 <p align="center"><strong>Operation 4: advance <code>end</code> to expand the window. The element at the new <code>end</code> position is NOT added to <code>aggregate</code> yet — that happens in the very next iteration's Operation 1.</strong></p>
@@ -418,28 +430,29 @@ Let's walk through the complete identification, solution, and proof process on a
 
 **Problem statement:** Given an integer array `arr`, find the subarray with the largest sum and return the sum.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Array["arr = [-2, 1, -3, 4, -1, 2, 1, -5, 4]"]
-        direction LR
-        A["-2"] --- B["1"] --- C["-3"] --- D["4"] --- E["-1"] --- F["2"] --- G["1"] --- H["-5"] --- I["4"]
-    end
-    subgraph Best["Maximum sum subarray: [4, -1, 2, 1] → sum = 6"]
-        direction LR
-        D2["4"] --- E2["-1"] --- F2["2"] --- G2["1"]
-    end
-    Array ~~~ Best
+```d2
+array: "arr = [-2, 1, -3, 4, -1, 2, 1, -5, 4]" {
+  grid-columns: 9
+  grid-gap: 0
+  a0: "-2"
+  a1: "1"
+  a2: "-3"
+  a3: "4" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  a4: "-1" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  a5: "2" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  a6: "1" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  a7: "-5"
+  a8: "4"
+}
+
+best: "Maximum sum subarray: [4, -1, 2, 1] → sum = 6" {
+  grid-columns: 4
+  grid-gap: 0
+  b0: "4" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b1: "-1" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b2: "2" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b3: "1" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
 ```
 
 <p align="center"><strong>Find the subarray with the maximum sum. The answer is not always the whole array — negative elements can drag it down, making a shorter subarray better.</strong></p>
@@ -462,32 +475,73 @@ Three boxes check immediately. The fourth — provable skipping — is the hard 
 
 The brute-force solution is to use nested loops to find the sum of all possible subarrays. If the sum of any subarray is greater than the maximum seen so far, we update the maximum sum value. Below is an execution of the brute force solution on the array.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph i0["Outer loop i=0: all subarrays starting at index 0"]
-        direction LR
-        j0a["[-2]<br/>sum=-2"] ~~~ j0b["[-2,1]<br/>sum=-1"] ~~~ j0c["[-2,1,-3]<br/>sum=-4"] ~~~ j0d["..."]
-    end
-    subgraph i1["Outer loop i=1: all subarrays starting at index 1"]
-        direction LR
-        j1a["[1]<br/>sum=1"] ~~~ j1b["[1,-3]<br/>sum=-2"] ~~~ j1c["[1,-3,4]<br/>sum=2"] ~~~ j1d["..."]
-    end
-    subgraph i3["Outer loop i=3: all subarrays starting at index 3"]
-        direction LR
-        j3a["[4]<br/>sum=4"] ~~~ j3b["[4,-1]<br/>sum=3"] ~~~ j3c["[4,-1,2]<br/>sum=5"] ~~~ j3d["[4,-1,2,1]<br/>sum=6 ← new max"]
-    end
-    i0 ~~~ i1 ~~~ i3
+```d2
+i0: "Outer loop i=0: all subarrays starting at index 0" {
+  grid-columns: 4
+  grid-gap: 16
+  j0a: |md
+    `[-2]`
+
+    sum=-2
+  |
+  j0b: |md
+    `[-2,1]`
+
+    sum=-1
+  |
+  j0c: |md
+    `[-2,1,-3]`
+
+    sum=-4
+  |
+  j0d: "..."
+}
+
+i1: "Outer loop i=1: all subarrays starting at index 1" {
+  grid-columns: 4
+  grid-gap: 16
+  j1a: |md
+    `[1]`
+
+    sum=1
+  |
+  j1b: |md
+    `[1,-3]`
+
+    sum=-2
+  |
+  j1c: |md
+    `[1,-3,4]`
+
+    sum=2
+  |
+  j1d: "..."
+}
+
+i3: "Outer loop i=3: all subarrays starting at index 3" {
+  grid-columns: 4
+  grid-gap: 16
+  j3a: |md
+    `[4]`
+
+    sum=4
+  |
+  j3b: |md
+    `[4,-1]`
+
+    sum=3
+  |
+  j3c: |md
+    `[4,-1,2]`
+
+    sum=5
+  |
+  j3d: |md
+    `[4,-1,2,1]`
+
+    sum=6 ← new max
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
 ```
 
 <p align="center"><strong>Brute force checks every subarray — N(N+1)/2 total. For each outer position <code>i</code>, the inner loop extends <code>j</code> rightward accumulating the sum. Every subarray is evaluated explicitly.</strong></p>
@@ -633,48 +687,49 @@ As the code above demonstrates, using the variable-sized sliding window techniqu
 
 Consider we have an array `arr` and a window denoted by `start` and `end` (including `start`, including `end`) somewhere in the array such that `sum(start, i)` is non-negative for all `i` such that `start ≤ i < end`. This will be the **invariant** that we maintain throughout the execution.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Invariant["Invariant: sum(start, i) ≥ 0 for all i in [start, end)"]
-        direction LR
-        SN["start"] --- I1["arr[start]"] --- I2["arr[start+1]"] --- I3["..."] --- IE["arr[end-1]"] --- EN["end"]
-        Note["Every prefix sum<br/>arr[start..i] ≥ 0"]
-    end
+```d2
+invariant: "Invariant: sum(start, i) ≥ 0 for all i in [start, end)" {
+  grid-columns: 6
+  grid-gap: 0
+  s_node: "start"
+  i1: "arr[start]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  i2: "arr[start+1]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  i3: "..."
+  ie: "arr[end-1]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  e_node: "end"
+}
+
+note: |md
+  Every prefix sum
+
+  `arr[start..i] ≥ 0`
+| {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+
+invariant -> note: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>The invariant states that every partial sum from <code>start</code> to any index before <code>end</code> is non-negative. The window has been "clean" up to this point.</strong></p>
 
 Now consider that adding the item at index `end` turns the sum negative — that is, `sum(start, end)` is negative:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Break["sum(start, end) < 0 — invariant broken"]
-        direction LR
-        SN["start"] --- I1["arr[start]"] --- I2["..."] --- IE["arr[end-1]"] --- EN["arr[end]<br/>← this broke it"]
-        Note["sum(start, end) < 0"]
-    end
+```d2
+brk: "sum(start, end) < 0 — invariant broken" {
+  grid-columns: 5
+  grid-gap: 0
+  s_node: "start"
+  i1: "arr[start]"
+  i2: "..."
+  ie: "arr[end-1]"
+  endn: |md
+    `arr[end]`
+
+    ← this broke it
+  | {style.fill: "#fecaca"; style.stroke: "#dc2626"}
+}
+
+note: "sum(start, end) < 0" {style.fill: "#fecaca"; style.stroke: "#dc2626"}
+
+brk -> note: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Adding <code>arr[end]</code> pushed the total sum below zero. We now prove that every subarray touching this region can be safely discarded as a candidate for the maximum sum.</strong></p>
@@ -834,25 +889,21 @@ Conversely, this means that only the following subarrays still need to be checke
 1. Subarrays starting at `start` and ending **before** `end` — but these were already evaluated in previous iterations
 2. Subarrays starting **after** `end` — which will be evaluated in future iterations
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Keep["Subarrays still worth checking"]
-        direction LR
-        K1["1. arr[start..i] for i < end<br/>← already evaluated in prior iterations"]
-        K2["2. arr[j..b] for j > end<br/>← will be evaluated in future iterations"]
-    end
-    K1 ~~~ K2
+```d2
+keep: "Subarrays still worth checking" {
+  grid-columns: 2
+  grid-gap: 24
+  k1: |md
+    **1.** `arr[start..i]` for `i < end`
+
+    ← already evaluated in prior iterations
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  k2: |md
+    **2.** `arr[j..b]` for `j > end`
+
+    ← will be evaluated in future iterations
+  | {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+}
 ```
 
 <p align="center"><strong>Nothing is ever missed. Category 1 was evaluated as <code>end</code> grew from <code>start</code> to <code>end-1</code>. Category 2 is handled by setting <code>start = end + 1</code> and continuing forward.</strong></p>

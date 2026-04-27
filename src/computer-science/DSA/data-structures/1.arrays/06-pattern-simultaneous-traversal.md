@@ -34,29 +34,31 @@ Think of two conveyor belts running side by side. Each belt carries items in ord
 
 Neither belt ever rewinds. You just decide, at each step, which hand moves forward.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-  subgraph ARR1["arr1  (size N)"]
-    direction LR
-    A0["a₀"] --- A1["a₁"] --- A2["a₂"] --- A3["a₃"] --- A4["..."]
-  end
-  subgraph ARR2["arr2  (size M)"]
-    direction LR
-    B0["b₀"] --- B1["b₁"] --- B2["b₂"] --- B3["..."]
-  end
-  I1(["index1"]) --> A0
-  I2(["index2"]) --> B0
+```d2
+arr1: "arr1  (size N)" {
+  grid-columns: 5
+  grid-gap: 0
+  a0: "a₀" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a1: "a₁"
+  a2: "a₂"
+  a3: "a₃"
+  a4: "..."
+}
+
+arr2: "arr2  (size M)" {
+  grid-columns: 4
+  grid-gap: 0
+  b0: "b₀" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b1: "b₁"
+  b2: "b₂"
+  b3: "..."
+}
+
+i1: "index1" {shape: oval; style.fill: "#fde68a"; style.stroke: "#d97706"}
+i2: "index2" {shape: oval; style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+
+i1 -> arr1.a0
+i2 -> arr2.b0
 ```
 
 <p align="center"><strong>Two index variables — one per array — start at position 0 and move independently based on a condition evaluated at each step.</strong></p>
@@ -235,30 +237,28 @@ s = "ace",   t = "abcde"  →  True   (a..c..e all appear in order)
 s = "aec",   t = "abcde"  →  False  (e appears before c in t, not after)
 ```
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-  subgraph T["t = a b c d e"]
-    direction LR
-    T0["a"] --- T1["b"] --- T2["c"] --- T3["d"] --- T4["e"]
-  end
-  subgraph S["s = a · c · e"]
-    direction LR
-    S0["a"] ~~~ S1["c"] ~~~ S2["e"]
-  end
-  S0 -->|"matched at t[0]"| T0
-  S1 -->|"matched at t[2]"| T2
-  S2 -->|"matched at t[4]"| T4
+```d2
+tt: "t = a b c d e" {
+  grid-columns: 5
+  grid-gap: 0
+  t0: "a" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  t1: "b"
+  t2: "c" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  t3: "d"
+  t4: "e" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+
+ss: "s = a · c · e" {
+  grid-columns: 3
+  grid-gap: 0
+  s0: "a" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  s1: "c" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  s2: "e" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+
+ss.s0 -> tt.t0: "matched at t[0]"
+ss.s1 -> tt.t2: "matched at t[2]"
+ss.s2 -> tt.t4: "matched at t[4]"
 ```
 
 <p align="center"><strong>s = "ace" is a subsequence of t = "abcde" — each character of s maps to a later position in t, maintaining order.</strong></p>
@@ -740,29 +740,32 @@ Your first instinct is to merge from the front: compare `arr1[0]` and `arr2[0]`,
 
 `arr1` is the destination *and* a source. The moment you write into `arr1[0]`, you destroy the element that was already there. You'd have to shift everything one position to the right to make room first — and that's O(N) work per insert, O(N²) total.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Bad["Front-to-back: destroys arr1[0] before reading it"]
-        direction LR
-        W0(["write here"]) -->|"overwrites!"| A0["1"]
-        A0 --- A1["2"] --- A2["3"] --- A3["0"] --- A4["0"]
-    end
-    subgraph Good["Back-to-front: writes into free zeros, never destroys unread data"]
-        direction LR
-        B0["1"] --- B1["2"] --- B2["3"] --- B3["0"] --- B4["0"]
-        B4 -.->|"write here (free slot)"| W1(["safe"])
-    end
+```d2
+bad: "Front-to-back: destroys arr1[0] before reading it" {
+  grid-columns: 5
+  grid-gap: 0
+  a0: "1" {style.fill: "#fecaca"; style.stroke: "#dc2626"}
+  a1: "2"
+  a2: "3"
+  a3: "0"
+  a4: "0"
+}
+
+bad_arrow: "write here ✗ overwrites!" {shape: oval; style.fill: "#fecaca"; style.stroke: "#dc2626"}
+bad_arrow -> bad.a0
+
+good: "Back-to-front: writes into free zeros, never destroys unread data" {
+  grid-columns: 5
+  grid-gap: 0
+  b0: "1"
+  b1: "2"
+  b2: "3"
+  b3: "0"
+  b4: "0" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+
+good_arrow: "write here ✓ safe (free slot)" {shape: oval; style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+good_arrow -> good.b4
 ```
 
 <p align="center"><strong>Writing from the front overwrites unread data. Writing from the back fills the pre-allocated zero slots — already free, never destructive.</strong></p>

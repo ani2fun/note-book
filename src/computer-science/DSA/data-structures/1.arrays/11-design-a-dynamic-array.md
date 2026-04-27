@@ -44,25 +44,69 @@ Step-by-step:
 
 Think of it like a gym membership: one heavy leg-day costs 2 hours, other days cost 20 minutes — but the *average* over a month is still reasonable because the expensive days are rare.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph Cost["Cost of each pushBack as capacity doubles"]
-        direction LR
-        P1["push 1<br/>cost=1<br/>cap=1"] --- P2["push 2<br/>cost=2<br/>resize + copy 1, cap=2"] --- P3["push 3<br/>cost=3<br/>resize + copy 2, cap=4"] --- P4["push 4<br/>cost=1<br/>cap=4"] --- P5["push 5<br/>cost=5<br/>resize + copy 4, cap=8"] --- P6["push 6<br/>cost=1"] --- P7["push 7<br/>cost=1"] --- P8["push 8<br/>cost=1"]
-    end
-    Total["8 pushes total cost = 1+2+3+1+5+1+1+1 = 15 ≤ 2×8<br/>Average = 15/8 ≈ 1.87 = O(1)"]
-    Cost --> Total
+```d2
+cost: "Cost of each pushBack as capacity doubles" {
+  grid-columns: 8
+  grid-gap: 0
+  p1: |md
+    push 1
+
+    cost=1
+
+    cap=1
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  p2: |md
+    push 2
+
+    cost=2
+
+    resize + copy 1, cap=2
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  p3: |md
+    push 3
+
+    cost=3
+
+    resize + copy 2, cap=4
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  p4: |md
+    push 4
+
+    cost=1
+
+    cap=4
+  |
+  p5: |md
+    push 5
+
+    cost=5
+
+    resize + copy 4, cap=8
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  p6: |md
+    push 6
+
+    cost=1
+  |
+  p7: |md
+    push 7
+
+    cost=1
+  |
+  p8: |md
+    push 8
+
+    cost=1
+  |
+}
+
+total: |md
+  8 pushes total cost = 1+2+3+1+5+1+1+1 = 15 ≤ 2×8
+
+  **Average = 15/8 ≈ 1.87 = O(1)**
+| {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+
+cost -> total
 ```
 
 <p align="center"><strong>Expensive resizes are rare. Each doubling event pays for itself against the cheap pushes that follow it — the <em>average</em> cost is constant.</strong></p>
@@ -161,21 +205,51 @@ flowchart TB
 
 Watch what the capacity sequence looks like as we push one element at a time into an empty array:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 8
-  E1["push 1<br/>cap 0→1"] E2["push 2<br/>cap 1→2"] E3["push 3<br/>cap 2→4"] E4["push 4<br/>no resize"] E5["push 5<br/>cap 4→8"] E6["push 6<br/>no resize"] E7["push 7<br/>no resize"] E8["push 8<br/>no resize"]
+```d2
+seq: "Capacity sequence as elements are pushed" {
+  grid-columns: 8
+  grid-gap: 0
+  e1: |md
+    push 1
+
+    cap 0→1
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  e2: |md
+    push 2
+
+    cap 1→2
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  e3: |md
+    push 3
+
+    cap 2→4
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  e4: |md
+    push 4
+
+    no resize
+  |
+  e5: |md
+    push 5
+
+    cap 4→8
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  e6: |md
+    push 6
+
+    no resize
+  |
+  e7: |md
+    push 7
+
+    no resize
+  |
+  e8: |md
+    push 8
+
+    no resize
+  |
+}
 ```
 
 <p align="center"><strong>Resizes happen at pushes 1, 2, 3, 5, 9, 17, 33, 65 … — every power of two plus one. Between those, pushes are O(1) with no work beyond a pointer bump.</strong></p>

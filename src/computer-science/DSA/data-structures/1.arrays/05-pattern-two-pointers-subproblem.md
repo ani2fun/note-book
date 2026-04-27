@@ -44,28 +44,34 @@ Input:  arr = [1, 2, 3, 4, 5, 6, 7, 8],  k = 4
 Output: arr = [5, 6, 7, 8, 1, 2, 3, 4]
 ```
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-  subgraph BEFORE["Before  (k=4)"]
-    direction LR
-    A["1"] --- B["2"] --- C["3"] --- D["4"] --- E["5"] --- F["6"] --- G["7"] --- H["8"]
-  end
-  subgraph AFTER["After rotating 4 left"]
-    direction LR
-    I["5"] --- J["6"] --- K["7"] --- L["8"] --- M["1"] --- N["2"] --- O["3"] --- P["4"]
-  end
-  BEFORE -->|"rotate left by k=4"| AFTER
+```d2
+before: "Before  (k=4)" {
+  grid-columns: 8
+  grid-gap: 0
+  a0: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a1: "2" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a2: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a3: "4" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a4: "5"
+  a5: "6"
+  a6: "7"
+  a7: "8"
+}
+
+after: "After rotating 4 left" {
+  grid-columns: 8
+  grid-gap: 0
+  b0: "5"
+  b1: "6"
+  b2: "7"
+  b3: "8"
+  b4: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b5: "2" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b6: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b7: "4" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
+
+before -> after: "rotate left by k=4"
 ```
 
 <p align="center"><strong>Rotate an array k=4 times to the left — the first 4 elements wrap around to the end.</strong></p>
@@ -76,33 +82,48 @@ flowchart LR
 
 Copy elements at k-shifted indices into a temp array, then copy back:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-  subgraph ORIG["Original:  [1, 2, 3, 4, 5, 6, 7, 8]"]
-    direction LR
-    A1["1"] --- B1["2"] --- C1["3"] --- D1["4"] --- E1["5"] --- F1["6"] --- G1["7"] --- H1["8"]
-  end
-  subgraph TEMP["Temp:  temp[i] = arr[(i+k) % n]"]
-    direction LR
-    A2["5"] --- B2["6"] --- C2["7"] --- D2["8"] --- E2["1"] --- F2["2"] --- G2["3"] --- H2["4"]
-  end
-  subgraph COPY["Copy temp → arr"]
-    direction LR
-    A3["5"] --- B3["6"] --- C3["7"] --- D3["8"] --- E3["1"] --- F3["2"] --- G3["3"] --- H3["4"]
-  end
-  ORIG -->|"pass 1: fill temp"| TEMP
-  TEMP -->|"pass 2: copy back"| COPY
+```d2
+orig: "Original arr" {
+  grid-columns: 8
+  grid-gap: 0
+  a0: "1"
+  a1: "2"
+  a2: "3"
+  a3: "4"
+  a4: "5"
+  a5: "6"
+  a6: "7"
+  a7: "8"
+}
+
+temp: "temp:  temp[i] = arr[(i+k) % n]" {
+  grid-columns: 8
+  grid-gap: 0
+  b0: "5"
+  b1: "6"
+  b2: "7"
+  b3: "8"
+  b4: "1"
+  b5: "2"
+  b6: "3"
+  b7: "4"
+}
+
+copy: "Copy temp → arr" {
+  grid-columns: 8
+  grid-gap: 0
+  c0: "5"
+  c1: "6"
+  c2: "7"
+  c3: "8"
+  c4: "1"
+  c5: "2"
+  c6: "3"
+  c7: "4"
+}
+
+orig -> temp: "pass 1: fill temp"
+temp -> copy: "pass 2: copy back"
 ```
 
 <p align="center"><strong>Brute-force rotation using a temporary array — two passes, O(n) extra space.</strong></p>
@@ -212,39 +233,62 @@ So the full chain of reasoning is:
 2. Reverse the remaining `n-k` elements: `arr[k..n-1]`
 3. Reverse the entire array: `arr[0..n-1]`
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-  subgraph S0["Original:  [1, 2, 3, 4 | 5, 6, 7, 8]"]
-    direction LR
-    O1["1"] --- O2["2"] --- O3["3"] --- O4["4"] --- O5["5"] --- O6["6"] --- O7["7"] --- O8["8"]
-  end
-  subgraph S1["Step 1: Reverse first k=4  →  [4, 3, 2, 1 | 5, 6, 7, 8]"]
-    direction LR
-    P1["4"] --- P2["3"] --- P3["2"] --- P4["1"] --- P5["5"] --- P6["6"] --- P7["7"] --- P8["8"]
-  end
-  subgraph S2["Step 2: Reverse last n-k=4  →  [4, 3, 2, 1 | 8, 7, 6, 5]"]
-    direction LR
-    Q1["4"] --- Q2["3"] --- Q3["2"] --- Q4["1"] --- Q5["8"] --- Q6["7"] --- Q7["6"] --- Q8["5"]
-  end
-  subgraph S3["Step 3: Reverse entire array  →  [5, 6, 7, 8, 1, 2, 3, 4]"]
-    direction LR
-    R1["5"] --- R2["6"] --- R3["7"] --- R4["8"] --- R5["1"] --- R6["2"] --- R7["3"] --- R8["4"]
-  end
+```d2
+s0: "Original:  [1, 2, 3, 4 | 5, 6, 7, 8]" {
+  grid-columns: 8
+  grid-gap: 0
+  a0: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a1: "2" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a2: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a3: "4" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a4: "5"
+  a5: "6"
+  a6: "7"
+  a7: "8"
+}
 
-  S0 -->|"reverse arr[0..3]"| S1
-  S1 -->|"reverse arr[4..7]"| S2
-  S2 -->|"reverse arr[0..7]"| S3
+s1: "Step 1: Reverse first k=4  →  [4, 3, 2, 1 | 5, 6, 7, 8]" {
+  grid-columns: 8
+  grid-gap: 0
+  b0: "4" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b1: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b2: "2" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b3: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b4: "5" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b5: "6" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b6: "7" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b7: "8" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+
+s2: "Step 2: Reverse last n-k=4  →  [4, 3, 2, 1 | 8, 7, 6, 5]" {
+  grid-columns: 8
+  grid-gap: 0
+  c0: "4"
+  c1: "3"
+  c2: "2"
+  c3: "1"
+  c4: "8" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  c5: "7" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  c6: "6" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  c7: "5" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+
+s3: "Step 3: Reverse entire array  →  [5, 6, 7, 8, 1, 2, 3, 4]" {
+  grid-columns: 8
+  grid-gap: 0
+  d0: "5" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  d1: "6" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  d2: "7" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  d3: "8" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  d4: "1" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  d5: "2" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  d6: "3" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  d7: "4" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+}
+
+s0 -> s1: "reverse arr[0..3]"
+s1 -> s2: "reverse arr[4..7]"
+s2 -> s3: "reverse arr[0..7]"
 ```
 
 <p align="center"><strong>Shift k=4 elements to the left by combining three in-place reversal subproblems — each reversal is solved with the two-pointer technique, O(1) space total.</strong></p>
@@ -371,22 +415,17 @@ Output: [1, 2, 3, 4, 5]
 
 One step to the right means the **last element wraps around to the front**, and every other element shifts one position to the right.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    A["[1, 2, 3, 4, 5]"] -->|"rotate right 1"| B["[5, 1, 2, 3, 4]"]
-    B -->|"rotate right 2"| C["[4, 5, 1, 2, 3]"]
-    C -->|"rotate right 3"| D["[3, 4, 5, 1, 2]"]
+```d2
+direction: right
+
+a: "[1, 2, 3, 4, 5]"
+b: "[5, 1, 2, 3, 4]"
+c: "[4, 5, 1, 2, 3]"
+d: "[3, 4, 5, 1, 2]" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+
+a -> b: "rotate right 1"
+b -> c: "rotate right 2"
+c -> d: "rotate right 3"
 ```
 
 <p align="center"><strong>Each right rotation brings the last element to the front — after k=3 steps, the last 3 elements form the new prefix.</strong></p>
@@ -440,38 +479,50 @@ Reversing a segment `[start..end]` is the canonical two-pointer direct applicati
 
 ## The Three-Reversal Strategy (Visualised)
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph S0["Original:  [1, 2 | 3, 4, 5]  (HEAD=2, TAIL=3)"]
-        direction LR
-        A1["1"] --- A2["2"] --- A3["3"] --- A4["4"] --- A5["5"]
-    end
-    subgraph S1["Step 1: Reverse TAIL  [2..4]  →  [1, 2, 5, 4, 3]"]
-        direction LR
-        B1["1"] --- B2["2"] --- B3["5"] --- B4["4"] --- B5["3"]
-    end
-    subgraph S2["Step 2: Reverse HEAD  [0..1]  →  [2, 1, 5, 4, 3]"]
-        direction LR
-        C1["2"] --- C2["1"] --- C3["5"] --- C4["4"] --- C5["3"]
-    end
-    subgraph S3["Step 3: Reverse all  [0..4]  →  [3, 4, 5, 1, 2]  ✓"]
-        direction LR
-        D1["3"] --- D2["4"] --- D3["5"] --- D4["1"] --- D5["2"]
-    end
-    S0 -->|"reverse arr[2..4]"| S1
-    S1 -->|"reverse arr[0..1]"| S2
-    S2 -->|"reverse arr[0..4]"| S3
+```d2
+s0: "Original:  [1, 2 | 3, 4, 5]  (HEAD=2, TAIL=3)" {
+  grid-columns: 5
+  grid-gap: 0
+  a0: "1" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  a1: "2" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  a2: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a3: "4" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a4: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
+
+s1: "Step 1: Reverse TAIL [2..4]  →  [1, 2, 5, 4, 3]" {
+  grid-columns: 5
+  grid-gap: 0
+  b0: "1"
+  b1: "2"
+  b2: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b3: "4" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b4: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
+
+s2: "Step 2: Reverse HEAD [0..1]  →  [2, 1, 5, 4, 3]" {
+  grid-columns: 5
+  grid-gap: 0
+  c0: "2" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  c1: "1" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  c2: "5"
+  c3: "4"
+  c4: "3"
+}
+
+s3: "Step 3: Reverse all [0..4]  →  [3, 4, 5, 1, 2]  ✓" {
+  grid-columns: 5
+  grid-gap: 0
+  d0: "3" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  d1: "4" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  d2: "5" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  d3: "1" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  d4: "2" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+}
+
+s0 -> s1: "reverse arr[2..4]"
+s1 -> s2: "reverse arr[0..1]"
+s2 -> s3: "reverse arr[0..4]"
 ```
 
 <p align="center"><strong>Right rotation by k=3 via three in-place reversals — each reversal is an independent two-pointer subproblem.</strong></p>
@@ -1413,27 +1464,42 @@ The pattern is recursive:
 
 Every level adds one outer loop with duplicate skipping. The innermost operation is always the same two-pointer Two Sum.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-  TS["Two Sum<br/>O(n)"]
-  TH["Three Sum<br/>fix 1 + Two Sum<br/>O(n²)"]
-  FO["Four Sum<br/>fix 2 + Two Sum<br/>O(n³)"]
-  KS["k-Sum<br/>fix k−2 + Two Sum<br/>O(nᵏ⁻¹)"]
+```d2
+direction: right
 
-  TS -->|"wrap in one loop"| TH
-  TH -->|"wrap in one loop"| FO
-  FO -->|"wrap in k−4 loops"| KS
+ts: |md
+  **Two Sum**
+
+  `O(n)`
+| {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+
+th: |md
+  **Three Sum**
+
+  fix 1 + Two Sum
+
+  `O(n²)`
+| {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+
+fo: |md
+  **Four Sum**
+
+  fix 2 + Two Sum
+
+  `O(n³)`
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+
+ks: |md
+  **k-Sum**
+
+  fix k−2 + Two Sum
+
+  `O(nᵏ⁻¹)`
+| {style.fill: "#ede9fe"; style.stroke: "#7c3aed"}
+
+ts -> th: "wrap in one loop"
+th -> fo: "wrap in one loop"
+fo -> ks: "wrap in k−4 loops"
 ```
 
 <p align="center"><strong>The k-Sum family — each level wraps the previous in one more outer loop with duplicate skipping. Two Sum is always the innermost operation.</strong></p>

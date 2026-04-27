@@ -28,24 +28,21 @@ The trick has a name. Computational geometers call it the **line sweep**, and it
 
 Picture an x-axis stretched out before you. Every event in your input — every meeting, every flight, every request — gets placed on it as a small horizontal segment. The segment's left edge is its **start time**, the right edge its **end time**.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Plane["An interval on the x-axis"]
-        direction LR
-        S["start"] --- M1["•"] --- M2["•"] --- E["end"]
-        Lbl["interval = [start, end]"]
-    end
+```d2
+plane: "An interval on the x-axis" {
+  grid-columns: 4
+  grid-gap: 0
+  s: "start" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  m1: "•"
+  m2: "•"
+  e: "end" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
+
+lbl: |md
+  `interval = [start, end]`
+|
+
+plane -> lbl: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>An interval is just two points on a number line — a <code>start</code> and an <code>end</code>. The "axis" represents whatever scalar matters: time, distance, kilometres, frequency.</strong></p>
@@ -64,53 +61,48 @@ You couldn't. The whole power of the sweep depends on visiting events in a deter
 
 Sorting is the price of admission. Intervals are usually sorted **by start coordinate ascending**, and ties broken by end coordinate ascending. The sorted order makes traversal of the array equivalent to walking left-to-right on the x-axis.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Unsorted["Unsorted: arbitrary positions on the axis"]
-        direction LR
-        U1["[6,8]"] ~~~ U2["[1,3]"] ~~~ U3["[4,7]"] ~~~ U4["[2,5]"]
-    end
-    subgraph Sorted["After sorting by (start, end)"]
-        direction LR
-        S1["[1,3]"] ~~~ S2["[2,5]"] ~~~ S3["[4,7]"] ~~~ S4["[6,8]"]
-    end
-    Unsorted --> Sorted
+```d2
+unsorted: "Unsorted: arbitrary positions on the axis" {
+  grid-columns: 4
+  grid-gap: 16
+  u1: "[6,8]"
+  u2: "[1,3]"
+  u3: "[4,7]"
+  u4: "[2,5]"
+}
+
+sorted: "After sorting by (start, end)" {
+  grid-columns: 4
+  grid-gap: 16
+  s1: "[1,3]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  s2: "[2,5]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  s3: "[4,7]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  s4: "[6,8]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+
+unsorted -> sorted
 ```
 
 <p align="center"><strong>Sort the interval array by <code>start</code> ascending; break ties by <code>end</code> ascending. Iterating the sorted array is now equivalent to scanning the x-axis left-to-right.</strong></p>
 
 Why sort by start first, then by end? Because the sweep advances by start position — the start tells you *when* an event becomes relevant. If two events share a start, the end tiebreaker keeps the smaller, fully-contained one before the longer one. That subtle ordering matters for problems like "merge all overlapping intervals" — we'll see why in a moment.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Tiebreak["Tiebreak: same start, sort by end ascending"]
-        direction LR
-        T1["[2,4]"] ~~~ T2["[2,7]"] ~~~ T3["[2,9]"]
-    end
-    Note["Smaller, contained intervals come first<br/>so the sweep sees them before their longer siblings"]
-    Tiebreak --> Note
+```d2
+tiebreak: "Tiebreak: same start, sort by end ascending" {
+  grid-columns: 3
+  grid-gap: 16
+  t1: "[2,4]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  t2: "[2,7]"
+  t3: "[2,9]"
+}
+
+note: |md
+  Smaller, contained intervals come first
+
+  so the sweep sees them before their longer siblings
+|
+
+tiebreak -> note: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Ties on <code>start</code> are broken by <code>end</code> ascending — shorter intervals come first so they fold into the longer one as the sweep continues.</strong></p>
@@ -121,26 +113,26 @@ flowchart LR
 
 With the array sorted, traversing it from left to right *is* the sweep. As you visit each interval, you maintain some piece of state — a counter, a "currently active" set, the last interval you kept. That state encodes the answer-so-far. As the sweep crosses each event, you update the state in O(1) and continue.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Axis["Sorted intervals on the x-axis"]
-        direction LR
-        A["[1,3]"] --- B["[2,5]"] --- C["[4,7]"] --- D["[6,8]"]
-    end
-    Sweep["▲ sweep line walks left → right"]
-    State["State: depends on problem<br/>(active count, merged list, last end seen, ...)"]
-    Axis --> Sweep --> State
+```d2
+axis: "Sorted intervals on the x-axis" {
+  grid-columns: 4
+  grid-gap: 0
+  a: "[1,3]"
+  b: "[2,5]"
+  c: "[4,7]"
+  d: "[6,8]"
+}
+
+sweep: "▲ sweep line walks left → right" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+
+state: |md
+  **State:** depends on problem
+
+  (active count, merged list, last end seen, ...)
+|
+
+axis -> sweep
+sweep -> state
 ```
 
 <p align="center"><strong>The sweep visits each interval in sorted order, updating shared state in O(1). One pass — no nested loops.</strong></p>
@@ -188,28 +180,26 @@ This is the **interval merging pattern** — the most common application of the 
 
 Picture every interval as a colored stripe drawn on a long sheet of paper. Some stripes overlap, some sit alone. Your job: produce one cleaned-up sheet where overlapping stripes have been **fused** into single, longer stripes, and isolated stripes are left alone.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph Before["Before: 5 raw intervals (some overlap)"]
-        direction LR
-        A1["[1,3]"] ~~~ A2["[2,6]"] ~~~ A3["[8,10]"] ~~~ A4["[9,12]"] ~~~ A5["[15,18]"]
-    end
-    subgraph After["After: 3 merged intervals"]
-        direction LR
-        B1["[1,6]"] ~~~ B2["[8,12]"] ~~~ B3["[15,18]"]
-    end
-    Before --> After
+```d2
+before: "Before: 5 raw intervals (some overlap)" {
+  grid-columns: 5
+  grid-gap: 16
+  a1: "[1,3]"
+  a2: "[2,6]"
+  a3: "[8,10]"
+  a4: "[9,12]"
+  a5: "[15,18]"
+}
+
+after: "After: 3 merged intervals" {
+  grid-columns: 3
+  grid-gap: 16
+  b1: "[1,6]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b2: "[8,12]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b3: "[15,18]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+
+before -> after
 ```
 
 <p align="center"><strong>Merging fuses overlapping intervals into the smallest set of disjoint intervals that covers all the original ones — like running a highlighter and never lifting it through any overlap.</strong></p>
@@ -224,28 +214,28 @@ That mental model *is* the algorithm.
 
 Sorting comes first, as always for a sweep.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph In["arr (unsorted)"]
-        direction LR
-        I1["[8,10]"] ~~~ I2["[1,3]"] ~~~ I3["[15,18]"] ~~~ I4["[2,6]"] ~~~ I5["[9,12]"]
-    end
-    subgraph Out["arr (sorted by start, then end)"]
-        direction LR
-        O1["[1,3]"] ~~~ O2["[2,6]"] ~~~ O3["[8,10]"] ~~~ O4["[9,12]"] ~~~ O5["[15,18]"]
-    end
-    In --> Out
+```d2
+in_arr: "arr (unsorted)" {
+  grid-columns: 5
+  grid-gap: 16
+  i1: "[8,10]"
+  i2: "[1,3]"
+  i3: "[15,18]"
+  i4: "[2,6]"
+  i5: "[9,12]"
+}
+
+out_arr: "arr (sorted by start, then end)" {
+  grid-columns: 5
+  grid-gap: 16
+  o1: "[1,3]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  o2: "[2,6]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  o3: "[8,10]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  o4: "[9,12]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  o5: "[15,18]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+
+in_arr -> out_arr
 ```
 
 <p align="center"><strong>After sorting, intervals appear in left-to-right order on the x-axis. The sweep can now process them in a single pass.</strong></p>
@@ -262,25 +252,24 @@ You could lose overlaps. Consider `[[1, 10], [2, 4]]`. Sorted by end: `[[2, 4], 
 
 Create an output list `merged` and seed it with the first sorted interval. The "current highlighter stripe" is always **the last item in `merged`** — that's the only interval the sweep can extend.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Sorted["Sorted arr"]
-        direction LR
-        S1["[1,3]"] --- S2["[2,6]"] --- S3["[8,10]"] --- S4["[9,12]"] --- S5["[15,18]"]
-    end
-    Init["merged = [ [1,3] ]<br/>(seeded with arr[0])"]
-    Sorted --> Init
+```d2
+sorted: "Sorted arr" {
+  grid-columns: 5
+  grid-gap: 0
+  s1: "[1,3]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  s2: "[2,6]"
+  s3: "[8,10]"
+  s4: "[9,12]"
+  s5: "[15,18]"
+}
+
+init: |md
+  `merged = [ [1,3] ]`
+
+  (seeded with arr[0])
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+
+sorted -> init
 ```
 
 <p align="center"><strong>Seed <code>merged</code> with the first interval. From now on, every new interval is compared only against <code>merged.last</code> — never the entire list.</strong></p>
@@ -330,26 +319,29 @@ The `<=` vs `<` distinction is the only edge-case knob. If your problem treats t
 
 Because the input is sorted by start, any interval we process from this point forward has a start coordinate `≥ arr[i].start`. The intervals already inside `merged` (excluding the last) all have **end coordinates that come before `merged.last.start`** — otherwise they would have been merged into `merged.last` themselves. So they cannot possibly overlap with anything still to come.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph M["merged so far"]
-        direction LR
-        M1["[1,6]"] --- M2["[8,12]"] --- M3["[15,18] ← last"]
-    end
-    Future["Any future arr[i] has start ≥ 15<br/>(input is sorted)"]
-    Conc["Future intervals can ONLY touch<br/>or extend [15,18] — never [1,6] or [8,12]"]
-    M --> Future --> Conc
+```d2
+m: "merged so far" {
+  grid-columns: 3
+  grid-gap: 0
+  m1: "[1,6]"
+  m2: "[8,12]"
+  m3: "[15,18] ← last" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
+
+future: |md
+  Any future `arr[i]` has `start ≥ 15`
+
+  (input is sorted)
+|
+
+conc: |md
+  Future intervals can ONLY touch
+
+  or extend `[15,18]` — never `[1,6]` or `[8,12]`
+| {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+
+m -> future
+future -> conc
 ```
 
 <p align="center"><strong>The "compare only against the last" trick works because sorted input plus the merged-so-far invariant guarantee earlier intervals are forever sealed.</strong></p>
@@ -724,28 +716,26 @@ If the rephrased problem requires *not* merging — for example, "count the maxi
 
 > **Problem statement:** A delivery service expects a sequence of deliveries throughout the day, each described by a `[start, end]` time window. Find the **minimum number of non-overlapping time intervals** during which at least one delivery is expected at every moment.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph Input["Raw delivery windows"]
-        direction LR
-        I1["[9, 11]"] ~~~ I2["[10, 12]"] ~~~ I3["[14, 16]"] ~~~ I4["[15, 17]"] ~~~ I5["[20, 21]"]
-    end
-    subgraph Output["Minimum non-overlapping busy intervals"]
-        direction LR
-        O1["[9, 12]"] ~~~ O2["[14, 17]"] ~~~ O3["[20, 21]"]
-    end
-    Input --> Output
+```d2
+input_arr: "Raw delivery windows" {
+  grid-columns: 5
+  grid-gap: 16
+  i1: "[9, 11]"
+  i2: "[10, 12]"
+  i3: "[14, 16]"
+  i4: "[15, 17]"
+  i5: "[20, 21]"
+}
+
+output_arr: "Minimum non-overlapping busy intervals" {
+  grid-columns: 3
+  grid-gap: 16
+  o1: "[9, 12]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  o2: "[14, 17]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  o3: "[20, 21]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+
+input_arr -> output_arr
 ```
 
 <p align="center"><strong>Find the minimum set of non-overlapping windows that cover every delivery — equivalently, "merge all overlapping deliveries". The merged count <em>is</em> the answer.</strong></p>
@@ -1765,32 +1755,34 @@ Output: [[3, 4]]
 
 A moment is "everyone free" iff it is **not inside any employee's busy interval**. So if you take the union of all busy intervals across all employees, the gaps between consecutive merged intervals are exactly the moments when nobody is busy.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph Step1["Step 1: Flatten everyone's busy times into one array"]
-        direction LR
-        F1["[1,3]"] ~~~ F2["[6,7]"] ~~~ F3["[2,4]"] ~~~ F4["[2,5]"] ~~~ F5["[9,12]"]
-    end
-    subgraph Step2["Step 2: Sort + merge into disjoint busy blocks"]
-        direction LR
-        M1["[1,5]"] ~~~ M2["[6,7]"] ~~~ M3["[9,12]"]
-    end
-    subgraph Step3["Step 3: Read off gaps between consecutive merged blocks"]
-        direction LR
-        G1["[5,6]"] ~~~ G2["[7,9]"]
-    end
-    Step1 --> Step2 --> Step3
+```d2
+step1: "Step 1: Flatten everyone's busy times into one array" {
+  grid-columns: 5
+  grid-gap: 16
+  f1: "[1,3]"
+  f2: "[6,7]"
+  f3: "[2,4]"
+  f4: "[2,5]"
+  f5: "[9,12]"
+}
+
+step2: "Step 2: Sort + merge into disjoint busy blocks" {
+  grid-columns: 3
+  grid-gap: 16
+  m1: "[1,5]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  m2: "[6,7]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  m3: "[9,12]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
+
+step3: "Step 3: Read off gaps between consecutive merged blocks" {
+  grid-columns: 2
+  grid-gap: 16
+  g1: "[5,6]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  g2: "[7,9]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+
+step1 -> step2
+step2 -> step3
 ```
 
 <p align="center"><strong>Three steps: flatten, merge, complement. The gaps between consecutive merged busy blocks are precisely the common free time.</strong></p>
@@ -2268,41 +2260,42 @@ The single linear pass partitions the existing intervals into **three groups** r
 2. **Overlap with** `newInterval` — absorb them into `newInterval` by stretching its `start` and `end`.
 3. **Strictly after** `newInterval` — keep them as-is.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph Input["intervals = [[1,2], [3,5], [6,7], [8,10], [12,16]]<br/>newInterval = [4, 8]"]
-        direction LR
-        I1["[1,2]"] ~~~ I2["[3,5]"] ~~~ I3["[6,7]"] ~~~ I4["[8,10]"] ~~~ I5["[12,16]"]
-    end
-    subgraph Phase1["Phase 1 — strictly before [4,8]"]
-        P1["[1,2]"]
-    end
-    subgraph Phase2["Phase 2 — overlapping [4,8] → absorb"]
-        direction LR
-        P2a["[3,5]"] ~~~ P2b["[6,7]"] ~~~ P2c["[8,10]"]
-        P2new["newInterval grows: [4,8] → [3,8] → [3,8] → [3,10]"]
-    end
-    subgraph Phase3["Phase 3 — strictly after [3,10]"]
-        P3["[12,16]"]
-    end
-    Result["Output = [[1,2], [3,10], [12,16]]"]
-    Input --> Phase1
-    Input --> Phase2
-    Input --> Phase3
-    Phase1 --> Result
-    Phase2 --> Result
-    Phase3 --> Result
+```d2
+input_arr: "intervals = [[1,2], [3,5], [6,7], [8,10], [12,16]],  newInterval = [4, 8]" {
+  grid-columns: 5
+  grid-gap: 16
+  i1: "[1,2]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  i2: "[3,5]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  i3: "[6,7]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  i4: "[8,10]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  i5: "[12,16]" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+}
+
+phase1: "Phase 1 — strictly before [4,8]" {
+  p1: "[1,2]" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+
+phase2: "Phase 2 — overlapping [4,8] → absorb" {
+  grid-columns: 3
+  grid-gap: 16
+  p2a: "[3,5]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  p2b: "[6,7]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  p2c: "[8,10]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  note: "newInterval grows: [4,8] → [3,8] → [3,8] → [3,10]"
+}
+
+phase3: "Phase 3 — strictly after [3,10]" {
+  p3: "[12,16]" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+}
+
+result: "Output = [[1,2], [3,10], [12,16]]"
+
+input_arr -> phase1
+input_arr -> phase2
+input_arr -> phase3
+phase1 -> result
+phase2 -> result
+phase3 -> result
 ```
 
 <p align="center"><strong>Three contiguous groups: copy-as-is, absorb, copy-as-is. The middle group collapses into a single grown <code>newInterval</code> before being appended.</strong></p>

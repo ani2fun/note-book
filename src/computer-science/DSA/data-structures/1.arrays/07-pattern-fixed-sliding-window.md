@@ -31,48 +31,44 @@ What if you could slide the window forward in one subtraction and one addition?
 
 Picture a train car moving along a track. The car has a fixed number of seats — say, four. As the train inches forward, one new passenger boards at the front door and one passenger exits at the back door. The total passenger count shifts by exactly those two people — you never need to recount every seat.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Before["Before slide"]
-        direction LR
-        A["2"] --- B["5"] --- C["1"] --- D["3"] --- E["7"] --- F["4"]
-        W1["▲ start"] -.-> A
-        W2["▲ end"] -.-> D
-    end
+```d2
+arr: "Before slide" {
+  grid-columns: 6
+  grid-gap: 0
+  a0: "2" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a1: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a2: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a3: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a4: "7"
+  a5: "4"
+}
+
+s: "▲ start = 0" {shape: oval; style.fill: "#fde68a"; style.stroke: "#d97706"}
+e: "▲ end = 3" {shape: oval; style.fill: "#fde68a"; style.stroke: "#d97706"}
+
+s -> arr.a0
+e -> arr.a3
 ```
 
 <p align="center"><strong>Window [2, 5, 1, 3] — <code>start=0</code>, <code>end=3</code>, sum = 11.</strong></p>
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph After["After one slide"]
-        direction LR
-        A2["2"] --- B2["5"] --- C2["1"] --- D2["3"] --- E2["7"] --- F2["4"]
-        W3["▲ start"] -.-> B2
-        W4["▲ end"] -.-> E2
-    end
+```d2
+arr: "After one slide" {
+  grid-columns: 6
+  grid-gap: 0
+  a0: "2"
+  a1: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a2: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a3: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a4: "7" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a5: "4"
+}
+
+s: "▲ start = 1" {shape: oval; style.fill: "#fde68a"; style.stroke: "#d97706"}
+e: "▲ end = 4" {shape: oval; style.fill: "#fde68a"; style.stroke: "#d97706"}
+
+s -> arr.a1
+e -> arr.a4
 ```
 
 <p align="center"><strong>Slide right — subtract <code>arr[start]=2</code>, add <code>arr[new end]=7</code>. New sum = 11 − 2 + 7 = 16. No recount needed.</strong></p>
@@ -241,80 +237,56 @@ Three things to supply when solving a specific problem:
 
 Array: `[2, 5, 1, 3, 7, 4]`, window size `k = 4`, function `f` = sum.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Step1["end=0 — add arr[0]=2 → window=[2], size=1 < 4, skip process"]
-        direction LR
-        A1["▶2"] --- B1["5"] --- C1["1"] --- D1["3"] --- E1["7"] --- F1["4"]
-    end
+```d2
+arr: "end=0 — add arr[0]=2 → window=[2], size=1 < 4, skip process" {
+  grid-columns: 6
+  grid-gap: 0
+  a0: "2" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a1: "5"
+  a2: "1"
+  a3: "3"
+  a4: "7"
+  a5: "4"
+}
 ```
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Step4["end=3 — add arr[3]=3 → window=[2,5,1,3], size=4 == k → process sum=11"]
-        direction LR
-        A4["▶2"] --- B4["▶5"] --- C4["▶1"] --- D4["▶3"] --- E4["7"] --- F4["4"]
-    end
+```d2
+arr: "end=3 — add arr[3]=3 → window=[2,5,1,3], size=4 == k → process sum=11" {
+  grid-columns: 6
+  grid-gap: 0
+  a0: "2" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a1: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a2: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a3: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a4: "7"
+  a5: "4"
+}
 ```
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Step5["end=4 — add 7 → size=5 > 4 → remove arr[0]=2, start=1 → window=[5,1,3,7], size=4 → process sum=16"]
-        direction LR
-        A5["2"] --- B5["▶5"] --- C5["▶1"] --- D5["▶3"] --- E5["▶7"] --- F5["4"]
-    end
+```d2
+arr: "end=4 — add 7 → size=5 > 4 → remove arr[0]=2, start=1 → window=[5,1,3,7], size=4 → process sum=16" {
+  grid-columns: 6
+  grid-gap: 0
+  a0: "2"
+  a1: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a2: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a3: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a4: "7" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a5: "4"
+}
 ```
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph Step6["end=5 — add 4 → size=5 > 4 → remove arr[1]=5, start=2 → window=[1,3,7,4], size=4 → process sum=15"]
-        direction LR
-        A6["2"] --- B6["5"] --- C6["▶1"] --- D6["▶3"] --- E6["▶7"] --- F6["▶4"]
-    end
+```d2
+arr: "end=5 — add 4 → size=5 > 4 → remove arr[1]=5, start=2 → window=[1,3,7,4], size=4 → process sum=15" {
+  grid-columns: 6
+  grid-gap: 0
+  a0: "2"
+  a1: "5"
+  a2: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a3: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a4: "7" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a5: "4" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
 ```
 
 <p align="center"><strong>Complete execution on <code>[2, 5, 1, 3, 7, 4]</code> with <code>k=4</code>. Three windows of size 4 are processed: sums 11, 16, 15. Each window is derived from the previous with one subtraction and one addition.</strong></p>
@@ -403,39 +375,42 @@ Subarrays of size 4:
 Answer: 12.75
 ```
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-  subgraph W1["Window 1: [1, 12, -5, -6]  avg = 0.50"]
-    direction LR
-    A0["1"] --- A1["12"] --- A2["-5"] --- A3["-6"] --- A4["50"] --- A5["3"]
-    PS1(["start=0"]) --> A0
-    PE1(["end=3"]) --> A3
-  end
-  subgraph W2["Window 2: [12, -5, -6, 50]  avg = 12.75 ★"]
-    direction LR
-    B0["1✗"] --- B1["12"] --- B2["-5"] --- B3["-6"] --- B4["50"] --- B5["3"]
-    PS2(["start=1"]) --> B1
-    PE2(["end=4"]) --> B4
-  end
-  subgraph W3["Window 3: [-5, -6, 50, 3]  avg = 10.50"]
-    direction LR
-    C0["1✗"] --- C1["12✗"] --- C2["-5"] --- C3["-6"] --- C4["50"] --- C5["3"]
-    PS3(["start=2"]) --> C2
-    PE3(["end=5"]) --> C5
-  end
-  W1 -->|"remove 1, add 50"| W2
-  W2 -->|"remove 12, add 3"| W3
+```d2
+w1: "Window 1: [1, 12, -5, -6]  avg = 0.50" {
+  grid-columns: 6
+  grid-gap: 0
+  a0: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a1: "12" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a2: "-5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a3: "-6" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a4: "50"
+  a5: "3"
+}
+
+w2: "Window 2: [12, -5, -6, 50]  avg = 12.75 ★" {
+  grid-columns: 6
+  grid-gap: 0
+  b0: "1 ✗" {style.fill: "#f1f5f9"; style.stroke: "#94a3b8"}
+  b1: "12" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b2: "-5" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b3: "-6" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b4: "50" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b5: "3"
+}
+
+w3: "Window 3: [-5, -6, 50, 3]  avg = 10.50" {
+  grid-columns: 6
+  grid-gap: 0
+  c0: "1 ✗" {style.fill: "#f1f5f9"; style.stroke: "#94a3b8"}
+  c1: "12 ✗" {style.fill: "#f1f5f9"; style.stroke: "#94a3b8"}
+  c2: "-5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  c3: "-6" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  c4: "50" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  c5: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
+
+w1 -> w2: "remove 1, add 50"
+w2 -> w3: "remove 12, add 3"
 ```
 
 <p align="center"><strong>Three windows of size k=4 slide through the array. Each slide removes one element from the left and adds one from the right — the sum updates in O(1) each time.</strong></p>
@@ -896,32 +871,34 @@ Each element is either a `1` or a `0`. The aggregate we care about is the **coun
 
 This is the fixed sliding window template with a count aggregate instead of a sum aggregate. The mechanics are identical — only the add and remove operations differ.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-  subgraph W1["Window [1,0,1,1]: ones=3"]
-    direction LR
-    A["1"] --- B["0"] --- C["1"] --- D["1"] --- E["0"] --- F["1"] --- G["1"] --- H["0"]
-    PS1(["start=0"]) --> A
-    PE1(["end=3"]) --> D
-  end
-  subgraph W2["Window [0,1,1,0]: ones=2"]
-    direction LR
-    A2["1✗"] --- B2["0"] --- C2["1"] --- D2["1"] --- E2["0"] --- F2["1"] --- G2["1"] --- H2["0"]
-    PS2(["start=1"]) --> B2
-    PE2(["end=4"]) --> E2
-  end
-  W1 -->|"remove arr[0]=1 (-1), add arr[4]=0 (+0) → ones=2"| W2
+```d2
+w1: "Window [1,0,1,1]: ones=3" {
+  grid-columns: 8
+  grid-gap: 0
+  a0: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a1: "0" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a2: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a3: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a4: "0"
+  a5: "1"
+  a6: "1"
+  a7: "0"
+}
+
+w2: "Window [0,1,1,0]: ones=2" {
+  grid-columns: 8
+  grid-gap: 0
+  b0: "1 ✗" {style.fill: "#f1f5f9"; style.stroke: "#94a3b8"}
+  b1: "0" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b2: "1" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b3: "1" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b4: "0" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b5: "1"
+  b6: "1"
+  b7: "0"
+}
+
+w1 -> w2: "remove arr[0]=1 (-1), add arr[4]=0 (+0) → ones=2"
 ```
 
 <p align="center"><strong>Sliding the window right: remove the outgoing element's contribution to the ones count, add the incoming element's contribution. The max ones count is tracked across all windows.</strong></p>
@@ -1112,39 +1089,39 @@ The aggregate here is the **count of negative numbers** in the current window. W
 
 Unlike Maximum Ones (which tracked the best count) or Subarray Size Equals K (which tracked a match count), this problem records the count for **every** window position. The result is an array, not a single number.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-  subgraph W1["Window [-1, 2, -3]: neg_count=2"]
-    direction LR
-    A["-1"] --- B["2"] --- C["-3"] --- D["4"] --- E["-5"]
-    PS1(["start=0"]) --> A
-    PE1(["end=2"]) --> C
-  end
-  subgraph W2["Window [2, -3, 4]: neg_count=1"]
-    direction LR
-    A2["-1✗"] --- B2["2"] --- C2["-3"] --- D2["4"] --- E2["-5"]
-    PS2(["start=1"]) --> B2
-    PE2(["end=3"]) --> D2
-  end
-  subgraph W3["Window [-3, 4, -5]: neg_count=2"]
-    direction LR
-    A3["-1✗"] --- B3["2✗"] --- C3["-3"] --- D3["4"] --- E3["-5"]
-    PS3(["start=2"]) --> C3
-    PE3(["end=4"]) --> E3
-  end
-  W1 -->|"remove -1 (-1), add 4 (+0) → neg=1"| W2
-  W2 -->|"remove 2 (+0), add -5 (+1) → neg=2"| W3
+```d2
+w1: "Window [-1, 2, -3]: neg_count=2" {
+  grid-columns: 5
+  grid-gap: 0
+  a0: "-1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a1: "2" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a2: "-3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a3: "4"
+  a4: "-5"
+}
+
+w2: "Window [2, -3, 4]: neg_count=1" {
+  grid-columns: 5
+  grid-gap: 0
+  b0: "-1 ✗" {style.fill: "#f1f5f9"; style.stroke: "#94a3b8"}
+  b1: "2" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b2: "-3" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b3: "4" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b4: "-5"
+}
+
+w3: "Window [-3, 4, -5]: neg_count=2" {
+  grid-columns: 5
+  grid-gap: 0
+  c0: "-1 ✗" {style.fill: "#f1f5f9"; style.stroke: "#94a3b8"}
+  c1: "2 ✗" {style.fill: "#f1f5f9"; style.stroke: "#94a3b8"}
+  c2: "-3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  c3: "4" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  c4: "-5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
+
+w1 -> w2: "remove -1 (-1), add 4 (+0) → neg=1"
+w2 -> w3: "remove 2 (+0), add -5 (+1) → neg=2"
 ```
 
 <p align="center"><strong>Each slide removes the outgoing element's contribution and adds the incoming one. The count updates in O(1) — one conditional check per side per step.</strong></p>

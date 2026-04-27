@@ -45,22 +45,27 @@ If sorting unlocks Q3 (traversal from both ends becomes meaningful), you almost 
 
 Let's use `arr = [3, 5, 2, 8, 7, 1, 9, 4]`, target = 13.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 8
-  A["3"] B["5"] C["2"] D["8"] E["7"] F["1"] G["9"] H["4"]
-  PAIR1["↑ 5 + 8 = 13 ✓"]:4 PAIR2["↑ 4 + 9 = 13 ✓"]:4
+```d2
+arr: "arr = [3, 5, 2, 8, 7, 1, 9, 4],  target = 13" {
+  grid-columns: 8
+  grid-gap: 0
+  a0: "3"
+  a1: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a2: "2"
+  a3: "8" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a4: "7"
+  a5: "1"
+  a6: "9" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  a7: "4" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+
+p1: "5 + 8 = 13" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+p2: "4 + 9 = 13" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+
+p1 -> arr.a1
+p1 -> arr.a3
+p2 -> arr.a6
+p2 -> arr.a7
 ```
 
 <p align="center"><strong>Find two numbers with the given sum (13) in the array — pairs (5,8) and (4,9) both qualify.</strong></p>
@@ -243,24 +248,25 @@ The critical observation: sorting establishes a special relationship between ite
 
 ## Two-Pointer Solution
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-  subgraph SORTED["Sorted array:  [1, 2, 3, 4, 5, 7, 8, 9],  target = 13"]
-    direction LR
-    L(["left=0"]) --> N1["1"] --- N2["2"] --- N3["3"] --- N4["4"] --- N5["5"] --- N6["7"] --- N7["8"] --- N8["9"]
-    N8 --> R(["right=7"])
-  end
+```d2
+arr: "Sorted: [1, 2, 3, 4, 5, 7, 8, 9],  target = 13" {
+  grid-columns: 8
+  grid-gap: 0
+  a0: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a1: "2"
+  a2: "3"
+  a3: "4"
+  a4: "5"
+  a5: "7"
+  a6: "8"
+  a7: "9" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+
+L: "left = 0" {shape: oval; style.fill: "#fde68a"; style.stroke: "#d97706"}
+R: "right = 7" {shape: oval; style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+
+L -> arr.a0
+R -> arr.a7
 ```
 
 <p align="center"><strong>Sorted array with two pointers — <code>left = 0</code> points at the smallest element, <code>right = n−1</code> points at the largest.</strong></p>
@@ -325,49 +331,58 @@ This is the crucial part. Why is it safe to discard elements?
 
 `arr[right]` is the maximum value available. If even the maximum can't make `arr[left]` reach `target`, no other element can either. Every pair containing `arr[left]` has already been virtually checked — all have sum < target.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-  subgraph ARR["[1, 2, 3, 4, 5, 7, 8, 9]  target=13"]
-    direction LR
-    L0(["left=0"]) --> E1["1"] --- E2["2"] --- E3["3"] --- E4["4"] --- E5["5"] --- E6["7"] --- E7["8"] --- E8["9"]
-    E8 --> R0(["right=7"])
-  end
-  NOTE["1 + 9 = 10 < 13\narr[right]=9 is the MAX\n∴ all pairs with 1 have sum < 13\n→ safely discard 1"]
-  E1 -.->|"all pairs < 13"| NOTE
+```d2
+arr: "[1, 2, 3, 4, 5, 7, 8, 9],  target = 13" {
+  grid-columns: 8
+  grid-gap: 0
+  a0: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a1: "2"
+  a2: "3"
+  a3: "4"
+  a4: "5"
+  a5: "7"
+  a6: "8"
+  a7: "9" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+
+L: "left = 0" {shape: oval; style.fill: "#fde68a"; style.stroke: "#d97706"}
+R: "right = 7" {shape: oval; style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+note: |md
+  `1 + 9 = 10 < 13`
+
+  `arr[right]=9` is the **MAX**
+
+  All pairs with 1 have sum < 13
+
+  Safely discard 1
+|
+
+L -> arr.a0
+R -> arr.a7
+arr.a0 -> note: "all pairs < 13" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>All pairs containing <code>arr[left]</code> have sum &lt; target — discard <code>arr[left]</code> by incrementing <code>left</code>.</strong></p>
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-  subgraph ARR2["After left++:  [✗, 2, 3, 4, 5, 7, 8, 9]"]
-    direction LR
-    DISC["1 ✗"] --- F2["2"] --- F3["3"] --- F4["4"] --- F5["5"] --- F6["7"] --- F7["8"] --- F8["9"]
-    L1(["left=1"]) --> F2
-    F8 --> R1(["right=7"])
-  end
+```d2
+arr: "After left++:  [✗, 2, 3, 4, 5, 7, 8, 9]" {
+  grid-columns: 8
+  grid-gap: 0
+  a0: "1 ✗" {style.fill: "#f1f5f9"; style.stroke: "#94a3b8"; style.font-color: "#94a3b8"}
+  a1: "2" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a2: "3"
+  a3: "4"
+  a4: "5"
+  a5: "7"
+  a6: "8"
+  a7: "9" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+
+L: "left = 1" {shape: oval; style.fill: "#fde68a"; style.stroke: "#d97706"}
+R: "right = 7" {shape: oval; style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+
+L -> arr.a1
+R -> arr.a7
 ```
 
 <p align="center"><strong>Discard <code>arr[left]</code> by incrementing <code>left</code> — the discarded element is never considered again.</strong></p>
@@ -376,26 +391,33 @@ flowchart LR
 
 `arr[left]` is the minimum of all remaining elements. If even the minimum makes `arr[right]` exceed `target`, no other element will do better. Every pair containing `arr[right]` exceeds `target`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-  subgraph ARR3["Remaining: [2, 3, 4, 5, 7, 8, 9]  target=13"]
-    direction LR
-    L2(["left=1"]) --> G2["2"] --- G3["3"] --- G4["4"] --- G5["5"] --- G6["7"] --- G7["8"] --- G8["9"]
-    G8 --> R2(["right=7"])
-  end
-  NOTE2["2 + 9 = 11 < 13 → discard 2\n3 + 9 = 12 < 13 → discard 3\n4 + 9 = 13 == target → ✓ found!"]
-  G2 -.-> NOTE2
+```d2
+arr: "Remaining: [2, 3, 4, 5, 7, 8, 9],  target = 13" {
+  grid-columns: 7
+  grid-gap: 0
+  a0: "2" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a1: "3"
+  a2: "4"
+  a3: "5"
+  a4: "7"
+  a5: "8"
+  a6: "9" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+
+L: "left = 1" {shape: oval; style.fill: "#fde68a"; style.stroke: "#d97706"}
+R: "right = 7" {shape: oval; style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+
+note: |md
+  `2 + 9 = 11 < 13` → discard 2
+
+  `3 + 9 = 12 < 13` → discard 3
+
+  `4 + 9 = 13 == target` → ✓ found!
+|
+
+L -> arr.a0
+R -> arr.a6
+arr.a0 -> note {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>All pairs of previously discarded elements were already considered before discarding — the invariant is maintained throughout all iterations.</strong></p>
@@ -1126,25 +1148,71 @@ Explanation: Only two walls — area = min(1,1) × 1 = 1
 
 ## Visualising the Container
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-  subgraph WALLS["heights = [2, 4, 3, 3, 5, 2, 4, 3, 2]"]
-    direction LR
-    W0["h=2\npos 0"] --- W1["h=4\npos 1"] --- W2["h=3\npos 2"] --- W3["h=3\npos 3"] --- W4["h=5\npos 4"] --- W5["h=2\npos 5"] --- W6["h=4\npos 6"] --- W7["h=3\npos 7"] --- W8["h=2\npos 8"]
-  end
-  BEST["Best container:\nwalls at pos 1 (h=4) and pos 6 (h=4)\nwidth  = 6 − 1 = 5\nheight = min(4, 4) = 4\narea   = 4 × 5 = 20"]
-  W1 & W6 -.->|"optimal pair"| BEST
+```d2
+walls: "heights = [2, 4, 3, 3, 5, 2, 4, 3, 2]" {
+  grid-columns: 9
+  grid-gap: 0
+  w0: |md
+    h=2
+
+    pos `0`
+  |
+  w1: |md
+    h=4
+
+    pos `1`
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  w2: |md
+    h=3
+
+    pos `2`
+  |
+  w3: |md
+    h=3
+
+    pos `3`
+  |
+  w4: |md
+    h=5
+
+    pos `4`
+  |
+  w5: |md
+    h=2
+
+    pos `5`
+  |
+  w6: |md
+    h=4
+
+    pos `6`
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  w7: |md
+    h=3
+
+    pos `7`
+  |
+  w8: |md
+    h=2
+
+    pos `8`
+  |
+}
+
+best: |md
+  **Best container**
+
+  walls at pos 1 (h=4) and pos 6 (h=4)
+
+  width  = 6 − 1 = 5
+
+  height = min(4, 4) = 4
+
+  area   = 4 × 5 = 20
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+
+walls.w1 -> best: "optimal pair" {style.stroke-dash: 3}
+walls.w6 -> best: "optimal pair" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>The largest container uses walls at positions 1 and 6 — both height 4, width 5, area 20. All taller walls (h=5 at pos 4) have a narrower span.</strong></p>
