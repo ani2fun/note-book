@@ -32,23 +32,31 @@ We'll build on the student ages example from before. This time, consider a scena
 
 The natural first instinct: create four separate integer arrays of size 60, one per class.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    c1["class1"] --> r1["6 │ 6 │ 7 │ 7 │ 6 │ ... │ 6 │ 7 │ 6 │ 6"]
-    c2["class2"] --> r2["7 │ 7 │ 8 │ 8 │ 7 │ ... │ 8 │ 8 │ 7 │ 8"]
-    c3["class3"] --> r3["8 │ 8 │ 9 │ 8 │ 9 │ ... │ 9 │ 8 │ 9 │ 9"]
-    c4["class4"] --> r4["9 │ 9 │ 10 │ 9 │ 9 │ ... │ 9 │ 9 │ 9 │ 10"]
+```d2
+classes: {
+  grid-rows: 4
+  grid-gap: 8
+  c1: |md
+    **class1**
+
+    `6, 6, 7, 7, 6, ..., 6, 7, 6, 6`
+  |
+  c2: |md
+    **class2**
+
+    `7, 7, 8, 8, 7, ..., 8, 8, 7, 8`
+  |
+  c3: |md
+    **class3**
+
+    `8, 8, 9, 8, 9, ..., 9, 8, 9, 9`
+  |
+  c4: |md
+    **class4**
+
+    `9, 9, 10, 9, 9, ..., 9, 9, 9, 10`
+  |
+}
 ```
 
 <p align="center"><strong>Creating 4 arrays to store the ages of students in 4 classes.</strong></p>
@@ -61,34 +69,25 @@ Four classes, four arrays. Manageable — barely.
 
 This approach works for a small number of classes, but what if there were **12 classes** instead of four? We'd need 12 separate arrays. While this technically solves the problem, storing and managing so many arrays across multiple variables would be cumbersome. This would bring us back to square one and undermine the very purpose of using arrays.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    c1["class1"] ~~~ c2["class2"] ~~~ c3["class3"] ~~~ c4["class4"] ~~~ c5["class5"] ~~~ c6["class6"]
-    c7["class7"] ~~~ c8["class8"] ~~~ c9["class9"] ~~~ c10["class10"] ~~~ c11["class11"] ~~~ c12["class12"]
-
-    style c1 fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
-    style c2 fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
-    style c3 fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
-    style c4 fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
-    style c5 fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
-    style c6 fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
-    style c7 fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
-    style c8 fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
-    style c9 fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
-    style c10 fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
-    style c11 fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
-    style c12 fill:#fee2e2,stroke:#ef4444,color:#7f1d1d
+```d2
+classes: {
+  grid-columns: 6
+  grid-gap: 12
+  c1: class1
+  c2: class2
+  c3: class3
+  c4: class4
+  c5: class5
+  c6: class6
+  c7: class7
+  c8: class8
+  c9: class9
+  c10: class10
+  c11: class11
+  c12: class12
+}
+classes.c12.style.fill: "#fee2e2"
+classes.c12.style.stroke: "#ef4444"
 ```
 
 <p align="center"><strong>Creating 12 arrays to store the ages of students in 12 classes — one per variable.</strong></p>
@@ -143,29 +142,36 @@ Think of a **dimension** as an axis of organisation.
 
 The moment you add a second axis, you get a grid — and a grid is exactly the right structure for data that has a natural "rows and columns" shape: classes and students, pixels on a screen, cells in a spreadsheet, entries in a matrix.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph one["1D Array — 1 axis"]
-        a0["0"] --- a1["1"] --- a2["2"] --- a3["3"] --- a4["4"]
-    end
+```d2
+direction: right
 
-    subgraph two["2D Array — 2 axes"]
-        direction TB
-        r0c0["[0][0]"] --- r0c1["[0][1]"] --- r0c2["[0][2]"]
-        r1c0["[1][0]"] --- r1c1["[1][1]"] --- r1c2["[1][2]"]
-        r2c0["[2][0]"] --- r2c1["[2][1]"] --- r2c2["[2][2]"]
-    end
+one: "1D Array — 1 axis" {
+  arr: {
+    grid-columns: 5
+    grid-gap: 0
+    a0: "0"
+    a1: "1"
+    a2: "2"
+    a3: "3"
+    a4: "4"
+  }
+}
+
+two: "2D Array — 2 axes" {
+  grid: {
+    grid-columns: 3
+    grid-gap: 0
+    r0c0: "[0][0]"
+    r0c1: "[0][1]"
+    r0c2: "[0][2]"
+    r1c0: "[1][0]"
+    r1c1: "[1][1]"
+    r1c2: "[1][2]"
+    r2c0: "[2][0]"
+    r2c1: "[2][1]"
+    r2c2: "[2][2]"
+  }
+}
 ```
 
 <p align="center"><strong>1D array needs one index. 2D array needs two indices — one for the row, one for the column.</strong></p>
@@ -179,28 +185,31 @@ A 2D array is defined by two numbers:
 - **Number of rows** — how many groups (e.g. classes)
 - **Number of columns** — how many items per group (e.g. students per class)
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    label["rows × columns"] --> grid
-
-    subgraph grid["4 × 5 grid"]
-        direction TB
-        r0["[0][0] │ [0][1] │ [0][2] │ [0][3] │ [0][4]"]
-        r1["[1][0] │ [1][1] │ [1][2] │ [1][3] │ [1][4]"]
-        r2["[2][0] │ [2][1] │ [2][2] │ [2][3] │ [2][4]"]
-        r3["[3][0] │ [3][1] │ [3][2] │ [3][3] │ [3][4]"]
-    end
+```d2
+grid: "4 × 5 grid" {
+  grid-columns: 5
+  grid-gap: 0
+  r0c0: "[0][0]"
+  r0c1: "[0][1]"
+  r0c2: "[0][2]"
+  r0c3: "[0][3]"
+  r0c4: "[0][4]"
+  r1c0: "[1][0]"
+  r1c1: "[1][1]"
+  r1c2: "[1][2]"
+  r1c3: "[1][3]"
+  r1c4: "[1][4]"
+  r2c0: "[2][0]"
+  r2c1: "[2][1]"
+  r2c2: "[2][2]"
+  r2c3: "[2][3]"
+  r2c4: "[2][4]"
+  r3c0: "[3][0]"
+  r3c1: "[3][1]"
+  r3c2: "[3][2]"
+  r3c3: "[3][3]"
+  r3c4: "[3][4]"
+}
 ```
 
 <p align="center"><strong>A 2D array with 4 rows and 5 columns. Total elements = 4 × 5 = 20.</strong></p>
@@ -215,28 +224,23 @@ The **total number of elements** in a 2D array is always:
 
 Remember the school with 4 classes and 60 students each? Instead of 4 separate arrays, we define a single 2D array:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    label["ages\n4 × 60"] --> g
-
-    subgraph g["ages — 4 rows (classes), 60 columns (students)"]
-        direction TB
-        r0["class 0 → ages[0][0]  ages[0][1]  ages[0][2]  ...  ages[0][59]"]
-        r1["class 1 → ages[1][0]  ages[1][1]  ages[1][2]  ...  ages[1][59]"]
-        r2["class 2 → ages[2][0]  ages[2][1]  ages[2][2]  ...  ages[2][59]"]
-        r3["class 3 → ages[3][0]  ages[3][1]  ages[3][2]  ...  ages[3][59]"]
-    end
+```d2
+ages: "ages — 4 rows (classes), 60 columns (students)" {
+  grid-rows: 4
+  grid-gap: 6
+  r0: |md
+    **class 0** → `ages[0][0]  ages[0][1]  ages[0][2]  ...  ages[0][59]`
+  |
+  r1: |md
+    **class 1** → `ages[1][0]  ages[1][1]  ages[1][2]  ...  ages[1][59]`
+  |
+  r2: |md
+    **class 2** → `ages[2][0]  ages[2][1]  ages[2][2]  ...  ages[2][59]`
+  |
+  r3: |md
+    **class 3** → `ages[3][0]  ages[3][1]  ages[3][2]  ...  ages[3][59]`
+  |
+}
 ```
 
 <p align="center"><strong>A 4 × 60 two-dimensional array replacing four separate arrays.</strong></p>
@@ -349,84 +353,92 @@ Here's what each looks like logically:
 
 **Single-dimension array** — a flat row of values, accessed with one index:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    v1["value1"] --- v2["value2"] --- v3["value3"] --- vn["· · ·"]
-    size["◄────────── size ──────────►"] -.- v1
+```d2
+arr: array {
+  grid-columns: 4
+  grid-gap: 0
+  v1: value1
+  v2: value2
+  v3: value3
+  vn: "· · ·"
+}
+
+size: "◄────────── size ──────────►" {
+  shape: text
+}
+size -> arr: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Single-dimension array — one row of elements, one index to access any element.</strong></p>
 
 **Two-dimensional array** — a grid of rows and columns, accessed with two indices `[row][col]`:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 4
-  r0c0["value1"] r0c1["value2"] r0c2["value3"] r0c3["· · ·"]
-  r1c0["value4"] r1c1["value5"] r1c2["value6"] r1c3["· · ·"]
-  r2c0["value7"] r2c1["value8"] r2c2["value9"] r2c3["· · ·"]
-  r3c0["· · ·"]  r3c1["· · ·"]  r3c2["· · ·"]  r3c3["valueN"]
+```d2
+grid: {
+  grid-columns: 4
+  grid-gap: 0
+  r0c0: value1
+  r0c1: value2
+  r0c2: value3
+  r0c3: "· · ·"
+  r1c0: value4
+  r1c1: value5
+  r1c2: value6
+  r1c3: "· · ·"
+  r2c0: value7
+  r2c1: value8
+  r2c2: value9
+  r2c3: "· · ·"
+  r3c0: "· · ·"
+  r3c1: "· · ·"
+  r3c2: "· · ·"
+  r3c3: valueN
+}
 ```
 
 <p align="center"><strong>Two-dimensional array — a grid of <code>size2</code> rows × <code>size1</code> columns.</strong></p>
 
 **Three-dimensional array** — a stack of 2D grids (layers), accessed with three indices `[layer][row][col]`:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph L0["Layer 0  (a full size2 × size1 grid)"]
-        direction LR
-        l0r0["value1 │ value2 │ value3 │ · · ·"]
-        l0r1["value4 │ value5 │ value6 │ · · ·"]
-        l0r2["· · · │ · · · │ · · · │ valueN"]
-    end
+```d2
+L0: "Layer 0  (a full size2 × size1 grid)" {
+  grid-columns: 4
+  grid-gap: 0
+  a: value1
+  b: value2
+  c: value3
+  d: "· · ·"
+  e: value4
+  f: value5
+  g: value6
+  h: "· · ·"
+  i: "· · ·"
+  j: "· · ·"
+  k: "· · ·"
+  l: valueN
+}
+L1: "Layer 1  (a full size2 × size1 grid)" {
+  grid-columns: 4
+  grid-gap: 0
+  a: value1
+  b: value2
+  c: value3
+  d: "· · ·"
+  e: value4
+  f: value5
+  g: value6
+  h: "· · ·"
+  i: "· · ·"
+  j: "· · ·"
+  k: "· · ·"
+  l: valueN
+}
+LN: "Layer N (...)" {
+  a: "· · ·"
+}
 
-    subgraph L1["Layer 1  (a full size2 × size1 grid)"]
-        direction LR
-        l1r0["value1 │ value2 │ value3 │ · · ·"]
-        l1r1["value4 │ value5 │ value6 │ · · ·"]
-        l1r2["· · · │ · · · │ · · · │ valueN"]
-    end
-
-    subgraph LN["Layer N  (· · ·)"]
-        direction LR
-        lnr0["· · ·"]
-    end
-
-    L0 ~~~ L1 ~~~ LN
+L0 -> L1: "" {style.stroke-dash: 3}
+L1 -> LN: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Three-dimensional array — <code>size3</code> layers, each a full <code>size2 × size1</code> two-dimensional grid.</strong></p>
@@ -445,22 +457,23 @@ To understand how multidimensional arrays are useful and what a dimension repres
 
 Instead of storing each student's age in a separate variable, we can use a regular (one-dimensional) array to store all this data under a single variable. The size of the array is equal to the number of students in the class (`size1`).
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    label["age"] --> a1
-    a1["value1"] --- a2["value2"] --- a3["value3"] --- a4["value4"] --- a5["value5"] --- a6["value6"] --- a7["value7"]
-    span["◄── number of students in a class (size1) ──►"] -.- a1
+```d2
+age: age {
+  grid-columns: 7
+  grid-gap: 0
+  a1: value1
+  a2: value2
+  a3: value3
+  a4: value4
+  a5: value5
+  a6: value6
+  a7: value7
+}
+
+span: "◄── number of students in a class (size1) ──►" {
+  shape: text
+}
+span -> age: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Storing the age of students in a single class in a single-dimension array.</strong></p>
@@ -477,30 +490,38 @@ The idea: create an array of arrays where
 - the **inner array** stores the ages of all students in one class (size `size1`)
 - the **outer array** is a collection of those inner arrays, one per class (size `size2`)
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    label["age"] --> c0
+```d2
+age: age {
+  grid-rows: 6
+  grid-gap: 6
+  c0: |md
+    **class 0** → `value1 │ value2 │ value3 │ · · · │ valueN`
+  |
+  c1: |md
+    **class 1** → `· · · │ · · · │ · · · │ · · · │ · · ·`
+  |
+  c2: |md
+    **class 2** → `· · · │ · · · │ · · · │ · · · │ · · ·`
+  |
+  c3: |md
+    **class 3** → `· · · │ · · · │ · · · │ · · · │ · · ·`
+  |
+  c4: |md
+    **class 4** → `· · · │ · · · │ · · · │ · · · │ · · ·`
+  |
+  cn: |md
+    **class N** → `· · · │ · · · │ · · · │ valueX │ valueZ`
+  |
+}
 
-    c0["class 0 → value1 │ value2 │ value3 │ · · · │ valueN"]
-    c1["class 1 → · · · │ · · · │ · · · │ · · · │ · · ·"]
-    c2["class 2 → · · · │ · · · │ · · · │ · · · │ · · ·"]
-    c3["class 3 → · · · │ · · · │ · · · │ · · · │ · · ·"]
-    c4["class 4 → · · · │ · · · │ · · · │ · · · │ · · ·"]
-    cn["class N → · · · │ · · · │ · · · │ valueX │ valueZ"]
-
-    note_h["◄────── size1: number of students in a class ──────►"] -.- c0
-    note_v["size2: classes"] -.- c0
+note_h: "◄────── size1: number of students in a class ──────►" {
+  shape: text
+}
+note_v: "size2: classes" {
+  shape: text
+}
+note_h -> age: "" {style.stroke-dash: 3}
+note_v -> age: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Storing the age of students in all classes in a two-dimensional array.</strong></p>
@@ -518,38 +539,43 @@ Instead of creating multiple 2D arrays (one per school), we create a single **th
 - Each item is a 2D array of size `size2` (classes)
 - Each item inside that is a 1D array of size `size1` (students per class)
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    label["age"] --> s0
+```d2
+s0: "School 0  (one 2D array of size size2 × size1)" {
+  grid-rows: 3
+  grid-gap: 6
+  r0: |md
+    **class 0** → `value1 │ value2 │ value3 │ · · · │ valueN`
+  |
+  r1: |md
+    **class 1** → `· · · │ · · · │ · · · │ · · · │ · · ·`
+  |
+  rn: |md
+    **class N** → `· · · │ · · · │ · · · │ valueX │ valueZ`
+  |
+}
+s1: "School 1  (one 2D array of size size2 × size1)" {
+  grid-rows: 3
+  grid-gap: 6
+  r0: |md
+    **class 0** → `value5 │ value7 │ value8 │ · · · │ · · ·`
+  |
+  r1: |md
+    **class 1** → `· · · │ · · · │ · · · │ · · · │ · · ·`
+  |
+  rn: |md
+    **class N** → `· · · │ · · · │ · · · │ · · · │ · · ·`
+  |
+}
+sn: "School N (...)" {
+  a: "· · ·"
+}
 
-    subgraph s0["School 0  (one 2D array of size size2 × size1)"]
-        direction TB
-        s0r0["class 0 → value1 │ value2 │ value3 │ · · · │ valueN"]
-        s0r1["class 1 → · · · │ · · · │ · · · │ · · · │ · · ·"]
-        s0rn["class N → · · · │ · · · │ · · · │ valueX │ valueZ"]
-    end
-
-    subgraph s1["School 1  (one 2D array of size size2 × size1)"]
-        direction TB
-        s1r0["class 0 → value5 │ value7 │ value8 │ · · · │ · · ·"]
-        s1r1["class 1 → · · · │ · · · │ · · · │ · · · │ · · ·"]
-        s1rn["class N → · · · │ · · · │ · · · │ · · · │ · · ·"]
-    end
-
-    sn["School N  (· · ·)"]
-
-    note["size3: number of schools"] -.- s0
+note: "size3: number of schools" {
+  shape: text
+}
+note -> s0: "" {style.stroke-dash: 3}
+s0 -> s1: "" {style.stroke-dash: 3}
+s1 -> sn: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Storing the age of students across all classes in all schools in a three-dimensional array.</strong></p>
@@ -590,23 +616,20 @@ Now that we know the logical representation of a multidimensional array, let's l
 
 Almost all major programming languages support adding more dimensions to a regular array in one form or another. Since a multidimensional array is just an array, it has a **fixed size** that cannot be modified after creation. All data items in the array must be of the **same data type**.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 3
-  A["value1"] B["value2"] C["value3"]
-  D["value4"] E["value5"] F["value6"]
-  G["value7"] H["value8"] I["value9"]
+```d2
+arr: {
+  grid-columns: 3
+  grid-gap: 0
+  a: value1
+  b: value2
+  c: value3
+  d: value4
+  e: value5
+  f: value6
+  g: value7
+  h: value8
+  i: value9
+}
 ```
 
 <p align="center"><strong>Creating a multidimensional array of fixed size and datatype.</strong></p>
@@ -640,23 +663,56 @@ print("3D array:", numbers3d)
 
 We can access data items in a multidimensional array just like a regular array — using the subscript operator `[]` and an index. Since every data item in a multidimensional array is itself an array, we **chain the subscript operator** to drill into each dimension. We keep chaining until we reach a non-array data item.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 3
-  A["[0,0]<br/>value1"] B["[0,1]<br/>value2"] C["[0,2]<br/>value3"]
-  D["[1,0]<br/>value4"] E["[1,1]<br/>value5"] F["[1,2]<br/>value6"]
-  G["[2,0]<br/>value7"] H["[2,1]<br/>value8"] I["[2,2]<br/>value9"]
+```d2
+arr: {
+  grid-columns: 3
+  grid-gap: 0
+  a: |md
+    `[0,0]`
+
+    value1
+  |
+  b: |md
+    `[0,1]`
+
+    value2
+  |
+  c: |md
+    `[0,2]`
+
+    value3
+  |
+  d: |md
+    `[1,0]`
+
+    value4
+  |
+  e: |md
+    `[1,1]`
+
+    value5
+  |
+  f: |md
+    `[1,2]`
+
+    value6
+  |
+  g: |md
+    `[2,0]`
+
+    value7
+  |
+  h: |md
+    `[2,1]`
+
+    value8
+  |
+  i: |md
+    `[2,2]`
+
+    value9
+  |
+}
 ```
 
 <p align="center"><strong>Multidimensional array elements can be accessed using indices for all dimensions.</strong></p>
@@ -700,26 +756,60 @@ print("Element at (1,2,0):", numbers3d[1][2][0])  # → 11
 
 We can modify data items in a multidimensional array in place, just like a regular array. Chain the subscript operator as many times as there are dimensions to reach the target element, then assign the new value on the right-hand side.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 3
-  A["[0,0]<br/>value1"] B["[0,1]<br/>value2"] C["[0,2]<br/>value3"]
-  D["[1,0]<br/>value4"] E["[1,1]<br/>value5"] F["[1,2]<br/>value6"]
-  G["[2,0]<br/>value7"] H["[2,1]<br/>value8"] I["[2,2]<br/>value9"]
+```d2
+arr: {
+  grid-columns: 3
+  grid-gap: 0
+  a: |md
+    `[0,0]`
 
-  style E fill:#fde68a,stroke:#d97706,color:#1a1a1a
-  style I fill:#fde68a,stroke:#d97706,color:#1a1a1a
+    value1
+  |
+  b: |md
+    `[0,1]`
+
+    value2
+  |
+  c: |md
+    `[0,2]`
+
+    value3
+  |
+  d: |md
+    `[1,0]`
+
+    value4
+  |
+  e: |md
+    `[1,1]`
+
+    value5
+  |
+  f: |md
+    `[1,2]`
+
+    value6
+  |
+  g: |md
+    `[2,0]`
+
+    value7
+  |
+  h: |md
+    `[2,1]`
+
+    value8
+  |
+  i: |md
+    `[2,2]`
+
+    value9
+  |
+}
+arr.e.style.fill: "#fde68a"
+arr.e.style.stroke: "#d97706"
+arr.i.style.fill: "#fde68a"
+arr.i.style.stroke: "#d97706"
 ```
 
 <p align="center"><strong>Multidimensional array elements can be modified using indices for all dimensions (highlighted = being updated).</strong></p>
@@ -858,25 +948,56 @@ Let us revisit our memory model before diving deeper into how multidimensional a
 
 Memory is logically organized in RAM as a **linear/single-dimensional** sequence of blocks. Every block has a unique identifier that serves as its address and can be used to locate it in memory. Data in memory can only be accessed if its address is known.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    addr["Address = 3"] --> b3
+```d2
+mem: "Linear memory" {
+  grid-columns: 8
+  grid-gap: 0
+  b0: |md
+    **0**
 
-    subgraph mem["Linear memory"]
-        direction LR
-        b0["0<br/>8 bits"] --- b1["1<br/>8 bits"] --- b2["2<br/>8 bits"] --- b3["3<br/>8 bits"] --- b4["4<br/>8 bits"] --- b5["5<br/>8 bits"] --- b6["6<br/>8 bits"] --- b7["7<br/>8 bits"]
-    end
+    8 bits
+  |
+  b1: |md
+    **1**
+
+    8 bits
+  |
+  b2: |md
+    **2**
+
+    8 bits
+  |
+  b3: |md
+    **3**
+
+    8 bits
+  |
+  b4: |md
+    **4**
+
+    8 bits
+  |
+  b5: |md
+    **5**
+
+    8 bits
+  |
+  b6: |md
+    **6**
+
+    8 bits
+  |
+  b7: |md
+    **7**
+
+    8 bits
+  |
+}
+
+addr: Address = 3 {
+  shape: oval
+}
+addr -> mem.b3
 ```
 
 <p align="center"><strong>Memory is logically organized as a linear sequence of blocks</strong></p>
@@ -885,35 +1006,60 @@ flowchart LR
 
 Remember, computer memory is organized as a one-dimensional, linear sequence of blocks, so multidimensional arrays cannot be stored directly. To represent an N-dimensional array in memory, we must map it onto a one-dimensional array.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph logical["Logical N-dimensional space"]
-        direction TB
-        l0["Layer 0<br/>value1 ... value9"]
-        l1["Layer 1<br/>value10 ... value18"]
-        l2["Layer 2<br/>value20 ... value27"]
-        dims["D1 = columns<br/>D2 = rows<br/>D3 = layers"]
-    end
+```d2
+logical: "Logical N-dimensional space" {
+  grid-rows: 4
+  grid-gap: 6
+  l0: |md
+    **Layer 0** — value1 ... value9
+  |
+  l1: |md
+    **Layer 1** — value10 ... value18
+  |
+  l2: |md
+    **Layer 2** — value20 ... value27
+  |
+  dims: |md
+    `D1 = columns`  ·  `D2 = rows`  ·  `D3 = layers`
+  |
+}
 
-    map["Map N indices<br/>to one single index"]
+map: "Map N indices to one single index" {
+  shape: oval
+}
 
-    subgraph memory["Single-dimensional memory"]
-        direction LR
-        m1["1<br/>value1"] --- m2["2<br/>value2"] --- m3["3<br/>value3"] --- md["..."] --- m26["26<br/>value26"] --- m27["27<br/>value27"]
-    end
+memory: "Single-dimensional memory" {
+  grid-columns: 6
+  grid-gap: 0
+  m1: |md
+    **1**
 
-    logical --> map --> memory
+    value1
+  |
+  m2: |md
+    **2**
+
+    value2
+  |
+  m3: |md
+    **3**
+
+    value3
+  |
+  md: "..."
+  m26: |md
+    **26**
+
+    value26
+  |
+  m27: |md
+    **27**
+
+    value27
+  |
+}
+
+logical -> map -> memory
 ```
 
 <p align="center"><strong>Multidimensional arrays have to be mapped to a single-dimensional memory</strong></p>
@@ -951,53 +1097,59 @@ Languages like **C, C++, Objective-C, Python, Java, and Go** all store their mul
 
 Let's make this concrete. Take a 3×4 array (3 rows, 4 columns). Logically it looks like a table:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 4
-  A["[0][0]"] B["[0][1]"] C["[0][2]"] D["[0][3]"]
-  E["[1][0]"] F["[1][1]"] G["[1][2]"] H["[1][3]"]
-  I["[2][0]"] J["[2][1]"] K["[2][2]"] L["[2][3]"]
+```d2
+grid: {
+  grid-columns: 4
+  grid-gap: 0
+  a: "[0][0]"
+  b: "[0][1]"
+  c: "[0][2]"
+  d: "[0][3]"
+  e: "[1][0]"
+  f: "[1][1]"
+  g: "[1][2]"
+  h: "[1][3]"
+  i: "[2][0]"
+  j: "[2][1]"
+  k: "[2][2]"
+  l: "[2][3]"
+}
 ```
 
 <p align="center"><strong>The logical 2D view — 3 rows, 4 columns, 12 elements.</strong></p>
 
 In memory there are no rows or columns — only one long ribbon of slots. Row-major order places these elements into that ribbon **one full row at a time**:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-  subgraph R0["Row 0"]
-    A["[0][0]"] --- B["[0][1]"] --- C["[0][2]"] --- D["[0][3]"]
-  end
-  subgraph R1["Row 1"]
-    E["[1][0]"] --- F["[1][1]"] --- G["[1][2]"] --- H["[1][3]"]
-  end
-  subgraph R2["Row 2"]
-    I["[2][0]"] --- J["[2][1]"] --- K["[2][2]"] --- L["[2][3]"]
-  end
-  D --> E
-  H --> I
+```d2
+direction: right
+
+R0: "Row 0" {
+  grid-columns: 4
+  grid-gap: 0
+  a: "[0][0]"
+  b: "[0][1]"
+  c: "[0][2]"
+  d: "[0][3]"
+}
+R1: "Row 1" {
+  grid-columns: 4
+  grid-gap: 0
+  a: "[1][0]"
+  b: "[1][1]"
+  c: "[1][2]"
+  d: "[1][3]"
+}
+R2: "Row 2" {
+  grid-columns: 4
+  grid-gap: 0
+  a: "[2][0]"
+  b: "[2][1]"
+  c: "[2][2]"
+  d: "[2][3]"
+}
+
+R0 -> R1
+R1 -> R2
 ```
 
 <p align="center"><strong>Generic representation of a two-dimensional array in row-major order in memory — Row 0 is placed first, Row 1 immediately after, then Row 2. Rows sit back-to-back.</strong></p>
@@ -1224,44 +1376,39 @@ Consider a 3D integer array with these dimensions:
 
 Think of it as **2 layers**, each layer being a **2×3 grid**. The logical representation looks like this:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-  subgraph L0["Layer 0  ── D₃ = 0"]
-    direction LR
-    subgraph R00["D₂ = 0"]
-      direction LR
-      a000["[0][0][0]"] --- a001["[0][0][1]"] --- a002["[0][0][2]"]
-    end
-    subgraph R01["D₂ = 1"]
-      direction LR
-      a010["[0][1][0]"] --- a011["[0][1][1]"] --- a012["[0][1][2]"]
-    end
-    R00 ~~~ R01
-  end
-  subgraph L1["Layer 1  ── D₃ = 1"]
-    direction LR
-    subgraph R10["D₂ = 0"]
-      direction LR
-      a100["[1][0][0]"] --- a101["[1][0][1]"] --- a102["[1][0][2]"]
-    end
-    subgraph R11["D₂ = 1"]
-      direction LR
-      a110["[1][1][0]"] --- a111["[1][1][1]"] --- a112["[1][1][2]"]
-    end
-    R10 ~~~ R11
-  end
-  L0 ~~~ L1
+```d2
+L0: "Layer 0  ── D₃ = 0" {
+  R00: "D₂ = 0" {
+    grid-columns: 3
+    grid-gap: 0
+    a: "[0][0][0]"
+    b: "[0][0][1]"
+    c: "[0][0][2]"
+  }
+  R01: "D₂ = 1" {
+    grid-columns: 3
+    grid-gap: 0
+    a: "[0][1][0]"
+    b: "[0][1][1]"
+    c: "[0][1][2]"
+  }
+}
+L1: "Layer 1  ── D₃ = 1" {
+  R10: "D₂ = 0" {
+    grid-columns: 3
+    grid-gap: 0
+    a: "[1][0][0]"
+    b: "[1][0][1]"
+    c: "[1][0][2]"
+  }
+  R11: "D₂ = 1" {
+    grid-columns: 3
+    grid-gap: 0
+    a: "[1][1][0]"
+    b: "[1][1][1]"
+    c: "[1][1][2]"
+  }
+}
 ```
 
 <p align="center"><strong>Logical representation of the 3D array (D₃=2, D₂=2, D₁=3) — 2 layers, each a 2×3 grid, totalling 12 elements.</strong></p>
@@ -1347,32 +1494,71 @@ address = 2 + k × 4
 
 Here is exactly what the array looks like in memory, laid out slot by slot:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 6
-  A["[0][0][0]<br/>addr 2"]
-  B["[0][0][1]<br/>addr 6"]
-  C["[0][0][2]<br/>addr 10"]
-  D["[0][1][0]<br/>addr 14"]
-  E["[0][1][1]<br/>addr 18"]
-  F["[0][1][2]<br/>addr 22"]
-  G["[1][0][0]<br/>addr 26"]
-  H["[1][0][1]<br/>addr 30"]
-  I["[1][0][2]<br/>addr 34"]
-  J["[1][1][0]<br/>addr 38"]
-  K["[1][1][1]<br/>addr 42"]
-  L["[1][1][2]<br/>addr 46"]
+```d2
+mem: {
+  grid-columns: 6
+  grid-gap: 0
+  a: |md
+    **[0][0][0]**
+
+    addr `2`
+  |
+  b: |md
+    **[0][0][1]**
+
+    addr `6`
+  |
+  c: |md
+    **[0][0][2]**
+
+    addr `10`
+  |
+  d: |md
+    **[0][1][0]**
+
+    addr `14`
+  |
+  e: |md
+    **[0][1][1]**
+
+    addr `18`
+  |
+  f: |md
+    **[0][1][2]**
+
+    addr `22`
+  |
+  g: |md
+    **[1][0][0]**
+
+    addr `26`
+  |
+  h: |md
+    **[1][0][1]**
+
+    addr `30`
+  |
+  i: |md
+    **[1][0][2]**
+
+    addr `34`
+  |
+  j: |md
+    **[1][1][0]**
+
+    addr `38`
+  |
+  k: |md
+    **[1][1][1]**
+
+    addr `42`
+  |
+  l: |md
+    **[1][1][2]**
+
+    addr `46`
+  |
+}
 ```
 
 <p align="center"><strong>Structure of the 3D array stored in row-major order in memory — 12 elements, base address 2, each element 4 bytes wide.</strong></p>
@@ -1596,21 +1782,20 @@ flowchart LR
 
 The collected output is a flat 1D list of all elements in visit order:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 9
-  A["1"] B["2"] C["3"] D["4"] E["5"] F["6"] G["7"] H["8"] I["9"]
+```d2
+out: {
+  grid-columns: 9
+  grid-gap: 0
+  a: "1"
+  b: "2"
+  c: "3"
+  d: "4"
+  e: "5"
+  f: "6"
+  g: "7"
+  h: "8"
+  i: "9"
+}
 ```
 
 <p align="center"><strong>Output — all 9 elements in row-major order, as a flat list.</strong></p>
@@ -1791,57 +1976,88 @@ The 2D grid is identical. The only thing that changes is **which elements end up
 
 Here's the same 3×4 logical grid:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 4
-  A["[0][0] = 10"] B["[0][1] = 20"] C["[0][2] = 30"] D["[0][3] = 40"]
-  E["[1][0] = 50"] F["[1][1] = 60"] G["[1][2] = 70"] H["[1][3] = 80"]
-  I["[2][0] = 90"] J["[2][1] = 11"] K["[2][2] = 12"] L["[2][3] = 13"]
+```d2
+grid: {
+  grid-columns: 4
+  grid-gap: 0
+  a: |md
+    `[0][0]` = **10**
+  |
+  b: |md
+    `[0][1]` = **20**
+  |
+  c: |md
+    `[0][2]` = **30**
+  |
+  d: |md
+    `[0][3]` = **40**
+  |
+  e: |md
+    `[1][0]` = **50**
+  |
+  f: |md
+    `[1][1]` = **60**
+  |
+  g: |md
+    `[1][2]` = **70**
+  |
+  h: |md
+    `[1][3]` = **80**
+  |
+  i: |md
+    `[2][0]` = **90**
+  |
+  j: |md
+    `[2][1]` = **11**
+  |
+  k: |md
+    `[2][2]` = **12**
+  |
+  l: |md
+    `[2][3]` = **13**
+  |
+}
 ```
 
 <p align="center"><strong>The logical 2D view — same 3×4 grid as before. What changes is the memory layout below.</strong></p>
 
 In column-major order, this is flattened **one complete column at a time** — top to bottom within each column:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-  subgraph C0["Column 0"]
-    a["10"] --> b["50"] --> c["90"]
-  end
-  subgraph C1["Column 1"]
-    d["20"] --> e["60"] --> f["11"]
-  end
-  subgraph C2["Column 2"]
-    g["30"] --> h["70"] --> i["12"]
-  end
-  subgraph C3["Column 3"]
-    j["40"] --> k["80"] --> l["13"]
-  end
-  c --> d
-  f --> g
-  i --> j
+```d2
+direction: right
+
+C0: "Column 0" {
+  grid-rows: 3
+  grid-gap: 0
+  a: "10"
+  b: "50"
+  c: "90"
+}
+C1: "Column 1" {
+  grid-rows: 3
+  grid-gap: 0
+  a: "20"
+  b: "60"
+  c: "11"
+}
+C2: "Column 2" {
+  grid-rows: 3
+  grid-gap: 0
+  a: "30"
+  b: "70"
+  c: "12"
+}
+C3: "Column 3" {
+  grid-rows: 3
+  grid-gap: 0
+  a: "40"
+  b: "80"
+  c: "13"
+}
+
+C0 -> C1
+C1 -> C2
+C2 -> C3
 ```
 
 <p align="center"><strong>Generic representation of the 2D array in column-major order in memory — Column 0 is placed first (top to bottom), then Column 1, then Column 2, then Column 3.</strong></p>
@@ -2049,44 +2265,39 @@ Now that you understand how column-major order works conceptually, let's make it
 
 The logical shape hasn't changed — 2 layers, each a 2×3 grid. Only the way it's serialised into memory is different.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-  subgraph L0["Layer 0  ── D₃ = 0"]
-    direction LR
-    subgraph R00["D₂ = 0"]
-      direction LR
-      a000["[0][0][0]"] --- a001["[0][0][1]"] --- a002["[0][0][2]"]
-    end
-    subgraph R01["D₂ = 1"]
-      direction LR
-      a010["[0][1][0]"] --- a011["[0][1][1]"] --- a012["[0][1][2]"]
-    end
-    R00 ~~~ R01
-  end
-  subgraph L1["Layer 1  ── D₃ = 1"]
-    direction LR
-    subgraph R10["D₂ = 0"]
-      direction LR
-      a100["[1][0][0]"] --- a101["[1][0][1]"] --- a102["[1][0][2]"]
-    end
-    subgraph R11["D₂ = 1"]
-      direction LR
-      a110["[1][1][0]"] --- a111["[1][1][1]"] --- a112["[1][1][2]"]
-    end
-    R10 ~~~ R11
-  end
-  L0 ~~~ L1
+```d2
+L0: "Layer 0  ── D₃ = 0" {
+  R00: "D₂ = 0" {
+    grid-columns: 3
+    grid-gap: 0
+    a: "[0][0][0]"
+    b: "[0][0][1]"
+    c: "[0][0][2]"
+  }
+  R01: "D₂ = 1" {
+    grid-columns: 3
+    grid-gap: 0
+    a: "[0][1][0]"
+    b: "[0][1][1]"
+    c: "[0][1][2]"
+  }
+}
+L1: "Layer 1  ── D₃ = 1" {
+  R10: "D₂ = 0" {
+    grid-columns: 3
+    grid-gap: 0
+    a: "[1][0][0]"
+    b: "[1][0][1]"
+    c: "[1][0][2]"
+  }
+  R11: "D₂ = 1" {
+    grid-columns: 3
+    grid-gap: 0
+    a: "[1][1][0]"
+    b: "[1][1][1]"
+    c: "[1][1][2]"
+  }
+}
 ```
 
 <p align="center"><strong>Logical representation of the 3D array (D₃=2, D₂=2, D₁=3) — 2 layers, each a 2×3 grid, 12 elements total. The logical shape is identical to the row-major example.</strong></p>
@@ -2174,32 +2385,71 @@ The same 12 elements — entirely different order.
 
 With `base_address = 2` and `element_size = 4` bytes (integers), here is the column-major physical layout:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 6
-  A["[0][0][0]<br/>addr 2"]
-  B["[1][0][0]<br/>addr 6"]
-  C["[0][1][0]<br/>addr 10"]
-  D["[1][1][0]<br/>addr 14"]
-  E["[0][0][1]<br/>addr 18"]
-  F["[1][0][1]<br/>addr 22"]
-  G["[0][1][1]<br/>addr 26"]
-  H["[1][1][1]<br/>addr 30"]
-  I["[0][0][2]<br/>addr 34"]
-  J["[1][0][2]<br/>addr 38"]
-  K["[0][1][2]<br/>addr 42"]
-  L["[1][1][2]<br/>addr 46"]
+```d2
+mem: {
+  grid-columns: 6
+  grid-gap: 0
+  a: |md
+    **[0][0][0]**
+
+    addr `2`
+  |
+  b: |md
+    **[1][0][0]**
+
+    addr `6`
+  |
+  c: |md
+    **[0][1][0]**
+
+    addr `10`
+  |
+  d: |md
+    **[1][1][0]**
+
+    addr `14`
+  |
+  e: |md
+    **[0][0][1]**
+
+    addr `18`
+  |
+  f: |md
+    **[1][0][1]**
+
+    addr `22`
+  |
+  g: |md
+    **[0][1][1]**
+
+    addr `26`
+  |
+  h: |md
+    **[1][1][1]**
+
+    addr `30`
+  |
+  i: |md
+    **[0][0][2]**
+
+    addr `34`
+  |
+  j: |md
+    **[1][0][2]**
+
+    addr `38`
+  |
+  k: |md
+    **[0][1][2]**
+
+    addr `42`
+  |
+  l: |md
+    **[1][1][2]**
+
+    addr `46`
+  |
+}
 ```
 
 <p align="center"><strong>Structure of the 3D array stored in column-major order in memory — base address 2, element size 4 bytes. Notice D₃ alternates 0↔1 in every adjacent pair of slots.</strong></p>
@@ -2441,44 +2691,76 @@ flowchart TB
 
 Visit order annotated directly on the grid:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 3
-  A["1  (1st)"] B["2  (4th)"] C["3  (7th)"]
-  D["4  (2nd)"] E["5  (5th)"] F["6  (8th)"]
-  G["7  (3rd)"] H["8  (6th)"] I["9  (9th)"]
+```d2
+grid: {
+  grid-columns: 3
+  grid-gap: 0
+  a: |md
+    **1**
+
+    `1st`
+  |
+  b: |md
+    **2**
+
+    `4th`
+  |
+  c: |md
+    **3**
+
+    `7th`
+  |
+  d: |md
+    **4**
+
+    `2nd`
+  |
+  e: |md
+    **5**
+
+    `5th`
+  |
+  f: |md
+    **6**
+
+    `8th`
+  |
+  g: |md
+    **7**
+
+    `3rd`
+  |
+  h: |md
+    **8**
+
+    `6th`
+  |
+  i: |md
+    **9**
+
+    `9th`
+  |
+}
 ```
 
 <p align="center"><strong>Visit order in column-major traversal — the column index changes slowly (every 3 visits), while the row index changes on every visit.</strong></p>
 
 The collected output:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 9
-  A["1"] B["4"] C["7"] D["2"] E["5"] F["8"] G["3"] H["6"] I["9"]
+```d2
+out: {
+  grid-columns: 9
+  grid-gap: 0
+  a: "1"
+  b: "4"
+  c: "7"
+  d: "2"
+  e: "5"
+  f: "8"
+  g: "3"
+  h: "6"
+  i: "9"
+}
 ```
 
 <p align="center"><strong>Output — all 9 elements in column-major order as a flat list. Compare with row-major: [1, 2, 3, 4, 5, 6, 7, 8, 9].</strong></p>

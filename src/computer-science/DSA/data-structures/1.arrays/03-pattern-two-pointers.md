@@ -191,27 +191,34 @@ The power of this pattern is that it reduces problems which naively need O(n²) 
 
 Not every two-pointer problem is identical. Problems in this pattern fall into three categories:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-  Root["Two-Pointer Pattern Problems"]
-  D["Direct Application\nTwo pointers applied as-is\n(e.g. reverse, palindrome check)"]
-  R["Reduction\nProblem reduced to an\nequivalent two-pointer problem"]
-  S["Subproblems\nOne step of the solution\nuses two pointers internally"]
+```d2
+Root: Two-Pointer Pattern Problems
 
-  Root --> D
-  Root --> R
-  Root --> S
+D: |md
+  **Direct Application**
+
+  Two pointers applied as-is
+
+  (e.g. reverse, palindrome check)
+|
+
+R: |md
+  **Reduction**
+
+  Problem reduced to an
+  equivalent two-pointer problem
+|
+
+S: |md
+  **Subproblems**
+
+  One step of the solution
+  uses two pointers internally
+|
+
+Root -> D
+Root -> R
+Root -> S
 ```
 
 <p align="center"><strong>Three categories of two-pointer pattern problems — we start with Direct Application, which is the simplest and most common.</strong></p>
@@ -246,25 +253,31 @@ Input:  arr = [1, 2, 3, 4, 5]
 Output: arr is modified to [5, 4, 3, 2, 1]
 ```
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 5
-  A["1"] B["2"] C["3"] D["4"] E["5"]
-  F["5"] G["4"] H["3"] I["2"] J["1"]
+```d2
+before: "Original" {
+  grid-columns: 5
+  grid-gap: 0
+  a: "1"
+  b: "2"
+  c: "3"
+  d: "4"
+  e: "5"
+}
+
+after: "Reversed (in-place)" {
+  grid-columns: 5
+  grid-gap: 0
+  a: "5"
+  b: "4"
+  c: "3"
+  d: "2"
+  e: "1"
+}
+
+before -> after
 ```
 
-<p align="center"><strong>Reverse the array in-place — the original array (top row) becomes the reversed array (bottom row) without allocating new memory.</strong></p>
+<p align="center"><strong>Reverse the array in-place — the original array (top) becomes the reversed array (bottom) without allocating new memory.</strong></p>
 
 ---
 
@@ -275,33 +288,39 @@ The naive approach copies elements in reverse into a temporary array, then copie
 1. Walk `arr` backwards and fill `temp` forwards
 2. Walk `temp` forwards and copy back into `arr`
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-  subgraph ORIG["Original arr"]
-    direction LR
-    A["1"] --- B["2"] --- C["3"] --- D["4"] --- E["5"]
-  end
-  subgraph TEMP["temp  (copy arr backwards)"]
-    direction LR
-    T0["5"] --- T1["4"] --- T2["3"] --- T3["2"] --- T4["1"]
-  end
-  subgraph BACK["arr  (copy temp back)"]
-    direction LR
-    R0["5"] --- R1["4"] --- R2["3"] --- R3["2"] --- R4["1"]
-  end
-  ORIG -->|"pass 1: backwards copy"| TEMP
-  TEMP -->|"pass 2: forwards copy"| BACK
+```d2
+ORIG: "Original arr" {
+  grid-columns: 5
+  grid-gap: 0
+  a: "1"
+  b: "2"
+  c: "3"
+  d: "4"
+  e: "5"
+}
+
+TEMP: "temp (copy arr backwards)" {
+  grid-columns: 5
+  grid-gap: 0
+  a: "5"
+  b: "4"
+  c: "3"
+  d: "2"
+  e: "1"
+}
+
+BACK: "arr (copy temp back)" {
+  grid-columns: 5
+  grid-gap: 0
+  a: "5"
+  b: "4"
+  c: "3"
+  d: "2"
+  e: "1"
+}
+
+ORIG -> TEMP: pass 1 — backwards copy
+TEMP -> BACK: pass 2 — forwards copy
 ```
 
 <p align="center"><strong>Brute-force reversal — two full passes and O(n) extra space for the temp array.</strong></p>
@@ -1200,34 +1219,43 @@ You already know how to reverse a contiguous block of characters with two pointe
 
 The key insight: **spaces act as word boundaries**. Walk through the array character by character. When you find the start of a word, scan forward to find its end (the next space or the array boundary). Now you have a `[word_start, word_end]` range — apply the two-pointer reversal to that range. Then continue scanning for the next word.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-  subgraph INPUT["Input:  't h e   s k y'"]
-    direction LR
-    T["t"] --- H["h"] --- E["e"] --- SP[" "] --- S["s"] --- K["k"] --- Y["y"]
-  end
-  subgraph W1["Word 1: indices 0-2  →  reverse 't h e'"]
-    direction LR
-    E2["e"] --- H2["h"] --- T2["t"] --- SP2[" "] --- S2["s"] --- K2["k"] --- Y2["y"]
-  end
-  subgraph W2["Word 2: indices 4-6  →  reverse 's k y'"]
-    direction LR
-    E3["e"] --- H3["h"] --- T3["t"] --- SP3[" "] --- Y3["y"] --- K3["k"] --- S3["s"]
-  end
+```d2
+INPUT: "Input:  't h e   s k y'" {
+  grid-columns: 7
+  grid-gap: 0
+  a: "t"
+  b: "h"
+  c: "e"
+  d: " "
+  e: "s"
+  f: "k"
+  g: "y"
+}
+W1: "Word 1: indices 0-2  →  reverse 't h e'" {
+  grid-columns: 7
+  grid-gap: 0
+  a: "e"
+  b: "h"
+  c: "t"
+  d: " "
+  e: "s"
+  f: "k"
+  g: "y"
+}
+W2: "Word 2: indices 4-6  →  reverse 's k y'" {
+  grid-columns: 7
+  grid-gap: 0
+  a: "e"
+  b: "h"
+  c: "t"
+  d: " "
+  e: "y"
+  f: "k"
+  g: "s"
+}
 
-  INPUT -->|"reverse word 1"| W1
-  W1 -->|"reverse word 2"| W2
+INPUT -> W1: reverse word 1
+W1 -> W2: reverse word 2
 ```
 
 <p align="center"><strong>Reverse Words on <code>"the sky"</code> — find each word's boundaries using a scan, then apply two-pointer reversal within that range.</strong></p>
@@ -1409,41 +1437,54 @@ You already have the exact tool for this: the two-pointer reversal from "Flip Ch
 
 For multiple segments, simply apply the two-pointer reversal once per segment. Each reversal is independent — the segments don't overlap, so the order you process them in doesn't matter.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-  subgraph ORIG["Original:  [1, 2, 3, 4, 5, 6, 7, 8]"]
-    direction LR
-    A["1"] --- B["2"] --- C["3"] --- D["4"] --- E["5"] --- F["6"] --- G["7"] --- H["8"]
-  end
-  subgraph SEG0["Reverse segment (0,3):  left=0, right=3"]
-    direction LR
-    A1(["left=0"]) --> D1["4"] --- C1["3"] --- B1["2"] --- A2["1"] --- E1["5"] --- F1["6"] --- G1["7"] --- H1["8"]
-    A2 --> D2(["right=3 done"])
-  end
-  subgraph SEG1["Reverse segment (4,7):  left=4, right=7"]
-    direction LR
-    A3["4"] --- B3["3"] --- C3["2"] --- D3["1"] --- E3(["left=4"]) --> H3["8"] --- G3["7"] --- F3["6"] --- E4["5"]
-    E4 --> H4(["right=7 done"])
-  end
-  subgraph FINAL["Result:  [4, 3, 2, 1, 8, 7, 6, 5]"]
-    direction LR
-    R0["4"] --- R1["3"] --- R2["2"] --- R3["1"] --- R4["8"] --- R5["7"] --- R6["6"] --- R7["5"]
-  end
+```d2
+ORIG: "Original:  [1, 2, 3, 4, 5, 6, 7, 8]" {
+  grid-columns: 8
+  grid-gap: 0
+  a: "1"
+  b: "2"
+  c: "3"
+  d: "4"
+  e: "5"
+  f: "6"
+  g: "7"
+  h: "8"
+}
+SEG0: "After reversing segment (0,3)" {
+  grid-columns: 8
+  grid-gap: 0
+  a: "4"
+  b: "3"
+  c: "2"
+  d: "1"
+  e: "5"
+  f: "6"
+  g: "7"
+  h: "8"
+}
+SEG0.a.style.fill: "#fde68a"
+SEG0.b.style.fill: "#fde68a"
+SEG0.c.style.fill: "#fde68a"
+SEG0.d.style.fill: "#fde68a"
+SEG1: "After reversing segment (4,7)" {
+  grid-columns: 8
+  grid-gap: 0
+  a: "4"
+  b: "3"
+  c: "2"
+  d: "1"
+  e: "8"
+  f: "7"
+  g: "6"
+  h: "5"
+}
+SEG1.e.style.fill: "#dcfce7"
+SEG1.f.style.fill: "#dcfce7"
+SEG1.g.style.fill: "#dcfce7"
+SEG1.h.style.fill: "#dcfce7"
 
-  ORIG -->|"apply two-pointer reversal on [0,3]"| SEG0
-  SEG0 -->|"apply two-pointer reversal on [4,7]"| SEG1
-  SEG1 --> FINAL
+ORIG -> SEG0: "reverse [0,3]"
+SEG0 -> SEG1: "reverse [4,7]"
 ```
 
 <p align="center"><strong>Reversing two segments of <code>[1,2,3,4,5,6,7,8]</code> — each segment is reversed independently using the standard two-pointer swap-and-converge.</strong></p>
