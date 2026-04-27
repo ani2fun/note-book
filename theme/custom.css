@@ -322,3 +322,65 @@
 .piston-playground .result.result-no-output {
     opacity: 0.8;
 }
+
+/* Page TOC — desktop overlap fix.
+   The pagetoc rail is visible at >=1440px; mdBook's wide side
+   chapter-nav buttons (.nav-wide-wrapper) are full-height invisible
+   columns that overlap the rail and steal clicks. Swap to the inline
+   bottom-of-page nav (.nav-wrapper) at this breakpoint. */
+@media only screen and (min-width: 1440px) {
+    .nav-wide-wrapper { display: none; }
+    .nav-wrapper { display: block; }
+}
+
+/* Page TOC — mobile/tablet collapsed panel.
+   The preprocessor's CSS hides .sidetoc below 1440px. Re-show it at the
+   top of <main> as a collapsible "On this page" details element so
+   readers on phones/tablets get the same per-page navigation. */
+@media only screen and (max-width: 1439px) {
+    .sidetoc { display: block; }
+
+    .pagetoc-mobile {
+        margin: 0 0 1.5rem 0;
+        padding: 0.5rem 1rem;
+        border: 1px solid var(--sidebar-bg);
+        border-radius: 4px;
+        background: var(--bg);
+    }
+
+    .pagetoc-mobile > summary {
+        cursor: pointer;
+        font-weight: 600;
+        padding: 0.25rem 0;
+        list-style: revert;
+    }
+
+    .pagetoc-mobile .pagetoc {
+        position: static;
+        width: auto;
+        height: auto;
+        max-height: 60vh;
+        overflow-y: auto;
+        margin-top: 0.5rem;
+    }
+
+    .pagetoc-mobile .pagetoc a {
+        display: block;
+        padding: 0.25rem 0 0.25rem 0.5rem;
+        color: var(--fg) !important;
+        border-left: 2px solid transparent;
+        text-decoration: none;
+    }
+
+    .pagetoc-mobile .pagetoc a:hover {
+        background: var(--sidebar-bg);
+    }
+
+    .pagetoc-mobile .pagetoc a.active {
+        border-left-color: var(--links);
+        background: var(--sidebar-bg);
+    }
+
+    .pagetoc-mobile .pagetoc .pagetoc-H3 { padding-left: 1.5rem; }
+    .pagetoc-mobile .pagetoc .pagetoc-H4 { padding-left: 2.5rem; }
+}
