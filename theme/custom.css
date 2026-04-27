@@ -327,9 +327,12 @@
    Replaces mdBook's full-height invisible side columns (which
    overlapped the pagetoc rail) with two small circular buttons
    fixed near the bottom-left and bottom-right edges of the viewport.
-   Hidden until the reader scrolls past 200px, just like a typical
-   "back to top" button. The bottom-of-page inline .nav-wrapper is
-   suppressed since the floating pair replaces it. */
+   Always visible. The bottom-of-page inline .nav-wrapper is
+   suppressed since the floating pair replaces it.
+
+   When the chapter sidebar is open, html.sidebar-visible shifts the
+   prev chevron right by the sidebar width so it sits in the gutter
+   between the sidebar and the content rather than under the sidebar. */
 .nav-wrapper { display: none; }
 
 .nav-wide-wrapper {
@@ -354,10 +357,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
+    opacity: 0.85;
+    transition: opacity 0.15s ease, background 0.15s ease;
     z-index: 100;
+}
+
+.nav-wide-wrapper .nav-chapters:hover {
+    opacity: 1;
+    background: var(--sidebar-bg);
 }
 
 .nav-wide-wrapper .nav-chapters.previous {
@@ -370,14 +377,8 @@
     left: auto !important;
 }
 
-body.scrolled .nav-wide-wrapper .nav-chapters {
-    opacity: 0.85;
-    pointer-events: auto;
-}
-
-body.scrolled .nav-wide-wrapper .nav-chapters:hover {
-    opacity: 1;
-    background: var(--sidebar-bg);
+html.sidebar-visible .nav-wide-wrapper .nav-chapters.previous {
+    left: calc(var(--sidebar-width) + var(--sidebar-resize-indicator-width) + 1rem);
 }
 
 /* Page TOC — mobile/tablet collapsed panel.
