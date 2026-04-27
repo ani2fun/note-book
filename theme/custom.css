@@ -325,42 +325,21 @@
 
 /* Floating prev/next chevrons.
    Replaces mdBook's full-height invisible side columns (which
-   overlapped the pagetoc rail) with a pair of small circular
-   buttons fixed at the bottom-right of the viewport. Hidden until
-   the reader scrolls past 200px, just like a typical "back to top"
-   button. The bottom-of-page inline .nav-wrapper is suppressed since
-   the floating pair replaces it. */
+   overlapped the pagetoc rail) with two small circular buttons
+   fixed near the bottom-left and bottom-right edges of the viewport.
+   Hidden until the reader scrolls past 200px, just like a typical
+   "back to top" button. The bottom-of-page inline .nav-wrapper is
+   suppressed since the floating pair replaces it. */
 .nav-wrapper { display: none; }
 
 .nav-wide-wrapper {
-    position: fixed !important;
-    top: auto !important;
-    bottom: 1.5rem;
-    right: 1.5rem;
-    left: auto;
-    width: auto;
-    height: auto;
-    display: flex !important;
-    gap: 0.5rem;
-    z-index: 100;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-}
-
-body.scrolled .nav-wide-wrapper {
-    opacity: 0.85;
-    pointer-events: auto;
-}
-
-body.scrolled .nav-wide-wrapper:hover {
-    opacity: 1;
+    display: block !important;
 }
 
 .nav-wide-wrapper .nav-chapters {
-    position: static !important;
+    position: fixed !important;
     top: auto !important;
-    bottom: auto !important;
+    bottom: 1.5rem;
     width: 44px;
     min-width: 44px;
     max-width: 44px;
@@ -375,9 +354,29 @@ body.scrolled .nav-wide-wrapper:hover {
     display: flex;
     align-items: center;
     justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 100;
 }
 
-.nav-wide-wrapper .nav-chapters:hover {
+.nav-wide-wrapper .nav-chapters.previous {
+    left: 1rem;
+    right: auto !important;
+}
+
+.nav-wide-wrapper .nav-chapters.next {
+    right: 1rem;
+    left: auto !important;
+}
+
+body.scrolled .nav-wide-wrapper .nav-chapters {
+    opacity: 0.85;
+    pointer-events: auto;
+}
+
+body.scrolled .nav-wide-wrapper .nav-chapters:hover {
+    opacity: 1;
     background: var(--sidebar-bg);
 }
 
