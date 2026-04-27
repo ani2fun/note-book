@@ -83,23 +83,14 @@ A `TreeNode` has exactly three pieces:
 | `left`   | reference to a `TreeNode`  | The left child (or `null` if absent).                  |
 | `right`  | reference to a `TreeNode`  | The right child (or `null` if absent).                 |
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph N["TreeNode"]
-        direction LR
-        L["left (●)"] --- V["val"] --- R["right (●)"]
-    end
+```d2
+n: TreeNode {
+  grid-columns: 3
+  grid-gap: 0
+  l: "left (●)"
+  v: "val"
+  r: "right (●)"
+}
 ```
 
 <p align="center"><strong>The standard layout of a binary-tree node — value flanked by two child references. <code>null</code> in either slot means "no child on that side".</strong></p>
@@ -359,31 +350,63 @@ flowchart TB
 
 The diagrams above show the tree as a clean hierarchy. *In RAM*, those nodes are scattered wherever the allocator decided to put them. The "tree shape" exists only in the pointers connecting the nodes, not in the addresses themselves.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph M["Heap memory (random addresses)"]
-        direction TB
-        N5["@0x4180<br/>val: 5<br/>L: null<br/>R: null"]
-        N1["@0x4200<br/>val: 1<br/>L: 0x4290<br/>R: 0x4310"]
-        N2["@0x4290<br/>val: 2<br/>L: 0x4250<br/>R: 0x4180"]
-        N4["@0x4250<br/>val: 4<br/>L: null<br/>R: null"]
-        N3["@0x4310<br/>val: 3<br/>L: null<br/>R: null"]
-    end
-    N1 -.->|"L"| N2
-    N1 -.->|"R"| N3
-    N2 -.->|"L"| N4
-    N2 -.->|"R"| N5
+```d2
+direction: down
+
+heap: "Heap memory (random addresses)" {
+  grid-rows: 5
+  grid-gap: 0
+  n5: |md
+    **@0x4180**
+
+    val: 5
+
+    L: null
+
+    R: null
+  |
+  n1: |md
+    **@0x4200**
+
+    val: 1
+
+    L: 0x4290
+
+    R: 0x4310
+  |
+  n2: |md
+    **@0x4290**
+
+    val: 2
+
+    L: 0x4250
+
+    R: 0x4180
+  |
+  n4: |md
+    **@0x4250**
+
+    val: 4
+
+    L: null
+
+    R: null
+  |
+  n3: |md
+    **@0x4310**
+
+    val: 3
+
+    L: null
+
+    R: null
+  |
+}
+
+heap.n1 -> heap.n2: "L" {style.stroke-dash: 3}
+heap.n1 -> heap.n3: "R" {style.stroke-dash: 3}
+heap.n2 -> heap.n4: "L" {style.stroke-dash: 3}
+heap.n2 -> heap.n5: "R" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>The tree from the previous diagram, as it actually lives in memory — five nodes at unrelated addresses, the structure encoded entirely in the pointer fields. The "tree shape" exists only when you follow the pointers; from RAM's point of view, this is just five small heap blocks.</strong></p>

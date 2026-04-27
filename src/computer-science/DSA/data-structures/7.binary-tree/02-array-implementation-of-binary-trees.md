@@ -79,30 +79,20 @@ In the linked-list implementation (next lesson), each node is a small object hol
 
 This is why the array version has *zero per-node overhead*. A linked node typically eats 24 bytes (8 for the value, 8 for left, 8 for right) on a 64-bit system; an array slot eats 4–8 bytes for just the value. For a million-node integer tree, that's the difference between **24 MB** and **4 MB** — a 6× reduction, and that's before accounting for allocator metadata.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph LL["Linked node — ~24 bytes"]
-        direction TB
-        V["val (8B)"]
-        L["left ptr (8B)"]
-        R["right ptr (8B)"]
-    end
-    subgraph AR["Array slot — ~4-8 bytes"]
-        direction TB
-        AV["val (4-8B)"]
-    end
-    LL ~~~ AR
+```d2
+direction: right
+
+ll: "Linked node — ~24 bytes" {
+  grid-rows: 3
+  grid-gap: 0
+  v: "val (8B)"
+  l: "left ptr (8B)"
+  r: "right ptr (8B)"
+}
+
+ar: "Array slot — 4-8 bytes" {
+  v: "val (4-8B)"
+}
 ```
 
 <p align="center"><strong>Per-node memory comparison — the array version is dramatically more compact because it eliminates the two child pointers. The structural information they carried is recovered through index arithmetic, not memory.</strong></p>
@@ -113,24 +103,46 @@ flowchart LR
 
 What looks like a tree on paper is just a contiguous run of values in memory. Here's what a perfect height-2 tree storing `[1, 2, 3, 4, 5, 6, 7]` looks like physically:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 8
-  L["index"]:1 I0["0"]:1 I1["1"]:1 I2["2"]:1 I3["3"]:1 I4["4"]:1 I5["5"]:1 I6["6"]:1
-  V["value"]:1 V0["1"]:1 V1["2"]:1 V2["3"]:1 V3["4"]:1 V4["5"]:1 V5["6"]:1 V6["7"]:1
-  M["meaning"]:1 M0["root"]:1 M1["L of 1"]:1 M2["R of 1"]:1 M3["L of 2"]:1 M4["R of 2"]:1 M5["L of 3"]:1 M6["R of 3"]:1
-  style V0 fill:#fef9c3,stroke:#f59e0b
+```d2
+arr: "array storage" {
+  grid-columns: 7
+  grid-gap: 0
+  i0: |md
+    **1**
+
+    `[0]` root
+  | {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+  i1: |md
+    **2**
+
+    `[1]` L of 1
+  |
+  i2: |md
+    **3**
+
+    `[2]` R of 1
+  |
+  i3: |md
+    **4**
+
+    `[3]` L of 2
+  |
+  i4: |md
+    **5**
+
+    `[4]` R of 2
+  |
+  i5: |md
+    **6**
+
+    `[5]` L of 3
+  |
+  i6: |md
+    **7**
+
+    `[6]` R of 3
+  |
+}
 ```
 
 <p align="center"><strong>The complete tree <code>[1, 2, 3, 4, 5, 6, 7]</code> stored in seven contiguous slots. The "tree shape" is not stored anywhere — it's purely a way of <em>interpreting</em> the indices. Reading <code>arr[3]</code> gives you the left child of the root's left child without any pointer chasing.</strong></p>

@@ -42,34 +42,26 @@ A typical stack frame for a tree traversal is around 64–128 bytes. Divide:
 
 > **A 1 MB stack supports roughly 8,000–16,000 nested recursive calls.** A skewed binary tree of 50,000 nodes — which is *trivially* small — will blow it.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph CS["Call stack — small (1–8 MB)"]
-        direction TB
-        F1["frame: walk(node 1)"]
-        F2["frame: walk(node 2)"]
-        F3["frame: walk(node 3)"]
-        F4["..."]
-        F5["frame: walk(node 16,000) — STACK OVERFLOW"]
-    end
-    subgraph HEAP["Heap stack — huge (gigabytes)"]
-        direction TB
-        H1["explicit Stack<TreeNode>"]
-        H2["push, pop, peek"]
-        H3["bounded only by free heap"]
-    end
-    CS ~~~ HEAP
+```d2
+direction: right
+
+cs: "Call stack — small (1-8 MB)" {
+  grid-rows: 5
+  grid-gap: 0
+  f5: "frame: walk(node 16,000) — STACK OVERFLOW" {style.fill: "#fee2e2"; style.stroke: "#ef4444"}
+  f4: "..."
+  f3: "frame: walk(node 3)"
+  f2: "frame: walk(node 2)"
+  f1: "frame: walk(node 1)"
+}
+
+heap: "Heap stack — huge (gigabytes)" {
+  grid-rows: 3
+  grid-gap: 0
+  h1: "explicit Stack of TreeNode"
+  h2: "push, pop, peek"
+  h3: "bounded only by free heap"
+}
 ```
 
 <p align="center"><strong>Two stacks, two scales — the call stack lives in a small fixed region; the explicit stack lives on the heap and grows as needed. Iterative traversals trade three clean lines of recursion for an explicit stack that survives deep trees.</strong></p>
