@@ -59,31 +59,25 @@ Why does anyone need this? Three real-world examples that almost certainly run o
 
 The **back** button is a LIFO machine. Every time you click a link, the new page is pushed onto a hidden stack of "places I've been". Every time you click *back*, the top page is popped off and you land on the previous one. Click *back* again — pop again. The pages return in the *exact reverse* of the order in which you visited them.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph H1["after visiting home → blog → article"]
-        direction TB
-        S0["top → article"]
-        S1["       blog"]
-        S2["bot → home"]
-    end
-    subgraph H2["after one click of back"]
-        direction TB
-        T0["top → blog"]
-        T1["bot → home"]
-    end
-    H1 -->|"pop"| H2
+```d2
+direction: right
+
+before: "after visiting home → blog → article" {
+  grid-rows: 3
+  grid-gap: 0
+  s0: "article ← top"
+  s1: "blog"
+  s2: "home ← bot"
+}
+
+after: "after one click of back" {
+  grid-rows: 2
+  grid-gap: 0
+  t0: "blog ← top"
+  t1: "home ← bot"
+}
+
+before -> after: "pop"
 ```
 
 <p align="center"><strong>Web browser history — every page visit is a push; every <em>back</em> click is a pop. The most recently visited page is always at the top, and that's exactly the page <em>back</em> needs to return.</strong></p>
@@ -92,27 +86,23 @@ flowchart TB
 
 Ctrl-Z is the same machine in disguise. Every keystroke you make pushes a "what changed" record onto an undo stack. Every Ctrl-Z pops the most recent record and reverts that change. You can't skip backwards over recent edits to undo something from five minutes ago without first undoing everything since — exactly the LIFO contract.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph U1["undo stack"]
-        direction TB
-        E0["top → typed '!'"]
-        E1["       typed 'world'"]
-        E2["       typed 'hello'"]
-        E3["bot → opened file"]
-    end
-    U1 -->|"Ctrl-Z pops 'typed !'"| U2["top now: typed 'world'"]
+```d2
+direction: right
+
+stk: "undo stack" {
+  grid-rows: 4
+  grid-gap: 0
+  e0: "typed '!' ← top"
+  e1: "typed 'world'"
+  e2: "typed 'hello'"
+  e3: "opened file ← bot"
+}
+
+after: "top now: typed 'world'" {
+  shape: text
+}
+
+stk -> after: "Ctrl-Z pops 'typed !'"
 ```
 
 <p align="center"><strong>Text editor undo — every action is a push; <em>Ctrl-Z</em> is a pop. The very first action of the session sits at the bottom and only surfaces after everything above it is undone.</strong></p>
@@ -121,26 +111,24 @@ flowchart TB
 
 The deepest example of all. When function `A` calls function `B`, and `B` calls function `C`, the CPU has to remember to return to `B` after `C` finishes, and to `A` after `B` finishes. That memory is kept on **the call stack** — a real, hardware-supported stack of "where to go next". Each `call` instruction pushes a return address; each `ret` pops one. Recursion, exception handling, async-await unwinding — all of it sits on top of this one structure.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph CALL["call stack while inside C()"]
-        direction TB
-        F0["top → C()  ← currently executing"]
-        F1["       B()"]
-        F2["bot → A()  ← root caller"]
-    end
-    NOTE["When C returns, B resumes (top is popped).<br/>When B returns, A resumes.<br/>Same machine, different costume."] -.-> CALL
+```d2
+call: "call stack while inside C()" {
+  grid-rows: 3
+  grid-gap: 0
+  f0: "C() ← top (currently executing)"
+  f1: "B()"
+  f2: "A() ← bot (root caller)"
+}
+
+note: |md
+  When C returns, B resumes (top is popped).
+
+  When B returns, A resumes.
+
+  Same machine, different costume.
+|
+
+note -> call: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>The call stack — every function call is a push; every <em>return</em> is a pop. The CPU literally uses a register (<code>rsp</code> on x86-64) that points to the top of this stack. Every program you run, in every language, leans on this.</strong></p>
@@ -161,24 +149,16 @@ The image is right there in the kitchen. A stack of clean plates on a countertop
 - You take plates **from the top**. (pop)
 - You can't slide a plate out of the middle without lifting everything above it. (no random access)
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    P5["plate 5  ← top (last placed)"] --- P4["plate 4"]
-    P4 --- P3["plate 3"]
-    P3 --- P2["plate 2"]
-    P2 --- P1["plate 1  ← bottom (first placed)"]
-    style P5 fill:#fef9c3,stroke:#f59e0b
+```d2
+plates: stack of plates {
+  grid-rows: 5
+  grid-gap: 0
+  p5: "plate 5 ← top (last placed)" {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+  p4: "plate 4"
+  p3: "plate 3"
+  p2: "plate 2"
+  p1: "plate 1 ← bottom (first placed)"
+}
 ```
 
 <p align="center"><strong>A stack of plates follows the LIFO rule by physical necessity — gravity makes the top accessible and the bottom unreachable. The data-structure version of a stack enforces the same restriction by design.</strong></p>
@@ -189,51 +169,57 @@ The kitchen analogy is more than cute — it predicts every property of the data
 
 A **stack** is a linear data structure that stores items in an ordered sequence and permits two operations on them: **push** (add to top) and **pop** (remove from top). Auxiliary read-only operations (peek at the top, ask for the size) are conventional but neither inserts nor reorders the data. The whole interface fits on the back of a napkin.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    PUSH["push(7)"] --> S
-    POP["pop() → 7"] --> S
-    PEEK["peek() → 7"] --> S
-    SIZE["size() → 1"] --> S
-    subgraph S["stack [3, 5, 7]<br/>(top is right)"]
-        direction LR
-        SB["3"] --- SM["5"] --- ST["7  ← top"]
-    end
-    style ST fill:#fef9c3,stroke:#f59e0b
+```d2
+direction: right
+
+push: "push(7)" { shape: oval }
+pop: "pop() → 7" { shape: oval }
+peek: "peek() → 7" { shape: oval }
+size: "size() → 1" { shape: oval }
+
+stk: "stack [3, 5, 7] (top is right)" {
+  grid-columns: 3
+  grid-gap: 0
+  b: "3"
+  m: "5"
+  t: "7 ← top" {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+}
+
+push -> stk
+pop -> stk
+peek -> stk
+size -> stk
 ```
 
 <p align="center"><strong>Stack interface in one diagram — only <code>push</code> changes the data; <code>pop</code> changes data and returns the removed item; <code>peek</code> and <code>size</code> just inspect. Four operations, total.</strong></p>
 
 In memory, a stack is conventionally drawn vertically with the top at the *top* of the page (matching the kitchen analogy), but in code you'll see it stored as a horizontal array where the *last index* is the top. The orientation is just notation; the LIFO contract is unchanged.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 5
-  L["index"]:1 I0["0"]:1 I1["1"]:1 I2["2"]:1 I3["3"]:1
-  V["value"]:1 V0["3"]:1 V1["5"]:1 V2["7"]:1 V3["9 ← top"]:1
-  style V3 fill:#fef9c3,stroke:#f59e0b
+```d2
+arr: stack as array {
+  grid-columns: 4
+  grid-gap: 0
+  v0: |md
+    **3**
+
+    `0`
+  |
+  v1: |md
+    **5**
+
+    `1`
+  |
+  v2: |md
+    **7**
+
+    `2`
+  |
+  v3: |md
+    **9 ← top**
+
+    `3`
+  | {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+}
 ```
 
 <p align="center"><strong>Same stack laid out as an array — the rightmost element is the top. <code>push(11)</code> would extend the array to index 4; <code>pop()</code> would shrink it back to index 2.</strong></p>
@@ -255,36 +241,28 @@ The stack's **capacity** is the maximum number of items it can hold. Two flavour
 - **Bounded** stack — capacity is fixed at construction. Pushing onto a full bounded stack is an error (often called *stack overflow* — yes, that's where the website name comes from).
 - **Unbounded** stack — capacity grows on demand, limited only by available memory. Most language standard-library stacks are unbounded.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph BND["bounded stack — capacity 4"]
-        direction TB
-        B3["[3] 9 ← top"]
-        B2["[2] 7"]
-        B1["[1] 5"]
-        B0["[0] 3"]
-        BCAP["push next → OVERFLOW"]
-    end
-    subgraph UN["unbounded stack — capacity = memory"]
-        direction TB
-        U3["..."]
-        U2["[2] 7"]
-        U1["[1] 5"]
-        U0["[0] 3"]
-        UCAP["push next → grow & continue"]
-    end
-    BND ~~~ UN
+```d2
+direction: right
+
+bnd: "bounded stack — capacity 4" {
+  grid-rows: 5
+  grid-gap: 0
+  b3: "[3] 9 ← top"
+  b2: "[2] 7"
+  b1: "[1] 5"
+  b0: "[0] 3"
+  cap: "push next → OVERFLOW" {style.fill: "#fee2e2"; style.stroke: "#ef4444"}
+}
+
+unb: "unbounded stack — capacity = memory" {
+  grid-rows: 5
+  grid-gap: 0
+  u3: "..."
+  u2: "[2] 7"
+  u1: "[1] 5"
+  u0: "[0] 3"
+  cap: "push next → grow & continue" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
 ```
 
 <p align="center"><strong>Bounded vs. unbounded — bounded stacks reject overflow; unbounded stacks lazily expand. The choice depends on whether the upper bound is known and whether you can afford the resize cost. Most container library stacks (<code>std::stack</code>, Java <code>Deque</code>, Python <code>list</code>) are unbounded.</strong></p>
@@ -323,24 +301,15 @@ The **top** is the most recently inserted item — the only item the stack will 
 
 The top is what makes a stack a stack. Every operation, without exception, manipulates the top: push *creates* a new top; pop *removes* the current top; peek *reports* the current top.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    T1["top → 9"]
-    T2["       7"]
-    T3["       5"]
-    T4["bot → 3"]
-    style T1 fill:#fef9c3,stroke:#f59e0b
+```d2
+stk: stack {
+  grid-rows: 4
+  grid-gap: 0
+  t1: "9 ← top" {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+  t2: "7"
+  t3: "5"
+  t4: "3 ← bot"
+}
 ```
 
 <p align="center"><strong>The top is the only window into a stack — every operation is defined relative to it. The bottom exists, but the data structure deliberately gives no way to reach it directly.</strong></p>
@@ -355,34 +324,27 @@ A stack exposes a tiny, sharp interface. Two **mutators** (push, pop) and two **
 
 `push(x)` adds `x` to the top of the stack. The size increases by 1. `x` becomes the new top.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph BEFORE["before push(9)"]
-        direction TB
-        B1["top → 7"]
-        B2["       5"]
-        B3["bot → 3"]
-    end
-    subgraph AFTER["after push(9)"]
-        direction TB
-        A1["top → 9"]
-        A2["       7"]
-        A3["       5"]
-        A4["bot → 3"]
-    end
-    BEFORE -->|"push(9)"| AFTER
-    style A1 fill:#dcfce7,stroke:#22c55e
+```d2
+direction: right
+
+before: "before push(9)" {
+  grid-rows: 3
+  grid-gap: 0
+  b1: "7 ← top"
+  b2: "5"
+  b3: "3 ← bot"
+}
+
+after: "after push(9)" {
+  grid-rows: 4
+  grid-gap: 0
+  a1: "9 ← top" {style.fill: "#dcfce7"; style.stroke: "#22c55e"}
+  a2: "7"
+  a3: "5"
+  a4: "3 ← bot"
+}
+
+before -> after: "push(9)"
 ```
 
 <p align="center"><strong>Push — the new item lands on top, and the stack's size grows by one. Everything that was already in the stack stays where it was; only the top moves.</strong></p>
@@ -395,34 +357,27 @@ flowchart LR
 
 `pop()` removes and returns the item at the top. The size decreases by 1. The previous second-from-top becomes the new top.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph BEFORE["before pop()"]
-        direction TB
-        B1["top → 9"]
-        B2["       7"]
-        B3["       5"]
-        B4["bot → 3"]
-    end
-    subgraph AFTER["after pop() → 9"]
-        direction TB
-        A1["top → 7"]
-        A2["       5"]
-        A3["bot → 3"]
-    end
-    BEFORE -->|"pop()"| AFTER
-    style B1 fill:#fee2e2,stroke:#ef4444
+```d2
+direction: right
+
+before: "before pop()" {
+  grid-rows: 4
+  grid-gap: 0
+  b1: "9 ← top" {style.fill: "#fee2e2"; style.stroke: "#ef4444"}
+  b2: "7"
+  b3: "5"
+  b4: "3 ← bot"
+}
+
+after: "after pop() → 9" {
+  grid-rows: 3
+  grid-gap: 0
+  a1: "7 ← top"
+  a2: "5"
+  a3: "3 ← bot"
+}
+
+before -> after: "pop()"
 ```
 
 <p align="center"><strong>Pop — removes and returns the top item. Calling <code>pop()</code> on an empty stack is an error; always check <code>size > 0</code> first.</strong></p>
@@ -435,21 +390,13 @@ flowchart LR
 
 `size()` returns the number of items currently on the stack. Always O(1) — implementations typically maintain a counter that's updated by push and pop.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    S["[3, 5, 7]"] -->|"size()"| R["3"]
-    style R fill:#dcfce7,stroke:#22c55e
+```d2
+direction: right
+
+stk: "[3, 5, 7]" { shape: oval }
+res: "3" { shape: oval; style.fill: "#dcfce7"; style.stroke: "#22c55e" }
+
+stk -> res: "size()"
 ```
 
 <p align="center"><strong>Size — a constant-time read. Mostly used as the predicate for <code>isEmpty()</code> (size == 0) or for guarding pop/peek calls (size &gt; 0).</strong></p>
@@ -458,21 +405,15 @@ flowchart LR
 
 `peek()` (sometimes `top()`) returns the value at the top **without removing it**. Useful when you want to look at the most recent item but aren't ready to consume it yet — pattern-matching parsers do this constantly.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    S["[3, 5, 7, 9]"] -->|"peek()"| R["9"]
-    NOTE["stack is unchanged after peek"] -.-> S
+```d2
+direction: right
+
+stk: "[3, 5, 7, 9]" { shape: oval }
+res: "9" { shape: oval; style.fill: "#dcfce7"; style.stroke: "#22c55e" }
+
+stk -> res: "peek()"
+note: "stack is unchanged after peek" {shape: text}
+note -> stk: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Peek — returns the top without removing it. The stack is still <code>[3, 5, 7, 9]</code> after the call. <code>pop</code> = peek + remove; sometimes you only need the peek.</strong></p>

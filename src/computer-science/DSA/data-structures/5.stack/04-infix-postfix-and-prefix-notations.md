@@ -24,21 +24,16 @@ This lesson is the smallest in the section. There's no code. Just three notation
 
 The notation we all learned in school: the operator sits **between** its two operands. `2 + 3` reads as "two plus three". `a * b - c` reads naturally left-to-right. This is **infix notation**, and it's the format every human-facing expression you'll ever see uses.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    L["operand₁"] --- O["operator"] --- R["operand₂"]
-    style O fill:#fef9c3,stroke:#f59e0b
+```d2
+direction: right
+
+row: "" {
+  grid-columns: 3
+  grid-gap: 0
+  l: "operand₁"
+  o: "operator" {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+  r: "operand₂"
+}
 ```
 
 <p align="center"><strong>Infix layout — operator sits <em>between</em> the operands. Natural to read; ambiguous without precedence rules and parentheses.</strong></p>
@@ -59,22 +54,21 @@ Infix is intuitive for *us*, but it's a nightmare for a CPU. Let's see why.
 
 A typical CPU performs one binary operation at a time — it consumes two operands, runs `add` (or `mul`, or `sub`), and produces one result. To evaluate any expression with more than one operator, the CPU has to break the work into a *sequence* of binary operations, in the *correct order*, saving partial results between steps.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    A["a"] --> CPU["CPU<br/>(add)"]
-    B["b"] --> CPU
-    CPU --> R["result = a + b"]
+```d2
+direction: right
+
+a: "a"
+b: "b"
+cpu: |md
+  CPU
+
+  (add)
+|
+r: "result = a + b"
+
+a -> cpu
+b -> cpu
+cpu -> r
 ```
 
 <p align="center"><strong>The atomic CPU operation — two operands in, one result out. Anything more complicated has to be decomposed into a chain of these.</strong></p>
@@ -165,21 +159,16 @@ The summary: **infix is easy for humans because we can see the whole thing at on
 
 Yes, it's possible. In 1924 the Polish mathematician **Jan Łukasiewicz** discovered that you could move the operator *after* its operands and the resulting notation needs *no precedence rules and no parentheses*. The notation became known as **Polish notation**; the variant where operators come *after* operands is called **reverse Polish** — but in computer science we usually call it **postfix**.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    L["operand₁"] --- R["operand₂"] --- O["operator"]
-    style O fill:#fef9c3,stroke:#f59e0b
+```d2
+direction: right
+
+row: "" {
+  grid-columns: 3
+  grid-gap: 0
+  l: "operand₁"
+  r: "operand₂"
+  o: "operator" {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+}
 ```
 
 <p align="center"><strong>Postfix layout — operands first, operator last. The operator "applies to the two most recent operands". Position encodes order; no parentheses needed.</strong></p>
@@ -242,21 +231,16 @@ Even brutally complex expressions are linear-time to evaluate this way. We'll bu
 
 If postfix is operators-after-operands, **prefix** is operators-*before*-operands. Same Polish-notation idea, mirrored. `+ 3 4` reads as "add 3 and 4". This is also called **Polish notation** (without the "reverse").
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    O["operator"] --- L["operand₁"] --- R["operand₂"]
-    style O fill:#fef9c3,stroke:#f59e0b
+```d2
+direction: right
+
+row: "" {
+  grid-columns: 3
+  grid-gap: 0
+  o: "operator" {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+  l: "operand₁"
+  r: "operand₂"
+}
 ```
 
 <p align="center"><strong>Prefix layout — operator first, then operands. The operator "applies to the two operands that follow it". Same parenthesis-free, precedence-free advantages as postfix; opposite scan direction.</strong></p>

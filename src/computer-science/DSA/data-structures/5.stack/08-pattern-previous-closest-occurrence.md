@@ -33,26 +33,33 @@ This is **monotonic-stack** territory, and once you internalise the *"the stack 
 
 The pattern: for each index `i`, find the *closest preceding* index `j < i` whose value satisfies some predicate (`> arr[i]`, `< arr[i]`, etc.). The naive nested loop is O(N²). The monotonic-stack solution is O(N).
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph IN["arr"]
-        I0["3"] --- I1["5"] --- I2["1"] --- I3["6"] --- I4["8"] --- I5["7"]
-    end
-    subgraph OUT["previous greater (PGE)"]
-        O0["−1"] --- O1["−1"] --- O2["5"] --- O3["−1"] --- O4["−1"] --- O5["8"]
-    end
-    NOTE["e.g. arr[2]=1: closest earlier value > 1 is 5"] -.-> O2
+```d2
+arr: arr {
+  grid-columns: 6
+  grid-gap: 0
+  i0: "3"
+  i1: "5"
+  i2: "1"
+  i3: "6"
+  i4: "8"
+  i5: "7"
+}
+
+out: "previous greater (PGE)" {
+  grid-columns: 6
+  grid-gap: 0
+  o0: "−1"
+  o1: "−1"
+  o2: "5" {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+  o3: "−1"
+  o4: "−1"
+  o5: "8"
+}
+
+note: "e.g. arr[2]=1: closest earlier value > 1 is 5" {shape: text}
+note -> out.o2: "" {style.stroke-dash: 3}
+
+arr -> out
 ```
 
 <p align="center"><strong>Previous-greater-element (PGE) for an array — for every position, the most recent strictly-greater value to its left, or −1 if none exists. The brute force is O(N²); the monotonic-stack solution is O(N).</strong></p>

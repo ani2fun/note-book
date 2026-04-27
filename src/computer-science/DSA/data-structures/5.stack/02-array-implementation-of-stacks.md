@@ -28,25 +28,14 @@ This lesson builds the bounded version end-to-end in 10 languages, then closes w
 
 Three fields and a buffer. That's it.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph CLS["Stack (array-backed)"]
-        direction TB
-        A["arr: fixed-size array of capacity slots"]
-        T["topIndex: index of the topmost item (−1 if empty)"]
-        C["capacity: max items the stack can hold"]
-    end
+```d2
+cls: "Stack (array-backed)" {
+  grid-rows: 3
+  grid-gap: 0
+  a: "arr: fixed-size array of capacity slots"
+  t: "topIndex: index of the topmost item (−1 if empty)"
+  c: "capacity: max items the stack can hold"
+}
 ```
 
 <p align="center"><strong>An array-backed stack is just three things — the buffer, the top-of-stack index, and the buffer's capacity. Everything else (size, empty, push, pop, peek) is computed from these.</strong></p>
@@ -61,24 +50,36 @@ flowchart LR
 - **One element** stack ⇒ `topIndex = 0`.
 - **Full** stack ⇒ `topIndex = capacity - 1`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 5
-  L["index"]:1 I0["0"]:1 I1["1"]:1 I2["2"]:1 I3["3"]:1
-  V["value"]:1 V0["3"]:1 V1["5"]:1 V2["7"]:1 V3["—"]:1
-  T1["topIndex = 2"]:5
-  style V2 fill:#fef9c3,stroke:#f59e0b
+```d2
+arr: "capacity-4 array" {
+  grid-columns: 4
+  grid-gap: 0
+  v0: |md
+    **3**
+
+    `0`
+  |
+  v1: |md
+    **5**
+
+    `1`
+  |
+  v2: |md
+    **7**
+
+    `2`
+  | {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+  v3: |md
+    **—**
+
+    `3`
+  |
+}
+
+tip: "topIndex = 2" {
+  shape: oval
+}
+tip -> arr.v2
 ```
 
 <p align="center"><strong>Capacity-4 array, three items stored — <code>topIndex = 2</code>. The slot at index 3 is unused but allocated. Push will write at index 3 and bump <code>topIndex</code> to 3; pop will read index 2 and drop <code>topIndex</code> to 1.</strong></p>
@@ -99,25 +100,48 @@ The number of currently-stored items is **`topIndex + 1`**. A separate counter i
 
 Stacks drawn vertically in textbook diagrams are stored *horizontally* in memory — a single contiguous buffer where the rightmost-used index is the top. This compactness is the whole performance argument: pushing or popping touches one cache line; iterating an N-item stack iterates N adjacent bytes; `realloc` can grow the buffer in place if the OS has room behind it.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph MEM["Memory layout — capacity 6, 3 items"]
-        direction LR
-        M0["@1000<br/>3"] --- M1["@1004<br/>5"] --- M2["@1008<br/>7"] --- M3["@1012<br/>—"] --- M4["@1016<br/>—"] --- M5["@1020<br/>—"]
-    end
-    NOTE["topIndex = 2 → @1008.<br/>Adjacent bytes; CPU prefetches them for free."] -.-> M2
-    style M2 fill:#fef9c3,stroke:#f59e0b
+```d2
+mem: "Memory layout — capacity 6, 3 items" {
+  grid-columns: 6
+  grid-gap: 0
+  m0: |md
+    `@1000`
+
+    **3**
+  |
+  m1: |md
+    `@1004`
+
+    **5**
+  |
+  m2: |md
+    `@1008`
+
+    **7**
+  | {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+  m3: |md
+    `@1012`
+
+    **—**
+  |
+  m4: |md
+    `@1016`
+
+    **—**
+  |
+  m5: |md
+    `@1020`
+
+    **—**
+  |
+}
+
+note: |md
+  topIndex = 2 → @1008.
+
+  Adjacent bytes; CPU prefetches them for free.
+|
+note -> mem.m2: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>An array-backed stack in actual memory — six 4-byte int slots laid out contiguously. The CPU loads cache lines of 64 bytes, so 16 ints come along for the ride on every push or pop. This is why array stacks beat linked-list stacks in wall-clock time despite identical asymptotic complexity.</strong></p>
@@ -128,35 +152,26 @@ flowchart LR
 
 We'll build the class incrementally — first the skeleton (constructor + stub methods), then fill in size, empty, top, push, pop in order. Each operation is a one-liner; the only "logic" is the boundary checks for empty and full.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph CLS["Stack class"]
-        direction TB
-        subgraph PRIV["private internals"]
-            A["arr"]
-            T["topIndex"]
-            C["capacity"]
-        end
-        subgraph PUB["public API"]
-            S["size()"]
-            E["empty()"]
-            P["top()"]
-            PSH["push(val) → bool"]
-            POP["pop() → val"]
-        end
-        PUB -.-> PRIV
-    end
+```d2
+cls: "Stack class" {
+  priv: "private internals" {
+    grid-rows: 3
+    grid-gap: 0
+    a: "arr"
+    t: "topIndex"
+    c: "capacity"
+  }
+  pub: "public API" {
+    grid-rows: 5
+    grid-gap: 0
+    s: "size()"
+    e: "empty()"
+    p: "top()"
+    psh: "push(val) → bool"
+    pop: "pop() → val"
+  }
+  pub -> priv: "" {style.stroke-dash: 3}
+}
 ```
 
 <p align="center"><strong>The class as we'll build it — three private fields, five public methods. Encapsulation hides <code>topIndex</code>; callers see only the operations.</strong></p>
@@ -395,22 +410,32 @@ fn main() {
 
 The cleverness of `topIndex = -1 means empty` pays off here: **`size() = topIndex + 1`**. No counter, no traversal, no allocation. One add, return.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    E1["topIndex = -1<br/>(empty)"] --> S1["size = 0"]
-    E2["topIndex = 0<br/>(one item)"] --> S2["size = 1"]
-    E3["topIndex = 3<br/>(four items)"] --> S3["size = 4"]
+```d2
+direction: right
+
+e1: |md
+  topIndex = -1
+
+  (empty)
+|
+s1: "size = 0"
+e1 -> s1
+
+e2: |md
+  topIndex = 0
+
+  (one item)
+|
+s2: "size = 1"
+e2 -> s2
+
+e3: |md
+  topIndex = 3
+
+  (four items)
+|
+s3: "size = 4"
+e3 -> s3
 ```
 
 <p align="center"><strong>Why <code>size() = topIndex + 1</code> works — the indices 0..topIndex hold valid data, so the count of valid entries is <code>topIndex + 1</code>. The −1 sentinel for empty makes the formula uniform across all states (including empty, where 0 + (−1) = 0).</strong></p>
@@ -1618,27 +1643,42 @@ The naïve approach is to split the array down the middle: stack 1 owns indices 
 
 The clever approach: let stack 1 grow **rightward from index 0** (top1 starts at −1) and stack 2 grow **leftward from index capacity−1** (top2 starts at `capacity`). They meet in the middle, but only when the *combined* size hits the array's length. Either stack can use up to N − 1 of the slots, as long as the other stays small.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 6
-  L["index"]:1 I0["0"]:1 I1["1"]:1 I2["2"]:1 I3["3"]:1 I4["4"]:1
-  V["value"]:1 V0["3"]:1 V1["5"]:1 G["—"]:1 V3["7"]:1 V4["11"]:1
-  T["state"]:1 T1["top1=1"]:2  T2["top2=3"]:2 _t:1
-  style V0 fill:#dbeafe,stroke:#3b82f6
-  style V1 fill:#dbeafe,stroke:#3b82f6
-  style V3 fill:#ede9fe,stroke:#7c3aed
-  style V4 fill:#ede9fe,stroke:#7c3aed
+```d2
+arr: "two stacks in one array (capacity 5)" {
+  grid-columns: 5
+  grid-gap: 0
+  v0: |md
+    **3**
+
+    `0`
+  | {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  v1: |md
+    **5**
+
+    `1`
+  | {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  v2: |md
+    **—**
+
+    `2`
+  |
+  v3: |md
+    **7**
+
+    `3`
+  | {style.fill: "#ede9fe"; style.stroke: "#7c3aed"}
+  v4: |md
+    **11**
+
+    `4`
+  | {style.fill: "#ede9fe"; style.stroke: "#7c3aed"}
+}
+
+t1: "top1 = 1" { shape: oval; style.fill: "#dbeafe"; style.stroke: "#3b82f6" }
+t2: "top2 = 3" { shape: oval; style.fill: "#ede9fe"; style.stroke: "#7c3aed" }
+
+t1 -> arr.v1
+t2 -> arr.v3
 ```
 
 <p align="center"><strong>Two stacks in one array — stack 1 (blue) grows right from index 0; stack 2 (purple) grows left from index capacity−1. They collide only when <code>top1 + 1 == top2</code>, which means the array is genuinely full.</strong></p>

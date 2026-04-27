@@ -66,28 +66,16 @@ flowchart LR
 
 The input is the postfix form of `(2 + 3*1) - 9 = -4`. Walk it:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    S0["read 2 → push<br/>stack: [2]"] --> S1["read 3 → push<br/>stack: [2, 3]"]
-    S1 --> S2["read 1 → push<br/>stack: [2, 3, 1]"]
-    S2 --> S3["read * → pop 1, pop 3, push 3*1=3<br/>stack: [2, 3]"]
-    S3 --> S4["read + → pop 3, pop 2, push 2+3=5<br/>stack: [5]"]
-    S4 --> S5["read 9 → push<br/>stack: [5, 9]"]
-    S5 --> S6["read - → pop 9, pop 5, push 5-9=-4<br/>stack: [-4]"]
-    S6 --> R["result: -4"]
-    style R fill:#dcfce7,stroke:#22c55e
-```
+| Step | Token | Action | Stack (top right) |
+|---:|:---:|---|---|
+| 1 | `2` | push | `[2]` |
+| 2 | `3` | push | `[2, 3]` |
+| 3 | `1` | push | `[2, 3, 1]` |
+| 4 | `*` | pop 1, pop 3, push `3*1=3` | `[2, 3]` |
+| 5 | `+` | pop 3, pop 2, push `2+3=5` | `[5]` |
+| 6 | `9` | push | `[5, 9]` |
+| 7 | `-` | pop 9, pop 5, push `5-9=-4` | `[-4]` |
+| — | end | result is the lone item | **`-4`** |
 
 <p align="center"><strong>Walking <code>2 3 1 * + 9 -</code> step by step — every operator collapses two stack entries into one, so the stack never grows past O(operands). The final element is the answer.</strong></p>
 
@@ -657,28 +645,16 @@ flowchart LR
 
 Equivalent infix: `(8 + 6/3) - 2 = 8`. Reversed string: `2 3 6 / 8 + -`. Walk the reversed string left-to-right, treating the first pop as the left operand:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    S0["read 2 → push<br/>stack: [2]"] --> S1["read 3 → push<br/>stack: [2, 3]"]
-    S1 --> S2["read 6 → push<br/>stack: [2, 3, 6]"]
-    S2 --> S3["read /<br/>pop a=6, pop b=3, push 6/3=2<br/>stack: [2, 2]"]
-    S3 --> S4["read 8 → push<br/>stack: [2, 2, 8]"]
-    S4 --> S5["read +<br/>pop a=8, pop b=2, push 8+2=10<br/>stack: [2, 10]"]
-    S5 --> S6["read -<br/>pop a=10, pop b=2, push 10-2=8<br/>stack: [8]"]
-    S6 --> R["result: 8"]
-    style R fill:#dcfce7,stroke:#22c55e
-```
+| Step | Token | Action (first pop = left operand) | Stack (top right) |
+|---:|:---:|---|---|
+| 1 | `2` | push | `[2]` |
+| 2 | `3` | push | `[2, 3]` |
+| 3 | `6` | push | `[2, 3, 6]` |
+| 4 | `/` | pop a=6, pop b=3, push `6/3=2` | `[2, 2]` |
+| 5 | `8` | push | `[2, 2, 8]` |
+| 6 | `+` | pop a=8, pop b=2, push `8+2=10` | `[2, 10]` |
+| 7 | `-` | pop a=10, pop b=2, push `10-2=8` | `[8]` |
+| — | end | result is the lone item | **`8`** |
 
 <p align="center"><strong>Prefix evaluation, after reversing the input — same single-pass shape as postfix, but the first pop is the <em>left</em> operand. Notice <code>6/3=2</code>, not <code>3/6</code>; the operand order matters and the swap is the only thing that's changed from postfix.</strong></p>
 

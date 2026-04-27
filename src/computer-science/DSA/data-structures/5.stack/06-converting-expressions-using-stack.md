@@ -57,28 +57,16 @@ flowchart LR
 
 ## Walkthrough — `2 3 1 * + 9 -`
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    S0["push '2'<br/>['2']"] --> S1["push '3'<br/>['2','3']"]
-    S1 --> S2["push '1'<br/>['2','3','1']"]
-    S2 --> S3["* → pop '1', pop '3'<br/>push '*31'<br/>['2','*31']"]
-    S3 --> S4["+ → pop '*31', pop '2'<br/>push '+2*31'<br/>['+2*31']"]
-    S4 --> S5["push '9'<br/>['+2*31','9']"]
-    S5 --> S6["- → pop '9', pop '+2*31'<br/>push '-+2*319'<br/>['-+2*319']"]
-    S6 --> R["result: -+2*319"]
-    style R fill:#dcfce7,stroke:#22c55e
-```
+| Step | Token | Action | Stack (top right) |
+|---:|:---:|---|---|
+| 1 | `2` | push `'2'` | `['2']` |
+| 2 | `3` | push `'3'` | `['2','3']` |
+| 3 | `1` | push `'1'` | `['2','3','1']` |
+| 4 | `*` | pop `'1'`, pop `'3'`, push `'*31'` | `['2','*31']` |
+| 5 | `+` | pop `'*31'`, pop `'2'`, push `'+2*31'` | `['+2*31']` |
+| 6 | `9` | push `'9'` | `['+2*31','9']` |
+| 7 | `-` | pop `'9'`, pop `'+2*31'`, push `'-+2*319'` | `['-+2*319']` |
+| — | end | result is the lone item | **`-+2*319`** |
 
 <p align="center"><strong>Postfix <code>231*+9-</code> → prefix <code>-+2*319</code>. The stack is a <em>string</em> stack — every operator combines two existing prefix sub-expressions into a larger one. Operand order: first pop is right; second pop is left.</strong></p>
 
@@ -1061,29 +1049,16 @@ The key invariant: **at any point during the scan, the operator stack contains o
 
 ## Walkthrough — `(2 + 3) * 4`
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    S0["read '(' → ops: ['(']<br/>out: ''"] --> S1["read '2' → out: '2'"]
-    S1 --> S2["read '+' → ops: ['(', '+']"]
-    S2 --> S3["read '3' → out: '23'"]
-    S3 --> S4["read ')' → flush '+' to out<br/>discard '('<br/>out: '23+', ops: []"]
-    S4 --> S5["read '*' → ops: ['*']"]
-    S5 --> S6["read '4' → out: '23+4'"]
-    S6 --> S7["EOF → flush '*' to out<br/>out: '23+4*'"]
-    S7 --> R["result: 23+4*"]
-    style R fill:#dcfce7,stroke:#22c55e
-```
+| Step | Token | Action | Op stack | Output |
+|---:|:---:|---|---|---|
+| 1 | `(` | push `(` | `['(']` | `''` |
+| 2 | `2` | append to output | `['(']` | `'2'` |
+| 3 | `+` | push (top is `(`, no flush) | `['(', '+']` | `'2'` |
+| 4 | `3` | append to output | `['(', '+']` | `'23'` |
+| 5 | `)` | flush `+` to output, discard `(` | `[]` | `'23+'` |
+| 6 | `*` | push | `['*']` | `'23+'` |
+| 7 | `4` | append to output | `['*']` | `'23+4'` |
+| — | EOF | flush remaining ops | `[]` | **`'23+4*'`** |
 
 <p align="center"><strong>Shunting-Yard on <code>(2+3)*4</code> — the parenthesis fences off <code>+</code> until <code>)</code> is seen; then <code>+</code> flushes. <code>*</code> waits on the stack until end-of-input. Result: <code>23+4*</code>.</strong></p>
 

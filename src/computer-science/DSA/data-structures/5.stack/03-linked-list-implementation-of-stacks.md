@@ -31,29 +31,38 @@ This lesson builds the linked-list stack end-to-end in 10 languages — same fiv
 
 A linked-list stack stores its top at the **head** of a singly linked list. Three fields wrap that list:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph CLS["Stack (linked-list-backed)"]
-        direction TB
-        H["head: pointer to top node (null if empty)"]
-        S["currentSize: number of nodes"]
-        C["capacity: max nodes allowed"]
-    end
-    H --> N1["val: 9<br/>next: ●"]
-    N1 --> N2["val: 7<br/>next: ●"]
-    N2 --> N3["val: 5<br/>next: null"]
-    style N1 fill:#fef9c3,stroke:#f59e0b
+```d2
+direction: right
+
+cls: "Stack (linked-list-backed)" {
+  grid-rows: 3
+  grid-gap: 0
+  h: "head: pointer to top node (null if empty)"
+  s: "currentSize: number of nodes"
+  c: "capacity: max nodes allowed"
+}
+
+n1: |md
+  **val: 9**
+
+  next: ●
+| {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+
+n2: |md
+  val: 7
+
+  next: ●
+|
+
+n3: |md
+  val: 5
+
+  next: null
+|
+
+cls.h -> n1
+n1 -> n2
+n2 -> n3
 ```
 
 <p align="center"><strong>Linked-list stack — <code>head</code> always points at the top. To push, allocate a new node and make it the new head; to pop, advance head to <code>head.next</code> and free the old head. Both are O(1) regardless of the stack's depth.</strong></p>
@@ -106,23 +115,23 @@ Two pieces: a tiny `ListNode` type for the chain, and the `Stack` class that wra
 
 A node holds a value and a pointer to the next node. That's the entire definition. The first lesson of the linked-list section already covered this, so we'll keep it minimal.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph N["ListNode"]
-        direction LR
-        V["val<br/>(int)"] --- NX["next<br/>(pointer)"]
-    end
+```d2
+direction: right
+
+n: ListNode {
+  grid-columns: 2
+  grid-gap: 0
+  v: |md
+    val
+
+    (int)
+  |
+  nx: |md
+    next
+
+    (pointer)
+  |
+}
 ```
 
 <p align="center"><strong>The chain node — one value plus one pointer. Push allocates one of these; pop frees one.</strong></p>
@@ -782,29 +791,32 @@ Three steps, all O(1):
 
 The order of those three steps matters: if you set `head = newNode` *before* setting `newNode.next = head`, you'll set `newNode.next` to itself, creating a cycle of length 1. Always rewire the new node's `next` *first*, then update `head`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph BEFORE["before push(9)"]
-        direction LR
-        H1["head"] --> N1["7"] --> N2["5"] --> NUL1["null"]
-    end
-    subgraph AFTER["after push(9)"]
-        direction LR
-        H2["head"] --> N3["9"] --> N4["7"] --> N5["5"] --> NUL2["null"]
-    end
-    BEFORE --> AFTER
-    style N3 fill:#dcfce7,stroke:#22c55e
+```d2
+before: "before push(9)" {
+  direction: right
+  h1: head
+  n1: "7"
+  n2: "5"
+  nul1: null
+  h1 -> n1
+  n1 -> n2
+  n2 -> nul1
+}
+
+after: "after push(9)" {
+  direction: right
+  h2: head
+  n3: "9" {style.fill: "#dcfce7"; style.stroke: "#22c55e"}
+  n4: "7"
+  n5: "5"
+  nul2: null
+  h2 -> n3
+  n3 -> n4
+  n4 -> n5
+  n5 -> nul2
+}
+
+before -> after
 ```
 
 <p align="center"><strong>Push — the new node lands at the head; the old head becomes <code>newNode.next</code>. Three pointer assignments, regardless of how many nodes are already in the list.</strong></p>
@@ -1057,29 +1069,32 @@ Three steps:
 
 The "save old head before moving" sequence matters in languages with manual memory management — if you advance `head` first and *then* try to delete the old head, you've already lost the pointer to it.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph BEFORE["before pop()"]
-        direction LR
-        H1["head"] --> N1["9 ← will be freed"] --> N2["7"] --> N3["5"] --> NUL1["null"]
-    end
-    subgraph AFTER["after pop() → 9"]
-        direction LR
-        H2["head"] --> N4["7"] --> N5["5"] --> NUL2["null"]
-    end
-    BEFORE --> AFTER
-    style N1 fill:#fee2e2,stroke:#ef4444
+```d2
+before: "before pop()" {
+  direction: right
+  h1: head
+  n1: "9 ← will be freed" {style.fill: "#fee2e2"; style.stroke: "#ef4444"}
+  n2: "7"
+  n3: "5"
+  nul1: null
+  h1 -> n1
+  n1 -> n2
+  n2 -> n3
+  n3 -> nul1
+}
+
+after: "after pop() → 9" {
+  direction: right
+  h2: head
+  n4: "7"
+  n5: "5"
+  nul2: null
+  h2 -> n4
+  n4 -> n5
+  n5 -> nul2
+}
+
+before -> after
 ```
 
 <p align="center"><strong>Pop — read the head's value, advance head, free the old head. The list shrinks by one node from the front.</strong></p>

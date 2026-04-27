@@ -244,34 +244,28 @@ Given a stack `s`, return a new stack containing the same elements in *reversed*
 
 Two stacks. Pop everything from the input and push onto the output — *that single transfer reverses the order, because the topmost element of the input is pushed first onto the output, ending up at the bottom*.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph IN["input stack (top=2)"]
-        direction TB
-        I1["2 ← top"]
-        I2["1"]
-        I3["5"]
-        I4["9 ← bot"]
-    end
-    IN -->|"pop, push"| OUT
-    subgraph OUT["output stack (top=9)"]
-        direction TB
-        O1["9 ← top"]
-        O2["5"]
-        O3["1"]
-        O4["2 ← bot"]
-    end
+```d2
+direction: right
+
+inp: "input stack" {
+  grid-rows: 4
+  grid-gap: 0
+  i1: "2 ← top"
+  i2: "1"
+  i3: "5"
+  i4: "9 ← bot"
+}
+
+out: "output stack" {
+  grid-rows: 4
+  grid-gap: 0
+  o1: "9 ← top"
+  o2: "5"
+  o3: "1"
+  o4: "2 ← bot"
+}
+
+inp -> out: "pop, push"
 ```
 
 <p align="center"><strong>Stack inversion — pop the input top, push to output. The first popped item lands at the bottom of the output, which is exactly where it started in the input. The whole stack flips.</strong></p>
