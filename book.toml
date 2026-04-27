@@ -25,7 +25,8 @@ additional-js = [
   "theme/ts-playground.js",
   "theme/piston-playground.js",
   "theme/pagetoc.js",
-  "theme/pagetoc-mobile.js"
+  "theme/pagetoc-mobile.js",
+  "theme/floating-nav.js"
 ]
 
 [preprocessor.d2]

@@ -323,14 +323,62 @@
     opacity: 0.8;
 }
 
-/* Page TOC — desktop overlap fix.
-   The pagetoc rail is visible at >=1440px; mdBook's wide side
-   chapter-nav buttons (.nav-wide-wrapper) are full-height invisible
-   columns that overlap the rail and steal clicks. Swap to the inline
-   bottom-of-page nav (.nav-wrapper) at this breakpoint. */
-@media only screen and (min-width: 1440px) {
-    .nav-wide-wrapper { display: none; }
-    .nav-wrapper { display: block; }
+/* Floating prev/next chevrons.
+   Replaces mdBook's full-height invisible side columns (which
+   overlapped the pagetoc rail) with a pair of small circular
+   buttons fixed at the bottom-right of the viewport. Hidden until
+   the reader scrolls past 200px, just like a typical "back to top"
+   button. The bottom-of-page inline .nav-wrapper is suppressed since
+   the floating pair replaces it. */
+.nav-wrapper { display: none; }
+
+.nav-wide-wrapper {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    left: auto;
+    width: auto;
+    height: auto;
+    display: flex !important;
+    gap: 0.5rem;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+body.scrolled .nav-wide-wrapper {
+    opacity: 0.85;
+    pointer-events: auto;
+}
+
+body.scrolled .nav-wide-wrapper:hover {
+    opacity: 1;
+}
+
+.nav-wide-wrapper .nav-chapters {
+    position: static !important;
+    top: auto !important;
+    bottom: auto !important;
+    width: 44px;
+    min-width: 44px;
+    max-width: 44px;
+    height: 44px;
+    margin: 0;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1px solid var(--sidebar-bg);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    font-size: 1.2em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-wide-wrapper .nav-chapters:hover {
+    background: var(--sidebar-bg);
 }
 
 /* Page TOC — mobile/tablet collapsed panel.
