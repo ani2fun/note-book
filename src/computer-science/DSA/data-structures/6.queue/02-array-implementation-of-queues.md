@@ -31,27 +31,14 @@ This lesson builds that circular queue end-to-end in 10 languages, deriving the 
 
 Four fields and a buffer. That's it.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph CLS["Queue (circular-array-backed)"]
-        direction TB
-        A["arr: fixed-size array of capacity slots"]
-        F["frontIndex: index of the front item (0 when empty, by convention)"]
-        B["backIndex: index of the back item (−1 when empty, by convention)"]
-        S["currentSize: number of items currently in the queue"]
-        C["capacity: max items the queue can hold"]
-    end
+```d2
+cls: "Queue (circular-array-backed)" {
+  arr: "arr: fixed-size array of capacity slots"
+  fidx: "frontIndex: index of the front item (0 when empty, by convention)"
+  bidx: "backIndex: index of the back item (-1 when empty, by convention)"
+  size: "currentSize: number of items currently in the queue"
+  cap: "capacity: max items the queue can hold"
+}
 ```
 
 <p align="center"><strong>An array-backed queue is just five things — the buffer, two index pointers, the size counter, and the capacity. Everything else (empty, full, enqueue, dequeue, front, back) is computed from these.</strong></p>
@@ -84,26 +71,46 @@ The number of items currently in the queue. Why store it as a separate counter a
 
 The length of the underlying buffer. Fixed at construction. Used to detect overflow (refuse enqueue when `currentSize == capacity`) and to compute the modulo wrap-around.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 7
-  L["index"]:1 I0["0"]:1 I1["1"]:1 I2["2"]:1 I3["3"]:1 I4["4"]:1 I5["5"]:1
-  V["value"]:1 V0["—"]:1 V1["3"]:1 V2["5"]:1 V3["7"]:1 V4["—"]:1 V5["—"]:1
-  S1["frontIndex = 1"]:3 S2["backIndex = 3"]:3 _:1
-  S3["currentSize = 3, capacity = 6"]:7
-  style V1 fill:#dcfce7,stroke:#22c55e
-  style V3 fill:#fef9c3,stroke:#f59e0b
+```d2
+arr: "capacity-6 array, three items at indices 1, 2, 3" {
+  grid-columns: 6
+  grid-gap: 0
+  e0: |md
+    `0`
+
+    "—"
+  |
+  e1: |md
+    `1`
+
+    **3**
+  | {style.fill: "#dcfce7"; style.stroke: "#22c55e"}
+  e2: |md
+    `2`
+
+    5
+  |
+  e3: |md
+    `3`
+
+    **7**
+  | {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+  e4: |md
+    `4`
+
+    "—"
+  |
+  e5: |md
+    `5`
+
+    "—"
+  |
+}
+
+state: "frontIndex = 1, backIndex = 3, currentSize = 3, capacity = 6" {
+  shape: text
+}
+state -> arr
 ```
 
 <p align="center"><strong>Capacity-6 array, three items stored at indices 1, 2, 3 — front at 1, back at 3. Indices 0 and 4–5 are unused but allocated. The next enqueue writes at index 4 and bumps back to 4; the next dequeue returns the value at index 1 and bumps front to 2.</strong></p>
@@ -126,25 +133,46 @@ In an array-backed *stack*, only one index moves (the top), and it bounces up an
 
 In an array-backed *queue*, **both indices march forward**. Enqueue moves back forward; dequeue moves front forward. Eventually one of them hits the end of the array. Without a fix, you've now run out of room on the back end *even if the front end has plenty of slack*.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 7
-  L["index"]:1 I0["0"]:1 I1["1"]:1 I2["2"]:1 I3["3"]:1 I4["4"]:1 I5["5"]:1
-  V["value"]:1 V0["—"]:1 V1["—"]:1 V2["—"]:1 V3["7"]:1 V4["11"]:1 V5["13"]:1
-  N["state"]:1 N1["front=3, back=5, size=3, capacity=6"]:6
-  style V3 fill:#dcfce7,stroke:#22c55e
-  style V5 fill:#fef9c3,stroke:#f59e0b
+```d2
+arr: "naive view: back has hit the last slot" {
+  grid-columns: 6
+  grid-gap: 0
+  e0: |md
+    `0`
+
+    "—"
+  |
+  e1: |md
+    `1`
+
+    "—"
+  |
+  e2: |md
+    `2`
+
+    "—"
+  |
+  e3: |md
+    `3`
+
+    **7**
+  | {style.fill: "#dcfce7"; style.stroke: "#22c55e"}
+  e4: |md
+    `4`
+
+    11
+  |
+  e5: |md
+    `5`
+
+    **13**
+  | {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+}
+
+state: "front=3, back=5, size=3, capacity=6 — indices 0-2 stranded" {
+  shape: text
+}
+state -> arr
 ```
 
 <p align="center"><strong>The naïve view — back has hit the last slot, but the front has marched up to 3, leaving indices 0–2 vacated and unused. The queue holds only 3 of 6 capacity, yet a "linear" enqueue would now incorrectly report "full".</strong></p>
@@ -153,45 +181,68 @@ block-beta
 
 When the back hits the last index, the *next* enqueue should write at index 0 and treat it as the new back. The array becomes a **circle**:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    A0["[0]"] --> A1["[1]"] --> A2["[2]"] --> A3["[3]"] --> A4["[4]"] --> A5["[5]"] -->|"wrap"| A0
+```d2
+direction: right
+
+s0: "[0]"
+s1: "[1]"
+s2: "[2]"
+s3: "[3]"
+s4: "[4]"
+s5: "[5]"
+
+s0 -> s1
+s1 -> s2
+s2 -> s3
+s3 -> s4
+s4 -> s5
+s5 -> s0: wrap
 ```
 
 <p align="center"><strong>Treat the array as a ring — index <code>capacity − 1</code>'s "next" is index <code>0</code>, not "out of bounds". A single modulo expression encodes this: <code>nextIndex = (currentIndex + 1) % capacity</code>.</strong></p>
 
 Now the same enqueue that previously failed succeeds — write at index 0, and back becomes 0:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 7
-  L["index"]:1 I0["0"]:1 I1["1"]:1 I2["2"]:1 I3["3"]:1 I4["4"]:1 I5["5"]:1
-  V["value"]:1 V0["17"]:1 V1["—"]:1 V2["—"]:1 V3["7"]:1 V4["11"]:1 V5["13"]:1
-  N["state"]:1 N1["front=3, back=0, size=4 — back has wrapped"]:6
-  style V3 fill:#dcfce7,stroke:#22c55e
-  style V0 fill:#fef9c3,stroke:#f59e0b
+```d2
+arr: "after enqueue(17): back wrapped from 5 to 0" {
+  grid-columns: 6
+  grid-gap: 0
+  e0: |md
+    `0`
+
+    **17**
+  | {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+  e1: |md
+    `1`
+
+    "—"
+  |
+  e2: |md
+    `2`
+
+    "—"
+  |
+  e3: |md
+    `3`
+
+    **7**
+  | {style.fill: "#dcfce7"; style.stroke: "#22c55e"}
+  e4: |md
+    `4`
+
+    11
+  |
+  e5: |md
+    `5`
+
+    13
+  |
+}
+
+state: "front=3, back=0, size=4 — back has wrapped" {
+  shape: text
+}
+state -> arr
 ```
 
 <p align="center"><strong>After enqueueing 17 — back wrapped from 5 to 0 via <code>(5 + 1) % 6 = 0</code>. The queue's <em>logical</em> contents are now <code>[7, 11, 13, 17]</code> in order, even though <em>physically</em> they're stored as <code>[17, —, —, 7, 11, 13]</code>. The wrap is invisible to the caller.</strong></p>
@@ -206,26 +257,50 @@ The same wrap applies to dequeue. The expression `(index + 1) % capacity` advanc
 
 Conceptually circular, physically still a flat contiguous array. The `% capacity` operator is the only thing that distinguishes a ring buffer from a normal array — there's no special hardware, no clever pointer arithmetic. Just one modulo per operation.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph MEM["Memory layout — capacity 6, items stored at indices 3,4,5,0"]
-        direction LR
-        M0["@1000<br/>17"] --- M1["@1004<br/>—"] --- M2["@1008<br/>—"] --- M3["@1012<br/>7"] --- M4["@1016<br/>11"] --- M5["@1020<br/>13"]
-    end
-    NOTE["Logical order: 7 → 11 → 13 → 17.<br/>Physical order: 17, —, —, 7, 11, 13.<br/>Same contiguous bytes, modulo arithmetic does the rest."] -.-> M3
-    style M3 fill:#dcfce7,stroke:#22c55e
-    style M0 fill:#fef9c3,stroke:#f59e0b
+```d2
+mem: "Memory layout — capacity 6, items stored at indices 3, 4, 5, 0" {
+  grid-columns: 6
+  grid-gap: 0
+  m0: |md
+    `@1000`
+
+    **17**
+  | {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+  m1: |md
+    `@1004`
+
+    "—"
+  |
+  m2: |md
+    `@1008`
+
+    "—"
+  |
+  m3: |md
+    `@1012`
+
+    **7**
+  | {style.fill: "#dcfce7"; style.stroke: "#22c55e"}
+  m4: |md
+    `@1016`
+
+    11
+  |
+  m5: |md
+    `@1020`
+
+    13
+  |
+}
+
+note: |md
+  Logical order: 7, 11, 13, 17
+
+  Physical order: 17, —, —, 7, 11, 13
+
+  Same contiguous bytes; modulo arithmetic does the rest.
+| { shape: text }
+note -> mem.m3
 ```
 
 <p align="center"><strong>A circular queue in actual memory — six 4-byte int slots laid out linearly. The "wrap" is a property of the access pattern, not the storage. The CPU still gets cache locality on each operation; the modulo costs a few nanoseconds.</strong></p>
@@ -236,38 +311,27 @@ flowchart LR
 
 We'll build the class incrementally — first the skeleton (constructor + stub methods), then fill in `size`, `empty`, `front`, `back`, `enqueue`, `dequeue` in order.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph CLS["Queue class"]
-        direction TB
-        subgraph PRIV["private internals"]
-            A["arr"]
-            F["frontIndex"]
-            B["backIndex"]
-            S["currentSize"]
-            C["capacity"]
-        end
-        subgraph PUB["public API"]
-            SZ["size()"]
-            EM["empty()"]
-            FR["front()"]
-            BK["back()"]
-            ENQ["enqueue(val) → bool"]
-            DEQ["dequeue() → val"]
-        end
-        PUB -.-> PRIV
-    end
+```d2
+direction: right
+
+cls: "Queue class" {
+  priv: "private internals" {
+    arr: arr
+    fidx: frontIndex
+    bidx: backIndex
+    size: currentSize
+    cap: capacity
+  }
+  pub: "public API" {
+    sz: "size()"
+    em: "empty()"
+    fr: "front()"
+    bk: "back()"
+    enq: "enqueue(val) -> bool"
+    deq: "dequeue() -> val"
+  }
+  pub -> priv
+}
 ```
 
 <p align="center"><strong>The class as we'll build it — five private fields, six public methods. The two index fields plus the modulo arithmetic are the only "interesting" code in the entire implementation.</strong></p>
@@ -676,24 +740,46 @@ Calls `size`, returns a comparison.
 1. **Queue is empty** → return `-1` as a sentinel (production code would throw; we return `-1` for simplicity, matching the lesson's convention).
 2. **Queue is non-empty** → return `arr[frontIndex]`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 7
-  L["index"]:1 I0["0"]:1 I1["1"]:1 I2["2"]:1 I3["3"]:1 I4["4"]:1 I5["5"]:1
-  V["value"]:1 V0["—"]:1 V1["3"]:1 V2["5"]:1 V3["7"]:1 V4["—"]:1 V5["—"]:1
-  R["front() returns arr[frontIndex] = arr[1] = 3"]:7
-  style V1 fill:#dcfce7,stroke:#22c55e
+```d2
+arr: "front access" {
+  grid-columns: 6
+  grid-gap: 0
+  e0: |md
+    `0`
+
+    "—"
+  |
+  e1: |md
+    `1`
+
+    **3**
+  | {style.fill: "#dcfce7"; style.stroke: "#22c55e"}
+  e2: |md
+    `2`
+
+    5
+  |
+  e3: |md
+    `3`
+
+    7
+  |
+  e4: |md
+    `4`
+
+    "—"
+  |
+  e5: |md
+    `5`
+
+    "—"
+  |
+}
+
+note: "front() returns arr[frontIndex] = arr[1] = 3" {
+  shape: text
+}
+note -> arr.e1
 ```
 
 <p align="center"><strong>front() — read the slot at <code>frontIndex</code>. The queue is unchanged after the call.</strong></p>
@@ -778,24 +864,46 @@ A predicate plus an array indexing — both O(1).
 
 `back()` returns the value of the newest item in the queue without removing it. Same two cases — empty (`-1`) or read `arr[backIndex]`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 7
-  L["index"]:1 I0["0"]:1 I1["1"]:1 I2["2"]:1 I3["3"]:1 I4["4"]:1 I5["5"]:1
-  V["value"]:1 V0["—"]:1 V1["3"]:1 V2["5"]:1 V3["7"]:1 V4["—"]:1 V5["—"]:1
-  R["back() returns arr[backIndex] = arr[3] = 7"]:7
-  style V3 fill:#fef9c3,stroke:#f59e0b
+```d2
+arr: "back access" {
+  grid-columns: 6
+  grid-gap: 0
+  e0: |md
+    `0`
+
+    "—"
+  |
+  e1: |md
+    `1`
+
+    3
+  |
+  e2: |md
+    `2`
+
+    5
+  |
+  e3: |md
+    `3`
+
+    **7**
+  | {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+  e4: |md
+    `4`
+
+    "—"
+  |
+  e5: |md
+    `5`
+
+    "—"
+  |
+}
+
+note: "back() returns arr[backIndex] = arr[3] = 7" {
+  shape: text
+}
+note -> arr.e3
 ```
 
 <p align="center"><strong>back() — read the slot at <code>backIndex</code>. The queue is unchanged after the call.</strong></p>
@@ -1237,22 +1345,44 @@ Given the skeleton of a **Queue class**, complete it by implementing all the que
 1. Use **a single fixed-size array** as the internal data structure. No additional containers, no nodes.
 2. The implementation **must be circular** — every vacated slot must be reusable before the queue declares itself full.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    A0["[0] 17"] --> A1["[1] —"] --> A2["[2] —"] --> A3["[3] 7"] --> A4["[4] 11"] --> A5["[5] 13"] -->|"wrap"| A0
-    style A3 fill:#dcfce7,stroke:#22c55e
-    style A0 fill:#fef9c3,stroke:#f59e0b
+```d2
+direction: right
+
+ring: "circular layout — front=3, back=0 (wrapped), logical order 7 → 11 → 13 → 17" {
+  grid-columns: 6
+  grid-gap: 0
+  s0: |md
+    `[0]`
+
+    **17**
+  | {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+  s1: |md
+    `[1]`
+
+    "—"
+  |
+  s2: |md
+    `[2]`
+
+    "—"
+  |
+  s3: |md
+    `[3]`
+
+    **7**
+  | {style.fill: "#dcfce7"; style.stroke: "#22c55e"}
+  s4: |md
+    `[4]`
+
+    11
+  |
+  s5: |md
+    `[5]`
+
+    13
+  |
+}
+ring.s5 -> ring.s0: wrap
 ```
 
 <p align="center"><strong>Circular queue layout — front=3, back=0 (wrapped), logical order 7→11→13→17. Every slot is reachable; the array is reused indefinitely as long as the size never exceeds capacity.</strong></p>

@@ -32,32 +32,36 @@ This lesson builds the linked-list queue end-to-end in 10 languages — same fiv
 
 A linked-list queue stores its front at the **head** of a singly linked list and its back at the **tail**. Four fields wrap that list:
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph CLS["Queue (linked-list-backed)"]
-        direction TB
-        H["head: pointer to front node (null if empty)"]
-        T["tail: pointer to back node (null if empty)"]
-        S["currentSize: number of nodes"]
-        C["capacity: max nodes allowed (bounded variant)"]
-    end
-    H --> N1["val: 3<br/>next: ●"]
-    N1 --> N2["val: 5<br/>next: ●"]
-    N2 --> N3["val: 7<br/>next: null"]
-    T --> N3
-    style N1 fill:#dcfce7,stroke:#22c55e
-    style N3 fill:#fef9c3,stroke:#f59e0b
+```d2
+direction: right
+
+cls: "Queue (linked-list-backed)" {
+  h: "head: pointer to front node (null if empty)"
+  t: "tail: pointer to back node (null if empty)"
+  s: "currentSize: number of nodes"
+  c: "capacity: max nodes (bounded variant)"
+}
+
+n1: |md
+  **val: 3**
+
+  next ●
+| {style.fill: "#dcfce7"; style.stroke: "#22c55e"}
+n2: |md
+  val: 5
+
+  next ●
+|
+n3: |md
+  **val: 7**
+
+  next: null
+| {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+
+cls.h -> n1
+n1 -> n2
+n2 -> n3
+cls.t -> n3
 ```
 
 <p align="center"><strong>Linked-list queue — <code>head</code> always points at the front (oldest) node; <code>tail</code> always points at the back (newest) node. The chain itself flows from front to back, mirroring the FIFO order. Enqueue extends past the tail; dequeue advances the head.</strong></p>
@@ -117,23 +121,21 @@ Two pieces: a tiny `ListNode` type for the chain, and the `Queue` class that wra
 
 A node holds a value and a pointer to the next node. That's the entire definition. The first lesson of the linked-list section already covered this, so we'll keep it minimal.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph N["ListNode"]
-        direction LR
-        V["val<br/>(int)"] --- NX["next<br/>(pointer)"]
-    end
+```d2
+direction: right
+
+n: ListNode {
+  val: |md
+    **val**
+
+    (int)
+  |
+  next: |md
+    **next**
+
+    (pointer)
+  |
+}
 ```
 
 <p align="center"><strong>The chain node — one value plus one pointer. Enqueue allocates one of these; dequeue frees one (or relies on garbage collection).</strong></p>
@@ -577,23 +579,25 @@ pub fn empty(&self) -> bool { self.size() == 0 }
 
 `front()` returns the value of the head node. Two cases — empty (`-1`) or read `head.val`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H["head"] --> N1["val: 3"] --> N2["val: 5"] --> N3["val: 7"] --> NL["null"]
-    T["tail"] --> N3
-    R["front() returns head.val = 3"] -.-> N1
-    style N1 fill:#dcfce7,stroke:#22c55e
+```d2
+direction: right
+
+h: head { shape: oval }
+t: tail { shape: oval }
+
+n1: "val: 3" {style.fill: "#dcfce7"; style.stroke: "#22c55e"}
+n2: "val: 5"
+n3: "val: 7"
+nl: "null" { shape: text }
+
+h -> n1
+n1 -> n2
+n2 -> n3
+n3 -> nl
+t -> n3
+
+note: "front() returns head.val = 3" { shape: text }
+note -> n1
 ```
 
 <p align="center"><strong>front() — read through the head pointer. The chain is unchanged after the call.</strong></p>
@@ -676,23 +680,25 @@ pub fn front(&self) -> i32 {
 
 `back()` returns the value of the tail node. The whole reason we maintain a tail pointer is so this is O(1) — without it, you'd have to walk from `head` to the end of the chain.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H["head"] --> N1["val: 3"] --> N2["val: 5"] --> N3["val: 7"] --> NL["null"]
-    T["tail"] --> N3
-    R["back() returns tail.val = 7"] -.-> N3
-    style N3 fill:#fef9c3,stroke:#f59e0b
+```d2
+direction: right
+
+h: head { shape: oval }
+t: tail { shape: oval }
+
+n1: "val: 3"
+n2: "val: 5"
+n3: "val: 7" {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+nl: "null" { shape: text }
+
+h -> n1
+n1 -> n2
+n2 -> n3
+n3 -> nl
+t -> n3
+
+note: "back() returns tail.val = 7" { shape: text }
+note -> n3
 ```
 
 <p align="center"><strong>back() — read through the tail pointer. Same constant-time cost as front, thanks to the tail bookkeeping.</strong></p>
@@ -1218,23 +1224,22 @@ Given the skeleton of a **Queue class**, complete it by implementing all the que
 1. Use a **singly linked list** as the internal storage. Maintain both `head` (front) and `tail` (back) pointers so all operations are O(1).
 2. The implementation should be **bounded** by `capacity` (mirroring the array-queue interface).
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H["head"] --> N1["3"] --> N2["5"] --> N3["7"] --> NL["null"]
-    T["tail"] --> N3
-    style N1 fill:#dcfce7,stroke:#22c55e
-    style N3 fill:#fef9c3,stroke:#f59e0b
+```d2
+direction: right
+
+h: head { shape: oval }
+t: tail { shape: oval }
+
+n1: "3" {style.fill: "#dcfce7"; style.stroke: "#22c55e"}
+n2: "5"
+n3: "7" {style.fill: "#fef9c3"; style.stroke: "#f59e0b"}
+nl: "null" { shape: text }
+
+h -> n1
+n1 -> n2
+n2 -> n3
+n3 -> nl
+t -> n3
 ```
 
 <p align="center"><strong>Linked-list queue — head at the front, tail at the back, chain flows front→back. Every operation is O(1) because both ends are directly addressable.</strong></p>
