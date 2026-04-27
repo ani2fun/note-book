@@ -28,30 +28,27 @@ Now that we know what a hash table is and the operations it supports, we can div
 
 Concretely: the internal array is no longer an array of `(key, value)` cells. It's an array of **chains** — small, growable containers that can hold many records at the same index. All keys whose hashes collide on index `i` get appended to the chain at `table[i]`. Looking up a key is now a two-stage process: hash to the index, then walk the chain at that index until you find the key (or run out of chain).
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph TBL["Internal array — each slot is a chain"]
-        direction TB
-        I0["[0]"] --> C0["('Karan', 4)"]
-        I1["[1]"] --> C1["('Hari', 7)"] --> C1b["('Riya', 12)"] --> C1c["('Anmol', 19)"]
-        I2["[2]"] --> EMPTY1["(empty)"]
-        I3["[3]"] --> C3["('Neha', 23)"] --> C3b["('Karan', 4)"]
-    end
-    style I1 fill:#fef9c3,stroke:#f59e0b
-    style C1 fill:#dbeafe,stroke:#3b82f6
-    style C1b fill:#dbeafe,stroke:#3b82f6
-    style C1c fill:#dbeafe,stroke:#3b82f6
+```d2
+direction: right
+
+tbl: Internal array — each slot is a chain {
+  i0: "[0]"
+  c00: "('Karan', 4)"
+  i1: "[1]" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+  c10: "('Hari', 7)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  c11: "('Riya', 12)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  c12: "('Anmol', 19)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  i2: "[2]"
+  e2: "(empty)"
+  i3: "[3]"
+  c30: "('Neha', 23)"
+  c31: "('Karan', 4)"
+
+  i0 -> c00
+  i1 -> c10 -> c11 -> c12
+  i2 -> e2
+  i3 -> c30 -> c31
+}
 ```
 
 <p align="center"><strong>Logical view of separate chaining — every slot is a chain (a small linked list). Index 1 has absorbed three colliding keys; index 2 sits empty; index 3 holds two. The array length never changes, but each slot is free to grow.</strong></p>
@@ -88,28 +85,29 @@ The separate-chaining hash table has three components welded together: a record 
 
 A **record** is the unit stored inside a chain — the actual `(key, value)` pair the user cares about. Wrapping it in its own type keeps the chain code clean (the chain stores `Record` objects rather than juggling parallel arrays) and lets us extend the record later (e.g. add timestamps, hit counters) without touching the rest of the table.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph REC["Record"]
-        direction LR
-        K["key<br/>(int)"] --- V["value<br/>(int)"]
-    end
-    subgraph NODE["Doubly-linked-list node holding a record"]
-        direction LR
-        P["prev"] --- VAL["val: Record"] --- N["next"]
-    end
-    REC -.->|"stored inside"| VAL
+```d2
+direction: right
+
+rec: Record {
+  k: |md
+    key
+
+    (int)
+  |
+  v: |md
+    value
+
+    (int)
+  |
+}
+
+node: Doubly-linked-list node holding a record {
+  p: prev
+  val: "val: Record"
+  n: next
+}
+
+rec -> node.val: stored inside
 ```
 
 <p align="center"><strong>The record is the payload, the chain node is the container — every node in the chain holds one record alongside its <code>prev</code> and <code>next</code> pointers.</strong></p>
@@ -273,57 +271,51 @@ fn main() {
 
 The internal array of a separate-chaining hash table is **an array of chains**. Each cell of the array holds an entire (initially empty) chain. The hash value of a key picks a cell; the chain at that cell stores all records whose keys hash to it.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph EMPTY["Empty hash table — capacity 4"]
-        direction TB
-        E0["[0]"] --> H0["(empty chain)"]
-        E1["[1]"] --> H1["(empty chain)"]
-        E2["[2]"] --> H2["(empty chain)"]
-        E3["[3]"] --> H3["(empty chain)"]
-    end
+```d2
+direction: right
+
+empty: Empty hash table — capacity 4 {
+  e0: "[0]"
+  h0: "(empty chain)"
+  e1: "[1]"
+  h1: "(empty chain)"
+  e2: "[2]"
+  h2: "(empty chain)"
+  e3: "[3]"
+  h3: "(empty chain)"
+
+  e0 -> h0
+  e1 -> h1
+  e2 -> h2
+  e3 -> h3
+}
 ```
 
 <p align="center"><strong>An empty separate-chaining hash table — every slot starts as an empty chain. The array's length never changes after construction.</strong></p>
 
 When we insert into the table, the chain at the hashed index grows. The next diagram shows the same table after a series of inserts that produce two collisions (slot 1 collects three records, slot 3 collects two).
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph FILLED["After inserts — chains have grown at colliding slots"]
-        direction TB
-        E0["[0]"] --> H0["(empty)"]
-        E1["[1]"] --> R1["(5,A)"] --> R2["(9,B)"] --> R3["(13,C)"]
-        E2["[2]"] --> H2["(empty)"]
-        E3["[3]"] --> R4["(7,D)"] --> R5["(11,E)"]
-    end
-    style R1 fill:#dbeafe,stroke:#3b82f6
-    style R2 fill:#dbeafe,stroke:#3b82f6
-    style R3 fill:#dbeafe,stroke:#3b82f6
-    style R4 fill:#dbeafe,stroke:#3b82f6
-    style R5 fill:#dbeafe,stroke:#3b82f6
+```d2
+direction: right
+
+populated: "After inserts — chains have grown at colliding slots" {
+  e0: "[0]"
+  h0: "(empty)"
+  e1: "[1]"
+  r1: "(5, A)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  r2: "(9, B)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  r3: "(13, C)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  e2: "[2]"
+  h2: "(empty)"
+  e3: "[3]"
+  r4: "(7, D)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  r5: "(11, E)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+
+  e0 -> h0
+  e1 -> r1 -> r2 -> r3
+  e2 -> h2
+  e3 -> r4 -> r5
+}
 ```
 
 <p align="center"><strong>The same table after five inserts (capacity = 4, hash = key mod 4) — keys 5, 9, 13 all hash to 1; keys 7, 11 both hash to 3. Notice that the array's length is unchanged; the table simply absorbs collisions by extending the affected chains.</strong></p>
@@ -334,21 +326,19 @@ In this course, the chain inside each slot is a **doubly linked list**. To keep 
 
 The hash function maps a key to a valid array index. Throughout this section we'll use the simplest possible function — `key mod capacity` — so we can focus all our attention on collision *handling*. A real-world hash table would replace this with a stronger function (the principles of which we covered in [Lesson 1](01-introduction-to-hash-tables.md#examples-of-hash-functions)).
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    K["key = 13"] -->|"hash<br/>(key mod 4)"| H["index = 1"]
-    H --> SLOT["table[1] —<br/>chain to walk"]
+```d2
+direction: right
+
+k: "key = 13"
+hf: "hash (key mod 4)" {shape: oval}
+h: "index = 1"
+slot: |md
+  table[1] —
+
+  chain to walk
+|
+
+k -> hf -> h -> slot
 ```
 
 <p align="center"><strong>The hash function reduces a key to a valid array index in O(1). For <code>capacity = 4</code> and <code>key = 13</code>, <code>13 mod 4 = 1</code>, so the search continues inside the chain at slot 1.</strong></p>
@@ -361,35 +351,20 @@ We'll fold the hash function directly into the hash-table class as a private met
 
 Now we wrap everything — the record type, the array of chains, the hash function, and the public operations — into a single class. Encapsulation is what turns a pile of components into something a caller can use without thinking.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph CLS["MyHashTable class"]
-        direction TB
-        subgraph PRIV["private (hidden internals)"]
-            direction TB
-            CAP["capacity: int"]
-            TBL["table: array of chains"]
-            HF["hashFunction(key)"]
-        end
-        subgraph PUB["public (callable interface)"]
-            direction TB
-            S["search(key) → value"]
-            I["insert(key, value)"]
-            R["remove(key)"]
-        end
-        PUB -.-> PRIV
-    end
+```d2
+cls: MyHashTable class {
+  priv: private (hidden internals) {
+    cap: "capacity: int"
+    tbl: "table: array of chains"
+    hf: "hashFunction(key)"
+  }
+  pub: public (callable interface) {
+    s: "search(key) -> value"
+    i: "insert(key, value)"
+    r: "remove(key)"
+  }
+  pub -> priv {style.stroke-dash: 3}
+}
 ```
 
 <p align="center"><strong>The hash-table class — public methods (the only things callers see) sit on top of the private internals (capacity, the array of chains, and the hash function). Encapsulation lets the implementation change later without breaking callers.</strong></p>
@@ -693,28 +668,29 @@ fn main() {
 
 Once the class is defined, callers don't see records, chains, or hash functions. They see three methods: `insert`, `search`, `remove`. The internals can change tomorrow — different chain type, different hash function, different growth policy — and no caller code needs to be touched. This is the discipline that separates a one-off script from a reusable data structure.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    USER["caller code"] -->|"insert(1, 100)"| API
-    USER -->|"search(1)"| API
-    USER -->|"remove(1)"| API
-    subgraph API["MyHashTable public API"]
-        I["insert"]
-        S["search"]
-        R["remove"]
-    end
-    API -.->|"delegates to"| INT["private internals:<br/>hash function +<br/>array of chains"]
+```d2
+direction: right
+
+user: caller code
+
+api: MyHashTable public API {
+  i: insert
+  s: search
+  r: remove
+}
+
+internals: |md
+  private internals:
+
+  hash function +
+
+  array of chains
+|
+
+user -> api.i: "insert(1, 100)"
+user -> api.s: "search(1)"
+user -> api.r: "remove(1)"
+api -> internals: delegates to {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Encapsulation in action — the caller talks to the public API; the API talks to the private internals. The wall between them is what lets the implementation evolve independently.</strong></p>
@@ -1056,33 +1032,42 @@ fn main() {
 
 The hash function is O(1). The total cost of search is therefore the cost of the chain walk at the resulting index. That walk is what determines best, average, and worst case.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEST["Best case — chain length 1"]
-        B0["[0]"] --> B1["(k, v)"]
-    end
-    subgraph AVG["Average case — well-distributed, chain length ≈ 1"]
-        A0["[0]"] --> A1["(k, v)"]
-        A2["[1]"] --> A3["(k, v)"]
-        A4["[2]"] --> A5["(k, v)"]
-    end
-    subgraph WORST["Worst case — every key collides into one chain"]
-        W0["[0]"] --> W1["(k1)"] --> W2["(k2)"] --> W3["(k3)"] --> W4["...kN"]
-        W5["[1]"] --> WE1["(empty)"]
-        W6["[2]"] --> WE2["(empty)"]
-    end
-    BEST ~~~ AVG ~~~ WORST
+```d2
+best: Best case — chain length 1 {
+  direction: right
+  b0: "[0]"
+  b1: "(k, v)"
+  b0 -> b1
+}
+
+avg: Average case — well-distributed, chain length ~ 1 {
+  direction: right
+  a0: "[0]"
+  a1: "(k, v)"
+  a2: "[1]"
+  a3: "(k, v)"
+  a4: "[2]"
+  a5: "(k, v)"
+  a0 -> a1
+  a2 -> a3
+  a4 -> a5
+}
+
+worst: Worst case — every key collides into one chain {
+  direction: right
+  w0: "[0]"
+  w1: "(k1)"
+  w2: "(k2)"
+  w3: "(k3)"
+  w4: "...kN"
+  w5: "[1]"
+  we1: "(empty)"
+  w6: "[2]"
+  we2: "(empty)"
+  w0 -> w1 -> w2 -> w3 -> w4
+  w5 -> we1
+  w6 -> we2
+}
 ```
 
 <p align="center"><strong>Search performance is governed by chain length — O(1) when chains are short, O(N) when every key collides into one chain. A good hash function keeps the average chain length close to 1.</strong></p>
@@ -1583,26 +1568,24 @@ fn main() {
 
 Insert pays the same chain-walk cost as search (we have to confirm whether the key is already present), plus an O(1) update or append. The complexity envelope is therefore the same as search.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEST["Best — chain empty, append immediately"]
-        B0["[0]"] --> B1["+ (k, v)"]
-    end
-    subgraph WORST["Worst — chain has all N keys, scan to end, then append"]
-        W0["[0]"] --> W1["k1"] --> W2["k2"] --> W3["..."] --> W4["kN"] --> W5["+ (k, v)"]
-    end
-    BEST ~~~ WORST
+```d2
+best: "Best — chain empty, append immediately" {
+  direction: right
+  b0: "[0]"
+  b1: "+ (k, v)"
+  b0 -> b1
+}
+
+worst: "Worst — chain has all N keys, scan to end, then append" {
+  direction: right
+  w0: "[0]"
+  w1: "k1"
+  w2: "k2"
+  w3: "..."
+  w4: "kN"
+  w5: "+ (k, v)"
+  w0 -> w1 -> w2 -> w3 -> w4 -> w5
+}
 ```
 
 <p align="center"><strong>Insert performance — best case is appending to an empty chain (O(1)); worst case is scanning a chain holding every key in the table (O(N)) before appending.</strong></p>
@@ -2086,26 +2069,22 @@ fn main() {
 
 Like search and insert, delete walks a single chain. The only extra work — unlinking a node from a doubly linked list, or splicing it out of an array bucket — is O(1) once the node is found.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEST["Best — chain empty or first node matches"]
-        B0["[0]"] --> B1["(k, v) ✗"]
-    end
-    subgraph WORST["Worst — every key in one chain, target at the very end (or absent)"]
-        W0["[0]"] --> W1["k1"] --> W2["..."] --> W3["target ✗"]
-    end
-    BEST ~~~ WORST
+```d2
+best: "Best — chain empty or first node matches" {
+  direction: right
+  b0: "[0]"
+  b1: "(k, v) X"
+  b0 -> b1
+}
+
+worst: "Worst — every key in one chain, target at the very end (or absent)" {
+  direction: right
+  w0: "[0]"
+  w1: "k1"
+  w2: "..."
+  w3: "target X"
+  w0 -> w1 -> w2 -> w3
+}
 ```
 
 <p align="center"><strong>Delete performance — same envelope as search and insert. The cost is the chain walk; the unlink itself is O(1).</strong></p>
@@ -2141,25 +2120,12 @@ Given the skeleton of a `MyHashTable` class, complete this class by implementing
 > -   **remove(int key)** — Removes the mapping for the given key; no-op if absent.
 > -   **getKeysAtIndex(int index)** — Returns the list of keys currently mapped to the given internal-array index. Useful for testing the chain layout directly.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph CONS["Constraints"]
-        direction TB
-        C1["No built-in hash table libraries"]
-        C2["Use separate chaining for collisions"]
-        C3["Hash function: index = key % capacity"]
-    end
+```d2
+cons: Constraints {
+  c1: No built-in hash table libraries
+  c2: Use separate chaining for collisions
+  c3: "Hash function: index = key % capacity"
+}
 ```
 
 <p align="center"><strong>Constraints — implement everything from scratch with separate chaining and the simple division-method hash. The point is to internalise the mechanics, not to use a library.</strong></p>

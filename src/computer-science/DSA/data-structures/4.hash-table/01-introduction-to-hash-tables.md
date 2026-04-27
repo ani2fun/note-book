@@ -28,64 +28,60 @@ Before we can appreciate a hash table, we have to feel the pain it removes. So l
 
 Picture a classroom. Every student has a **name** (a string) and a **roll number** (a positive integer). The school's software has to answer one question, fast and often: *"Given a name, what's the roll number?"* That's a mapping problem — *names* on one side, *roll numbers* on the other, and a relationship that connects each name to exactly one number.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph KEYS["Names (strings)"]
-        direction TB
-        K1["Riya"]
-        K2["Hari"]
-        K3["Neha"]
-        K4["Karan"]
-    end
-    subgraph VALS["Roll numbers (integers)"]
-        direction TB
-        V1["12"]
-        V2["7"]
-        V3["23"]
-        V4["4"]
-    end
-    K1 --> V1
-    K2 --> V2
-    K3 --> V3
-    K4 --> V4
+```d2
+direction: right
+
+keys: Names (strings) {
+  k1: "'Riya'"
+  k2: "'Hari'"
+  k3: "'Neha'"
+  k4: "'Karan'"
+}
+
+vals: Roll numbers (integers) {
+  v1: "12"
+  v2: "7"
+  v3: "23"
+  v4: "4"
+}
+
+keys.k1 -> vals.v1
+keys.k2 -> vals.v2
+keys.k3 -> vals.v3
+keys.k4 -> vals.v4
 ```
 
 <p align="center"><strong>The mapping problem in its simplest form — every name on the left must point to exactly one roll number on the right. The question is not <em>can</em> we store this, it's <em>can we look it up fast?</em></strong></p>
 
 The first idea anyone has is also the most natural one: keep two parallel arrays — one of names, one of roll numbers — and trust that the same index in both arrays describes the same student. Index 0 of `names` and index 0 of `rolls` belong to the same person, index 1 to the next, and so on.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 4
-  N0["Riya"]:1 N1["Hari"]:1 N2["Neha"]:1 N3["Karan"]:1
-  R0["12"]:1   R1["7"]:1    R2["23"]:1   R3["4"]:1
-  I0["index 0"]:1 I1["index 1"]:1 I2["index 2"]:1 I3["index 3"]:1
-  style I0 fill:#fef9c3,stroke:#f59e0b
-  style I1 fill:#fef9c3,stroke:#f59e0b
-  style I2 fill:#fef9c3,stroke:#f59e0b
-  style I3 fill:#fef9c3,stroke:#f59e0b
+```d2
+names: names {
+  grid-columns: 4
+  grid-gap: 0
+  n0: "'Riya'"
+  n1: "'Hari'"
+  n2: "'Neha'"
+  n3: "'Karan'"
+}
+
+rolls: rolls {
+  grid-columns: 4
+  grid-gap: 0
+  r0: "12"
+  r1: "7"
+  r2: "23"
+  r3: "4"
+}
+
+idx: indices {
+  grid-columns: 4
+  grid-gap: 0
+  i0: index 0 {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+  i1: index 1 {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+  i2: index 2 {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+  i3: index 3 {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+}
 ```
 
 <p align="center"><strong>Two parallel arrays representing the same mapping — the top row is <code>names</code>, the middle row is <code>rolls</code>, and the implicit contract is that <code>names[i]</code> and <code>rolls[i]</code> belong to the same student.</strong></p>
@@ -179,30 +175,45 @@ Three concrete pieces, working together:
 > -   **Hash function** — the rule that turns a key into an integer index.
 > -   **Internal array** — where the key-value pair is physically stored, indexed by the hash value.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    K["key<br/>'Neha'"] --> H["hash<br/>function"] --> IDX["index 2"]
-    IDX --> ARR["internal array"]
-    subgraph ARR["internal array"]
-        direction TB
-        A0["[0] (Karan, 4)"]
-        A1["[1] (Hari, 7)"]
-        A2["[2] (Neha, 23)"]
-        A3["[3] (Riya, 12)"]
-    end
-    ARR --> V["value<br/>23"]
-    style A2 fill:#dcfce7,stroke:#22c55e
+```d2
+direction: right
+
+key: |md
+  key
+
+  'Neha'
+| {shape: oval}
+
+hf: hash function {shape: oval}
+
+arr: internal array {
+  grid-columns: 1
+  grid-gap: 0
+  a0: |md
+    **[0]**
+
+    "(Karan, 4)"
+  |
+  a1: |md
+    **[1]**
+
+    "(Hari, 7)"
+  |
+  a2: |md
+    **[2]**
+
+    "(Neha, 23)"
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  a3: |md
+    **[3]**
+
+    "(Riya, 12)"
+  |
+}
+
+key -> hf -> arr.a2: index 2
+arr.a2 -> v: value 23
+v: "23" {shape: oval}
 ```
 
 <p align="center"><strong>How a hash table answers a lookup — the key is hashed into an array index, and the value at that index is returned in one read. No scan, no comparisons walking the array.</strong></p>
@@ -211,27 +222,21 @@ flowchart LR
 
 When we draw a hash table on paper or talk about it in interviews, we don't usually draw the underlying array. We draw a **table** with two columns — one for keys, one for values — where each row stores a single mapping. The internal array exists, but it's an implementation detail; the table view is the abstraction the user reasons about. We'll use this exact representation throughout the course.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 2
-  HK["Key"] HV["Value"]
-  K1["'Riya'"]   V1["12"]
-  K2["'Hari'"]   V2["7"]
-  K3["'Neha'"]   V3["23"]
-  K4["'Karan'"]  V4["4"]
-  style HK fill:#fef9c3,stroke:#f59e0b
-  style HV fill:#fef9c3,stroke:#f59e0b
+```d2
+table: {
+  grid-columns: 2
+  grid-gap: 0
+  hk: "**Key**" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+  hv: "**Value**" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+  k1: "'Riya'"
+  v1: "12"
+  k2: "'Hari'"
+  v2: "7"
+  k3: "'Neha'"
+  v3: "23"
+  k4: "'Karan'"
+  v4: "4"
+}
 ```
 
 <p align="center"><strong>Logical view of a hash table — a two-column table where each row is one key-value mapping. This is the mental model you carry around; the actual array-and-hash-function machinery is hidden underneath.</strong></p>
@@ -248,71 +253,62 @@ A hash function isn't optional decoration — it's the engine. Everything else (
 
 In pure mathematics, a function from a set **K** to a set **V** is the rule that assigns *exactly one* value in **V** to *every* element in **K**. The set **K** is called the **domain** (the inputs), and **V** is called the **codomain** (the possible outputs). The data in those sets can be of any type — integers, strings, objects, points in space, anything — but the *contract* is the same: every input maps to one output.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph DOM["Domain K (inputs)"]
-        direction TB
-        K1["k₁"]
-        K2["k₂"]
-        K3["k₃"]
-        K4["k₄"]
-    end
-    subgraph COD["Codomain V (outputs)"]
-        direction TB
-        V1["v₁"]
-        V2["v₂"]
-        V3["v₃"]
-    end
-    K1 -->|"f"| V1
-    K2 -->|"f"| V2
-    K3 -->|"f"| V3
-    K4 -->|"f"| V2
+```d2
+direction: right
+
+dom: Domain K (inputs) {
+  k1: k1
+  k2: k2
+  k3: k3
+  k4: k4
+}
+
+cod: Codomain V (outputs) {
+  v1: v1
+  v2: v2
+  v3: v3
+}
+
+dom.k1 -> cod.v1: f
+dom.k2 -> cod.v2: f
+dom.k3 -> cod.v3: f
+dom.k4 -> cod.v2: f
 ```
 
 <p align="center"><strong>A mathematical function maps every element of its domain <code>K</code> to exactly one element in its codomain <code>V</code>. Two different inputs are allowed to land on the same output (notice <code>k₂</code> and <code>k₄</code> both map to <code>v₂</code>) — this freedom is what makes hashing possible later.</strong></p>
 
 Most of us first met functions through numbers — `f(x) = x + 1`, `f(x) = x²`, `f(x) = x mod 10`. These are tiny, total recipes that take an input and return an output, every time, deterministically.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph F1["f(x) = x + 1"]
-        direction LR
-        A1["x = 5"] --> B1["6"]
-        A2["x = 12"] --> B2["13"]
-    end
-    subgraph F2["f(x) = x²"]
-        direction LR
-        C1["x = 4"] --> D1["16"]
-        C2["x = 9"] --> D2["81"]
-    end
-    subgraph F3["f(x) = x mod 10"]
-        direction LR
-        E1["x = 47"] --> G1["7"]
-        E2["x = 1234"] --> G2["4"]
-    end
-    F1 ~~~ F2 ~~~ F3
+```d2
+f1: "f(x) = x + 1" {
+  direction: right
+  i1: "x = 5"
+  o1: "6"
+  i2: "x = 12"
+  o2: "13"
+  i1 -> o1
+  i2 -> o2
+}
+
+f2: "f(x) = x squared" {
+  direction: right
+  i1: "x = 4"
+  o1: "16"
+  i2: "x = 9"
+  o2: "81"
+  i1 -> o1
+  i2 -> o2
+}
+
+f3: "f(x) = x mod 10" {
+  direction: right
+  i1: "x = 47"
+  o1: "7"
+  i2: "x = 1234"
+  o2: "4"
+  i1 -> o1
+  i2 -> o2
+}
 ```
 
 <p align="center"><strong>Three example mathematical functions — each takes an input and produces a single, deterministic output. The first two have an unbounded codomain (any integer); the last one always returns a value in <code>{0, 1, ..., 9}</code>. That last property is the seed of the hash function idea.</strong></p>
@@ -325,59 +321,50 @@ A **hash function** is a mathematical function whose **codomain is finite** (and
 
 > Any mathematical function with a fixed-size codomain qualifies as a hash function. Most mathematical functions are *not* hash functions — `f(x) = x + 1` produces a different output for every integer input, so its codomain is the entire set of integers, which is infinite.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph ALL["All mathematical functions"]
-        direction TB
-        subgraph HASH["Hash functions<br/>(finite codomain)"]
-            H1["x mod 10"]
-            H2["middle digit of x²"]
-            H3["first letter index of name"]
-        end
-        OUT1["x + 1<br/>(infinite codomain)"]
-        OUT2["x²<br/>(infinite codomain)"]
-    end
+```d2
+all: All mathematical functions {
+  hash: Hash functions (finite codomain) {
+    h1: "x mod 10"
+    h2: "middle digit of x squared"
+    h3: "first letter index of name"
+  }
+  out1: "x + 1 (infinite codomain)"
+  out2: "x squared (infinite codomain)"
+}
 ```
 
 <p align="center"><strong>The set of all mathematical functions is huge — hash functions are the strict subset whose codomain has a fixed, finite size. Every hash function is a mathematical function, but most mathematical functions are not hash functions.</strong></p>
 
 The output of a hash function — the elements of its codomain — has many names you'll see in the wild: **hash values**, **hash codes**, **digests**, or just **hashes**. They all mean the same thing.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph YES["Hash function ✓ (finite codomain)"]
-        direction LR
-        Y1["f(x) = x mod 10<br/>codomain = {0..9}"]
-        Y2["f(x) = middle 2 digits of x²<br/>codomain = {0..99}"]
-    end
-    subgraph NO["Not a hash function ✗ (infinite codomain)"]
-        direction LR
-        N1["f(x) = x + 1<br/>codomain = ℤ"]
-        N2["f(x) = x²<br/>codomain = ℤ⁺"]
-    end
-    YES ~~~ NO
+```d2
+yes: Hash function (finite codomain) {
+  direction: right
+  y1: |md
+    f(x) = x mod 10
+
+    codomain = {0..9}
+  |
+  y2: |md
+    f(x) = middle 2 digits of x squared
+
+    codomain = {0..99}
+  |
+}
+
+no: Not a hash function (infinite codomain) {
+  direction: right
+  n1: |md
+    f(x) = x + 1
+
+    codomain = Z
+  |
+  n2: |md
+    f(x) = x squared
+
+    codomain = Z+
+  |
+}
 ```
 
 <p align="center"><strong>Revisiting our example functions — the first two restrict their output to a finite set, so they are hash functions. The last two can produce arbitrarily large outputs, so they are mathematical functions but not hash functions.</strong></p>
@@ -390,24 +377,21 @@ Here's the unavoidable consequence of the rule we just stated: a hash function t
 >
 > When two *different* keys in the domain map to the *same* hash value in the codomain, it is called a **collision**.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    K1["'Hari'"] -->|"hash"| H["index 3"]
-    K2["'Riya'"] -->|"hash"| H
-    H --> NOTE["Both keys want<br/>the same slot — <br/>this is a collision"]
-    style H fill:#fee2e2,stroke:#ef4444
-    style NOTE fill:#fef9c3,stroke:#f59e0b
+```d2
+direction: right
+
+k1: "'Hari'"
+k2: "'Riya'"
+h: index 3 {style.fill: "#fee2e2"; style.stroke: "#ef4444"}
+note: |md
+  Both keys want
+  the same slot —
+  this is a collision
+| {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+
+k1 -> h: hash
+k2 -> h: hash
+h -> note
 ```
 
 <p align="center"><strong>A collision — two distinct keys (<code>'Hari'</code> and <code>'Riya'</code>) hash to the same index. The hash function is doing its job correctly; the collision is a <em>structural</em> consequence of squeezing a large domain into a small codomain.</strong></p>
@@ -428,53 +412,43 @@ A good hash function spreads keys **evenly** across its codomain. If the codomai
 
 The classic example is the **modulo function**, `f(x) = x mod m`. If your keys are uniformly distributed integers, then `x mod m` distributes them across `{0, 1, ..., m-1}` evenly. That's why it's the default starting point for integer hashing.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph KEYS["Domain (12 keys)"]
-        direction TB
-        K1["k₁"]
-        K2["k₂"]
-        K3["k₃"]
-        K4["k₄"]
-        K5["k₅"]
-        K6["k₆"]
-        K7["k₇"]
-        K8["k₈"]
-        K9["k₉"]
-        K10["k₁₀"]
-        K11["k₁₁"]
-        K12["k₁₂"]
-    end
-    subgraph SLOTS["Codomain (4 slots — uniform)"]
-        direction TB
-        S0["[0] — 3 keys"]
-        S1["[1] — 3 keys"]
-        S2["[2] — 3 keys"]
-        S3["[3] — 3 keys"]
-    end
-    K1 --> S0
-    K2 --> S1
-    K3 --> S2
-    K4 --> S3
-    K5 --> S0
-    K6 --> S1
-    K7 --> S2
-    K8 --> S3
-    K9 --> S0
-    K10 --> S1
-    K11 --> S2
-    K12 --> S3
+```d2
+direction: right
+
+keys: Domain (12 keys) {
+  k1: k1
+  k2: k2
+  k3: k3
+  k4: k4
+  k5: k5
+  k6: k6
+  k7: k7
+  k8: k8
+  k9: k9
+  k10: k10
+  k11: k11
+  k12: k12
+}
+
+slots: Codomain (4 slots — uniform) {
+  s0: "[0] — 3 keys"
+  s1: "[1] — 3 keys"
+  s2: "[2] — 3 keys"
+  s3: "[3] — 3 keys"
+}
+
+keys.k1 -> slots.s0
+keys.k2 -> slots.s1
+keys.k3 -> slots.s2
+keys.k4 -> slots.s3
+keys.k5 -> slots.s0
+keys.k6 -> slots.s1
+keys.k7 -> slots.s2
+keys.k8 -> slots.s3
+keys.k9 -> slots.s0
+keys.k10 -> slots.s1
+keys.k11 -> slots.s2
+keys.k12 -> slots.s3
 ```
 
 <p align="center"><strong>Uniform distribution — twelve keys spread evenly across four slots, three per slot. A poorly distributed hash function would dump (say) ten keys into slot [0] and one each into slots [1], [2], and [3], wrecking the average-case lookup time.</strong></p>
@@ -485,33 +459,11 @@ Why does uniformity matter so much? Because the moment two keys collide, the cos
 
 A hash function must be **deterministic**: the same input must *always* produce the same output. There can be no randomness, no time-of-day dependency, no memory-address quirks. Hash `"Neha"` today and you get index 2; hash `"Neha"` six months from now in a different machine, in a different process, on the moon — you must still get index 2.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph T1["Call 1 — Monday"]
-        direction LR
-        A1["'Neha'"] -->|"hash"| B1["index 2"]
-    end
-    subgraph T2["Call 2 — Friday"]
-        direction LR
-        A2["'Neha'"] -->|"hash"| B2["index 2"]
-    end
-    subgraph T3["Call 3 — six months later"]
-        direction LR
-        A3["'Neha'"] -->|"hash"| B3["index 2"]
-    end
-    T1 ~~~ T2 ~~~ T3
-```
+| When | Input | `hash(key)` | Output |
+|---|---|---|---|
+| Call 1 — Monday | `'Neha'` | hash | **index 2** |
+| Call 2 — Friday | `'Neha'` | hash | **index 2** |
+| Call 3 — six months later | `'Neha'` | hash | **index 2** |
 
 <p align="center"><strong>Determinism in action — the same key produces the same hash every single time, no exceptions. Without this guarantee, the slot you stored a value in this morning would be empty when you came back to find it.</strong></p>
 
@@ -561,27 +513,25 @@ The simplest hash function is the one that does almost nothing: it returns the k
 
 For example, if you're hashing the digits 0–9, `hash(d) = d` is a perfectly good hash function. Slot `d` of the array stores the data for digit `d`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph DOM["Domain = Codomain = {0..9}"]
-        direction TB
-        K0["0"] --> H0["0"]
-        K1["1"] --> H1["1"]
-        K2["2"] --> H2["2"]
-        K3["3"] --> H3["3"]
-        K4["4"] --> H4["4"]
-    end
+```d2
+dom: "Domain = Codomain = {0..9}" {
+  direction: right
+  k0: "0"
+  h0: "0"
+  k1: "1"
+  h1: "1"
+  k2: "2"
+  h2: "2"
+  k3: "3"
+  h3: "3"
+  k4: "4"
+  h4: "4"
+  k0 -> h0
+  k1 -> h1
+  k2 -> h2
+  k3 -> h3
+  k4 -> h4
+}
 ```
 
 <p align="center"><strong>Identity hash function — the key <em>is</em> the hash. Trivially deterministic, instant to compute, and perfectly uniform over its bounded domain. Useless when keys are large or unbounded, because the array would have to be just as large.</strong></p>
@@ -590,23 +540,22 @@ flowchart LR
 
 When the domain is small but doesn't match the array's index range, a *trivial* transformation often suffices. Suppose your keys are integers in `[1000, 2000]` and you want hash values in `[0, 99]`. You could simply **extract the middle two digits** of the key and use them as the hash. The key `1473` becomes hash `47`; the key `1819` becomes hash `81`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    K1["1473"] -->|"extract middle<br/>two digits"| H1["47"]
-    K2["1819"] -->|"extract middle<br/>two digits"| H2["81"]
-    K3["1234"] -->|"extract middle<br/>two digits"| H3["23"]
-    K4["1058"] -->|"extract middle<br/>two digits"| H4["05"]
+```d2
+direction: right
+
+k1: "1473"
+h1: "47"
+k2: "1819"
+h2: "81"
+k3: "1234"
+h3: "23"
+k4: "1058"
+h4: "05"
+
+k1 -> h1: "extract middle two digits"
+k2 -> h2: "extract middle two digits"
+k3 -> h3: "extract middle two digits"
+k4 -> h4: "extract middle two digits"
 ```
 
 <p align="center"><strong>A trivial digit-extraction hash function — works because both the domain and codomain are tightly bounded. Just enough math to fit keys into the array; just little enough to stay O(1).</strong></p>
@@ -621,29 +570,29 @@ hash(key) = key mod Y
 
 The remainder is always in `[0, Y-1]` — exactly the range of valid array indices.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph EX["hash(key) = key mod 7"]
-        direction LR
-        K1["key = 23"] --> H1["23 mod 7 = 2"]
-        K2["key = 47"] --> H2["47 mod 7 = 5"]
-        K3["key = 100"] --> H3["100 mod 7 = 2"]
-        K4["key = 77"] --> H4["77 mod 7 = 0"]
-    end
-    NOTE["Notice <code>23</code> and <code>100</code> both map to index 2 —<br/>collisions are real, even with a good function."] -.-> H1
-    style H1 fill:#fef9c3,stroke:#f59e0b
-    style H3 fill:#fef9c3,stroke:#f59e0b
+```d2
+ex: "hash(key) = key mod 7" {
+  direction: right
+  k1: "key = 23"
+  h1: "23 mod 7 = 2" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+  k2: "key = 47"
+  h2: "47 mod 7 = 5"
+  k3: "key = 100"
+  h3: "100 mod 7 = 2" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+  k4: "key = 77"
+  h4: "77 mod 7 = 0"
+  k1 -> h1
+  k2 -> h2
+  k3 -> h3
+  k4 -> h4
+}
+
+note: |md
+  Notice 23 and 100 both map to index 2 —
+  collisions are real, even with a good function.
+|
+
+note -> ex.h1 {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Division hashing with <code>Y = 7</code> — every integer key is reduced to a remainder in <code>{0..6}</code>. Choosing <code>Y</code> to be a prime tends to spread keys most uniformly, especially when the keys themselves have hidden patterns.</strong></p>
@@ -659,25 +608,24 @@ The **mid-square method** is a smarter cousin of digit extraction. The recipe:
 
 Why squaring? Because when you square an integer, *every* digit of the key contributes to *every* digit of the result — the high digits and the low digits get tangled together in the multiplication. So when you snip out the middle, you're getting a value that's been influenced by the whole key, not just a fragment of it. The output range is `[0, base^r)`, where `base` is the numeric base (10 for decimal).
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    K1["key = 123"] --> SQ1["123² = 15129"]
-    SQ1 --> M1["middle 2 digits<br/>= 51"]
-    K2["key = 478"] --> SQ2["478² = 228484"]
-    SQ2 --> M2["middle 2 digits<br/>= 84"]
-    K3["key = 902"] --> SQ3["902² = 813604"]
-    SQ3 --> M3["middle 2 digits<br/>= 36"]
+```d2
+direction: right
+
+k1: "key = 123"
+sq1: "123^2 = 15129"
+m1: "middle 2 digits = 51"
+
+k2: "key = 478"
+sq2: "478^2 = 228484"
+m2: "middle 2 digits = 84"
+
+k3: "key = 902"
+sq3: "902^2 = 813604"
+m3: "middle 2 digits = 36"
+
+k1 -> sq1 -> m1
+k2 -> sq2 -> m2
+k3 -> sq3 -> m3
 ```
 
 <p align="center"><strong>Mid-square hashing with <code>r = 2</code> — the key is squared, and the middle two decimal digits are extracted. Each output digit is influenced by every input digit, so the spread tends to be more uniform than naïve digit extraction.</strong></p>
@@ -747,26 +695,31 @@ A natural question deserves a direct answer:
 >
 > Because **collisions are inevitable**. Two different keys can — and eventually will — hash to the same index. When you later look up one of those keys, the cell at that index might hold *the other one*. Without storing the original key in the cell, you couldn't tell which key's value you found. Storing the key lets you confirm with one comparison: "is this the cell I came for, or a colliding stranger?"
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-block-beta
-  columns 4
-  H0["[0]"]:1 H1["[1]"]:1 H2["[2]"]:1 H3["[3]"]:1
-  C0["('Karan', 4)"]:1 C1["('Hari', 7)"]:1 C2["('Neha', 23)"]:1 C3["('Riya', 12)"]:1
-  style H0 fill:#fef9c3,stroke:#f59e0b
-  style H1 fill:#fef9c3,stroke:#f59e0b
-  style H2 fill:#fef9c3,stroke:#f59e0b
-  style H3 fill:#fef9c3,stroke:#f59e0b
+```d2
+arr: {
+  grid-columns: 4
+  grid-gap: 0
+  c0: |md
+    **[0]**
+
+    "(Karan, 4)"
+  | {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+  c1: |md
+    **[1]**
+
+    "(Hari, 7)"
+  | {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+  c2: |md
+    **[2]**
+
+    "(Neha, 23)"
+  | {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+  c3: |md
+    **[3]**
+
+    "(Riya, 12)"
+  | {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+}
 ```
 
 <p align="center"><strong>The internal array stores a (key, value) pair in every cell — not just the value. The redundancy looks wasteful but is exactly what lets the table identify the right entry in the presence of collisions.</strong></p>
@@ -775,29 +728,25 @@ block-beta
 
 The hash function is the **heart** of the table. It converts a key into a valid index for the internal array. It must be **deterministic**, **efficient**, and ideally **uniform** for the kind of keys this table will see in practice. (Notice the qualifier: a function that is mathematically uniform may still cluster badly if the *actual* keys have hidden patterns. Production code often picks the function based on the use case, not just the math.)
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    K1["'Riya'"] -->|"hash"| H1["3"]
-    K2["'Hari'"] -->|"hash"| H2["1"]
-    K3["'Neha'"] -->|"hash"| H3["2"]
-    K4["'Karan'"] -->|"hash"| H4["0"]
-    subgraph CO["Codomain — array indices"]
-        H1
-        H2
-        H3
-        H4
-    end
+```d2
+direction: right
+
+k1: "'Riya'"
+k2: "'Hari'"
+k3: "'Neha'"
+k4: "'Karan'"
+
+co: Codomain — array indices {
+  h1: "3"
+  h2: "1"
+  h3: "2"
+  h4: "0"
+}
+
+k1 -> co.h1: hash
+k2 -> co.h2: hash
+k3 -> co.h3: hash
+k4 -> co.h4: hash
 ```
 
 <p align="center"><strong>The hash function fans every key out to an integer index in the bounded range <code>[0, m-1]</code>. The same input always lands on the same output (determinism), and a well-chosen function spreads outputs evenly across the range (uniformity).</strong></p>
@@ -806,25 +755,24 @@ flowchart LR
 
 Choosing a hash function is only half the design. No matter how good the function is, *some* keys will collide — and the table needs a plan for what to do when they do. This plan is called the **collision resolution scheme**, and it's the single biggest fork in hash-table implementations.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    K1["'Hari'"] -->|"hash"| IDX["index 2"]
-    K2["'Riya'"] -->|"hash"| IDX
-    K3["'Neha'"] -->|"hash"| IDX
-    IDX --> Q["Three keys want<br/>slot 2 — now what?"]
-    style IDX fill:#fee2e2,stroke:#ef4444
-    style Q fill:#fef9c3,stroke:#f59e0b
+```d2
+direction: right
+
+k1: "'Hari'"
+k2: "'Riya'"
+k3: "'Neha'"
+
+idx: index 2 {style.fill: "#fee2e2"; style.stroke: "#ef4444"}
+
+q: |md
+  Three keys want
+  slot 2 — now what?
+| {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+
+k1 -> idx: hash
+k2 -> idx: hash
+k3 -> idx: hash
+idx -> q
 ```
 
 <p align="center"><strong>A worst-case collision scenario — three different keys all hash to the same slot. The collision resolution scheme decides whether they share the slot (chaining), get rerouted to other slots (open addressing), or are handled by yet another mechanism. The choice has profound consequences for performance and memory.</strong></p>
