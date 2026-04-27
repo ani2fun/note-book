@@ -29,24 +29,25 @@ This presents another use case for the sliding window technique, apart from aggr
 
 The sliding window traversal pattern is a classification of problems that can be solved using the sliding window traversal technique.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> N1["1"] --> N2["2"] --> N3["3"] --> N4["4"] --> N5["5"] --> N6["6"]
-    START["start"] -.-> N1
-    END["end"] -.-> N4
-    style N1 fill:#fef9c3,stroke:#3b82f6
-    style N4 fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+h: head {shape: oval}
+n1: {value: 1; style.fill: "#fde68a"; style.stroke: "#d97706"}
+n2: "2"
+n3: "3"
+n4: {value: 4; style.fill: "#fde68a"; style.stroke: "#d97706"}
+n5: "5"
+n6: "6"
+sp: start {shape: oval; style.stroke-dash: 3}
+ep: end {shape: oval; style.stroke-dash: 3}
+h -> n1.value
+n1.value -> n2
+n2 -> n3
+n3 -> n4.value
+n4.value -> n5
+n5 -> n6
+sp -> n1.value: "" {style.stroke-dash: 3}
+ep -> n4.value: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Sliding-window traversal keeps two pointers — <code>start</code> and <code>end</code> — a fixed distance <code>k</code> apart. They advance together, one node at a time, until <code>end</code> falls off the list.</strong></p>
@@ -61,48 +62,50 @@ We then iterate `k` times and move the `end` reference `k` steps ahead from `st
 
 It is important to note that two nodes that are at a distance `k` from each other denote a window of size `k+1` as both nodes are included in the window.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    S["start"] --> A["·"] --> B["·"] --> E["end"]
-    NOTE["distance = k = 3 hops<br/>window size = k + 1 = 4 nodes<br/>(both endpoints included)"]
-    E -.-> NOTE
-    style S fill:#fef9c3,stroke:#3b82f6
-    style E fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+s: start {style.fill: "#fde68a"; style.stroke: "#d97706"}
+a: "·"
+b: "·"
+e: end {style.fill: "#fde68a"; style.stroke: "#d97706"}
+note: |md
+  distance = k = 3 hops
+
+  window size = k + 1 = 4 nodes
+
+  (both endpoints included)
+| {shape: rectangle}
+s -> a
+a -> b
+b -> e
+e -> note: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>A "distance of <code>k</code>" means <code>k</code> hops between <code>start</code> and <code>end</code> — which covers <code>k + 1</code> nodes when both endpoints count. Getting this off-by-one right is the single most common bug in sliding-window code.</strong></p>
 
 We perform the required operations on the nodes held in `start` and `end` and move both of them one step ahead by setting them to their respective next nodes. We repeat this process until `end` hits `null` at the end of the list. At the end of all iterations, we would have applied the given operation on all nodes that are `k` steps away from each other.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> N1["1"] --> N2["2"] --> N3["3"] --> N4["4"] --> N5["5"] --> N6["6"] --> N7["7"]
-    S["start"] -.-> N1
-    E["end"] -.-> N3
-    style N1 fill:#fef9c3,stroke:#3b82f6
-    style N3 fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+h: head {shape: oval}
+n1: {value: 1; style.fill: "#fde68a"; style.stroke: "#d97706"}
+n2: "2"
+n3: {value: 3; style.fill: "#fde68a"; style.stroke: "#d97706"}
+n4: "4"
+n5: "5"
+n6: "6"
+n7: "7"
+sp: start {shape: oval; style.stroke-dash: 3}
+ep: end {shape: oval; style.stroke-dash: 3}
+h -> n1.value
+n1.value -> n2
+n2 -> n3.value
+n3.value -> n4
+n4 -> n5
+n5 -> n6
+n6 -> n7
+sp -> n1.value: "" {style.stroke-dash: 3}
+ep -> n3.value: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Setup — <code>start</code> at head, <code>end</code> exactly <code>k − 1 = 2</code> hops ahead. The three-node window covers nodes 1, 2, 3.</strong></p>
@@ -406,29 +409,40 @@ Let's consider the following problem as an example to better understand how to i
 
 > **Problem statement:** Given a list and a value \`k\` remove the kth node from the end.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before — remove the 3rd node from the end"]
-        direction LR
-        A1["1"] --> A2["2"] --> A3["3"] --> A4["4<br/>(3rd from end)"] --> A5["5"] --> A6["6"]
-        style A4 fill:#fef9c3,stroke:#3b82f6
-    end
-    subgraph AFTER["After"]
-        direction LR
-        B1["1"] --> B2["2"] --> B3["3"] --> B5["5"] --> B6["6"]
-    end
-    BEFORE --> AFTER
+```d2
+before: "Before — remove the 3rd node from the end" {
+  direction: right
+  n1: "1"
+  n2: "2"
+  n3: "3"
+  n4: |md
+    **4**
+
+    (3rd from end)
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  n5: "5"
+  n6: "6"
+  n1 -> n2
+  n2 -> n3
+  n3 -> n4
+  n4 -> n5
+  n5 -> n6
+}
+
+after: After {
+  direction: right
+  n1: "1"
+  n2: "2"
+  n3: "3"
+  n5: "5"
+  n6: "6"
+  n1 -> n2
+  n2 -> n3
+  n3 -> n5
+  n5 -> n6
+}
+
+before -> after
 ```
 
 <p align="center"><strong>The classic use case — reach the target in a <em>single</em> pass by keeping two pointers <code>k − 1</code> apart. When <code>end</code> reaches the tail, <code>start</code> is parked exactly on the <code>k</code>-th node from the end.</strong></p>
@@ -684,25 +698,24 @@ The brute-force solution requires two passes through the list: the first to find
 
 If we consider the **last node** of the linked list to be its end, the 1st node from the end is at 0 distance from it, the 2nd node from the end is at a distance of 1 from it, and so the `kth` node from the end is the node that is at a distance of `k-1` before it.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    N1["·"] --> KN["k-th from end"] --> M1["·"] --> M2["·"] --> LAST["last node"]
-    NOTE["distance = k − 1<br/>(k nodes inclusive)"]
-    KN -.-> NOTE
-    LAST -.-> NOTE
-    style KN fill:#fef9c3,stroke:#3b82f6
-    style LAST fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+n1: "·"
+kn: k-th from end {style.fill: "#fde68a"; style.stroke: "#d97706"}
+m1: "·"
+m2: "·"
+last: last node {style.fill: "#fde68a"; style.stroke: "#d97706"}
+note: |md
+  distance = k − 1
+
+  (k nodes inclusive)
+| {shape: rectangle}
+n1 -> kn
+kn -> m1
+m1 -> m2
+m2 -> last
+kn -> note: "" {style.stroke-dash: 3}
+last -> note: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>If a node is the <code>k</code>-th from the end, then there are <code>k − 1</code> hops between it and the tail. That's the fixed gap we maintain between our two pointers.</strong></p>
@@ -715,22 +728,27 @@ Given a list, delete (perform some operation) the node at a distance `k-1` dista
 
 We initialize `start` and `end` with the `head` and iterate `k-1` times using `end` to move `end` `k-1` steps ahead of `start` (which creates a window of size `k`). If, at the end of these iterations, `end` hits the last node, it means `k` equals the length of the list, and we delete the head node. Otherwise, we traverse the list using this window until `end` hits the last node.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> S["start<br/>(at head)"] --> M1["·"] --> M2["·"] --> E["end<br/>(k−1 hops from start)"] --> R["rest of list"]
-    style S fill:#fef9c3,stroke:#3b82f6
-    style E fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+h: head {shape: oval}
+s: |md
+  **start**
+
+  (at head)
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+m1: "·"
+m2: "·"
+e: |md
+  **end**
+
+  (k−1 hops from start)
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+r: rest of list
+h -> s
+s -> m1
+m1 -> m2
+m2 -> e
+e -> r
 ```
 
 <p align="center"><strong>Initialisation — both pointers start at <code>head</code>, then advance <code>end</code> alone by <code>k − 1</code> hops. The window is now primed and ready to slide.</strong></p>

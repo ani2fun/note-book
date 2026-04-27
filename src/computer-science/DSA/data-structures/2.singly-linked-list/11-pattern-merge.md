@@ -381,29 +381,42 @@ Let's consider the following problem as an example to better understand how to i
 
 > **Problem statement:** Given two singly linked lists, merge them by splicing alternate nodes from both lists together. The merged list should start with the first node of the first list.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Two input lists"]
-        direction LR
-        A1["1"] --> A2["3"] --> A3["5"]
-        B1["2"] --> B2["4"] --> B3["6"]
-    end
-    subgraph AFTER["Spliced (sorted merge)"]
-        direction LR
-        C1["1"] --> C2["2"] --> C3["3"] --> C4["4"] --> C5["5"] --> C6["6"]
-    end
-    BEFORE --> AFTER
+```d2
+before: Two input lists {
+  a: List A {
+    direction: right
+    a1: "1"
+    a2: "3"
+    a3: "5"
+    a1 -> a2
+    a2 -> a3
+  }
+  b: List B {
+    direction: right
+    b1: "2"
+    b2: "4"
+    b3: "6"
+    b1 -> b2
+    b2 -> b3
+  }
+}
+
+after: "Spliced (sorted merge)" {
+  direction: right
+  c1: "1"
+  c2: "2"
+  c3: "3"
+  c4: "4"
+  c5: "5"
+  c6: "6"
+  c1 -> c2
+  c2 -> c3
+  c3 -> c4
+  c4 -> c5
+  c5 -> c6
+}
+
+before -> after
 ```
 
 <p align="center"><strong>Merging splices the original nodes — no new nodes allocated. The six nodes above are the same six objects before and after; only their <code>.next</code> pointers have been rewired into a single chain.</strong></p>

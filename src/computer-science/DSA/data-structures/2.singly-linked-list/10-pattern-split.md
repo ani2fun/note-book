@@ -46,39 +46,44 @@ flowchart LR
 
 <p align="center"><strong>The split pattern — every node is routed to one of <code>k</code> output lists by a classifier function <code>f</code>. Nothing is copied; the original nodes are re-linked into their destination list.</strong></p>
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Original list"]
-        direction LR
-        A1["1"] --> A2["2"] --> A3["3"] --> A4["4"] --> A5["5"] --> A6["6"]
-    end
-    subgraph AFTER["After split into k=3 sub-lists (round robin)"]
-        direction LR
-        subgraph L0["List 0"]
-            direction LR
-            B1["1"] --> B4["4"]
-        end
-        subgraph L1["List 1"]
-            direction LR
-            B2["2"] --> B5["5"]
-        end
-        subgraph L2["List 2"]
-            direction LR
-            B3["3"] --> B6["6"]
-        end
-    end
-    BEFORE --> AFTER
+```d2
+before: Original list {
+  direction: right
+  a1: "1"
+  a2: "2"
+  a3: "3"
+  a4: "4"
+  a5: "5"
+  a6: "6"
+  a1 -> a2
+  a2 -> a3
+  a3 -> a4
+  a4 -> a5
+  a5 -> a6
+}
+
+after: "After split into k=3 sub-lists (round robin)" {
+  l0: "List 0" {
+    direction: right
+    b1: "1"
+    b4: "4"
+    b1 -> b4
+  }
+  l1: "List 1" {
+    direction: right
+    b2: "2"
+    b5: "5"
+    b2 -> b5
+  }
+  l2: "List 2" {
+    direction: right
+    b3: "3"
+    b6: "6"
+    b3 -> b6
+  }
+}
+
+before -> after
 ```
 
 <p align="center"><strong>Round-robin split — node <em>i</em> goes to list <em>i mod k</em>. Every original node ends up in exactly one sublist; no allocations, just re-linking.</strong></p>
@@ -89,28 +94,29 @@ Consider we are given a singly linked list that we need to split into `k` lists 
 
 Consider the example below, where `k = 3`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    D0["dummy[0]<br/>next: null"]
-    D1["dummy[1]<br/>next: null"]
-    D2["dummy[2]<br/>next: null"]
-    T0["tail[0] → dummy[0]"]
-    T1["tail[1] → dummy[1]"]
-    T2["tail[2] → dummy[2]"]
-    D0 -.-> T0
-    D1 -.-> T1
-    D2 -.-> T2
+```d2
+direction: right
+d0: |md
+  **dummy[0]**
+
+  next: null
+|
+d1: |md
+  **dummy[1]**
+
+  next: null
+|
+d2: |md
+  **dummy[2]**
+
+  next: null
+|
+t0: "tail[0] → dummy[0]"
+t1: "tail[1] → dummy[1]"
+t2: "tail[2] → dummy[2]"
+d0 -> t0: "" {style.stroke-dash: 3}
+d1 -> t1: "" {style.stroke-dash: 3}
+d2 -> t2: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Setup for <code>k = 3</code> — allocate <code>k</code> dummy heads and a parallel <code>tail[i]</code> pointer for each. The dummy pattern removes every "is this the first node in the output list?" special case: each tail just appends via <code>tail[i].next = current; tail[i] = current</code>, always.</strong></p>
@@ -505,53 +511,67 @@ Given a linked list, split it into to `k` lists.
 
 We first find the `length` of the given list and divide it by `k` to calculate the minimum number of nodes each of the `k` split lists will have. We save this value in a variable `partSize`. The length may not be multiple of `k`, which means that some split lists will have `partSize + 1` nodes. We create a variable `bigLists` and initialize it with `length % k`, which is the number of lists that will have `partSize + 1` nodes in them.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    L["length = n"]
-    K["k = number of buckets"]
-    B["base = n / k (integer)<br/>size of each 'small' sublist"]
-    R["remainder = n % k<br/>= number of 'big' sublists (size base+1)"]
-    L --> B
-    K --> B
-    L --> R
-    K --> R
+```d2
+direction: right
+length: "length = n"
+k: "k = number of buckets"
+base: |md
+  base = n / k (integer)
+
+  size of each 'small' sublist
+|
+rem: |md
+  remainder = n % k
+
+  = number of 'big' sublists (size base+1)
+|
+length -> base
+k -> base
+length -> rem
+k -> rem
 ```
 
 <p align="center"><strong>Unequal splitting — when <code>n</code> isn't divisible by <code>k</code>, the first <code>n mod k</code> sublists get one extra node (<code>base + 1</code>), and the rest get exactly <code>base</code>. Compute both quantities once before splitting.</strong></p>
 
 We then apply the split list technique by creating two arrays of ListNode references `dummy` and `tails` of size `k` each and initialize all items in them with the references of newly created dummy nodes. We initialize `current` with head and use it to traverse the list from start to end. We also initialize two variables `idx` and `count` with 0 to to keep track of the current split list and the number of nodes already added to it. We then iterate the list and use the variables `bigLists` and `count` to update `idx` when we have added all nodes to the current split list.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    D["dummy[k]<br/>k heads<br/>(one per output)"]
-    T["tail[k]<br/>k tails<br/>(tracks end of each)"]
-    CUR["current = head<br/>(the walker)"]
-    BIG["bigLists = n % k<br/>(# of k+1-sized lists)"]
-    BASE["baseSize = n / k<br/>(size of small lists)"]
-    BKT["bucket = 0<br/>(round-robin counter)"]
-    D ~~~ T ~~~ CUR ~~~ BIG ~~~ BASE ~~~ BKT
+```d2
+state: "Initial state for unequal split" {
+  grid-columns: 3
+  grid-gap: 16
+  d: |md
+    **dummy[k]**
+
+    k heads
+    (one per output)
+  |
+  t: |md
+    **tail[k]**
+
+    k tails
+    (tracks end of each)
+  |
+  cur: |md
+    **current = head**
+
+    (the walker)
+  |
+  big: |md
+    **bigLists = n % k**
+
+    (# of k+1-sized lists)
+  |
+  base: |md
+    **baseSize = n / k**
+
+    (size of small lists)
+  |
+  bkt: |md
+    **bucket = 0**
+
+    (round-robin counter)
+  |
+}
 ```
 
 <p align="center"><strong>Initial state for unequal split — alongside the usual <code>dummy</code> / <code>tail</code> arrays, track how many nodes still belong to the current bucket and how many "big" buckets remain.</strong></p>

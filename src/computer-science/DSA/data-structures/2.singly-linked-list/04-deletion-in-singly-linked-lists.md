@@ -38,24 +38,6 @@ Similar to insertion, deletion is one of the most common operations in a linked 
 
 When the list is empty, any attempt to delete a node is unnecessary because there are no nodes in the list. The list remains unchanged. We return the existing **head** — which is already `null`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head = null"]) --> R(["Return null — nothing to delete"])
-```
-
-<p align="center"><strong>Case 1 — empty list: return immediately with no changes.</strong></p>
-
 > **Algorithm**
 >
 > -   **Step 1:** Return the original head node.
@@ -64,28 +46,55 @@ flowchart LR
 
 Update **head** to hold the reference of the next node (the second node), effectively unlinking the first node. In GC languages (Java, Python, JS), the old head is automatically collected. In C/C++, we explicitly free/delete it.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before — list = [5, 7, 3, 10]"]
-        direction LR
-        H1(["head"]) --> B1["val: 5<br/>(delete)"] --> B2["val: 7"] --> B3["val: 3"] --> B4["val: 10<br/>next: null"]
-    end
-    subgraph AFTER["After — head advanced to second node"]
-        direction LR
-        H2(["head"]) --> C2["val: 7"] --> C3["val: 3"] --> C4["val: 10<br/>next: null"]
-    end
-    BEFORE -->|"head = head.next<br/>free old head"| AFTER
+```d2
+before: "Before — list = [5, 7, 3, 10]" {
+  direction: right
+  h: head {shape: oval}
+  n1: {
+    value: 5
+    next
+    style.fill: "#fde68a"
+    style.stroke: "#d97706"
+  }
+  n2: {
+    value: 7
+    next
+  }
+  n3: {
+    value: 3
+    next
+  }
+  n4: {
+    value: 10
+    next: "null"
+  }
+  h -> n1.value
+  n1.next -> n2.value
+  n2.next -> n3.value
+  n3.next -> n4.value
+}
+
+after: "After — head advanced to second node" {
+  direction: right
+  h: head {shape: oval}
+  n2: {
+    value: 7
+    next
+  }
+  n3: {
+    value: 3
+    next
+  }
+  n4: {
+    value: 10
+    next: "null"
+  }
+  h -> n2.value
+  n2.next -> n3.value
+  n3.next -> n4.value
+}
+
+before -> after: "head = head.next; free old head"
 ```
 
 <p align="center"><strong>Case 2 — non-empty list: advance head to the second node; the first node is unlinked and freed.</strong></p>
@@ -718,24 +727,6 @@ We must access the second last node to delete the last node from a linked list. 
 
 When the list is empty, meaning it contains no elements, any attempt to delete a node is unnecessary because there are no nodes in the list. Since there is nothing to remove, the list remains unchanged. We can return the existing **head**, as the list is empty, and no node needs to be deleted.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head = null"]) ~~~ NOTE["Nothing to delete — return head as-is"]
-```
-
-<p align="center"><strong>An empty list has <code>head = null</code> — the deletion function has nothing to act on and returns immediately.</strong></p>
-
 > **Algorithm**
 >
 > -   **Step 1:** Return the original head node.
@@ -743,24 +734,6 @@ flowchart LR
 ## 2\. The list has only one node
 
 Deleting the last node is the same as deleting the first node when only one node is in the list. We follow the same steps in both cases, such as deleting the first/last node. This involves deleting the head node and returning null.
-
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head = null"]) ~~~ NOTE["Nothing to delete — return head as-is"]
-```
-
-<p align="center"><strong>An empty list has <code>head = null</code> — the deletion function has nothing to act on and returns immediately.</strong></p>
 
 > **Algorithm**
 >
@@ -771,31 +744,61 @@ flowchart LR
 
 In this scenario, we need to update the pointer of the second last node in the list to hold `null` and then delete the last node. We need access to the list's last and second last nodes to accomplish this. We will traverse the list from the beginning while keeping track of the **current** and  nodes. This way, when we reach the last node, we will have access to the second last node. Thereafter, we can update the pointer of the second last node to `null`, or more intuitively, to the next of the last node, which should already be `null`, and then delete the last node.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    subgraph BEFORE["Before — walk with current + previous"]
-        direction LR
-        H1(["head"]) --> B1["5"] --> B2["7"] --> B3["3"] --> B4["10<br/>tail"]
-        PREV["previous"] -.-> B3
-        CUR["current"] -.-> B4
-    end
-    subgraph AFTER["After — previous.next = null; free current"]
-        direction LR
-        H2(["head"]) --> A1["5"] --> A2["7"] --> A3["3<br/>next: null"]
-        style A3 fill:#fef9c3,stroke:#3b82f6
-    end
-    BEFORE -->|"unlink tail"| AFTER
+```d2
+before: "Before — walk with current + previous" {
+  direction: right
+  h: head {shape: oval}
+  n1: {
+    value: 5
+    next
+  }
+  n2: {
+    value: 7
+    next
+  }
+  n3: {
+    value: 3
+    next
+  }
+  n4: {
+    value: 10
+    next: "null"
+    style.fill: "#fde68a"
+    style.stroke: "#d97706"
+  }
+  prev: previous {shape: oval; style.stroke-dash: 3}
+  cur: current {shape: oval; style.stroke-dash: 3}
+  h -> n1.value
+  n1.next -> n2.value
+  n2.next -> n3.value
+  n3.next -> n4.value
+  prev -> n3.value: "" {style.stroke-dash: 3}
+  cur -> n4.value: "" {style.stroke-dash: 3}
+}
+
+after: "After — previous.next = null; free current" {
+  direction: right
+  h: head {shape: oval}
+  n1: {
+    value: 5
+    next
+  }
+  n2: {
+    value: 7
+    next
+  }
+  n3: {
+    value: 3
+    next: "null"
+    style.fill: "#dcfce7"
+    style.stroke: "#16a34a"
+  }
+  h -> n1.value
+  n1.next -> n2.value
+  n2.next -> n3.value
+}
+
+before -> after: "unlink tail"
 ```
 
 <p align="center"><strong>To delete the tail we keep two pointers, <code>previous</code> and <code>current</code>, so when <code>current</code> reaches the tail, <code>previous</code> is one step behind — ready to have its <code>next</code> set to <code>null</code>.</strong></p>
@@ -1632,24 +1635,6 @@ Deleting a node with the given data in a singly linked list can be implemented b
 
 When the list is empty, meaning it contains no elements, any attempt to delete a node is unnecessary because there are no nodes in the list. Since there is nothing to remove, the list remains unchanged. We can return the existing **head**, as the list is empty, and no node needs to be deleted.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head = null"]) ~~~ NOTE["Nothing to delete — return head as-is"]
-```
-
-<p align="center"><strong>An empty list has <code>head = null</code> — the deletion function has nothing to act on and returns immediately.</strong></p>
-
 > **Algorithm**
 >
 > -   **Step 1:** Return the original head node.
@@ -1658,29 +1643,45 @@ flowchart LR
 
 If the data matches the first node, this case becomes the same as **deleting the first node**. We update the **head** to store the reference to the second node and delete the old head.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before — target is the head"]
-        direction LR
-        H1(["head"]) --> B1["5<br/>(target)"] --> B2["7"] --> B3["3"]
-        style B1 fill:#fef9c3,stroke:#3b82f6
-    end
-    subgraph AFTER["After — head advances one step"]
-        direction LR
-        H2(["head"]) --> A1["7"] --> A2["3"]
-    end
-    BEFORE -->|"head = head.next"| AFTER
+```d2
+before: "Before — target is the head" {
+  direction: right
+  h: head {shape: oval}
+  n1: {
+    value: "5 (target)"
+    next
+    style.fill: "#fde68a"
+    style.stroke: "#d97706"
+  }
+  n2: {
+    value: 7
+    next
+  }
+  n3: {
+    value: 3
+    next: "null"
+  }
+  h -> n1.value
+  n1.next -> n2.value
+  n2.next -> n3.value
+}
+
+after: "After — head advances one step" {
+  direction: right
+  h: head {shape: oval}
+  n2: {
+    value: 7
+    next
+  }
+  n3: {
+    value: 3
+    next: "null"
+  }
+  h -> n2.value
+  n2.next -> n3.value
+}
+
+before -> after: "head = head.next"
 ```
 
 <p align="center"><strong>Deleting the head is a single pointer update — move <code>head</code> forward and the old head becomes unreachable (garbage-collected or freed).</strong></p>
@@ -1696,31 +1697,59 @@ flowchart TB
 
 To delete a node that is not the first node of the linked list, we need access to the node 1 step before the one to be deleted. We will traverse the list from the beginning while keeping track of the **current** and nodes. This way, when we reach the node with the given data, we will have access to its previous node, which we need to update.Deleting the given node involves a three-step process.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before — walk with prev + current"]
-        direction LR
-        H1(["head"]) --> B1["5"] --> B2["7<br/>(target)"] --> B3["3"] --> B4["10"]
-        PREV["prev"] -.-> B1
-        CUR["current"] -.-> B2
-        style B2 fill:#fef9c3,stroke:#3b82f6
-    end
-    subgraph AFTER["After — splice out current"]
-        direction LR
-        H2(["head"]) --> A1["5"] --> A3["3"] --> A4["10"]
-    end
-    BEFORE -->|"prev.next = current.next<br/>free current"| AFTER
+```d2
+before: "Before — walk with prev + current" {
+  direction: right
+  h: head {shape: oval}
+  n1: {
+    value: 5
+    next
+  }
+  n2: {
+    value: "7 (target)"
+    next
+    style.fill: "#fde68a"
+    style.stroke: "#d97706"
+  }
+  n3: {
+    value: 3
+    next
+  }
+  n4: {
+    value: 10
+    next: "null"
+  }
+  prev: prev {shape: oval; style.stroke-dash: 3}
+  cur: current {shape: oval; style.stroke-dash: 3}
+  h -> n1.value
+  n1.next -> n2.value
+  n2.next -> n3.value
+  n3.next -> n4.value
+  prev -> n1.value: "" {style.stroke-dash: 3}
+  cur -> n2.value: "" {style.stroke-dash: 3}
+}
+
+after: "After — splice out current" {
+  direction: right
+  h: head {shape: oval}
+  n1: {
+    value: 5
+    next
+  }
+  n3: {
+    value: 3
+    next
+  }
+  n4: {
+    value: 10
+    next: "null"
+  }
+  h -> n1.value
+  n1.next -> n3.value
+  n3.next -> n4.value
+}
+
+before -> after: "prev.next = current.next; free current"
 ```
 
 <p align="center"><strong>To delete an interior node, we need its predecessor. A two-pointer walk (<code>prev</code> + <code>current</code>) gives us both — then <code>prev.next = current.next</code> unlinks the target in O(1).</strong></p>
@@ -1736,22 +1765,33 @@ flowchart TB
 
 If the data provided does not match the data of any node in the linked list, then such a node does not exist in the list, so we return the existing **head**.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> N1["5"] --> N2["7"] --> N3["3"] --> N4["10<br/>next: null"]
-    T["target = 99"] -.->|"not found"| END(["return head unchanged"])
-    N4 --> END
+```d2
+direction: right
+h: head {shape: oval}
+n1: {
+  value: 5
+  next
+}
+n2: {
+  value: 7
+  next
+}
+n3: {
+  value: 3
+  next
+}
+n4: {
+  value: 10
+  next: "null"
+}
+target: "target = 99 (not found)" {shape: oval; style.fill: "#fee2e2"; style.stroke: "#dc2626"}
+result: "return head unchanged" {shape: oval}
+h -> n1.value
+n1.next -> n2.value
+n2.next -> n3.value
+n3.next -> n4.value
+target -> result: "" {style.stroke-dash: 3}
+n4.next -> result: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>If we reach the tail without finding the target, the list contains no node with that value — return the head unchanged.</strong></p>
@@ -2139,23 +2179,39 @@ The time complexity of deleting a node with the given data depends on the positi
 
 The best case occurs when the given data matches the first node. In this case, the function must delete the first node of the list. This process takes **constant** time, regardless of the linked list's size.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> B1["target"] --> B2["·"] --> B3["·"] --> B4["·"]
-    style B1 fill:#fef9c3,stroke:#3b82f6
-    COST["1 comparison<br/>1 pointer update<br/>O(1)"]
-    B1 -.-> COST
+```d2
+direction: right
+h: head {shape: oval}
+n1: {
+  value: target
+  next
+  style.fill: "#fde68a"
+  style.stroke: "#d97706"
+}
+n2: {
+  value: "·"
+  next
+}
+n3: {
+  value: "·"
+  next
+}
+n4: {
+  value: "·"
+  next: "null"
+}
+cost: |md
+  **1 comparison**
+
+  **1 pointer update**
+
+  `O(1)`
+| {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+h -> n1.value
+n1.next -> n2.value
+n2.next -> n3.value
+n3.next -> n4.value
+n1.value -> cost: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Best case — target is the head. No walking needed; single pointer update. <strong>O(1)</strong>.</strong></p>
@@ -2164,23 +2220,39 @@ flowchart LR
 
 On the other hand, the worst case occurs when the given data matches the last node. In this case, the function must delete the last node of the list. This process takes linear time proportional to the length of the linked list, i.e., **O(N)**.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> B1["·"] --> B2["·"] --> B3["·"] --> B4["target<br/>(tail)"]
-    style B4 fill:#fef9c3,stroke:#3b82f6
-    COST["n−1 hops to reach predecessor<br/>1 pointer update<br/>O(n)"]
-    B4 -.-> COST
+```d2
+direction: right
+h: head {shape: oval}
+n1: {
+  value: "·"
+  next
+}
+n2: {
+  value: "·"
+  next
+}
+n3: {
+  value: "·"
+  next
+}
+n4: {
+  value: "target (tail)"
+  next: "null"
+  style.fill: "#fde68a"
+  style.stroke: "#d97706"
+}
+cost: |md
+  **n−1 hops to reach predecessor**
+
+  **1 pointer update**
+
+  `O(n)`
+| {style.fill: "#fee2e2"; style.stroke: "#dc2626"}
+h -> n1.value
+n1.next -> n2.value
+n2.next -> n3.value
+n3.next -> n4.value
+n4.value -> cost: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Worst case — target is the tail. We must walk the entire list to reach its predecessor. <strong>O(n)</strong>.</strong></p>
@@ -3237,24 +3309,6 @@ When deleting a node, we require access to the node one step before the node to 
 
 If the list is empty and contains no elements, we cannot find the given node because it does not exist within the list. Deleting the node after the given node is not possible because there is no reference point within the list to perform the deletion. In this case, we can return the existing **head**, as the list is empty, and no node needs to be deleted.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head = null"]) ~~~ NOTE["Nothing to delete — return head as-is"]
-```
-
-<p align="center"><strong>An empty list has <code>head = null</code> — the deletion function has nothing to act on and returns immediately.</strong></p>
-
 > **Algorithm**
 >
 > -   **Step 1:** Return the original head node.
@@ -3263,22 +3317,28 @@ flowchart LR
 
 When the given node is the last node in the list, attempting to delete a node after it becomes an invalid operation. This is because, by definition, the last node has no successor, i.e., no node following it in the sequence. We can return the **head** because no other operation needs to be done.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> N1["5"] --> N2["7"] --> N3["3<br/>(given,<br/>next: null)"]
-    N3 -.->|"no successor to delete"| END(["return head unchanged"])
-    style N3 fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+h: head {shape: oval}
+n1: {
+  value: 5
+  next
+}
+n2: {
+  value: 7
+  next
+}
+n3: {
+  value: "3 (given, next: null)"
+  next: "null"
+  style.fill: "#fde68a"
+  style.stroke: "#d97706"
+}
+result: "return head unchanged" {shape: oval}
+h -> n1.value
+n1.next -> n2.value
+n2.next -> n3.value
+n3.value -> result: "no successor to delete" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>If the given node is the tail, there is no "node after it" to delete — return the list unchanged.</strong></p>
@@ -3291,29 +3351,55 @@ flowchart LR
 
 To delete a node after a given node, we can update the pointer of the given node to skip over the node that needs to be deleted. Then, we can remove the node that we want to delete.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before — delete the node after 'given'"]
-        direction LR
-        H1(["head"]) --> B1["5"] --> B2["7<br/>(given)"] --> B3["3<br/>(victim)"] --> B4["10"]
-        style B3 fill:#fef9c3,stroke:#3b82f6
-    end
-    subgraph AFTER["After — given.next = victim.next"]
-        direction LR
-        H2(["head"]) --> A1["5"] --> A2["7<br/>(given)"] --> A4["10"]
-    end
-    BEFORE -->|"one pointer hop"| AFTER
+```d2
+before: "Before — delete the node after 'given'" {
+  direction: right
+  h: head {shape: oval}
+  n1: {
+    value: 5
+    next
+  }
+  n2: {
+    value: "7 (given)"
+    next
+  }
+  n3: {
+    value: "3 (victim)"
+    next
+    style.fill: "#fde68a"
+    style.stroke: "#d97706"
+  }
+  n4: {
+    value: 10
+    next: "null"
+  }
+  h -> n1.value
+  n1.next -> n2.value
+  n2.next -> n3.value
+  n3.next -> n4.value
+}
+
+after: "After — given.next = victim.next" {
+  direction: right
+  h: head {shape: oval}
+  n1: {
+    value: 5
+    next
+  }
+  n2: {
+    value: "7 (given)"
+    next
+  }
+  n4: {
+    value: 10
+    next: "null"
+  }
+  h -> n1.value
+  n1.next -> n2.value
+  n2.next -> n4.value
+}
+
+before -> after: "one pointer hop"
 ```
 
 <p align="center"><strong>Deleting the node after a given node is O(1) — we already have the predecessor (the given node itself). Just redirect <code>given.next</code> past the victim.</strong></p>
@@ -3645,24 +3731,6 @@ Deleting the node before the given node is similar to **inserting before the giv
 
 If the list is empty and contains no elements, we cannot find the given node because it does not exist within the list. Deleting the node after the given node is not possible because there is no reference point within the list to perform the deletion. In this case, we can return the existing **head**, as the list is empty, and no node needs to be deleted.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head = null"]) ~~~ NOTE["Nothing to delete — return head as-is"]
-```
-
-<p align="center"><strong>An empty list has <code>head = null</code> — the deletion function has nothing to act on and returns immediately.</strong></p>
-
 > **Algorithm**
 >
 > -   **Step 1:** Return the original head node.
@@ -3671,22 +3739,28 @@ flowchart LR
 
 When the given node is the first node in the list, attempting to delete a node before it becomes an invalid operation. This is because, by definition, the first node has no predecessor, i.e., no node preceding it in the sequence. We can return the **head** because no other operation needs to be done.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> N1["5<br/>(given)"] --> N2["7"] --> N3["3"]
-    N1 -.->|"no predecessor to delete"| END(["return head unchanged"])
-    style N1 fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+h: head {shape: oval}
+n1: {
+  value: "5 (given)"
+  next
+  style.fill: "#fde68a"
+  style.stroke: "#d97706"
+}
+n2: {
+  value: 7
+  next
+}
+n3: {
+  value: 3
+  next: "null"
+}
+result: "return head unchanged" {shape: oval}
+h -> n1.value
+n1.next -> n2.value
+n2.next -> n3.value
+n1.value -> result: "no predecessor to delete" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>If the given node is the head, there is no "node before it" to delete — return the list unchanged.</strong></p>
@@ -3699,29 +3773,45 @@ flowchart LR
 
 This is a unique situation because removing the node before the second node essentially means deleting the linked list's head node. As learned earlier, this scenario is identical to **deleting the first node**. We need to update the head to store the reference to the second node and then delete the old head.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before — 'given' is the second node"]
-        direction LR
-        H1(["head"]) --> B1["5<br/>(victim)"] --> B2["7<br/>(given)"] --> B3["3"]
-        style B1 fill:#fef9c3,stroke:#3b82f6
-    end
-    subgraph AFTER["After — head advances past the victim"]
-        direction LR
-        H2(["head"]) --> A2["7<br/>(given)"] --> A3["3"]
-    end
-    BEFORE -->|"head = head.next"| AFTER
+```d2
+before: "Before — 'given' is the second node" {
+  direction: right
+  h: head {shape: oval}
+  n1: {
+    value: "5 (victim)"
+    next
+    style.fill: "#fde68a"
+    style.stroke: "#d97706"
+  }
+  n2: {
+    value: "7 (given)"
+    next
+  }
+  n3: {
+    value: 3
+    next: "null"
+  }
+  h -> n1.value
+  n1.next -> n2.value
+  n2.next -> n3.value
+}
+
+after: "After — head advances past the victim" {
+  direction: right
+  h: head {shape: oval}
+  n2: {
+    value: "7 (given)"
+    next
+  }
+  n3: {
+    value: 3
+    next: "null"
+  }
+  h -> n2.value
+  n2.next -> n3.value
+}
+
+before -> after: "head = head.next"
 ```
 
 <p align="center"><strong>When <code>given</code> is the second node, the node before it is the head. This special case collapses to "delete the head" — handled in one pointer update.</strong></p>
@@ -3737,31 +3827,59 @@ flowchart TB
 
 To delete the node before a given node, we need to access the node two steps before the given node. We traverse the linked list while keeping track of the **current**,  and **previousToPrevious** nodes. As soon as we reach the given node, we update the pointer of the **previousToPrevious** node to hold the reference to the current node and then delete the node.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before — walk with prev + current"]
-        direction LR
-        H1(["head"]) --> B1["5"] --> B2["7<br/>(target)"] --> B3["3"] --> B4["10"]
-        PREV["prev"] -.-> B1
-        CUR["current"] -.-> B2
-        style B2 fill:#fef9c3,stroke:#3b82f6
-    end
-    subgraph AFTER["After — splice out current"]
-        direction LR
-        H2(["head"]) --> A1["5"] --> A3["3"] --> A4["10"]
-    end
-    BEFORE -->|"prev.next = current.next<br/>free current"| AFTER
+```d2
+before: "Before — walk with prev + current" {
+  direction: right
+  h: head {shape: oval}
+  n1: {
+    value: 5
+    next
+  }
+  n2: {
+    value: "7 (target)"
+    next
+    style.fill: "#fde68a"
+    style.stroke: "#d97706"
+  }
+  n3: {
+    value: 3
+    next
+  }
+  n4: {
+    value: 10
+    next: "null"
+  }
+  prev: prev {shape: oval; style.stroke-dash: 3}
+  cur: current {shape: oval; style.stroke-dash: 3}
+  h -> n1.value
+  n1.next -> n2.value
+  n2.next -> n3.value
+  n3.next -> n4.value
+  prev -> n1.value: "" {style.stroke-dash: 3}
+  cur -> n2.value: "" {style.stroke-dash: 3}
+}
+
+after: "After — splice out current" {
+  direction: right
+  h: head {shape: oval}
+  n1: {
+    value: 5
+    next
+  }
+  n3: {
+    value: 3
+    next
+  }
+  n4: {
+    value: 10
+    next: "null"
+  }
+  h -> n1.value
+  n1.next -> n3.value
+  n3.next -> n4.value
+}
+
+before -> after: "prev.next = current.next; free current"
 ```
 
 <p align="center"><strong>To delete an interior node, we need its predecessor. A two-pointer walk (<code>prev</code> + <code>current</code>) gives us both — then <code>prev.next = current.next</code> unlinks the target in O(1).</strong></p>
@@ -4162,23 +4280,39 @@ The time complexity of deleting a node before a given node depends on the positi
 
 The best case occurs when the given node is the second node of the list. In this case, the function must delete the first node of the list. This process takes **constant** time, regardless of the linked list's size.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> B1["target"] --> B2["·"] --> B3["·"] --> B4["·"]
-    style B1 fill:#fef9c3,stroke:#3b82f6
-    COST["1 comparison<br/>1 pointer update<br/>O(1)"]
-    B1 -.-> COST
+```d2
+direction: right
+h: head {shape: oval}
+n1: {
+  value: target
+  next
+  style.fill: "#fde68a"
+  style.stroke: "#d97706"
+}
+n2: {
+  value: "·"
+  next
+}
+n3: {
+  value: "·"
+  next
+}
+n4: {
+  value: "·"
+  next: "null"
+}
+cost: |md
+  **1 comparison**
+
+  **1 pointer update**
+
+  `O(1)`
+| {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+h -> n1.value
+n1.next -> n2.value
+n2.next -> n3.value
+n3.next -> n4.value
+n1.value -> cost: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Best case — target is the head. No walking needed; single pointer update. <strong>O(1)</strong>.</strong></p>
@@ -4187,23 +4321,39 @@ flowchart LR
 
 On the other hand, the worst case occurs when the given data matches the last node. In this case, the function must delete the second last node of the list. This process takes linear time proportional to the length of the linked list, i.e., **O(N)**.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> B1["·"] --> B2["·"] --> B3["·"] --> B4["target<br/>(tail)"]
-    style B4 fill:#fef9c3,stroke:#3b82f6
-    COST["n−1 hops to reach predecessor<br/>1 pointer update<br/>O(n)"]
-    B4 -.-> COST
+```d2
+direction: right
+h: head {shape: oval}
+n1: {
+  value: "·"
+  next
+}
+n2: {
+  value: "·"
+  next
+}
+n3: {
+  value: "·"
+  next
+}
+n4: {
+  value: "target (tail)"
+  next: "null"
+  style.fill: "#fde68a"
+  style.stroke: "#d97706"
+}
+cost: |md
+  **n−1 hops to reach predecessor**
+
+  **1 pointer update**
+
+  `O(n)`
+| {style.fill: "#fee2e2"; style.stroke: "#dc2626"}
+h -> n1.value
+n1.next -> n2.value
+n2.next -> n3.value
+n3.next -> n4.value
+n4.value -> cost: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Worst case — target is the tail. We must walk the entire list to reach its predecessor. <strong>O(n)</strong>.</strong></p>
@@ -4320,24 +4470,6 @@ Deleting the given node is identical to **deleting the node with the given data*
 
 If the list is empty and contains no elements, we cannot find the given node because it does not exist within the list. Therefore, deleting the given node is not possible because there is no reference point within the list to perform the deletion. In this case, we can return the existing **head**, as the list is empty, and no node needs to be deleted.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head = null"]) ~~~ NOTE["Nothing to delete — return head as-is"]
-```
-
-<p align="center"><strong>An empty list has <code>head = null</code> — the deletion function has nothing to act on and returns immediately.</strong></p>
-
 > **Algorithm**
 >
 > -   **Step 1:** Return the original head node.
@@ -4346,29 +4478,45 @@ flowchart LR
 
 If the given node matches the first node, this case becomes the same as **deleting the first node**. We update the **head** to store the reference to the second node and delete the old head.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before — target is the head"]
-        direction LR
-        H1(["head"]) --> B1["5<br/>(target)"] --> B2["7"] --> B3["3"]
-        style B1 fill:#fef9c3,stroke:#3b82f6
-    end
-    subgraph AFTER["After — head advances one step"]
-        direction LR
-        H2(["head"]) --> A1["7"] --> A2["3"]
-    end
-    BEFORE -->|"head = head.next"| AFTER
+```d2
+before: "Before — target is the head" {
+  direction: right
+  h: head {shape: oval}
+  n1: {
+    value: "5 (target)"
+    next
+    style.fill: "#fde68a"
+    style.stroke: "#d97706"
+  }
+  n2: {
+    value: 7
+    next
+  }
+  n3: {
+    value: 3
+    next: "null"
+  }
+  h -> n1.value
+  n1.next -> n2.value
+  n2.next -> n3.value
+}
+
+after: "After — head advances one step" {
+  direction: right
+  h: head {shape: oval}
+  n2: {
+    value: 7
+    next
+  }
+  n3: {
+    value: 3
+    next: "null"
+  }
+  h -> n2.value
+  n2.next -> n3.value
+}
+
+before -> after: "head = head.next"
 ```
 
 <p align="center"><strong>Deleting the head is a single pointer update — move <code>head</code> forward and the old head becomes unreachable (garbage-collected or freed).</strong></p>
@@ -4384,31 +4532,59 @@ flowchart TB
 
 To delete a node that is not the first node of the linked list, we need access to the node 1 step before the one to be deleted. We will traverse the list from the beginning while keeping track of the **current** and nodes. This way, when we reach the given node, we will have access to its previous node, which we need to update. Deleting the given node involves a three step process.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before — walk with prev + current"]
-        direction LR
-        H1(["head"]) --> B1["5"] --> B2["7<br/>(target)"] --> B3["3"] --> B4["10"]
-        PREV["prev"] -.-> B1
-        CUR["current"] -.-> B2
-        style B2 fill:#fef9c3,stroke:#3b82f6
-    end
-    subgraph AFTER["After — splice out current"]
-        direction LR
-        H2(["head"]) --> A1["5"] --> A3["3"] --> A4["10"]
-    end
-    BEFORE -->|"prev.next = current.next<br/>free current"| AFTER
+```d2
+before: "Before — walk with prev + current" {
+  direction: right
+  h: head {shape: oval}
+  n1: {
+    value: 5
+    next
+  }
+  n2: {
+    value: "7 (target)"
+    next
+    style.fill: "#fde68a"
+    style.stroke: "#d97706"
+  }
+  n3: {
+    value: 3
+    next
+  }
+  n4: {
+    value: 10
+    next: "null"
+  }
+  prev: prev {shape: oval; style.stroke-dash: 3}
+  cur: current {shape: oval; style.stroke-dash: 3}
+  h -> n1.value
+  n1.next -> n2.value
+  n2.next -> n3.value
+  n3.next -> n4.value
+  prev -> n1.value: "" {style.stroke-dash: 3}
+  cur -> n2.value: "" {style.stroke-dash: 3}
+}
+
+after: "After — splice out current" {
+  direction: right
+  h: head {shape: oval}
+  n1: {
+    value: 5
+    next
+  }
+  n3: {
+    value: 3
+    next
+  }
+  n4: {
+    value: 10
+    next: "null"
+  }
+  h -> n1.value
+  n1.next -> n3.value
+  n3.next -> n4.value
+}
+
+before -> after: "prev.next = current.next; free current"
 ```
 
 <p align="center"><strong>To delete an interior node, we need its predecessor. A two-pointer walk (<code>prev</code> + <code>current</code>) gives us both — then <code>prev.next = current.next</code> unlinks the target in O(1).</strong></p>
@@ -4795,23 +4971,39 @@ The time complexity of deleting a given node depends on its position in the link
 
 The best case occurs when the given node is the first node. In this case, the function must delete the first node of the list. This process takes **constant** time, regardless of the linked list's size.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> B1["target"] --> B2["·"] --> B3["·"] --> B4["·"]
-    style B1 fill:#fef9c3,stroke:#3b82f6
-    COST["1 comparison<br/>1 pointer update<br/>O(1)"]
-    B1 -.-> COST
+```d2
+direction: right
+h: head {shape: oval}
+n1: {
+  value: target
+  next
+  style.fill: "#fde68a"
+  style.stroke: "#d97706"
+}
+n2: {
+  value: "·"
+  next
+}
+n3: {
+  value: "·"
+  next
+}
+n4: {
+  value: "·"
+  next: "null"
+}
+cost: |md
+  **1 comparison**
+
+  **1 pointer update**
+
+  `O(1)`
+| {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+h -> n1.value
+n1.next -> n2.value
+n2.next -> n3.value
+n3.next -> n4.value
+n1.value -> cost: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Best case — target is the head. No walking needed; single pointer update. <strong>O(1)</strong>.</strong></p>
@@ -4820,23 +5012,39 @@ flowchart LR
 
 On the other hand, the worst case occurs when the given node is the last node. In this case, the function must delete the last node of the list. This process takes linear time proportional to the length of the linked list, i.e., **O(N)**.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> B1["·"] --> B2["·"] --> B3["·"] --> B4["target<br/>(tail)"]
-    style B4 fill:#fef9c3,stroke:#3b82f6
-    COST["n−1 hops to reach predecessor<br/>1 pointer update<br/>O(n)"]
-    B4 -.-> COST
+```d2
+direction: right
+h: head {shape: oval}
+n1: {
+  value: "·"
+  next
+}
+n2: {
+  value: "·"
+  next
+}
+n3: {
+  value: "·"
+  next
+}
+n4: {
+  value: "target (tail)"
+  next: "null"
+  style.fill: "#fde68a"
+  style.stroke: "#d97706"
+}
+cost: |md
+  **n−1 hops to reach predecessor**
+
+  **1 pointer update**
+
+  `O(n)`
+| {style.fill: "#fee2e2"; style.stroke: "#dc2626"}
+h -> n1.value
+n1.next -> n2.value
+n2.next -> n3.value
+n3.next -> n4.value
+n4.value -> cost: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Worst case — target is the tail. We must walk the entire list to reach its predecessor. <strong>O(n)</strong>.</strong></p>
@@ -4951,24 +5159,6 @@ Deleting a node at a distance `X` is similar to **inserting a node at a given di
 
 When the list is empty, meaning it contains no elements, any attempt to delete a node is unnecessary because there are no nodes in the list. Since there is nothing to remove, the list remains unchanged. We can return the existing **head**, as the list is empty, and no node needs to be deleted.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head = null"]) ~~~ NOTE["Nothing to delete — return head as-is"]
-```
-
-<p align="center"><strong>An empty list has <code>head = null</code> — the deletion function has nothing to act on and returns immediately.</strong></p>
-
 > **Algorithm**
 >
 > -   **Step 1:** Return the original head node.
@@ -4990,29 +5180,65 @@ X = 0
 
 When we need to delete a specific node from a list, we should traverse the list until we reach the node just before the one we want to delete. Keep track of the current node and traverse `X-1` steps instead of `X`. At the end of the loop, we will reach the node one step before the node that needs to be deleted. Then, the problem becomes **deleting a node after a given node**, where the given node is the node one step before the node that has to be deleted. Update the reference in the given node's pointer to point to the node after the one that has to be deleted. Once the connections have been updated, safely delete the next node.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["X = 2 within a list of size 5"]
-        direction LR
-        H1(["head"]) --> B1["5<br/>(0)"] --> B2["7<br/>(1)"] --> B3["3<br/>(2 — victim)"] --> B4["10<br/>(3)"] --> B5["4<br/>(4)"]
-        style B3 fill:#fef9c3,stroke:#3b82f6
-    end
-    subgraph AFTER["After — node at index 2 unlinked"]
-        direction LR
-        H2(["head"]) --> A1["5"] --> A2["7"] --> A4["10"] --> A5["4"]
-    end
-    BEFORE -->|"walk X−1 hops to predecessor<br/>prev.next = prev.next.next"| AFTER
+```d2
+before: "X = 2 within a list of size 5" {
+  direction: right
+  h: head {shape: oval}
+  n0: {
+    value: "5 [0]"
+    next
+  }
+  n1: {
+    value: "7 [1]"
+    next
+  }
+  n2: {
+    value: "3 [2 — victim]"
+    next
+    style.fill: "#fde68a"
+    style.stroke: "#d97706"
+  }
+  n3: {
+    value: "10 [3]"
+    next
+  }
+  n4: {
+    value: "4 [4]"
+    next: "null"
+  }
+  h -> n0.value
+  n0.next -> n1.value
+  n1.next -> n2.value
+  n2.next -> n3.value
+  n3.next -> n4.value
+}
+
+after: "After — node at index 2 unlinked" {
+  direction: right
+  h: head {shape: oval}
+  n0: {
+    value: 5
+    next
+  }
+  n1: {
+    value: 7
+    next
+  }
+  n3: {
+    value: 10
+    next
+  }
+  n4: {
+    value: 4
+    next: "null"
+  }
+  h -> n0.value
+  n0.next -> n1.value
+  n1.next -> n3.value
+  n3.next -> n4.value
+}
+
+before -> after: "walk X−1 hops to predecessor; prev.next = prev.next.next"
 ```
 
 <p align="center"><strong>When <code>X</code> is within bounds, walk <code>X−1</code> steps to reach the predecessor and splice out its successor.</strong></p>
@@ -5032,22 +5258,28 @@ This indicates an invalid query. For example, we cannot delete the 10th node in 
 
 This is also an invalid case. To clarify, let's consider a list of size 5. In this scenario, the potential values of `X` could range from 0 to 4, meaning `[0, 4]`. Therefore, an input 5 would be invalid. It's important to note that X represents the distance from the head node, not the node's position.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> N1["5<br/>(0)"] --> N2["7<br/>(1)"] --> N3["3<br/>(2)"] --> N4["null"]
-    X["X = 5 (out of range)"] -.->|"walk falls off"| END(["return head unchanged"])
-    N4 --> END
+```d2
+direction: right
+h: head {shape: oval}
+n0: {
+  value: "5 [0]"
+  next
+}
+n1: {
+  value: "7 [1]"
+  next
+}
+n2: {
+  value: "3 [2]"
+  next: "null"
+}
+x: "X = 5 (out of range)" {shape: oval; style.fill: "#fee2e2"; style.stroke: "#dc2626"}
+result: "return head unchanged" {shape: oval}
+h -> n0.value
+n0.next -> n1.value
+n1.next -> n2.value
+x -> result: "walk falls off" {style.stroke-dash: 3}
+n2.next -> result: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>When <code>X</code> is ≥ list size, there is no node at that index — return the list unchanged without modifying anything.</strong></p>
@@ -5412,23 +5644,39 @@ The time complexity of deleting a node at a given distance `X` depends on the v
 
 The best case occurs when `X` is equal to 0. In this case, the function must delete the first node of the list. This process takes **constant** time, regardless of the linked list's size.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> B1["X=0<br/>(victim)"] --> B2["·"] --> B3["·"] --> B4["·"]
-    style B1 fill:#fef9c3,stroke:#3b82f6
-    COST["0 walking hops<br/>1 pointer update<br/>O(1)"]
-    B1 -.-> COST
+```d2
+direction: right
+h: head {shape: oval}
+n1: {
+  value: "X=0 (victim)"
+  next
+  style.fill: "#fde68a"
+  style.stroke: "#d97706"
+}
+n2: {
+  value: "·"
+  next
+}
+n3: {
+  value: "·"
+  next
+}
+n4: {
+  value: "·"
+  next: "null"
+}
+cost: |md
+  **0 walking hops**
+
+  **1 pointer update**
+
+  `O(1)`
+| {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+h -> n1.value
+n1.next -> n2.value
+n2.next -> n3.value
+n3.next -> n4.value
+n1.value -> cost: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Best case — <code>X = 0</code>, victim is the head. No traversal; constant time.</strong></p>
@@ -5437,23 +5685,39 @@ flowchart LR
 
 On the other hand, the worst case occurs when `X` is one less than the size of the list. In this case, the function must delete the last node of the list. This process takes linear time proportional to the length of the linked list, i.e., **O(N)**.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> B1["·"] --> B2["·"] --> B3["·"] --> B4["X=n−1<br/>(victim — tail)"]
-    style B4 fill:#fef9c3,stroke:#3b82f6
-    COST["n−1 walking hops<br/>1 pointer update<br/>O(n)"]
-    B4 -.-> COST
+```d2
+direction: right
+h: head {shape: oval}
+n1: {
+  value: "·"
+  next
+}
+n2: {
+  value: "·"
+  next
+}
+n3: {
+  value: "·"
+  next
+}
+n4: {
+  value: "X=n−1 (victim — tail)"
+  next: "null"
+  style.fill: "#fde68a"
+  style.stroke: "#d97706"
+}
+cost: |md
+  **n−1 walking hops**
+
+  **1 pointer update**
+
+  `O(n)`
+| {style.fill: "#fee2e2"; style.stroke: "#dc2626"}
+h -> n1.value
+n1.next -> n2.value
+n2.next -> n3.value
+n3.next -> n4.value
+n4.value -> cost: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>Worst case — <code>X = n − 1</code>, victim is the tail. Full walk to reach its predecessor. Linear time.</strong></p>

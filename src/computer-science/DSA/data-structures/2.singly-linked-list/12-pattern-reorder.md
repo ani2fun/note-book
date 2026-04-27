@@ -38,25 +38,6 @@ config:
     tertiaryColor: "#fef9c3"
 ---
 flowchart LR
-    IN["Input: 1 → 2 → 3 → 4 → 5 → 6"] --> REORDER["Reorder in place"]
-    REORDER --> OUT["Output: 1 → 6 → 2 → 5 → 3 → 4"]
-```
-
-<p align="center"><strong>Reorder problems rearrange the <em>same</em> nodes into a new sequence. No new nodes; every original <code>.next</code> is rewired to produce the target order.</strong></p>
-
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
     ORIG["Original<br/>1 → 2 → 3 → 4 → 5 → 6"] -->|"SPLIT f1"| PARTS["List A: 1 → 2 → 3<br/>List B: 6 → 5 → 4"]
     PARTS -->|"MERGE f2"| FINAL["Reordered<br/>1 → 6 → 2 → 5 → 3 → 4"]
 ```
@@ -472,28 +453,38 @@ Let's consider the following problem as an example to better understand how to i
 
 > **Problem statement:** Given a singly linked list, reorder its nodes so all nodes at even indices come after the nodes at odd indices. The indices start with 1.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before — indices 0, 1, 2, 3, 4, 5"]
-        direction LR
-        A0["1<br/>[0]"] --> A1["2<br/>[1]"] --> A2["3<br/>[2]"] --> A3["4<br/>[3]"] --> A4["5<br/>[4]"] --> A5["6<br/>[5]"]
-    end
-    subgraph AFTER["After — odd-indexed first, then even-indexed"]
-        direction LR
-        B1["2"] --> B3["4"] --> B5["6"] --> B0["1"] --> B2["3"] --> B4["5"]
-    end
-    BEFORE --> AFTER
+```d2
+before: "Before — indices 0, 1, 2, 3, 4, 5" {
+  direction: right
+  a0: "1 [0]"
+  a1: "2 [1]"
+  a2: "3 [2]"
+  a3: "4 [3]"
+  a4: "5 [4]"
+  a5: "6 [5]"
+  a0 -> a1
+  a1 -> a2
+  a2 -> a3
+  a3 -> a4
+  a4 -> a5
+}
+
+after: "After — odd-indexed first, then even-indexed" {
+  direction: right
+  b1: "2"
+  b3: "4"
+  b5: "6"
+  b0: "1"
+  b2: "3"
+  b4: "5"
+  b1 -> b3
+  b3 -> b5
+  b5 -> b0
+  b0 -> b2
+  b2 -> b4
+}
+
+before -> after
 ```
 
 <p align="center"><strong>Odd-even reorder — example target shape. All nodes at odd indices ([1], [3], [5]) come before all nodes at even indices ([0], [2], [4]). A clean split-then-concatenate case.</strong></p>

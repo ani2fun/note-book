@@ -22,22 +22,25 @@ Floyd came up with something better. His algorithm uses **two pointers**, no has
 
 Sometimes, a linked list may not terminate at a `null` reference but instead, hold the reference to some other node in the next section of its last node. Such a list is said to have a cycle, as now, if we traverse the list from the start, we will loop indefinitely and never reach a `null` reference. Floyd's algorithm, also called the tortoise and hare method, uses the fast and slow pointer technique to identify if a linked list has a cycle in a single pass. It is a really efficient algorithm that can also identify the node at which the cycle starts without using any extra space.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> A["5"] --> B["7"] --> C["3"] --> D["10"] --> E["6"]
-    E -->|"cycle back"| C
-    style C fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+h: head {shape: oval}
+n1: {value: 5; next}
+n2: {value: 7; next}
+n3: {
+  value: 3
+  next
+  style.fill: "#fde68a"
+  style.stroke: "#d97706"
+}
+n4: {value: 10; next}
+n5: {value: 6; next}
+h -> n1.value
+n1.next -> n2.value
+n2.next -> n3.value
+n3.next -> n4.value
+n4.next -> n5.value
+n5.next -> n3.value: "cycle back"
 ```
 
 <p align="center"><strong>A cycle exists when the tail's <code>next</code> points back to an earlier node (here the node holding <code>3</code>) instead of <code>null</code>. Traversal never terminates.</strong></p>
@@ -401,116 +404,145 @@ fn find_cycle(nodes: &[ListNode], head: Option<usize>) -> Option<usize> {
 
 Floyd's cycle-finding algorithm can detect cycles and find where the cycle starts in any automata (sequence of connected nodes) and not necessarily only a singly linked list. Consider the automata given below, which has a cycle of length `n` and the node where the cycle starts is at a distance `m` from the start.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> L1["·"] --> L2["·"] --> S["a<br/>cycle start"] --> L3["·"] --> M["b<br/>meet here"] --> L4["·"] --> L5["·"]
-    L5 -->|"back"| S
-    style S fill:#fef9c3,stroke:#3b82f6
-    style M fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+h: head {shape: oval}
+l1: "·"
+l2: "·"
+s: |md
+  **a**
+
+  cycle start
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+l3: "·"
+m: |md
+  **b**
+
+  meet here
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+l4: "·"
+l5: "·"
+h -> l1
+l1 -> l2
+l2 -> s
+s -> l3
+l3 -> m
+m -> l4
+l4 -> l5
+l5 -> s: "back"
 ```
 
 <p align="center"><strong>Let <code>a</code> = distance from head to cycle start, <code>n</code> = cycle length, and the pointers meet at node <code>b</code> inside the cycle.</strong></p>
 
 It can be proved that if we move the `slow` and `fast` pointers at different speeds, they meet at some node in the cycle. This is because, after `m` iterations when `slow` pointer reaches the node `b`, the `fast` pointer will have traversed a distance `2*m` and so will be at some node `c` such that the distance between the node `b` and `c` is `k = m % n`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> L1["·"] --> S["a<br/>slow is here"] --> L2["·"] --> F["fast is here<br/>(k ahead inside cycle)"] --> L3["·"]
-    L3 -->|"back"| S
-    NOTE["When slow reaches the cycle start,<br/>fast has traveled 2a and is already<br/>somewhere inside the loop — call that offset k"]
-    F -.-> NOTE
-    style S fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+h: head {shape: oval}
+l1: "·"
+s: |md
+  **a**
+
+  slow is here
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+l2: "·"
+f: |md
+  **fast is here**
+
+  (k ahead inside cycle)
+|
+l3: "·"
+note: |md
+  When slow reaches the cycle start,
+  fast has traveled 2a and is already
+  somewhere inside the loop — call that offset k
+| {shape: rectangle}
+h -> l1
+l1 -> s
+s -> l2
+l2 -> f
+f -> l3
+l3 -> s: "back"
+f -> note: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>After <code>a</code> steps, slow just enters the cycle; fast has taken <code>2a</code> steps and is <code>k = a mod n</code> nodes ahead of slow within the loop.</strong></p>
 
 From here on, the `slow` and `fast` pointers go around in the cycle but at different speeds. In each iteration, the gap `k` between `slow` and `fast` increases by one, but since it is a cycle, the gap between `fast` and `slow` i.e. `n-k` decreases by one, and so after `n-k` iterations `fast` and `slow` both point to the same node `d` that is at a distance `x` from the node `b` such that `x = n - k`
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    S["cycle start"] --> L1["·"] --> L2["·"] --> M["meeting point<br/>(x ahead of S)"] --> L3["·"]
-    L3 -->|"back"| S
-    style S fill:#fef9c3,stroke:#3b82f6
-    style M fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+s: cycle start {style.fill: "#fde68a"; style.stroke: "#d97706"}
+l1: "·"
+l2: "·"
+m: |md
+  meeting point
+
+  (x ahead of S)
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+l3: "·"
+s -> l1
+l1 -> l2
+l2 -> m
+m -> l3
+l3 -> s: "back"
 ```
 
 <p align="center"><strong>Let <code>x</code> = distance from cycle start to the meeting point. Because fast gains one step per tick over slow, fast closes the <code>k</code>-node gap after <code>k</code> ticks, giving <code>x = n − k</code>.</strong></p>
 
 To find where the cycle starts (node `b`), we move the `fast` pointer back to the head and move both `fast` and `slow` pointer 1 step at a time (at the same speed). It is guaranteed that they will eventually meet at node `b`. This is because after `m` iterations, `fast` will reach node `b`, and `slow` will be at a distance `(x + m) % n` from node `b`. Expanding equations as given below, it can be proved that `(x + m) % n` **equals 0**,
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> L0["·"] --> S["cycle start<br/>(a steps from head)"] --> L1["·"] --> M["meeting point"] --> L2["·"]
-    L2 -->|"back"| S
-    NOTE["From meeting point,<br/>move (n − x) more steps inside cycle<br/>→ lands on cycle start"]
-    M -.-> NOTE
-    style S fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+h: head {shape: oval}
+l0: "·"
+s: |md
+  **cycle start**
+
+  (a steps from head)
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+l1: "·"
+m: meeting point
+l2: "·"
+note: |md
+  From meeting point,
+  move (n − x) more steps inside cycle
+  → lands on cycle start
+| {shape: rectangle}
+h -> l0
+l0 -> s
+s -> l1
+l1 -> m
+m -> l2
+l2 -> s: "back"
+m -> note: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>From the meeting point, stepping <code>m = n − x</code> more times brings you back around to the cycle start — exactly the same number of steps as from <code>head</code> to cycle start (because <code>a ≡ m</code> modulo <code>n</code>).</strong></p>
 
 Based on the above, after `m` iterations the `fast` pointer will be at a distance `(x + m) % n` from node `b` but since `(x + m) % n = 0` it means it will be at the node `b` where it will meet the `slow` pointer.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head<br/>(fast reset, 1 step/tick)"]) --> L0["·"] --> S["★ cycle start<br/>(slow arrives here<br/>after a steps;<br/>fast arrives here<br/>after m steps)"] --> L1["·"] --> M["(previous meeting point)"]
-    M -.->|"slow moved here from<br/>meeting point"| S
-    style S fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+h: |md
+  **head**
+
+  (fast reset, 1 step/tick)
+| {shape: oval}
+l0: "·"
+s: |md
+  **★ cycle start**
+
+  (slow arrives here after a steps;
+  fast arrives here after m steps)
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+l1: "·"
+m: "(previous meeting point)"
+h -> l0
+l0 -> s
+s -> l1
+l1 -> m
+m -> s: "slow moved here from meeting point" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>The beautiful conclusion — fast (walking from head) and slow (walking from the meeting point) both reach the cycle start at the same tick. That's why the re-meet locates the cycle start.</strong></p>
@@ -929,21 +961,19 @@ fn main() {
 
 Given the **head** of a singly linked list that may contain a loop and a non negative integer **X**, write a function to remove the loop if it is present.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    A["1"] --> B["3"] --> C["4"]
-    C -->|"loop back (X=2)"| B
+```d2
+direction: right
+n1: {value: 1; next}
+n2: {
+  value: 3
+  next
+  style.fill: "#fde68a"
+  style.stroke: "#d97706"
+}
+n3: {value: 4; next}
+n1.next -> n2.value
+n2.next -> n3.value
+n3.next -> n2.value: "loop back (X=2)"
 ```
 
 <p align="center"><strong>A loop connects the tail back to the node at position X (1-indexed).</strong></p>

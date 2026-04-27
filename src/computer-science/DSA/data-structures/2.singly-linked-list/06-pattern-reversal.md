@@ -25,28 +25,34 @@ Many linked list problems require us to reverse the entire list or a part of it.
 
 The reversal pattern is a classification of linked list problems that can be solved using the linked list reversal algorithm.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before — segment [start, end]"]
-        direction LR
-        P1["·"] --> S1["start"] --> M1["·"] --> E1["end"] --> A1["·"]
-    end
-    subgraph AFTER["After — segment reversed in place"]
-        direction LR
-        P2["·"] --> E2["end"] --> M2["·"] --> S2["start"] --> A2["·"]
-    end
-    BEFORE -->|"flip each node's next<br/>within the segment"| AFTER
+```d2
+before: "Before — segment [start, end]" {
+  direction: right
+  p: "·"
+  s: start {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  m: "·"
+  e: end {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a: "·"
+  p -> s
+  s -> m
+  m -> e
+  e -> a
+}
+
+after: "After — segment reversed in place" {
+  direction: right
+  p: "·"
+  e: end {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  m: "·"
+  s: start {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  a: "·"
+  p -> e
+  e -> m
+  m -> s
+  s -> a
+}
+
+before -> after: "flip each node's next within the segment"
 ```
 
 <p align="center"><strong>The reversal pattern flips a contiguous segment <code>[start, end]</code> in place — the nodes before <code>start</code> and after <code>end</code> remain untouched. Stitch the reversed segment back to its neighbours and you're done.</strong></p>
@@ -57,28 +63,34 @@ In this course, we will learn more about the linked list reversal algorithm and 
 
 Reversing the entire linked list is a special case of the generic reversal algorithm to reverse a segment between `start` and `end`. We first look at this special case as it has a much simpler implementation and is used in most linked list problems that require a reversal. Consider we are given a linked list denoted by `head` and need to reverse it completely.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before"]
-        direction LR
-        A0(["head"]) --> A1["5"] --> A2["7"] --> A3["3"] --> A4["10"] --> A5(["null"])
-    end
-    subgraph AFTER["After"]
-        direction LR
-        B0(["head"]) --> B1["10"] --> B2["3"] --> B3["7"] --> B4["5"] --> B5(["null"])
-    end
-    BEFORE -->|"flip every next pointer"| AFTER
+```d2
+before: Before {
+  direction: right
+  h: head {shape: oval}
+  n1: {value: 5; next}
+  n2: {value: 7; next}
+  n3: {value: 3; next}
+  n4: {value: 10; next: "null"}
+  h -> n1.value
+  n1.next -> n2.value
+  n2.next -> n3.value
+  n3.next -> n4.value
+}
+
+after: After {
+  direction: right
+  h: head {shape: oval}
+  n1: {value: 10; next}
+  n2: {value: 3; next}
+  n3: {value: 7; next}
+  n4: {value: 5; next: "null"}
+  h -> n1.value
+  n1.next -> n2.value
+  n2.next -> n3.value
+  n3.next -> n4.value
+}
+
+before -> after: "flip every next pointer"
 ```
 
 <p align="center"><strong>Full-list reversal — the old tail becomes the new head, every node's <code>next</code> points to its former predecessor.</strong></p>
@@ -316,51 +328,63 @@ Reversing a segment between two nodes is the generic case of the reversal algori
 
 For this example, the two references can never be `null` and will always point to some node in the list such that `start` comes before `end` when traversing the list in the forward direction from `head`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before — reverse segment [start, end] inclusive"]
-        direction LR
-        H1(["head"]) --> P1["·"] --> S1["start"] --> M1["·"] --> E1["end"] --> Q1["·"]
-        style S1 fill:#fef9c3,stroke:#3b82f6
-        style E1 fill:#fef9c3,stroke:#3b82f6
-    end
-    subgraph AFTER["After — segment flipped, outer nodes intact"]
-        direction LR
-        H2(["head"]) --> P2["·"] --> E2["end"] --> M2["·"] --> S2["start"] --> Q2["·"]
-    end
-    BEFORE --> AFTER
+```d2
+before: "Before — reverse segment [start, end] inclusive" {
+  direction: right
+  h: head {shape: oval}
+  p: "·"
+  s: start {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  m: "·"
+  e: end {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  q: "·"
+  h -> p
+  p -> s
+  s -> m
+  m -> e
+  e -> q
+}
+
+after: "After — segment flipped, outer nodes intact" {
+  direction: right
+  h: head {shape: oval}
+  p: "·"
+  e: end {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  m: "·"
+  s: start {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  q: "·"
+  h -> p
+  p -> e
+  e -> m
+  m -> s
+  s -> q
+}
+
+before -> after
 ```
 
 <p align="center"><strong>Both endpoints are included. After reversal, the outer list structure is preserved — only the order of nodes inside <code>[start, end]</code> is flipped.</strong></p>
 
 To connect the first node of the segment back to the list after reversal, we need to know the node after `end`. We create a reference variable `rightBound` and initialize it with the node after `end`.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> P["·"] --> S["start"] --> M["·"] --> E["end"] --> RB["rightBound<br/>(= end.next)"] --> Q["·"]
-    style RB fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+h: head {shape: oval}
+p: "·"
+s: start
+m: "·"
+e: end
+rb: |md
+  **rightBound**
+
+  (= end.next)
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+q: "·"
+h -> p
+p -> s
+s -> m
+m -> e
+e -> rb
+rb -> q
 ```
 
 <p align="center"><strong>Cache <code>rightBound = end.next</code> <em>before</em> reversing. During reversal we walk from <code>start</code> and stop the moment <code>current == rightBound</code> — the sentinel that tells us we've exhausted the segment.</strong></p>
@@ -392,21 +416,29 @@ flowchart TB
 
 The last step is to connect the reversed head back to the list. As we will see later when solving problems that use the reversal technique, this is generally done by the caller of the reverse algorithm, which has the references to the node before `start`. 
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> P["predecessor of start"] -->|"predecessor.next =<br/>new head of segment"| NEW["end<br/>(new segment head)"] --> M["·"] --> S["start<br/>(new segment tail)"] --> RB["rightBound"] --> Q["·"]
-    style NEW fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+h: head {shape: oval}
+p: predecessor of start
+new: |md
+  **end**
+
+  (new segment head)
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+m: "·"
+s: |md
+  **start**
+
+  (new segment tail)
+|
+rb: rightBound
+q: "·"
+h -> p
+p -> new: "predecessor.next = new head of segment"
+new -> m
+m -> s
+s -> rb
+rb -> q
 ```
 
 <p align="center"><strong>Final stitch — the predecessor of the original <code>start</code> now points at the reversed segment's new head (<code>end</code>). The reversed segment's tail (<code>start</code>) already points at <code>rightBound</code> thanks to our <code>previous = rightBound</code> initialisation.</strong></p>
@@ -651,28 +683,30 @@ To better understand the problems that can be solved by directly applying the li
 
 > **Problem statement:** Given a singly linked list, reverse it in place
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Input"]
-        direction LR
-        A1["5"] --> A2["7"] --> A3["3"] --> A4["10"]
-    end
-    subgraph AFTER["Output (in-place reversal)"]
-        direction LR
-        B1["10"] --> B2["3"] --> B3["7"] --> B4["5"]
-    end
-    BEFORE --> AFTER
+```d2
+before: Input {
+  direction: right
+  n1: {value: 5; next}
+  n2: {value: 7; next}
+  n3: {value: 3; next}
+  n4: {value: 10; next: "null"}
+  n1.next -> n2.value
+  n2.next -> n3.value
+  n3.next -> n4.value
+}
+
+after: "Output (in-place reversal)" {
+  direction: right
+  n1: {value: 10; next}
+  n2: {value: 3; next}
+  n3: {value: 7; next}
+  n4: {value: 5; next: "null"}
+  n1.next -> n2.value
+  n2.next -> n3.value
+  n3.next -> n4.value
+}
+
+before -> after
 ```
 
 <p align="center"><strong>"In place" means no auxiliary list is built — the same nodes are rewired, not copied. O(1) extra space.</strong></p>

@@ -29,21 +29,29 @@ The problem can be further extended to find a node between two given nodes at a 
 
 The fast and slow pointer pattern is a classification of problems that can be solved using the fast and slow pointer technique.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> A["·"] --> B["·"] --> C["·"] --> D["target<br/>(at 1/n of length)"] --> E["·"] --> F["·"] --> G["·"] --> T["tail"]
-    style D fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+h: head {shape: oval}
+a: "·"
+b: "·"
+c: "·"
+d: |md
+  **target**
+
+  (at 1/n of length)
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+e: "·"
+f: "·"
+g: "·"
+t: tail
+h -> a
+a -> b
+b -> c
+c -> d
+d -> e
+e -> f
+f -> g
+g -> t
 ```
 
 <p align="center"><strong>Fast-and-slow pointers find a node at a <em>proportional</em> distance from the ends — e.g., the middle (<code>n=2</code>, one pointer moves twice as fast), or the 1/3 point (<code>n=3</code>, fast moves three times as fast). No length measurement needed.</strong></p>
@@ -56,23 +64,31 @@ It should be noted that a solution node will only exist if the length **L** betw
 
 The idea is to initialize two references `flast` and `slow` with `start` and move them forward at different speeds until `fast` reaches `end`.The `slow` reference moves **1** step in each iteration, while the `fast` reference moves **(n+1)** steps. This way, at the end of every iteration, the `slow` reference is at a proportional distance from the `start` and `fast` reference. When the `fast` reference reaches `end`, the `slow` reference points to the solution node.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> A["1"] --> B["2"] --> M["3<br/>middle"] --> D["4"] --> E["5"]
-    NOTE["fast moves 2 steps per tick<br/>slow moves 1 step per tick<br/>when fast reaches tail, slow is at middle"]
-    E -.-> NOTE
-    style M fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+h: head {shape: oval}
+a: "1"
+b: "2"
+m: |md
+  **3**
+
+  middle
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+d: "4"
+e: "5"
+note: |md
+  fast moves 2 steps per tick
+
+  slow moves 1 step per tick
+
+  when fast reaches tail, slow is at middle
+| {shape: rectangle}
+h -> a
+a -> b
+b -> m
+m -> d
+d -> e
+e -> note: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>The middle-finding case — by far the most common. <code>fast</code> moves twice as fast as <code>slow</code>. Because fast traverses at 2× speed, it reaches the end in half the ticks it would take slow — so when fast is done, slow is exactly halfway through.</strong></p>
@@ -334,29 +350,38 @@ Let's consider the following problem as an example to better understand how to i
 
 > **Problem statement:** Given a linked list, find the middle node.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph ODD["Odd length — [1, 2, 3, 4, 5]"]
-        direction LR
-        A1["1"] --> A2["2"] --> A3["3<br/>middle"] --> A4["4"] --> A5["5"]
-        style A3 fill:#fef9c3,stroke:#3b82f6
-    end
-    subgraph EVEN["Even length — [1, 2, 3, 4]"]
-        direction LR
-        B1["1"] --> B2["2"] --> B3["3<br/>2nd middle"] --> B4["4"]
-        style B3 fill:#fef9c3,stroke:#3b82f6
-    end
+```d2
+odd: "Odd length — [1, 2, 3, 4, 5]" {
+  direction: right
+  a1: "1"
+  a2: "2"
+  a3: |md
+    **3**
+
+    middle
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a4: "4"
+  a5: "5"
+  a1 -> a2
+  a2 -> a3
+  a3 -> a4
+  a4 -> a5
+}
+
+even: "Even length — [1, 2, 3, 4]" {
+  direction: right
+  b1: "1"
+  b2: "2"
+  b3: |md
+    **3**
+
+    2nd middle
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b4: "4"
+  b1 -> b2
+  b2 -> b3
+  b3 -> b4
+}
 ```
 
 <p align="center"><strong>For odd length the middle is unambiguous. For even length there are two candidates — by convention, fast-and-slow returns the <em>second</em> middle (the one closer to the tail). Some problems want the first; the small tweak is to start <code>fast</code> one step ahead.</strong></p>
@@ -1227,41 +1252,38 @@ fn split_list_in_half(mut head: Option<Box<ListNode>>) -> (Option<Box<ListNode>>
 
 Given the **head** of a singly linked list, write a function that returns `true` if the sum of the nodes of the first half of the linked list is equal to the sum of the nodes of the second half. Return `false` otherwise.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph ODD["Odd length — [1, 2, 3, 4, 5], middle = 3"]
-        direction LR
-        subgraph H1O["First half"]
-            direction LR
-            O1["1"] --> O2["2"] --> O3["3 ★"]
-        end
-        subgraph H2O["Second half"]
-            direction LR
-            O4["4"] --> O5["5"]
-        end
-    end
-    subgraph EVEN["Even length — [1, 2, 3, 4], middles = 2 and 3"]
-        direction LR
-        subgraph H1E["First half"]
-            direction LR
-            E1["1"] --> E2["2"]
-        end
-        subgraph H2E["Second half"]
-            direction LR
-            E3["3"] --> E4["4"]
-        end
-    end
+```d2
+odd: "Odd length — [1, 2, 3, 4, 5], middle = 3" {
+  h1: First half {
+    direction: right
+    o1: "1"
+    o2: "2"
+    o3: "3 ★" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+    o1 -> o2
+    o2 -> o3
+  }
+  h2: Second half {
+    direction: right
+    o4: "4"
+    o5: "5"
+    o4 -> o5
+  }
+}
+
+even: "Even length — [1, 2, 3, 4], middles = 2 and 3" {
+  h1: First half {
+    direction: right
+    e1: "1"
+    e2: "2"
+    e1 -> e2
+  }
+  h2: Second half {
+    direction: right
+    e3: "3"
+    e4: "4"
+    e3 -> e4
+  }
+}
 ```
 
 <p align="center"><strong>Split convention — when the list has odd length, the single middle node belongs to the first half. When even, the two halves are equal.</strong></p>

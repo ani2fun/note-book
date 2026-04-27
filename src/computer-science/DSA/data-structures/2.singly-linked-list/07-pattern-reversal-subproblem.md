@@ -38,28 +38,42 @@ Let's consider an example problem and see how to break it down into smaller subp
 
 Consider the following example with`k = 3`for a linked list of size 7.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before — list = [1, 2, 3, 4, 5, 6, 7], k = 3"]
-        direction LR
-        A1["1"] --> A2["2"] --> A3["3"] --> A4["4"] --> A5["5"] --> A6["6"] --> A7["7"]
-    end
-    subgraph AFTER["After — each group of 3 reversed in place (the trailing '7' stays put)"]
-        direction LR
-        B3["3"] --> B2["2"] --> B1["1"] --> B6["6"] --> B5["5"] --> B4["4"] --> B7["7"]
-    end
-    BEFORE --> AFTER
+```d2
+before: "Before — list = [1, 2, 3, 4, 5, 6, 7], k = 3" {
+  direction: right
+  n1: {value: 1; next}
+  n2: {value: 2; next}
+  n3: {value: 3; next}
+  n4: {value: 4; next}
+  n5: {value: 5; next}
+  n6: {value: 6; next}
+  n7: {value: 7; next: "null"}
+  n1.next -> n2.value
+  n2.next -> n3.value
+  n3.next -> n4.value
+  n4.next -> n5.value
+  n5.next -> n6.value
+  n6.next -> n7.value
+}
+
+after: "After — each group of 3 reversed in place (the trailing '7' stays put)" {
+  direction: right
+  n3: {value: 3; next}
+  n2: {value: 2; next}
+  n1: {value: 1; next}
+  n6: {value: 6; next}
+  n5: {value: 5; next}
+  n4: {value: 4; next}
+  n7: {value: 7; next: "null"}
+  n3.next -> n2.value
+  n2.next -> n1.value
+  n1.next -> n6.value
+  n6.next -> n5.value
+  n5.next -> n4.value
+  n4.next -> n7.value
+}
+
+before -> after
 ```
 
 <p align="center"><strong>Reverse-in-groups-of-K — slice the list into chunks of <code>k</code>, reverse each chunk in place, and leave any trailing (fewer-than-<code>k</code>) nodes untouched. The core reversal loop is invoked once per chunk.</strong></p>
@@ -80,27 +94,16 @@ A2. Yes, all subproblems except finding the length can be solved by reversing a 
 
 The critical observation here is that reversing a group of size `k` is the same as reversing a part of the linked list between start and end. We traverse the linked list `k` nodes at a time and reverse each group as we go. We initialize a variable `groups` with the number of k-groups (`length / k`) to reverse, truncating the fractional part as the number of k groups will always be a whole number. We use `groups` to iterate, reversing a k-group in each iteration. 
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    L["length = 7"]
-    K["k = 3"]
-    G["groups = length / k = 2 (integer division)"]
-    R["remaining = length % k = 1 (trailing, untouched)"]
-    L --> G
-    K --> G
-    L --> R
-    K --> R
+```d2
+direction: right
+length: "length = 7"
+k: "k = 3"
+g: "groups = length / k = 2 (integer division)"
+r: "remaining = length % k = 1 (trailing, untouched)"
+length -> g
+k -> g
+length -> r
+k -> r
 ```
 
 <p align="center"><strong>Pre-compute <code>length</code> in one pass. The number of full reversible groups is <code>length / k</code>; the remainder <code>length % k</code> trails untouched.</strong></p>
@@ -109,74 +112,112 @@ We use two reference variables `start` and `end` to denote the boundary of a k-g
 
 We initialize `start` and `end` with the `head` of the list and iterate `k-1` times using `end` to find the end of the first k-group. We initialize `leftBound` with null for the first k-group, as there is no node before the head of the list.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> L["leftBound<br/>(dummy before<br/>first group)"] --> S["1<br/>start"] --> M1["2"] --> E["3<br/>end"] --> X["4"] --> Y["5"] --> Z["6"] --> W["7"]
-    style L fill:#ede9fe,stroke:#3b82f6
-    style S fill:#fef9c3,stroke:#3b82f6
-    style E fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+h: head {shape: oval}
+lb: |md
+  **leftBound**
+
+  (dummy before first group)
+| {style.fill: "#ede9fe"; style.stroke: "#3b82f6"}
+n1: |md
+  **1**
+
+  start
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+n2: "2"
+n3: |md
+  **3**
+
+  end
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+n4: "4"
+n5: "5"
+n6: "6"
+n7: "7"
+h -> lb
+lb -> n1
+n1 -> n2
+n2 -> n3
+n3 -> n4
+n4 -> n5
+n5 -> n6
+n6 -> n7
 ```
 
 <p align="center"><strong>Three boundary pointers per group — <code>leftBound</code> (the node <em>before</em> <code>start</code>, needed so we can re-attach the reversed group to the rest of the list), <code>start</code> (first node of the group), and <code>end</code> (last node of the group, reached by advancing <code>start</code> by <code>k−1</code> hops).</strong></p>
 
 After reversing the first k-group, we need to update the `head` of the list, as the previous `end` node will be the new head of the list.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph BEFORE["Before first reversal"]
-        direction LR
-        H1(["head"]) --> A1["1"] --> A2["2"] --> A3["3"] --> A4["4"] --> A5["·"]
-    end
-    subgraph AFTER["After — head now points at the NEW first node (3)"]
-        direction LR
-        H2(["head"]) --> B3["3"] --> B2["2"] --> B1["1"] --> B4["4"] --> B5["·"]
-    end
-    BEFORE --> AFTER
+```d2
+before: "Before first reversal" {
+  direction: right
+  h: head {shape: oval}
+  n1: "1"
+  n2: "2"
+  n3: "3"
+  n4: "4"
+  n5: "·"
+  h -> n1
+  n1 -> n2
+  n2 -> n3
+  n3 -> n4
+  n4 -> n5
+}
+
+after: "After — head now points at the NEW first node (3)" {
+  direction: right
+  h: head {shape: oval}
+  n3: {value: 3; style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  n2: "2"
+  n1: "1"
+  n4: "4"
+  n5: "·"
+  h -> n3.value
+  n3.value -> n2
+  n2 -> n1
+  n1 -> n4
+  n4 -> n5
+}
+
+before -> after
 ```
 
 <p align="center"><strong>After the <em>first</em> group is reversed, its head becomes the new head of the entire list. Update <code>head</code> to point at <code>end</code> of the just-reversed group. Subsequent groups don't need this update — their previous group handles the re-attachment.</strong></p>
 
 Similarly, after reversing the first k-group, the previous `start` and the node after it would be the `leftBound` and `start` for the next k-group respectively.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> G1a["3"] --> G1b["2"] --> G1c["1"] --> LB2["leftBound<br/>(= last node of<br/>just-reversed group)"] --> S2["4<br/>start"] --> M["5"] --> E2["6<br/>end"] --> R["7"]
-    style LB2 fill:#ede9fe,stroke:#3b82f6
-    style S2 fill:#fef9c3,stroke:#3b82f6
-    style E2 fill:#fef9c3,stroke:#3b82f6
+```d2
+direction: right
+h: head {shape: oval}
+g1a: "3"
+g1b: "2"
+g1c: "1"
+lb2: |md
+  **leftBound**
+
+  (= last node of just-reversed group)
+| {style.fill: "#ede9fe"; style.stroke: "#3b82f6"}
+s2: |md
+  **4**
+
+  start
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+m: "5"
+e2: |md
+  **6**
+
+  end
+| {style.fill: "#fde68a"; style.stroke: "#d97706"}
+r: "7"
+h -> g1a
+g1a -> g1b
+g1b -> g1c
+g1c -> lb2
+lb2 -> s2
+s2 -> m
+m -> e2
+e2 -> r
 ```
 
 <p align="center"><strong>After processing one group, slide the boundary forward — the old <code>start</code> becomes the new <code>leftBound</code>, and <code>start</code> advances to the first node of the next group. The segment-reversal loop is now primed to repeat.</strong></p>

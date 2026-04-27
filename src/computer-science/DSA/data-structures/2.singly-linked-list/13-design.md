@@ -57,23 +57,20 @@ Two design decisions shape every linked-list class you'll ever write:
    *Cached `tail`* — `append` becomes O(1). But every operation that might change the tail (head deletion that empties the list, removal of the last node, insert at position = size) must remember to update it.  
    *No `tail`* — `append` is O(n) but there's one less invariant to maintain.
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart LR
-    H(["head"]) --> N1["3"] --> N2["8"] --> N3["2"] --> N4["1"]
-    T(["tail (optional)"]) -.-> N4
-    S["currentSize: 4"]
-    H ~~~ S
+```d2
+direction: right
+h: head {shape: oval}
+n1: "3"
+n2: "8"
+n3: "2"
+n4: "1"
+t: "tail (optional)" {shape: oval; style.stroke-dash: 3}
+s: "currentSize: 4" {shape: rectangle; style.fill: "#ede9fe"; style.stroke: "#3b82f6"}
+h -> n1
+n1 -> n2
+n2 -> n3
+n3 -> n4
+t -> n4: "" {style.stroke-dash: 3}
 ```
 
 <p align="center"><strong>The <code>SinglyLinkedList</code> object owns three pieces of state — <code>head</code> (always), <code>currentSize</code> (usually cached), and <code>tail</code> (sometimes cached). The trade-offs are the whole design.</strong></p>
@@ -127,32 +124,27 @@ For this lesson we take the **cached-size, no-tail** design — it matches what 
 
 ## The Operation Map (Visualised)
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    primaryColor: "#dbeafe"
-    primaryBorderColor: "#3b82f6"
-    primaryTextColor: "#1e3a5f"
-    lineColor: "#64748b"
-    secondaryColor: "#ede9fe"
-    tertiaryColor: "#fef9c3"
----
-flowchart TB
-    subgraph FAST["O(1) operations"]
-        direction LR
-        A1["size()"]
-        A2["empty()"]
-        A3["prepend(val)"]
-    end
-    subgraph SLOW["O(n) operations"]
-        direction LR
-        B1["append(val)"]
-        B2["insert(pos, val)<br/>(worst case)"]
-        B3["remove(val)<br/>(worst case)"]
-        B4["search(val)<br/>(worst case)"]
-    end
+```d2
+fast: "O(1) operations" {
+  style.fill: "#dcfce7"
+  style.stroke: "#16a34a"
+  grid-columns: 3
+  grid-gap: 12
+  a1: "size()"
+  a2: "empty()"
+  a3: "prepend(val)"
+}
+
+slow: "O(n) operations" {
+  style.fill: "#fee2e2"
+  style.stroke: "#dc2626"
+  grid-columns: 2
+  grid-gap: 12
+  b1: "append(val)"
+  b2: "insert(pos, val) (worst case)"
+  b3: "remove(val) (worst case)"
+  b4: "search(val) (worst case)"
+}
 ```
 
 <p align="center"><strong>The cost map. Three operations are O(1) because they touch only <code>head</code> and <code>currentSize</code>. The other four require traversal. Caching a <code>tail</code> pointer would move <code>append</code> into the fast column.</strong></p>
