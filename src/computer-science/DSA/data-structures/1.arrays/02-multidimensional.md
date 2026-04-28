@@ -22,7 +22,9 @@ This section extends the array model to grids and matrix-like structures while i
 
 > **Course:** DSA › Arrays › Multidimensional Arrays
 
-Now that we understand what an array data structure is and how to use it, solving problems involving multiple data items of the same type may seem straightforward. However, this is not always the case. What we have learned so far is called **single-dimensional arrays**. To better understand situations where this approach may not be sufficient, let us examine an example.
+A 1D array fixed the "too many variables" problem. But the moment your data has **two natural axes** — classes and students, rows and columns, pixels in a row and pixels in a column — a single 1D array stops scaling. You end up naming arrays the same way you used to name variables, and the original problem comes back through the side door.
+
+Let's see exactly where the wall is.
 
 ---
 
@@ -35,31 +37,20 @@ The natural first instinct: create four separate integer arrays of size 60, one 
 ```d2
 classes: {
   grid-rows: 4
-  grid-gap: 8
-  c1: |md
-    **class1**
-
-    `6, 6, 7, 7, 6, ..., 6, 7, 6, 6`
-  |
-  c2: |md
-    **class2**
-
-    `7, 7, 8, 8, 7, ..., 8, 8, 7, 8`
-  |
-  c3: |md
-    **class3**
-
-    `8, 8, 9, 8, 9, ..., 9, 8, 9, 9`
-  |
-  c4: |md
-    **class4**
-
-    `9, 9, 10, 9, 9, ..., 9, 9, 9, 10`
-  |
+  grid-columns: 2
+  grid-gap: 0
+  l1: "class1"
+  v1: "6, 6, 7, 7, 6, ..., 6, 7, 6, 6"
+  l2: "class2"
+  v2: "7, 7, 8, 8, 7, ..., 8, 8, 7, 8"
+  l3: "class3"
+  v3: "8, 8, 9, 8, 9, ..., 9, 8, 9, 9"
+  l4: "class4"
+  v4: "9, 9, 10, 9, 9, ..., 9, 9, 9, 10"
 }
 ```
 
-<p align="center"><strong>Creating 4 arrays to store the ages of students in 4 classes.</strong></p>
+<p align="center"><strong>Four separately-named arrays — one per class — each storing 60 student ages.</strong></p>
 
 Four classes, four arrays. Manageable — barely.
 
@@ -123,13 +114,15 @@ Computers are designed to solve problems at scale, and challenges like these ari
 
 When you find yourself naming arrays `data1`, `data2`, `data3`... you need a multidimensional array.
 
+> **Coming up:** what does adding a second dimension actually *look like*? How do you address a single value when there are two axes instead of one? That's the next section.
+
 ***
 
 # Defining Dimensions for Arrays
 
 > **Course:** DSA › Arrays › Multidimensional Arrays
 
-Now that we understand *why* a single-dimensional array isn't enough for structured data like "classes and students," let's look at how we actually define a multidimensional array — what "dimensions" means, how they map to rows and columns, and how you use them in code.
+The fix is to add a second axis. But what is an "axis," and how does the language know which value you mean when there are now two of them? In this section we'll define **dimension**, see how rows and columns map to two indices, and write the first 2D array in Python.
 
 ---
 
@@ -143,6 +136,8 @@ Think of a **dimension** as an axis of organisation.
 The moment you add a second axis, you get a grid — and a grid is exactly the right structure for data that has a natural "rows and columns" shape: classes and students, pixels on a screen, cells in a spreadsheet, entries in a matrix.
 
 ```d2
+direction: right
+
 one: "1D Array — 1 axis" {
   arr: {
     grid-columns: 5
@@ -288,22 +283,23 @@ flowchart LR
 ```python,editable
 from typing import List
 
-# Declare a 2D array: 4 classes, 5 students each (using 5 for demo)
+# 4 classes (rows) of 5 students each (cols) — using 5 instead of 60 keeps the demo readable.
 rows: int = 4
 cols: int = 5
 
-# Method 1: list comprehension (correct)
+# List comprehension creates rows independently. The `for _ in range(rows)` runs `rows`
+# times, and each iteration evaluates `[0] * cols` afresh — so we get `rows` distinct
+# inner lists, not 4 references to the same one. (See the "Common trap" note below.)
 ages: List[List[int]] = [[0] * cols for _ in range(rows)]
 
-# Assign some values
-ages[0][0] = 6
-ages[1][2] = 8
-ages[3][4] = 10
+# Two indices: ages[row][col] → ages[class][student].
+ages[0][0] = 6      # class 0, first student
+ages[1][2] = 8      # class 1, third student
+ages[3][4] = 10     # class 3, last student
 
-# Access a specific element
 print("Class 1, Student 3:", ages[1][2])   # → 8
 
-# Print all rows
+# Iterating over the outer dimension hands you each inner list (one full row at a time).
 for row_index in range(rows):
     print(f"Class {row_index}:", ages[row_index])
 ```
@@ -326,13 +322,15 @@ for row_index in range(rows):
 
 When your data has two levels of grouping (classes → students, rows → columns, X → Y), define those two levels as the two dimensions of a 2D array.
 
+> **But what about three levels?** Classes → students is two. Schools → classes → students is three. Cities → schools → classes → students is four. The pattern keeps going — and the next section shows the mechanic that makes it scale to any depth.
+
 ***
 
 # Exploring a Possible Solution
 
 > **Course:** DSA › Arrays › Multidimensional Arrays
 
-Now that we know the limitations of single-dimension arrays and the situations where those limitations prevent us from designing solutions, we can understand how we can extend the array to add more dimensions to it and design cleaner and more efficient solutions.
+We've seen *where* a single-dimensional array fails. Now we need a structure that scales with the depth of the data — one axis per level of grouping, no matter how deep — and the trick that makes it work is one of the most reused recursive ideas in programming.
 
 ---
 
@@ -346,6 +344,8 @@ There is no theoretical limit to how deep the nesting can go:
 - **Two-dimension array** — an array of arrays of non-array datatype
 - **Three-dimension array** — an array of arrays of arrays of non-array datatype
 - And this can go on...
+
+> *Before reading on — if a 2D array is "an array of 1D arrays" and a 3D array is "an array of 2D arrays," what is a **4D** array? How many `[]` would you need to chain to reach a single value? Lock in your answer before scrolling.*
 
 Here's what each looks like logically:
 
@@ -610,13 +610,15 @@ A multidimensional array is nothing exotic — it's just the natural next step. 
 
 Each new dimension is an outer array that holds the previous structure as its items. The total number of elements is always the product of all dimension sizes: `size1 × size2 × ... × sizeN`.
 
+> **The structure is settled — but how do you actually *use* it?** How do you create one in code, read a value, change it, or visit every element? Those four operations are next.
+
 ***
 
 # Overview of Supported Operations
 
 > **Course:** DSA › Arrays › Multidimensional
 
-Now that we know the logical representation of a multidimensional array, let's look at how to **create**, **access**, **modify**, and **traverse** one. In most modern programming languages, these operations are very similar and follow the same rules as those of a single-dimensional array.
+A 2D array supports the same four operations as a 1D array — **create, access, modify, traverse** — with one twist: every operation now takes one *more* index per dimension. The mechanics carry over almost verbatim, so the time you've spent on 1D arrays already pays for most of this section.
 
 ---
 
@@ -820,6 +822,8 @@ Different languages implement the syntax differently, but the result is the same
 ## Traversal
 
 To traverse a multidimensional array, we need **nested loops** — one loop for each dimension. The logic is a direct extension of single-dimensional traversal: each loop iterates over the indices of one dimension.
+
+> *Before stepping through the slideshow — for a 2 × 3 array with rows 0–1 and columns 0–2, write down the order in which a `for row in ...: for col in ...:` loop visits each cell. Six cells, predict the sequence, then run the slideshow to check.*
 
 <div class="d2-slides" data-caption="Step through nested-loop traversal of a 2 × 3 array — use ◀ ▶ to advance frame-by-frame.">
 
@@ -1078,20 +1082,22 @@ flowchart LR
 ```python,editable
 from typing import List
 
-# Initializing a 2D array
 numbers2d: List[List[int]] = [
     [1, 2, 3],
     [4, 5, 6]
 ]
 
-# 1. Index-based for loop (2D)
+# Style 1 — index-based: useful when you need the (i, j) coordinates themselves
+# (e.g. assigning back to the array, computing neighbours, building a graph from a grid).
+# `len(numbers2d[i])` recomputes the row length per row so jagged arrays still work.
 print("2D array traversal (index-based):")
 for i in range(len(numbers2d)):
     for j in range(len(numbers2d[i])):
         print(numbers2d[i][j], end=" ")
-    print()
+    print()  # Newline at the end of each row keeps the output grid-shaped.
 
-# 2. For-each loop (2D)
+# Style 2 — for-each: shorter, but you lose the index. Use it when the values alone
+# are enough (printing, summing, searching for membership).
 print("2D array traversal (for-each):")
 for row in numbers2d:
     for value in row:
@@ -1135,13 +1141,17 @@ for matrix in numbers3d:
 
 Access and modify are **O(1)** — the CPU computes the exact memory address from the indices directly, no searching required. Traversal is **O(n)** because every element must be visited.
 
+> **"Computes the exact memory address from the indices."** That phrase is doing a lot of work. *How*, exactly? RAM is a flat 1D ribbon — there is no "row 2" to jump to. The next section opens that black box.
+
 ***
 
 # Internal mechanics of multidimensional arrays
 
 > **Course:** DSA › Arrays › Multidimensional Arrays
 
-So far, we have learned what a multidimensional array is and how it solves problems that involve storing and manipulating large numbers of data items easily. We can now look at how multidimensional arrays work under the hood and how they are stored in memory.
+A 2D array is a *logical* picture — rows and columns sitting in a grid. Memory is **physically** a 1D ribbon of bytes. There is no "second axis" inside the chip. So either the picture is a lie, or the language is doing arithmetic behind the scenes to flatten one onto the other. (Spoiler: it's the second one.)
+
+This section opens that black box.
 
 ---
 
@@ -1152,60 +1162,32 @@ Let us revisit our memory model before diving deeper into how multidimensional a
 Memory is logically organized in RAM as a **linear/single-dimensional** sequence of blocks. Every block has a unique identifier that serves as its address and can be used to locate it in memory. Data in memory can only be accessed if its address is known.
 
 ```d2
-direction: right
-
 mem: "Linear memory" {
+  grid-rows: 2
   grid-columns: 8
   grid-gap: 0
-  b0: |md
-    **0**
-
-    8 bits
-  |
-  b1: |md
-    **1**
-
-    8 bits
-  |
-  b2: |md
-    **2**
-
-    8 bits
-  |
-  b3: |md
-    **3**
-
-    8 bits
-  |
-  b4: |md
-    **4**
-
-    8 bits
-  |
-  b5: |md
-    **5**
-
-    8 bits
-  |
-  b6: |md
-    **6**
-
-    8 bits
-  |
-  b7: |md
-    **7**
-
-    8 bits
-  |
+  a0: "0"
+  a1: "1"
+  a2: "2"
+  a3: "3"
+  a4: "4"
+  a5: "5"
+  a6: "6"
+  a7: "7"
+  s0: "8 bits"
+  s1: "8 bits"
+  s2: "8 bits"
+  s3: "8 bits"
+  s4: "8 bits"
+  s5: "8 bits"
+  s6: "8 bits"
+  s7: "8 bits"
 }
-
-addr: Address = 3 {
-  shape: oval
-}
-addr -> mem.b3
+mem.a3.style.fill: "#fde68a"
+mem.a3.style.stroke: "#d97706"
 ```
 
-<p align="center"><strong>Memory is logically organized as a linear sequence of blocks</strong></p>
+<p align="center"><strong>Memory is a linear sequence of 1-byte blocks; each block's position number is its address. Highlighted block sits at <code>address = 3</code>.</strong></p>
 
 ## Storing multidimensional arrays
 
@@ -1236,34 +1218,21 @@ map: "Map N indices to one single index" {
 }
 
 memory: "Single-dimensional memory" {
+  grid-rows: 2
   grid-columns: 6
   grid-gap: 0
-  m1: |md
-    **1**
-
-    value1
-  |
-  m2: |md
-    **2**
-
-    value2
-  |
-  m3: |md
-    **3**
-
-    value3
-  |
-  md: "..."
-  m26: |md
-    **26**
-
-    value26
-  |
-  m27: |md
-    **27**
-
-    value27
-  |
+  a1: "1"
+  a2: "2"
+  a3: "3"
+  ad: "..."
+  a26: "26"
+  a27: "27"
+  v1: "value1"
+  v2: "value2"
+  v3: "value3"
+  vd: "..."
+  v26: "value26"
+  v27: "value27"
 }
 
 logical -> map -> memory
@@ -1292,7 +1261,7 @@ In the next lessons, we will examine these ordering techniques in depth and the 
 
 Row-major order is one of the two fundamental strategies for **serialising** a multi-dimensional array — that is, for flattening its logical table structure into the single linear strip of memory that hardware actually provides.
 
-The rule is beautifully simple:
+The rule is one sentence:
 
 > **Store every element of a row together, then move to the next row.**
 
@@ -1443,6 +1412,8 @@ for i in range(3):          # outer: row — moves slowly
 
 Now that you know the layout, let's derive **how the CPU computes the memory address of any element**.
 
+> *Before reading on — for the 3×4 array above, find the offset of `arr[2][1]` yourself. Hint: how many *full rows* must you skip before you even land on row 2, and how many positions do you walk into that row? Lock in a number, then read on.*
+
 ### Building the Formula
 
 For an N-dimensional array `Dn × Dn-1 × ... × D1` with an element at index `(In, In-1, ..., I1)`:
@@ -1516,13 +1487,15 @@ Verify by counting: Row 0 → offsets 0–3 · Row 1 → offsets 4–7 · Row 2 
 The element at `[2][1]` is the 2nd element (j=1) inside Row 2, which starts at offset 8. So offset = 8 + 1 = **9**. ✓
 
 ```python,editable
-# Verify the formula manually
-base_address = 1000
-element_size = 4
-num_cols = 4   # D1
+# Reproduce the address formula by hand for a 3 x 4 array.
+base_address = 1000   # Where the array starts in memory
+element_size = 4      # int = 4 bytes per slot
+num_cols     = 4      # D1 — the stride: how many elements wide each row is
 
-i, j = 2, 1
+i, j = 2, 1           # Target element: arr[2][1]
 
+# Skip i complete rows (i × num_cols elements), then walk j steps into the current row.
+# num_cols (not num_rows) is the multiplier because that's the width of one row in memory.
 offset  = i * num_cols + j
 address = base_address + offset * element_size
 
@@ -1567,7 +1540,7 @@ Row-major is the reason a simple nested loop can be either blazingly fast or pai
 
 # Example of Row Major Order
 
-Now that you know *how* row-major order serialises a multi-dimensional array into a flat memory ribbon, let's cement the idea with a concrete worked example. We'll use a **three-dimensional array** — one dimension more than you're used to — so the pattern really sinks in.
+The 2D rule was easy to picture; the formula has only two terms. The real test is whether the pattern survives **another layer of nesting**. So we'll use a **three-dimensional array** — one dimension more than you're used to — and watch the same odometer rule pin every element to a specific address.
 
 ---
 
@@ -1703,87 +1676,56 @@ Here is exactly what the array looks like in memory, laid out slot by slot:
 
 ```d2
 mem: {
+  grid-rows: 4
   grid-columns: 6
   grid-gap: 0
-  a: |md
-    **[0][0][0]**
-
-    addr `2`
-  |
-  b: |md
-    **[0][0][1]**
-
-    addr `6`
-  |
-  c: |md
-    **[0][0][2]**
-
-    addr `10`
-  |
-  d: |md
-    **[0][1][0]**
-
-    addr `14`
-  |
-  e: |md
-    **[0][1][1]**
-
-    addr `18`
-  |
-  f: |md
-    **[0][1][2]**
-
-    addr `22`
-  |
-  g: |md
-    **[1][0][0]**
-
-    addr `26`
-  |
-  h: |md
-    **[1][0][1]**
-
-    addr `30`
-  |
-  i: |md
-    **[1][0][2]**
-
-    addr `34`
-  |
-  j: |md
-    **[1][1][0]**
-
-    addr `38`
-  |
-  k: |md
-    **[1][1][1]**
-
-    addr `42`
-  |
-  l: |md
-    **[1][1][2]**
-
-    addr `46`
-  |
+  i0: "[0][0][0]"
+  i1: "[0][0][1]"
+  i2: "[0][0][2]"
+  i3: "[0][1][0]"
+  i4: "[0][1][1]"
+  i5: "[0][1][2]"
+  a0: "addr 2"
+  a1: "addr 6"
+  a2: "addr 10"
+  a3: "addr 14"
+  a4: "addr 18"
+  a5: "addr 22"
+  i6: "[1][0][0]"
+  i7: "[1][0][1]"
+  i8: "[1][0][2]"
+  i9: "[1][1][0]"
+  i10: "[1][1][1]"
+  i11: "[1][1][2]"
+  a6: "addr 26"
+  a7: "addr 30"
+  a8: "addr 34"
+  a9: "addr 38"
+  a10: "addr 42"
+  a11: "addr 46"
 }
 ```
 
-<p align="center"><strong>Structure of the 3D array stored in row-major order in memory — 12 elements, base address 2, each element 4 bytes wide.</strong></p>
+<p align="center"><strong>Row-major layout in memory — 12 elements, base address 2, each element 4 bytes wide. Each address row sits directly under its index row, so reading down a column gives the (index, address) pair for one element.</strong></p>
 
 Notice the pattern: Layer 0 occupies addresses 2–22, Layer 1 occupies 26–46. Within each layer, Row 0 comes first, Row 1 second. Within each row, the column index climbs 0→1→2.
 
 ```python,editable
-# Verify the memory layout formula
-base = 2
-element_size = 4
-
-D3, D2, D1 = 2, 2, 3
+# Print the offset and address of every element in a 2 x 2 x 3 row-major array.
+base = 2              # Base address of the array
+element_size = 4      # int = 4 bytes per slot
+D3, D2, D1 = 2, 2, 3  # Outer-to-inner sizes (layer × row × column)
 
 print(f"{'Index':<16} {'Offset':>6} {'Address':>8}")
 print("-" * 32)
+
+# Loop nesting matches storage order: D3 outermost (slowest), D1 innermost (fastest).
+# Iterating in this order also guarantees offset increases by exactly 1 each step,
+# which is what makes row-major traversal cache-friendly.
 for i3 in range(D3):
     for i2 in range(D2):
         for i1 in range(D1):
+            # Offset formula: skip whole layers, then whole rows, then walk into the row.
             offset  = i3 * (D2 * D1) + i2 * D1 + i1
             address = base + offset * element_size
             print(f"[{i3}][{i2}][{i1}]          {offset:>6}    {address:>6}")
@@ -1804,6 +1746,8 @@ Each term in the offset formula represents one "level" of skipping:
 - **I₃ × (D₂ × D₁)** — skip past I₃ complete layers, each of size D₂ × D₁
 - **I₂ × D₁** — skip past I₂ complete rows within the current layer, each of size D₁
 - **I₁** — step I₁ positions into the current row
+
+> *Before reading on — for `array[1][1][2]` (the very last element), what offset do you expect? With 12 elements numbered 0..11, only one answer makes sense. Lock it in, then verify with the worked example below.*
 
 Let's work through both examples:
 
@@ -1845,12 +1789,14 @@ flowchart LR
 Cross-check against the memory layout diagram above: `array[0][0][2]` is at address **10** ✓ and `array[1][1][2]` is the very last element at address **46** ✓.
 
 ```python,editable
-# Subscript operator formula — verify both elements
+# Reproduce what the subscript operator does for any (i3, i2, i1) on a 2 x 2 x 3 array.
 base = 2
 element_size = 4
-D2, D1 = 2, 3   # layer size is D2 × D1
+D2, D1 = 2, 3      # One layer is D2 rows × D1 cols, so a layer occupies D2 * D1 slots.
 
 def address_of(i3, i2, i1):
+    # Three strides composed left-to-right: layer stride (D2 * D1), row stride (D1), then
+    # the column step (no multiplier — innermost dimension always has stride 1).
     offset = i3 * (D2 * D1) + i2 * D1 + i1
     return base + offset * element_size, offset
 
@@ -1907,6 +1853,8 @@ The same mechanism works for any datatype — `float`, `double`, `char`, or even
 - The 3D address formula: `base + (I₃ × D₂ × D₁  +  I₂ × D₁  +  I₁) × element_size`
 - After the address is computed, the language reads `element_size` bytes from that address and interprets them as the stored type — this is dereferencing
 - All of this happens invisibly every time you write `arr[i][j][k]` — the subscript operator does the maths for you
+
+> **You now know how the CPU finds *one* element. The next problem: visit every element exactly once, in the order memory lays them out. That single decision is the difference between a cache-friendly loop and a slow one.**
 
 ***
 
@@ -2057,17 +2005,19 @@ from typing import List
 class Solution:
     def row_major_traversal(self, matrix: List[List[int]]) -> List[int]:
 
-        # Handle empty matrix
+        # Guard against empty input — len(matrix[0]) below would crash on an empty list.
         if not matrix:
             return []
 
         rows: int = len(matrix)
-        cols: int = len(matrix[0])
+        cols: int = len(matrix[0])    # All rows are assumed to have the same length.
         path: List[int] = []
 
-        # Outer loop: one step per row (slow dimension)
+        # Outer loop = rows (slow dimension): only ticks once an entire row is consumed.
+        # This is what makes the traversal "row-major" — the row index changes least often.
         for row in range(rows):
-            # Inner loop: one step per column (fast dimension)
+            # Inner loop = columns (fast dimension): walks every cell of the current row.
+            # In Python (row-major storage), this hits consecutive memory slots → cache hits.
             for col in range(cols):
                 path.append(matrix[row][col])
 
@@ -2093,6 +2043,8 @@ print("Empty:    ", s.row_major_traversal(m4))   # []
 ---
 
 ## Dry Run — Example 2
+
+> *Before reading the trace — for `[[3, 2, 1, 7], [0, 6, 3, 2]]`, write down the output you expect. Eight elements, in the order the nested loop visits them. Then check the trace below.*
 
 Let's trace through `[[3, 2, 1, 7], [0, 6, 3, 2]]` step by step.
 
@@ -2141,6 +2093,8 @@ The output list `path` holds every element — it's the same size as the input. 
 ## Key Takeaway
 
 Row-major traversal is two nested loops — outer over rows, inner over columns. It's cache-optimal, it matches memory layout, and it's the pattern the hardware was designed to reward. Whenever you traverse a 2D array in a row-major language, this is the loop order you want.
+
+> **But not every language stores arrays this way.** Fortran, MATLAB, Julia, and R do the exact opposite — and the same code that's blazing fast in Python becomes the slow path there. To understand why, we need to look at row-major's mirror image.
 
 ***
 
@@ -2330,6 +2284,8 @@ The full memory sequence for our 3×4 array:
 
 ## The Address Formula
 
+> *Before reading the derivation — flip your row-major instinct. To reach `arr[1][2]` in column-major order, how many full **columns** must you skip first, and how far do you walk down into the column you land on? Try the arithmetic before scrolling.*
+
 ### Reframe the Mental Model
 
 In row-major, you think of skipping *rows*. In column-major, you think of skipping *columns*.
@@ -2397,15 +2353,19 @@ Column-major offset = 2 × 3 + 1 = 7  → address 1028
 The same logical element `arr[1][2]` lives at **different memory addresses** depending on the storage order. This is why mixing row-major and column-major code (e.g., calling a Fortran library from C) requires explicit transposition.
 
 ```python,editable
-# Compare row-major vs column-major address for the same element
+# Same logical element arr[1][2] — compare where it actually lands under each storage order.
 base = 1000
 element_size = 4
 num_rows, num_cols = 3, 4
 
-i, j = 1, 2  # element arr[1][2]
+i, j = 1, 2   # Logical coordinates: row 1, column 2
 
-row_major_offset  = i * num_cols + j         # i × C + j
-col_major_offset  = j * num_rows + i         # j × R + i
+# Row-major:    skip i full rows (each num_cols wide), then j positions into the row.
+# Column-major: skip j full columns (each num_rows tall), then i positions down the column.
+# The two formulas are mirror images — the multiplier is always the *length of one stride
+# in the direction you're skipping*.
+row_major_offset  = i * num_cols + j
+col_major_offset  = j * num_rows + i
 
 print(f"arr[{i}][{j}]")
 print(f"  Row-major:    offset={row_major_offset}, address={base + row_major_offset * element_size}")
@@ -2453,6 +2413,8 @@ In the previous lesson you saw that row-major traversal is cache-friendly in row
 | **Cache-friendly inner loop** | column index `j` | row index `i` |
 
 Column-major is not better or worse than row-major — it's a different convention with equally sound reasoning. The danger only appears when you assume one and the data is stored in the other.
+
+> **Now let's prove it concretely.** The next section takes the same 3D array we used for the row-major example and serialises it column-major — so you can see, slot for slot, exactly how the addresses shift.
 
 ***
 
@@ -2594,77 +2556,42 @@ With `base_address = 2` and `element_size = 4` bytes (integers), here is the col
 
 ```d2
 mem: {
+  grid-rows: 4
   grid-columns: 6
   grid-gap: 0
-  a: |md
-    **[0][0][0]**
-
-    addr `2`
-  |
-  b: |md
-    **[1][0][0]**
-
-    addr `6`
-  |
-  c: |md
-    **[0][1][0]**
-
-    addr `10`
-  |
-  d: |md
-    **[1][1][0]**
-
-    addr `14`
-  |
-  e: |md
-    **[0][0][1]**
-
-    addr `18`
-  |
-  f: |md
-    **[1][0][1]**
-
-    addr `22`
-  |
-  g: |md
-    **[0][1][1]**
-
-    addr `26`
-  |
-  h: |md
-    **[1][1][1]**
-
-    addr `30`
-  |
-  i: |md
-    **[0][0][2]**
-
-    addr `34`
-  |
-  j: |md
-    **[1][0][2]**
-
-    addr `38`
-  |
-  k: |md
-    **[0][1][2]**
-
-    addr `42`
-  |
-  l: |md
-    **[1][1][2]**
-
-    addr `46`
-  |
+  i0: "[0][0][0]"
+  i1: "[1][0][0]"
+  i2: "[0][1][0]"
+  i3: "[1][1][0]"
+  i4: "[0][0][1]"
+  i5: "[1][0][1]"
+  a0: "addr 2"
+  a1: "addr 6"
+  a2: "addr 10"
+  a3: "addr 14"
+  a4: "addr 18"
+  a5: "addr 22"
+  i6: "[0][1][1]"
+  i7: "[1][1][1]"
+  i8: "[0][0][2]"
+  i9: "[1][0][2]"
+  i10: "[0][1][2]"
+  i11: "[1][1][2]"
+  a6: "addr 26"
+  a7: "addr 30"
+  a8: "addr 34"
+  a9: "addr 38"
+  a10: "addr 42"
+  a11: "addr 46"
 }
 ```
 
-<p align="center"><strong>Structure of the 3D array stored in column-major order in memory — base address 2, element size 4 bytes. Notice D₃ alternates 0↔1 in every adjacent pair of slots.</strong></p>
+<p align="center"><strong>Column-major layout in memory — base address 2, element size 4 bytes. Adjacent slots differ only in their D₃ index (0↔1 flip in every neighbouring pair) — that's the signature of D₃ moving fastest.</strong></p>
 
 Notice how adjacent slots in memory always differ only in their D₃ index (0 or 1). That's the signature of D₃ moving fastest.
 
 ```python,editable
-# Verify the column-major memory layout
+# Print every element's column-major offset and address for a 2 x 2 x 3 array.
 base = 2
 element_size = 4
 D3, D2, D1 = 2, 2, 3
@@ -2672,10 +2599,15 @@ D3, D2, D1 = 2, 2, 3
 print(f"{'Index':<16} {'Offset':>6} {'Address':>8}")
 print("-" * 32)
 
-# Column-major: D1 slowest, D2 medium, D3 fastest
-for i1 in range(D1):           # D1 — slowest outer loop
-    for i2 in range(D2):       # D2 — middle
-        for i3 in range(D3):   # D3 — fastest inner loop
+# Column-major flips the row-major nesting: highest dimension D3 becomes the FAST
+# (innermost) loop, lowest dimension D1 becomes the SLOW (outermost) loop.
+# Iterating in this order makes offset increase by exactly 1 per step — i.e. it
+# walks memory sequentially the way Fortran/MATLAB would.
+for i1 in range(D1):           # D1 slowest — only ticks once D2 and D3 both finish
+    for i2 in range(D2):       # D2 middle
+        for i3 in range(D3):   # D3 fastest — flips on every step
+            # Column-major offset: skip whole D1-slabs (size D2*D3), then whole D2-rows
+            # within that slab (size D3), then walk i3 positions.
             offset  = i1 * (D2 * D3) + i2 * D3 + i3
             address = base + offset * element_size
             print(f"[{i3}][{i2}][{i1}]          {offset:>6}    {address:>6}")
@@ -2752,15 +2684,21 @@ Now compare these offsets with the row-major results from the previous chapter:
 `array[1][1][2]` lands at offset 11 in *both* orderings — because it's the last element regardless of how you count. `array[0][0][2]`, however, is at offset 2 in row-major (early) but offset 8 in column-major (late). The storage order completely reshuffles the positions.
 
 ```python,editable
-# Compare row-major vs column-major offsets for the same elements
+# Confirm: same (i3, i2, i1) lands at different offsets under each ordering.
 D3, D2, D1 = 2, 2, 3
 
+# Row-major: I1 cycles fastest, so I3 picks up the largest stride (D2 * D1 = 6).
 def row_major_offset(i3, i2, i1):
     return i3 * (D2 * D1) + i2 * D1 + i1
 
+# Column-major: I3 cycles fastest, so I1 picks up the largest stride (D2 * D3 = 4).
+# The strides are computed differently because the dimension that's "slow" changes.
 def col_major_offset(i3, i2, i1):
     return i1 * (D2 * D3) + i2 * D3 + i3
 
+# array[1][1][2] is the LAST element either way — both orderings put it at offset 11.
+# array[0][0][2] is mid-array in row-major (offset 2) but late in col-major (offset 8)
+# because column-major holds D1 fixed for as long as possible before incrementing it.
 for elem in [(0, 0, 2), (1, 1, 2)]:
     i3, i2, i1 = elem
     rm = row_major_offset(i3, i2, i1)
@@ -2814,6 +2752,8 @@ As a programmer, you write `array[i][j]` the same way for both orderings — but
 - The 3D column-major formula: `base + (I₁ × D₂ × D₃  +  I₂ × D₃  +  I₃) × element_size`
 - Dereferencing (reading the value) is identical regardless of storage order — only the address differs
 - Mixing row-major and column-major conventions silently produces wrong values — never wrong addresses
+
+> **One last thing to nail down.** Row-major traversal was outer-row, inner-column. Flipping the storage order flips the cache-friendly loop too — and the change in code is exactly *one* swap. The next section makes that swap, and shows what it costs you in a row-major language like Python.
 
 ***
 
@@ -2900,57 +2840,31 @@ Visit order annotated directly on the grid:
 
 ```d2
 grid: {
+  grid-rows: 6
   grid-columns: 3
   grid-gap: 0
-  a: |md
-    **1**
-
-    `1st`
-  |
-  b: |md
-    **2**
-
-    `4th`
-  |
-  c: |md
-    **3**
-
-    `7th`
-  |
-  d: |md
-    **4**
-
-    `2nd`
-  |
-  e: |md
-    **5**
-
-    `5th`
-  |
-  f: |md
-    **6**
-
-    `8th`
-  |
-  g: |md
-    **7**
-
-    `3rd`
-  |
-  h: |md
-    **8**
-
-    `6th`
-  |
-  i: |md
-    **9**
-
-    `9th`
-  |
+  v00: "1"
+  v01: "2"
+  v02: "3"
+  o00: "1st"
+  o01: "4th"
+  o02: "7th"
+  v10: "4"
+  v11: "5"
+  v12: "6"
+  o10: "2nd"
+  o11: "5th"
+  o12: "8th"
+  v20: "7"
+  v21: "8"
+  v22: "9"
+  o20: "3rd"
+  o21: "6th"
+  o22: "9th"
 }
 ```
 
-<p align="center"><strong>Visit order in column-major traversal — the column index changes slowly (every 3 visits), while the row index changes on every visit.</strong></p>
+<p align="center"><strong>Visit order in column-major traversal — each value sits directly above its visit-order label. The column index changes once every 3 visits; the row index changes on every visit.</strong></p>
 
 The collected output:
 
@@ -3018,7 +2932,7 @@ from typing import List
 class Solution:
     def column_major_traversal(self, matrix: List[List[int]]) -> List[int]:
 
-        # Handle empty matrix
+        # Guard against empty input — len(matrix[0]) below would crash on an empty list.
         if not matrix:
             return []
 
@@ -3026,9 +2940,12 @@ class Solution:
         cols: int = len(matrix[0])
         path: List[int] = []
 
-        # Outer loop: one step per column (slow dimension)
+        # Outer loop = columns (slow): the column index now ticks least often. This
+        # single swap relative to row-major flips the visit order entirely.
         for col in range(cols):
-            # Inner loop: one step per row (fast dimension)
+            # Inner loop = rows (fast): drains an entire column top-to-bottom before
+            # the outer loop advances. In Python (row-major storage), each row jump
+            # crosses `cols` slots in memory — that's the cache-unfriendly path.
             for row in range(rows):
                 path.append(matrix[row][col])
 
@@ -3055,6 +2972,8 @@ print("Empty:    ", s.column_major_traversal(m4))   # []
 
 ## Dry Run — Example 2
 
+> *Before reading the trace — same matrix as the row-major dry run, `[[3, 2, 1, 7], [0, 6, 3, 2]]`. With the loops swapped (col outer, row inner), what's the new output? Eight elements, predict the order.*
+
 Trace through `[[3, 2, 1, 7], [0, 6, 3, 2]]`:
 
 `rows = 2`, `cols = 4`, `path = []`
@@ -3077,19 +2996,22 @@ Trace through `[[3, 2, 1, 7], [0, 6, 3, 2]]`:
 ## Row-Major vs Column-Major — The Full Comparison
 
 ```python,editable
-# Side-by-side comparison on the same matrix
+# Same matrix, same indexing, same Python — only the loop order differs.
 matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
 
 rows = len(matrix)
 cols = len(matrix[0])
 
+# In a list comprehension, the LEFTMOST `for` is the outer loop.
+# Row-major: r is outer (slow) → finishes a row before moving to the next.
+# Column-major: c is outer (slow) → drains a column before moving to the next.
 row_major = [matrix[r][c] for r in range(rows) for c in range(cols)]
 col_major = [matrix[r][c] for c in range(cols) for r in range(rows)]
 
 print("Row-major:    ", row_major)   # [1, 2, 3, 4, 5, 6, 7, 8, 9]
 print("Column-major: ", col_major)   # [1, 4, 7, 2, 5, 8, 3, 6, 9]
 
-# The ONLY difference: which loop variable is outer vs inner
+# The ONLY difference: which loop variable is outer vs inner.
 ```
 
 The entire difference is **one loop swap**. That's all that separates row-major from column-major traversal in code.
