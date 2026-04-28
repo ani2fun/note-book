@@ -461,6 +461,8 @@ arr: array {
 
 Higher-level languages like Python inherently provide a **list** instead of a raw array. A list behaves like an array but has a dynamic size and can store elements of different types. However, the underlying machine-level implementation still uses basic arrays as the core data structure, which has a fixed size and type.
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
@@ -478,7 +480,226 @@ numbers3: List[int] = [0] * size_n
 
 # Creating and initializing using list comprehension
 numbers4: List[int] = [i for i in range(5)]
+
+print(numbers, numbers2, numbers3, numbers4)
 ```
+
+```java,editable
+public class Main {
+    public static void main(String[] args) {
+        // Java arrays are fixed-size; the size is part of the type and locked at allocation.
+
+        // Declaring an array of fixed size with default values (int defaults to 0).
+        int[] numbers = new int[5];
+
+        // Declaring and initializing an array literal.
+        int[] numbers2 = {1, 2, 3, 4, 5};
+
+        // Creating an array of size N.
+        int sizeN = 5;
+        int[] numbers3 = new int[sizeN];
+
+        // Creating and initializing in a loop (Java has no list comprehension).
+        int[] numbers4 = new int[5];
+        for (int i = 0; i < 5; i++) numbers4[i] = i;
+
+        System.out.println(java.util.Arrays.toString(numbers));
+        System.out.println(java.util.Arrays.toString(numbers2));
+        System.out.println(java.util.Arrays.toString(numbers3));
+        System.out.println(java.util.Arrays.toString(numbers4));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int main() {
+    /* C arrays are fixed-size. Size must be a compile-time constant or a VLA size. */
+
+    /* Default-initialise to zero by giving an empty initializer list. */
+    int numbers[5] = {0};
+
+    /* Declaring and initialising. */
+    int numbers2[5] = {1, 2, 3, 4, 5};
+
+    /* Creating an array of size N (here a constant — runtime sizes need VLA or malloc). */
+    const int size_n = 5;
+    int numbers3[size_n];
+    for (int i = 0; i < size_n; i++) numbers3[i] = 0;
+
+    /* Initialise with a loop. */
+    int numbers4[5];
+    for (int i = 0; i < 5; i++) numbers4[i] = i;
+
+    for (int i = 0; i < 5; i++) printf("%d ", numbers4[i]);
+    printf("\n");
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+int main() {
+    // std::vector is the dynamic-array equivalent of a Python list.
+
+    // Fixed size with default values (0 for int).
+    std::vector<int> numbers(5, 0);
+
+    // Initialiser-list construction.
+    std::vector<int> numbers2 = {1, 2, 3, 4, 5};
+
+    // Size known at runtime — vectors grow naturally.
+    int size_n = 5;
+    std::vector<int> numbers3(size_n, 0);
+
+    // Fill with computed values.
+    std::vector<int> numbers4(5);
+    for (int i = 0; i < 5; i++) numbers4[i] = i;
+
+    for (int v : numbers4) std::cout << v << " ";
+    std::cout << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  // Scala Array is a fixed-size, JVM-backed primitive array.
+
+  // Fixed size with default values (Int defaults to 0).
+  val numbers: Array[Int] = new Array[Int](5)
+
+  // Declaring and initialising.
+  val numbers2: Array[Int] = Array(1, 2, 3, 4, 5)
+
+  // Size known at runtime.
+  val sizeN = 5
+  val numbers3: Array[Int] = new Array[Int](sizeN)
+
+  // Comprehension-style initialisation via tabulate.
+  val numbers4: Array[Int] = Array.tabulate(5)(i => i)
+
+  println(numbers.mkString(", "))
+  println(numbers2.mkString(", "))
+  println(numbers3.mkString(", "))
+  println(numbers4.mkString(", "))
+}
+```
+
+```javascript,editable
+// JavaScript arrays are dynamic — closer to Python lists than to fixed-size C arrays.
+
+// Fixed-length pre-fill with a default value.
+const numbers = new Array(5).fill(0);
+
+// Array literal — declare and initialise in one go.
+const numbers2 = [1, 2, 3, 4, 5];
+
+// Size known at runtime.
+const sizeN = 5;
+const numbers3 = new Array(sizeN).fill(0);
+
+// Comprehension-style: Array.from with a generator function.
+const numbers4 = Array.from({ length: 5 }, (_, i) => i);
+
+console.log(numbers, numbers2, numbers3, numbers4);
+```
+
+```typescript,editable
+// TypeScript adds type annotations on top of JavaScript's dynamic arrays.
+
+// Fixed-length pre-fill.
+const numbers: number[] = new Array(5).fill(0);
+
+// Array literal.
+const numbers2: number[] = [1, 2, 3, 4, 5];
+
+// Size known at runtime.
+const sizeN: number = 5;
+const numbers3: number[] = new Array(sizeN).fill(0);
+
+// Comprehension-style with Array.from.
+const numbers4: number[] = Array.from({ length: 5 }, (_, i) => i);
+
+console.log(numbers, numbers2, numbers3, numbers4);
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func main() {
+    // Go has both fixed-size arrays and dynamic slices. Slices are the everyday choice.
+
+    // Fixed-size array with zero values.
+    var numbers [5]int
+
+    // Declare and initialise (slice literal — preferred over fixed arrays).
+    numbers2 := []int{1, 2, 3, 4, 5}
+
+    // Size known at runtime — make creates a slice of that length, zero-initialised.
+    sizeN := 5
+    numbers3 := make([]int, sizeN)
+
+    // Loop-fill (Go has no comprehension).
+    numbers4 := make([]int, 5)
+    for i := 0; i < 5; i++ {
+        numbers4[i] = i
+    }
+
+    fmt.Println(numbers, numbers2, numbers3, numbers4)
+}
+```
+
+```kotlin,editable
+fun main() {
+    // Kotlin distinguishes IntArray (primitive) from Array<Int> (boxed).
+
+    // Fixed size with default values (IntArray defaults to 0).
+    val numbers = IntArray(5)
+
+    // Declare and initialise.
+    val numbers2 = intArrayOf(1, 2, 3, 4, 5)
+
+    // Size known at runtime.
+    val sizeN = 5
+    val numbers3 = IntArray(sizeN)
+
+    // Comprehension-style: IntArray(size) { initializer-by-index }.
+    val numbers4 = IntArray(5) { i -> i }
+
+    println(numbers.toList())
+    println(numbers2.toList())
+    println(numbers3.toList())
+    println(numbers4.toList())
+}
+```
+
+```rust,editable
+fn main() {
+    // Rust arrays are fixed-size and stack-allocated. Vec is the heap-backed dynamic version.
+
+    // Fixed size with default values.
+    let numbers: [i32; 5] = [0; 5];
+
+    // Declare and initialise.
+    let numbers2: [i32; 5] = [1, 2, 3, 4, 5];
+
+    // Size known at runtime — use Vec because array length must be a const.
+    let size_n = 5;
+    let numbers3: Vec<i32> = vec![0; size_n];
+
+    // Comprehension-style with iterator + collect.
+    let numbers4: Vec<i32> = (0..5).collect();
+
+    println!("{:?} {:?} {:?} {:?}", numbers, numbers2, numbers3, numbers4);
+}
+```
+
+</div>
 
 > **Tip:** In Python, annotating with `List[int]` is just a hint — the runtime won't enforce it. But it's good practice to document your intent, especially for DSA problems.
 
@@ -514,19 +735,148 @@ arr: array {
 
 Different languages have different syntax, but the underlying access mechanism is the same for all.
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
-# Initializing an array (list)
 numbers: List[int] = [1, 2, 3, 4, 5]
 
-# Accessing elements using the subscript [] operator
+# Subscript [] — direct O(1) access by index.
 print("1st value:", numbers[0])   # → 1
 print("5th value:", numbers[4])   # → 5
 
-# Negative indexing (Python-specific convenience)
+# Negative indexing — Python-only sugar for "from the end."
 print("Last value:", numbers[-1]) # → 5
 ```
+
+```java,editable
+public class Main {
+    public static void main(String[] args) {
+        int[] numbers = {1, 2, 3, 4, 5};
+
+        // Subscript [] — direct O(1) access by index.
+        System.out.println("1st value: " + numbers[0]);   // → 1
+        System.out.println("5th value: " + numbers[4]);   // → 5
+
+        // Java has no negative indexing — compute it from length.
+        System.out.println("Last value: " + numbers[numbers.length - 1]);
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int main() {
+    int numbers[] = {1, 2, 3, 4, 5};
+    int n = sizeof(numbers) / sizeof(numbers[0]);
+
+    /* Subscript [] — direct O(1) access by index. */
+    printf("1st value: %d\n", numbers[0]);   /* → 1 */
+    printf("5th value: %d\n", numbers[4]);   /* → 5 */
+
+    /* No negative indexing in C — compute n - 1 manually. */
+    printf("Last value: %d\n", numbers[n - 1]);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+int main() {
+    std::vector<int> numbers = {1, 2, 3, 4, 5};
+
+    // Subscript [] — direct O(1) access by index.
+    std::cout << "1st value: " << numbers[0] << "\n";   // → 1
+    std::cout << "5th value: " << numbers[4] << "\n";   // → 5
+
+    // No negative indexing — use back() or size() - 1.
+    std::cout << "Last value: " << numbers.back() << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  val numbers = Array(1, 2, 3, 4, 5)
+
+  // arr(i) is Scala's subscript — same O(1) access by index.
+  println(s"1st value: ${numbers(0)}")   // → 1
+  println(s"5th value: ${numbers(4)}")   // → 5
+
+  // Use length - 1 for the last element.
+  println(s"Last value: ${numbers(numbers.length - 1)}")
+}
+```
+
+```javascript,editable
+const numbers = [1, 2, 3, 4, 5];
+
+// Subscript [] — direct O(1) access by index.
+console.log("1st value:", numbers[0]);   // → 1
+console.log("5th value:", numbers[4]);   // → 5
+
+// JS has no negative indexing on arrays — use .at(-1) (modern) or length - 1.
+console.log("Last value:", numbers.at(-1));
+```
+
+```typescript,editable
+const numbers: number[] = [1, 2, 3, 4, 5];
+
+// Subscript [] — direct O(1) access by index.
+console.log("1st value:", numbers[0]);   // → 1
+console.log("5th value:", numbers[4]);   // → 5
+
+// .at(-1) returns the last element; matches Python's numbers[-1] semantics.
+console.log("Last value:", numbers.at(-1));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func main() {
+    numbers := []int{1, 2, 3, 4, 5}
+
+    // Subscript [] — direct O(1) access by index.
+    fmt.Println("1st value:", numbers[0])   // → 1
+    fmt.Println("5th value:", numbers[4])   // → 5
+
+    // No negative indexing in Go — len() - 1 is the idiom.
+    fmt.Println("Last value:", numbers[len(numbers)-1])
+}
+```
+
+```kotlin,editable
+fun main() {
+    val numbers = intArrayOf(1, 2, 3, 4, 5)
+
+    // Subscript [] — direct O(1) access by index.
+    println("1st value: ${numbers[0]}")   // → 1
+    println("5th value: ${numbers[4]}")   // → 5
+
+    // .last() returns the final element; or numbers[numbers.size - 1].
+    println("Last value: ${numbers.last()}")
+}
+```
+
+```rust,editable
+fn main() {
+    let numbers = [1, 2, 3, 4, 5];
+
+    // Subscript [] — direct O(1) access by index. Out-of-bounds panics.
+    println!("1st value: {}", numbers[0]);   // → 1
+    println!("5th value: {}", numbers[4]);   // → 5
+
+    // No negative indexing — use len() - 1, or .last() which returns Option.
+    println!("Last value: {}", numbers.last().unwrap());
+}
+```
+
+</div>
 
 > **Common mistake:** Accessing `numbers[5]` in a 5-element array raises an `IndexError`. Valid indices are `0` to `len(numbers) - 1`.
 
@@ -556,22 +906,168 @@ arr: array {
 
 <p align="center"><strong>Array elements can be modified via their indices (highlighted = being updated).</strong></p>
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
-# Initializing an array
 numbers: List[int] = [1, 2, 3, 4, 5]
 
-# Modifying array elements using the subscript [] operator
+# Subscript [] on the LHS of = overwrites the slot in place.
 numbers[0] = 10
 numbers[2] = 30
 numbers[4] = 50
 
-# Printing modified values
 print("1st value:", numbers[0])   # → 10
 print("3rd value:", numbers[2])   # → 30
 print("5th value:", numbers[4])   # → 50
 ```
+
+```java,editable
+public class Main {
+    public static void main(String[] args) {
+        int[] numbers = {1, 2, 3, 4, 5};
+
+        // Subscript [] on the LHS overwrites the slot in place.
+        numbers[0] = 10;
+        numbers[2] = 30;
+        numbers[4] = 50;
+
+        System.out.println("1st value: " + numbers[0]);   // → 10
+        System.out.println("3rd value: " + numbers[2]);   // → 30
+        System.out.println("5th value: " + numbers[4]);   // → 50
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int main() {
+    int numbers[] = {1, 2, 3, 4, 5};
+
+    /* Subscript [] on the LHS overwrites the slot in place. */
+    numbers[0] = 10;
+    numbers[2] = 30;
+    numbers[4] = 50;
+
+    printf("1st value: %d\n", numbers[0]);   /* → 10 */
+    printf("3rd value: %d\n", numbers[2]);   /* → 30 */
+    printf("5th value: %d\n", numbers[4]);   /* → 50 */
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+int main() {
+    std::vector<int> numbers = {1, 2, 3, 4, 5};
+
+    // Subscript [] on the LHS overwrites the slot in place.
+    numbers[0] = 10;
+    numbers[2] = 30;
+    numbers[4] = 50;
+
+    std::cout << "1st value: " << numbers[0] << "\n";   // → 10
+    std::cout << "3rd value: " << numbers[2] << "\n";   // → 30
+    std::cout << "5th value: " << numbers[4] << "\n";   // → 50
+}
+```
+
+```scala,editable
+object Main extends App {
+  val numbers = Array(1, 2, 3, 4, 5)
+
+  // arr(i) = x — Scala's in-place update syntax (Array is mutable).
+  numbers(0) = 10
+  numbers(2) = 30
+  numbers(4) = 50
+
+  println(s"1st value: ${numbers(0)}")   // → 10
+  println(s"3rd value: ${numbers(2)}")   // → 30
+  println(s"5th value: ${numbers(4)}")   // → 50
+}
+```
+
+```javascript,editable
+const numbers = [1, 2, 3, 4, 5];
+
+// Subscript [] on the LHS overwrites the slot in place.
+numbers[0] = 10;
+numbers[2] = 30;
+numbers[4] = 50;
+
+console.log("1st value:", numbers[0]);   // → 10
+console.log("3rd value:", numbers[2]);   // → 30
+console.log("5th value:", numbers[4]);   // → 50
+```
+
+```typescript,editable
+const numbers: number[] = [1, 2, 3, 4, 5];
+
+// Subscript [] on the LHS overwrites the slot in place.
+numbers[0] = 10;
+numbers[2] = 30;
+numbers[4] = 50;
+
+console.log("1st value:", numbers[0]);   // → 10
+console.log("3rd value:", numbers[2]);   // → 30
+console.log("5th value:", numbers[4]);   // → 50
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func main() {
+    numbers := []int{1, 2, 3, 4, 5}
+
+    // Subscript [] on the LHS overwrites the slot in place.
+    numbers[0] = 10
+    numbers[2] = 30
+    numbers[4] = 50
+
+    fmt.Println("1st value:", numbers[0])   // → 10
+    fmt.Println("3rd value:", numbers[2])   // → 30
+    fmt.Println("5th value:", numbers[4])   // → 50
+}
+```
+
+```kotlin,editable
+fun main() {
+    val numbers = intArrayOf(1, 2, 3, 4, 5)
+
+    // arr[i] = x — IntArray is mutable even when the reference is `val`.
+    numbers[0] = 10
+    numbers[2] = 30
+    numbers[4] = 50
+
+    println("1st value: ${numbers[0]}")   // → 10
+    println("3rd value: ${numbers[2]}")   // → 30
+    println("5th value: ${numbers[4]}")   // → 50
+}
+```
+
+```rust,editable
+fn main() {
+    // `mut` is required to allow in-place mutation of the array.
+    let mut numbers = [1, 2, 3, 4, 5];
+
+    // Subscript [] on the LHS overwrites the slot in place.
+    numbers[0] = 10;
+    numbers[2] = 30;
+    numbers[4] = 50;
+
+    println!("1st value: {}", numbers[0]);   // → 10
+    println!("3rd value: {}", numbers[2]);   // → 30
+    println!("5th value: {}", numbers[4]);   // → 50
+}
+```
+
+</div>
 
 Different languages implement this differently at the syntax level, but the underlying mechanism — overwriting a memory location at a known address — is the same everywhere.
 
@@ -589,30 +1085,282 @@ The pointer starts at index `0` and steps forward one cell at a time until it re
 
 Higher-level languages have built-in functions to get the array's length. For lower-level languages like C/C++, the programmer needs to track the array's size manually.
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
-# Initializing an array (list)
 numbers: List[int] = [1, 2, 3, 4, 5]
 
-# 1. Traversal using index-based for loop
+# 1. Index-based for — useful when you need the index itself.
 for index in range(len(numbers)):
     print(numbers[index])
 
-# 2. Traversal using direct for-each loop
+# 2. For-each — shorter when only the value matters.
 for value in numbers:
     print(value)
 
-# 3. Traversal using enumerate (index + value)
+# 3. enumerate — index + value together, no len() / subscript needed.
 for index, value in enumerate(numbers):
     print(index, value)
 
-# 4. Traversal using while loop
+# 4. While loop — finer control (skip indices, step by 2, break early).
 index: int = 0
 while index < len(numbers):
     print(numbers[index])
     index += 1
 ```
+
+```java,editable
+public class Main {
+    public static void main(String[] args) {
+        int[] numbers = {1, 2, 3, 4, 5};
+
+        // 1. Index-based for — pairs naturally with arr.length.
+        for (int index = 0; index < numbers.length; index++) {
+            System.out.println(numbers[index]);
+        }
+
+        // 2. Enhanced for (for-each) — when the index isn't needed.
+        for (int value : numbers) {
+            System.out.println(value);
+        }
+
+        // 3. Index + value together — Java has no enumerate, so loop with both.
+        for (int i = 0; i < numbers.length; i++) {
+            System.out.println(i + " " + numbers[i]);
+        }
+
+        // 4. While loop — finer control over advancement.
+        int i = 0;
+        while (i < numbers.length) {
+            System.out.println(numbers[i]);
+            i++;
+        }
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int main() {
+    int numbers[] = {1, 2, 3, 4, 5};
+    int n = sizeof(numbers) / sizeof(numbers[0]);
+
+    /* 1. Index-based for. */
+    for (int index = 0; index < n; index++) {
+        printf("%d\n", numbers[index]);
+    }
+
+    /* 2. C has no for-each — index-based is the only built-in form. */
+    for (int i = 0; i < n; i++) {
+        printf("%d\n", numbers[i]);
+    }
+
+    /* 3. Index + value together. */
+    for (int i = 0; i < n; i++) {
+        printf("%d %d\n", i, numbers[i]);
+    }
+
+    /* 4. While loop. */
+    int i = 0;
+    while (i < n) {
+        printf("%d\n", numbers[i]);
+        i++;
+    }
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+int main() {
+    std::vector<int> numbers = {1, 2, 3, 4, 5};
+
+    // 1. Index-based for.
+    for (size_t index = 0; index < numbers.size(); index++) {
+        std::cout << numbers[index] << "\n";
+    }
+
+    // 2. Range-based for (C++11+) — direct values.
+    for (int value : numbers) {
+        std::cout << value << "\n";
+    }
+
+    // 3. Index + value together — no enumerate, loop with index.
+    for (size_t i = 0; i < numbers.size(); i++) {
+        std::cout << i << " " << numbers[i] << "\n";
+    }
+
+    // 4. While loop.
+    size_t i = 0;
+    while (i < numbers.size()) {
+        std::cout << numbers[i] << "\n";
+        i++;
+    }
+}
+```
+
+```scala,editable
+object Main extends App {
+  val numbers = Array(1, 2, 3, 4, 5)
+
+  // 1. Index-based for — `arr.indices` gives the valid index range.
+  for (index <- numbers.indices) println(numbers(index))
+
+  // 2. For-each — direct value iteration.
+  for (value <- numbers) println(value)
+
+  // 3. zipWithIndex pairs each value with its position.
+  for ((value, index) <- numbers.zipWithIndex) println(s"$index $value")
+
+  // 4. While loop.
+  var i = 0
+  while (i < numbers.length) {
+    println(numbers(i))
+    i += 1
+  }
+}
+```
+
+```javascript,editable
+const numbers = [1, 2, 3, 4, 5];
+
+// 1. Index-based for.
+for (let index = 0; index < numbers.length; index++) {
+    console.log(numbers[index]);
+}
+
+// 2. for...of — direct values.
+for (const value of numbers) {
+    console.log(value);
+}
+
+// 3. .entries() yields [index, value] pairs — JS's enumerate.
+for (const [index, value] of numbers.entries()) {
+    console.log(index, value);
+}
+
+// 4. While loop.
+let i = 0;
+while (i < numbers.length) {
+    console.log(numbers[i]);
+    i++;
+}
+```
+
+```typescript,editable
+const numbers: number[] = [1, 2, 3, 4, 5];
+
+// 1. Index-based for.
+for (let index = 0; index < numbers.length; index++) {
+    console.log(numbers[index]);
+}
+
+// 2. for...of — direct values.
+for (const value of numbers) {
+    console.log(value);
+}
+
+// 3. .entries() yields [index, value] pairs.
+for (const [index, value] of numbers.entries()) {
+    console.log(index, value);
+}
+
+// 4. While loop.
+let i: number = 0;
+while (i < numbers.length) {
+    console.log(numbers[i]);
+    i++;
+}
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func main() {
+    numbers := []int{1, 2, 3, 4, 5}
+
+    // 1. Index-based for (Go's only `for` form, generalised).
+    for index := 0; index < len(numbers); index++ {
+        fmt.Println(numbers[index])
+    }
+
+    // 2. For-each via range (drop the index with _).
+    for _, value := range numbers {
+        fmt.Println(value)
+    }
+
+    // 3. range yields (index, value) pairs natively.
+    for index, value := range numbers {
+        fmt.Println(index, value)
+    }
+
+    // 4. While loop — Go reuses `for` with just a condition.
+    i := 0
+    for i < len(numbers) {
+        fmt.Println(numbers[i])
+        i++
+    }
+}
+```
+
+```kotlin,editable
+fun main() {
+    val numbers = intArrayOf(1, 2, 3, 4, 5)
+
+    // 1. Index-based for — `indices` is a built-in IntRange.
+    for (index in numbers.indices) println(numbers[index])
+
+    // 2. For-each — direct value iteration.
+    for (value in numbers) println(value)
+
+    // 3. .withIndex() pairs each value with its position.
+    for ((index, value) in numbers.withIndex()) println("$index $value")
+
+    // 4. While loop.
+    var i = 0
+    while (i < numbers.size) {
+        println(numbers[i])
+        i++
+    }
+}
+```
+
+```rust,editable
+fn main() {
+    let numbers = [1, 2, 3, 4, 5];
+
+    // 1. Index-based for — explicit range over indices.
+    for index in 0..numbers.len() {
+        println!("{}", numbers[index]);
+    }
+
+    // 2. For-each — borrow each element.
+    for value in &numbers {
+        println!("{}", value);
+    }
+
+    // 3. .iter().enumerate() yields (index, &value) pairs — Rust's enumerate.
+    for (index, value) in numbers.iter().enumerate() {
+        println!("{} {}", index, value);
+    }
+
+    // 4. While loop.
+    let mut i = 0;
+    while i < numbers.len() {
+        println!("{}", numbers[i]);
+        i += 1;
+    }
+}
+```
+
+</div>
 
 > **Which to use?**
 > - Use `for value in numbers` when you only need the value
@@ -759,8 +1507,10 @@ The CPU computes this address **instantly** using a single multiplication and ad
 
 The power of arrays comes from this formula. Once you know the base address and the datatype size, you can jump to any element in constant time. The CPU doesn't need to scan from the beginning — it does one arithmetic operation and lands exactly at the right memory address.
 
+<div class="lang-tabs">
+
 ```python,editable
-# Simulating the address formula in Python
+# Simulate the subscript-operator's address arithmetic for an int array of length 5.
 base_address = 2
 size_of_int = 4  # bytes
 
@@ -770,6 +1520,147 @@ def address_of(index: int) -> int:
 for i in range(5):
     print(f"value{i+1} at index {i} → address {address_of(i)}")
 ```
+
+```java,editable
+public class Main {
+    static final int BASE_ADDRESS = 2;
+    static final int SIZE_OF_INT = 4;
+
+    static int addressOf(int index) {
+        return BASE_ADDRESS + SIZE_OF_INT * index;
+    }
+
+    public static void main(String[] args) {
+        for (int i = 0; i < 5; i++) {
+            System.out.println("value" + (i + 1) + " at index " + i + " → address " + addressOf(i));
+        }
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+#define BASE_ADDRESS 2
+#define SIZE_OF_INT  4
+
+int address_of(int index) {
+    return BASE_ADDRESS + SIZE_OF_INT * index;
+}
+
+int main() {
+    for (int i = 0; i < 5; i++) {
+        printf("value%d at index %d → address %d\n", i + 1, i, address_of(i));
+    }
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+
+constexpr int BASE_ADDRESS = 2;
+constexpr int SIZE_OF_INT  = 4;
+
+int address_of(int index) {
+    return BASE_ADDRESS + SIZE_OF_INT * index;
+}
+
+int main() {
+    for (int i = 0; i < 5; i++) {
+        std::cout << "value" << (i + 1) << " at index " << i
+                  << " → address " << address_of(i) << "\n";
+    }
+}
+```
+
+```scala,editable
+object Main extends App {
+  val baseAddress = 2
+  val sizeOfInt   = 4
+
+  def addressOf(index: Int): Int = baseAddress + sizeOfInt * index
+
+  for (i <- 0 until 5) {
+    println(s"value${i + 1} at index $i → address ${addressOf(i)}")
+  }
+}
+```
+
+```javascript,editable
+const BASE_ADDRESS = 2;
+const SIZE_OF_INT  = 4;
+
+function addressOf(index) {
+    return BASE_ADDRESS + SIZE_OF_INT * index;
+}
+
+for (let i = 0; i < 5; i++) {
+    console.log(`value${i + 1} at index ${i} → address ${addressOf(i)}`);
+}
+```
+
+```typescript,editable
+const BASE_ADDRESS: number = 2;
+const SIZE_OF_INT: number  = 4;
+
+function addressOf(index: number): number {
+    return BASE_ADDRESS + SIZE_OF_INT * index;
+}
+
+for (let i: number = 0; i < 5; i++) {
+    console.log(`value${i + 1} at index ${i} → address ${addressOf(i)}`);
+}
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+const baseAddress = 2
+const sizeOfInt   = 4
+
+func addressOf(index int) int {
+    return baseAddress + sizeOfInt*index
+}
+
+func main() {
+    for i := 0; i < 5; i++ {
+        fmt.Printf("value%d at index %d → address %d\n", i+1, i, addressOf(i))
+    }
+}
+```
+
+```kotlin,editable
+const val BASE_ADDRESS = 2
+const val SIZE_OF_INT  = 4
+
+fun addressOf(index: Int): Int = BASE_ADDRESS + SIZE_OF_INT * index
+
+fun main() {
+    for (i in 0 until 5) {
+        println("value${i + 1} at index $i → address ${addressOf(i)}")
+    }
+}
+```
+
+```rust,editable
+const BASE_ADDRESS: i32 = 2;
+const SIZE_OF_INT:  i32 = 4;
+
+fn address_of(index: i32) -> i32 {
+    BASE_ADDRESS + SIZE_OF_INT * index
+}
+
+fn main() {
+    for i in 0..5 {
+        println!("value{} at index {} → address {}", i + 1, i, address_of(i));
+    }
+}
+```
+
+</div>
 
 ***
 
@@ -942,8 +1833,10 @@ All of this happens automatically under the hood in modern programming languages
 
 The subscript operator `array[i]` is not magic — it's one multiplication, one addition, and one memory read. The CPU knows exactly where to go, reads exactly the right number of bytes, and hands the value back. That's what makes arrays so fast and so fundamental.
 
+<div class="lang-tabs">
+
 ```python,editable
-# See the full pipeline in Python
+# Full subscript pipeline: address = base + size × index, then read 4 bytes.
 base_address = 2
 size_of_int = 4
 
@@ -954,3 +1847,144 @@ def access(index: int) -> str:
 for i in range(5):
     print(access(i))
 ```
+
+```java,editable
+public class Main {
+    static final int BASE = 2;
+    static final int SIZE = 4;
+
+    static String access(int index) {
+        int addr = BASE + SIZE * index;
+        return "array[" + index + "] → address " + addr + " → value" + (index + 1);
+    }
+
+    public static void main(String[] args) {
+        for (int i = 0; i < 5; i++) System.out.println(access(i));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+#define BASE 2
+#define SIZE 4
+
+void access_(int index) {
+    int addr = BASE + SIZE * index;
+    printf("array[%d] → address %d → value%d\n", index, addr, index + 1);
+}
+
+int main() {
+    for (int i = 0; i < 5; i++) access_(i);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <string>
+
+constexpr int BASE = 2;
+constexpr int SIZE = 4;
+
+std::string access(int index) {
+    int addr = BASE + SIZE * index;
+    return "array[" + std::to_string(index) + "] → address " + std::to_string(addr)
+         + " → value" + std::to_string(index + 1);
+}
+
+int main() {
+    for (int i = 0; i < 5; i++) std::cout << access(i) << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  val base = 2
+  val size = 4
+
+  def access(index: Int): String = {
+    val addr = base + size * index
+    s"array[$index] → address $addr → value${index + 1}"
+  }
+
+  for (i <- 0 until 5) println(access(i))
+}
+```
+
+```javascript,editable
+const BASE = 2;
+const SIZE = 4;
+
+function access(index) {
+    const addr = BASE + SIZE * index;
+    return `array[${index}] → address ${addr} → value${index + 1}`;
+}
+
+for (let i = 0; i < 5; i++) console.log(access(i));
+```
+
+```typescript,editable
+const BASE: number = 2;
+const SIZE: number = 4;
+
+function access(index: number): string {
+    const addr = BASE + SIZE * index;
+    return `array[${index}] → address ${addr} → value${index + 1}`;
+}
+
+for (let i = 0; i < 5; i++) console.log(access(i));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+const base = 2
+const size = 4
+
+func access(index int) string {
+    addr := base + size*index
+    return fmt.Sprintf("array[%d] → address %d → value%d", index, addr, index+1)
+}
+
+func main() {
+    for i := 0; i < 5; i++ {
+        fmt.Println(access(i))
+    }
+}
+```
+
+```kotlin,editable
+const val BASE = 2
+const val SIZE = 4
+
+fun access(index: Int): String {
+    val addr = BASE + SIZE * index
+    return "array[$index] → address $addr → value${index + 1}"
+}
+
+fun main() {
+    for (i in 0 until 5) println(access(i))
+}
+```
+
+```rust,editable
+const BASE: i32 = 2;
+const SIZE: i32 = 4;
+
+fn access(index: i32) -> String {
+    let addr = BASE + SIZE * index;
+    format!("array[{}] → address {} → value{}", index, addr, index + 1)
+}
+
+fn main() {
+    for i in 0..5 {
+        println!("{}", access(i));
+    }
+}
+```
+
+</div>
