@@ -1,4 +1,14 @@
-# Pattern: Sorted traversal
+# 10. Pattern: Sorted Traversal
+
+## The Hook
+
+Half the BST problems you'll ever see have the same secret structure: *they are about a sorted array*. The "tree" is just a clever way to *store* that array — but the algorithm is happiest if it forgets the tree exists and pretends it's walking a sorted list.
+
+The trick is the **in-order traversal**. Walk a BST left-node-right and you visit values in **ascending sorted order**, automatically. Suddenly tree problems become array problems. *"Smallest difference between any two values"* becomes *"smallest gap between adjacent elements of a sorted array"* — solved by a single pass remembering the previous element. *"Is this a valid BST?"* becomes *"is this in-order walk strictly increasing?"* — same single pass.
+
+This is the **Sorted Traversal pattern**. It's the bread-and-butter pattern for the easier half of BST problems, and it scales to four classic problems we'll work through in this lesson.
+
+---
 
 ## Table of Contents
 
@@ -13,635 +23,342 @@
 
 # Understanding the sorted traversal pattern
 
-Some problems require us to traverse the nodes of a binary search tree in the sorted order of their values. Different traversal algorithms like preorder, postorder, etc., traverse the nodes of the tree following different sequences. However, the inorder traversal that follows the left-node-right sequence traverses the nodes in the tree in the sorted order(**ascending**) of their values. This is because a binary search tree follows the binary search property where all the nodes in the left subtree of a node have values smaller than it, and all the nodes in the right subtree have values greater than it. And so the inorder traversal can be used to traverse the nodes in a binary search tree in the sorted order(**ascending**) of its values.
+The pattern is simple: **walk the BST in-order, processing each node as you go, carrying a small piece of running state**.
 
-The sorted traversal pattern is a classification of problems that can be solved using the sorted traversal technique.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    R((4))
+    A((2))
+    B((5))
+    C((1))
+    D((3))
+    E((6))
+    R --> A
+    R --> B
+    A --> C
+    A --> D
+    B --> X([" "])
+    B --> E
+    OUT["Inorder visit order: 1 → 2 → 3 → 4 → 5 → 6 (sorted ascending)"]
+    style OUT fill:#bbf7d0,stroke:#16a34a
+    style X fill:none,stroke:none,color:transparent
+```
 
-// Diagram: The inorder traversal traverses the binary search tree in the sorted order (ascending) of node values.
+<p align="center"><strong>An in-order walk of a BST visits values in sorted ascending order. The "sorted traversal" pattern leans on this property to solve any problem that's really about the sorted sequence.</strong></p>
 
-In this lesson, we will learn more about using the sorted traversal technique to solve binary search tree problems and how to identify a problem as a sorted traversal pattern problem.
+## The technique
 
-## The sorted traversal technique
+Two ingredients, both simple:
 
-Consider we are given a binary search tree, and we need to process every node using the function`f` in the sorted order (**ascending**) of values of the nodes. We also need to aggregate all the processed values over a function `g` in the same order.
+- A **process function** `f(node)` that does whatever the problem requires for one element of the sorted sequence (e.g. compare with the previous one, append to an array, link to the previous node).
+- An **aggregate function** `g(state, output)` that combines the per-node result into a running summary (e.g. minimum, list, head pointer).
 
-// Diagram: Process all nodes in the sorted order (ascending) of values using function f and aggregate the processed values using function g.
-
-We do an inorder traversal of the binary search tree as it traverses the tree in the sorted order of values. To share the same copy of the variable that will hold the final aggregated value between all nodes, we create a variable `aggregate` in the calling function and initialize it with a default value. For languages that do not support passing variables by reference, this variable can be created in the enclosing scope.
-
-We then start the inorder traversal from the root node of the tree, passing `aggregate` as a reference that recursively traverses to the left until it reaches a node for which the left subtree is a `null` reference. Hitting a `null` reference is the base case for this recursive execution, where we return to the parent node and process it using the function `f` and store the result in a local variable `output`. We then add the contribution of `output` to `aggregate` using the function `g`. The right subtree is then recursively processed in the same way.
-
-This way, in the end, all nodes in the tree are processed using the function `f` in the sorted order (**ascending**) of their values, and the processed values aggregated over the function `g` in `aggregate` in the same order.
-
-// Diagram: Process nodes in sorted order using the function f and aggregate them over function g
-
-## Algorithm
-
-The generic algorithm given below uses the inorder traversal to process all the nodes in the tree using the function `f` in the sorted order(**ascending**) of their values, and aggregate the processed values over the function `g` in the same order.
+Put them inside the standard recursive in-order template, with the running state held in the enclosing scope (or as instance fields, in OO languages):
 
 > **Algorithm**
 >
-> -   Step 1: Create a variable `aggregate` and initialize it with a default value
-> -   Step 2: Call `inorder(root, aggregate)`
+> - **Step 1:** Initialise running state in the enclosing scope.
+> - **Step 2:** Call `inorder(root)`.
 >
-> **inorder(node, \[ref\]aggregate)**
+> **inorder(node):**
 >
-> -   **Step 1:** If this is a `null` node, return
-> -   **Step 2:** Call `inorder(node.left, aggregate)`
-> -   **Step 3:** `output` = `f(node.val)`
-> -   **Step 4:** Use the function `g` to add the contribution of `output` to `aggregate`
-> -   **Step 5:** Call `inorder(node.right, aggregate)`
-> -   **Step 6:** Return
+> - **Step 1:** If `node` is `null`, return.
+> - **Step 2:** `inorder(node.left)`.
+> - **Step 3:** Process the current node — apply `f(node.val)`; combine with running state via `g`.
+> - **Step 4:** `inorder(node.right)`.
 
-## Implementation
+The reason this template works on every "sorted traversal" problem is that the **order of `f` calls is exactly the sorted order of values**. So whatever invariant you want to maintain about a sorted sequence, you maintain it with a single previous-pointer or running accumulator.
 
-The implementation of the sorted traversal technique is given below. The `inorder` function processed nodes in the sorted order of their values using the function `f` and aggregates the processed values over the function `g` in the same order.
+## Generic template
 
-C++
+<div class="lang-tabs">
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+```python,editable
+class Solution:
+    def calling_function(self, root):
+        # State shared across all recursive calls.
+        self.aggregate = 0
+        self.inorder(root)
+        return self.aggregate
 
-// Diagram: using namespace std;
-
-class Solution {
-  public:
-      int callingFunction(TreeNode* root) {
-
-          // Initialize aggregate with a default value
-          int aggregate = 0;
-
-          // Traverse the binary tree in preorder traversal
-          inorder(root, aggregate);
-
-          // Return the aggregated value
-          return aggregate;
-      }
-      void inorder(TreeNode *node, int& aggregate) {
-
-          if (!node) {
-              // Return if this is a null node;
-              return;
-          }
-
-          // Traverse the left subtree
-          inorder(node->left, aggregate);
-
-          // Process the current node
-          int output = f(node->val);
-          // Add contribution of current node
-          aggregate = g(aggregate, node->val);
-
-          // Traverse the right subtree
-          inorder(node->right, aggregate);
-
-      }
-  };
+    def inorder(self, node):
+        if node is None:
+            return
+        self.inorder(node.left)                        # 1. visit left subtree
+        output = self.f(node.val)                      # 2. process node
+        self.aggregate = self.g(self.aggregate, output)# 3. fold into running state
+        self.inorder(node.right)                       # 4. visit right subtree
 ```
 
-Java
+```java,editable
+class Solution {
+    private int aggregate;
 
-```java
-import java.util.*;
-
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-// Diagram: public class Solution {
-
-    // Declare aggregate as a class-level variable since Java does not support pass-by-reference
-    private int aggregate = 0;
-
-// Diagram: public int callingFunction(TreeNode root) {
-
-        // Initialize aggregate with a default value
+    public int callingFunction(TreeNode root) {
         aggregate = 0;
-
-        // Traverse the binary tree in inorder traversal
         inorder(root);
-
-        // Return the aggregated value
         return aggregate;
     }
 
-// Diagram: private void inorder(TreeNode node) {
-
-        if (node == null) {
-            // Return if this is a null node;
-            return;
-        }
-
-        // Traverse the left subtree
-        inorder(node.left);
-
-        // Process the current node
-        int output = f(node.val);
-
-        // Add contribution of current node
-        aggregate = g(aggregate, node.val);
-
-        // Traverse the right subtree
-        inorder(node.right);
+    private void inorder(TreeNode node) {
+        if (node == null) return;
+        inorder(node.left);                                  // 1. left subtree
+        int output = f(node.val);                            // 2. process node
+        aggregate = g(aggregate, output);                    // 3. fold
+        inorder(node.right);                                 // 4. right subtree
     }
+    int f(int v) { return v; }
+    int g(int agg, int out) { return agg + out; }
+}
 ```
 
-Typescript
+```c,editable
+static int aggregate;
 
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
+static int f(int v)            { return v; }
+static int g(int agg, int out) { return agg + out; }
 
-export class Solution {
-  private aggregate: number = 0;
+static void inorder(struct TreeNode *node) {
+    if (node == NULL) return;
+    inorder(node->left);                                     // 1. left subtree
+    int output = f(node->val);                               // 2. process node
+    aggregate = g(aggregate, output);                        // 3. fold
+    inorder(node->right);                                    // 4. right subtree
+}
 
-  callingFunction(root: TreeNode | null): number {
-    // Initialize aggregate with a default value
-    this.aggregate = 0;
-
-    // Traverse the binary tree in inorder traversal
-    this.inorder(root);
-
-    // Return the aggregated value
-    return this.aggregate;
-  }
-
-  inorder(node: TreeNode | null): void {
-    if (!node) {
-      // Return if this is a null node
-      return;
-    }
-
-    // Traverse the left subtree
-    this.inorder(node.left);
-
-    // Process the current node
-    const output = f(node.val);
-    // Add contribution of current node
-    this.aggregate = g(this.aggregate, node.val);
-
-    // Traverse the right subtree
-    this.inorder(node.right);
-  }
+int callingFunction(struct TreeNode *root) {
+    aggregate = 0;
+    inorder(root);
+    return aggregate;
+}
 ```
 
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
+```cpp,editable
 class Solution {
-  aggregate = 0;
+public:
+    int aggregate = 0;
 
+    int callingFunction(TreeNode *root) {
+        aggregate = 0;
+        inorder(root);
+        return aggregate;
+    }
+
+    void inorder(TreeNode *node) {
+        if (!node) return;
+        inorder(node->left);                                   // 1. left subtree
+        int output = f(node->val);                             // 2. process node
+        aggregate = g(aggregate, output);                      // 3. fold
+        inorder(node->right);                                  // 4. right subtree
+    }
+    int f(int v) { return v; }
+    int g(int agg, int out) { return agg + out; }
+};
+```
+
+```scala,editable
+class Solution {
+  private var aggregate: Int = 0
+
+  def callingFunction(root: TreeNode): Int = {
+    aggregate = 0
+    inorder(root)
+    aggregate
+  }
+
+  private def inorder(node: TreeNode): Unit = {
+    if (node == null) return
+    inorder(node.left)                                          // 1. left subtree
+    val output = f(node.value)                                  // 2. process node
+    aggregate = g(aggregate, output)                            // 3. fold
+    inorder(node.right)                                         // 4. right subtree
+  }
+  private def f(v: Int): Int            = v
+  private def g(agg: Int, out: Int): Int = agg + out
+}
+```
+
+```javascript,editable
+class Solution {
   callingFunction(root) {
-    // Initialize aggregate with a default value
     this.aggregate = 0;
-
-    // Traverse the binary tree in inorder traversal
     this.inorder(root);
-
-    // Return the aggregated value
     return this.aggregate;
   }
 
   inorder(node) {
-    if (!node) {
-      // Return if this is a null node
-      return;
+    if (node === null) return;
+    this.inorder(node.left);                                     // 1. left subtree
+    const output = this.f(node.val);                             // 2. process node
+    this.aggregate = this.g(this.aggregate, output);             // 3. fold
+    this.inorder(node.right);                                    // 4. right subtree
+  }
+  f(v) { return v; }
+  g(agg, out) { return agg + out; }
+}
+```
+
+```typescript,editable
+class Solution {
+  aggregate: number = 0;
+
+  callingFunction(root: TreeNode | null): number {
+    this.aggregate = 0;
+    this.inorder(root);
+    return this.aggregate;
+  }
+
+  inorder(node: TreeNode | null): void {
+    if (node === null) return;
+    this.inorder(node.left);                                       // 1. left subtree
+    const output = this.f(node.val);                               // 2. process node
+    this.aggregate = this.g(this.aggregate, output);               // 3. fold
+    this.inorder(node.right);                                      // 4. right subtree
+  }
+  f(v: number): number                  { return v; }
+  g(agg: number, out: number): number   { return agg + out; }
+}
+```
+
+```go,editable
+type genericState struct{ aggregate int }
+
+func (s *genericState) f(v int) int            { return v }
+func (s *genericState) g(agg int, out int) int { return agg + out }
+
+func (s *genericState) inorder(node *TreeNode) {
+    if node == nil { return }
+    s.inorder(node.Left)                                              // 1. left subtree
+    out := s.f(node.Val)                                              // 2. process node
+    s.aggregate = s.g(s.aggregate, out)                               // 3. fold
+    s.inorder(node.Right)                                             // 4. right subtree
+}
+
+func callingFunction(root *TreeNode) int {
+    s := &genericState{}
+    s.inorder(root)
+    return s.aggregate
+}
+```
+
+```kotlin,editable
+class Solution {
+    private var aggregate = 0
+
+    fun callingFunction(root: TreeNode?): Int {
+        aggregate = 0
+        inorder(root)
+        return aggregate
     }
 
-    // Traverse the left subtree
-    this.inorder(node.left);
-
-    // Process the current node
-    const output = f(node.val);
-    // Add contribution of current node
-    this.aggregate = g(this.aggregate, node.val);
-
-    // Traverse the right subtree
-    this.inorder(node.right);
-  }
+    private fun inorder(node: TreeNode?) {
+        if (node == null) return
+        inorder(node.left)                                                // 1. left subtree
+        val output = f(node.`val`)                                        // 2. process node
+        aggregate = g(aggregate, output)                                  // 3. fold
+        inorder(node.right)                                               // 4. right subtree
+    }
+    private fun f(v: Int)                = v
+    private fun g(agg: Int, out: Int)    = agg + out
+}
 ```
 
-Python
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
 
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
+#[derive(Default)]
+struct Generic { aggregate: i32 }
 
-// Diagram: from typing import Optional, List
+impl Generic {
+    fn f(&self, v: i32) -> i32                      { v }
+    fn g(&self, agg: i32, out: i32) -> i32          { agg + out }
 
-class Solution:
-    def __init__(self):
-        # Class-level variable to hold the aggregate value
-        self.aggregate: int = 0
-
-    def callingFunction(self, root: Optional[TreeNode]) -> int:
-
-        # Initialize aggregate with a default value
-        self.aggregate = 0
-
-        # Traverse the binary tree in inorder traversal
-        self.inorder(root)
-
-        # Return the aggregated value
-        return self.aggregate
-
-    def inorder(self, node: Optional[TreeNode]) -> None:
-
-        if not node:
-            # Return if this is a null node
-            return
-
-        # Traverse the left subtree
-        self.inorder(node.left)
-
-        # Process the current node
-        output = f(node.val)
-        # Add contribution of current node
-        self.aggregate = g(self.aggregate, node.val)
-
-        # Traverse the right subtree
-        self.inorder(node.right)
+    fn inorder(&mut self, node: &Tree) {
+        if let Some(n) = node {
+            let n = n.borrow();
+            self.inorder(&n.left);                                        // 1. left subtree
+            let out = self.f(n.val);                                      // 2. process node
+            self.aggregate = self.g(self.aggregate, out);                 // 3. fold
+            self.inorder(&n.right);                                       // 4. right subtree
+        }
+    }
+}
 ```
 
-## Complexity Analysis
+</div>
 
-It is quite easy to figure out the time and space complexity of the solution. We traverse the entire tree using the inorder traversal that takes linear **O(N)** time, and apply the function `f` and then function `g` on every node. And so, the overall time complexity depends on the time complexity of the function `f` and `g`. Considering both of them are constant time **O(1)** operations, the overall time complexity is linear **O(N)** in any case.
+## Complexity
 
-The space complexity of inorder traversal depends on the maximum size of the function call stack, which can be linear **O(N)** if the tree is a degenerate binary tree where every node only has one child and **O(log(N))** if it is a complete binary tree. However, each stack frame also creates its own copy of local variables, but each of them only makes a constant contribution to the size of the frame, so the overall space complexity is the same as the space required for the stack frames.
+| Operation | Time | Space |
+|---|---|---|
+| In-order walk + O(1) work per node | **O(n)** | O(h) (call stack) |
 
-> **Best Case:** Degenerate binary tree
->
-> -   Space Complexity - **O(log(N))**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case:** Complete binary tree
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
+If `f` and `g` are O(1), the total time is the cost of one in-order traversal: O(n). The recursion depth is the tree's height, contributing O(h) to space.
 
 ***
 
 # Identifying the sorted traversal pattern
 
-The sorted traversal technique can solve some specific types of binary search tree problems. These are generally **easy** problems where we need to process every node using the function`f` in the sorted order (**ascending**) of values of the nodes. We may also need to aggregate all the processed values over a function `g` in the same order. In cases where the same copy of some data must be shared between all nodes, those variables are created in the calling function or the enclosing scope.
+Use this pattern when the problem statement (or a quick reformulation of it) reduces to *"do something with the sorted sequence of values"*. Concrete signals:
 
-If the problem statement or its solution follows the generic template below, it can be solved by applying the sorted traversal technique.
+- Anything about *minimum/maximum gaps*, *adjacent differences*, *pairs of close values* — the sorted order makes "adjacent" meaningful.
+- *Validation* problems — "is this a BST?" reduces to "is the in-order walk strictly increasing?"
+- *Format conversions* — "BST to sorted array", "BST to sorted doubly-linked list", "BST to a flat list of frequencies".
+- *Position-based queries* — "k-th smallest" is just "stop at the k-th in-order visit".
 
-**Template:**
+If your solution starts with "if I had a sorted list of these values, I'd…", reach for the in-order traversal.
 
-Given a binary search tree, process every node using the function `f` in the sorted (**ascending**) order of node values, and aggregate the results over a function `g`.
+## Worked example — minimum absolute difference
 
-## Example
+> **Problem:** Given a BST, find the minimum absolute difference between any two distinct nodes' values.
 
-Let's consider the following problem as an example to better understand how to identify and solve a problem using the sorted traversal technique.
+> *Friction prompt — predict before reading on. Why is the answer always between two values that are *adjacent in sorted order*?*
 
-> **Problem statement:** Given a binary search tree, find the minimum absolute difference between the values of any two different nodes in the tree.
+In any sorted sequence `v1 < v2 < … < vn`, the differences between non-adjacent items are *always* greater than the differences between adjacent items: `v3 − v1 = (v3 − v2) + (v2 − v1) ≥ v2 − v1`. So we only have to look at adjacent pairs — and a sorted in-order walk gives them to us for free.
 
-// Diagram: Find the minimum absolute difference between two nodes
-
-## The sorted traversal technique
-
-If we arrange all the nodes in the binary search tree in the sorted(ascending) order of node values, say `v1, v2, v3 ... vn`. The sorted nature of these values guarantees that `|vi+1 - vi| < |vj - vi|` such that `1 < i <n` and `i+1 < j <= n` . 
-
-Conversely, this means that differences between non-consecutive items will always be greater than the difference between some consecutive items. And so, we can ignore the difference between non-consecutive values and only consider the difference between consecutive values when node values are arranged in sorted (**ascending**) order.
-
-// Diagram: We can ignore the difference between non-consecutive items when they are arranged in the sorted order of values.
-
-Since we are given a binary search tree, the inorder traversal of the tree results in traversal of nodes in the sorted (**ascending**) order of its values.
-
-// Diagram: The inorder traversal of a binary search tree traverses the nodes in the sorted order of values.
-
-The solution fits the generic template for the sorted traversal pattern we learned earlier.
-
-**Template:**
-
-Given a binary search tree, process every node using the function `f` (difference from previous node) in the sorted (**ascending**) order of node values, and aggregate the results over a function `g` (minimum)
-
-We create two variables, `minDiff` and `prevNode` in the enclosing scope to hold the minimum absolute difference and the previous node during the inorder traversal, and initialize them with `infinite` and `null` respectively. These variables are created in the enclosing scope to ensure that the same copy is shared between all the nodes during the inorder traversal.
-
-We then start the inorder traversal from the root node that traverses the tree in the sorted order(ascending) of values. To process a node, if `prevNode` is not `null`, we take the absolute difference between the value of the current node and the node in `prevNode`. If the difference is less than `minDiff`, we update `minDiff` to this value, otherwise we do nothing. We then update `prevNode` to hold the current node before moving to the right subtree recursively.
-
-This way, at the end of inorder traversal, we would have compared the absolute difference between all consecutive nodes in sorted order (ascending) of values and `minDiff` will have the minimum absolute difference between any two nodes in the tree.
-
-// Diagram: Find the minimum absolute difference between two nodes
-
-The implementation of the sorted traversal technique to solve the problem is given below.
-
-C++
-
-```cpp
-#include <climits>
-
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    int minDiff = INT_MAX;
-    TreeNode *prevNode = nullptr;
-
-    void inorder(TreeNode *root) {
-        if (root == nullptr) {
-            return;
-        }
-
-        // Traverse left subtree
-        inorder(root->left);
-
-        // Check the difference with the previous node
-        if (prevNode != nullptr) {
-            minDiff = min(minDiff, root->val - prevNode->val);
-        }
-
-        // Update the previous node
-        prevNode = root;
-
-        // Traverse right subtree
-        inorder(root->right);
-    }
-
-// Diagram: int lowestAbsoluteVariance(TreeNode root) {
-
-        // Perform in-order traversal
-        inorder(root);
-
-        return minDiff;
-    }
-};
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["v1 = 2"] --> B["v2 = 4"] --> C["v3 = 5"] --> D["v4 = 9"]
+    G1["v2 − v1 = 2"]
+    G2["v3 − v2 = 1 ⭐"]
+    G3["v4 − v3 = 4"]
+    G1 -.- B
+    G2 -.- C
+    G3 -.- D
+    style G2 fill:#bbf7d0,stroke:#16a34a
 ```
 
-Java
+<p align="center"><strong>Adjacent gaps in sorted order are the only ones worth checking. The minimum is between <code>4</code> and <code>5</code>.</strong></p>
 
-```java
-import java.util.*;
+The fit with our template:
 
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-// Diagram: class Solution {
-
-    // Initialize minDiff to a large value
-    private int minDiff = Integer.MAX_VALUE;
-    private TreeNode prevNode = null;
-
-    private void inorder(TreeNode root) {
-        if (root == null) {
-            return;
-        }
-
-        // Traverse left subtree
-        inorder(root.left);
-
-        // Check the difference with the previous node
-        if (prevNode != null) {
-            minDiff = Math.min(minDiff, root.val - prevNode.val);
-        }
-
-        // Update the previous node
-        prevNode = root;
-
-        // Traverse right subtree
-        inorder(root.right);
-    }
-
-// Diagram: public int lowestAbsoluteVariance(TreeNode root) {
-
-        // Perform in-order traversal
-        inorder(root);
-
-        return minDiff;
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-export class Solution {
-    minDiff: number = Number.MAX_SAFE_INTEGER;
-    prevNode: TreeNode | null = null;
-
-    inorder(root: TreeNode | null): void {
-        if (root === null) {
-            return;
-        }
-
-        // Traverse left subtree
-        this.inorder(root.left);
-
-        // Check the difference with the previous node
-        if (this.prevNode !== null) {
-            this.minDiff = Math.min(
-                this.minDiff,
-                root.val - this.prevNode.val
-            );
-        }
-
-        // Update the previous node
-        this.prevNode = root;
-
-        // Traverse right subtree
-        this.inorder(root.right);
-    }
-
-// Diagram: lowestAbsoluteVariance(root: TreeNode | null): number {
-
-        // Perform in-order traversal
-        this.inorder(root);
-
-        return this.minDiff;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-    minDiff = Number.MAX_SAFE_INTEGER;
-    prevNode = null;
-
-    inorder(root) {
-        if (root === null) {
-            return;
-        }
-
-        // Traverse left subtree
-        this.inorder(root.left);
-
-        // Check the difference with the previous node
-        if (this.prevNode !== null) {
-            this.minDiff = Math.min(
-                this.minDiff,
-                root.val - this.prevNode.val
-            );
-        }
-
-        // Update the previous node
-        this.prevNode = root;
-
-        // Traverse right subtree
-        this.inorder(root.right);
-    }
-
-// Diagram: lowestAbsoluteVariance(root) {
-
-        // Perform in-order traversal
-        this.inorder(root);
-
-        return this.minDiff;
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import Optional, List
-
-class Solution:
-    def __init__(self):
-
-        # Initialize min_diff to a large value
-        self.min_diff = float("inf")
-        self.prev_node = None
-
-    def inorder(self, root: Optional[TreeNode]):
-        if root is None:
-            return
-
-        # Traverse left subtree
-        self.inorder(root.left)
-
-        # Check the difference with the previous node
-        if self.prev_node is not None:
-            self.min_diff = min(
-                self.min_diff, root.val - self.prev_node.val
-            )
-
-        # Update the previous node
-        self.prev_node = root
-
-        # Traverse right subtree
-        self.inorder(root.right)
-
-    def lowest_absolute_variance(self, root: Optional[TreeNode]) -> int:
-
-        # Perform in-order traversal
-        self.inorder(root)
-
-        return self.min_diff
-```
-
-The sorted traversal technique can solve this problem in linear time and a single pass using a very small and concise recursive implementation.
-
-## Example problems
-
-Most problems that fall under this category are**easy**problems; a list of a few is given below.
-
-> -   **[Lowest absolute variance](https://www.codeintuition.io/courses/binary-search-tree/2LY5j7WB9RVdsoZrGKCnT)**
-> -   **[BST validator](https://www.codeintuition.io/courses/binary-search-tree/m6rGRHwW1i6agm77i-YYS)**
-> -   **[BST to sorted array](https://www.codeintuition.io/courses/binary-search-tree/DLCg4iQEB0byNEdtOyGXJ)**
-> -   **[BST to DLL](https://www.codeintuition.io/courses/binary-search-tree/neR3xSa5MmaNouF5lOM2F)**
-
-We will now solve these problems to understand the sorted traversal technique better.
+- **f** = "compute current.val − previous.val".
+- **g** = "minimum".
+- **state** = `(min_diff, prev_node)`, both held in the enclosing scope.
 
 ***
 
@@ -649,79 +366,251 @@ We will now solve these problems to understand the sorted traversal technique be
 
 ## Problem Statement
 
-Given the **root** of a binary search tree, write a function to find and return the lowest absolute variance between the values of any two different nodes in the tree.
-
-Lowest absolute variance between two values is the minimum absolute difference between them.
+Given the **root** of a binary search tree, return the lowest absolute variance — the minimum absolute difference — between the values of any two different nodes.
 
 ### Example 1
 
-> -   **Input:** root = \[5, 4, 8, 2, null, null, 10\]
-> -   **Output:** 1
-> -   **Explanation:** The lowest absolute variance is 1, which is between the nodes with values 4 and 5.
+> - **Input:** `root = [5, 4, 8, 2, null, null, 10]`
+> - **Output:** `1`
+> - **Explanation:** The smallest gap is between `4` and `5`.
 
 ### Example 2
 
-> -   **Input:** root = \[10, 8, 14, 5, null, 12, 17\], key = 14
-> -   **Output:** 2
-> -   **Explanation:** The lowest absolute variance is 2, which is between the nodes with values 8 and 10, and also nodes 14 and 12.
+> - **Input:** `root = [10, 8, 14, 5, null, 12, 17]`
+> - **Output:** `2`
+> - **Explanation:** The smallest gap is `2` (between `8` and `10`, or between `12` and `14`).
 
-## Solution
+## The Solution
 
-```cpp
+<div class="lang-tabs">
+
+```python,editable
+class Solution:
+    def __init__(self):
+        self.min_diff = float("inf")
+        self.prev_node = None        # last node seen during the in-order walk
+
+    def inorder(self, root):
+        if root is None:
+            return
+        self.inorder(root.left)
+        # Process: gap to previous in-order node (if any).
+        if self.prev_node is not None:
+            self.min_diff = min(self.min_diff, root.val - self.prev_node.val)
+        self.prev_node = root        # advance the "previous" pointer
+        self.inorder(root.right)
+
+    def lowest_absolute_variance(self, root) -> int:
+        self.inorder(root)
+        return self.min_diff
+```
+
+```java,editable
+class Solution {
+    private int minDiff = Integer.MAX_VALUE;
+    private TreeNode prevNode = null;
+
+    private void inorder(TreeNode root) {
+        if (root == null) return;
+        inorder(root.left);
+        if (prevNode != null) minDiff = Math.min(minDiff, root.val - prevNode.val);
+        prevNode = root;
+        inorder(root.right);
+    }
+
+    public int lowestAbsoluteVariance(TreeNode root) {
+        inorder(root);
+        return minDiff;
+    }
+}
+```
+
+```c,editable
+#include <limits.h>
+
+static int minDiff;
+static struct TreeNode *prevNode;
+
+static void inorder(struct TreeNode *root) {
+    if (root == NULL) return;
+    inorder(root->left);
+    if (prevNode != NULL) {
+        int d = root->val - prevNode->val;
+        if (d < minDiff) minDiff = d;
+    }
+    prevNode = root;
+    inorder(root->right);
+}
+
+int lowestAbsoluteVariance(struct TreeNode *root) {
+    minDiff  = INT_MAX;
+    prevNode = NULL;
+    inorder(root);
+    return minDiff;
+}
+```
+
+```cpp,editable
 #include <climits>
-
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
 
 class Solution {
 public:
-
-    // Variable to keep track of the minimum difference
     int minDiff = INT_MAX;
-
-    // Reference to keep track of the previous node
     TreeNode *prevNode = nullptr;
 
     void inorder(TreeNode *root) {
-        if (root == nullptr) {
-            return;
-        }
-
-        // Traverse left subtree
+        if (!root) return;
         inorder(root->left);
-
-        // Check the difference with the previous node
-        if (prevNode != nullptr) {
-            minDiff = min(minDiff, root->val - prevNode->val);
-        }
-
-        // Update the previous node
+        if (prevNode) minDiff = std::min(minDiff, root->val - prevNode->val);
         prevNode = root;
-
-        // Traverse right subtree
         inorder(root->right);
     }
 
     int lowestAbsoluteVariance(TreeNode *root) {
-
-        // Perform in-order traversal
         inorder(root);
-
-        // Return the minimum difference found
         return minDiff;
     }
 };
 ```
+
+```scala,editable
+class Solution {
+  private var minDiff: Int = Int.MaxValue
+  private var prevNode: TreeNode = null
+
+  private def inorder(root: TreeNode): Unit = {
+    if (root == null) return
+    inorder(root.left)
+    if (prevNode != null) minDiff = math.min(minDiff, root.value - prevNode.value)
+    prevNode = root
+    inorder(root.right)
+  }
+
+  def lowestAbsoluteVariance(root: TreeNode): Int = {
+    inorder(root)
+    minDiff
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+  constructor() {
+    this.minDiff = Number.MAX_SAFE_INTEGER;
+    this.prevNode = null;
+  }
+
+  inorder(root) {
+    if (root === null) return;
+    this.inorder(root.left);
+    if (this.prevNode !== null) {
+      this.minDiff = Math.min(this.minDiff, root.val - this.prevNode.val);
+    }
+    this.prevNode = root;
+    this.inorder(root.right);
+  }
+
+  lowestAbsoluteVariance(root) {
+    this.inorder(root);
+    return this.minDiff;
+  }
+}
+```
+
+```typescript,editable
+class Solution {
+  minDiff = Number.MAX_SAFE_INTEGER;
+  prevNode: TreeNode | null = null;
+
+  inorder(root: TreeNode | null): void {
+    if (root === null) return;
+    this.inorder(root.left);
+    if (this.prevNode !== null) {
+      this.minDiff = Math.min(this.minDiff, root.val - this.prevNode.val);
+    }
+    this.prevNode = root;
+    this.inorder(root.right);
+  }
+
+  lowestAbsoluteVariance(root: TreeNode | null): number {
+    this.inorder(root);
+    return this.minDiff;
+  }
+}
+```
+
+```go,editable
+type minDiffState struct {
+    minDiff  int
+    prevNode *TreeNode
+}
+
+func (s *minDiffState) inorder(root *TreeNode) {
+    if root == nil { return }
+    s.inorder(root.Left)
+    if s.prevNode != nil {
+        d := root.Val - s.prevNode.Val
+        if d < s.minDiff { s.minDiff = d }
+    }
+    s.prevNode = root
+    s.inorder(root.Right)
+}
+
+func lowestAbsoluteVariance(root *TreeNode) int {
+    s := &minDiffState{minDiff: int(^uint(0) >> 1), prevNode: nil}
+    s.inorder(root)
+    return s.minDiff
+}
+```
+
+```kotlin,editable
+class Solution {
+    private var minDiff = Int.MAX_VALUE
+    private var prevNode: TreeNode? = null
+
+    private fun inorder(root: TreeNode?) {
+        if (root == null) return
+        inorder(root.left)
+        if (prevNode != null) minDiff = minOf(minDiff, root.`val` - prevNode!!.`val`)
+        prevNode = root
+        inorder(root.right)
+    }
+
+    fun lowestAbsoluteVariance(root: TreeNode?): Int {
+        inorder(root)
+        return minDiff
+    }
+}
+```
+
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    pub fn lowest_absolute_variance(root: Tree) -> i32 {
+        let mut min_diff = i32::MAX;
+        let mut prev: Option<i32> = None;
+        Self::inorder(&root, &mut prev, &mut min_diff);
+        min_diff
+    }
+
+    fn inorder(node: &Tree, prev: &mut Option<i32>, min_diff: &mut i32) {
+        if let Some(n) = node {
+            let n = n.borrow();
+            Self::inorder(&n.left, prev, min_diff);
+            if let Some(pv) = *prev {
+                *min_diff = (*min_diff).min(n.val - pv);
+            }
+            *prev = Some(n.val);
+            Self::inorder(&n.right, prev, min_diff);
+        }
+    }
+}
+```
+
+</div>
 
 ***
 
@@ -729,84 +618,271 @@ public:
 
 ## Problem Statement
 
-Given the **root** of a binary search tree, write a function that returns `true` if the given tree is a binary search tree and `false` otherwise. A valid binary search tree has the following properties:
+Given the **root** of a binary search tree, return `true` if the tree is a valid BST, `false` otherwise. A valid BST has these properties:
 
-> -   Every node has a key, and no two nodes have the same key.
-> -   The left subtree of a node contains only nodes with keys less than the node's key.
-> -   The right subtree of a node contains only nodes with keys greater than the node's key.
-> -   The left and right subtrees must also be binary search trees.
+- Every node has a unique key.
+- The left subtree contains only values strictly less than the node.
+- The right subtree contains only values strictly greater than the node.
+- Both subtrees are themselves BSTs.
 
 ### Example 1
 
-> -   **Input:** root = \[4, 2, 5, 1, 3, null, 6\]
-> -   **Output:** true
-> -   **Explanation:** The given tree is a binary search tree as it follows all its properties.
+> - **Input:** `root = [4, 2, 5, 1, 3, null, 6]`
+> - **Output:** `true`
 
 ### Example 2
 
-> -   **Input:** root = \[9, 5, 12, 4, null, null, 11\]
-> -   **Output:** false
-> -   **Explanation:** The given tree is not a binary search tree as node 11 is smaller than parent 12 but is still the right child of the node with value 12 instead of being the left child.
+> - **Input:** `root = [9, 5, 12, 4, null, null, 11]`
+> - **Output:** `false`
+> - **Explanation:** Node `11` is in the right subtree of `12` but `11 < 12` — rule violated.
 
-## Solution
+## The Strategy
 
-```cpp
-#include <climits>
+A valid BST has a **strictly increasing** in-order traversal. So this is just: walk in-order, keep the previous value, and at every step assert `prev < current`. The moment any pair fails, the tree is invalid.
 
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+This is dramatically simpler than the recursive `(min, max)` bounds technique you may have seen — the in-order trick reduces tree validity to *list monotonicity*, which is a one-liner.
 
-using namespace std;
+## The Solution
 
+<div class="lang-tabs">
+
+```python,editable
+class Solution:
+    def __init__(self):
+        self.is_valid = True
+        self.prev_node = None
+
+    def inorder(self, root):
+        # Skip work as soon as we know the tree is invalid.
+        if root is None or not self.is_valid:
+            return
+        self.inorder(root.left)
+        # In-order walk must be STRICTLY increasing — equal values also fail.
+        if self.prev_node is not None and root.val <= self.prev_node.val:
+            self.is_valid = False
+            return
+        self.prev_node = root
+        self.inorder(root.right)
+
+    def bst_validator(self, root) -> bool:
+        self.inorder(root)
+        return self.is_valid
+```
+
+```java,editable
 class Solution {
-public:
+    private boolean isValid = true;
+    private TreeNode prevNode = null;
 
-    // Variable to keep track of the validity of the BST
-    bool isValid = true;
-
-    // Reference to keep track of the previous node
-    TreeNode *prevNode = nullptr;
-
-    void inorder(TreeNode *root) {
-        if (!root || !isValid) {
-            return;
-        }
-
-        // Traverse left subtree
-        inorder(root->left);
-
-        // Current node must be greater than the prevNodeious one in
-        // inorder
-        if (prevNode && root->val <= prevNode->val) {
+    private void inorder(TreeNode root) {
+        if (root == null || !isValid) return;
+        inorder(root.left);
+        if (prevNode != null && root.val <= prevNode.val) {
             isValid = false;
             return;
         }
-
-        // Update prevNodeious node
         prevNode = root;
+        inorder(root.right);
+    }
 
-        // Traverse right subtree
+    public boolean bstValidator(TreeNode root) {
+        inorder(root);
+        return isValid;
+    }
+}
+```
+
+```c,editable
+#include <stdbool.h>
+
+static bool isValid;
+static struct TreeNode *prevNode;
+
+static void inorder(struct TreeNode *root) {
+    if (root == NULL || !isValid) return;
+    inorder(root->left);
+    if (prevNode != NULL && root->val <= prevNode->val) {
+        isValid = false;
+        return;
+    }
+    prevNode = root;
+    inorder(root->right);
+}
+
+bool bstValidator(struct TreeNode *root) {
+    isValid  = true;
+    prevNode = NULL;
+    inorder(root);
+    return isValid;
+}
+```
+
+```cpp,editable
+class Solution {
+public:
+    bool isValid = true;
+    TreeNode *prevNode = nullptr;
+
+    void inorder(TreeNode *root) {
+        if (!root || !isValid) return;
+        inorder(root->left);
+        if (prevNode && root->val <= prevNode->val) { isValid = false; return; }
+        prevNode = root;
         inorder(root->right);
     }
 
     bool bstValidator(TreeNode *root) {
-
-        // Perform in-order traversal
         inorder(root);
-
-        // Return the validity of the BST
         return isValid;
     }
 };
 ```
+
+```scala,editable
+class Solution {
+  private var isValid: Boolean = true
+  private var prevNode: TreeNode = null
+
+  private def inorder(root: TreeNode): Unit = {
+    if (root == null || !isValid) return
+    inorder(root.left)
+    if (prevNode != null && root.value <= prevNode.value) {
+      isValid = false
+      return
+    }
+    prevNode = root
+    inorder(root.right)
+  }
+
+  def bstValidator(root: TreeNode): Boolean = {
+    inorder(root)
+    isValid
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+  constructor() {
+    this.isValid = true;
+    this.prevNode = null;
+  }
+
+  inorder(root) {
+    if (root === null || !this.isValid) return;
+    this.inorder(root.left);
+    if (this.prevNode !== null && root.val <= this.prevNode.val) {
+      this.isValid = false;
+      return;
+    }
+    this.prevNode = root;
+    this.inorder(root.right);
+  }
+
+  bstValidator(root) {
+    this.inorder(root);
+    return this.isValid;
+  }
+}
+```
+
+```typescript,editable
+class Solution {
+  isValid = true;
+  prevNode: TreeNode | null = null;
+
+  inorder(root: TreeNode | null): void {
+    if (root === null || !this.isValid) return;
+    this.inorder(root.left);
+    if (this.prevNode !== null && root.val <= this.prevNode.val) {
+      this.isValid = false;
+      return;
+    }
+    this.prevNode = root;
+    this.inorder(root.right);
+  }
+
+  bstValidator(root: TreeNode | null): boolean {
+    this.inorder(root);
+    return this.isValid;
+  }
+}
+```
+
+```go,editable
+type bstValidatorState struct {
+    isValid  bool
+    prevNode *TreeNode
+}
+
+func (s *bstValidatorState) inorder(root *TreeNode) {
+    if root == nil || !s.isValid { return }
+    s.inorder(root.Left)
+    if s.prevNode != nil && root.Val <= s.prevNode.Val {
+        s.isValid = false
+        return
+    }
+    s.prevNode = root
+    s.inorder(root.Right)
+}
+
+func bstValidator(root *TreeNode) bool {
+    s := &bstValidatorState{isValid: true, prevNode: nil}
+    s.inorder(root)
+    return s.isValid
+}
+```
+
+```kotlin,editable
+class Solution {
+    private var isValid = true
+    private var prevNode: TreeNode? = null
+
+    private fun inorder(root: TreeNode?) {
+        if (root == null || !isValid) return
+        inorder(root.left)
+        if (prevNode != null && root.`val` <= prevNode!!.`val`) {
+            isValid = false
+            return
+        }
+        prevNode = root
+        inorder(root.right)
+    }
+
+    fun bstValidator(root: TreeNode?): Boolean {
+        inorder(root)
+        return isValid
+    }
+}
+```
+
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    pub fn bst_validator(root: Tree) -> bool {
+        let mut prev: Option<i32> = None;
+        Self::inorder(&root, &mut prev)
+    }
+
+    fn inorder(node: &Tree, prev: &mut Option<i32>) -> bool {
+        if let Some(n) = node {
+            let n = n.borrow();
+            if !Self::inorder(&n.left, prev) { return false; }
+            if let Some(pv) = *prev {
+                if n.val <= pv { return false; }                                // monotonicity
+            }
+            *prev = Some(n.val);
+            return Self::inorder(&n.right, prev);
+        }
+        true
+    }
+}
+```
+
+</div>
 
 ***
 
@@ -814,170 +890,582 @@ public:
 
 ## Problem Statement
 
-Given the **root** binary search tree, write a function to return a sorted array made up of the values of the given binary tree.
+Given the **root** of a binary search tree, return a sorted array containing the values of every node.
 
 ### Example 1
 
-> -   **Input:** root = \[4, 2, 5, 1, 3, null, 6\]
-> -   **Output:** \[1, 2, 3, 4, 5, 6\]
-> -   **Explanation:** The constructed array is shown in the diagram above.
+> - **Input:** `root = [4, 2, 5, 1, 3, null, 6]`
+> - **Output:** `[1, 2, 3, 4, 5, 6]`
 
 ### Example 2
 
-> -   **Input:** root = \[9, 5, 10, 4, null, null, 11\]
-> -   **Output:** \[4, 5, 9, 10, 11\]
-> -   **Explanation:** The constructed array is shown in the diagram above.
+> - **Input:** `root = [9, 5, 10, 4, null, null, 11]`
+> - **Output:** `[4, 5, 9, 10, 11]`
 
-## Solution
+## The Strategy
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+This is the canonical use of the pattern: **f** = "append `node.val` to the result list", **g** = identity. The in-order order *is* the sorted order, so emission == sorted output.
 
-using namespace std;
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+class Solution:
+    def inorder(self, root, result):
+        if root is None:
+            return
+        self.inorder(root.left, result)
+        result.append(root.val)            # f: emit; g: list append (associative, order-preserving)
+        self.inorder(root.right, result)
+
+    def bst_to_sorted_array(self, root):
+        result = []
+        self.inorder(root, result)
+        return result
+```
+
+```java,editable
+import java.util.*;
 
 class Solution {
+    private void inorder(TreeNode root, List<Integer> result) {
+        if (root == null) return;
+        inorder(root.left, result);
+        result.add(root.val);
+        inorder(root.right, result);
+    }
+
+    public List<Integer> bstToSortedArray(TreeNode root) {
+        List<Integer> result = new ArrayList<>();
+        inorder(root, result);
+        return result;
+    }
+}
+```
+
+```c,editable
+static void inorder(struct TreeNode *root, int *result, int *idx) {
+    if (root == NULL) return;
+    inorder(root->left, result, idx);
+    result[(*idx)++] = root->val;
+    inorder(root->right, result, idx);
+}
+
+int *bstToSortedArray(struct TreeNode *root, int *out_size) {
+    int *result = malloc(sizeof(int) * 10000);                              // assume bounded
+    int idx = 0;
+    inorder(root, result, &idx);
+    *out_size = idx;
+    return result;
+}
+```
+
+```cpp,editable
+class Solution {
 public:
-    void inorder(TreeNode *root, vector<int> &result) {
-
-        // Base case: If the node is nullptr, return
-        if (root == nullptr) {
-            return;
-        }
-
-        // Recursively traverse the left subtree
+    void inorder(TreeNode *root, std::vector<int> &result) {
+        if (!root) return;
         inorder(root->left, result);
-
-        // Visit the current node and add its value to the result vector
         result.push_back(root->val);
-
-        // Recursively traverse the right subtree
         inorder(root->right, result);
     }
 
-    vector<int> bstToSortedArray(TreeNode *root) {
-        vector<int> result;
-
-        // Call the helper function to perform inorder traversal
+    std::vector<int> bstToSortedArray(TreeNode *root) {
+        std::vector<int> result;
         inorder(root, result);
-
-        // Return the result vector containing inorder traversal elements
         return result;
     }
 };
 ```
 
+```scala,editable
+import scala.collection.mutable
+
+object Solution {
+  private def inorder(root: TreeNode, result: mutable.ArrayBuffer[Int]): Unit = {
+    if (root == null) return
+    inorder(root.left, result)
+    result.append(root.value)
+    inorder(root.right, result)
+  }
+
+  def bstToSortedArray(root: TreeNode): List[Int] = {
+    val buf = mutable.ArrayBuffer[Int]()
+    inorder(root, buf)
+    buf.toList
+  }
+}
+```
+
+```javascript,editable
+function inorderCollect(root, result) {
+  if (root === null) return;
+  inorderCollect(root.left, result);
+  result.push(root.val);
+  inorderCollect(root.right, result);
+}
+
+function bstToSortedArray(root) {
+  const result = [];
+  inorderCollect(root, result);
+  return result;
+}
+```
+
+```typescript,editable
+function inorderCollect(root: TreeNode | null, result: number[]): void {
+  if (root === null) return;
+  inorderCollect(root.left, result);
+  result.push(root.val);
+  inorderCollect(root.right, result);
+}
+
+function bstToSortedArray(root: TreeNode | null): number[] {
+  const result: number[] = [];
+  inorderCollect(root, result);
+  return result;
+}
+```
+
+```go,editable
+func inorderCollect(root *TreeNode, result *[]int) {
+    if root == nil { return }
+    inorderCollect(root.Left, result)
+    *result = append(*result, root.Val)
+    inorderCollect(root.Right, result)
+}
+
+func bstToSortedArray(root *TreeNode) []int {
+    result := []int{}
+    inorderCollect(root, &result)
+    return result
+}
+```
+
+```kotlin,editable
+class Solution {
+    private fun inorder(root: TreeNode?, result: MutableList<Int>) {
+        if (root == null) return
+        inorder(root.left, result)
+        result.add(root.`val`)
+        inorder(root.right, result)
+    }
+
+    fun bstToSortedArray(root: TreeNode?): List<Int> {
+        val result = mutableListOf<Int>()
+        inorder(root, result)
+        return result
+    }
+}
+```
+
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    pub fn bst_to_sorted_array(root: Tree) -> Vec<i32> {
+        let mut out = Vec::new();
+        Self::inorder(&root, &mut out);
+        out
+    }
+
+    fn inorder(node: &Tree, out: &mut Vec<i32>) {
+        if let Some(n) = node {
+            let n = n.borrow();
+            Self::inorder(&n.left, out);
+            out.push(n.val);
+            Self::inorder(&n.right, out);
+        }
+    }
+}
+```
+
+</div>
+
 ***
 
 # BST to DLL
 
-***
-
-# BST to sorted DLL
-
 ## Problem Statement
 
-Given the **root** binary search tree, write a function to convert it in place to a sorted doubly linked list and return the head of this linked list.
+Given the **root** of a binary search tree, convert it **in place** into a sorted doubly-linked list. The DLL should reuse the BST's nodes — `left` becomes `prev`, `right` becomes `next` — and be ordered by ascending value. Return the **head** of the DLL.
 
 ### Example 1
 
-> -   **Input:** root = \[4, 2, 5, 1, 3, null, 6\]
-> -   **Output:** \[1, 2, 3, 4, 5, 6\]
-> -   **Explanation:** The converted doubly linked list is shown in the diagram above.
+> - **Input:** `root = [4, 2, 5, 1, 3, null, 6]`
+> - **Output:** `[1, 2, 3, 4, 5, 6]` (as a DLL)
 
 ### Example 2
 
-> -   **Input:** root = \[9, 5, 10, 4, null, null, 11\]
-> -   **Output:** \[4, 5, 9, 10, 11\]
-> -   **Explanation:** The converted doubly linked list is shown in the diagram above.
+> - **Input:** `root = [9, 5, 10, 4, null, null, 11]`
+> - **Output:** `[4, 5, 9, 10, 11]` (as a DLL)
 
-## Solution
+## The Strategy
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+The in-order walk visits nodes in ascending order, which is exactly the order of a sorted DLL. So during the walk we simply *thread* each node onto the back of a growing list:
 
-using namespace std;
+- Carry two pointers in the enclosing scope: `head` (the first node ever processed) and `tail` (the most recently processed node).
+- For each visited node:
+  - If `tail` is `null`, this is the first node — set `head = node`, `node.left = null`.
+  - Else link `tail.right = node` and `node.left = tail`.
+  - Set `tail = node`.
+- After the walk, set `tail.right = null` to terminate the list.
 
+The BST's `left`/`right` pointers are *reused* as the DLL's `prev`/`next` — no extra allocation.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["1"] --> B["2"]
+    B --> C["3"]
+    C --> D["4"]
+    D --> E["5"]
+    E --> F["6"]
+    F --> N["null"]
+    A --> P["null"]
+    B -.- A
+    C -.- B
+    D -.- C
+    E -.- D
+    F -.- E
+```
+
+<p align="center"><strong>The result of running the in-order walk over <code>[4, 2, 5, 1, 3, null, 6]</code>: <code>1 ↔ 2 ↔ 3 ↔ 4 ↔ 5 ↔ 6</code>. The original BST nodes have been re-wired in place.</strong></p>
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+class Solution:
+    def __init__(self):
+        # head = first node visited; tail = most recent node visited.
+        self.head = None
+        self.tail = None
+
+    def inorder(self, root):
+        if root is None:
+            return
+        self.inorder(root.left)
+        # Thread the current node onto the end of the list.
+        if self.tail is not None:
+            self.tail.right = root      # next pointer of the previous tail
+            root.left = self.tail       # prev pointer of the new tail
+        else:
+            self.head = root            # very first node — record as head
+            root.left = None
+        self.tail = root
+        self.inorder(root.right)
+
+    def bst_to_sorted_dll(self, root):
+        if root is None:
+            return None
+        self.inorder(root)
+        # Terminate the list cleanly.
+        if self.tail is not None:
+            self.tail.right = None
+        return self.head
+```
+
+```java,editable
+class Solution {
+    private TreeNode head = null, tail = null;
+
+    private void inorder(TreeNode root) {
+        if (root == null) return;
+        inorder(root.left);
+        if (tail != null) {
+            tail.right = root;
+            root.left = tail;
+        } else {
+            head = root;
+            root.left = null;
+        }
+        tail = root;
+        inorder(root.right);
+    }
+
+    public TreeNode bstToSortedDll(TreeNode root) {
+        if (root == null) return null;
+        inorder(root);
+        if (tail != null) tail.right = null;
+        return head;
+    }
+}
+```
+
+```c,editable
+static struct TreeNode *head, *tail;
+
+static void inorder(struct TreeNode *root) {
+    if (root == NULL) return;
+    inorder(root->left);
+    if (tail != NULL) {
+        tail->right = root;
+        root->left  = tail;
+    } else {
+        head = root;
+        root->left = NULL;
+    }
+    tail = root;
+    inorder(root->right);
+}
+
+struct TreeNode *bstToSortedDll(struct TreeNode *root) {
+    if (root == NULL) return NULL;
+    head = NULL; tail = NULL;
+    inorder(root);
+    if (tail != NULL) tail->right = NULL;
+    return head;
+}
+```
+
+```cpp,editable
 class Solution {
 public:
-
-    // Pointer to keep track of the head of the doubly linked list
-    TreeNode *head = nullptr;
-
-    // Pointer to the keep track of the tail of the doubly linked list
-    TreeNode *tail = nullptr;
+    TreeNode *head = nullptr, *tail = nullptr;
 
     void inorder(TreeNode *root) {
-
-        // Base case: If the node is nullptr, return
-        if (root == nullptr) {
-            return;
-        }
-
-        // Recursively traverse the left subtree
+        if (!root) return;
         inorder(root->left);
-
-        // If there is a tail, link it with the current root
         if (tail) {
-
-            // Link the right (next) pointer of the tail to the current
-            // root
             tail->right = root;
-
-            // Link the left (previous) pointer of the current root to
-            // the tail
-            root->left = tail;
-        }
-
-        // If there is no tail, this is the first node being processed
-        else {
-
-            // Set the head to the current root
+            root->left  = tail;
+        } else {
             head = root;
-
-            // Set the left (previous) pointer of the head to nullptr
             root->left = nullptr;
         }
-
-        // Update the tail to the current root
         tail = root;
-
-        // Recursively traverse the right subtree
         inorder(root->right);
     }
 
     TreeNode *bstToSortedDll(TreeNode *root) {
-
-        // If the tree is empty, return nullptr
-        if (root == nullptr) {
-            return nullptr;
-        }
-
-        // Call the helper function to perform inorder traversal
+        if (!root) return nullptr;
         inorder(root);
-
-        // Ensure the right (next) pointer of the tail is null
-        tail->right = nullptr;
-
-        // Return the head of the doubly linked list
+        if (tail) tail->right = nullptr;
         return head;
     }
 };
 ```
+
+```scala,editable
+class Solution {
+  private var head: TreeNode = null
+  private var tail: TreeNode = null
+
+  private def inorder(root: TreeNode): Unit = {
+    if (root == null) return
+    inorder(root.left)
+    if (tail != null) {
+      tail.right = root
+      root.left  = tail
+    } else {
+      head = root
+      root.left = null
+    }
+    tail = root
+    inorder(root.right)
+  }
+
+  def bstToSortedDll(root: TreeNode): TreeNode = {
+    if (root == null) return null
+    inorder(root)
+    if (tail != null) tail.right = null
+    head
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+  constructor() {
+    this.head = null;
+    this.tail = null;
+  }
+
+  inorder(root) {
+    if (root === null) return;
+    this.inorder(root.left);
+    if (this.tail !== null) {
+      this.tail.right = root;
+      root.left       = this.tail;
+    } else {
+      this.head = root;
+      root.left = null;
+    }
+    this.tail = root;
+    this.inorder(root.right);
+  }
+
+  bstToSortedDll(root) {
+    if (root === null) return null;
+    this.inorder(root);
+    if (this.tail !== null) this.tail.right = null;
+    return this.head;
+  }
+}
+```
+
+```typescript,editable
+class Solution {
+  head: TreeNode | null = null;
+  tail: TreeNode | null = null;
+
+  inorder(root: TreeNode | null): void {
+    if (root === null) return;
+    this.inorder(root.left);
+    if (this.tail !== null) {
+      this.tail.right = root;
+      root.left       = this.tail;
+    } else {
+      this.head = root;
+      root.left = null;
+    }
+    this.tail = root;
+    this.inorder(root.right);
+  }
+
+  bstToSortedDll(root: TreeNode | null): TreeNode | null {
+    if (root === null) return null;
+    this.inorder(root);
+    if (this.tail !== null) this.tail.right = null;
+    return this.head;
+  }
+}
+```
+
+```go,editable
+type dllState struct {
+    head, tail *TreeNode
+}
+
+func (s *dllState) inorder(root *TreeNode) {
+    if root == nil { return }
+    s.inorder(root.Left)
+    if s.tail != nil {
+        s.tail.Right = root
+        root.Left    = s.tail
+    } else {
+        s.head     = root
+        root.Left  = nil
+    }
+    s.tail = root
+    s.inorder(root.Right)
+}
+
+func bstToSortedDll(root *TreeNode) *TreeNode {
+    if root == nil { return nil }
+    s := &dllState{}
+    s.inorder(root)
+    if s.tail != nil { s.tail.Right = nil }
+    return s.head
+}
+```
+
+```kotlin,editable
+class Solution {
+    private var head: TreeNode? = null
+    private var tail: TreeNode? = null
+
+    private fun inorder(root: TreeNode?) {
+        if (root == null) return
+        inorder(root.left)
+        if (tail != null) {
+            tail!!.right = root
+            root.left    = tail
+        } else {
+            head      = root
+            root.left = null
+        }
+        tail = root
+        inorder(root.right)
+    }
+
+    fun bstToSortedDll(root: TreeNode?): TreeNode? {
+        if (root == null) return null
+        inorder(root)
+        if (tail != null) tail!!.right = null
+        return head
+    }
+}
+```
+
+```rust,editable
+// Rust's idiomatic "DLL of Rc<RefCell<TreeNode>>" requires careful borrow choreography.
+// The clearest approach mirrors the algorithm but keeps clones explicit.
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    pub fn bst_to_sorted_dll(root: Tree) -> Tree {
+        if root.is_none() { return None; }
+        let mut head: Tree = None;
+        let mut tail: Tree = None;
+        Self::inorder(&root, &mut head, &mut tail);
+        if let Some(t) = &tail { t.borrow_mut().right = None; }
+        head
+    }
+
+    fn inorder(node: &Tree, head: &mut Tree, tail: &mut Tree) {
+        if let Some(n) = node {
+            Self::inorder(&n.borrow().left.clone(), head, tail);
+            if let Some(t) = tail.clone() {
+                t.borrow_mut().right = Some(n.clone());                                       // tail.next = n
+                n.borrow_mut().left  = Some(t);                                               // n.prev   = tail
+            } else {
+                *head = Some(n.clone());                                                      // first node
+                n.borrow_mut().left = None;
+            }
+            *tail = Some(n.clone());
+            Self::inorder(&n.borrow().right.clone(), head, tail);
+        }
+    }
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — root = [4, 2, 5, 1, 3, null, 6]</strong></summary>
+
+```
+in-order visit sequence: 1, 2, 3, 4, 5, 6
+
+After visiting 1 │ head = 1, tail = 1, list = [1]
+After visiting 2 │ tail.right = 2; 2.left = tail; tail = 2; list = [1 ↔ 2]
+After visiting 3 │ tail.right = 3; 3.left = tail; tail = 3; list = [1 ↔ 2 ↔ 3]
+After visiting 4 │ tail.right = 4; 4.left = tail; tail = 4; list = [1 ↔ 2 ↔ 3 ↔ 4]
+After visiting 5 │ tail.right = 5; 5.left = tail; tail = 5; list = [1 ↔ 2 ↔ 3 ↔ 4 ↔ 5]
+After visiting 6 │ tail.right = 6; 6.left = tail; tail = 6; list = [1 ↔ 2 ↔ 3 ↔ 4 ↔ 5 ↔ 6]
+Finalisation     │ tail.right = null
+Return head = 1 ✓
+```
+
+</details>
+
+***
+
+## Final Takeaway
+
+The Sorted Traversal pattern collapses an entire family of BST problems to *"do something to a sorted sequence"*. The algorithm is always the same: walk in-order, carry one or two pieces of state, fold each visit into the running answer. Validation, k-th smallest, ranges, gaps, conversions to other ordered structures — all of these are sorted-sequence problems hiding under tree dressing.
+
+Two patterns to keep:
+
+1. **"Carry the previous in-order node"** — the swiss-army idiom for any pairwise comparison along the sorted sequence. We used it in `lowest absolute variance` and `BST validator`. It's also the core of "is the BST nearly sorted?", "find any duplicates", "find swapped nodes" (recover-tree problems).
+2. **"In-place re-wire during the walk"** — the same in-order skeleton can mutate the structure as it visits, turning a BST into a DLL or rebalancing into a vine. This is the foundation of the **threaded-tree** and **Morris traversal** ideas, and a stepping-stone to in-place tree manipulations in compilers and editors.
+
+The next lesson mirrors this one with a *reverse* in-order traversal, opening up the descending-order analogues — k-th largest, sum of values greater than X, "max-greater BST" rewriting.

@@ -1,9 +1,19 @@
-# Recursive searching in binary search trees
+# 3. Recursive Searching in Binary Search Trees
+
+## The Hook
+
+Search a generic binary tree of a million nodes for one value, and you might be looking at *every* node — there's no rule telling you where the value lives, so you must check everywhere. A million comparisons. A million pointer follows. Linear scan, no shortcut.
+
+Search the *same* million values arranged as a balanced BST and you do roughly **twenty** comparisons. Twenty. The trick? At every step, the BST property tells you *exactly which half of the remaining tree to throw away*. Each comparison kills half the work. That's binary search — turned into a tree.
+
+This lesson uses recursion to make the idea click. Five problems, all variants of the same descent: **search** for an exact value, find the **minimum**, find the **maximum**, find the **lower bound** (≥ target), find the **upper bound** (> target). Each is the same one-decision-per-node walk; only the rule for "which side, and when do I stop" changes.
+
+---
 
 ## Table of Contents
 
 1. [Understanding recursive search](#understanding-recursive-search)
-2. [Implement recursive search](#understanding-recursive-search)
+2. [Recursive search](#recursive-search)
 3. [Understanding recursive minimum search](#understanding-recursive-minimum-search)
 4. [Recursively find minimum](#recursively-find-minimum)
 5. [Understanding recursive maximum search](#understanding-recursive-maximum-search)
@@ -17,272 +27,115 @@
 
 # Understanding recursive search
 
-Searching for a value in a binary search tree can be implemented by piggybacking on any of the binary tree traversal algorithms. However, if we observe the special property of a binary search tree (given below), we can quickly develop an exponentially faster algorithm. 
+You *could* search a BST by walking the entire tree like any binary tree — but that ignores the one rule that makes a BST special:
 
-> -   All nodes in a node's `left` subtree are `less in value` than the node's value.
-> -   All nodes in a node's `right` subtree are `greater in value` than the node's value.
+> - All nodes in a node's `left` subtree are **less in value** than the node's value.
+> - All nodes in a node's `right` subtree are **greater in value** than the node's value.
+
+That rule is a giant *sign post*. If you're at a node holding `50` and you want `73`, you don't even need to look at the left subtree — every value there is `< 50 < 73`, so the answer can't be on the left. Throw it away. **The rule turns a search into a guided descent.**
 
 ## Algorithm
 
-Let us look at a binary search tree with a value we want to search for to see how to use its unique property to speed up our simple traversal search algorithm. The search operation in a binary search tree can be implemented as a simple recursive algorithm that discards either the left or right subtree at every point until it finds the value to be searched or reaches the end of the tree.
+At each step:
 
-// Diagram: Recursive equation to search a value in a binary search tree
+- If the current node is empty, the value isn't in the tree.
+- If the current node holds the target, you're done.
+- If the target is less than the current node's value, the target — if it exists — must be in the left subtree.
+- If the target is greater than the current node's value, it must be in the right subtree.
 
-Let's look at an example to understand it better.
+That's the recursive equation. Pin it visually first.
 
-// Diagram: Searching for a value in a binary search tree
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["search(node, t)"] --> B{"node == null?"}
+    B -->|Yes| C["return null"]
+    B -->|No| D{"node.val == t?"}
+    D -->|Yes| E["return node"]
+    D -->|No| F{"t &lt; node.val?"}
+    F -->|Yes| G["search(node.left, t)"]
+    F -->|No| H["search(node.right, t)"]
+    style C fill:#fecaca,stroke:#ef4444
+    style E fill:#bbf7d0,stroke:#16a34a
+```
+
+<p align="center"><strong>The recursive equation for searching a BST: at every node, do one comparison and either stop or recurse into exactly one subtree.</strong></p>
+
+The crucial property is that we recurse into **only one** of the subtrees at every step — never both. A normal binary-tree search has to fall back to checking both sides, paying O(n). The BST rule turns that branching factor of 2 into a branching factor of *1*, so we walk a single root-to-leaf path.
+
+## A worked example
+
+Take the tree below and search for `40`.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    R((50))
+    A((30))
+    B((70))
+    C((20))
+    D((40))
+    E((60))
+    F((80))
+    R --> A
+    R --> B
+    A --> C
+    A --> D
+    B --> E
+    B --> F
+    style R fill:#fef9c3,stroke:#f59e0b
+    style A fill:#fef9c3,stroke:#f59e0b
+    style D fill:#bbf7d0,stroke:#16a34a
+    linkStyle 0 stroke:#f59e0b,stroke-width:3px
+    linkStyle 3 stroke:#f59e0b,stroke-width:3px
+```
+
+<p align="center"><strong>Searching for <code>40</code> in a BST. Step 1: at <code>50</code>, target <code>40 &lt; 50</code> → go left. Step 2: at <code>30</code>, target <code>40 &gt; 30</code> → go right. Step 3: at <code>40</code>, match — return.</strong></p>
 
 > **Algorithm**
 >
-> -   **Step 1:** If the `current` node is `null`, return it (base case).
-> -   **Step 2:** If the `current` node's value equals the `target`, return it.
-> -   **Step 3:** Else, if the `current` node's value exceeds the `target`, recursively call the search operation on the `left` subtree.
-> -   **Step 4:** Else, if the `current` node's value is less than the `target`, recursively call the search operation on the `right` subtree.
+> - **Step 1:** If the `current` node is `null`, return it (base case).
+> - **Step 2:** If the `current` node's value equals the `target`, return it.
+> - **Step 3:** Else, if the `current` node's value exceeds the `target`, recursively call the search operation on the `left` subtree.
+> - **Step 4:** Else, if the `current` node's value is less than the `target`, recursively call the search operation on the `right` subtree.
 
-## Implementation
+## What happens if the node is *not* found?
 
-We implement the recursive equation using a recursive function to search for a value in a binary search tree.
+The recursion keeps descending — left, right, left, right, guided by the comparisons — until it walks off a leaf into a `null` child. That's the base case: return `null`. The path it followed was the *attempted slot* for the target. The last leaf node touched is either the largest value smaller than the target, or the smallest value larger than the target. We'll exploit this fact in the lower-bound and upper-bound problems later.
 
-C++
+## Complexity
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+Search descends one root-to-leaf path. The path length is bounded by the **height** of the tree. So:
 
-// Diagram: using namespace std;
+- **Time:** O(h) — and h = O(log n) on a balanced tree, h = O(n) on a skewed one.
+- **Space:** O(h) for the recursion call stack.
 
-class Solution {
-public:
-    TreeNode *recursiveSearch(TreeNode *root, int target) {
+| Case | Time | Space |
+|---|---|---|
+| Best (balanced) | O(log n) | O(log n) |
+| Worst (skewed) | O(n) | O(n) |
 
-        // If the root is nullptr, the tree is empty, and we can't find
-        // the target
-        if (root == nullptr) {
-            return nullptr;
-        }
-
-        // If the root's value matches the target we are looking for,
-        // we found the node
-        if (root->val == target) {
-            return root;
-        }
-
-        // If the target is less than the current root's value, search in
-        // the left subtree
-        else if (target < root->val) {
-            return recursiveSearch(root->left, target);
-        }
-
-        // If the target is greater than the current root's value, search
-        // in the right subtree
-        else {
-            return recursiveSearch(root->right, target);
-        }
-};
-```
-
-Java
-
-```java
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-class Solution {
-    public TreeNode recursiveSearch(TreeNode root, int target) {
-
-        // If the root is null, the tree is empty, and we can't find
-        // the target
-        if (root == null) {
-            return null;
-        }
-
-        // If the root's value matches the target we are looking for,
-        // we found the node
-        if (root.val == target) {
-            return root;
-        }
-
-        // If the target is less than the current root's value, search in
-        // the left subtree
-        else if (target < root.val) {
-            return recursiveSearch(root.left, target);
-        }
-
-        // If the target is greater than the current root's value, search
-        // in the right subtree
-        else {
-            return recursiveSearch(root.right, target);
-        }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-export class Solution {
-    recursiveSearch(
-        root: TreeNode | null,
-        target: number
-    ): TreeNode | null {
-
-        // If the root is null, the tree is empty, and we can't find
-        // the target
-        if (!root) {
-            return null;
-        }
-
-        // If the root's value matches the target we are looking for,
-        // we found the node
-        if (root.val === target) {
-            return root;
-        }
-
-        // If the target is less than the current root's value, search in
-        // the left subtree
-        if (target < root.val) {
-            return this.recursiveSearch(root.left, target);
-        }
-
-        // If the target is greater than the current root's value, search
-        // in the right subtree
-        return this.recursiveSearch(root.right, target);
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-    recursiveSearch(root, target) {
-
-        // If the root is null, the tree is empty, and we can't find
-        // the target
-        if (!root) {
-            return null;
-        }
-
-        // If the root's value matches the target we are looking for,
-        // we found the node
-        if (root.val === target) {
-            return root;
-        }
-
-        // If the target is less than the current root's value, search in
-        // the left subtree
-        if (target < root.val) {
-            return this.recursiveSearch(root.left, target);
-        }
-
-        // If the target is greater than the current root's value, search
-        // in the right subtree
-        return this.recursiveSearch(root.right, target);
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import Optional
-
-class Solution:
-    def recursive_search(
-        self, root: Optional[TreeNode], target: int
-    ) -> Optional[TreeNode]:
-
-        # If the root is null, the tree is empty, and we can't find
-        # the target
-        if root is None:
-            return None
-
-        # If the root's value matches the target we are looking for,
-        # we found the node
-        if root.val == target:
-            return root
-
-        # If the target is less than the current root's value, search in
-        # the left subtree
-        if target < root.val:
-            return self.recursive_search(root.left, target)
-
-        # If the target is greater than the current root's value, search
-        # in the right subtree
-        return self.recursive_search(root.right, target)
-```
-
-**What happens if the node is not found in the tree?**
-
-If the node is not found in the tree, the recursive function will keep on going until it reaches a leaf node, after which it will hit the base case of recursion where the root == `null` and recursion will stop and unwind.
-
-**What will be the last leaf node that we hit?**The last leaf node that the search algorithm hits will be either the node with the largest value, which is just smaller than the given value or the node with the smallest value, larger than the given value.
-
-## Complexity Analysis
-
-The algorithm we follow when searching for a value in a binary search tree only traverses the tree from top to bottom and, at every level, goes only in one direction, either left or right. And so, we process **only one root to leaf path** when searching for a value in a binary search tree. In the worst case, this root-to-leaf path could be the longest.
-
-// Diagram: Worst case time complexity
-
-We are not using any extra space apart from the recursion call stack, which will depend on the tree's height.
-
-> **Best Case** - The binary search tree is height-balanced
->
-> -   Space Complexity - **O(logN)**
-> -   Time Complexity - **O(logN)**
->
-> **Worst Case** - The binary search tree is skewed to the left or right
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
+Now do this on a million-node balanced BST: ~20 comparisons. On a million-node skew BST: a million comparisons. **Same algorithm. The shape of the tree is what decides whether you're getting binary-search performance or a linear scan in disguise.**
 
 ***
 
@@ -292,312 +145,250 @@ We are not using any extra space apart from the recursion call stack, which will
 
 Given the **root** of a binary search tree and a **target** value, write a function to return the node with the given value. If there is no such node return `null`.
 
-You must do this **recursively**.
+You must do this **recursively**.
 
 ### Example 1
 
-> -   **Input:** root = \[4, 2, 5, 1, 3, null, 6\], target = 3
-> -   **Output:** 3
-> -   **Explanation:** The given binary search tree has a node with the value 3.
+> - **Input:** `root = [4, 2, 5, 1, 3, null, 6]`, `target = 3`
+> - **Output:** `3`
+> - **Explanation:** The given binary search tree has a node with the value 3.
 
 ### Example 2
 
-> -   **Input:** root = \[5, 4, 10, null, null, 9, 11\], target = 20
-> -   **Output:** null
-> -   **Explanation:** The given binary search tree has no node with the value 20.
+> - **Input:** `root = [5, 4, 10, null, null, 9, 11]`, `target = 20`
+> - **Output:** `null`
+> - **Explanation:** The given binary search tree has no node with the value 20.
 
-## Solution
+## The Solution
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+<div class="lang-tabs">
 
-using namespace std;
+```python,editable
+class Solution:
+    def recursive_search(self, root, target):
+        # Base case 1 — empty subtree means the target isn't in the tree.
+        if root is None:
+            return None
+        # Base case 2 — match: return the node directly.
+        if root.val == target:
+            return root
+        # BST rule: target < node → answer (if any) is in the left subtree.
+        if target < root.val:
+            return self.recursive_search(root.left, target)
+        # Otherwise target > node → answer (if any) is in the right subtree.
+        return self.recursive_search(root.right, target)
+```
 
+```java,editable
+class Solution {
+    public TreeNode recursiveSearch(TreeNode root, int target) {
+        if (root == null) return null;                               // empty subtree
+        if (root.val == target) return root;                         // match
+        if (target < root.val)                                       // BST rule:
+            return recursiveSearch(root.left, target);               //   left half
+        return recursiveSearch(root.right, target);                  //   right half
+    }
+}
+```
+
+```c,editable
+struct TreeNode *recursiveSearch(struct TreeNode *root, int target) {
+    if (root == NULL) return NULL;                                   // empty subtree
+    if (root->val == target) return root;                            // match
+    if (target < root->val)                                          // BST rule
+        return recursiveSearch(root->left, target);                  //   go left
+    return recursiveSearch(root->right, target);                     //   go right
+}
+```
+
+```cpp,editable
 class Solution {
 public:
     TreeNode *recursiveSearch(TreeNode *root, int target) {
-
-        // If the root is nullptr, the tree is empty, and we can't find
-        // the target
-        if (root == nullptr) {
-            return nullptr;
-        }
-
-        // If the root's value matches the target we are looking for,
-        // we found the node
-        if (root->val == target) {
-            return root;
-        }
-
-        // If the target is less than the current root's value, search in
-        // the left subtree
-        else if (target < root->val) {
-            return recursiveSearch(root->left, target);
-        }
-
-        // If the target is greater than the current root's value, search
-        // in the right subtree
-        else {
-            return recursiveSearch(root->right, target);
-        }
+        if (root == nullptr) return nullptr;                         // empty subtree
+        if (root->val == target) return root;                        // match
+        if (target < root->val)                                      // BST rule
+            return recursiveSearch(root->left, target);              //   left
+        return recursiveSearch(root->right, target);                 //   right
     }
 };
 ```
+
+```scala,editable
+object Solution {
+  def recursiveSearch(root: TreeNode, target: Int): TreeNode = {
+    if (root == null) null                                            // empty subtree
+    else if (root.value == target) root                               // match
+    else if (target < root.value) recursiveSearch(root.left,  target) // BST rule: left
+    else                          recursiveSearch(root.right, target) //          right
+  }
+}
+```
+
+```javascript,editable
+function recursiveSearch(root, target) {
+  if (root === null) return null;                                     // empty subtree
+  if (root.val === target) return root;                               // match
+  if (target < root.val) return recursiveSearch(root.left,  target);  // BST rule: left
+  return                       recursiveSearch(root.right, target);   //          right
+}
+```
+
+```typescript,editable
+function recursiveSearch(root: TreeNode | null, target: number): TreeNode | null {
+  if (root === null) return null;                                     // empty subtree
+  if (root.val === target) return root;                               // match
+  if (target < root.val) return recursiveSearch(root.left,  target);  // BST rule: left
+  return                       recursiveSearch(root.right, target);   //          right
+}
+```
+
+```go,editable
+func recursiveSearch(root *TreeNode, target int) *TreeNode {
+    if root == nil {                                                   // empty subtree
+        return nil
+    }
+    if root.Val == target {                                            // match
+        return root
+    }
+    if target < root.Val {                                             // BST rule
+        return recursiveSearch(root.Left, target)                      //   go left
+    }
+    return recursiveSearch(root.Right, target)                         //   go right
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun recursiveSearch(root: TreeNode?, target: Int): TreeNode? {
+        if (root == null) return null                                   // empty subtree
+        if (root.`val` == target) return root                           // match
+        return if (target < root.`val`)                                 // BST rule
+            recursiveSearch(root.left,  target)                         //   left
+        else
+            recursiveSearch(root.right, target)                         //   right
+    }
+}
+```
+
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    pub fn recursive_search(root: Tree, target: i32) -> Tree {
+        match &root {
+            None => None,                                                // empty subtree
+            Some(node) => {
+                let n = node.borrow();
+                if n.val == target { root.clone() }                      // match
+                else if target < n.val {                                 // BST rule
+                    Self::recursive_search(n.left.clone(), target)       //   left
+                } else {
+                    Self::recursive_search(n.right.clone(), target)      //   right
+                }
+            }
+        }
+    }
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — root = [50, 30, 70, 20, 40, 60, 80], target = 40</strong></summary>
+
+```
+Step 1 │ at 50 │ 40 < 50 → recurse on left subtree
+Step 2 │ at 30 │ 40 > 30 → recurse on right subtree
+Step 3 │ at 40 │ 40 == 40 → MATCH → return node 40
+Result: node 40 ✓ (3 comparisons in a 7-node tree)
+```
+
+</details>
 
 ***
 
 # Understanding recursive minimum search
 
-Finding the minimum value in a binary search tree recursively is quite simple. We must traverse to the first node of the tree's inorder sequence. 
+The minimum value in a BST is the value you reach by walking *as far left as you can*. Why? Because everything to the left of any node is smaller. Cross enough of those "left" decisions and you converge on the smallest value the tree contains — the **leftmost** node.
 
 ## Algorithm
 
-Let us look at the recursive algorithm to quickly find the minimum value in a binary search tree. A simple recursive equation can summarise the search process we followed above.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["min(node)"] --> B{"node == null?"}
+    B -->|Yes| C["return null"]
+    B -->|No| D{"node.left == null?"}
+    D -->|Yes| E["return node"]
+    D -->|No| F["min(node.left)"]
+    style C fill:#fecaca,stroke:#ef4444
+    style E fill:#bbf7d0,stroke:#16a34a
+```
 
-// Diagram: Recursive equation to search the minimum value in a binary search tree
+<p align="center"><strong>Recursive equation for the minimum: keep stepping into the left child; the moment there is no left child, you've found the smallest value.</strong></p>
 
-Let's look at an example to understand it better.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    R((50))
+    A((30))
+    B((70))
+    C((20))
+    D((40))
+    E((10))
+    R --> A
+    R --> B
+    A --> C
+    A --> D
+    C --> E
+    style E fill:#bbf7d0,stroke:#16a34a
+    linkStyle 0 stroke:#f59e0b,stroke-width:3px
+    linkStyle 2 stroke:#f59e0b,stroke-width:3px
+    linkStyle 4 stroke:#f59e0b,stroke-width:3px
+```
 
-// Diagram: Searching for the minimum value in a binary search tree
-
-The recursive equation above can be summarised using the following algorithm.
+<p align="center"><strong>Walking left repeatedly: <code>50 → 30 → 20 → 10</code>. <code>10</code> has no left child, so it is the minimum.</strong></p>
 
 > **Algorithm**
 >
-> -   **Step 1:** If the `current` node is `null`, return it (base case).
-> -   **Step 2:** If the `current` node does not have a `left` subtree return the node.
-> -   **Step 3:** Else, if the `current` node has a `left` subtree, recursively call the search operation on the `left` subtree.
+> - **Step 1:** If the `current` node is `null`, return it (base case).
+> - **Step 2:** If the `current` node does not have a `left` subtree, return the node.
+> - **Step 3:** Else, recursively call the search operation on the `left` subtree.
 
-## Implementation
+## Complexity
 
-We implement the recursive equation using a recursive function to get the minimum value in the tree.
+Like search, this descends one root-to-leaf path — specifically the *leftmost* path. Path length is bounded by the height.
 
-C++
+| Case | Time | Space |
+|---|---|---|
+| Best (right-skew, left child of root absent) | O(1) | O(1) |
+| Average (balanced) | O(log n) | O(log n) |
+| Worst (left-skew) | O(n) | O(n) |
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    TreeNode *recursivelyFindMinimum(TreeNode *root) {
-
-        // Base case: If the root is null (empty tree or leaf node)
-        // return nullptr
-        if (root == nullptr) {
-            return nullptr;
-        }
-
-        // If the left child of the current node is null, then this node
-        // is the minimum value node. Return the current node, which is
-        // the minimum value node
-        if (root->left == nullptr) {
-            return root;
-        }
-
-        // If the left child is not null, recursively traverse to the
-        // left subtree as the minimum value node will be in the left
-        // subtree
-        else {
-            return recursivelyFindMinimum(root->left);
-        }
-};
-```
-
-Java
-
-```java
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-class Solution {
-    public TreeNode recursivelyFindMinimum(TreeNode root) {
-
-        // Base case: If the root is null (empty tree or leaf node)
-        // return null
-        if (root == null) {
-            return null;
-        }
-
-        // If the left child of the current node is null, then this node
-        // is the minimum value node. Return the current node, which is
-        // the minimum value node
-        if (root.left == null) {
-            return root;
-        }
-
-        // If the left child is not null, recursively traverse to the
-        // left subtree as the minimum value node will be in the left
-        // subtree
-        else {
-            return recursivelyFindMinimum(root.left);
-        }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-export class Solution {
-    recursivelyFindMinimum(root: TreeNode | null): TreeNode | null {
-
-        // Base case: If the root is null (empty tree or leaf node)
-        // return null
-        if (!root) {
-            return null;
-        }
-
-        // If the left child of the current node is null, then this node
-        // is the minimum value node. Return the current node, which is
-        // the minimum value node
-        if (!root.left) {
-            return root;
-        }
-
-        // If the left child is not null, recursively traverse to the
-        // left subtree as the minimum value node will be in the left
-        // subtree
-        return this.recursivelyFindMinimum(root.left);
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-    recursivelyFindMinimum(root) {
-
-        // Base case: If the root is null (empty tree or leaf node)
-        // return null
-        if (!root) {
-            return null;
-        }
-
-        // If the left child of the current node is null, then this node
-        // is the minimum value node. Return the current node, which is
-        // the minimum value node
-        if (!root.left) {
-            return root;
-        }
-
-        // If the left child is not null, recursively traverse to the
-        // left subtree as the minimum value node will be in the left
-        // subtree
-        return this.recursivelyFindMinimum(root.left);
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import Optional, List, Any
-
-class Solution:
-    def recursively_find_minimum(
-        self, root: Optional[TreeNode]
-    ) -> Optional[TreeNode]:
-
-        # Base case: If the root is null (empty tree or leaf node)
-        # return None
-        if root is None:
-            return None
-
-        # If the left child of the current node is null, then this node
-        # is the minimum value node. Return the current node, which is
-        # the minimum value node
-        if root.left is None:
-            return root
-
-        # If the left child is not None, recursively traverse to the
-        # left subtree as the minimum value node will be in the left
-        # subtree
-        return self.recursively_find_minimum(root.left)
-```
-
-## Complexity Analysis
-
-The algorithm we follow moves continuously to the left, starting from the root node. So, we process only one root-to-leaf path when searching for the minimum value in a binary search tree. In the worst case, this path could be the longest**.**
-
-// Diagram: Worst case time complexity
-
-We are not using any extra space apart from the recursion call stack, which will depend on the tree's height.
-
-> **Best Case** - The binary search tree is skewed to the right
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
->
-> **Average Case** - The binary search tree is height-balanced
->
-> -   Space Complexity - **O(logN)**
-> -   Time Complexity - **O(logN)**
->
-> **Worst Case** - The binary search tree is skewed to the left.
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
+Recursion stack mirrors the path length.
 
 ***
 
@@ -607,308 +398,208 @@ We are not using any extra space apart from the recursion call stack, which will
 
 Given the **root** of a binary search tree, write a function to return the node with the minimum value in it.
 
-You must do this **recursively**. 
+You must do this **recursively**.
 
 ### Example 1
 
-> -   **Input:** root = \[4, 2, 5, 1, 3, null, 6\]
-> -   **Output:** 1
-> -   **Explanation:** The minimum value in the given binary search tree is 1.
+> - **Input:** `root = [4, 2, 5, 1, 3, null, 6]`
+> - **Output:** `1`
 
 ### Example 2
 
-> -   **Input:** root = \[5, 4, 10, null, null, 9, 11\]
-> -   **Output:** 4
-> -   **Explanation:** The minimum value in the given binary search tree is 4.
+> - **Input:** `root = [5, 4, 10, null, null, 9, 11]`
+> - **Output:** `4`
 
-## Solution
+## The Solution
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+<div class="lang-tabs">
 
-using namespace std;
+```python,editable
+class Solution:
+    def recursively_find_minimum(self, root):
+        # Base case: an empty tree has no minimum.
+        if root is None:
+            return None
+        # No left child means we've gone as far left as possible — this is the min.
+        if root.left is None:
+            return root
+        # Otherwise the minimum lives somewhere in the left subtree; recurse.
+        return self.recursively_find_minimum(root.left)
+```
 
+```java,editable
+class Solution {
+    public TreeNode recursivelyFindMinimum(TreeNode root) {
+        if (root == null)      return null;                          // empty tree
+        if (root.left == null) return root;                          // leftmost reached
+        return recursivelyFindMinimum(root.left);                    // keep going left
+    }
+}
+```
+
+```c,editable
+struct TreeNode *recursivelyFindMinimum(struct TreeNode *root) {
+    if (root == NULL)        return NULL;                            // empty tree
+    if (root->left == NULL)  return root;                            // leftmost reached
+    return recursivelyFindMinimum(root->left);                       // keep going left
+}
+```
+
+```cpp,editable
 class Solution {
 public:
     TreeNode *recursivelyFindMinimum(TreeNode *root) {
-
-        // Base case: If the root is null (empty tree or leaf node)
-        // return nullptr
-        if (root == nullptr) {
-            return nullptr;
-        }
-
-        // If the left child of the current node is null, then this node
-        // is the minimum value node. Return the current node, which is
-        // the minimum value node
-        if (root->left == nullptr) {
-            return root;
-        }
-
-        // If the left child is not null, recursively traverse to the
-        // left subtree as the minimum value node will be in the left
-        // subtree
-        else {
-            return recursivelyFindMinimum(root->left);
-        }
+        if (root == nullptr)        return nullptr;                  // empty tree
+        if (root->left == nullptr)  return root;                     // leftmost reached
+        return recursivelyFindMinimum(root->left);                   // keep going left
     }
 };
 ```
+
+```scala,editable
+object Solution {
+  def recursivelyFindMinimum(root: TreeNode): TreeNode = {
+    if (root == null)      null                                       // empty tree
+    else if (root.left == null) root                                  // leftmost reached
+    else recursivelyFindMinimum(root.left)                            // keep going left
+  }
+}
+```
+
+```javascript,editable
+function recursivelyFindMinimum(root) {
+  if (root === null)         return null;                             // empty tree
+  if (root.left === null)    return root;                             // leftmost reached
+  return recursivelyFindMinimum(root.left);                           // keep going left
+}
+```
+
+```typescript,editable
+function recursivelyFindMinimum(root: TreeNode | null): TreeNode | null {
+  if (root === null)        return null;                              // empty tree
+  if (root.left === null)   return root;                              // leftmost reached
+  return recursivelyFindMinimum(root.left);                           // keep going left
+}
+```
+
+```go,editable
+func recursivelyFindMinimum(root *TreeNode) *TreeNode {
+    if root == nil       { return nil  }                              // empty tree
+    if root.Left == nil  { return root }                              // leftmost reached
+    return recursivelyFindMinimum(root.Left)                          // keep going left
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun recursivelyFindMinimum(root: TreeNode?): TreeNode? {
+        if (root == null)      return null                              // empty tree
+        if (root.left == null) return root                              // leftmost reached
+        return recursivelyFindMinimum(root.left)                        // keep going left
+    }
+}
+```
+
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    pub fn recursively_find_minimum(root: Tree) -> Tree {
+        match &root {
+            None => None,                                                // empty tree
+            Some(node) => {
+                let n = node.borrow();
+                match &n.left {
+                    None    => root.clone(),                              // leftmost reached
+                    Some(_) => Self::recursively_find_minimum(n.left.clone()), // keep going
+                }
+            }
+        }
+    }
+}
+```
+
+</div>
 
 ***
 
 # Understanding recursive maximum search
 
-Finding the maximum value in a binary search tree recursively is similar to finding the minimum. We must traverse to the tree's first node's **RNL** sequence. 
+By symmetry: the **maximum** is the value you reach by walking *as far right as you can*. Everything to the right of any node is larger; chase the rightmost path and you converge on the largest value in the tree.
 
 ## Algorithm
 
-Let us look at the recursive algorithm to find the maximum value in a binary search tree quickly. A simple recursive equation can summarise the search process we followed above.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["max(node)"] --> B{"node == null?"}
+    B -->|Yes| C["return null"]
+    B -->|No| D{"node.right == null?"}
+    D -->|Yes| E["return node"]
+    D -->|No| F["max(node.right)"]
+    style C fill:#fecaca,stroke:#ef4444
+    style E fill:#bbf7d0,stroke:#16a34a
+```
 
-// Diagram: Recursive equation to search the maximum value in a binary search tree
+<p align="center"><strong>Recursive equation for the maximum: keep stepping into the right child; the moment there is no right child, you've found the largest value.</strong></p>
 
-Let's look at an example to understand it better.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    R((50))
+    A((30))
+    B((70))
+    C((60))
+    D((80))
+    E((90))
+    R --> A
+    R --> B
+    B --> C
+    B --> D
+    D --> E
+    style E fill:#bbf7d0,stroke:#16a34a
+    linkStyle 1 stroke:#f59e0b,stroke-width:3px
+    linkStyle 3 stroke:#f59e0b,stroke-width:3px
+    linkStyle 4 stroke:#f59e0b,stroke-width:3px
+```
 
-// Diagram: Searching for the maximum value in a binary search tree
-
-The recursive equation above can be summarised using the following algorithm.
+<p align="center"><strong>Walking right repeatedly: <code>50 → 70 → 80 → 90</code>. <code>90</code> has no right child, so it is the maximum.</strong></p>
 
 > **Algorithm**
 >
-> -   **Step 1:** If the `current` node is `null`, return it (base case).
-> -   **Step 2:** If the `current` node does not have a `right` subtree return the node.
-> -   **Step 3:** Else, if the `current` node has a `right` subtree, recursively call the search operation on the `right` subtree.
+> - **Step 1:** If the `current` node is `null`, return it (base case).
+> - **Step 2:** If the `current` node does not have a `right` subtree, return the node.
+> - **Step 3:** Else, recursively call the search operation on the `right` subtree.
 
-## Implementation
+## Complexity
 
-We implement the recursive equation using a recursive function to get the maximum value in the tree.
-
-C++
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    TreeNode *recursivelyFindMaximum(TreeNode *root) {
-
-        // Base case: If the root is null (empty tree or leaf node)
-        // return nullptr.
-        if (root == nullptr) {
-            return nullptr;
-        }
-
-        // If the right child of the current node is null, then this node
-        // is the maximum value node. Return the current node, which is
-        // the maximum value node.
-        if (root->right == nullptr) {
-            return root;
-        }
-
-        // If the right child is not null, recursively traverse to the
-        // right subtree as the maximum value node will be in the right
-        // subtree.
-        else {
-            return recursivelyFindMaximum(root->right);
-        }
-};
-```
-
-Java
-
-```java
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-class Solution {
-    public TreeNode recursivelyFindMaximum(TreeNode root) {
-
-        // Base case: If the root is null (empty tree or leaf node)
-        // return null.
-        if (root == null) {
-            return null;
-        }
-
-        // If the right child of the current node is null, then this node
-        // is the maximum value node. Return the current node, which is
-        // the maximum value node.
-        if (root.right == null) {
-            return root;
-        }
-
-        // If the right child is not null, recursively traverse to the
-        // right subtree as the maximum value node will be in the right
-        // subtree.
-        else {
-            return recursivelyFindMaximum(root.right);
-        }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-export class Solution {
-    recursivelyFindMaximum(root: TreeNode | null): TreeNode | null {
-
-        // Base case: If the root is null (empty tree or leaf node)
-        // return null.
-        if (!root) {
-            return null;
-        }
-
-        // If the right child of the current node is null, then this node
-        // is the maximum value node. Return the current node, which is
-        // the maximum value node.
-        if (!root.right) {
-            return root;
-        }
-
-        // If the right child is not null, recursively traverse to the
-        // right subtree as the maximum value node will be in the right
-        // subtree.
-        return this.recursivelyFindMaximum(root.right);
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-    recursivelyFindMaximum(root) {
-
-        // Base case: If the root is null (empty tree or leaf node)
-        // return null.
-        if (!root) {
-            return null;
-        }
-
-        // If the right child of the current node is null, then this node
-        // is the maximum value node. Return the current node, which is
-        // the maximum value node.
-        if (!root.right) {
-            return root;
-        }
-
-        // If the right child is not null, recursively traverse to the
-        // right subtree as the maximum value node will be in the right
-        // subtree.
-        return this.recursivelyFindMaximum(root.right);
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import Optional, List, Any
-
-class Solution:
-    def recursively_find_maximum(
-        self, root: Optional[TreeNode]
-    ) -> Optional[TreeNode]:
-
-        # Base case: If the root is null (empty tree or leaf node)
-        # return None.
-        if root is None:
-            return None
-
-        # If the right child of the current node is null, then this node
-        # is the maximum value node. Return the current node, which is
-        # the maximum value node.
-        if root.right is None:
-            return root
-
-        # If the right child is not None, recursively traverse to the
-        # right subtree as the maximum value node will be in the right
-        # subtree.
-        return self.recursively_find_maximum(root.right)
-```
-
-## Complexity Analysis
-
-The algorithm we follow moves continuously to the right, starting from the root node. So, we process only one root-to-leaf path when searching for the minimum value in a binary search tree. In the worst case, this path could be the longest**.**
-
-// Diagram: Worst case time complexity
-
-We are not using any extra space apart from the recursion call stack, which will depend on the tree's height.
-
-> **Best Case** - The binary search tree is skewed to the left
->
-> -   Space Complexity - **O(logN)**
-> -   Time Complexity - **O(logN)**
->
-> **Average Case** - The binary search tree is height-balanced
->
-> -   Space Complexity - **O(logN)**
-> -   Time Complexity - **O(logN)**
->
-> **Worst Case** - The binary search tree is skewed to the right
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
+| Case | Time | Space |
+|---|---|---|
+| Best (left-skew, right child of root absent) | O(1) | O(1) |
+| Average (balanced) | O(log n) | O(log n) |
+| Worst (right-skew) | O(n) | O(n) |
 
 ***
 
@@ -918,448 +609,252 @@ We are not using any extra space apart from the recursion call stack, which will
 
 Given the **root** of a binary search tree, write a function to return the maximum value in it.
 
-You must do this **recursively**.
+You must do this **recursively**.
 
 ### Example 1
 
-> -   **Input:** root = \[4, 2, 5, 1, 3, null, 6\]
-> -   **Output:** 6
-> -   **Explanation:** The maximum value in the given binary search tree is 6.
+> - **Input:** `root = [4, 2, 5, 1, 3, null, 6]`
+> - **Output:** `6`
 
 ### Example 2
 
-> -   **Input:** root = \[5, 4, 10, null, null, 9, 11\]
-> -   **Output:** 11
-> -   **Explanation:** The maximum value in the given binary search tree is 11.
+> - **Input:** `root = [5, 4, 10, null, null, 9, 11]`
+> - **Output:** `11`
 
-## Solution
+## The Solution
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+<div class="lang-tabs">
 
-using namespace std;
+```python,editable
+class Solution:
+    def recursively_find_maximum(self, root):
+        # Base case: empty tree has no maximum.
+        if root is None:
+            return None
+        # No right child means we've gone as far right as possible — this is the max.
+        if root.right is None:
+            return root
+        # Otherwise the maximum lives somewhere in the right subtree; recurse.
+        return self.recursively_find_maximum(root.right)
+```
 
+```java,editable
+class Solution {
+    public TreeNode recursivelyFindMaximum(TreeNode root) {
+        if (root == null)        return null;                          // empty tree
+        if (root.right == null)  return root;                          // rightmost reached
+        return recursivelyFindMaximum(root.right);                     // keep going right
+    }
+}
+```
+
+```c,editable
+struct TreeNode *recursivelyFindMaximum(struct TreeNode *root) {
+    if (root == NULL)         return NULL;                              // empty tree
+    if (root->right == NULL)  return root;                              // rightmost reached
+    return recursivelyFindMaximum(root->right);                         // keep going right
+}
+```
+
+```cpp,editable
 class Solution {
 public:
     TreeNode *recursivelyFindMaximum(TreeNode *root) {
-
-        // Base case: If the root is null (empty tree or leaf node)
-        // return nullptr.
-        if (root == nullptr) {
-            return nullptr;
-        }
-
-        // If the right child of the current node is null, then this node
-        // is the maximum value node. Return the current node, which is
-        // the maximum value node.
-        if (root->right == nullptr) {
-            return root;
-        }
-
-        // If the right child is not null, recursively traverse to the
-        // right subtree as the maximum value node will be in the right
-        // subtree.
-        else {
-            return recursivelyFindMaximum(root->right);
-        }
+        if (root == nullptr)         return nullptr;                    // empty tree
+        if (root->right == nullptr)  return root;                       // rightmost reached
+        return recursivelyFindMaximum(root->right);                     // keep going right
     }
 };
 ```
+
+```scala,editable
+object Solution {
+  def recursivelyFindMaximum(root: TreeNode): TreeNode = {
+    if (root == null)            null                                    // empty tree
+    else if (root.right == null) root                                    // rightmost reached
+    else recursivelyFindMaximum(root.right)                              // keep going right
+  }
+}
+```
+
+```javascript,editable
+function recursivelyFindMaximum(root) {
+  if (root === null)        return null;                                 // empty tree
+  if (root.right === null)  return root;                                 // rightmost reached
+  return recursivelyFindMaximum(root.right);                             // keep going right
+}
+```
+
+```typescript,editable
+function recursivelyFindMaximum(root: TreeNode | null): TreeNode | null {
+  if (root === null)        return null;                                 // empty tree
+  if (root.right === null)  return root;                                 // rightmost reached
+  return recursivelyFindMaximum(root.right);                             // keep going right
+}
+```
+
+```go,editable
+func recursivelyFindMaximum(root *TreeNode) *TreeNode {
+    if root == nil        { return nil  }                                 // empty tree
+    if root.Right == nil  { return root }                                 // rightmost reached
+    return recursivelyFindMaximum(root.Right)                             // keep going right
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun recursivelyFindMaximum(root: TreeNode?): TreeNode? {
+        if (root == null)        return null                                // empty tree
+        if (root.right == null)  return root                                // rightmost reached
+        return recursivelyFindMaximum(root.right)                           // keep going right
+    }
+}
+```
+
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    pub fn recursively_find_maximum(root: Tree) -> Tree {
+        match &root {
+            None => None,                                                    // empty tree
+            Some(node) => {
+                let n = node.borrow();
+                match &n.right {
+                    None    => root.clone(),                                  // rightmost reached
+                    Some(_) => Self::recursively_find_maximum(n.right.clone()),
+                }
+            }
+        }
+    }
+}
+```
+
+</div>
 
 ***
 
 # Understanding recursive lower bound search
 
-Finding the lower bound of a value in a binary search tree can be implemented by piggybacking on any of the binary tree traversal algorithms. It is very similar to searching for a value, so we can exploit the special property of a binary search tree to devise an exponentially faster algorithm. Let us look at the cases we need to consider
+The **lower bound** of a target `t` is the smallest value in the tree that is **greater than or equal to** `t`. (This is exactly what `std::lower_bound` and `Collections.ceiling` do.)
+
+The catch is that the target itself may not exist in the tree. So we cannot just search for `t` and return what we find. We have to *track the best candidate we've seen so far* as we descend, then return that candidate when the descent ends.
 
 ## Algorithm
 
-We follow the same path as the search by slightly modifying the search algorithm to find the first element greater than or equal to the given value. To search for the lower bound, we keep track of the most recent value we have seen so far that is **greater than or equal to** the given value. We will have our answer in that variable when hitting a leaf node. Let us look at the possible cases we need to consider.
+> *Friction prompt — predict before reading on. Imagine you are at a node holding `60`, your target is `54`. Do you go left or right? And — once you make that move — should you remember `60` for later? Why?*
 
-### 1\. The value is present in the tree
+You go **left** (since `54 < 60`), and yes, you should remember `60`: it's the smallest value `≥ 54` you've seen so far. If the entire left subtree turns out to hold no value `≥ 54`, then `60` is the answer.
 
-In this case, the given value is the lower bound, and we will reach it during the search.
+This gives the rule: **whenever the current node's value is `≥ target`, it is a candidate** — record it, then look left for something even smaller-but-still-`≥ target`. When the value is `< target`, no candidate; go right.
 
-// Diagram: The given value is the lower bound when it is present in the tree
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["lowerBound(node, t)"] --> B{"node == null?"}
+    B -->|Yes| Z["return"]
+    B -->|No| C{"node.val ?= t"}
+    C -->|"&gt; t"| D["lowerBoundNode = node<br/>recurse left"]
+    C -->|"== t"| E["lowerBoundNode = node<br/>return"]
+    C -->|"&lt; t"| F["recurse right"]
+    style D fill:#bbf7d0,stroke:#16a34a
+    style E fill:#bbf7d0,stroke:#16a34a
+```
 
-### 2\. The value is not present in the tree
+<p align="center"><strong>Recursive equation for the lower bound. Update the candidate whenever the current value is ≥ target.</strong></p>
 
-When we try to search for the value, we will hit a leaf node. On hitting the leaf node, the lower bound in the variable storing the most recently seen value will be greater than the given value. Let us look at a few examples to understand this case better.
+### Case 1 — the value is present
 
-#### 2.1 The lower bound is a leaf node
+If the target exists in the tree, search reaches it and *the target is the lower bound* (since `target ≥ target`). We update the candidate and stop.
 
-In this case, the leaf node will have the smallest value greater than the given value, which will be the lower bound of the given value.
+### Case 2 — the value is not present
 
-// Diagram: Find the lower bound of 54 in the given binary search tree
+The descent walks off a leaf into a `null`. The candidate now holds the *closest value ≥ target* the descent encountered. Two sub-cases worth seeing:
 
-#### 2.2 The lower bound is an internal node
+#### 2.1 Lower bound is a leaf
 
-In this case, the leaf node's value will be smaller than the given value, so its parent will be the lower bound of the given value.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    R((50))
+    A((30))
+    B((70))
+    C((60))
+    D((80))
+    R --> A
+    R --> B
+    B --> C
+    B --> D
+    style C fill:#bbf7d0,stroke:#16a34a
+    linkStyle 1 stroke:#f59e0b,stroke-width:3px
+    linkStyle 2 stroke:#f59e0b,stroke-width:3px
+```
 
-// Diagram: Find the lower bound of 63 in the given binary search tree
+<p align="center"><strong>Searching for the lower bound of <code>54</code>. At <code>50</code>: 50 &lt; 54 → go right. At <code>70</code>: 70 ≥ 54 → record candidate, go left. At <code>60</code>: 60 ≥ 54 → record candidate, go left. <code>60.left</code> is null → stop. Lower bound = <code>60</code>.</strong></p>
 
-The idea can be summarized as a recursive algorithm having a simple recursive equation. We create a global variable called `loweBoundNode` to maintain state throughout recursion. It will store the most recent node seen so far whose value is greater than or equal to the given value. All different function calls will have access to the same copy of `loweBoundNode` which they can update. We follow the same path as search down the tree and update the `lowerBoundNode` variable when needed.
+#### 2.2 Lower bound is an internal node
 
-// Diagram: Recursive equation to search for the lower bound for the given value
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    R((50))
+    A((30))
+    B((70))
+    C((60))
+    D((80))
+    R --> A
+    R --> B
+    B --> C
+    B --> D
+    style B fill:#bbf7d0,stroke:#16a34a
+    linkStyle 1 stroke:#f59e0b,stroke-width:3px
+    linkStyle 2 stroke:#f59e0b,stroke-width:3px
+```
 
-The recursive search for the lower bound of a given value in a binary search tree can be summarised using the following algorithm.
+<p align="center"><strong>Searching for the lower bound of <code>63</code>. At <code>50</code>: go right (50 &lt; 63). At <code>70</code>: 70 ≥ 63 → record candidate, go left. At <code>60</code>: 60 &lt; 63 → go right. <code>60.right</code> is null → stop. Lower bound = <code>70</code>.</strong></p>
 
 > **Algorithm**
 >
-> -   **Step 1:** If the `current` node is `null`, return (base case).
-> -   **Step 2:** If the `current` node's value exceeds the `target`, update the `lowerBoundNode` and recursively call the search operation on the `left` subtree.
-> -   **Step 3:** Else, if the `current` node's value equals the `target`, update the `lowerBoundNode` and return.
-> -   **Step 4:** Else, if the `current` node's value is less than the `target`, recursively call the search operation on the `right` subtree.
+> - **Step 1:** If the `current` node is `null`, return (base case).
+> - **Step 2:** If the `current` node's value exceeds the `target`, update the `lowerBoundNode` and recurse left.
+> - **Step 3:** Else, if the `current` node's value equals the `target`, update the `lowerBoundNode` and return.
+> - **Step 4:** Else, recurse right.
 
-## Implementation
+## Complexity
 
-The recursive equation above can be summarised using the following algorithm.
-
-C++
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-
-    // Global variable to store the lower bound node found during the
-    // traversal
-    TreeNode *lowerBoundNode = nullptr;
-
-// Diagram: void helper(TreeNode root, int target) {
-
-        // Base case: If the current node is null, return
-        if (!root) {
-            return;
-        }
-
-        // If the target is less than the value in the current node,
-        // update the lower bound node to the current node and
-        // continue searching in the left subtree
-        if (target < root->val) {
-            lowerBoundNode = root;
-            helper(root->left, target);
-        }
-
-        // If the target is equal to the value in the current node,
-        // update the lower bound node to the current node and return,
-        // as there is no need to search further in this case.
-        else if (root->val == target) {
-            lowerBoundNode = root;
-            return;
-        }
-
-        // If the target is greater than the value in the current node,
-        // continue searching in the right subtree
-        else {
-            helper(root->right, target);
-        }
-
-// Diagram: TreeNode recursivelyFindLowerBound(TreeNode root, int target) {
-
-        // Initialize the lower bound node to null
-        lowerBoundNode = nullptr;
-
-        // Find the lower bound node in the binary search tree
-        helper(root, target);
-
-        // Return the lower bound node found during the search
-        return lowerBoundNode;
-    }
-};
-```
-
-Java
-
-```java
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-// Diagram: class Solution {
-
-    // Global variable to store the lower bound node found during the
-    // traversal
-    TreeNode lowerBoundNode = null;
-
-// Diagram: void helper(TreeNode root, int target) {
-
-        // Base case: If the current node is null, return
-        if (root == null) {
-            return;
-        }
-
-        // If the target is less than the value in the current node,
-        // update the lower bound node to the current node and
-        // continue searching in the left subtree
-        if (target < root.val) {
-            lowerBoundNode = root;
-            helper(root.left, target);
-        }
-
-        // If the target is equal to the value in the current node,
-        // update the lower bound node to the current node and return,
-        // as there is no need to search further in this case.
-        else if (root.val == target) {
-            lowerBoundNode = root;
-            return;
-        }
-
-        // If the target is greater than the value in the current node,
-        // continue searching in the right subtree
-        else {
-            helper(root.right, target);
-        }
-
-// Diagram: TreeNode recursivelyFindLowerBound(TreeNode root, int target) {
-
-        // Initialize the lower bound node to null
-        lowerBoundNode = null;
-
-        // Find the lower bound node in the binary search tree
-        helper(root, target);
-
-        // Return the lower bound node found during the search
-        return lowerBoundNode;
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-// Diagram: export class Solution {
-
-    // Global variable to store the lower bound node found during the
-    // traversal
-    lowerBoundNode: TreeNode | null = null;
-
-// Diagram: helper(root: TreeNode | null, target: number): void {
-
-        // Base case: If the current node is null, return
-        if (!root) {
-            return;
-        }
-
-        // If the target is less than the value in the current node,
-        // update the lower bound node to the current node and
-        // continue searching in the left subtree
-        if (target < root.val) {
-            this.lowerBoundNode = root;
-            this.helper(root.left, target);
-        }
-
-        // If the target is equal to the value in the current node,
-        // update the lower bound node to the current node and return,
-        // as there is no need to search further in this case.
-        else if (root.val === target) {
-            this.lowerBoundNode = root;
-            return;
-        }
-
-        // If the target is greater than the value in the current node,
-        // continue searching in the right subtree
-        else {
-            this.helper(root.right, target);
-        }
-
-    recursivelyFindLowerBound(
-        root: TreeNode | null,
-        target: number
-    ): TreeNode | null {
-
-        // Initialize the lower bound node to null
-        this.lowerBoundNode = null;
-
-        // Find the lower bound node in the binary search tree
-        this.helper(root, target);
-
-        // Return the lower bound node found during the search
-        return this.lowerBoundNode;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-// Diagram: export class Solution {
-
-    // Global variable to store the lower bound node found during the
-    // traversal
-    lowerBoundNode = null;
-
-// Diagram: helper(root, target) {
-
-        // Base case: If the current node is null, return
-        if (!root) {
-            return;
-        }
-
-        // If the target is less than the value in the current node,
-        // update the lower bound node to the current node and
-        // continue searching in the left subtree
-        if (target < root.val) {
-            this.lowerBoundNode = root;
-            this.helper(root.left, target);
-        }
-
-        // If the target is equal to the value in the current node,
-        // update the lower bound node to the current node and return,
-        // as there is no need to search further in this case.
-        else if (root.val === target) {
-            this.lowerBoundNode = root;
-            return;
-        }
-
-        // If the target is greater than the value in the current node,
-        // continue searching in the right subtree
-        else {
-            this.helper(root.right, target);
-        }
-
-// Diagram: recursivelyFindLowerBound(root, target) {
-
-        // Initialize the lower bound node to null
-        this.lowerBoundNode = null;
-
-        // Find the lower bound node in the binary search tree
-        this.helper(root, target);
-
-        // Return the lower bound node found during the search
-        return this.lowerBoundNode;
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import Optional
-
-class Solution:
-
-    # Global variable to store the lower bound node found during the
-    # traversal
-    lowerBoundNode: Optional[TreeNode] = None
-
-    def helper(self, root: Optional[TreeNode], target: int) -> None:
-
-        # Base case: If the current node is null, return
-        if root is None:
-            return
-
-        # If the target is less than the value in the current node,
-        # update the lower bound node to the current node and
-        # continue searching in the left subtree
-        if target < root.val:
-            self.lowerBoundNode = root
-            self.helper(root.left, target)
-
-        # If the target is equal to the value in the current node,
-        # update the lower bound node to the current node and return,
-        # as there is no need to search further in this case.
-        elif root.val == target:
-            self.lowerBoundNode = root
-            return
-
-        # If the target is greater than the value in the current node,
-        # continue searching in the right subtree
-        else:
-            self.helper(root.right, target)
-
-    def recursively_find_lower_bound(
-        self, root: Optional[TreeNode], target: int
-    ) -> Optional[TreeNode]:
-
-        # Initialize the lower bound node to null
-        self.lowerBoundNode = None
-
-        # Find the lower bound node in the binary search tree
-        self.helper(root, target)
-
-        # Return the lower bound node found during the search
-        return self.lowerBoundNode
-```
-
-## Complexity Analysis
-
-We are using a modified version of the search algorithm, so we process only one root-to-leaf path when searching for the lower bound of a given value in a binary search tree. In the worst case, this root-to-leaf path could be the longest.
-
-// Diagram: Worst case time complexity
-
-We are not using any extra space apart from the recursion call stack, which will depend on the tree's height.
-
-> **Best Case** - The binary search tree is height-balanced
->
-> -   Space Complexity - **O(logN)**
-> -   Time Complexity - **O(logN)**
->
-> **Worst Case** - The binary search tree is skewed to the left or right
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
+Same as plain search — one root-to-leaf path. O(log n) on a balanced tree; O(n) worst-case skewed.
 
 ***
 
@@ -1367,417 +862,367 @@ We are not using any extra space apart from the recursion call stack, which will
 
 ## Problem Statement
 
-Fundamental
+Given the **root** of a binary search tree and a **target**, return the node that is the lower bound for the target. Return `null` if no such node exists. You must do this **recursively**.
 
-Given the **root** of a binary search tree and a **target**, write a function to return the node in the tree that is the lower bound for the given target. Return `null` if no node has the lower bound for the given target. You must do this **recursively**.
-
-Lower bound returns the first element **≥** target.
+> Lower bound returns the first element **≥** target.
 
 ### Example 1
 
-> -   **Input:** root = \[4, 2, 5, 1, 3, null, 6\], target = 3
-> -   **Output:** 3
-> -   **Explanation:** The lower bound for the given value in the tree is the node with the value 3.
+> - **Input:** `root = [4, 2, 5, 1, 3, null, 6]`, `target = 3`
+> - **Output:** `3`
 
 ### Example 2
 
-> -   **Input:** root = \[5, 4, 10, null, null, 9, 11\], target = 7
-> -   **Output:** 9
-> -   **Explanation:** The lower bound for the given value in the tree is the node with the value 9.
+> - **Input:** `root = [5, 4, 10, null, null, 9, 11]`, `target = 7`
+> - **Output:** `9`
 
-## Solution
+## The Solution
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+<div class="lang-tabs">
 
-using namespace std;
+```python,editable
+class Solution:
+    def __init__(self):
+        self.lower_bound_node = None  # state shared across recursive calls
 
+    def helper(self, root, target):
+        if root is None:
+            return                                       # walked off the tree — stop
+        if target < root.val:
+            # Current node ≥ target → it's a candidate. Record it, then search left
+            # for an even tighter (smaller) candidate that's still ≥ target.
+            self.lower_bound_node = root
+            self.helper(root.left, target)
+        elif root.val == target:
+            # Exact match — target itself is the lower bound; no need to look further.
+            self.lower_bound_node = root
+            return
+        else:
+            # Current node < target → not a candidate; everything to the left is even
+            # smaller, so the answer (if any) lives in the right subtree.
+            self.helper(root.right, target)
+
+    def recursively_find_lower_bound(self, root, target):
+        self.lower_bound_node = None    # reset — important for repeated calls
+        self.helper(root, target)
+        return self.lower_bound_node
+```
+
+```java,editable
+class Solution {
+    TreeNode lowerBoundNode = null;                                          // shared state
+
+    void helper(TreeNode root, int target) {
+        if (root == null) return;                                             // walked off
+        if (target < root.val) {                                              // node ≥ target
+            lowerBoundNode = root;                                            //   candidate
+            helper(root.left, target);                                        //   tighten left
+        } else if (root.val == target) {                                      // exact match
+            lowerBoundNode = root;                                            //   final answer
+            return;
+        } else {                                                              // node < target
+            helper(root.right, target);                                       //   search right
+        }
+    }
+
+    public TreeNode recursivelyFindLowerBound(TreeNode root, int target) {
+        lowerBoundNode = null;                                                // reset
+        helper(root, target);
+        return lowerBoundNode;
+    }
+}
+```
+
+```c,editable
+static struct TreeNode *lowerBoundNode = NULL;
+
+static void helper(struct TreeNode *root, int target) {
+    if (root == NULL) return;                                                  // walked off
+    if (target < root->val) {                                                  // node ≥ target
+        lowerBoundNode = root;                                                 //   candidate
+        helper(root->left, target);                                            //   tighten left
+    } else if (root->val == target) {                                          // exact match
+        lowerBoundNode = root;
+        return;
+    } else {                                                                   // node < target
+        helper(root->right, target);                                           //   search right
+    }
+}
+
+struct TreeNode *recursivelyFindLowerBound(struct TreeNode *root, int target) {
+    lowerBoundNode = NULL;                                                     // reset
+    helper(root, target);
+    return lowerBoundNode;
+}
+```
+
+```cpp,editable
 class Solution {
 public:
-
-    // Global variable to store the lower bound node found during the
-    // traversal
-    TreeNode *lowerBoundNode = nullptr;
+    TreeNode *lowerBoundNode = nullptr;                                        // shared state
 
     void helper(TreeNode *root, int target) {
-
-        // Base case: If the current node is null, return
-        if (!root) {
-            return;
-        }
-
-        // If the target is less than the value in the current node,
-        // update the lower bound node to the current node and
-        // continue searching in the left subtree
-        if (target < root->val) {
-            lowerBoundNode = root;
-            helper(root->left, target);
-        }
-
-        // If the target is equal to the value in the current node,
-        // update the lower bound node to the current node and return,
-        // as there is no need to search further in this case.
-        else if (root->val == target) {
+        if (!root) return;                                                     // walked off
+        if (target < root->val) {                                              // node ≥ target
+            lowerBoundNode = root;                                             //   candidate
+            helper(root->left, target);                                        //   tighten left
+        } else if (root->val == target) {                                      // exact match
             lowerBoundNode = root;
             return;
-        }
-
-        // If the target is greater than the value in the current node,
-        // continue searching in the right subtree
-        else {
-            helper(root->right, target);
+        } else {                                                               // node < target
+            helper(root->right, target);                                       //   search right
         }
     }
 
     TreeNode *recursivelyFindLowerBound(TreeNode *root, int target) {
-
-        // Initialize the lower bound node to null
-        lowerBoundNode = nullptr;
-
-        // Find the lower bound node in the binary search tree
+        lowerBoundNode = nullptr;                                              // reset
         helper(root, target);
-
-        // Return the lower bound node found during the search
         return lowerBoundNode;
     }
 };
 ```
 
+```scala,editable
+class Solution {
+  private var lowerBoundNode: TreeNode = null
+
+  private def helper(root: TreeNode, target: Int): Unit = {
+    if (root == null) return                                                    // walked off
+    if (target < root.value) {                                                  // node ≥ target
+      lowerBoundNode = root                                                     //   candidate
+      helper(root.left, target)                                                 //   tighten left
+    } else if (root.value == target) {                                          // exact match
+      lowerBoundNode = root
+    } else {                                                                    // node < target
+      helper(root.right, target)                                                //   search right
+    }
+  }
+
+  def recursivelyFindLowerBound(root: TreeNode, target: Int): TreeNode = {
+    lowerBoundNode = null                                                       // reset
+    helper(root, target)
+    lowerBoundNode
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+  constructor() { this.lowerBoundNode = null; }                                  // shared state
+
+  helper(root, target) {
+    if (root === null) return;                                                   // walked off
+    if (target < root.val) {                                                     // node ≥ target
+      this.lowerBoundNode = root;                                                //   candidate
+      this.helper(root.left, target);                                            //   tighten left
+    } else if (root.val === target) {                                            // exact match
+      this.lowerBoundNode = root;
+      return;
+    } else {                                                                     // node < target
+      this.helper(root.right, target);                                           //   search right
+    }
+  }
+
+  recursivelyFindLowerBound(root, target) {
+    this.lowerBoundNode = null;                                                  // reset
+    this.helper(root, target);
+    return this.lowerBoundNode;
+  }
+}
+```
+
+```typescript,editable
+class Solution {
+  lowerBoundNode: TreeNode | null = null;                                         // shared state
+
+  helper(root: TreeNode | null, target: number): void {
+    if (root === null) return;                                                    // walked off
+    if (target < root.val) {                                                      // node ≥ target
+      this.lowerBoundNode = root;                                                 //   candidate
+      this.helper(root.left, target);                                             //   tighten left
+    } else if (root.val === target) {                                             // exact match
+      this.lowerBoundNode = root;
+      return;
+    } else {                                                                      // node < target
+      this.helper(root.right, target);                                            //   search right
+    }
+  }
+
+  recursivelyFindLowerBound(root: TreeNode | null, target: number): TreeNode | null {
+    this.lowerBoundNode = null;                                                   // reset
+    this.helper(root, target);
+    return this.lowerBoundNode;
+  }
+}
+```
+
+```go,editable
+type lowerBoundState struct{ node *TreeNode }
+
+func (s *lowerBoundState) helper(root *TreeNode, target int) {
+    if root == nil { return }                                                      // walked off
+    if target < root.Val {                                                         // node ≥ target
+        s.node = root                                                              //   candidate
+        s.helper(root.Left, target)                                                //   tighten left
+    } else if root.Val == target {                                                 // exact match
+        s.node = root
+        return
+    } else {                                                                       // node < target
+        s.helper(root.Right, target)                                               //   search right
+    }
+}
+
+func recursivelyFindLowerBound(root *TreeNode, target int) *TreeNode {
+    s := &lowerBoundState{node: nil}                                               // fresh state
+    s.helper(root, target)
+    return s.node
+}
+```
+
+```kotlin,editable
+class Solution {
+    private var lowerBoundNode: TreeNode? = null                                    // shared state
+
+    private fun helper(root: TreeNode?, target: Int) {
+        if (root == null) return                                                    // walked off
+        when {
+            target < root.`val` -> {                                                // node ≥ target
+                lowerBoundNode = root                                               //   candidate
+                helper(root.left, target)                                           //   tighten left
+            }
+            root.`val` == target -> {                                               // exact match
+                lowerBoundNode = root
+            }
+            else -> helper(root.right, target)                                      // node < target
+        }
+    }
+
+    fun recursivelyFindLowerBound(root: TreeNode?, target: Int): TreeNode? {
+        lowerBoundNode = null                                                       // reset
+        helper(root, target)
+        return lowerBoundNode
+    }
+}
+```
+
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    fn helper(root: &Tree, target: i32, best: &mut Tree) {
+        match root {
+            None => return,                                                        // walked off
+            Some(node) => {
+                let n = node.borrow();
+                if target < n.val {                                                // node ≥ target
+                    *best = root.clone();                                          //   candidate
+                    Self::helper(&n.left, target, best);                           //   tighten left
+                } else if n.val == target {                                        // exact match
+                    *best = root.clone();
+                } else {                                                           // node < target
+                    Self::helper(&n.right, target, best);                          //   search right
+                }
+            }
+        }
+    }
+
+    pub fn recursively_find_lower_bound(root: Tree, target: i32) -> Tree {
+        let mut best: Tree = None;
+        Self::helper(&root, target, &mut best);
+        best
+    }
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — root = [50, 30, 70, null, null, 60, 80], target = 54</strong></summary>
+
+```
+candidate = null
+Step 1 │ at 50 │ 50 < 54  → go right
+Step 2 │ at 70 │ 70 ≥ 54  → candidate = 70 → go left
+Step 3 │ at 60 │ 60 ≥ 54  → candidate = 60 → go left
+Step 4 │ 60.left == null  → stop
+Result: candidate = 60 ✓
+```
+
+</details>
+
 ***
 
 # Understanding recursive upper bound search
 
-Finding the upper bound of a value in a binary search tree can be implemented by piggybacking on any of the binary tree traversal algorithms. It is very similar to searching for the value, so we can exploit the special property of a binary search tree to devise an exponentially faster algorithm. Let us look at the cases we need to consider
+The **upper bound** of a target `t` is the smallest value in the tree **strictly greater than** `t`. It is the lower bound's slightly stricter cousin: equality does *not* count.
+
+The only change from the lower-bound algorithm is the equality case: when `current.val == target`, we treat it as "less than" (skip it, go right), not "candidate found".
 
 ## Algorithm
 
-To find the smallest element greater than the given value, we follow an algorithm similar to search. We create a variable that stores the smallest value greater than the given value seen so far. Starting from the root, we check if the value at the node is less than or equal to the given value, and we go to the right child. If the value at the node is greater than the given value, we compare it with the value stored in our variable and update it if needed. We will have our answer in that variable when hitting a leaf node. Let us look at some examples to understand this better.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["upperBound(node, t)"] --> B{"node == null?"}
+    B -->|Yes| Z["return"]
+    B -->|No| C{"node.val &gt; t?"}
+    C -->|Yes| D["upperBoundNode = node<br/>recurse left"]
+    C -->|No| F["recurse right"]
+    style D fill:#bbf7d0,stroke:#16a34a
+```
 
-// Diagram: Upper bound of 54 in the given binary search tree
+<p align="center"><strong>Upper-bound recursive equation. The strict inequality <code>node.val &gt; t</code> means we go right whenever node.val ≤ t — including the equality case.</strong></p>
 
-The above idea can be summarized as a recursive algorithm with a simple recursive equation. We create a global variable called to maintain state across recursion. It will store the node's reference with the smallest value greater than the given value. All different function calls will have access to the same copy of `upperBoundNode` which they can update. We follow a similar path as searching down the tree and updating the `upperBoundNode` variable where needed.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    R((50))
+    A((30))
+    B((70))
+    C((60))
+    D((80))
+    R --> A
+    R --> B
+    B --> C
+    B --> D
+    style C fill:#bbf7d0,stroke:#16a34a
+    linkStyle 1 stroke:#f59e0b,stroke-width:3px
+    linkStyle 2 stroke:#f59e0b,stroke-width:3px
+```
 
-// Diagram: Recursive equation to search for the lower bound for the given value
-
-The recursive search for the upper bound of a given value in a binary search tree can be summarised as the following algorithm.
+<p align="center"><strong>Upper bound of <code>54</code>: at <code>50</code> go right (50 ≤ 54). At <code>70</code> record candidate (70 &gt; 54), go left. At <code>60</code> record candidate (60 &gt; 54), go left. <code>60.left == null</code> → stop. Upper bound = <code>60</code>.</strong></p>
 
 > **Algorithm**
 >
-> -   **Step 1:** If the `current` node is `null`, return (base case).
-> -   **Step 2:** If the `current` node's value exceeds the `target`, update the `upperBoundNode` and recursively call the search operation on the `left` subtree.
-> -   **Step 3:** Else, if the `current` node's value is less than the `target`, recursively call the search operation on the `right` subtree.
+> - **Step 1:** If the `current` node is `null`, return (base case).
+> - **Step 2:** If the `current` node's value exceeds the `target`, update the `upperBoundNode` and recurse left.
+> - **Step 3:** Else, recurse right.
 
-## Implementation
+## Complexity
 
-The recursive equation above can be summarised as the following algorithm.
-
-C++
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-
-    // Global variable to store the upper bound node found during the
-    // traversal
-    TreeNode *upperBoundNode = nullptr;
-
-// Diagram: void helper(TreeNode root, int target) {
-
-        // Base case: If the current node is null, return
-        if (!root) {
-            return;
-        }
-
-        // If the target is less than the value in the current node,
-        // update the upper bound node to the current node and
-        // continue searching in the left subtree
-        if (target < root->val) {
-            upperBoundNode = root;
-            helper(root->left, target);
-
-        }
-
-        // If the target is greater than or equal to the value in the
-        // current node, continue searching in the right subtree
-        else {
-            helper(root->right, target);
-        }
-
-// Diagram: TreeNode recursivelyFindUpperBound(TreeNode root, int target) {
-
-        // Initialize the upper bound node to null
-        upperBoundNode = nullptr;
-
-        // Find the upper bound in the binary search tree
-        helper(root, target);
-
-        // Return the upper bound node found during the search
-        return upperBoundNode;
-    }
-};
-```
-
-Java
-
-```java
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-// Diagram: class Solution {
-
-    // Global variable to store the upper bound node found during the
-    // traversal
-    TreeNode upperBoundNode = null;
-
-// Diagram: void helper(TreeNode root, int target) {
-
-        // Base case: If the current node is null, return
-        if (root == null) {
-            return;
-        }
-
-        // If the target is less than the value in the current node,
-        // update the upper bound node to the current node and
-        // continue searching in the left subtree
-        if (target < root.val) {
-            upperBoundNode = root;
-            helper(root.left, target);
-        }
-
-        // If the target is greater than or equal to the value in the
-        // current node, continue searching in the right subtree
-        else {
-            helper(root.right, target);
-        }
-
-// Diagram: TreeNode recursivelyFindUpperBound(TreeNode root, int target) {
-
-        // Initialize the upper bound node to null
-        upperBoundNode = null;
-
-        // Find the upper bound in the binary search tree
-        helper(root, target);
-
-        // Return the upper bound node found during the search
-        return upperBoundNode;
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-// Diagram: export class Solution {
-
-    // Global variable to store the upper bound node found during the
-    // traversal
-    upperBoundNode: TreeNode | null = null;
-
-// Diagram: helper(root: TreeNode | null, target: number): void {
-
-        // Base case: If the current node is null, return
-        if (!root) {
-            return;
-        }
-
-        // If the target is less than the value in the current node,
-        // update the upper bound node to the current node and
-        // continue searching in the left subtree
-        if (target < root.val) {
-            this.upperBoundNode = root;
-            this.helper(root.left, target);
-        }
-
-        // If the target is greater than or equal to the value in the
-        // current node, continue searching in the right subtree
-        else {
-            this.helper(root.right, target);
-        }
-
-    recursivelyFindUpperBound(
-        root: TreeNode | null,
-        target: number
-    ): TreeNode | null {
-
-        // Initialize the upper bound node to null
-        this.upperBoundNode = null;
-
-        // Find the upper bound in the binary search tree
-        this.helper(root, target);
-
-        // Return the upper bound node found during the search
-        return this.upperBoundNode;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-// Diagram: export class Solution {
-
-    // Global variable to store the upper bound node found during the
-    // traversal
-    upperBoundNode = null;
-
-// Diagram: helper(root, target) {
-
-        // Base case: If the current node is null, return
-        if (!root) {
-            return;
-        }
-
-        // If the target is less than the value in the current node,
-        // update the upper bound node to the current node and
-        // continue searching in the left subtree
-        if (target < root.val) {
-            this.upperBoundNode = root;
-            this.helper(root.left, target);
-        }
-
-        // If the target is greater than or equal to the value in the
-        // current node, continue searching in the right subtree
-        else {
-            this.helper(root.right, target);
-        }
-
-// Diagram: recursivelyFindUpperBound(root, target) {
-
-        // Initialize the upper bound node to null
-        this.upperBoundNode = null;
-
-        // Find the upper bound in the binary search tree
-        this.helper(root, target);
-
-        // Return the upper bound node found during the search
-        return this.upperBoundNode;
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import Optional
-
-class Solution:
-
-    # Global variable to store the upper bound node found during the
-    # traversal
-    upperBoundNode: Optional[TreeNode] = None
-
-    def helper(self, root: Optional[TreeNode], target: int) -> None:
-
-        # Base case: If the current node is null, return
-        if root is None:
-            return
-
-        # If the target is less than the value in the current node,
-        # update the upper bound node to the current node and
-        # continue searching in the left subtree
-        if target < root.val:
-            self.upperBoundNode = root
-            self.helper(root.left, target)
-
-        # If the target is greater than or equal to the value in the current node,
-        # continue searching in the right subtree
-        else:
-            self.helper(root.right, target)
-
-    def recursively_find_upper_bound(
-        self, root: Optional[TreeNode], target: int
-    ) -> Optional[TreeNode]:
-
-        # Initialize the upper bound node to null
-        self.upperBoundNode = None
-
-        # Find the upper bound in the binary search tree
-        self.helper(root, target)
-
-        # Return the upper bound node found during the search
-        return self.upperBoundNode
-```
-
-## Complexity Analysis
-
-We are using a modified version of the search algorithm, so we process only one root-to-leaf path when searching for the upper bound of a given value in a binary search tree. In the worst case, this root-to-leaf path could be the longest.
-
-// Diagram: Worst case time complexity
-
-We are not using any extra space apart from the recursion call stack, which will depend on the tree's height.
-
-> **Best Case** - The binary search tree is height-balanced
->
-> -   Space Complexity - **O(logN)**
-> -   Time Complexity - **O(logN)**
->
-> **Worst Case** - The binary search tree is skewed to the left or right
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
+Same as lower bound — one root-to-leaf path: O(log n) balanced, O(n) worst-case skewed.
 
 ***
 
@@ -1785,80 +1230,274 @@ We are not using any extra space apart from the recursion call stack, which will
 
 ## Problem Statement
 
-Fundamental
+Given the **root** of a binary search tree and a **target**, return the node that is the upper bound for the target. Return `null` if no such node exists. You must do this **recursively**.
 
-Given the **root** of a binary search tree and a **target**, write a function to find and return the node in the tree that is the upper bound for the given target. Return `null` if no node has the upper bound for the given target. You must do this **recursively**.
-
-Upper bound returns the first element **\>** target.
+> Upper bound returns the first element **>** target.
 
 ### Example 1
 
-> -   **Input:** root = \[4, 2, 5, 1, 3, null, 6\], target = 3
-> -   **Output:** 4
-> -   **Explanation:** The upper bound for the given value in the tree is the node with the value 4.
+> - **Input:** `root = [4, 2, 5, 1, 3, null, 6]`, `target = 3`
+> - **Output:** `4`
 
 ### Example 2
 
-> -   **Input:** root = \[5, 4, 10, null, null, 9, 11\], target = 7
-> -   **Output:** 9
-> -   **Explanation:** The upper bound for the given value in the tree is the node with the value 9.
+> - **Input:** `root = [5, 4, 10, null, null, 9, 11]`, `target = 7`
+> - **Output:** `9`
 
-## Solution
+## The Solution
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+<div class="lang-tabs">
 
-using namespace std;
+```python,editable
+class Solution:
+    def __init__(self):
+        self.upper_bound_node = None  # shared state across recursive calls
 
+    def helper(self, root, target):
+        if root is None:
+            return                                       # walked off the tree — stop
+        if target < root.val:
+            # Current node > target → it's a candidate. Record, look left for tighter.
+            self.upper_bound_node = root
+            self.helper(root.left, target)
+        else:
+            # Current node ≤ target → equality NOT enough for upper bound; go right.
+            self.helper(root.right, target)
+
+    def recursively_find_upper_bound(self, root, target):
+        self.upper_bound_node = None                     # reset
+        self.helper(root, target)
+        return self.upper_bound_node
+```
+
+```java,editable
+class Solution {
+    TreeNode upperBoundNode = null;
+
+    void helper(TreeNode root, int target) {
+        if (root == null) return;                                                  // walked off
+        if (target < root.val) {                                                   // node > target
+            upperBoundNode = root;                                                 //   candidate
+            helper(root.left, target);                                             //   tighten left
+        } else {                                                                   // node ≤ target
+            helper(root.right, target);                                            //   search right
+        }
+    }
+
+    public TreeNode recursivelyFindUpperBound(TreeNode root, int target) {
+        upperBoundNode = null;                                                     // reset
+        helper(root, target);
+        return upperBoundNode;
+    }
+}
+```
+
+```c,editable
+static struct TreeNode *upperBoundNode = NULL;
+
+static void helper(struct TreeNode *root, int target) {
+    if (root == NULL) return;                                                      // walked off
+    if (target < root->val) {                                                      // node > target
+        upperBoundNode = root;                                                     //   candidate
+        helper(root->left, target);                                                //   tighten left
+    } else {                                                                       // node ≤ target
+        helper(root->right, target);                                               //   search right
+    }
+}
+
+struct TreeNode *recursivelyFindUpperBound(struct TreeNode *root, int target) {
+    upperBoundNode = NULL;                                                         // reset
+    helper(root, target);
+    return upperBoundNode;
+}
+```
+
+```cpp,editable
 class Solution {
 public:
-
-    // Global variable to store the upper bound node found during the
-    // traversal
     TreeNode *upperBoundNode = nullptr;
 
     void helper(TreeNode *root, int target) {
-
-        // Base case: If the current node is null, return
-        if (!root) {
-            return;
-        }
-
-        // If the target is less than the value in the current node,
-        // update the upper bound node to the current node and
-        // continue searching in the left subtree
-        if (target < root->val) {
-            upperBoundNode = root;
-            helper(root->left, target);
-
-        }
-
-        // If the target is greater than or equal to the value in the
-        // current node, continue searching in the right subtree
-        else {
-            helper(root->right, target);
+        if (!root) return;                                                         // walked off
+        if (target < root->val) {                                                  // node > target
+            upperBoundNode = root;                                                 //   candidate
+            helper(root->left, target);                                            //   tighten left
+        } else {                                                                   // node ≤ target
+            helper(root->right, target);                                           //   search right
         }
     }
 
     TreeNode *recursivelyFindUpperBound(TreeNode *root, int target) {
-
-        // Initialize the upper bound node to null
-        upperBoundNode = nullptr;
-
-        // Find the upper bound in the binary search tree
+        upperBoundNode = nullptr;                                                  // reset
         helper(root, target);
-
-        // Return the upper bound node found during the search
         return upperBoundNode;
     }
 };
 ```
+
+```scala,editable
+class Solution {
+  private var upperBoundNode: TreeNode = null
+
+  private def helper(root: TreeNode, target: Int): Unit = {
+    if (root == null) return                                                        // walked off
+    if (target < root.value) {                                                      // node > target
+      upperBoundNode = root                                                         //   candidate
+      helper(root.left, target)                                                     //   tighten left
+    } else {                                                                        // node ≤ target
+      helper(root.right, target)                                                    //   search right
+    }
+  }
+
+  def recursivelyFindUpperBound(root: TreeNode, target: Int): TreeNode = {
+    upperBoundNode = null                                                           // reset
+    helper(root, target)
+    upperBoundNode
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+  constructor() { this.upperBoundNode = null; }
+
+  helper(root, target) {
+    if (root === null) return;                                                       // walked off
+    if (target < root.val) {                                                         // node > target
+      this.upperBoundNode = root;                                                    //   candidate
+      this.helper(root.left, target);                                                //   tighten left
+    } else {                                                                         // node ≤ target
+      this.helper(root.right, target);                                               //   search right
+    }
+  }
+
+  recursivelyFindUpperBound(root, target) {
+    this.upperBoundNode = null;                                                      // reset
+    this.helper(root, target);
+    return this.upperBoundNode;
+  }
+}
+```
+
+```typescript,editable
+class Solution {
+  upperBoundNode: TreeNode | null = null;
+
+  helper(root: TreeNode | null, target: number): void {
+    if (root === null) return;                                                        // walked off
+    if (target < root.val) {                                                          // node > target
+      this.upperBoundNode = root;                                                     //   candidate
+      this.helper(root.left, target);                                                 //   tighten left
+    } else {                                                                          // node ≤ target
+      this.helper(root.right, target);                                                //   search right
+    }
+  }
+
+  recursivelyFindUpperBound(root: TreeNode | null, target: number): TreeNode | null {
+    this.upperBoundNode = null;                                                       // reset
+    this.helper(root, target);
+    return this.upperBoundNode;
+  }
+}
+```
+
+```go,editable
+type upperBoundState struct{ node *TreeNode }
+
+func (s *upperBoundState) helper(root *TreeNode, target int) {
+    if root == nil { return }                                                          // walked off
+    if target < root.Val {                                                             // node > target
+        s.node = root                                                                  //   candidate
+        s.helper(root.Left, target)                                                    //   tighten left
+    } else {                                                                           // node ≤ target
+        s.helper(root.Right, target)                                                   //   search right
+    }
+}
+
+func recursivelyFindUpperBound(root *TreeNode, target int) *TreeNode {
+    s := &upperBoundState{}
+    s.helper(root, target)
+    return s.node
+}
+```
+
+```kotlin,editable
+class Solution {
+    private var upperBoundNode: TreeNode? = null
+
+    private fun helper(root: TreeNode?, target: Int) {
+        if (root == null) return                                                         // walked off
+        if (target < root.`val`) {                                                       // node > target
+            upperBoundNode = root                                                        //   candidate
+            helper(root.left, target)                                                    //   tighten left
+        } else {                                                                         // node ≤ target
+            helper(root.right, target)                                                   //   search right
+        }
+    }
+
+    fun recursivelyFindUpperBound(root: TreeNode?, target: Int): TreeNode? {
+        upperBoundNode = null                                                            // reset
+        helper(root, target)
+        return upperBoundNode
+    }
+}
+```
+
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    fn helper(root: &Tree, target: i32, best: &mut Tree) {
+        match root {
+            None => return,                                                              // walked off
+            Some(node) => {
+                let n = node.borrow();
+                if target < n.val {                                                      // node > target
+                    *best = root.clone();                                                //   candidate
+                    Self::helper(&n.left, target, best);                                 //   tighten left
+                } else {                                                                 // node ≤ target
+                    Self::helper(&n.right, target, best);                                //   search right
+                }
+            }
+        }
+    }
+
+    pub fn recursively_find_upper_bound(root: Tree, target: i32) -> Tree {
+        let mut best: Tree = None;
+        Self::helper(&root, target, &mut best);
+        best
+    }
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — root = [4, 2, 5, 1, 3, null, 6], target = 3</strong></summary>
+
+```
+candidate = null
+Step 1 │ at 4 │ 3 < 4  → candidate = 4 → go left
+Step 2 │ at 2 │ 3 ≥ 2  → go right
+Step 3 │ at 3 │ 3 ≥ 3  → go right (equality is NOT enough for upper bound)
+Step 4 │ 3.right == null → stop
+Result: candidate = 4 ✓
+```
+
+</details>
+
+***
+
+## Final Takeaway
+
+Five problems, one shape: **at every node, do one comparison and recurse into exactly one subtree.** That's the lever the BST property gives you — turning the branching factor of a tree search from 2 into 1, and time complexity from O(n) into O(h). On a balanced BST, h = O(log n) — the fastest known structure for this many operations on dynamic data.
+
+Three idioms that we'll reuse forever:
+
+1. **Discard half the tree at every step** — the core trick, used by every BST operation.
+2. **Track the best candidate seen during descent** — the key to lower/upper bounds, predecessors, successors, and floor/ceiling queries.
+3. **Tail-recursive descent** — every algorithm in this lesson recurses only once per node, so it's a single chain of stack frames. Convert that chain to a loop and you get the *iterative* versions of these algorithms — the subject of the next lesson.
+
+The next lesson rewrites every one of these five algorithms iteratively. The mental model stays the same — the implementation drops the recursion and uses constant extra space.

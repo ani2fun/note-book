@@ -1,11 +1,21 @@
-# Pattern: Reversed sorted traversal
+# 11. Pattern: Reversed Sorted Traversal
+
+## The Hook
+
+The previous lesson lit up half the BST landscape with one observation: an in-order walk emits values in ascending order. Mirror that observation — visit *right-node-left* instead of *left-node-right* — and you get the *descending* version for free.
+
+That sounds trivial. It is — *and* it unlocks an entire family of problems whose elegant solutions are otherwise invisible. **K-th largest** rather than k-th smallest. **Greater-than-X sums** rather than less-than-X sums. **Ranks descending from the top** rather than from the bottom. **Tree mutations driven by running totals from the top end of the sorted sequence** instead of the bottom.
+
+This lesson is the descending-order companion to lesson 10. Same template, different traversal direction. Four hands-on problems make the pattern stick.
+
+---
 
 ## Table of Contents
 
 1. [Understanding the reversed sorted traversal pattern](#understanding-the-reversed-sorted-traversal-pattern)
 2. [Identifying the reverse sorted traversal pattern](#identifying-the-reverse-sorted-traversal-pattern)
 3. [Rank nodes](#rank-nodes)
-4. [Kth Largest element](#kth-largest-element)
+4. [Kth largest element](#kth-largest-element)
 5. [Enriched sum tree](#enriched-sum-tree)
 6. [Multiple replacement](#multiple-replacement)
 
@@ -13,731 +23,811 @@
 
 # Understanding the reversed sorted traversal pattern
 
-Some problems require us to traverse the nodes of a binary search tree in the reverse sorted order of their values. The inorder traversal traverses the nodes in the sorted order of the values of the nodes. However, the reverse inorder traversal that follows the right-node-left sequence traverses the nodes in the tree in the sorted order(**descending**) of their values. This is because a binary search tree follows the binary search property where all the nodes in the left subtree of a node have values smaller than it, and all the nodes in the right subtree have values greater than it. And Ssoso, the reverse inorder traversal can be used to traverse the nodes in a binary search tree in the reverse sorted order(**descending**) of its values.
+The **reverse in-order** traversal visits each node in the order *right → node → left*. Because the right subtree of any BST node holds *larger* values, the reverse-in-order walk lists values in **descending sorted order** — the perfect mirror of the in-order walk.
 
-The reverse sorted traversal pattern is a classification of problems that can be solved using the reverse sorted traversal technique.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    R((4))
+    A((2))
+    B((5))
+    C((1))
+    D((3))
+    E((6))
+    R --> A
+    R --> B
+    A --> C
+    A --> D
+    B --> X([" "])
+    B --> E
+    OUT["Reverse in-order visit order: 6 → 5 → 4 → 3 → 2 → 1"]
+    style OUT fill:#fde68a,stroke:#d97706
+    style X fill:none,stroke:none,color:transparent
+```
 
-// Diagram: The reverse inorder traversal traverses the binary search tree in the reverse sorted order (descending) of node values.
+<p align="center"><strong>Reverse in-order traversal of a BST visits values in descending order. The pattern mirrors lesson 10's sorted traversal.</strong></p>
 
-In this lesson, we will learn more about using the reverse sorted traversal technique to solve binary search tree problems and how to identify a problem as a reverse sorted traversal pattern problem.
+## The technique
 
-## The reverse sorted traversal technique
-
-Consider we are given a binary search tree, and we need to process every node using the function`f` in the reverse sorted order (**descending**) of values of the nodes. We also need to aggregate all the processed values over a function `g` in the same order.
-
-// Diagram: Process all nodes in the sorted order (ascending) of values using function f and aggregate the processed values using function g.
-
-We know that the reverse inorder traversal of a binary search tree traverses the tree in the reverse sorted order of values. We create a variable `aggregate` in the calling function and initialize it with a default value.
-
-We then start the reverse inorder traversal from the root node of the tree, passing `aggregate` as a reference that recursively traverses to the right until it reaches a node for which the left subtree is a `null` reference. Hitting a `null` reference is the base case for this recursive execution, where we return to the parent node and process it using the function `f` and store the result in a local variable `output`. We then add the contribution of `output` to `aggregate` using the function `g`. The left subtree is then recursively processed in the same way.
-
-This way, in the end, all nodes in the tree are processed using the function `f` in the reverse sorted order (**descending**) of their values, and the processed values aggregated over the function `g` in `aggregate` in the same order.
-
-// Diagram: Process nodes in reverse sorted order using the function f and aggregate them over function g
-
-## Algorithm
-
-The generic algorithm given below uses the reverse inorder traversal to process all the nodes in the tree using the function `f` in the reverse sorted order(**descending**) of their values, and aggregate the processed values over the function `g` in the same order.
+Same structure as the sorted-traversal template, with the recursive calls swapped:
 
 > **Algorithm**
 >
-> -   Step 1: Create a variable `aggregate` and initialize it with a default value
-> -   Step 2: Call `reverseInorder(root, aggregate)`
+> - **Step 1:** Initialise running state in the enclosing scope.
+> - **Step 2:** Call `reverseInorder(root)`.
 >
-> **reverseInorder(node, \[ref\]aggregate)**
+> **reverseInorder(node):**
 >
-> -   **Step 1:** If this is a `null` node, return
-> -   **Step 2:** Call `reverseInorder(node.right, aggregate)`
-> -   **Step 3:** `output` = `f(node.val)`
-> -   **Step 4:** Use the function `g` to add the contribution of `output` to `aggregate`
-> -   **Step 5:** Call `reverseInorder(node.left, aggregate)`
-> -   **Step 6:** Return
+> - **Step 1:** If `node` is `null`, return.
+> - **Step 2:** `reverseInorder(node.right)` — visit larger values first.
+> - **Step 3:** Process the current node — apply `f`; fold into the aggregate via `g`.
+> - **Step 4:** `reverseInorder(node.left)`.
 
-## Implementation
+## Generic template
 
-The implementation of the reverse sorted traversal technique is given below. The `reverseInorder` function processed nodes in the reverse sorted order of their values using the function `f` and aggregates the processed values over the function `g` in the same order.
+<div class="lang-tabs">
 
-C++
+```python,editable
+class Solution:
+    def __init__(self):
+        self.aggregate = 0          # running state shared across the walk
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+    def reverse_inorder(self, node):
+        if node is None:
+            return
+        self.reverse_inorder(node.right)            # 1. larger values first
+        output = self.f(node.val)                   # 2. process node
+        self.aggregate = self.g(self.aggregate, output)  # 3. fold
+        self.reverse_inorder(node.left)             # 4. smaller values
 
-// Diagram: using namespace std;
-
- class Solution {
-   public:
-       int callingFunction(TreeNode* root) {
-
-           // Initialize aggregate with a default value
-           int aggregate = 0;
-
-           // Traverse the binary tree in preorder traversal
-           reverseInorder(root, aggregate);
-
-           // Return the aggregated value
-           return aggregate;
-       }
-       void reverseInorder(TreeNode *node, int& aggregate) {
-
-           if (!node) {
-               // Return if this is a null node;
-               return;
-           }
-
-           // Traverse the right subtree
-           reverseInorder(node->right, aggregate);
-
-           // Process the current node
-           int output = f(node->val);
-           // Add contribution of current node
-           aggregate = g(aggregate, node->val);
-
-           // Traverse the left subtree
-           reverseInorder(node->left, aggregate);
-
-       }
-   };
+    def calling_function(self, root):
+        self.aggregate = 0
+        self.reverse_inorder(root)
+        return self.aggregate
 ```
 
-Java
-
-```java
-import java.util.*;
-
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-// Diagram: public class Solution {
-
-    // Declare aggregate as a class-level variable since Java does not support pass-by-reference
+```java,editable
+class Solution {
     private int aggregate = 0;
 
-// Diagram: public int callingFunction(TreeNode root) {
+    private void reverseInorder(TreeNode node) {
+        if (node == null) return;
+        reverseInorder(node.right);                                                  // larger first
+        int output = f(node.val);                                                    // process
+        aggregate = g(aggregate, output);                                            // fold
+        reverseInorder(node.left);                                                   // smaller next
+    }
 
-        // Initialize aggregate with a default value
+    public int callingFunction(TreeNode root) {
         aggregate = 0;
-
-        // Traverse the binary tree in reverseInorder traversal
         reverseInorder(root);
-
-        // Return the aggregated value
         return aggregate;
     }
-
-// Diagram: private void reverseInorder(TreeNode node) {
-
-        if (node == null) {
-            // Return if this is a null node;
-            return;
-        }
-
-        // Traverse the right subtree
-        reverseInorder(node.right);
-
-        // Process the current node
-        int output = f(node.val);
-
-        // Add contribution of current node
-        aggregate = g(aggregate, node.val);
-
-        // Traverse the left subtree
-        reverseInorder(node.left);
-    }
+    int f(int v)                  { return v; }
+    int g(int agg, int out)       { return agg + out; }
+}
 ```
 
-Typescript
+```c,editable
+static int aggregate;
 
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
+static int f(int v)            { return v; }
+static int g(int agg, int out) { return agg + out; }
 
- export class Solution {
-  private aggregate: number = 0;
+static void reverse_inorder(struct TreeNode *node) {
+    if (node == NULL) return;
+    reverse_inorder(node->right);                                                     // larger first
+    int output = f(node->val);                                                        // process
+    aggregate = g(aggregate, output);                                                 // fold
+    reverse_inorder(node->left);                                                      // smaller next
+}
+
+int callingFunction(struct TreeNode *root) {
+    aggregate = 0;
+    reverse_inorder(root);
+    return aggregate;
+}
+```
+
+```cpp,editable
+class Solution {
+public:
+    int aggregate = 0;
+
+    int f(int v)            { return v; }
+    int g(int agg, int out) { return agg + out; }
+
+    void reverseInorder(TreeNode *node) {
+        if (!node) return;
+        reverseInorder(node->right);                                                    // larger first
+        int output = f(node->val);                                                      // process
+        aggregate = g(aggregate, output);                                               // fold
+        reverseInorder(node->left);                                                     // smaller next
+    }
+
+    int callingFunction(TreeNode *root) {
+        aggregate = 0;
+        reverseInorder(root);
+        return aggregate;
+    }
+};
+```
+
+```scala,editable
+class Solution {
+  private var aggregate: Int = 0
+  private def f(v: Int): Int            = v
+  private def g(agg: Int, out: Int): Int = agg + out
+
+  private def reverseInorder(node: TreeNode): Unit = {
+    if (node == null) return
+    reverseInorder(node.right)                                                            // larger first
+    val output = f(node.value)                                                            // process
+    aggregate = g(aggregate, output)                                                      // fold
+    reverseInorder(node.left)                                                             // smaller next
+  }
+
+  def callingFunction(root: TreeNode): Int = {
+    aggregate = 0
+    reverseInorder(root)
+    aggregate
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+  callingFunction(root) {
+    this.aggregate = 0;
+    this.reverseInorder(root);
+    return this.aggregate;
+  }
+  reverseInorder(node) {
+    if (node === null) return;
+    this.reverseInorder(node.right);                                                          // larger first
+    const output = this.f(node.val);                                                          // process
+    this.aggregate = this.g(this.aggregate, output);                                          // fold
+    this.reverseInorder(node.left);                                                           // smaller next
+  }
+  f(v) { return v; }
+  g(agg, out) { return agg + out; }
+}
+```
+
+```typescript,editable
+class Solution {
+  aggregate: number = 0;
 
   callingFunction(root: TreeNode | null): number {
-    // Initialize aggregate with a default value
     this.aggregate = 0;
-
-    // Traverse the binary tree in reverseInorder traversal
     this.reverseInorder(root);
-
-    // Return the aggregated value
     return this.aggregate;
   }
 
   reverseInorder(node: TreeNode | null): void {
-    if (!node) {
-      // Return if this is a null node
-      return;
+    if (node === null) return;
+    this.reverseInorder(node.right);                                                            // larger first
+    const output = this.f(node.val);                                                            // process
+    this.aggregate = this.g(this.aggregate, output);                                            // fold
+    this.reverseInorder(node.left);                                                             // smaller next
+  }
+  f(v: number): number              { return v; }
+  g(agg: number, out: number): number { return agg + out; }
+}
+```
+
+```go,editable
+type genericState struct{ aggregate int }
+
+func (s *genericState) f(v int) int            { return v }
+func (s *genericState) g(agg int, out int) int { return agg + out }
+
+func (s *genericState) reverseInorder(node *TreeNode) {
+    if node == nil { return }
+    s.reverseInorder(node.Right)                                                                  // larger first
+    out := s.f(node.Val)                                                                          // process
+    s.aggregate = s.g(s.aggregate, out)                                                           // fold
+    s.reverseInorder(node.Left)                                                                   // smaller next
+}
+
+func callingFunction(root *TreeNode) int {
+    s := &genericState{}
+    s.reverseInorder(root)
+    return s.aggregate
+}
+```
+
+```kotlin,editable
+class Solution {
+    private var aggregate = 0
+
+    fun callingFunction(root: TreeNode?): Int {
+        aggregate = 0
+        reverseInorder(root)
+        return aggregate
     }
 
-    // Traverse the right subtree
-    this.reverseInorder(node.right);
-
-    // Process the current node
-    const output = f(node.val);
-    // Add contribution of current node
-    this.aggregate = g(this.aggregate, node.val);
-
-    // Traverse the left subtree
-    this.reverseInorder(node.left);
-  }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
- class Solution {
-  aggregate = 0;
-
-  callingFunction(root) {
-    // Initialize aggregate with a default value
-    this.aggregate = 0;
-
-    // Traverse the binary tree in reverseInorder traversal
-    this.reverseInorder(root);
-
-    // Return the aggregated value
-    return this.aggregate;
-  }
-
-  reverseInorder(node) {
-    if (!node) {
-      // Return if this is a null node
-      return;
+    private fun reverseInorder(node: TreeNode?) {
+        if (node == null) return
+        reverseInorder(node.right)                                                                   // larger first
+        val output = f(node.`val`)                                                                   // process
+        aggregate = g(aggregate, output)                                                             // fold
+        reverseInorder(node.left)                                                                    // smaller next
     }
-
-    // Traverse the right subtree
-    this.reverseInorder(node.right);
-
-    // Process the current node
-    const output = f(node.val);
-    // Add contribution of current node
-    this.aggregate = g(this.aggregate, node.val);
-
-    // Traverse the left subtree
-    this.reverseInorder(node.left);
-  }
+    private fun f(v: Int)                = v
+    private fun g(agg: Int, out: Int)    = agg + out
+}
 ```
 
-Python
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
 
-```python
-/**
+#[derive(Default)]
+struct Generic { aggregate: i32 }
+
+impl Generic {
+    fn f(&self, v: i32) -> i32             { v }
+    fn g(&self, agg: i32, out: i32) -> i32 { agg + out }
+
+    fn reverse_inorder(&mut self, node: &Tree) {
+        if let Some(n) = node {
+            let n = n.borrow();
+            self.reverse_inorder(&n.right);                                                            // larger first
+            let out = self.f(n.val);                                                                   // process
+            self.aggregate = self.g(self.aggregate, out);                                              // fold
+            self.reverse_inorder(&n.left);                                                             // smaller next
+        }
+    }
+}
 ```
 
-## Complexity Analysis
+</div>
 
-It is quite easy to figure out the time and space complexity of the solution. We traverse the entire tree using the reverse inorder traversal that takes linear **O(N)** time, and apply the function `f` and then function `g` on every node. And so, the overall time complexity depends on the time complexity of the function `f` and `g`. Considering both of them are constant time **O(1)** operations, the overall time complexity is linear **O(N)** in any case.
+## Complexity
 
-The space complexity of inorder traversal depends on the maximum size of the function call stack, which can be linear **O(N)** if the tree is a degenerate binary tree where every node only has one child and **O(log(N))** if it is a complete binary tree. However, each stack frame also creates its own copy of local variables, but each of them only makes a constant contribution to the size of the frame, so the overall space complexity is the same as the space required for the stack frames.
+| Operation | Time | Space |
+|---|---|---|
+| Reverse in-order walk + O(1) work per node | O(n) | O(h) |
 
-> **Best Case:** Degenerate binary tree
->
-> -   Space Complexity - **O(log(N))**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case:** Complete binary tree
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
+Identical to the sorted-traversal pattern — same number of node visits, same recursion depth, mirrored direction.
 
 ***
 
 # Identifying the reverse sorted traversal pattern
 
-The reverse sorted traversal technique can solve some specific types of binary search tree problems. These are generally **easy** problems where we need to process every node using the function`f` in the reverse sorted order (**descending**) of values of the nodes. We may also need to aggregate all the processed values over a function `g` in the same order. In cases where the same copy of some data must be shared between all nodes, those variables are created in the calling function or the enclosing scope.
+Use this pattern when the problem cares about *the sorted sequence in descending order* — i.e. you need to process larger values first, often because the result for a node depends on values strictly greater than itself.
 
-If the problem statement or its solution follows the generic template below, it can be solved by applying the sorted traversal technique.
+Tell-tale signals:
 
-**Template:**
+- **K-th largest, top-K, percentile-from-top.**
+- **Suffix sums / "sum of all values greater than this node"** — typical of problems that decorate every node with information about everything above it.
+- **Descending ranks** — each node's rank is `1 + (number of strictly larger nodes already seen)`.
+- **Pairwise checks against the *previous-larger* value** (the mirror of "previous-smaller" from lesson 10).
 
-Given a binary search tree, process every node using the function `f` in the reverse sorted (**descending**) order of node values, and aggregate the results over a function `g`.
+If your mental model is "iterate from biggest to smallest while remembering a running tally", reach for reverse in-order.
 
-## Example
+## Worked example — k-th largest element
 
-Let's consider the following problem as an example to better understand how to identify and solve a problem using the reverse sorted traversal technique.
+> **Problem:** Given a BST and an integer `k`, return the value of the k-th largest element.
 
-> **Problem statement:** Given a binary search tree, and an integer `k`, find the kth largest value in the tree.
+The reverse in-order walk emits nodes in descending order. So the k-th node it visits *is* the k-th largest. We just need a counter and an early-exit:
 
-// Diagram: Find the kth largest element in a binary search tree
+- Maintain a `count` (number of nodes processed so far) and a `result` slot.
+- At each node, recurse right first, increment count, check if `count == k` (record `result`, stop). Otherwise recurse left.
 
-## The reverse sorted traversal technique
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["Reverse in-order: 6, 5, 4, 3, 2, 1"] --> B["k = 3 → stop at 4"]
+    style B fill:#fde68a,stroke:#d97706
+```
 
-The problem description fits the generic template for the reverse sorted traversal pattern we learned earlier.
+<p align="center"><strong>For k = 3, the third value emitted by the reverse in-order walk is the answer (here, <code>4</code>). We can stop as soon as we hit it.</strong></p>
 
-**Template:**
+The "stop early" detail is what makes this O(h + k) rather than O(n) — we don't visit any node smaller than the answer.
 
-Given a binary search tree, process every node using the function `f` (count) in the reverse sorted (**descending**) order of node values, and aggregate the results over a function `g` (last value)
+***
 
-We create two variables, `count` and `result` in the enclosing scope, to hold the number of nodes traversed and the value of the kth largest element, and initialize them with 0. These variables are created in the enclosing scope to ensure that the same copy is shared between all the nodes during the inorder traversal.
+# Rank nodes
 
-We then start the reverse inorder traversal from the root node, where each node returns to its parent a boolean value denoting if the kth largest element was found. This way, we can terminate the traversal and rewind when we find the kth largest element.
+## Problem Statement
 
-The reverse inorder traversal recursively traverses to the right subtree of a node until it hits a `null` reference before processing a node. Hitting a `null` reference is the base case of the recursive call, and we return `false` to the parent. The return value from the right subtree is saved in a local variable `found` and checked if it is true. If true, it means the kth largest element was found while traversing the right subtree, and we terminate further traversal by returning true to the parent node.
+Given the **root** of a binary search tree, replace each node's value with its **rank in descending order** (largest = rank 1).
 
-If `found` is false, we process the current node by incrementing the value of `count` and checking if `count` is equal to `k`. If it is equal to `k`, it means the current node is the kth largest element, and we save its value in `result` and return true to the parent node. If not, it means the kth largest element will be found further ahead in the traversal, and so, we recursively traverse the left subtree and return the value returned by it to the parent node.
+### Example 1
 
-This way, the reverse inorder traversal will traverse the tree in the reverse sorted (**descending**) order and terminate and rewind on finding the kth largest element after storing it in `result`.
+> - **Input:** `root = [4, 2, 5, 1, 3, null, 6]`
+> - **Output:** `[3, 5, 2, 6, 4, null, 1]`
 
-// Diagram: Find the kth largest element in a binary search tree
+### Example 2
 
-The implementation of the reverse sorted traversal technique to solve the problem is given below.
+> - **Input:** `root = [5, 4, 10, null, null, 9, 11]`
+> - **Output:** `[4, 5, 2, null, null, 3, 1]`
 
-C++
+## The Strategy
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+Walk the tree in reverse in-order. The first node visited (the largest) gets rank `1`; the next gets `2`; and so on. Just maintain a running `rank` counter; every node overwrites its own value with the current `rank`, then increments it.
 
-// Diagram: using namespace std;
+## The Solution
 
+<div class="lang-tabs">
+
+```python,editable
+class Solution:
+    def __init__(self):
+        self.rank = 1                        # next rank to assign
+
+    def rank_nodes(self, root):
+        if root is None:
+            return root
+        self._walk(root)
+        return root
+
+    def _walk(self, node):
+        if node is None:
+            return
+        self._walk(node.right)               # larger values first
+        node.val = self.rank                 # assign current rank
+        self.rank += 1                       # next visit gets the next rank
+        self._walk(node.left)
+```
+
+```java,editable
 class Solution {
-public:
-    int count;
-    int result;
+    private int rank = 1;
 
-    bool reverseInOrder(TreeNode *root, int k) {
-        if (root == nullptr) {
-            return false;
-        }
-
-        // Traverse the right subtree and save the return value
-        bool found = reverseInOrder(root->right, k);
-
-        // Check if the kth largest element was found in the right subtree
-        if (found) return true;
-
-        // Increment the count
-        count++;
-
-        // If the count matches k, we have found the kth largest element
-        if (count == k) {
-            result = root->val;
-            return true;
-        }
-
-        // Traverse the left subtree
-        return reverseInOrder(root->left, k);
+    private void walk(TreeNode node) {
+        if (node == null) return;
+        walk(node.right);                                                                          // larger first
+        node.val = rank++;                                                                         // assign + increment
+        walk(node.left);
     }
 
-// Diagram: int kthLargestElement(TreeNode root, int k) {
+    public TreeNode rankNodes(TreeNode root) {
+        rank = 1;
+        walk(root);
+        return root;
+    }
+}
+```
 
-        // Reset the count and result variables
-        // Counter to keep track of the kth element
-        count = 0;
+```c,editable
+static int rank_counter;
 
-        // Variable to store the kth largest element
-        result = 0;
+static void walk(struct TreeNode *node) {
+    if (node == NULL) return;
+    walk(node->right);                                                                              // larger first
+    node->val = rank_counter++;                                                                     // assign + increment
+    walk(node->left);
+}
 
-        // Perform reverse in-order traversal
-        reverseInOrder(root, k);
+struct TreeNode *rankNodes(struct TreeNode *root) {
+    rank_counter = 1;
+    walk(root);
+    return root;
+}
+```
 
-        return result;
+```cpp,editable
+class Solution {
+public:
+    int rank = 1;
+
+    void walk(TreeNode *node) {
+        if (!node) return;
+        walk(node->right);                                                                            // larger first
+        node->val = rank++;                                                                           // assign + increment
+        walk(node->left);
+    }
+
+    TreeNode *rankNodes(TreeNode *root) {
+        rank = 1;
+        walk(root);
+        return root;
     }
 };
 ```
 
-Java
+```scala,editable
+class Solution {
+  private var rank: Int = 1
 
-```java
-import java.util.*;
-
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-// Diagram: public class Solution {
-
-    // Counter to keep track of the kth element
-    private int count;
-
-    // Variable to store the kth largest element
-    private int result;
-
-    public boolean reverseInOrder(TreeNode root, int k) {
-        if (root == null) {
-            return false;
-        }
-
-        // Traverse the right subtree and save the return value
-        boolean found = reverseInOrder(root.right, k);
-
-        // Check if the kth largest element was found in the right subtree
-        if (found) return true;
-
-        // Increment the count
-        count++;
-
-        // If the count matches k, we have found the kth largest element
-        if (count == k) {
-            result = root.val;
-            return true;
-        }
-
-        // Traverse the left subtree
-        return reverseInOrder(root.left, k);
-    }
-
-// Diagram: public int kthLargestElement(TreeNode root, int k) {
-
-        // Reset the count and result variables
-        count = 0;
-        result = 0;
-
-        // Perform reverse in-order traversal
-        reverseInOrder(root, k);
-
-        return result;
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-export class Solution {
-  // Counter to keep track of the kth element
-  private count: number = 0;
-
-  // Variable to store the kth largest element
-  private result: number = 0;
-
-  reverseInOrder(root: TreeNode | null, k: number): boolean {
-    if (root === null) {
-      return false;
-    }
-
-    // Traverse the right subtree and save the return value
-    const found = this.reverseInOrder(root.right, k);
-
-    // Check if the kth largest element was found in the right subtree
-    if (found) return true;
-
-    // Increment the count
-    this.count++;
-
-    // If the count matches k, we have found the kth largest element
-    if (this.count === k) {
-      this.result = root.val;
-      return true;
-    }
-
-    // Traverse the left subtree
-    return this.reverseInOrder(root.left, k);
+  private def walk(node: TreeNode): Unit = {
+    if (node == null) return
+    walk(node.right)                                                                                   // larger first
+    node.value = rank
+    rank += 1
+    walk(node.left)
   }
 
-  kthLargestElement(root: TreeNode | null, k: number): number {
-    // Reset the count and result variables
-    this.count = 0;
-    this.result = 0;
-
-    // Perform reverse in-order traversal
-    this.reverseInOrder(root, k);
-
-    return this.result;
+  def rankNodes(root: TreeNode): TreeNode = {
+    rank = 1
+    walk(root)
+    root
   }
+}
 ```
 
-Javascript
+```javascript,editable
+class Solution {
+  rankNodes(root) {
+    this.rank = 1;
+    this._walk(root);
+    return root;
+  }
 
-```javascript
-/**
+  _walk(node) {
+    if (node === null) return;
+    this._walk(node.right);                                                                              // larger first
+    node.val = this.rank++;                                                                              // assign + increment
+    this._walk(node.left);
+  }
+}
 ```
 
-Python
+```typescript,editable
+class Solution {
+  rank: number = 1;
 
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
+  rankNodes(root: TreeNode | null): TreeNode | null {
+    this.rank = 1;
+    this.walk(root);
+    return root;
+  }
 
-// Diagram: from typing import Optional, List, Any
+  walk(node: TreeNode | null): void {
+    if (node === null) return;
+    this.walk(node.right);                                                                                 // larger first
+    node.val = this.rank++;                                                                                // assign + increment
+    this.walk(node.left);
+  }
+}
+```
 
+```go,editable
+type rankState struct{ rank int }
+
+func (s *rankState) walk(node *TreeNode) {
+    if node == nil { return }
+    s.walk(node.Right)                                                                                       // larger first
+    node.Val = s.rank
+    s.rank++
+    s.walk(node.Left)
+}
+
+func rankNodes(root *TreeNode) *TreeNode {
+    s := &rankState{rank: 1}
+    s.walk(root)
+    return root
+}
+```
+
+```kotlin,editable
+class Solution {
+    private var rank = 1
+
+    private fun walk(node: TreeNode?) {
+        if (node == null) return
+        walk(node.right)                                                                                       // larger first
+        node.`val` = rank
+        rank += 1
+        walk(node.left)
+    }
+
+    fun rankNodes(root: TreeNode?): TreeNode? {
+        rank = 1
+        walk(root)
+        return root
+    }
+}
+```
+
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    pub fn rank_nodes(root: Tree) -> Tree {
+        let mut rank = 1i32;
+        Self::walk(&root, &mut rank);
+        root
+    }
+
+    fn walk(node: &Tree, rank: &mut i32) {
+        if let Some(n) = node {
+            let nb = n.borrow();
+            Self::walk(&nb.right, rank);                                                                        // larger first
+            drop(nb);
+            n.borrow_mut().val = *rank;
+            *rank += 1;
+            Self::walk(&n.borrow().left, rank);
+        }
+    }
+}
+```
+
+</div>
+
+***
+
+# Kth largest element
+
+## Problem Statement
+
+Given the **root** of a binary search tree and an integer `k`, return the k-th largest element. Return `0` if no such element exists.
+
+### Example 1
+
+> - **Input:** `root = [4, 2, 5, 1, 3, null, 6]`, `k = 3`
+> - **Output:** `4`
+
+### Example 2
+
+> - **Input:** `root = [5, 4, 10, null, null, 9, 11]`, `k = 2`
+> - **Output:** `10`
+
+## The Strategy
+
+Walk reverse in-order; the k-th node visited is the k-th largest. Critically — **stop traversing the moment the answer is found**, so the cost is O(h + k), not O(n).
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
 class Solution:
-    def __init__(self) -> None:
-        # Counter to keep track of the kth element
-        self.count: int = 0
-
-        # Variable to store the kth largest element
-        self.result: int = 0
-
-    def reverseInOrder(self, root: Optional[TreeNode], k: int) -> bool:
-        if root is None:
-            return False
-
-        # Traverse the right subtree and save the return value
-        found = self.reverseInOrder(root.right, k)
-
-        # Check if the kth largest element was found in the right subtree
-        if found:
-            return True
-
-        # Increment the count
-        self.count += 1
-
-        # If the count matches k, we have found the kth largest element
-        if self.count == k:
-            self.result = root.val
-            return True
-
-        # Traverse the left subtree
-        return self.reverseInOrder(root.left, k)
-
-    def kthLargestElement(self, root: Optional[TreeNode], k: int) -> int:
-        # Reset the count and result variables
+    def __init__(self):
         self.count = 0
         self.result = 0
+        self.found = False
 
-        # Perform reverse in-order traversal
-        self.reverseInOrder(root, k)
+    def reverse_in_order(self, root, k):
+        # Skip work as soon as the answer is locked in.
+        if root is None or self.found:
+            return
+        self.reverse_in_order(root.right, k)
+        if self.found:                            # could have just been set in the right subtree
+            return
+        self.count += 1
+        if self.count == k:                       # this node is the k-th largest
+            self.result = root.val
+            self.found = True
+            return
+        self.reverse_in_order(root.left, k)
 
+    def kth_largest_element(self, root, k):
+        self.count, self.result, self.found = 0, 0, False
+        self.reverse_in_order(root, k)
         return self.result
 ```
 
-The reverse sorted traversal technique can solve this problem in linear time and a single pass using a very small and concise recursive implementation.
-
-## Example problems
-
-Most problems that fall under this category are**easy**problems; a list of a few is given below.
-
-> -   **[Rank nodes](https://www.codeintuition.io/courses/binary-search-tree/zGlNZgMHrRYUxH3gKoge0)**
-> -   **[Kth Largest element](https://www.codeintuition.io/courses/binary-search-tree/dpJELPDGc4MpVBNpvbQ4I)**
-> -   **[Enriched sum tree](https://www.codeintuition.io/courses/binary-search-tree/B1AO9g0lg6TR4_pSKnUvS)**
-> -   **[Multiple replacement](https://www.codeintuition.io/courses/binary-search-tree/U9yqE1JszwfCxoKv2AlXk)**
-
-We will now solve these problems to understand the reverse sorted traversal technique better.
-
-***
-
-# Rank nodes
-
-## Problem Statement
-
-Given the **root** of a binary search tree, write a function that replaces each node’s value with its rank in descending order.
-
-The ranks start with `1`.
-
-### Example 1
-
-> -   **Input:** root = \[4, 2, 5, 1, 3, null, 6\]
-> -   **Output:** \[3, 5, 2, 6, 4, null, 1\]
-> -   **Explanation:** After ranking all the nodes in the binary search tree, we get the above result.
-
-### Example 2
-
-> -   **Input:** root = \[5, 4, 10, null, null, 9, 11\]
-> -   **Output:** \[4, 5, 2, null, null, 3, 1\]
-> -   **Explanation:** After ranking all the nodes in the binary search tree, we get the above result.
-
-## Solution
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
+```java,editable
 class Solution {
-public:
+    private int count = 0, result = 0;
+    private boolean found = false;
 
-    // Variable to keep track of the running rank of the tree
-    int rank = 1;
-
-    void rankNodes(TreeNode *root) {
-
-        // Base case
-        if (root == nullptr) {
-            return;
-        }
-
-        // Recursively process the right subtree
-        rankNodes(root->right);
-
-        // Update the current node's value
-        root->val = rank;
-
-        // Increment the rank for the next node
-        rank++;
-
-        // Recursively process the left subtree
-        rankNodes(root->left);
+    private void reverseInOrder(TreeNode root, int k) {
+        if (root == null || found) return;
+        reverseInOrder(root.right, k);
+        if (found) return;
+        count++;
+        if (count == k) { result = root.val; found = true; return; }                                              // hit
+        reverseInOrder(root.left, k);
     }
-};
+
+    public int kthLargestElement(TreeNode root, int k) {
+        count = 0; result = 0; found = false;
+        reverseInOrder(root, k);
+        return result;
+    }
+}
 ```
 
-***
+```c,editable
+#include <stdbool.h>
 
-# Rank nodes
+static int count_, result_;
+static bool found_;
 
-***
+static void reverse_in_order(struct TreeNode *root, int k) {
+    if (root == NULL || found_) return;
+    reverse_in_order(root->right, k);
+    if (found_) return;
+    count_++;
+    if (count_ == k) { result_ = root->val; found_ = true; return; }                                                // hit
+    reverse_in_order(root->left, k);
+}
 
-# Kth Largest element
+int kthLargestElement(struct TreeNode *root, int k) {
+    count_ = 0; result_ = 0; found_ = false;
+    reverse_in_order(root, k);
+    return result_;
+}
+```
 
-## Problem Statement
-
-Given the **root** of a binary search tree and an integer value **k**, write a function to find and return the kth largest element in the BST. Return `0` if the value does not exist.
-
-### Example 1
-
-> -   **Input:** root = \[4, 2, 5, 1, 3, null, 6\], k = 3
-> -   **Output:** 4
-> -   **Explanation:** The 3rd largest element in the node with the value 4.
-
-### Example 2
-
-> -   **Input:** root = \[5, 4, 10, null, null, 9, 11\], k = 2
-> -   **Output:** 10
-> -   **Explanation:** The 2nd largest element in the node with the value 10.
-
-## Solution
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
+```cpp,editable
 class Solution {
 public:
-
-    // Counter to keep track of the kth element
-    int count = 0;
-
-    // Variable to store the kth largest element
-    int result = 0;
-
-    // Flag to indicate if the kth largest element has been found
+    int count = 0, result = 0;
     bool found = false;
 
     void reverseInOrder(TreeNode *root, int k) {
-
-        // If the root is null or the kth largest element is already
-        // found, we don't need to traverse further
-        if (root == nullptr || found) {
-            return;
-        }
-
-        // Traverse the right subtree
+        if (!root || found) return;
         reverseInOrder(root->right, k);
-
-        // Increment the count
+        if (found) return;
         count++;
-
-        // If the count matches k, we have found the kth largest element
-        if (count == k) {
-            result = root->val;
-            found = true;
-            return;
-        }
-
-        // Traverse the left subtree
+        if (count == k) { result = root->val; found = true; return; }                                                 // hit
         reverseInOrder(root->left, k);
     }
 
     int kthLargestElement(TreeNode *root, int k) {
-
-        // Perform reverse in-order traversal
+        count = 0; result = 0; found = false;
         reverseInOrder(root, k);
-
         return result;
     }
 };
 ```
+
+```scala,editable
+class Solution {
+  private var count: Int  = 0
+  private var result: Int = 0
+  private var found: Boolean = false
+
+  private def reverseInOrder(root: TreeNode, k: Int): Unit = {
+    if (root == null || found) return
+    reverseInOrder(root.right, k)
+    if (found) return
+    count += 1
+    if (count == k) { result = root.value; found = true; return }                                                       // hit
+    reverseInOrder(root.left, k)
+  }
+
+  def kthLargestElement(root: TreeNode, k: Int): Int = {
+    count = 0; result = 0; found = false
+    reverseInOrder(root, k)
+    result
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+  reverseInOrder(root, k) {
+    if (root === null || this.found) return;
+    this.reverseInOrder(root.right, k);
+    if (this.found) return;
+    this.count++;
+    if (this.count === k) { this.result = root.val; this.found = true; return; }                                        // hit
+    this.reverseInOrder(root.left, k);
+  }
+
+  kthLargestElement(root, k) {
+    this.count = 0; this.result = 0; this.found = false;
+    this.reverseInOrder(root, k);
+    return this.result;
+  }
+}
+```
+
+```typescript,editable
+class Solution {
+  count = 0; result = 0; found = false;
+
+  reverseInOrder(root: TreeNode | null, k: number): void {
+    if (root === null || this.found) return;
+    this.reverseInOrder(root.right, k);
+    if (this.found) return;
+    this.count++;
+    if (this.count === k) { this.result = root.val; this.found = true; return; }                                          // hit
+    this.reverseInOrder(root.left, k);
+  }
+
+  kthLargestElement(root: TreeNode | null, k: number): number {
+    this.count = 0; this.result = 0; this.found = false;
+    this.reverseInOrder(root, k);
+    return this.result;
+  }
+}
+```
+
+```go,editable
+type kthLargestState struct {
+    count, result int
+    found         bool
+}
+
+func (s *kthLargestState) reverseInOrder(root *TreeNode, k int) {
+    if root == nil || s.found { return }
+    s.reverseInOrder(root.Right, k)
+    if s.found { return }
+    s.count++
+    if s.count == k { s.result = root.Val; s.found = true; return }                                                          // hit
+    s.reverseInOrder(root.Left, k)
+}
+
+func kthLargestElement(root *TreeNode, k int) int {
+    s := &kthLargestState{}
+    s.reverseInOrder(root, k)
+    return s.result
+}
+```
+
+```kotlin,editable
+class Solution {
+    private var count = 0
+    private var result = 0
+    private var found = false
+
+    private fun reverseInOrder(root: TreeNode?, k: Int) {
+        if (root == null || found) return
+        reverseInOrder(root.right, k)
+        if (found) return
+        count += 1
+        if (count == k) { result = root.`val`; found = true; return }                                                          // hit
+        reverseInOrder(root.left, k)
+    }
+
+    fun kthLargestElement(root: TreeNode?, k: Int): Int {
+        count = 0; result = 0; found = false
+        reverseInOrder(root, k)
+        return result
+    }
+}
+```
+
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    pub fn kth_largest_element(root: Tree, k: i32) -> i32 {
+        let mut count = 0i32;
+        let mut result = 0i32;
+        let mut found = false;
+        Self::walk(&root, k, &mut count, &mut result, &mut found);
+        result
+    }
+
+    fn walk(node: &Tree, k: i32, count: &mut i32, result: &mut i32, found: &mut bool) {
+        if *found { return; }
+        if let Some(n) = node {
+            let n = n.borrow();
+            Self::walk(&n.right, k, count, result, found);
+            if *found { return; }
+            *count += 1;
+            if *count == k { *result = n.val; *found = true; return; }                                                            // hit
+            Self::walk(&n.left, k, count, result, found);
+        }
+    }
+}
+```
+
+</div>
 
 ***
 
@@ -745,65 +835,248 @@ public:
 
 ## Problem Statement
 
-Given the **root** of a binary search tree, write a function to convert it to an enriched sum tree.
-
- An enriched sum tree is a binary tree where the value of every node is the sum of its original value and the values of all the nodes greater than it.
+Given the **root** of a binary search tree, replace every node's value with the sum of its original value and the values of *all nodes greater than it*. The resulting tree is called an **enriched sum tree** (sometimes "greater-tree").
 
 ### Example 1
 
-> -   **Input:** root = \[4, 2, 5, 1, 3, null, 6\]
-> -   **Output:** \[15, 20, 11, 21, 18, null, 6\]
-> -   **Explanation:** The enriched sum tree for the given binary search tree is shown in the diagram above.
+> - **Input:** `root = [4, 2, 5, 1, 3, null, 6]`
+> - **Output:** `[15, 20, 11, 21, 18, null, 6]`
 
 ### Example 2
 
-> -   **Input:** root = \[5, 4, 10, null, null, 9, 11\]
-> -   **Output:** \[35, 39, 21, null, null, 30, 11\]
-> -   **Explanation:** The enriched sum tree for the given binary search tree is shown in the diagram above.
+> - **Input:** `root = [5, 4, 10, null, null, 9, 11]`
+> - **Output:** `[35, 39, 21, null, null, 30, 11]`
 
-## Solution
+## The Strategy
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+Reverse in-order visits nodes from largest to smallest. Maintain a running `sum`; at each node:
 
-using namespace std;
+1. Add the current node's value to `sum`.
+2. Overwrite the current node's value with `sum`.
 
+By the time we visit a node, `sum` already contains the total of every strictly larger node we've already passed *plus* the current node — exactly the value the problem asks for.
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+class Solution:
+    def __init__(self):
+        self.sum = 0
+
+    def enriched_sum_tree(self, root):
+        if root is None:
+            return root
+        self._walk(root)
+        return root
+
+    def _walk(self, node):
+        if node is None:
+            return
+        self._walk(node.right)            # process larger values first
+        self.sum += node.val              # add original value to running total
+        node.val = self.sum               # overwrite with running total (greater-equal sum)
+        self._walk(node.left)
+```
+
+```java,editable
+class Solution {
+    private int sum = 0;
+
+    private void walk(TreeNode node) {
+        if (node == null) return;
+        walk(node.right);                                                                                                  // larger first
+        sum += node.val;                                                                                                   // accumulate
+        node.val = sum;                                                                                                    // overwrite
+        walk(node.left);
+    }
+
+    public TreeNode enrichedSumTree(TreeNode root) {
+        sum = 0;
+        walk(root);
+        return root;
+    }
+}
+```
+
+```c,editable
+static int running_sum;
+
+static void walk(struct TreeNode *node) {
+    if (node == NULL) return;
+    walk(node->right);                                                                                                       // larger first
+    running_sum += node->val;
+    node->val    = running_sum;
+    walk(node->left);
+}
+
+struct TreeNode *enrichedSumTree(struct TreeNode *root) {
+    running_sum = 0;
+    walk(root);
+    return root;
+}
+```
+
+```cpp,editable
 class Solution {
 public:
-
-    // Variable to keep track of the running sum of the tree
     int sum = 0;
 
-    void enrichedSumTree(TreeNode *root) {
+    void walk(TreeNode *node) {
+        if (!node) return;
+        walk(node->right);                                                                                                     // larger first
+        sum     += node->val;
+        node->val = sum;
+        walk(node->left);
+    }
 
-        // Base case
-        if (root == nullptr) {
-            return;
-        }
-
-        // Recursively process the right subtree
-        enrichedSumTree(root->right);
-
-        // Update the running sum with the current node's value
-        sum += root->val;
-
-        // Update the current node's value
-        root->val = sum;
-
-        // Recursively process the left subtree
-        enrichedSumTree(root->left);
+    TreeNode *enrichedSumTree(TreeNode *root) {
+        sum = 0;
+        walk(root);
+        return root;
     }
 };
 ```
+
+```scala,editable
+class Solution {
+  private var sum: Int = 0
+
+  private def walk(node: TreeNode): Unit = {
+    if (node == null) return
+    walk(node.right)                                                                                                              // larger first
+    sum += node.value
+    node.value = sum
+    walk(node.left)
+  }
+
+  def enrichedSumTree(root: TreeNode): TreeNode = {
+    sum = 0
+    walk(root)
+    root
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+  enrichedSumTree(root) {
+    this.sum = 0;
+    this._walk(root);
+    return root;
+  }
+
+  _walk(node) {
+    if (node === null) return;
+    this._walk(node.right);                                                                                                          // larger first
+    this.sum += node.val;
+    node.val  = this.sum;
+    this._walk(node.left);
+  }
+}
+```
+
+```typescript,editable
+class Solution {
+  sum: number = 0;
+
+  enrichedSumTree(root: TreeNode | null): TreeNode | null {
+    this.sum = 0;
+    this.walk(root);
+    return root;
+  }
+
+  walk(node: TreeNode | null): void {
+    if (node === null) return;
+    this.walk(node.right);                                                                                                              // larger first
+    this.sum += node.val;
+    node.val  = this.sum;
+    this.walk(node.left);
+  }
+}
+```
+
+```go,editable
+type sumState struct{ sum int }
+
+func (s *sumState) walk(node *TreeNode) {
+    if node == nil { return }
+    s.walk(node.Right)                                                                                                                    // larger first
+    s.sum += node.Val
+    node.Val = s.sum
+    s.walk(node.Left)
+}
+
+func enrichedSumTree(root *TreeNode) *TreeNode {
+    s := &sumState{}
+    s.walk(root)
+    return root
+}
+```
+
+```kotlin,editable
+class Solution {
+    private var sum = 0
+
+    private fun walk(node: TreeNode?) {
+        if (node == null) return
+        walk(node.right)                                                                                                                     // larger first
+        sum += node.`val`
+        node.`val` = sum
+        walk(node.left)
+    }
+
+    fun enrichedSumTree(root: TreeNode?): TreeNode? {
+        sum = 0
+        walk(root)
+        return root
+    }
+}
+```
+
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    pub fn enriched_sum_tree(root: Tree) -> Tree {
+        let mut sum = 0i32;
+        Self::walk(&root, &mut sum);
+        root
+    }
+
+    fn walk(node: &Tree, sum: &mut i32) {
+        if let Some(n) = node {
+            let right = n.borrow().right.clone();
+            Self::walk(&right, sum);                                                                                                          // larger first
+            *sum += n.borrow().val;
+            n.borrow_mut().val = *sum;
+            let left = n.borrow().left.clone();
+            Self::walk(&left, sum);
+        }
+    }
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — root = [4, 2, 5, 1, 3, null, 6]</strong></summary>
+
+```
+sum = 0, visit order: 6, 5, 4, 3, 2, 1
+visit 6 │ sum = 0 + 6 = 6   → node.val = 6
+visit 5 │ sum = 6 + 5 = 11  → node.val = 11
+visit 4 │ sum = 11 + 4 = 15 → node.val = 15
+visit 3 │ sum = 15 + 3 = 18 → node.val = 18
+visit 2 │ sum = 18 + 2 = 20 → node.val = 20
+visit 1 │ sum = 20 + 1 = 21 → node.val = 21
+Result: [15, 20, 11, 21, 18, null, 6] ✓
+```
+
+</details>
 
 ***
 
@@ -811,75 +1084,286 @@ public:
 
 ## Problem Statement
 
-Given the **root** of a binary search tree, `0` if its successor’s value is a multiple of its own.
+Given the **root** of a binary search tree, replace each node's value with `0` if its **inorder predecessor's** value (the value just *larger* than it in sorted order) is a non-zero multiple of its own value.
 
 ### Example 1
 
-> -   **Input:** root = \[6, 2, 5, 1, 4, null, 10\]
-> -   **Output:** \[6, 0, 0, 0, 4, null, 10\]
-> -   **Explanation:** After updating all nodes whose successor’s value is a multiple of their own to `0`, we obtain the above result.
+> - **Input:** `root = [6, 2, 5, 1, 4, null, 10]`
+> - **Output:** `[6, 0, 0, 0, 4, null, 10]`
 
 ### Example 2
 
-> -   **Input:** root = \[5, 4, 10, null, null, 9, 11\]
-> -   **Output:** \[5, 4, 10, null, null, 9, 11\]
-> -   **Explanation:** None of the nodes need to be updated, as none of the successors are multiples of their predecessor nodes.
+> - **Input:** `root = [5, 4, 10, null, null, 9, 11]`
+> - **Output:** `[5, 4, 10, null, null, 9, 11]`
 
-## Solution
+## The Strategy
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+The trick word is **predecessor**. Inside a reverse-in-order walk, each node's *previous-visited* node is the next-larger value in sorted order — exactly the "successor's value" the problem asks about (the problem statement's wording is slightly confusing, but the example outputs confirm: we compare each node to the value *larger* than it).
 
-using namespace std;
+So:
 
+- Maintain a `prev_val` that holds the most recently visited (i.e. larger) node's *original* value.
+- At each node, if `prev_val % current.val == 0` and `prev_val != 0`, set the current node to `0`.
+- *Then* update `prev_val` to the current node's original value (not the possibly-zeroed one) before recursing left.
+
+The "save the original first" detail is the trap that catches careless implementations.
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+class Solution:
+    def __init__(self):
+        self.prev_val = 0
+        self.has_prev = False
+
+    def multiple_replacement(self, root):
+        if root is None:
+            return root
+        self._walk(root)
+        return root
+
+    def _walk(self, node):
+        if node is None:
+            return
+        self._walk(node.right)                                  # process the larger neighbour first
+        original = node.val                                      # remember BEFORE we possibly overwrite
+        if self.has_prev and self.prev_val != 0 and self.prev_val % node.val == 0:
+            # The just-larger value is a non-zero multiple of this one → zero it.
+            node.val = 0
+        self.prev_val = original                                 # always store the unmodified value
+        self.has_prev = True
+        self._walk(node.left)
+```
+
+```java,editable
+class Solution {
+    private int prevVal = 0;
+    private boolean hasPrev = false;
+
+    private void walk(TreeNode node) {
+        if (node == null) return;
+        walk(node.right);                                                                                                                            // larger first
+        int original = node.val;
+        if (hasPrev && prevVal != 0 && prevVal % node.val == 0) node.val = 0;
+        prevVal = original;
+        hasPrev = true;
+        walk(node.left);
+    }
+
+    public TreeNode multipleReplacement(TreeNode root) {
+        prevVal = 0; hasPrev = false;
+        walk(root);
+        return root;
+    }
+}
+```
+
+```c,editable
+#include <stdbool.h>
+
+static int prev_val;
+static bool has_prev;
+
+static void walk(struct TreeNode *node) {
+    if (node == NULL) return;
+    walk(node->right);                                                                                                                                  // larger first
+    int original = node->val;
+    if (has_prev && prev_val != 0 && prev_val % node->val == 0) node->val = 0;
+    prev_val = original;
+    has_prev = true;
+    walk(node->left);
+}
+
+struct TreeNode *multipleReplacement(struct TreeNode *root) {
+    prev_val = 0; has_prev = false;
+    walk(root);
+    return root;
+}
+```
+
+```cpp,editable
 class Solution {
 public:
+    int prevVal = 0;
+    bool hasPrev = false;
 
-    // Variable to keep track of the value of the
-    // previous node
-    int prevNodeVal;
+    void walk(TreeNode *node) {
+        if (!node) return;
+        walk(node->right);                                                                                                                                // larger first
+        int original = node->val;
+        if (hasPrev && prevVal != 0 && prevVal % node->val == 0) node->val = 0;
+        prevVal = original;
+        hasPrev = true;
+        walk(node->left);
+    }
 
-    // Flag to check if previous node exists
-    bool hasPrevNode = false;
-
-    void multipleReplacement(TreeNode *root) {
-
-        // Base case
-        if (root == nullptr) {
-            return;
-        }
-
-        // Recursively process the right subtree
-        multipleReplacement(root->right);
-
-        // Store the original value of the current node
-        int originalVal = root->val;
-
-        // If the previous node's value is a multiple of the current
-        // node's value, replace the current node's value with 0
-        if (hasPrevNode && prevNodeVal != 0 &&
-            prevNodeVal % root->val == 0) {
-            root->val = 0;
-        }
-
-        // Update the previous node to the current node's original value
-        prevNodeVal = originalVal;
-
-        // Set the flag to true indicating that previous
-        // node exists
-        hasPrevNode = true;
-
-        // Recursively process the left subtree
-        multipleReplacement(root->left);
+    TreeNode *multipleReplacement(TreeNode *root) {
+        prevVal = 0; hasPrev = false;
+        walk(root);
+        return root;
     }
 };
 ```
+
+```scala,editable
+class Solution {
+  private var prevVal: Int = 0
+  private var hasPrev: Boolean = false
+
+  private def walk(node: TreeNode): Unit = {
+    if (node == null) return
+    walk(node.right)                                                                                                                                       // larger first
+    val original = node.value
+    if (hasPrev && prevVal != 0 && prevVal % node.value == 0) node.value = 0
+    prevVal = original
+    hasPrev = true
+    walk(node.left)
+  }
+
+  def multipleReplacement(root: TreeNode): TreeNode = {
+    prevVal = 0; hasPrev = false
+    walk(root)
+    root
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+  multipleReplacement(root) {
+    this.prevVal = 0;
+    this.hasPrev = false;
+    this._walk(root);
+    return root;
+  }
+
+  _walk(node) {
+    if (node === null) return;
+    this._walk(node.right);                                                                                                                                  // larger first
+    const original = node.val;
+    if (this.hasPrev && this.prevVal !== 0 && this.prevVal % node.val === 0) node.val = 0;
+    this.prevVal = original;
+    this.hasPrev = true;
+    this._walk(node.left);
+  }
+}
+```
+
+```typescript,editable
+class Solution {
+  prevVal: number = 0;
+  hasPrev: boolean = false;
+
+  multipleReplacement(root: TreeNode | null): TreeNode | null {
+    this.prevVal = 0; this.hasPrev = false;
+    this.walk(root);
+    return root;
+  }
+
+  walk(node: TreeNode | null): void {
+    if (node === null) return;
+    this.walk(node.right);                                                                                                                                     // larger first
+    const original = node.val;
+    if (this.hasPrev && this.prevVal !== 0 && this.prevVal % node.val === 0) node.val = 0;
+    this.prevVal = original;
+    this.hasPrev = true;
+    this.walk(node.left);
+  }
+}
+```
+
+```go,editable
+type multReplaceState struct {
+    prevVal int
+    hasPrev bool
+}
+
+func (s *multReplaceState) walk(node *TreeNode) {
+    if node == nil { return }
+    s.walk(node.Right)                                                                                                                                          // larger first
+    original := node.Val
+    if s.hasPrev && s.prevVal != 0 && s.prevVal % node.Val == 0 {
+        node.Val = 0
+    }
+    s.prevVal = original
+    s.hasPrev = true
+    s.walk(node.Left)
+}
+
+func multipleReplacement(root *TreeNode) *TreeNode {
+    s := &multReplaceState{}
+    s.walk(root)
+    return root
+}
+```
+
+```kotlin,editable
+class Solution {
+    private var prevVal = 0
+    private var hasPrev = false
+
+    private fun walk(node: TreeNode?) {
+        if (node == null) return
+        walk(node.right)                                                                                                                                          // larger first
+        val original = node.`val`
+        if (hasPrev && prevVal != 0 && prevVal % node.`val` == 0) node.`val` = 0
+        prevVal = original
+        hasPrev = true
+        walk(node.left)
+    }
+
+    fun multipleReplacement(root: TreeNode?): TreeNode? {
+        prevVal = 0; hasPrev = false
+        walk(root)
+        return root
+    }
+}
+```
+
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    pub fn multiple_replacement(root: Tree) -> Tree {
+        let mut prev: Option<i32> = None;
+        Self::walk(&root, &mut prev);
+        root
+    }
+
+    fn walk(node: &Tree, prev: &mut Option<i32>) {
+        if let Some(n) = node {
+            let right = n.borrow().right.clone();
+            Self::walk(&right, prev);                                                                                                                                // larger first
+            let original = n.borrow().val;
+            if let Some(pv) = *prev {
+                if pv != 0 && pv % original == 0 {
+                    n.borrow_mut().val = 0;
+                }
+            }
+            *prev = Some(original);
+            let left = n.borrow().left.clone();
+            Self::walk(&left, prev);
+        }
+    }
+}
+```
+
+</div>
+
+***
+
+## Final Takeaway
+
+Reverse in-order is the descending dual of in-order. Whenever the problem cares about *the largest values first* — k-th largest, ranks from the top, suffix sums by value, comparisons against the next-larger node — flip the recursion direction and the same template applies. Most reverse-sorted-traversal problems are *easy* because the BST has done the sorting for you.
+
+Three patterns to keep:
+
+1. **"Carry the previous-larger value"** — mirror of lesson 10's "carry the previous-smaller". Useful for any pairwise check that runs against the next-larger value (multiples, ratios, ranges, monotonicity).
+2. **"Running total over the descending sequence"** — solves *enriched sum tree*, but the same shape solves "sum of values strictly greater than X", "convert to suffix-sum array", "decorate node with `(num greater, sum greater)`".
+3. **"Save original before overwriting"** — the trap in `multiple replacement`. When a traversal both *reads* and *writes* the same field, capture the read into a local before the write — your future self will thank you.
+
+The next lesson introduces a new pattern that breaks the "always traverse all nodes" pattern from the last two lessons: **range postorder**, where the BST property lets us *prune* entire subtrees that can't contribute to the answer.

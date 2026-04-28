@@ -1,332 +1,159 @@
-# Constructing a binary search tree
+# 7. Constructing a Binary Search Tree
+
+## The Hook
+
+You've been searching, inserting, and deleting one node at a time. Now zoom out: how do you build the *entire* tree in the first place?
+
+This is where the previous lesson's quiet warning comes due. Insertion order is destiny. Hand a BST a sorted array `[1, 2, 3, 4, 5, …, n]` and call `insert` once per element, and you get a **right-skewed vine** of depth `n` — a tree with O(n) operations baked in. The same `n` values, rebuilt with a smarter strategy, can give you a perfectly balanced O(log n) tree.
+
+This lesson covers three constructions: the smart one (sorted array → balanced BST in O(n)), the lazy one (unsorted array → BST via repeated insertion, fast on lucky inputs and quadratic on cursed ones), and a slightly trickier variant of the smart one for sorted **linked lists**, where you don't have random access to the middle.
+
+---
 
 ## Table of Contents
 
 1. [Understanding construction from a sorted array](#understanding-construction-from-a-sorted-array)
-2. [Construct BST from a sorted array](#sorted-array-to-bst)
+2. [Sorted array to BST](#sorted-array-to-bst)
 3. [Understanding construction from an unsorted array](#understanding-construction-from-an-unsorted-array)
-4. [Construct BST from an unsorted array](#unsorted-array-to-bst)
+4. [Unsorted array to BST](#unsorted-array-to-bst)
 5. [Sorted linked list to BST](#sorted-linked-list-to-bst)
 
 ***
 
 # Understanding construction from a sorted array
 
-We know that the inorder traversal of a binary search tree generates a sorted sequence. However, reconstructing a **height-balanced** binary search tree from this sorted sequence is also possible. This is only true for a binary search tree because of its special properties.
+A sorted array is the *in-order traversal* of some BST. So in principle, you can rebuild a BST from it. The only question is *which* BST.
 
 ## Resolving ambiguity
 
-Using just the inorder traversal sequence to reconstruct a generic binary tree is impossible. We cannot identify the root by looking at the inorder traversal sequence. This ambiguity is generally resolved by using either the preorder or postorder traversal sequence in tandem with the inorder sequence, as for them, the position of the root is always at the beginning or the end, respectively. 
+In a generic binary tree, the in-order traversal alone is *not* enough to reconstruct the tree — there are infinitely many trees with the same in-order sequence. That's why standard "rebuild a binary tree" problems also give you the pre-order or post-order traversal: the pre/post sequence pins down the root at every level, breaking the ambiguity.
 
-// Diagram: Ambiguity in tree construction just from inorder traversal sequence
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph S["Inorder = [1, 2, 3]"]
+        subgraph T1["Tree A"]
+            A1((2))
+            A2((1))
+            A3((3))
+            A1 --> A2
+            A1 --> A3
+        end
+        subgraph T2["Tree B"]
+            B1((1))
+            B2((3))
+            B1 --> B3([" "])
+            B1 --> B2
+            B2 --> B4([" "])
+            B2 --> B5([" "])
+            style B3 fill:none,stroke:none,color:transparent
+            style B4 fill:none,stroke:none,color:transparent
+            style B5 fill:none,stroke:none,color:transparent
+        end
+        subgraph T3["Tree C"]
+            C1((3))
+            C2((2))
+            C3((1))
+            C1 --> C2
+            C2 --> C3
+        end
+    end
+```
 
-This means that for reconstructing a binary tree from the inorder traversal sequence, the other sequence(preorder or postorder) is just used to identify the location of the root node for every subtree.
+<p align="center"><strong>Three different binary trees, all with in-order traversal <code>[1, 2, 3]</code>. Without extra information you cannot tell which one to rebuild.</strong></p>
 
-What if there was another way to resolve this ambiguity without using the second traversal sequence(pre or postorder)? In the case of a binary search tree, this can be done by imposing the condition of height balance on the constructed tree. By imposing this condition, we can effectively resolve the ambiguity in root selection, as we will see shortly.
+For BSTs we have a *different* tie-breaker available: instead of demanding the pre-order, we can demand that the result is **height-balanced**. That single constraint forces a unique answer for every level: the *middle* of the current range becomes the root. The left half builds the left subtree, the right half builds the right subtree.
 
 ## Construction
 
-To construct a **height balanced** binary search tree from a sorted array, we follow a simple idea. For a binary tree to be height balanced, every node in the tree should typically have a similar number of nodes in its left and right subtrees. To ensure this happens, we make the value at the **middle** of the sorted array the root of the binary tree.
+The recipe is:
 
-All the values to the left of this value will make up the root's left subtree, and all the values to the right make up the right subtree. This way, both the left and right subtree of the root will have a similar number of nodes. We construct the left and the right subtree in the same way by applying the same logic recursively. As evident from above, imposing the condition of height balance effectively resolves the ambiguity in selecting the root node for every subtree.
+1. Take the middle of the sorted array. Make it the root.
+2. The left half (everything before the middle) is the in-order traversal of the **left subtree**. Recurse on it.
+3. The right half (everything after the middle) is the in-order traversal of the **right subtree**. Recurse on it.
 
-// Diagram: Resolving ambiguity while constructing the binary search tree
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph A1["Step 1: arr = [1,2,3,4,5,6,7], mid = index 3 (value 4) → root"]
+        N1((4))
+    end
+    subgraph A2["Step 2: left half [1,2,3], mid = 2 → root.left"]
+        N2((4))
+        L2((2))
+        N2 --> L2
+        N2 -.- N2R[ ]
+        style N2R fill:none,stroke:none
+    end
+    subgraph A3["Step 3: right half [5,6,7], mid = 6 → root.right"]
+        N3((4))
+        L3((2))
+        R3((6))
+        N3 --> L3
+        N3 --> R3
+    end
+    subgraph A4["Step 4: recurse on quarters → balanced tree"]
+        N4((4))
+        L4((2))
+        R4((6))
+        LL((1))
+        LR((3))
+        RL((5))
+        RR((7))
+        N4 --> L4
+        N4 --> R4
+        L4 --> LL
+        L4 --> LR
+        R4 --> RL
+        R4 --> RR
+        style N4 fill:#fef9c3,stroke:#f59e0b
+    end
+```
+
+<p align="center"><strong>Building a height-balanced BST from a sorted array. Each recursive call picks the midpoint of its subarray as the subtree root.</strong></p>
+
+By always picking the middle, the left and right subtrees end up with sizes differing by at most 1, which forces height-balance at every node. And it does this in **a single linear pass** — no comparisons, no per-element insertion, no logarithmic factor.
 
 ## Algorithm
 
-We can implement the idea by piggybacking on any of the recursive tree traversal algorithms and constructing the tree along the way. In the algorithm below, we use the preorder traversal algorithm, where we first construct the root node, followed by its left and right subtrees. However, at every point in traversal, we need to know exactly where the subtree rooted at the current node lies in the given sorted array. To accomplish this, we use two pointers `st` and `en` to keep track of the range in the array that holds the current subtree. To understand the algorithm better, let's look at the following example.
-
-// Diagram: Construct a balanced binary search tree from a sorted array
-
-We can summarise the algorithm as the following recursive equation.
-
-// Diagram: Recursive equation to construct a balanced binary search tree from a sorted array
+The recursive function is parameterised by `start` and `end` indices into the sorted array, and never copies the array.
 
 > **Algorithm**
 >
-> -   **Step 1:** If the `start` index is greater than the `end` index, there are no elements in this subarray. In this case, return `null` to indicate an empty subtree (base case).
-> -   **Step 2:** Calculate the `middle` index of the current subarray.
-> -   **Step 3:** Create a new node with the element's value at the array's `middle` index.
-> -   **Step 4:** Recursively build this new node's `left` subtree using the elements to the left of the `middle` index.
-> -   **Step 5:** Recursively build this new node's `right` subtree using the elements to the right of the `middle` index.
-> -   **Step 6:** Return the new node at the end of recursion.
+> - **Step 1:** If `start > end`, return `null`.
+> - **Step 2:** Let `mid = (start + end) / 2`.
+> - **Step 3:** Create a new node with value `arr[mid]`.
+> - **Step 4:** Recursively build the left subtree from `arr[start..mid-1]`, attach as `node.left`.
+> - **Step 5:** Recursively build the right subtree from `arr[mid+1..end]`, attach as `node.right`.
+> - **Step 6:** Return the new node.
 
-## Implementation
+## Complexity
 
-A simple recursive function can implement the algorithm in a few lines.
+| Case | Time | Space |
+|---|---|---|
+| All cases | O(n) | O(n) |
 
-C++
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    TreeNode *buildTree(vector<int> &arr, int st, int en) {
-
-        // Base case: If the start index is greater than
-        // the end index,there are no elements in this subarray
-        // In this case, return nullptr to indicate an empty subtree
-        if (st > en) {
-            return nullptr;
-        }
-
-        // Calculate the middle index of the current subarray
-        int mid = (st + en) / 2;
-
-        // Create a new TreeNode using the value at the middle index
-        TreeNode *node = new TreeNode(arr[mid]);
-
-        // Recursively build the left subtree using the elements to the
-        // left of the middle index
-        node->left = buildTree(arr, st, mid - 1);
-
-        // Recursively build the right subtree using the elements to the
-        // right of the middle index
-        node->right = buildTree(arr, mid + 1, en);
-
-        // Return the root of the constructed binary search tree
-        return node;
-    }
-
-// Diagram: TreeNode sortedArrayToBST(vector<int> &arr) {
-
-        // Call the buildTree function with the start index as 0 and the
-        // end index as the last index of the array
-        return buildTree(arr, 0, arr.size() - 1);
-    }
-};
-```
-
-Java
-
-```java
-import java.util.*;
-
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-class Solution {
-    public TreeNode buildTree(int[] arr, int st, int en) {
-
-        // Base case: If the start index is greater than
-        // the end index, there are no elements in this subarray
-        // In this case, return null to indicate an empty subtree
-        if (st > en) {
-            return null;
-        }
-
-        // Calculate the middle index of the current subarray
-        int mid = (st + en) / 2;
-
-        // Create a new TreeNode using the value at the middle index
-        TreeNode node = new TreeNode(arr[mid]);
-
-        // Recursively build the left subtree using the elements to the
-        // left of the middle index
-        node.left = buildTree(arr, st, mid - 1);
-
-        // Recursively build the right subtree using the elements to the
-        // right of the middle index
-        node.right = buildTree(arr, mid + 1, en);
-
-        // Return the root of the constructed binary search tree
-        return node;
-    }
-
-// Diagram: public TreeNode sortedArrayToBST(int[] arr) {
-
-        // Call the buildTree function with the start index as 0 and the
-        // end index as the last index of the array
-        return buildTree(arr, 0, arr.length - 1);
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-export class Solution {
-    buildTree(arr: number[], st: number, en: number): TreeNode | null {
-
-        // Base case: If the start index is greater than
-        // the end index, there are no elements in this subarray
-        // In this case, return null to indicate an empty subtree
-        if (st > en) {
-            return null;
-        }
-
-        // Calculate the middle index of the current subarray
-        const mid: number = Math.floor((st + en) / 2);
-
-        // Create a new TreeNode using the value at the middle index
-        const node: TreeNode = new TreeNode(arr[mid]);
-
-        // Recursively build the left subtree using the elements to the
-        // left of the middle index
-        node.left = this.buildTree(arr, st, mid - 1);
-
-        // Recursively build the right subtree using the elements to the
-        // right of the middle index
-        node.right = this.buildTree(arr, mid + 1, en);
-
-        // Return the root of the constructed binary search tree
-        return node;
-    }
-
-// Diagram: sortedArrayToBST(arr: number[]): TreeNode | null {
-
-        // Call the buildTree function with the start index as 0 and the
-        // end index as the last index of the array
-        return this.buildTree(arr, 0, arr.length - 1);
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-    buildTree(arr, st, en) {
-
-        // Base case: If the start index is greater than
-        // the end index, there are no elements in this subarray
-        // In this case, return null to indicate an empty subtree
-        if (st > en) {
-            return null;
-        }
-
-        // Calculate the middle index of the current subarray
-        const mid = Math.floor((st + en) / 2);
-
-        // Create a new TreeNode using the value at the middle index
-        const node = new TreeNode(arr[mid]);
-
-        // Recursively build the left subtree using the elements to the
-        // left of the middle index
-        node.left = this.buildTree(arr, st, mid - 1);
-
-        // Recursively build the right subtree using the elements to the
-        // right of the middle index
-        node.right = this.buildTree(arr, mid + 1, en);
-
-        // Return the root of the constructed binary search tree
-        return node;
-    }
-    sortedArrayToBST(arr) {
-
-        // Call the buildTree function with the start index as 0 and the
-        // end index as the last index of the array
-        return this.buildTree(arr, 0, arr.length - 1);
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import Optional, List
-
-class Solution:
-    def build_tree(
-        self, arr: List[int], st: int, en: int
-    ) -> Optional[TreeNode]:
-
-        # Base case: If the start index is greater than
-        # the end index, there are no elements in this subarray
-        # In this case, return None to indicate an empty subtree
-        if st > en:
-            return None
-
-        # Calculate the middle index of the current subarray.
-        mid: int = (st + en) // 2
-
-        # Create a new TreeNode using the value at the middle index.
-        node: TreeNode = TreeNode(arr[mid])
-
-        # Recursively build the left subtree using the elements to the
-        # left of the middle index.
-        node.left = self.build_tree(arr, st, mid - 1)
-
-        # Recursively build the right subtree using the elements to the
-        # right of the middle index.
-        node.right = self.build_tree(arr, mid + 1, en)
-
-        # Return the root of the constructed binary search tree.
-        return node
-
-    def sorted_array_to_bst(self, arr: List[int]) -> Optional[TreeNode]:
-
-        # Call the buildTree function with the start index as 0 and the
-        # end index as the last index of the array.
-        return self.build_tree(arr, 0, len(arr) - 1)
-```
-
-## Complexity Analysis
-
-The algorithm constructing a balanced binary search tree from a sorted array is just some extra logic on top of recursive preorder traversal. So, the runtime complexity is linear, just like traversal. The space complexity is linear since we also construct an entire tree.
-
-> **Best Case**
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case**
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
+Time is linear because every element is visited exactly once. Space is linear because we allocate `n` nodes; the recursion stack adds an additional O(log n) which is dominated by the node space.
 
 ***
 
@@ -334,419 +161,276 @@ The algorithm constructing a balanced binary search tree from a sorted array is 
 
 ## Problem Statement
 
-Given a sorted array **arr**, write a function to construct a height-balanced binary search tree from it and return the root of the constructed tree.
+Given a sorted array `arr`, construct a height-balanced binary search tree from it and return the root of the constructed tree.
 
 ### Example 1
 
-> -   **Input:** arr = \[1, 2, 3, 4, 5, 6\]
-> -   **Output:** \[3, 1, 5, null, 2, 4, 6\]
-> -   **Explanation:** The constructed binary search tree is shown in the diagram above.
+> - **Input:** `arr = [1, 2, 3, 4, 5, 6]`
+> - **Output:** `[3, 1, 5, null, 2, 4, 6]`
 
 ### Example 2
 
-> -   **Input:** arr = \[4, 5, 9, 10, 11\]
-> -   **Output:** \[9, 4, 10, null, 5, null, 11\]
-> -   **Explanation:** The constructed binary search tree is shown in the diagram above.
+> - **Input:** `arr = [4, 5, 9, 10, 11]`
+> - **Output:** `[9, 4, 10, null, 5, null, 11]`
 
-## Solution
+## The Solution
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+<div class="lang-tabs">
 
-using namespace std;
+```python,editable
+class Solution:
+    def build_tree(self, arr, st, en):
+        # Base case: no elements left in this subrange.
+        if st > en:
+            return None
+        # Pick the middle element as the root — keeps subtrees balanced.
+        mid = (st + en) // 2
+        node = TreeNode(arr[mid])
+        # Recurse on the two halves; they are themselves sorted.
+        node.left  = self.build_tree(arr, st, mid - 1)
+        node.right = self.build_tree(arr, mid + 1, en)
+        return node
 
+    def sorted_array_to_bst(self, arr):
+        return self.build_tree(arr, 0, len(arr) - 1)
+```
+
+```java,editable
 class Solution {
-public:
-    TreeNode *buildTree(vector<int> &arr, int st, int en) {
-
-        // Base case: If the start index is greater than
-        // the end index,there are no elements in this subarray
-        // In this case, return nullptr to indicate an empty subtree
-        if (st > en) {
-            return nullptr;
-        }
-
-        // Calculate the middle index of the current subarray
-        int mid = (st + en) / 2;
-
-        // Create a new TreeNode using the value at the middle index
-        TreeNode *node = new TreeNode(arr[mid]);
-
-        // Recursively build the left subtree using the elements to the
-        // left of the middle index
-        node->left = buildTree(arr, st, mid - 1);
-
-        // Recursively build the right subtree using the elements to the
-        // right of the middle index
-        node->right = buildTree(arr, mid + 1, en);
-
-        // Return the root of the constructed binary search tree
+    private TreeNode buildTree(int[] arr, int st, int en) {
+        if (st > en) return null;                                                  // empty range
+        int mid = (st + en) / 2;                                                   // middle as root
+        TreeNode node = new TreeNode(arr[mid]);
+        node.left  = buildTree(arr, st, mid - 1);                                  // left half
+        node.right = buildTree(arr, mid + 1, en);                                  // right half
         return node;
     }
 
-    TreeNode *sortedArrayToBST(vector<int> &arr) {
+    public TreeNode sortedArrayToBST(int[] arr) {
+        return buildTree(arr, 0, arr.length - 1);
+    }
+}
+```
 
-        // Call the buildTree function with the start index as 0 and the
-        // end index as the last index of the array
-        return buildTree(arr, 0, arr.size() - 1);
+```c,editable
+#include <stdlib.h>
+
+static struct TreeNode *build_tree(int *arr, int st, int en) {
+    if (st > en) return NULL;                                                       // empty range
+    int mid = (st + en) / 2;                                                        // middle as root
+    struct TreeNode *node = malloc(sizeof(*node));
+    node->val = arr[mid];
+    node->left  = build_tree(arr, st, mid - 1);                                     // left half
+    node->right = build_tree(arr, mid + 1, en);                                     // right half
+    return node;
+}
+
+struct TreeNode *sortedArrayToBST(int *arr, int n) {
+    return build_tree(arr, 0, n - 1);
+}
+```
+
+```cpp,editable
+class Solution {
+public:
+    TreeNode *buildTree(std::vector<int> &arr, int st, int en) {
+        if (st > en) return nullptr;                                                  // empty range
+        int mid = (st + en) / 2;                                                      // middle as root
+        TreeNode *node = new TreeNode(arr[mid]);
+        node->left  = buildTree(arr, st, mid - 1);
+        node->right = buildTree(arr, mid + 1, en);
+        return node;
+    }
+    TreeNode *sortedArrayToBST(std::vector<int> &arr) {
+        return buildTree(arr, 0, (int)arr.size() - 1);
     }
 };
 ```
+
+```scala,editable
+object Solution {
+  private def buildTree(arr: Array[Int], st: Int, en: Int): TreeNode = {
+    if (st > en) null                                                                  // empty range
+    else {
+      val mid = (st + en) / 2                                                          // middle as root
+      val node = new TreeNode(arr(mid))
+      node.left  = buildTree(arr, st, mid - 1)
+      node.right = buildTree(arr, mid + 1, en)
+      node
+    }
+  }
+  def sortedArrayToBST(arr: Array[Int]): TreeNode = buildTree(arr, 0, arr.length - 1)
+}
+```
+
+```javascript,editable
+function buildTree(arr, st, en) {
+  if (st > en) return null;                                                              // empty range
+  const mid = Math.floor((st + en) / 2);                                                 // middle
+  const node = new TreeNode(arr[mid]);
+  node.left  = buildTree(arr, st, mid - 1);
+  node.right = buildTree(arr, mid + 1, en);
+  return node;
+}
+
+function sortedArrayToBST(arr) {
+  return buildTree(arr, 0, arr.length - 1);
+}
+```
+
+```typescript,editable
+function buildTree(arr: number[], st: number, en: number): TreeNode | null {
+  if (st > en) return null;                                                                // empty range
+  const mid = Math.floor((st + en) / 2);                                                   // middle
+  const node = new TreeNode(arr[mid]);
+  node.left  = buildTree(arr, st, mid - 1);
+  node.right = buildTree(arr, mid + 1, en);
+  return node;
+}
+
+function sortedArrayToBST(arr: number[]): TreeNode | null {
+  return buildTree(arr, 0, arr.length - 1);
+}
+```
+
+```go,editable
+func buildTree(arr []int, st, en int) *TreeNode {
+    if st > en {
+        return nil                                                                          // empty range
+    }
+    mid := (st + en) / 2                                                                    // middle
+    node := &TreeNode{Val: arr[mid]}
+    node.Left  = buildTree(arr, st, mid-1)
+    node.Right = buildTree(arr, mid+1, en)
+    return node
+}
+
+func sortedArrayToBST(arr []int) *TreeNode {
+    return buildTree(arr, 0, len(arr)-1)
+}
+```
+
+```kotlin,editable
+class Solution {
+    private fun buildTree(arr: IntArray, st: Int, en: Int): TreeNode? {
+        if (st > en) return null                                                              // empty range
+        val mid = (st + en) / 2                                                                // middle
+        val node = TreeNode(arr[mid])
+        node.left  = buildTree(arr, st, mid - 1)
+        node.right = buildTree(arr, mid + 1, en)
+        return node
+    }
+
+    fun sortedArrayToBST(arr: IntArray): TreeNode? = buildTree(arr, 0, arr.size - 1)
+}
+```
+
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    fn build_tree(arr: &[i32], st: i32, en: i32) -> Tree {
+        if st > en { return None; }                                                            // empty range
+        let mid = (st + en) / 2;                                                               // middle
+        let node = Rc::new(RefCell::new(TreeNode::new(arr[mid as usize])));
+        node.borrow_mut().left  = Self::build_tree(arr, st, mid - 1);
+        node.borrow_mut().right = Self::build_tree(arr, mid + 1, en);
+        Some(node)
+    }
+
+    pub fn sorted_array_to_bst(arr: Vec<i32>) -> Tree {
+        Self::build_tree(&arr, 0, arr.len() as i32 - 1)
+    }
+}
+```
+
+</div>
 
 ***
 
 # Understanding construction from an unsorted array
 
-Constructing a binary search tree from an unsorted array of values is easy. It is not always the best method, but it is one of the easiest. 
+If the input is unsorted, the elegant midpoint trick is gone — there's no `mid` that means "middle in sorted order" without first sorting. The simplest fallback is to **insert the values one at a time** into an initially empty BST.
 
 ## Algorithm
 
-To construct a binary search tree from a given sequence, we start with an empty binary tree and insert all the elements in the sequence into it individually.
-
-// Diagram: Insert values one at a time in binary search tree
-
 > **Algorithm**
 >
-> -   **Step 1:** Initialize the `root` of the BST as `null` (empty tree).
-> -   **Step 2:** Iterate through the elements of the input array, do the following:
->     -   **Step 2.1**: Insert the `current` element into the BST rooted at `root`.
-> -   **Step 3:** Return the `root` of the BST, representing the `root` of the constructed BST.
+> - **Step 1:** Initialise `root = null`.
+> - **Step 2:** For each element `v` in the input array, set `root = insert(root, v)`.
+> - **Step 3:** Return `root`.
 
-## Implementation
+That's it. Every insert is the same recursive descent we wrote in lesson 5.
 
-The implementation of the algorithm is quite straightforward. We implement an insert function that inserts a value into the given tree and repeatedly calls it for all the elements in the sequence.
+## Complexity — best vs worst
 
-C++
+This is where insertion order becomes consequential.
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+> *Friction prompt — predict before reading on. Given the same set of values, what input order makes this construction fast? What order makes it slow? Why?*
 
-// Diagram: using namespace std;
+**Best case** — every insert lands in O(log n). This requires the tree to *stay* balanced after every insertion. Inputs that achieve this look exactly like the **level-order traversal of a balanced BST**: insert the median first, then the medians of the left/right halves, then the medians of the quarters, etc. Each insert hits a nearly-full tree's lowest empty level, never extending the height.
 
-class Solution {
-public:
-    TreeNode *insert(TreeNode *root, int data) {
+**Worst case** — every insert lands in O(n). This happens when the input is *monotonic* (sorted ascending or descending). Each new value is bigger than everything in the tree (or smaller), so every insert walks the full current depth and adds one to it. The tree becomes a vine.
 
-        // If the root is null, create a new node with data and return
-        // it as the new root
-        if (!root) {
-            return new TreeNode(data);
-        }
-
-        // If data is less than the current root's value, insert it in
-        // the left subtree
-        if (data < root->val) {
-            root->left = insert(root->left, data);
-        }
-
-        // If data is greater than or equal to the current root's value,
-        // insert it in the right subtree
-        else {
-            root->right = insert(root->right, data);
-        }
-
-        // Return the updated root of the BST after insertion
-        return root;
-    }
-
-// Diagram: TreeNode unsortedArrayToBST(vector<int> &arr) {
-
-        // Initialize the root of the BST as nullptr (empty tree)
-        TreeNode *root = nullptr;
-
-        // Iterate through the elements of the input array
-        for (int i = 0; i < arr.size(); i++)
-
-            // Insert the current element into the BST rooted at root
-            root = insert(root, arr[i]);
-
-        // Return the root of the BST, which represents the root of the
-        // constructed BST
-        return root;
-    }
-};
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph Best["Best — input [4, 2, 6, 1, 3, 5, 7]"]
+        B1((4))
+        B2((2))
+        B3((6))
+        B4((1))
+        B5((3))
+        B6((5))
+        B7((7))
+        B1 --> B2
+        B1 --> B3
+        B2 --> B4
+        B2 --> B5
+        B3 --> B6
+        B3 --> B7
+        style B1 fill:#bbf7d0,stroke:#16a34a
+    end
+    subgraph Worst["Worst — input [1, 2, 3, 4, 5, 6, 7]"]
+        W1((1))
+        W2((2))
+        W3((3))
+        W4((4))
+        W5((5))
+        W6((6))
+        W7((7))
+        W1 --> W2
+        W2 --> W3
+        W3 --> W4
+        W4 --> W5
+        W5 --> W6
+        W6 --> W7
+        style W1 fill:#fecaca,stroke:#ef4444
+    end
 ```
 
-Java
+<p align="center"><strong>Same 7 values, two input orders. The level-order order produces a balanced tree (height 3); the sorted order produces a vine (height 7).</strong></p>
 
-```java
-import java.util.*;
+| Case | Time | Space |
+|---|---|---|
+| Best (level-order of a balanced BST) | O(n log n) | O(n) |
+| Worst (monotonic input) | **O(n²)** | O(n) |
 
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
+The total time is `n` insertions × `O(log n)` per insertion in the best case = `O(n log n)`. In the worst case, every insertion walks deeper than the last one (depths `1, 2, 3, ..., n`), giving the classic `1 + 2 + … + n = O(n²)` total.
 
-class Solution {
-    public TreeNode insert(TreeNode root, int data) {
-
-        // If the root is null, create a new node with data and return it
-        // as the new root
-        if (root == null) {
-            return new TreeNode(data);
-        }
-
-        // If data is less than the current root's value, insert it in
-        // the left subtree
-        if (data < root.val) {
-            root.left = insert(root.left, data);
-        }
-
-        // If data is greater than or equal to the current root's value,
-        // insert it in the right subtree
-        else {
-            root.right = insert(root.right, data);
-        }
-
-        // Return the updated root of the BST after insertion
-        return root;
-    }
-
-// Diagram: public TreeNode unsortedArrayToBST(int[] arr) {
-
-        // Initialize the root of the BST as null (empty tree)
-        TreeNode root = null;
-
-        // Iterate through the elements of the input array
-        for (int i = 0; i < arr.length; i++) {
-
-            // Insert the current element into the BST rooted at root
-            root = insert(root, arr[i]);
-        }
-
-        // Return the root of the BST, which represents the root of the
-        // constructed BST
-        return root;
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-export class Solution {
-    insert(root: TreeNode | null, data: number): TreeNode | null {
-
-        // If the root is null, create a new node with data and return it
-        // as the new root
-        if (root === null) {
-            return new TreeNode(data);
-        }
-
-        // If data is less than the current root's value, insert it in
-        // the left subtree
-        if (data < root.val) {
-            root.left = this.insert(root.left, data);
-        }
-
-        // If data is greater than or equal to the current root's value,
-        // insert it in the right subtree
-        else {
-            root.right = this.insert(root.right, data);
-        }
-
-        // Return the updated root of the BST after insertion
-        return root;
-    }
-
-// Diagram: unsortedArrayToBST(arr: number[]): TreeNode | null {
-
-        // Initialize the root of the BST as null (empty tree)
-        let root: TreeNode | null = null;
-
-        // Iterate through the elements of the input array
-        for (let i = 0; i < arr.length; i++) {
-
-            // Insert the current element into the BST rooted at root
-            root = this.insert(root, arr[i]);
-        }
-
-        // Return the root of the BST, which represents the root of the
-        // constructed BST
-        return root;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-    insert(root, data) {
-
-        // If the root is null, create a new node with data and return it
-        // as the new root
-        if (root === null) {
-            return new TreeNode(data);
-        }
-
-        // If data is less than the current root's value, insert it in
-        // the left subtree
-        if (data < root.val) {
-            root.left = this.insert(root.left, data);
-        }
-
-        // If data is greater than or equal to the current root's value,
-        // insert it in the right subtree
-        else {
-            root.right = this.insert(root.right, data);
-        }
-
-        // Return the updated root of the BST after insertion
-        return root;
-    }
-
-// Diagram: unsortedArrayToBST(arr) {
-
-        // Initialize the root of the BST as null (empty tree)
-        let root = null;
-
-        // Iterate through the elements of the input array
-        for (let i = 0; i < arr.length; i++) {
-
-            // Insert the current element into the BST rooted at root
-            root = this.insert(root, arr[i]);
-        }
-
-        // Return the root of the BST, which represents the root of the
-        // constructed BST
-        return root;
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import Optional, List
-
-class Solution:
-    def insert(
-        self, root: Optional[TreeNode], data: int
-    ) -> Optional[TreeNode]:
-
-        # If the root is null, create a new node with data and return it
-        # as the new root
-        if not root:
-            return TreeNode(data)
-
-        # If data is less than the current root's value, insert it in
-        # the left subtree
-        if data < root.val:
-            root.left = self.insert(root.left, data)
-
-        # If data is greater than or equal to the current root's value,
-        # insert it in the right subtree
-        else:
-            root.right = self.insert(root.right, data)
-
-        # Return the updated root of the BST after insertion
-        return root
-
-    def unsorted_array_to_bst(self, arr: list) -> Optional[TreeNode]:
-
-        # Initialize the root of the BST as None (empty tree)
-        root = None
-
-        # Iterate through the elements of the input array
-        for num in arr:
-
-            # Insert the current element into the BST rooted at root
-            root = self.insert(root, num)
-
-        # Return the root of the BST, which represents the root of the
-        # constructed BST
-        return root
-```
-
-## Complexity Analysis
-
-The algorithm for constructing a binary search tree by inserting values sequentially into an empty tree involves traversing the entire sequence once, which has a linear time complexity. However, we also insert a BST for every element in the sequence. Insertion in a BST has a best-case time complexity of **O(log(N))** and a worst-case time complexity of **O(N)**. Let's understand better what the best and the worst cases are.
-
-### Best Case
-
-The best cases will be when every insert in the binary search tree takes **O(logN)** time. This can only happen if the tree is height-balanced at every step in the interaction. Let us look at an example of such a case.
-
-// Diagram: Best case time complexity
-
-Observing the example case above and extrapolating it, we hit the best case when the given sequence represents the level order traversal of a height balanced binary search tree. In such cases, the constructed tree will remain height balanced at all points in the iteration so that every operation will take **O(logN)** time. Since this operation is repeated for all elements in the sequence, the overall runtime complexity will be **O(NlogN)**.
-
-### Worst Case
-
-The worst case is when every insert operation in the binary search tree takes **O(N)** time. This will happen when the tree being constructed is skewed at every point.
-
-// Diagram: Worst case time complexity
-
-We observed the example case and extrapolated it further. When the given sequence is sorted, we hit the worst case. In such cases, the tree constructed will be a skewed tree at all points in the iteration, so the insertion will always take **O(N)** time. Since this operation is repeated for all elements in the sequence, the overall runtime complexity will be **O(N\*N)** \= **O(N2)**.
-
-Since this algorithm also creates an entirely new tree, the space complexity, in any case, is linear **O(N)**.
-
-> **Best Case** : The input sequence is the level order traversal sequence of balanced binary search tree.
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N(log(N))**
->
-> **Worst Case** : The input sequence is sorted
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N^2)**
+This is why production code rarely uses naive BSTs for unknown inputs — and why **self-balancing** BSTs (AVL, red-black) exist: they perform a small repair after every insert that keeps the tree height ≤ O(log n) regardless of input order.
 
 ***
 
@@ -754,79 +438,213 @@ Since this algorithm also creates an entirely new tree, the space complexity, in
 
 ## Problem Statement
 
-Given an unsorted array **arr**, write a function to construct a binary search tree from it by inserting nodes in the order given in the array and return the root of the constructed tree.
+Given an unsorted array `arr`, construct a binary search tree by inserting nodes in the order given in the array, and return the root.
 
 ### Example 1
 
-> -   **Input:** arr = \[2, 1, 6, 5, 3, 4\]
-> -   **Output:** \[2, 1, 6, null, null, 5, null, 3, null, null, 4\]
-> -   **Explanation:** The constructed binary search tree is shown in the diagram above.
+> - **Input:** `arr = [2, 1, 6, 5, 3, 4]`
+> - **Output:** `[2, 1, 6, null, null, 5, null, 3, null, null, 4]`
 
 ### Example 2
 
-> -   **Input:** arr = \[10, 5, 9, 4, 11\]
-> -   **Output:** \[10, 5, 11, 4, 9\]
-> -   **Explanation:** The constructed binary search tree is shown in the diagram above.
+> - **Input:** `arr = [10, 5, 9, 4, 11]`
+> - **Output:** `[10, 5, 11, 4, 9]`
 
-## Solution
+## The Solution
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+<div class="lang-tabs">
 
-using namespace std;
+```python,editable
+class Solution:
+    def insert(self, root, data):
+        if root is None:
+            return TreeNode(data)
+        if data < root.val:
+            root.left = self.insert(root.left, data)
+        else:
+            root.right = self.insert(root.right, data)
+        return root
 
+    def unsorted_array_to_bst(self, arr):
+        # Start with an empty tree; each insertion grows it by one node.
+        root = None
+        for v in arr:
+            root = self.insert(root, v)
+        return root
+```
+
+```java,editable
 class Solution {
-public:
-    TreeNode *insert(TreeNode *root, int data) {
-
-        // If the root is null, create a new node with data and return
-        // it as the new root
-        if (!root) {
-            return new TreeNode(data);
-        }
-
-        // If data is less than the current root's value, insert it in
-        // the left subtree
-        if (data < root->val) {
-            root->left = insert(root->left, data);
-        }
-
-        // If data is greater than or equal to the current root's value,
-        // insert it in the right subtree
-        else {
-            root->right = insert(root->right, data);
-        }
-
-        // Return the updated root of the BST after insertion
+    public TreeNode insert(TreeNode root, int data) {
+        if (root == null) return new TreeNode(data);
+        if (data < root.val) root.left  = insert(root.left,  data);
+        else                 root.right = insert(root.right, data);
         return root;
     }
 
-    TreeNode *unsortedArrayToBST(vector<int> &arr) {
+    public TreeNode unsortedArrayToBST(int[] arr) {
+        TreeNode root = null;
+        for (int v : arr) root = insert(root, v);                                        // grow one at a time
+        return root;
+    }
+}
+```
 
-        // Initialize the root of the BST as nullptr (empty tree)
+```c,editable
+#include <stdlib.h>
+
+struct TreeNode *insert_node(struct TreeNode *root, int data) {
+    if (root == NULL) {
+        struct TreeNode *node = malloc(sizeof(*node));
+        node->val = data; node->left = node->right = NULL;
+        return node;
+    }
+    if (data < root->val) root->left  = insert_node(root->left,  data);
+    else                  root->right = insert_node(root->right, data);
+    return root;
+}
+
+struct TreeNode *unsortedArrayToBST(int *arr, int n) {
+    struct TreeNode *root = NULL;
+    for (int i = 0; i < n; i++) root = insert_node(root, arr[i]);                         // grow one at a time
+    return root;
+}
+```
+
+```cpp,editable
+class Solution {
+public:
+    TreeNode *insert(TreeNode *root, int data) {
+        if (!root) return new TreeNode(data);
+        if (data < root->val) root->left  = insert(root->left,  data);
+        else                  root->right = insert(root->right, data);
+        return root;
+    }
+    TreeNode *unsortedArrayToBST(std::vector<int> &arr) {
         TreeNode *root = nullptr;
-
-        // Iterate through the elements of the input array
-        for (int i = 0; i < arr.size(); i++)
-
-            // Insert the current element into the BST rooted at root
-            root = insert(root, arr[i]);
-
-        // Return the root of the BST, which represents the root of the
-        // constructed BST
+        for (int v : arr) root = insert(root, v);                                          // grow one at a time
         return root;
     }
 };
 ```
+
+```scala,editable
+object Solution {
+  private def insert(root: TreeNode, data: Int): TreeNode = {
+    if (root == null) new TreeNode(data)
+    else {
+      if (data < root.value) root.left  = insert(root.left,  data)
+      else                   root.right = insert(root.right, data)
+      root
+    }
+  }
+
+  def unsortedArrayToBST(arr: Array[Int]): TreeNode = {
+    var root: TreeNode = null
+    for (v <- arr) root = insert(root, v)                                                   // grow one at a time
+    root
+  }
+}
+```
+
+```javascript,editable
+function insertNode(root, data) {
+  if (root === null) return new TreeNode(data);
+  if (data < root.val) root.left  = insertNode(root.left,  data);
+  else                 root.right = insertNode(root.right, data);
+  return root;
+}
+
+function unsortedArrayToBST(arr) {
+  let root = null;
+  for (const v of arr) root = insertNode(root, v);                                            // grow one at a time
+  return root;
+}
+```
+
+```typescript,editable
+function insertNode(root: TreeNode | null, data: number): TreeNode {
+  if (root === null) return new TreeNode(data);
+  if (data < root.val) root.left  = insertNode(root.left,  data);
+  else                 root.right = insertNode(root.right, data);
+  return root;
+}
+
+function unsortedArrayToBST(arr: number[]): TreeNode | null {
+  let root: TreeNode | null = null;
+  for (const v of arr) root = insertNode(root, v);                                            // grow one at a time
+  return root;
+}
+```
+
+```go,editable
+func insertNode(root *TreeNode, data int) *TreeNode {
+    if root == nil {
+        return &TreeNode{Val: data}
+    }
+    if data < root.Val { root.Left  = insertNode(root.Left,  data) }
+    else               { root.Right = insertNode(root.Right, data) }
+    return root
+}
+
+func unsortedArrayToBST(arr []int) *TreeNode {
+    var root *TreeNode = nil
+    for _, v := range arr {
+        root = insertNode(root, v)                                                              // grow one at a time
+    }
+    return root
+}
+```
+
+```kotlin,editable
+class Solution {
+    private fun insert(root: TreeNode?, data: Int): TreeNode {
+        if (root == null) return TreeNode(data)
+        if (data < root.`val`) root.left  = insert(root.left,  data)
+        else                   root.right = insert(root.right, data)
+        return root
+    }
+
+    fun unsortedArrayToBST(arr: IntArray): TreeNode? {
+        var root: TreeNode? = null
+        for (v in arr) root = insert(root, v)                                                    // grow one at a time
+        return root
+    }
+}
+```
+
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    fn insert_node(root: Tree, data: i32) -> Tree {
+        match root {
+            None => Some(Rc::new(RefCell::new(TreeNode::new(data)))),
+            Some(node) => {
+                {
+                    let mut n = node.borrow_mut();
+                    if data < n.val {
+                        n.left  = Self::insert_node(n.left.take(),  data);
+                    } else {
+                        n.right = Self::insert_node(n.right.take(), data);
+                    }
+                }
+                Some(node)
+            }
+        }
+    }
+
+    pub fn unsorted_array_to_bst(arr: Vec<i32>) -> Tree {
+        let mut root: Tree = None;
+        for v in arr { root = Self::insert_node(root, v); }                                        // grow one at a time
+        root
+    }
+}
+```
+
+</div>
 
 ***
 
@@ -834,96 +652,362 @@ public:
 
 ## Problem Statement
 
-Given the **head** of a sorted singly linked list, write a function to construct a height-balanced binary search tree from it and return the root of the constructed tree.
+Given the **head** of a sorted singly linked list, construct a height-balanced binary search tree from it and return the root of the constructed tree.
 
 ### Example 1
 
-> -   **Input:** head = \[1, 2, 3, 4, 5, 6\]
-> -   **Output:** \[4, 2, 6, 1, 3, 5\]
-> -   **Explanation:** The constructed binary search tree is shown in the diagram above.
+> - **Input:** `head = [1, 2, 3, 4, 5, 6]`
+> - **Output:** `[4, 2, 6, 1, 3, 5]`
 
 ### Example 2
 
-> -   **Input:** head = \[4, 5, 9, 10, 11\]
-> -   **Output:** \[9, 5, 11, 4, null, 10\]
-> -   **Explanation:** The constructed binary search tree is shown in the diagram above.
+> - **Input:** `head = [4, 5, 9, 10, 11]`
+> - **Output:** `[9, 5, 11, 4, null, 10]`
 
-## Solution
+## The Strategy
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+The high-level idea is identical to the sorted-array case: pick the middle element as the root, recurse on the two halves. The wrinkle is that **a singly linked list does not support O(1) random access**. To find the middle of an `n`-element list we need an O(n) walk — once per recursive call.
 
-using namespace std;
+The classic trick to find the middle of a linked list is the **slow/fast pointer** (Floyd's "tortoise and hare") technique: a slow pointer moves one step per iteration, a fast pointer moves two. When fast falls off the end, slow is sitting on the middle.
 
+To keep the recursion tidy, we also **split the list** at that middle: cut the link from the previous node, so the left half ends at the node just before the middle, and the right half starts at `middle.next`.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["head"] --> B["1"] --> C["2"] --> D["3"] --> E["4"] --> F["5"] --> G["6"] --> H["null"]
+    M["slow ↑ at 4 = middle"]
+    M -.- E
+    style E fill:#fde68a,stroke:#d97706
+```
+
+<p align="center"><strong>Slow/fast walk on a 6-element sorted list. When fast reaches the end, slow has reached the middle (<code>4</code>). The list is then split into <code>[1,2,3]</code> and <code>[5,6]</code>, and the algorithm recurses.</strong></p>
+
+The total work per recursion level is O(n) (the slow/fast walk over n nodes), and there are O(log n) levels, so the total time is **O(n log n)**.
+
+> *Aside — there's an O(n) version that walks the list once and builds the tree in-order using a closure that advances the head pointer as it consumes nodes. It's a beautiful trick but harder to read; we'll use the cleaner O(n log n) version here.*
+
+## Complexity
+
+| Case | Time | Space |
+|---|---|---|
+| All cases | O(n log n) | O(n) |
+
+`n` is the number of list nodes; the resulting tree has the same number of nodes.
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+class Solution:
+    def find_middle_and_split(self, head):
+        # Slow/fast walk: when fast reaches the end, slow is at the middle.
+        slow = head
+        fast = head
+        previous = None
+        while fast is not None and fast.next is not None:
+            previous = slow
+            slow = slow.next
+            fast = fast.next.next
+        # Cut the list just before slow, so the left half ends cleanly.
+        if previous is not None:
+            previous.next = None
+        return slow
+
+    def sorted_linked_list_to_bst(self, head):
+        if head is None:
+            return None
+        # Split the list around its middle node.
+        middle = self.find_middle_and_split(head)
+        # The middle becomes the subtree's root.
+        root = TreeNode(middle.val)
+        # Single-element list — head and middle are the same node; no recursion.
+        if head is middle:
+            return root
+        # Recurse on the two halves.
+        root.left  = self.sorted_linked_list_to_bst(head)            # nodes before middle
+        root.right = self.sorted_linked_list_to_bst(middle.next)     # nodes after middle
+        return root
+```
+
+```java,editable
+class Solution {
+    private ListNode findMiddleAndSplit(ListNode head) {
+        ListNode slow = head, fast = head, previous = null;
+        while (fast != null && fast.next != null) {
+            previous = slow;
+            slow = slow.next;
+            fast = fast.next.next;
+        }
+        if (previous != null) previous.next = null;                                              // split
+        return slow;
+    }
+
+    public TreeNode sortedLinkedListToBST(ListNode head) {
+        if (head == null) return null;
+        ListNode middle = findMiddleAndSplit(head);
+        TreeNode root = new TreeNode(middle.val);
+        if (head == middle) return root;                                                          // single element
+        root.left  = sortedLinkedListToBST(head);
+        root.right = sortedLinkedListToBST(middle.next);
+        return root;
+    }
+}
+```
+
+```c,editable
+#include <stdlib.h>
+
+static struct ListNode *find_middle_and_split(struct ListNode *head) {
+    struct ListNode *slow = head, *fast = head, *previous = NULL;
+    while (fast != NULL && fast->next != NULL) {
+        previous = slow;
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+    if (previous != NULL) previous->next = NULL;                                                   // split
+    return slow;
+}
+
+struct TreeNode *sortedLinkedListToBST(struct ListNode *head) {
+    if (head == NULL) return NULL;
+    struct ListNode *middle = find_middle_and_split(head);
+    struct TreeNode *root = malloc(sizeof(*root));
+    root->val = middle->val; root->left = root->right = NULL;
+    if (head == middle) return root;                                                                // single element
+    root->left  = sortedLinkedListToBST(head);
+    root->right = sortedLinkedListToBST(middle->next);
+    return root;
+}
+```
+
+```cpp,editable
 class Solution {
 public:
-    ListNode *findMiddleNodeAndSplit(ListNode *head) {
-
-        // Initialize slow pointer to the head of the list
-        ListNode *slow = head;
-
-        // Initialize fast pointer to the head of the list
-        ListNode *fast = head;
-
-        // Previous pointer
-        ListNode *previous = nullptr;
-
-        // Iterate until fast pointer reaches the end of the list
+    ListNode *findMiddleAndSplit(ListNode *head) {
+        ListNode *slow = head, *fast = head, *previous = nullptr;
         while (fast != nullptr && fast->next != nullptr) {
             previous = slow;
-
-            // Move slow pointer one step forward
             slow = slow->next;
-
-            // Move fast pointer two steps forward
             fast = fast->next->next;
         }
-
-        // Split the list into two halves
-        if (previous != nullptr) {
-            previous->next = nullptr;
-        }
-
-        // Return the middle node or the second middle node
-        // (in case of even number of nodes)
+        if (previous != nullptr) previous->next = nullptr;                                            // split
         return slow;
     }
 
     TreeNode *sortedLinkedListToBST(ListNode *head) {
-        if (head == nullptr) {
-            return nullptr;
-        }
-
-        // Find the middle element of the list
-        ListNode *middleNode = findMiddleNodeAndSplit(head);
-
-        // Create a new TreeNode using the value at the middle node
-        TreeNode *root = new TreeNode(middleNode->val);
-
-        // Base case when there's only one element in the list
-        if (head == middleNode) {
-            return root;
-        }
-
-        // Recursively build the left subtree using the elements to the
-        // left of the middle node
-        root->left = sortedLinkedListToBST(head);
-
-        // Recursively build the right subtree using the elements to the
-        // right of the middle node
-        root->right = sortedLinkedListToBST(middleNode->next);
-
-        // Return the root of the constructed binary search tree
+        if (head == nullptr) return nullptr;
+        ListNode *middle = findMiddleAndSplit(head);
+        TreeNode *root = new TreeNode(middle->val);
+        if (head == middle) return root;                                                              // single element
+        root->left  = sortedLinkedListToBST(head);
+        root->right = sortedLinkedListToBST(middle->next);
         return root;
     }
 };
 ```
+
+```scala,editable
+object Solution {
+  private def findMiddleAndSplit(head: ListNode): ListNode = {
+    var slow = head; var fast = head; var previous: ListNode = null
+    while (fast != null && fast.next != null) {
+      previous = slow
+      slow = slow.next
+      fast = fast.next.next
+    }
+    if (previous != null) previous.next = null                                                          // split
+    slow
+  }
+
+  def sortedLinkedListToBST(head: ListNode): TreeNode = {
+    if (head == null) return null
+    val middle = findMiddleAndSplit(head)
+    val root = new TreeNode(middle.value)
+    if (head == middle) return root                                                                     // single element
+    root.left  = sortedLinkedListToBST(head)
+    root.right = sortedLinkedListToBST(middle.next)
+    root
+  }
+}
+```
+
+```javascript,editable
+function findMiddleAndSplit(head) {
+  let slow = head, fast = head, previous = null;
+  while (fast !== null && fast.next !== null) {
+    previous = slow;
+    slow = slow.next;
+    fast = fast.next.next;
+  }
+  if (previous !== null) previous.next = null;                                                            // split
+  return slow;
+}
+
+function sortedLinkedListToBST(head) {
+  if (head === null) return null;
+  const middle = findMiddleAndSplit(head);
+  const root = new TreeNode(middle.val);
+  if (head === middle) return root;                                                                       // single element
+  root.left  = sortedLinkedListToBST(head);
+  root.right = sortedLinkedListToBST(middle.next);
+  return root;
+}
+```
+
+```typescript,editable
+function findMiddleAndSplit(head: ListNode | null): ListNode {
+  let slow: ListNode = head!, fast: ListNode | null = head, previous: ListNode | null = null;
+  while (fast !== null && fast.next !== null) {
+    previous = slow;
+    slow = slow.next!;
+    fast = fast.next.next;
+  }
+  if (previous !== null) previous.next = null;                                                              // split
+  return slow;
+}
+
+function sortedLinkedListToBST(head: ListNode | null): TreeNode | null {
+  if (head === null) return null;
+  const middle = findMiddleAndSplit(head);
+  const root = new TreeNode(middle.val);
+  if (head === middle) return root;                                                                         // single element
+  root.left  = sortedLinkedListToBST(head);
+  root.right = sortedLinkedListToBST(middle.next);
+  return root;
+}
+```
+
+```go,editable
+func findMiddleAndSplit(head *ListNode) *ListNode {
+    slow, fast := head, head
+    var previous *ListNode = nil
+    for fast != nil && fast.Next != nil {
+        previous = slow
+        slow = slow.Next
+        fast = fast.Next.Next
+    }
+    if previous != nil { previous.Next = nil }                                                                // split
+    return slow
+}
+
+func sortedLinkedListToBST(head *ListNode) *TreeNode {
+    if head == nil { return nil }
+    middle := findMiddleAndSplit(head)
+    root := &TreeNode{Val: middle.Val}
+    if head == middle { return root }                                                                          // single element
+    root.Left  = sortedLinkedListToBST(head)
+    root.Right = sortedLinkedListToBST(middle.Next)
+    return root
+}
+```
+
+```kotlin,editable
+class Solution {
+    private fun findMiddleAndSplit(head: ListNode): ListNode {
+        var slow: ListNode = head
+        var fast: ListNode? = head
+        var previous: ListNode? = null
+        while (fast != null && fast.next != null) {
+            previous = slow
+            slow = slow.next!!
+            fast = fast.next!!.next
+        }
+        if (previous != null) previous.next = null                                                              // split
+        return slow
+    }
+
+    fun sortedLinkedListToBST(head: ListNode?): TreeNode? {
+        if (head == null) return null
+        val middle = findMiddleAndSplit(head)
+        val root = TreeNode(middle.`val`)
+        if (head === middle) return root                                                                        // single element
+        root.left  = sortedLinkedListToBST(head)
+        root.right = sortedLinkedListToBST(middle.next)
+        return root
+    }
+}
+```
+
+```rust,editable
+// Singly linked lists with shared mutability are atypical in Rust — most idiomatic
+// solutions first walk the list into a Vec<i32> and then call sorted_array_to_bst.
+// That's O(n) extra space but produces a clean, safe implementation.
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    pub fn sorted_list_to_bst(head: Option<Box<ListNode>>) -> Tree {
+        // Step 1 — collect values into a Vec.
+        let mut values = Vec::new();
+        let mut cur = head;
+        while let Some(node) = cur {
+            values.push(node.val);
+            cur = node.next;
+        }
+        // Step 2 — same as sorted_array_to_bst.
+        Self::build(&values, 0, values.len() as i32 - 1)
+    }
+
+    fn build(arr: &[i32], st: i32, en: i32) -> Tree {
+        if st > en { return None; }
+        let mid = (st + en) / 2;
+        let node = Rc::new(RefCell::new(TreeNode::new(arr[mid as usize])));
+        node.borrow_mut().left  = Self::build(arr, st, mid - 1);
+        node.borrow_mut().right = Self::build(arr, mid + 1, en);
+        Some(node)
+    }
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — head = [1, 2, 3, 4, 5, 6]</strong></summary>
+
+```
+Call 1 │ list = [1,2,3,4,5,6] → middle = 4 → split into [1,2,3] | [5,6]
+        │ root = TreeNode(4)
+Call 2 │ list = [1,2,3]       → middle = 2 → split into [1]     | [3]
+        │ root = TreeNode(2)
+Call 3 │ list = [1]           → middle = 1 → root = TreeNode(1) (single-element shortcut)
+Call 4 │ list = [3]           → middle = 3 → root = TreeNode(3)
+Call 5 │ list = [5,6]         → middle = 6 → split into [5]     | []
+        │ root = TreeNode(6)
+Call 6 │ list = [5]           → middle = 5 → root = TreeNode(5)
+Call 7 │ list = empty         → returns null
+Result: tree = [4, 2, 6, 1, 3, 5] ✓
+```
+
+</details>
+
+***
+
+## Final Takeaway
+
+Three constructions, three different cost profiles:
+
+| Source | Strategy | Time | Output |
+|---|---|---|---|
+| Sorted array | "midpoint as root" recursion | **O(n)** | guaranteed balanced BST |
+| Unsorted array | repeated insert into empty BST | O(n log n) best, **O(n²)** worst | shape depends on input order |
+| Sorted linked list | midpoint-split with slow/fast pointer | O(n log n) | guaranteed balanced BST |
+
+Two ideas worth banking:
+
+1. **The midpoint-as-root idea is what gives BSTs their best-case shape.** Self-balancing BSTs (AVL, red-black) effectively re-create this shape *incrementally*, after every insert and delete, by performing local rotations to restore balance. The same midpoint instinct is what powers segment trees and merge-sort trees in competitive programming.
+2. **Insertion order is destiny for naive BSTs.** Sorted input is the adversarial worst case — and unfortunately, sorted input shows up everywhere in the real world (chronological IDs, alphabetised keys, monotone counters). Production code should either pre-shuffle input or use a self-balancing BST.
+
+The next lesson finally puts our shiny new BST to work on a classic interview problem: the **Lowest Common Ancestor**. The BST property turns what would be an O(n) traversal in a generic binary tree into a one-pass O(h) descent.

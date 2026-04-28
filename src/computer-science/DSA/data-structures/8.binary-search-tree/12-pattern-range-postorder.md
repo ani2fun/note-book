@@ -1,4 +1,14 @@
-# Pattern: Range postorder
+# 12. Pattern: Range Postorder
+
+## The Hook
+
+The previous two patterns let the BST silently sort the values for you, then walked the *whole* tree to compute things over the sorted sequence. They run in O(n) and visit every node — which is fine when the answer truly depends on every node, but **wasteful** the moment the question only cares about a *range*.
+
+"Sum every node whose value is between 5 and 12." "Find the deepest path through nodes valued in [200, 500]." "Trim away everything outside [a, b] and return the resulting tree." If you walk every node you're doing too much work — *and the BST property tells you which subtrees you can skip entirely*. A node with value `v < low` puts its **whole left subtree** out of range. A node with `v > high` puts its **whole right subtree** out of range. We can prune.
+
+This is the **Range Postorder** pattern: a postorder walk (left → right → process) augmented with two pruning rules from the BST property. It runs in O(out-of-range subtrees pruned + nodes touched) — usually much faster than O(n) — and it's the canonical pattern for any *range-bounded BST problem*: range sum, range diameter, range leaf count, range trim.
+
+---
 
 ## Table of Contents
 
@@ -13,677 +23,246 @@
 
 # Understanding the range postorder pattern
 
-A binary search tree follows the binary search property where all nodes in the left subtree of a node are smaller than it, while all nodes in the right subtree are greater than it. This property allows for the efficient searching of values in the tree. However, some binary search tree problems require us to find and process not just a single node but all nodes whose value lies in a specified range. Some problems go a step further and may require aggregating these processed values over some function into a single value. Such problems can be efficiently solved using the range postorder technique.
+The pattern combines two ideas you already know:
 
-The range postorder pattern is a classification of problems that can be solved using the range postorder technique.
+1. **Postorder traversal** (left → right → process the node) — used whenever a node's result depends on already-computed results from its subtrees. Sums, heights, diameters, leaf counts all fit this shape.
+2. **BST search-style pruning** — a node's value tells us *which* subtree might contain in-range descendants, and discards the other.
 
-In this lesson, we will learn more about using the range postorder technique to solve binary search tree problems and how to identify a problem as a range postorder pattern problem.
+Put them together: at every node, **first check the BST pruning rule**; only descend into both subtrees if the node itself is in range; combine subtree results in postorder fashion.
 
-## The range postorder technique
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["processRange(node, low, high)"] --> B{"node == null?"}
+    B -->|Yes| C["return default"]
+    B -->|No| D{"node.val ?= [low, high]"}
+    D -->|"&lt; low"| E["Skip whole left subtree<br/>recurse right only"]
+    D -->|"&gt; high"| F["Skip whole right subtree<br/>recurse left only"]
+    D -->|"in range"| G["recurse left + recurse right<br/>combine results via f"]
+    style E fill:#fde68a,stroke:#d97706
+    style F fill:#fde68a,stroke:#d97706
+    style G fill:#bbf7d0,stroke:#16a34a
+```
 
-Consider we are given a binary search tree, and a range of values denoted by `low` and `high`, and we need to process all the nodes with values within this range using the aggregated value of the function `f` over all nodes in their left and right subtree that also lie within the range.
+<p align="center"><strong>The decision diamond at every node. Out-of-range nodes prune one subtree entirely; in-range nodes recurse both ways and combine.</strong></p>
 
-Another way to look at the problem is to imagine that we have a transformed tree that only has nodes within the specified range and that we need to process every node in this transformed tree using the aggregated value of a function `f` over all nodes in its left and right subtrees.
+The pruning is what makes the pattern fast. If your range is narrow and your tree is balanced, you might touch only **O(log n + k)** nodes (path to range + size of range), not O(n).
 
-Consider the example below where we are given a binary search tree of characters where `low = c`  and `high = h`.
+## Why "postorder"?
 
-// Diagram: All nodes within the given range make up a transformed tree.
-
-The diagram below shows for all nodes in the range, the aggregated values of nodes that they need to be processed with. The other way to look at it is to map it to the transformed tree, where every node is processed with the aggregated value of all nodes in its left and right subtrees. The leaf nodes are processed with a default value.
-
-// Diagram: aggregates of node to use
-
-We can solve the problem without creating a transformed tree by simply combining the binary search and postorder traversal algorithms.
-
-The idea is quite simple: we start from the root node and pass the range `low` and `high`, and check if the current node lies within that range. If the value of the current node is less than `low`, it means its left subtree, including itself, is outside the range and does not need to be processed. Similarly, if the value of the current node is greater than `high`, it means its right subtree, including itself, is outside the range and does not need to be processed.
-
-However, if the current has a value between `low` and `high`, it means it needs to be processed using aggregates from its left and right subtrees. And so, we recursively traverse the left and right subtrees of the node and apply the same logic to get the aggregated value of all nodes that lie within the range from the left and right subtrees, respectively, and store them in local variables `left` and `right`. We use the aggregates from the left and right subtrees to process the node.
-
-Finally, we aggregate `left` and `right` to using function `f` to get the aggregated value of all nodes in the subtree starting at the current node that lie within `low` and `high` and return it to the parent node. If the parent node also lies within the range, it gets aggregated values from both its left and right subtrees and aggregates them similarly using the function `f` before passing it to its parent. If the parent node does not lie within the range, the passed value from its child is forwarded to its parent as is.
-
-This way, in the end, all nodes in the tree that lie within `low` and `high` are processed using the aggregated value of `f` over all nodes within the range from their left and right subtrees, and the aggregate for the tree is returned to the calling function.
-
-// Diagram: Process nodes within a range with aggregated value of f over nodes within range in its subtrees
+Because the work happens *after* the children's results come back. The recursive calls to `processRange(left)` and `processRange(right)` produce aggregates; the parent combines them into its own aggregate before returning to *its* parent. Sum, max-depth, leaf count — these are all postorder reductions.
 
 ## Algorithm
 
-The generic algorithm given below uses a mix of binary search and postorder traversal algorithm to process all nodes in the specified range using aggregated values of nodes within the range from their left and right subtrees over the function `f`.
-
-> **processRange(node, low, high)**
+> **processRange(node, low, high):**
 >
-> -   **Step 1:** If this is a `null` node, return a default value.
-> -   **Step 2:** If `node.val` is less than low, return the result of `processRange(node.right, low, high)
-> -   **Step 3:** If `node.val` is greater than high, return the result of `processRange(node.left, low, high)
-> -   **Step 5:** `left` = Call `processRange(node.left, low, high)`
-> -   **Step 6:** `right` = Call `processRange(node.right, low, high)`
-> -   **Step 7:** Use the aggregates `left` and `right` to process this node
-> -   **Step 8:** Return `f(left, right)`
+> - **Step 1:** If `node` is `null`, return the default value.
+> - **Step 2:** If `node.val < low`, return `processRange(node.right, low, high)` — entire left subtree is out of range.
+> - **Step 3:** If `node.val > high`, return `processRange(node.left, low, high)` — entire right subtree is out of range.
+> - **Step 4:** Else (`low ≤ node.val ≤ high`):
+>   - `left = processRange(node.left, low, high)`
+>   - `right = processRange(node.right, low, high)`
+>   - Process this node (possibly mutating it) using `left` and `right`.
+>   - Return `f(left, right, node)`.
 
-## Implementation
+## Generic template
 
-The implementation of the range postorder technique is given below. The `processRange` function process all nodes in the specified range using the aggregated value of the function `f` over all nodes within the range in their left and right subtrees
+<div class="lang-tabs">
 
-C++
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
- class Solution {
-   public:
-       int processRange(TreeNode *node, int low, int high) {
-
-           if (!node) {
-               // Return a default value if this is a null node;
-               return 0;
-           }
-
-          if (node->val < low) {
-               // If the current node's value is less than low, discard the left subtree
-               // and return the result from the right subtree
-               return processRange(node->right, low, high);
-           } else if (node->val > high) {
-               // If the current node's value is greater than high, discard the right subtree
-               // and return the result from the left subtree
-               return processRange(node->left, low, high);
-           }
-
-// Diagram: // Process the node using the values from left and right subtrees
-
-          // If the current node's value is within range
-          // find the aggregated values from left and right subtrees
-          int left = processRange(node->left, low, high);
-          int right = processRange(node->right, low, high);
-
-          // Process the node using the aggregates from the left and right subtrees
-          // ... Your code goes here
-          // ...
-
-          // Return the agregated value of :
-          // 1. aggregate from the left subtree
-          // 2. aggregate from the right subtrees
-          // 3. the current node's value
-          return f(left, right, node->val);
-
-       }
-   };
-```
-
-Java
-
-```java
-import java.util.*;
-
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-// Diagram: public class Solution {
-
-// Diagram: public int processRange(TreeNode node, int low, int high) {
-
-        if (node == null) {
-            // Return a default value if this is a null node;
-            return 0;
-        }
-
-        if (node.val < low) {
-            // If the current node's value is less than low, discard the left subtree
-            // and return the result from the right subtree
-            return processRange(node.right, low, high);
-        } else if (node.val > high) {
-            // If the current node's value is greater than high, discard the right subtree
-            // and return the result from the left subtree
-            return processRange(node.left, low, high);
-        }
-
-// Diagram: // Process the node using the values from left and right subtrees
-
-        // If the current node's value is within range
-        // find the aggregated values from left and right subtrees
-        int left = processRange(node.left, low, high);
-        int right = processRange(node.right, low, high);
-
-        // Process the node using the aggregates from the left and right subtrees
-        // ... Your code goes here
-        // ...
-
-        // Return the aggregated value of:
-        // 1. aggregate from the left subtree
-        // 2. aggregate from the right subtree
-        // 3. the current node's value
-        return f(left, right, node.val);
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-export class Solution {
-  processRange(node: TreeNode | null, low: number, high: number): number {
-
-    if (!node) {
-      // Return a default value if this is a null node;
-      return 0;
-    }
-
-    if (node.val < low) {
-      // If the current node's value is less than low, discard the left subtree
-      // and return the result from the right subtree
-      return this.processRange(node.right, low, high);
-    } else if (node.val > high) {
-      // If the current node's value is greater than high, discard the right subtree
-      // and return the result from the left subtree
-      return this.processRange(node.left, low, high);
-    }
-
-// Diagram: // Process the node using the values from left and right subtrees
-
-    // If the current node's value is within range
-    // find the aggregated values from left and right subtrees
-    const left = this.processRange(node.left, low, high);
-    const right = this.processRange(node.right, low, high);
-
-    // Process the node using the aggregates from the left and right subtrees
-    // ... Your code goes here
-    // ...
-
-    // Return the aggregated value of :
-    // 1. aggregate from the left subtree
-    // 2. aggregate from the right subtrees
-    // 3. the current node's value
-    return f(left, right, node.val);
-  }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
- export class Solution {
-  processRange(node, low, high) {
-
-    if (!node) {
-      // Return a default value if this is a null node;
-      return 0;
-    }
-
-    if (node.val < low) {
-      // If the current node's value is less than low, discard the left subtree
-      // and return the result from the right subtree
-      return this.processRange(node.right, low, high);
-    } else if (node.val > high) {
-      // If the current node's value is greater than high, discard the right subtree
-      // and return the result from the left subtree
-      return this.processRange(node.left, low, high);
-    }
-
-// Diagram: // Process the node using the values from left and right subtrees
-
-    // If the current node's value is within range
-    // find the aggregated values from left and right subtrees
-    const left = this.processRange(node.left, low, high);
-    const right = this.processRange(node.right, low, high);
-
-    // Process the node using the aggregates from the left and right subtrees
-    // ... Your code goes here
-    // ...
-
-    // Return the aggregated value of :
-    // 1. aggregate from the left subtree
-    // 2. aggregate from the right subtrees
-    // 3. the current node's value
-    return f(left, right, node.val);
-  }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import Optional, List
-
+```python,editable
 class Solution:
-    def processRange(self, node: Optional[TreeNode], low: int, high: int) -> int:
-
-        if not node:
-            # Return a default value if this is a null node;
+    def process_range(self, node, low, high):
+        # Default contribution of an empty subtree.
+        if node is None:
             return 0
-
+        # BST prune: node too small → entire left subtree is < low.
         if node.val < low:
-            # If the current node's value is less than low, discard the left subtree
-            # and return the result from the right subtree
-            return self.processRange(node.right, low, high)
-        elif node.val > high:
-            # If the current node's value is greater than high, discard the right subtree
-            # and return the result from the left subtree
-            return self.processRange(node.left, low, high)
-
-        # Process the node using the values from left and right subtrees
-
-        # If the current node's value is within range
-        # find the aggregated values from left and right subtrees
-        left = self.processRange(node.left, low, high)
-        right = self.processRange(node.right, low, high)
-
-        # Process the node using the aggregates from the left and right subtrees
-        # ... Your code goes here
+            return self.process_range(node.right, low, high)
+        # BST prune: node too large → entire right subtree is > high.
+        if node.val > high:
+            return self.process_range(node.left, low, high)
+        # In range: combine results from both children in postorder fashion.
+        left  = self.process_range(node.left,  low, high)
+        right = self.process_range(node.right, low, high)
+        # Hook for whatever the specific problem needs (mutate node, etc.)
         # ...
-
-        # Return the aggregated value of:
-        # 1. aggregate from the left subtree
-        # 2. aggregate from the right subtree
-        # 3. the current node's value
-        return f(left, right, node.val)
+        return self.f(left, right, node.val)
 ```
 
-## Complexity Analysis
+```java,editable
+class Solution {
+    int f(int left, int right, int val) { return left + right + val; }
 
-We follow the search path in the binary tree, but instead of looking for a single value, we look for an entire range. On finding a node within the range, we recursively traverse both its left and right subtrees. However, in any case, we discard all the nodes that don't lie within the range and only process the nodes with values within the range. Therefore, the algorithm's time complexity depends on the number of nodes in the tree whose value lies within the specified range. 
+    public int processRange(TreeNode node, int low, int high) {
+        if (node == null) return 0;                                                                                // empty
+        if (node.val < low)  return processRange(node.right, low, high);                                           // prune left
+        if (node.val > high) return processRange(node.left,  low, high);                                           // prune right
+        int left  = processRange(node.left,  low, high);
+        int right = processRange(node.right, low, high);
+        return f(left, right, node.val);                                                                            // postorder combine
+    }
+}
+```
 
-If the function `g` is a constant **O(1)** time operation, in the worst case, if all nodes in the tree lie within the range, we traverse all nodes in the tree, which will take linear **O(N)** time. In the best case, only one node lies within the range, so the time complexity will be the same as that of the search algorithm, which depends on the shape of the tree. If the tree is height balanced, it will take **O(log(N))** time; otherwise, it may take linear **O(N)** time if it is a degenerate tree and the node within the range is a leaf node.
+```c,editable
+static int f(int left, int right, int val) { return left + right + val; }
 
-The space complexity of inorder traversal depends on the maximum size of the function call stack, which can be linear **O(N)** in the worst case and **O(log(N))** in the best case. However, each stack frame also creates its own copy of local variables, but each of them only makes a constant contribution to the size of the frame, so the overall space complexity is the same as the space required for the stack frames.
+int processRange(struct TreeNode *node, int low, int high) {
+    if (node == NULL)        return 0;                                                                              // empty
+    if (node->val < low)     return processRange(node->right, low, high);                                            // prune left
+    if (node->val > high)    return processRange(node->left,  low, high);                                            // prune right
+    int left  = processRange(node->left,  low, high);
+    int right = processRange(node->right, low, high);
+    return f(left, right, node->val);                                                                                // combine
+}
+```
 
-> **Best Case:** Balanced tree with only one node in the range
->
-> -   Space Complexity - **O(log(N))**
-> -   Time Complexity - **O(log(N))**
->
-> **Worst Case:** All nodes in the range or a degenerate tree with only a leaf node in the range
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
+```cpp,editable
+class Solution {
+public:
+    int f(int left, int right, int val) { return left + right + val; }
+
+    int processRange(TreeNode *node, int low, int high) {
+        if (!node)              return 0;                                                                              // empty
+        if (node->val < low)    return processRange(node->right, low, high);                                            // prune left
+        if (node->val > high)   return processRange(node->left,  low, high);                                            // prune right
+        int left  = processRange(node->left,  low, high);
+        int right = processRange(node->right, low, high);
+        return f(left, right, node->val);                                                                                // combine
+    }
+};
+```
+
+```scala,editable
+object Solution {
+  private def f(left: Int, right: Int, v: Int): Int = left + right + v
+
+  def processRange(node: TreeNode, low: Int, high: Int): Int = {
+    if (node == null)           return 0                                                                                  // empty
+    if (node.value < low)       return processRange(node.right, low, high)                                                // prune left
+    if (node.value > high)      return processRange(node.left,  low, high)                                                // prune right
+    val left  = processRange(node.left,  low, high)
+    val right = processRange(node.right, low, high)
+    f(left, right, node.value)                                                                                            // combine
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+  f(left, right, val) { return left + right + val; }
+
+  processRange(node, low, high) {
+    if (node === null)        return 0;                                                                                    // empty
+    if (node.val < low)       return this.processRange(node.right, low, high);                                              // prune left
+    if (node.val > high)      return this.processRange(node.left,  low, high);                                              // prune right
+    const left  = this.processRange(node.left,  low, high);
+    const right = this.processRange(node.right, low, high);
+    return this.f(left, right, node.val);                                                                                  // combine
+  }
+}
+```
+
+```typescript,editable
+class Solution {
+  f(left: number, right: number, v: number): number { return left + right + v; }
+
+  processRange(node: TreeNode | null, low: number, high: number): number {
+    if (node === null)        return 0;                                                                                      // empty
+    if (node.val < low)       return this.processRange(node.right, low, high);                                                // prune left
+    if (node.val > high)      return this.processRange(node.left,  low, high);                                                // prune right
+    const left  = this.processRange(node.left,  low, high);
+    const right = this.processRange(node.right, low, high);
+    return this.f(left, right, node.val);                                                                                    // combine
+  }
+}
+```
+
+```go,editable
+func f(left, right, val int) int { return left + right + val }
+
+func processRange(node *TreeNode, low, high int) int {
+    if node == nil       { return 0 }                                                                                          // empty
+    if node.Val < low    { return processRange(node.Right, low, high) }                                                        // prune left
+    if node.Val > high   { return processRange(node.Left,  low, high) }                                                        // prune right
+    left  := processRange(node.Left,  low, high)
+    right := processRange(node.Right, low, high)
+    return f(left, right, node.Val)                                                                                            // combine
+}
+```
+
+```kotlin,editable
+class Solution {
+    private fun f(left: Int, right: Int, v: Int) = left + right + v
+
+    fun processRange(node: TreeNode?, low: Int, high: Int): Int {
+        if (node == null)         return 0                                                                                       // empty
+        if (node.`val` < low)     return processRange(node.right, low, high)                                                     // prune left
+        if (node.`val` > high)    return processRange(node.left,  low, high)                                                     // prune right
+        val left  = processRange(node.left,  low, high)
+        val right = processRange(node.right, low, high)
+        return f(left, right, node.`val`)                                                                                        // combine
+    }
+}
+```
+
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    fn f(left: i32, right: i32, v: i32) -> i32 { left + right + v }
+
+    pub fn process_range(node: Tree, low: i32, high: i32) -> i32 {
+        match node {
+            None => 0,
+            Some(n) => {
+                let v = n.borrow().val;
+                if v < low  { return Self::process_range(n.borrow().right.clone(), low, high); }                                  // prune left
+                if v > high { return Self::process_range(n.borrow().left.clone(),  low, high); }                                  // prune right
+                let left  = Self::process_range(n.borrow().left.clone(),  low, high);
+                let right = Self::process_range(n.borrow().right.clone(), low, high);
+                Self::f(left, right, v)                                                                                            // combine
+            }
+        }
+    }
+}
+```
+
+</div>
+
+## Complexity
+
+| Aspect | Time | Space |
+|---|---|---|
+| Worst case (range = whole tree) | O(n) | O(h) |
+| Typical case (narrow range) | O(h + k) | O(h) |
+
+`k` is the number of in-range nodes. The worst case occurs when every node is in range (no pruning happens, full traversal). The typical case happens when the range covers a small fraction of the tree — pruning slashes the work to "path to range + range size".
 
 ***
 
 # Identifying the range postorder pattern
 
-The range binary postorder technique can solve some special types of binary search tree problems. These are generally **medium** problems in which we are given a range and need to process every node in the tree within that range. In most problems, to process a node, we need the aggregated values of some function `f` over all the nodes in its left and right subtree that also lie within the given range. The technique is a mix of binary search and the postorder technique
+Look for these signals:
 
-If the problem statement or its solution follows the generic template below, it can be solved by applying the range postorder technique.
+- The problem mentions a **range `[low, high]`** of values.
+- The result is some **aggregate** (sum, count, height/diameter, structural transformation) over nodes inside that range.
+- A node's contribution depends on its in-range descendants — i.e. the recursion is naturally postorder.
+- The problem says (or strongly implies) that **out-of-range nodes have only out-of-range descendants on one side** — exactly what the BST property guarantees.
 
-**Template:**
-
-Given a binary search tree and a range, process every node within the range using the aggregated value of a function `f` over nodes in its left and right subtrees that also lie within the given range.
-
-## Example
-
-Let's consider the following problem as an example to better understand how to identify and solve a problem using the range postorder technique.
-
-> **Problem statement:** Given a binary search tree, and a range represented by `low` and `high`. To all nodes in the tree that lie within the range, add the value of all descendant nodes that also lie within the range.
-
-// Diagram: Add to all nodes within the given range the sum of all descendent within the same range.
-
-## The range postorder technique
-
-The problem description fits the generic template for the range postorder pattern we learned earlier.
-
-**Template:**
-
-Given a binary search tree and a range (`low` and `high`), process every node within the range using the aggregated value of a function `f` (sum) over nodes in its left and right subtrees that also lie within the given range.
-
-We start from the root node and pass the range `low` and `high`, where each node returns to its parent the sum of all nodes in its subtree that lie within `low` and `high`.
-
-As we enter a node, we check if it lies within the range. If it is a `null` reference, we return 0 to the parent. Otherwise, if the node's value is less than `low`, it means its left subtree, including itself, is outside the range and does not need to be updated. Similarly, if the node's value is greater than `high`, it means its right subtree, including itself, is outside the range and does not need to be updated.
-
-However, if the current has a value between `low` and `high`, it means it needs to be updated by adding the sum of all nodes within the range in its left and right subtrees. And so, we recursively traverse the left and right subtrees of the node and store the return values in local variables `left` and `right`. We then update the node by adding `left` and `right` to the current node's value.
-
-Finally, we return the updated value of the node, which is also the sum of all nodes in the subtree rooted at this node that lie within the given range, to the parent node. If the parent node also lies within the range, it also gets values from both its left and right subtrees and updates its value similarly before returning the sum to its parent. Otherwise, it simply returns the value it receives from its child to its parent.
-
-This way, at the end of the top-level recursive call, all nodes in the tree that lie within the range `low` and `high` are updated, and the calling function receives the sum of all those nodes.
-
-// Diagram: Add to all nodes within the given range the sum of all descendants within the same range
-
-The implementation of the range postorder traversal technique to solve the problem is given below.
-
-C++
-
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    int rangeSummationHelper(TreeNode *root, int low, int high) {
-
-        // Base Case : if root is null return null
-        if (root == nullptr) {
-            return 0;
-        }
-
-        // If the node's value is less than the lower bound,
-        // discard the left subtree and move to the right subtree
-        if (root->val < low) {
-            return rangeSummationHelper(root->right, low, high);
-        }
-
-        // If the node's value is greater than the upper bound,
-        // discard the right subtree and move to the left subtree
-        if (root->val > high) {
-            return rangeSummationHelper(root->left, low, high);
-        }
-
-        // If the node's value is within the range [low, high],
-        // recursively compute the sum of valid left and right subtrees
-        int leftSum = rangeSummationHelper(root->left, low, high);
-        int rightSum = rangeSummationHelper(root->right, low, high);
-
-        // Add sum of in-range descendants to the current node's value
-        root->val += leftSum + rightSum;
-
-        // Return the updated value of the current node
-        // (which now includes valid descendants)
-        return root->val;
-    }
-
-    void rangeSummation(TreeNode *root, int low, int high) {
-        rangeSummationHelper(root, low, high);
-    }
-};
-```
-
-Java
-
-```java
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-class Solution {
-    public int rangeSummationHelper(TreeNode root, int low, int high) {
-
-        // Base Case : if root is null return 0
-        if (root == null) {
-            return 0;
-        }
-
-        // If the node's value is less than the lower bound,
-        // discard the left subtree and move to the right subtree
-        if (root.val < low) {
-            return rangeSummationHelper(root.right, low, high);
-        }
-
-        // If the node's value is greater than the upper bound,
-        // discard the right subtree and move to the left subtree
-        if (root.val > high) {
-            return rangeSummationHelper(root.left, low, high);
-        }
-
-        // If the node's value is within the range [low, high],
-        // recursively compute the sum of valid left and right subtrees
-        int leftSum = rangeSummationHelper(root.left, low, high);
-        int rightSum = rangeSummationHelper(root.right, low, high);
-
-        // Add sum of in-range descendants to the current node's value
-        root.val += leftSum + rightSum;
-
-        // Return the updated value of the current node
-        // (which now includes valid descendants)
-        return root.val;
-    }
-
-    public void rangeSummation(TreeNode root, int low, int high) {
-        rangeSummationHelper(root, low, high);
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-export class Solution {
-    rangeSummationHelper(
-        root: TreeNode | null,
-        low: number,
-        high: number
-    ): number {
-
-        // Base Case : if root is null return 0
-        if (!root) {
-            return 0;
-        }
-
-        // If the node's value is less than the lower bound,
-        // discard the left subtree and move to the right subtree
-        if (root.val < low) {
-            return this.rangeSummationHelper(root.right, low, high);
-        }
-
-        // If the node's value is greater than the upper bound,
-        // discard the right subtree and move to the left subtree
-        if (root.val > high) {
-            return this.rangeSummationHelper(root.left, low, high);
-        }
-
-        // If the node's value is within the range [low, high],
-        // recursively compute the sum of valid left and right subtrees
-        const leftSum = this.rangeSummationHelper(root.left, low, high);
-        const rightSum = this.rangeSummationHelper(
-            root.right,
-            low,
-            high
-        );
-
-        // Add sum of in-range descendants to the current node's value
-        root.val += leftSum + rightSum;
-
-        // Return the updated value of the current node
-        // (which now includes valid descendants)
-        return root.val;
-    }
-
-    rangeSummation(
-        root: TreeNode | null,
-        low: number,
-        high: number
-    ): void {
-        this.rangeSummationHelper(root, low, high);
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-    rangeSummationHelper(root, low, high) {
-
-        // Base Case : if root is null return 0
-        if (!root) {
-            return 0;
-        }
-
-        // If the node's value is less than the lower bound,
-        // discard the left subtree and move to the right subtree
-        if (root.val < low) {
-            return this.rangeSummationHelper(root.right, low, high);
-        }
-
-        // If the node's value is greater than the upper bound,
-        // discard the right subtree and move to the left subtree
-        if (root.val > high) {
-            return this.rangeSummationHelper(root.left, low, high);
-        }
-
-        // If the node's value is within the range [low, high],
-        // recursively compute the sum of valid left and right subtrees
-        const leftSum = this.rangeSummationHelper(root.left, low, high);
-        const rightSum = this.rangeSummationHelper(
-            root.right,
-            low,
-            high
-        );
-
-        // Add sum of in-range descendants to the current node's value
-        root.val += leftSum + rightSum;
-
-        // Return the updated value of the current node
-        // (which now includes valid descendants)
-        return root.val;
-    }
-
-    rangeSummation(root, low, high) {
-        this.rangeSummationHelper(root, low, high);
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import Optional
-
-class Solution:
-    def range_summation_helper(
-        self, root: Optional[TreeNode], low: int, high: int
-    ) -> int:
-
-        # Base Case : if root is null return 0
-        if root is None:
-            return 0
-
-        # If the node's value is less than the lower bound,
-        # discard the left subtree and move to the right subtree
-        if root.val < low:
-            return self.range_summation_helper(root.right, low, high)
-
-        # If the node's value is greater than the upper bound,
-        # discard the right subtree and move to the left subtree
-        if root.val > high:
-            return self.range_summation_helper(root.left, low, high)
-
-        # If the node's value is within the range [low, high],
-        # recursively compute the sum of valid left and right subtrees
-        left_sum = self.range_summation_helper(root.left, low, high)
-        right_sum = self.range_summation_helper(root.right, low, high)
-
-        # Add sum of in-range descendants to the current node's value
-        root.val += left_sum + right_sum
-
-        # Return the updated value of the current node
-        # (which now includes valid descendants)
-        return root.val
-
-    def range_summation(
-        self, root: Optional[TreeNode], low: int, high: int
-    ) -> None:
-        self.range_summation_helper(root, low, high)
-```
-
-The range postorder technique can solve this problem in linear time and a single pass using a very small and concise recursive implementation.
-
-## Example problems
-
-Most problems that fall under this category are**medium**problems; a list of a few is given below.
-
-> -   **[Range summation](https://www.codeintuition.io/courses/binary-search-tree/CA72mnsXeJqKTxXM-Wv6S)**
-> -   **[Range diameter](https://www.codeintuition.io/courses/binary-search-tree/l80uGC-uzQiwBvRCzldjq)**
-> -   **[Range leaves](https://www.codeintuition.io/courses/binary-search-tree/P6QRd9i95RQyT5oKM2ghX)**
-> -   **[Range exclusive trim](https://www.codeintuition.io/courses/binary-search-tree/7nzLLkASbZX-t6YPYBlNO)**
-
-We will now solve these problems to understand the range postorder technique better.
+If your sketched recursion looks like *"compute something at this node from results in its subtrees, but only consider in-range nodes"*, range postorder fits.
 
 ***
 
@@ -691,69 +270,92 @@ We will now solve these problems to understand the range postorder technique bet
 
 ## Problem Statement
 
-Given the **root** of a binary search tree and a range represented by **low** and **high**, write a function to update each node within this range by adding the values of all its descendant nodes that also lie within the same range.
+Given the **root** of a BST and a range `[low, high]`, update each in-range node's value by adding the values of all its descendants that are also in range. Return nothing — the tree is mutated in place.
 
-It is guaranteed that if a node’s value is outside `[low, high]`, all nodes in its left and right subtrees are also out of range.
+> Guarantee: a node *outside* the range never has any in-range descendants on either side. (This follows from BST structure, but the problem states it explicitly so the pruning is safe.)
 
 ### Example 1
 
-> -   **Input:** root = \[4, 2, 5, 1, 3, null, 6\], low = 2, high = 5
-> -   **Output:** \[14, 5, 5, 1, 3, null, 6\]
-> -   **Explanation:** The updated tree is shown in the diagram above.
+> - **Input:** `root = [4, 2, 5, 1, 3, null, 6]`, `low = 2`, `high = 5`
+> - **Output:** `[14, 5, 5, 1, 3, null, 6]`
 
 ### Example 2
 
-> -   **Input:** root = \[5, 1, 8, null, null, 6, 9\], low = 6, high = 9
-> -   **Output:** \[5, 1, 23, null, null, 6, 9\]
-> -   **Explanation:** The updated tree is shown in the diagram above.
+> - **Input:** `root = [5, 1, 8, null, null, 6, 9]`, `low = 6`, `high = 9`
+> - **Output:** `[5, 1, 23, null, null, 6, 9]`
 
-## Solution
+## The Strategy
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+Every in-range node accumulates `leftSum + rightSum + originalVal` and writes that back into `node.val`. The recursion returns the same total to its parent so parents can do the same.
 
-using namespace std;
+## The Solution
 
+<div class="lang-tabs">
+
+```python,editable
+class Solution:
+    def range_summation_helper(self, root, low, high):
+        if root is None:
+            return 0                                # empty subtree contributes nothing
+        if root.val < low:
+            return self.range_summation_helper(root.right, low, high)   # whole left subtree out of range
+        if root.val > high:
+            return self.range_summation_helper(root.left, low, high)    # whole right subtree out of range
+        # In range: gather sums from both children.
+        left_sum  = self.range_summation_helper(root.left,  low, high)
+        right_sum = self.range_summation_helper(root.right, low, high)
+        # Mutate this node to include the in-range descendants' sum.
+        root.val += left_sum + right_sum
+        return root.val                              # report the new total to the parent
+
+    def range_summation(self, root, low, high):
+        self.range_summation_helper(root, low, high)
+```
+
+```java,editable
+class Solution {
+    public int rangeSummationHelper(TreeNode root, int low, int high) {
+        if (root == null) return 0;                                                                                                 // empty
+        if (root.val < low)  return rangeSummationHelper(root.right, low, high);                                                    // prune left
+        if (root.val > high) return rangeSummationHelper(root.left,  low, high);                                                    // prune right
+        int leftSum  = rangeSummationHelper(root.left,  low, high);
+        int rightSum = rangeSummationHelper(root.right, low, high);
+        root.val += leftSum + rightSum;                                                                                              // mutate
+        return root.val;                                                                                                             // return new total
+    }
+
+    public void rangeSummation(TreeNode root, int low, int high) {
+        rangeSummationHelper(root, low, high);
+    }
+}
+```
+
+```c,editable
+int rangeSummationHelper(struct TreeNode *root, int low, int high) {
+    if (root == NULL)         return 0;                                                                                                // empty
+    if (root->val < low)      return rangeSummationHelper(root->right, low, high);                                                     // prune left
+    if (root->val > high)     return rangeSummationHelper(root->left,  low, high);                                                     // prune right
+    int leftSum  = rangeSummationHelper(root->left,  low, high);
+    int rightSum = rangeSummationHelper(root->right, low, high);
+    root->val += leftSum + rightSum;                                                                                                   // mutate
+    return root->val;
+}
+
+void rangeSummation(struct TreeNode *root, int low, int high) {
+    rangeSummationHelper(root, low, high);
+}
+```
+
+```cpp,editable
 class Solution {
 public:
     int rangeSummationHelper(TreeNode *root, int low, int high) {
-
-        // Base Case : if root is null return null
-        if (root == nullptr) {
-            return 0;
-        }
-
-        // If the node's value is less than the lower bound,
-        // discard the left subtree and move to the right subtree
-        if (root->val < low) {
-            return rangeSummationHelper(root->right, low, high);
-        }
-
-        // If the node's value is greater than the upper bound,
-        // discard the right subtree and move to the left subtree
-        if (root->val > high) {
-            return rangeSummationHelper(root->left, low, high);
-        }
-
-        // If the node's value is within the range [low, high],
-        // recursively compute the sum of valid left and right subtrees
-        int leftSum = rangeSummationHelper(root->left, low, high);
+        if (!root)              return 0;                                                                                                // empty
+        if (root->val < low)    return rangeSummationHelper(root->right, low, high);                                                     // prune left
+        if (root->val > high)   return rangeSummationHelper(root->left,  low, high);                                                     // prune right
+        int leftSum  = rangeSummationHelper(root->left,  low, high);
         int rightSum = rangeSummationHelper(root->right, low, high);
-
-        // Add sum of in-range descendants to the current node's value
-        root->val += leftSum + rightSum;
-
-        // Return the updated value of the current node
-        // (which now includes valid descendants)
+        root->val += leftSum + rightSum;                                                                                                  // mutate
         return root->val;
     }
 
@@ -763,95 +365,413 @@ public:
 };
 ```
 
+```scala,editable
+object Solution {
+  def rangeSummationHelper(root: TreeNode, low: Int, high: Int): Int = {
+    if (root == null)           return 0
+    if (root.value < low)       return rangeSummationHelper(root.right, low, high)
+    if (root.value > high)      return rangeSummationHelper(root.left,  low, high)
+    val leftSum  = rangeSummationHelper(root.left,  low, high)
+    val rightSum = rangeSummationHelper(root.right, low, high)
+    root.value += leftSum + rightSum
+    root.value
+  }
+
+  def rangeSummation(root: TreeNode, low: Int, high: Int): Unit = {
+    rangeSummationHelper(root, low, high)
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+  rangeSummationHelper(root, low, high) {
+    if (root === null)        return 0;
+    if (root.val < low)       return this.rangeSummationHelper(root.right, low, high);
+    if (root.val > high)      return this.rangeSummationHelper(root.left,  low, high);
+    const leftSum  = this.rangeSummationHelper(root.left,  low, high);
+    const rightSum = this.rangeSummationHelper(root.right, low, high);
+    root.val += leftSum + rightSum;
+    return root.val;
+  }
+
+  rangeSummation(root, low, high) {
+    this.rangeSummationHelper(root, low, high);
+  }
+}
+```
+
+```typescript,editable
+class Solution {
+  rangeSummationHelper(root: TreeNode | null, low: number, high: number): number {
+    if (root === null)        return 0;
+    if (root.val < low)       return this.rangeSummationHelper(root.right, low, high);
+    if (root.val > high)      return this.rangeSummationHelper(root.left,  low, high);
+    const leftSum  = this.rangeSummationHelper(root.left,  low, high);
+    const rightSum = this.rangeSummationHelper(root.right, low, high);
+    root.val += leftSum + rightSum;
+    return root.val;
+  }
+
+  rangeSummation(root: TreeNode | null, low: number, high: number): void {
+    this.rangeSummationHelper(root, low, high);
+  }
+}
+```
+
+```go,editable
+func rangeSummationHelper(root *TreeNode, low, high int) int {
+    if root == nil       { return 0 }
+    if root.Val < low    { return rangeSummationHelper(root.Right, low, high) }
+    if root.Val > high   { return rangeSummationHelper(root.Left,  low, high) }
+    leftSum  := rangeSummationHelper(root.Left,  low, high)
+    rightSum := rangeSummationHelper(root.Right, low, high)
+    root.Val += leftSum + rightSum
+    return root.Val
+}
+
+func rangeSummation(root *TreeNode, low, high int) {
+    rangeSummationHelper(root, low, high)
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun rangeSummationHelper(root: TreeNode?, low: Int, high: Int): Int {
+        if (root == null)         return 0
+        if (root.`val` < low)     return rangeSummationHelper(root.right, low, high)
+        if (root.`val` > high)    return rangeSummationHelper(root.left,  low, high)
+        val leftSum  = rangeSummationHelper(root.left,  low, high)
+        val rightSum = rangeSummationHelper(root.right, low, high)
+        root.`val` += leftSum + rightSum
+        return root.`val`
+    }
+
+    fun rangeSummation(root: TreeNode?, low: Int, high: Int) {
+        rangeSummationHelper(root, low, high)
+    }
+}
+```
+
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    pub fn range_summation(root: Tree, low: i32, high: i32) {
+        Self::helper(root, low, high);
+    }
+
+    fn helper(root: Tree, low: i32, high: i32) -> i32 {
+        match root {
+            None => 0,
+            Some(n) => {
+                let v = n.borrow().val;
+                if v < low  { return Self::helper(n.borrow().right.clone(), low, high); }
+                if v > high { return Self::helper(n.borrow().left.clone(),  low, high); }
+                let left_sum  = Self::helper(n.borrow().left.clone(),  low, high);
+                let right_sum = Self::helper(n.borrow().right.clone(), low, high);
+                n.borrow_mut().val = v + left_sum + right_sum;
+                n.borrow().val
+            }
+        }
+    }
+}
+```
+
+</div>
+
 ***
 
 # Range diameter
 
 ## Problem Statement
 
-Given the **root** of a binary search tree and a range represented by **low** and **high**, write a function to find and return the diameter of the largest subtree in which every node’s value lies within the inclusive range `[low, high]`.
-
-It is guaranteed that if a node’s value is outside `[low, high]`, all nodes in its left and right subtrees are also out of range.
-
-The diameter of a binary tree is the longest distance between any two nodes in the tree, whether or not they pass through the root. The distance here is defined by the number of edges in the path.
+Given the **root** of a BST and a range `[low, high]`, return the **diameter** of the largest subtree in which every node's value lies in `[low, high]`. The diameter of a tree is the longest path (counted in edges) between any two of its nodes.
 
 ### Example 1
 
-> -   **Input:** root = \[4, 2, 5, 1, 3, null, 6\], low = 2, high = 5
-> -   **Output:** 3
-> -   **Explanation:** The diameter of the subtree is shown in the diagram.
+> - **Input:** `root = [4, 2, 5, 1, 3, null, 6]`, `low = 2`, `high = 5`
+> - **Output:** `3`
 
 ### Example 2
 
-> -   **Input:** root = \[5, 1, 8, null, null, 6, 9\], low = 6, high = 9
-> -   **Output:** 2
-> -   **Explanation:** The diameter of the subtree is shown in the diagram.
+> - **Input:** `root = [5, 1, 8, null, null, 6, 9]`, `low = 6`, `high = 9`
+> - **Output:** `2`
 
-## Solution
+## The Strategy
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+Standard "diameter of a binary tree" algorithm: at every node, recursively compute the *height* of each subtree, and update a global `diameter` candidate as `leftHeight + rightHeight`. Return `max(leftHeight, rightHeight) + 1` to the parent.
 
-using namespace std;
+The only addition for this problem: **prune out-of-range nodes** the same way we did for sums. A subtree rooted outside the range contributes height `0` and is invisible to the diameter calculation.
 
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    R((4))
+    A((2))
+    B((5))
+    C((1))
+    D((3))
+    E((6))
+    R --> A
+    R --> B
+    A --> C
+    A --> D
+    B --> X([" "])
+    B --> E
+    OUT["Range [2, 5] → drop 6, 1. Largest in-range subtree: 4-2-3 → diameter = 3 edges"]
+    style C fill:#fecaca,stroke:#ef4444
+    style E fill:#fecaca,stroke:#ef4444
+    style X fill:none,stroke:none,color:transparent
+    style OUT fill:#bbf7d0,stroke:#16a34a
+```
+
+<p align="center"><strong>Range <code>[2, 5]</code> excludes <code>1</code> and <code>6</code>. The longest path through in-range nodes is <code>3 → 2 → 4 → 5</code>, diameter <code>3</code>.</strong></p>
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+class Solution:
+    def __init__(self):
+        self.diameter = 0
+
+    def range_diameter_helper(self, root, low, high):
+        if root is None:
+            return 0
+        if root.val < low:
+            return self.range_diameter_helper(root.right, low, high)    # prune left
+        if root.val > high:
+            return self.range_diameter_helper(root.left, low, high)     # prune right
+        # In range: collect heights of both children.
+        left_h  = self.range_diameter_helper(root.left,  low, high)
+        right_h = self.range_diameter_helper(root.right, low, high)
+        # Diameter through this node = path going down-left + path going down-right.
+        self.diameter = max(self.diameter, left_h + right_h)
+        # Height contributed by this node: 1 + tallest child.
+        return max(left_h, right_h) + 1
+
+    def range_diameter(self, root, low, high):
+        self.diameter = 0
+        self.range_diameter_helper(root, low, high)
+        return self.diameter
+```
+
+```java,editable
+class Solution {
+    private int diameter = 0;
+
+    private int rangeDiameterHelper(TreeNode root, int low, int high) {
+        if (root == null) return 0;
+        if (root.val < low)  return rangeDiameterHelper(root.right, low, high);                                                          // prune left
+        if (root.val > high) return rangeDiameterHelper(root.left,  low, high);                                                          // prune right
+        int leftH  = rangeDiameterHelper(root.left,  low, high);
+        int rightH = rangeDiameterHelper(root.right, low, high);
+        diameter = Math.max(diameter, leftH + rightH);                                                                                    // candidate
+        return Math.max(leftH, rightH) + 1;                                                                                                // height
+    }
+
+    public int rangeDiameter(TreeNode root, int low, int high) {
+        diameter = 0;
+        rangeDiameterHelper(root, low, high);
+        return diameter;
+    }
+}
+```
+
+```c,editable
+static int diameter_;
+
+static int helper(struct TreeNode *root, int low, int high) {
+    if (root == NULL)     return 0;
+    if (root->val < low)  return helper(root->right, low, high);
+    if (root->val > high) return helper(root->left,  low, high);
+    int leftH  = helper(root->left,  low, high);
+    int rightH = helper(root->right, low, high);
+    if (leftH + rightH > diameter_) diameter_ = leftH + rightH;
+    return (leftH > rightH ? leftH : rightH) + 1;
+}
+
+int rangeDiameter(struct TreeNode *root, int low, int high) {
+    diameter_ = 0;
+    helper(root, low, high);
+    return diameter_;
+}
+```
+
+```cpp,editable
 class Solution {
 public:
-
-    // Global variable to calculate the diameter of the tree
     int diameter = 0;
 
     int rangeDiameterHelper(TreeNode *root, int low, int high) {
-
-        // Base Case : if root is null return null
-        if (root == nullptr) {
-            return 0;
-        }
-
-        // If the node's value is less than the lower bound,
-        // discard the left subtree and move to the right subtree
-        if (root->val < low) {
-            return rangeDiameterHelper(root->right, low, high);
-        }
-
-        // If the node's value is greater than the upper bound,
-        // discard the right subtree and move to the left subtree
-        if (root->val > high) {
-            return rangeDiameterHelper(root->left, low, high);
-        }
-
-        // Calculate the height of the left and right subtrees
-        // recursively
-        int leftHeight = rangeDiameterHelper(root->left, low, high);
-        int rightHeight = rangeDiameterHelper(root->right, low, high);
-
-        // Update the diameter if the sum of the left and right subtree
-        // heights is greater
-        diameter = max(diameter, leftHeight + rightHeight);
-
-        // Return the height of the current subtree
-        // (maximum height of left or right subtree + 1)
-        return max(leftHeight, rightHeight) + 1;
+        if (!root)              return 0;
+        if (root->val < low)    return rangeDiameterHelper(root->right, low, high);
+        if (root->val > high)   return rangeDiameterHelper(root->left,  low, high);
+        int leftH  = rangeDiameterHelper(root->left,  low, high);
+        int rightH = rangeDiameterHelper(root->right, low, high);
+        diameter = std::max(diameter, leftH + rightH);
+        return std::max(leftH, rightH) + 1;
     }
 
     int rangeDiameter(TreeNode *root, int low, int high) {
-
-        // Call the helper function to calculate the height of the tree
-        // in the range [low, high] and update the diameter
+        diameter = 0;
         rangeDiameterHelper(root, low, high);
-
         return diameter;
     }
 };
 ```
+
+```scala,editable
+class Solution {
+  private var diameter: Int = 0
+
+  private def helper(root: TreeNode, low: Int, high: Int): Int = {
+    if (root == null)           return 0
+    if (root.value < low)       return helper(root.right, low, high)
+    if (root.value > high)      return helper(root.left,  low, high)
+    val leftH  = helper(root.left,  low, high)
+    val rightH = helper(root.right, low, high)
+    diameter = math.max(diameter, leftH + rightH)
+    math.max(leftH, rightH) + 1
+  }
+
+  def rangeDiameter(root: TreeNode, low: Int, high: Int): Int = {
+    diameter = 0
+    helper(root, low, high)
+    diameter
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+  rangeDiameterHelper(root, low, high) {
+    if (root === null)         return 0;
+    if (root.val < low)        return this.rangeDiameterHelper(root.right, low, high);
+    if (root.val > high)       return this.rangeDiameterHelper(root.left,  low, high);
+    const leftH  = this.rangeDiameterHelper(root.left,  low, high);
+    const rightH = this.rangeDiameterHelper(root.right, low, high);
+    this.diameter = Math.max(this.diameter, leftH + rightH);
+    return Math.max(leftH, rightH) + 1;
+  }
+
+  rangeDiameter(root, low, high) {
+    this.diameter = 0;
+    this.rangeDiameterHelper(root, low, high);
+    return this.diameter;
+  }
+}
+```
+
+```typescript,editable
+class Solution {
+  diameter = 0;
+
+  rangeDiameterHelper(root: TreeNode | null, low: number, high: number): number {
+    if (root === null)         return 0;
+    if (root.val < low)        return this.rangeDiameterHelper(root.right, low, high);
+    if (root.val > high)       return this.rangeDiameterHelper(root.left,  low, high);
+    const leftH  = this.rangeDiameterHelper(root.left,  low, high);
+    const rightH = this.rangeDiameterHelper(root.right, low, high);
+    this.diameter = Math.max(this.diameter, leftH + rightH);
+    return Math.max(leftH, rightH) + 1;
+  }
+
+  rangeDiameter(root: TreeNode | null, low: number, high: number): number {
+    this.diameter = 0;
+    this.rangeDiameterHelper(root, low, high);
+    return this.diameter;
+  }
+}
+```
+
+```go,editable
+type rangeDiamState struct{ diameter int }
+
+func (s *rangeDiamState) helper(root *TreeNode, low, high int) int {
+    if root == nil       { return 0 }
+    if root.Val < low    { return s.helper(root.Right, low, high) }
+    if root.Val > high   { return s.helper(root.Left,  low, high) }
+    leftH  := s.helper(root.Left,  low, high)
+    rightH := s.helper(root.Right, low, high)
+    if leftH + rightH > s.diameter { s.diameter = leftH + rightH }
+    if leftH > rightH { return leftH + 1 }
+    return rightH + 1
+}
+
+func rangeDiameter(root *TreeNode, low, high int) int {
+    s := &rangeDiamState{}
+    s.helper(root, low, high)
+    return s.diameter
+}
+```
+
+```kotlin,editable
+class Solution {
+    private var diameter = 0
+
+    private fun helper(root: TreeNode?, low: Int, high: Int): Int {
+        if (root == null)         return 0
+        if (root.`val` < low)     return helper(root.right, low, high)
+        if (root.`val` > high)    return helper(root.left,  low, high)
+        val leftH  = helper(root.left,  low, high)
+        val rightH = helper(root.right, low, high)
+        diameter = maxOf(diameter, leftH + rightH)
+        return maxOf(leftH, rightH) + 1
+    }
+
+    fun rangeDiameter(root: TreeNode?, low: Int, high: Int): Int {
+        diameter = 0
+        helper(root, low, high)
+        return diameter
+    }
+}
+```
+
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    pub fn range_diameter(root: Tree, low: i32, high: i32) -> i32 {
+        let mut diameter = 0i32;
+        Self::helper(root, low, high, &mut diameter);
+        diameter
+    }
+
+    fn helper(root: Tree, low: i32, high: i32, diameter: &mut i32) -> i32 {
+        match root {
+            None => 0,
+            Some(n) => {
+                let v = n.borrow().val;
+                if v < low  { return Self::helper(n.borrow().right.clone(), low, high, diameter); }
+                if v > high { return Self::helper(n.borrow().left.clone(),  low, high, diameter); }
+                let left_h  = Self::helper(n.borrow().left.clone(),  low, high, diameter);
+                let right_h = Self::helper(n.borrow().right.clone(), low, high, diameter);
+                if left_h + right_h > *diameter { *diameter = left_h + right_h; }
+                left_h.max(right_h) + 1
+            }
+        }
+    }
+}
+```
+
+</div>
 
 ***
 
@@ -859,91 +779,230 @@ public:
 
 ## Problem Statement
 
-Given the **root** of a binary search tree and a range represented by **low** and **high**, write a function to update each non-leaf node whose value lies within the range with the number of leaf nodes in its subtree whose values also lie within the same range.
+Given the **root** of a BST and a range `[low, high]`, replace the value of each *non-leaf* in-range node with the count of in-range leaves in its subtree.
 
-It is guaranteed that if a node’s value is outside `[low, high]`, all nodes in its left and right subtrees are also out of range.
+> A *leaf* here is a node whose subtree contains no in-range descendants — typically an actual leaf in the original tree.
 
 ### Example 1
 
-> -   **Input:** root = \[4, 2, 5, 1, 3, null, 6\], low = 2, high = 5
-> -   **Output:** \[1, 1, 0, 1, 3, null, 6\]
-> -   **Explanation:** Once all non-leaf nodes within the specified range have been updated to reflect the count of leaf nodes in their subtrees that also lie within the range, the resulting tree is as illustrated above.
+> - **Input:** `root = [4, 2, 5, 1, 3, null, 6]`, `low = 2`, `high = 5`
+> - **Output:** `[1, 1, 0, 1, 3, null, 6]`
 
 ### Example 2
 
-> -   **Input:** root = \[5, 1, 8, null, null, 6, 9\], low = 6, high = 9
-> -   **Output:** \[5, 1, 2, null, null, 6, 9\]
-> -   **Explanation:** Once all non-leaf nodes within the specified range have been updated to reflect the count of leaf nodes in their subtrees that also lie within the range, the resulting tree is as illustrated above.
+> - **Input:** `root = [5, 1, 8, null, null, 6, 9]`, `low = 6`, `high = 9`
+> - **Output:** `[5, 1, 2, null, null, 6, 9]`
 
-## Solution
+## The Strategy
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+Same skeleton as range summation, but instead of returning the sum of in-range descendants, return the *count of in-range leaves*. A leaf returns `1`; an internal in-range node returns `leftLeaves + rightLeaves` and overwrites its own value with that count.
 
-using namespace std;
+## The Solution
 
+<div class="lang-tabs">
+
+```python,editable
+class Solution:
+    def range_leaves_helper(self, root, low, high):
+        if root is None:
+            return 0
+        if root.val < low:
+            return self.range_leaves_helper(root.right, low, high)             # prune left
+        if root.val > high:
+            return self.range_leaves_helper(root.left, low, high)              # prune right
+        # In range; check leaf-ness AFTER pruning, because the original tree's
+        # leaves stay leaves regardless of range.
+        if root.left is None and root.right is None:
+            return 1                                                           # this is an in-range leaf
+        left_leaves  = self.range_leaves_helper(root.left,  low, high)
+        right_leaves = self.range_leaves_helper(root.right, low, high)
+        # Internal in-range node: overwrite with count of in-range leaves below.
+        root.val = left_leaves + right_leaves
+        return root.val
+
+    def range_leaves(self, root, low, high):
+        self.range_leaves_helper(root, low, high)
+```
+
+```java,editable
+class Solution {
+    public int rangeLeavesHelper(TreeNode root, int low, int high) {
+        if (root == null) return 0;
+        if (root.val < low)  return rangeLeavesHelper(root.right, low, high);
+        if (root.val > high) return rangeLeavesHelper(root.left,  low, high);
+        if (root.left == null && root.right == null) return 1;                                                                              // leaf
+        int leftLeaves  = rangeLeavesHelper(root.left,  low, high);
+        int rightLeaves = rangeLeavesHelper(root.right, low, high);
+        root.val = leftLeaves + rightLeaves;                                                                                                 // mutate
+        return root.val;
+    }
+
+    public void rangeLeaves(TreeNode root, int low, int high) {
+        rangeLeavesHelper(root, low, high);
+    }
+}
+```
+
+```c,editable
+int rangeLeavesHelper(struct TreeNode *root, int low, int high) {
+    if (root == NULL)     return 0;
+    if (root->val < low)  return rangeLeavesHelper(root->right, low, high);
+    if (root->val > high) return rangeLeavesHelper(root->left,  low, high);
+    if (!root->left && !root->right) return 1;                                                                                                // leaf
+    int leftLeaves  = rangeLeavesHelper(root->left,  low, high);
+    int rightLeaves = rangeLeavesHelper(root->right, low, high);
+    root->val = leftLeaves + rightLeaves;
+    return root->val;
+}
+
+void rangeLeaves(struct TreeNode *root, int low, int high) {
+    rangeLeavesHelper(root, low, high);
+}
+```
+
+```cpp,editable
 class Solution {
 public:
     int rangeLeavesHelper(TreeNode *root, int low, int high) {
-
-        // Base Case : if root is null return 0
-        if (root == nullptr) {
-            return 0;
-        }
-
-        // If the node's value is less than the lower bound,
-        // discard the left subtree and move to the right subtree
-        if (root->val < low) {
-            return rangeLeavesHelper(root->right, low, high);
-        }
-
-        // If the node's value is greater than the upper bound,
-        // discard the right subtree and move to the left subtree
-        if (root->val > high) {
-            return rangeLeavesHelper(root->left, low, high);
-        }
-
-        // If it's a leaf node, return 1
-        if (!root->left && !root->right) {
-
-            // Return 1 since it's a leaf node
-            return 1;
-        }
-
-        // If the node's value is within the range [low, high],
-        // recursively trim its left and right subtrees
-        int leftLeaves = rangeLeavesHelper(root->left, low, high);
+        if (!root)              return 0;
+        if (root->val < low)    return rangeLeavesHelper(root->right, low, high);
+        if (root->val > high)   return rangeLeavesHelper(root->left,  low, high);
+        if (!root->left && !root->right) return 1;                                                                                              // leaf
+        int leftLeaves  = rangeLeavesHelper(root->left,  low, high);
         int rightLeaves = rangeLeavesHelper(root->right, low, high);
-
-        // Update the current node's value with the count of leaves in
-        // its subtrees
         root->val = leftLeaves + rightLeaves;
-
-        // Return the total count of leaves in the current subtree
         return root->val;
     }
 
     void rangeLeaves(TreeNode *root, int low, int high) {
-
-        // Call the helper function to calculate the count of leaves
-        // in the range [low, high] and update the node values
         rangeLeavesHelper(root, low, high);
     }
 };
 ```
 
-***
+```scala,editable
+object Solution {
+  def rangeLeavesHelper(root: TreeNode, low: Int, high: Int): Int = {
+    if (root == null)           return 0
+    if (root.value < low)       return rangeLeavesHelper(root.right, low, high)
+    if (root.value > high)      return rangeLeavesHelper(root.left,  low, high)
+    if (root.left == null && root.right == null) return 1                                                                                          // leaf
+    val leftLeaves  = rangeLeavesHelper(root.left,  low, high)
+    val rightLeaves = rangeLeavesHelper(root.right, low, high)
+    root.value = leftLeaves + rightLeaves
+    root.value
+  }
 
-# Range leaves
+  def rangeLeaves(root: TreeNode, low: Int, high: Int): Unit = {
+    rangeLeavesHelper(root, low, high)
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+  rangeLeavesHelper(root, low, high) {
+    if (root === null)         return 0;
+    if (root.val < low)        return this.rangeLeavesHelper(root.right, low, high);
+    if (root.val > high)       return this.rangeLeavesHelper(root.left,  low, high);
+    if (root.left === null && root.right === null) return 1;                                                                                       // leaf
+    const leftLeaves  = this.rangeLeavesHelper(root.left,  low, high);
+    const rightLeaves = this.rangeLeavesHelper(root.right, low, high);
+    root.val = leftLeaves + rightLeaves;
+    return root.val;
+  }
+
+  rangeLeaves(root, low, high) {
+    this.rangeLeavesHelper(root, low, high);
+  }
+}
+```
+
+```typescript,editable
+class Solution {
+  rangeLeavesHelper(root: TreeNode | null, low: number, high: number): number {
+    if (root === null)         return 0;
+    if (root.val < low)        return this.rangeLeavesHelper(root.right, low, high);
+    if (root.val > high)       return this.rangeLeavesHelper(root.left,  low, high);
+    if (root.left === null && root.right === null) return 1;                                                                                         // leaf
+    const leftLeaves  = this.rangeLeavesHelper(root.left,  low, high);
+    const rightLeaves = this.rangeLeavesHelper(root.right, low, high);
+    root.val = leftLeaves + rightLeaves;
+    return root.val;
+  }
+
+  rangeLeaves(root: TreeNode | null, low: number, high: number): void {
+    this.rangeLeavesHelper(root, low, high);
+  }
+}
+```
+
+```go,editable
+func rangeLeavesHelper(root *TreeNode, low, high int) int {
+    if root == nil       { return 0 }
+    if root.Val < low    { return rangeLeavesHelper(root.Right, low, high) }
+    if root.Val > high   { return rangeLeavesHelper(root.Left,  low, high) }
+    if root.Left == nil && root.Right == nil { return 1 }                                                                                              // leaf
+    leftLeaves  := rangeLeavesHelper(root.Left,  low, high)
+    rightLeaves := rangeLeavesHelper(root.Right, low, high)
+    root.Val = leftLeaves + rightLeaves
+    return root.Val
+}
+
+func rangeLeaves(root *TreeNode, low, high int) {
+    rangeLeavesHelper(root, low, high)
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun rangeLeavesHelper(root: TreeNode?, low: Int, high: Int): Int {
+        if (root == null)         return 0
+        if (root.`val` < low)     return rangeLeavesHelper(root.right, low, high)
+        if (root.`val` > high)    return rangeLeavesHelper(root.left,  low, high)
+        if (root.left == null && root.right == null) return 1                                                                                            // leaf
+        val leftLeaves  = rangeLeavesHelper(root.left,  low, high)
+        val rightLeaves = rangeLeavesHelper(root.right, low, high)
+        root.`val` = leftLeaves + rightLeaves
+        return root.`val`
+    }
+
+    fun rangeLeaves(root: TreeNode?, low: Int, high: Int) {
+        rangeLeavesHelper(root, low, high)
+    }
+}
+```
+
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    pub fn range_leaves(root: Tree, low: i32, high: i32) {
+        Self::helper(root, low, high);
+    }
+
+    fn helper(root: Tree, low: i32, high: i32) -> i32 {
+        match root {
+            None => 0,
+            Some(n) => {
+                let v = n.borrow().val;
+                if v < low  { return Self::helper(n.borrow().right.clone(), low, high); }
+                if v > high { return Self::helper(n.borrow().left.clone(),  low, high); }
+                let (left_clone, right_clone) = (n.borrow().left.clone(), n.borrow().right.clone());
+                if left_clone.is_none() && right_clone.is_none() { return 1; }
+                let lc = Self::helper(left_clone,  low, high);
+                let rc = Self::helper(right_clone, low, high);
+                n.borrow_mut().val = lc + rc;
+                n.borrow().val
+            }
+        }
+    }
+}
+```
+
+</div>
 
 ***
 
@@ -951,66 +1010,203 @@ public:
 
 ## Problem Statement
 
-Given the **root** of a binary search tree and two values, **low** and **high**, write a function to trim this binary search tree so that it only contains nodes whose values lie in the inclusive range of `[low, high]`.
-
-The relative structure of the remaining nodes should remain the same, meaning that if a node has a descendant in the original tree, then that descendant should stay in the trimmed tree.
+Given the **root** of a BST and two values `low` and `high`, return a new BST that contains *only* the nodes whose values lie in `[low, high]`. The relative structure must be preserved — if `A` was a descendant of `B` in the original and both survive the trim, `A` must remain a descendant of `B` in the result.
 
 ### Example 1
 
-> -   **Input:** root = \[4, 2, 5, 1, 3, null, 6\], low = 2, high = 5
-> -   **Output:** \[4, 2, 5, null, 3\]
-> -   **Explanation:** The trimmed tree is shown in the above diagram.
+> - **Input:** `root = [4, 2, 5, 1, 3, null, 6]`, `low = 2`, `high = 5`
+> - **Output:** `[4, 2, 5, null, 3]`
 
 ### Example 2
 
-> -   **Input:** root = \[5, 1, 8, null, null, 6, 9\], low = 6, high = 9
-> -   **Output:** \[8, 6, 9\]
-> -   **Explanation:** The trimmed tree is shown in the above diagram.
+> - **Input:** `root = [5, 1, 8, null, null, 6, 9]`, `low = 6`, `high = 9`
+> - **Output:** `[8, 6, 9]`
 
-## Solution
+## The Strategy
 
-```cpp
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+The same pruning rules drive a *structural rewrite*:
 
-using namespace std;
+- If `node.val < low`, the entire left subtree is out of range; we **don't recurse left** at all. Return the trim of the right subtree as our replacement.
+- If `node.val > high`, mirror — return the trim of the left subtree.
+- Otherwise (`node.val` in range), the node survives. Trim both children recursively and re-attach.
 
+The `return` value is the new root of *this* subtree after trimming, which the caller wires back into its own children pointers — exactly the same shape as the recursive insertion idiom we used in lesson 5.
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+class Solution:
+    def range_exclusive_trim(self, root, low, high):
+        if root is None:
+            return None
+        # Node too small → drop it AND its whole left subtree; return the trimmed right.
+        if root.val < low:
+            return self.range_exclusive_trim(root.right, low, high)
+        # Node too large → drop it AND its whole right subtree; return the trimmed left.
+        if root.val > high:
+            return self.range_exclusive_trim(root.left, low, high)
+        # In range: keep the node, trim both children, re-attach the results.
+        root.left  = self.range_exclusive_trim(root.left,  low, high)
+        root.right = self.range_exclusive_trim(root.right, low, high)
+        return root
+```
+
+```java,editable
+class Solution {
+    public TreeNode rangeExclusiveTrim(TreeNode root, int low, int high) {
+        if (root == null) return null;
+        if (root.val < low)  return rangeExclusiveTrim(root.right, low, high);                                                                                // drop node + left subtree
+        if (root.val > high) return rangeExclusiveTrim(root.left,  low, high);                                                                                // drop node + right subtree
+        root.left  = rangeExclusiveTrim(root.left,  low, high);                                                                                                // trim and re-attach
+        root.right = rangeExclusiveTrim(root.right, low, high);
+        return root;
+    }
+}
+```
+
+```c,editable
+struct TreeNode *rangeExclusiveTrim(struct TreeNode *root, int low, int high) {
+    if (root == NULL)     return NULL;
+    if (root->val < low)  return rangeExclusiveTrim(root->right, low, high);
+    if (root->val > high) return rangeExclusiveTrim(root->left,  low, high);
+    root->left  = rangeExclusiveTrim(root->left,  low, high);
+    root->right = rangeExclusiveTrim(root->right, low, high);
+    return root;
+}
+```
+
+```cpp,editable
 class Solution {
 public:
     TreeNode *rangeExclusiveTrim(TreeNode *root, int low, int high) {
-
-        // Base Case : if root is null return null
-        if (root == nullptr) {
-            return nullptr;
-        }
-
-        // If the node's value is less than the lower bound,
-        // discard the left subtree and trim the right subtree
-        if (root->val < low) {
-            return rangeExclusiveTrim(root->right, low, high);
-        }
-
-        // If the node's value is greater than the upper bound,
-        // discard the right subtree and trim the left subtree
-        if (root->val > high) {
-            return rangeExclusiveTrim(root->left, low, high);
-        }
-
-        // If the node's value is within the range [low, high],
-        // recursively trim its left and right subtrees
-        root->left = rangeExclusiveTrim(root->left, low, high);
+        if (!root)              return nullptr;
+        if (root->val < low)    return rangeExclusiveTrim(root->right, low, high);
+        if (root->val > high)   return rangeExclusiveTrim(root->left,  low, high);
+        root->left  = rangeExclusiveTrim(root->left,  low, high);
         root->right = rangeExclusiveTrim(root->right, low, high);
-
-        // Return the trimmed root
         return root;
     }
 };
 ```
+
+```scala,editable
+object Solution {
+  def rangeExclusiveTrim(root: TreeNode, low: Int, high: Int): TreeNode = {
+    if (root == null)           return null
+    if (root.value < low)       return rangeExclusiveTrim(root.right, low, high)
+    if (root.value > high)      return rangeExclusiveTrim(root.left,  low, high)
+    root.left  = rangeExclusiveTrim(root.left,  low, high)
+    root.right = rangeExclusiveTrim(root.right, low, high)
+    root
+  }
+}
+```
+
+```javascript,editable
+function rangeExclusiveTrim(root, low, high) {
+  if (root === null)        return null;
+  if (root.val < low)       return rangeExclusiveTrim(root.right, low, high);
+  if (root.val > high)      return rangeExclusiveTrim(root.left,  low, high);
+  root.left  = rangeExclusiveTrim(root.left,  low, high);
+  root.right = rangeExclusiveTrim(root.right, low, high);
+  return root;
+}
+```
+
+```typescript,editable
+function rangeExclusiveTrim(root: TreeNode | null, low: number, high: number): TreeNode | null {
+  if (root === null)        return null;
+  if (root.val < low)       return rangeExclusiveTrim(root.right, low, high);
+  if (root.val > high)      return rangeExclusiveTrim(root.left,  low, high);
+  root.left  = rangeExclusiveTrim(root.left,  low, high);
+  root.right = rangeExclusiveTrim(root.right, low, high);
+  return root;
+}
+```
+
+```go,editable
+func rangeExclusiveTrim(root *TreeNode, low, high int) *TreeNode {
+    if root == nil       { return nil }
+    if root.Val < low    { return rangeExclusiveTrim(root.Right, low, high) }
+    if root.Val > high   { return rangeExclusiveTrim(root.Left,  low, high) }
+    root.Left  = rangeExclusiveTrim(root.Left,  low, high)
+    root.Right = rangeExclusiveTrim(root.Right, low, high)
+    return root
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun rangeExclusiveTrim(root: TreeNode?, low: Int, high: Int): TreeNode? {
+        if (root == null)         return null
+        if (root.`val` < low)     return rangeExclusiveTrim(root.right, low, high)
+        if (root.`val` > high)    return rangeExclusiveTrim(root.left,  low, high)
+        root.left  = rangeExclusiveTrim(root.left,  low, high)
+        root.right = rangeExclusiveTrim(root.right, low, high)
+        return root
+    }
+}
+```
+
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    pub fn range_exclusive_trim(root: Tree, low: i32, high: i32) -> Tree {
+        match root {
+            None => None,
+            Some(n) => {
+                let v = n.borrow().val;
+                if v < low {
+                    let r = n.borrow().right.clone();
+                    return Self::range_exclusive_trim(r, low, high);
+                }
+                if v > high {
+                    let l = n.borrow().left.clone();
+                    return Self::range_exclusive_trim(l, low, high);
+                }
+                let l = n.borrow().left.clone();
+                let r = n.borrow().right.clone();
+                n.borrow_mut().left  = Self::range_exclusive_trim(l, low, high);
+                n.borrow_mut().right = Self::range_exclusive_trim(r, low, high);
+                Some(n)
+            }
+        }
+    }
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — root = [4, 2, 5, 1, 3, null, 6], range = [2, 5]</strong></summary>
+
+```
+trim(4, [2,5]) │ 4 in range → trim(2), trim(5), keep 4
+trim(2, [2,5]) │ 2 in range → trim(1), trim(3), keep 2
+trim(1, [2,5]) │ 1 < 2  → drop 1 (and its subtree); return trim(null) = null
+trim(3, [2,5]) │ 3 in range → trim(null), trim(null) → keep 3 as leaf
+trim(5, [2,5]) │ 5 in range → trim(null), trim(6), keep 5
+trim(6, [2,5]) │ 6 > 5  → drop 6; return trim(null) = null
+After all trims: [4, 2, 5, null, 3, null, null] ≡ [4, 2, 5, null, 3] ✓
+```
+
+</details>
+
+***
+
+## Final Takeaway
+
+Range Postorder = postorder + BST pruning. Whenever a problem asks for an aggregate (sum, count, height, structural rewrite) over the nodes of a BST whose values fall in a range, this is the right tool. The pruning rules collapse out-of-range subtrees in O(1) — not by walking them — and the postorder structure cleanly reduces children's results into a parent's.
+
+Three patterns to keep:
+
+1. **The "two prunes + recurse" structure** is universal for range-bounded BST problems. Once you internalise it, range sum / range count / range diameter / range trim all collapse to a 4-line skeleton with one problem-specific reduction.
+2. **Postorder is for "value depends on what's below me"** — diameter, sum, count of leaves, validity checks like "subtree is BST", segment-tree-style queries. Whenever the parent's answer is computed *from* the children's, you're in postorder territory.
+3. **Returning the trimmed subtree to the parent** is the same idiom we used for insertion (lesson 5) and deletion (lesson 6): every recursive call returns a pointer to the (possibly modified) subtree, and the caller wires it into its own pointer field.
+
+The next lesson swaps **one descent** for **two pointers** — running a forward iterator and a reverse iterator simultaneously across the BST's sorted sequence. That single move unlocks the classic "two values that sum to target" family of problems on a tree, in O(n) time and O(h) space.

@@ -1,4 +1,16 @@
-# Pattern: Two pointer
+# 13. Pattern: Two Pointer
+
+## The Hook
+
+The previous lesson on iterators gave us *one* useful object: a way to walk a BST in sorted order, on demand, with O(h) memory. Useful — but not yet a superpower.
+
+The superpower shows up the moment you spin up **two** of them. Run a *forward* iterator from the smallest value and a *reverse* iterator from the largest, and let them march toward each other. You're now walking the BST's hidden sorted sequence from **both ends simultaneously** — the same trick that powers two-sum on a sorted array, but **without ever materialising the array**.
+
+Every classic two-pointer problem from the array world transfers directly: pair sum, pairs that satisfy a relation (multiple, GCD, distance), median computation by closing in from both ends, and even *cross-tree* pair sum where the left iterator runs over one BST and the right iterator over a different one. All in **O(n) time** and **O(h) space**, and all on tree-structured data with no array conversion.
+
+This final lesson shows how. Four problems make the pattern click.
+
+---
 
 ## Table of Contents
 
@@ -13,1550 +25,104 @@
 
 # Understanding the two pointer pattern
 
-The inorder and reverse inorder traversal on a binary search tree results in traversal in the sorted and reverse sorted order. And so, a binary search tree can be used to store values in sorted or reverse-sorted order, which would otherwise have to be stored in an array. Unlike arrays, a binary search tree can be dynamically updated to add more values and searching for the node with a given value is also very efficient. This makes a binary search tree the ideal choice for storing values that need to be accessed in sorted order. 
+A BST stores values in a structure that *implicitly* sorts them. The forward iterator emits ascending order, the reverse iterator descending. Run them simultaneously, and you have a working pair `(leftNode, rightNode)` that always satisfies `leftNode.val < rightNode.val` until they cross — i.e. you're holding the smallest unseen value and the largest unseen value at the same time.
 
-However, some problems require us to traverse the stored values in both sorted and reverse-sorted order simultaneously. For certain problems, we can use the two-pointer traversal technique to traverse the nodes of a binary search tree simultaneously in sorted and reverse-sorted order. It allows us to solve problems in linear time and single-pass, which would otherwise require inefficient nested loops or complicated recursive functions.
-
-The two-pointer pattern is a classification of problems that can be solved using the two-pointer traversal technique.
-
-// Diagram: Two pointer traversal is used to traverse a binary search tree in sorted and reverse-sorted order simultaneously.
-
-In this course, we will learn more about the two-pointer technique on a binary search tree and how to identify a problem as a two-pointer pattern problem.
-
-## Two pointer technique
-
-Consider that we are given a binary search tree and a function `f`, and we need to traverse the tree simultaneously in the sorted and reverse-sorted order until we meet in the middle or some other terminating condition is reached. In each iteration, the output of the function `f` on two nodes from both directions determines if we should move ahead in the forward or reverse direction.
-
-// Diagram: Traverse simultaneously in the sorted and reverse sorted order and process nodes.
-
-The two-pointer technique on a binary search tree uses the forward and reverse iterators we learned earlier to abstract away the algorithm to traverse the binary search tree on demand. We create a forward iterator `left` and a reverse iterator `right` to traverse the tree on demand in the sorted(ascending) and reverse sorted (descending) order of values. We store the nodes pointed to by these iterators in two reference variables `leftNode` and `rightNode` and iterate using these iterators until some terminating condition is reached. In each iteration, we process `leftNode` and `rightNode` and use the function `f` to determine if we should move ahead with the forward or reverse iterator.
-
-Consider the example below, where we terminate when the value of the node in `leftNode` exceeds the value of the node in `rightNode`. We move both the left and right pointers alternatively in this case.
-
-// Diagram: Traverse the tree simultaneously in sorted and reverse sorted order
-
-## Algorithm
-
-The algorithm given below outlines the generic two-pointer traversal technique on a binary search tree using a forward and reverse iterator. It terminates when both the pointers meet in the middle.
-
-> -   **Step 1:** Initialize `left` with a forward iterator and `leftNode` with `left.next()`
-> -   **Step 2:** Initialize `right` with a reverse iterator and `rightNode` with `right.next()`
-> -   **Step 3:** Loop while `leftNode.val` < `rightNode.val` and do the following
->     -   **Step 3.1:** Process `leftNode` and `rightNode`
->     -   **Step 3.2:** If `f(leftNode)` set `leftNode` = `left.next()`
->     -   **Step 3.3:** If `f(rightNode)` set `rightNode` = `right.next()`
-
-## Implementation
-
-To implement the two-pointer traversal, we need to implement the forward and reverse iterators we learned earlier. Given below is the generic code implementation of the two-pointer technique on a binary search tree using forward and reverse iterators. It terminates when both the pointers meet in the middle.
-
-C++
-
-```cpp
-#include <stack>
-
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class ForwardBstIterator {
-public:
-    stack<TreeNode *> stack;
-
-    ForwardBstIterator(TreeNode *root) {
-        pushAllLeft(root);
-    }
-
-    void pushAllLeft(TreeNode *node) {
-        while (node != nullptr) {
-            stack.push(node);
-            node = node->left;
-        }
-
-    bool hasNext() {
-        return !stack.empty();
-    }
-
-    TreeNode *next() {
-        if (!hasNext()) {
-            return nullptr;
-        }
-
-        TreeNode *node = stack.top();
-        stack.pop();
-        pushAllLeft(node->right);
-        return node;
-    }
-};
-
-class ReverseBstIterator {
-public:
-    stack<TreeNode *> stack;
-
-    ReverseBstIterator(TreeNode *root) {
-        pushAllRight(root);
-    }
-
-    void pushAllRight(TreeNode *node) {
-        while (node != nullptr) {
-            stack.push(node);
-            node = node->right;
-        }
-
-    bool hasNext() {
-        return !stack.empty();
-    }
-
-    TreeNode *next() {
-        if (!hasNext()) {
-            return nullptr;
-        }
-
-        TreeNode *node = stack.top();
-        stack.pop();
-        pushAllRight(node->left);
-        return node;
-    }
-};
-
-class Solution {
-public:
-    void twoPointer(TreeNode *root, int target) {
-        if (!root) {
-            return;
-        }
-
-        // Initialize the left and right iterators
-        ForwardBstIterator *leftIterator = new ForwardBstIterator(root);
-        ReverseBstIterator *rightIterator = new ReverseBstIterator(root);
-
-        TreeNode *leftNode = leftIterator->next();
-        TreeNode *rightNode = rightIterator->next();
-
-// Diagram: while (leftNode != rightNode) {
-
-            // Check if both pointer meet in the middle
-            // or cross each other. This is the terminating condition
-            if (!leftNode || !rightNode || (leftNode.val >= rightNode.val)) {
-                return;
-            }
-
-            // Process the nodes in leftNode and rightNode
-            // Processing logic goes here
-            // ........
-
-            // Check if we need to move the left pointer
-            if (f(leftNode)) {
-                leftNode = leftIterator->next();
-            }
-
-            // Check if we need to move the right pointer
-            if (f(rightNode)) {
-                rightNode = rightIterator->next();
-            }
-
-        return;
-    }
-};
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["Sorted (in-order):<br/>1, 2, 4, 6, 7"] --> B["leftNode → 1"]
+    A --> C["rightNode → 7"]
+    B --> D["advance toward middle..."]
+    C --> D
+    D --> E["meet/cross → done"]
 ```
 
-Java
+<p align="center"><strong>Two pointers walking the implicit sorted sequence of a BST. Forward iterator advances from the small end; reverse iterator advances from the large end. They meet in the middle.</strong></p>
 
-```java
-import java.util.*;
+## The technique
 
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
+The same logic as two-pointer on a sorted array — drive a decision at each step using both pointers, and advance whichever one the decision tells you to:
 
-// Diagram: class ForwardBstIterator {
-
-// Diagram: Stack<TreeNode> stack;
-
-    public ForwardBstIterator(TreeNode root) {
-        stack = new Stack<>();
-        pushAllLeft(root);
-    }
-
-    public void pushAllLeft(TreeNode node) {
-        while (node != null) {
-            stack.push(node);
-            node = node.left;
-        }
-
-    public boolean hasNext() {
-        return !stack.empty();
-    }
-
-    public TreeNode next() {
-        if (!hasNext()) {
-            return null;
-        }
-
-        TreeNode node = stack.pop();
-        pushAllLeft(node.right);
-        return node;
-    }
-
-// Diagram: class ReverseBstIterator {
-
-// Diagram: Stack<TreeNode> stack;
-
-    public ReverseBstIterator(TreeNode root) {
-        stack = new Stack<>();
-        pushAllRight(root);
-    }
-
-    public void pushAllRight(TreeNode node) {
-        while (node != null) {
-            stack.push(node);
-            node = node.right;
-        }
-
-    public boolean hasNext() {
-        return !stack.empty();
-    }
-
-    public TreeNode next() {
-        if (!hasNext()) {
-            return null;
-        }
-
-        TreeNode node = stack.pop();
-        pushAllRight(node.left);
-        return node;
-    }
-
-// Diagram: class Solution {
-
-    public void twoPointer(TreeNode root, int target) {
-        if (root == null) {
-            return;
-        }
-
-        // Initialize the left and right iterators
-        ForwardBstIterator leftIterator = new ForwardBstIterator(root);
-        ReverseBstIterator rightIterator = new ReverseBstIterator(root);
-
-        TreeNode leftNode = leftIterator.next();
-        TreeNode rightNode = rightIterator.next();
-
-// Diagram: while (leftNode != rightNode) {
-
-            // Check if both pointers meet in the middle
-            // or cross each other. This is the terminating condition
-            if (!leftNode || !rightNode || (leftNode.val >= rightNode.val)) {
-                return;
-            }
-
-            // Process the nodes in leftNode and rightNode
-            // Processing logic goes here
-            // ........
-
-            // Check if we need to move the left pointer
-            if (f(leftNode)) {
-                leftNode = leftIterator.next();
-            }
-
-            // Check if we need to move the right pointer
-            if (f(rightNode)) {
-                rightNode = rightIterator.next();
-            }
-
-        return;
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-class ForwardBstIterator {
-    stack: (TreeNode | null)[];
-
-    constructor(root: TreeNode | null) {
-        this.stack = [];
-        this.pushAllLeft(root);
-    }
-
-    pushAllLeft(node: TreeNode | null): void {
-        while (node !== null) {
-            this.stack.push(node);
-            node = node.left;
-        }
-
-    hasNext(): boolean {
-        return this.stack.length > 0;
-    }
-
-    next(): TreeNode | null {
-        if (!this.hasNext()) {
-            return null;
-        }
-
-        const node = this.stack.pop()!;
-        this.pushAllLeft(node.right);
-        return node;
-    }
-
-class ReverseBstIterator {
-    stack: (TreeNode | null)[];
-
-    constructor(root: TreeNode | null) {
-        this.stack = [];
-        this.pushAllRight(root);
-    }
-
-    pushAllRight(node: TreeNode | null): void {
-        while (node !== null) {
-            this.stack.push(node);
-            node = node.right;
-        }
-
-    hasNext(): boolean {
-        return this.stack.length > 0;
-    }
-
-    next(): TreeNode | null {
-        if (!this.hasNext()) {
-            return null;
-        }
-
-        const node = this.stack.pop()!;
-        this.pushAllRight(node.left);
-        return node;
-    }
-
-export class Solution {
-    twoPointer(root: TreeNode | null, target: number): void {
-        if (!root) {
-            return;
-        }
-
-        // Initialize the left and right iterators
-        const leftIterator = new ForwardBstIterator(root);
-        const rightIterator = new ReverseBstIterator(root);
-
-        let leftNode = leftIterator.next();
-        let rightNode = rightIterator.next();
-
-// Diagram: while (leftNode !== rightNode) {
-
-            // Check if both pointer meet in the middle
-            // or cross each other. This is the terminating condition
-            if (!leftNode || !rightNode || leftNode.val >= rightNode.val) {
-                return;
-            }
-
-            // Process the nodes in leftNode and rightNode
-            // Processing logic goes here
-            // ........
-
-            // Check if we need to move the left pointer
-            if (f(leftNode)) {
-                leftNode = leftIterator.next();
-            }
-
-            // Check if we need to move the right pointer
-            if (f(rightNode)) {
-                rightNode = rightIterator.next();
-            }
-
-        return;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-class ForwardBstIterator {
-    stack;
-
-    constructor(root) {
-        this.stack = [];
-        this.pushAllLeft(root);
-    }
-
-    pushAllLeft(node) {
-        while (node !== null) {
-            this.stack.push(node);
-            node = node.left;
-        }
-
-    hasNext() {
-        return this.stack.length > 0;
-    }
-
-    next() {
-        if (!this.hasNext()) {
-            return null;
-        }
-
-        const node = this.stack.pop();
-        this.pushAllLeft(node.right);
-        return node;
-    }
-
-class ReverseBstIterator {
-    stack;
-
-    constructor(root) {
-        this.stack = [];
-        this.pushAllRight(root);
-    }
-
-    pushAllRight(node) {
-        while (node !== null) {
-            this.stack.push(node);
-            node = node.right;
-        }
-
-    hasNext() {
-        return this.stack.length > 0;
-    }
-
-    next() {
-        if (!this.hasNext()) {
-            return null;
-        }
-
-        const node = this.stack.pop();
-        this.pushAllRight(node.left);
-        return node;
-    }
-
-export class Solution {
-    twoPointer(root, target) {
-        if (!root) {
-            return;
-        }
-
-        // Initialize the left and right iterators
-        const leftIterator = new ForwardBstIterator(root);
-        const rightIterator = new ReverseBstIterator(root);
-
-        let leftNode = leftIterator.next();
-        let rightNode = rightIterator.next();
-
-// Diagram: while (leftNode !== rightNode) {
-
-            // Check if both pointer meet in the middle
-            // or cross each other. This is the terminating condition
-            if (!leftNode || !rightNode || leftNode.val >= rightNode.val) {
-                return;
-            }
-
-            // Process the nodes in leftNode and rightNode
-            // Processing logic goes here
-            // ........
-
-            // Check if we need to move the left pointer
-            if (f(leftNode)) {
-                leftNode = leftIterator.next();
-            }
-
-            // Check if we need to move the right pointer
-            if (f(rightNode)) {
-                rightNode = rightIterator.next();
-            }
-
-        return;
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import Optional, List, Any
-
-class ForwardBstIterator:
-    def __init__(self, root: Optional[TreeNode]):
-        self.stack: List[TreeNode] = []
-        self.push_all_left(root)
-
-    def push_all_left(self, node: Optional[TreeNode]) -> None:
-        while node:
-            self.stack.append(node)
-            node = node.left
-
-    def has_next(self) -> bool:
-        return bool(self.stack)
-
-    def next(self) -> Optional[TreeNode]:
-        if not self.has_next():
-            return None
-
-        node = self.stack.pop()
-        self.push_all_left(node.right)
-        return node
-
-class ReverseBstIterator:
-    def __init__(self, root: Optional[TreeNode]):
-        self.stack: List[TreeNode] = []
-        self.push_all_right(root)
-
-    def push_all_right(self, node: Optional[TreeNode]) -> None:
-        while node:
-            self.stack.append(node)
-            node = node.right
-
-    def has_next(self) -> bool:
-        return bool(self.stack)
-
-    def next(self) -> Optional[TreeNode]:
-        if not self.has_next():
-            return None
-
-        node = self.stack.pop()
-        self.push_all_right(node.left)
-        return node
-
-class Solution:
-    def twoPointer(self, root: Optional[TreeNode], target: int) -> None:
-        if not root:
-            return
-
-        # Initialize the left and right iterators
-        left_iterator = ForwardBstIterator(root)
-        right_iterator = ReverseBstIterator(root)
-
-        left_node = left_iterator.next()
-        right_node = right_iterator.next()
-
-        while left_node != right_node:
-
-            # Check if both pointers meet in the middle
-            # or cross each other. This is the terminating condition
-            if not left_node or node right_node or left_node.val >= right_node.val:
-                return
-
-            # Process the nodes in left_node and right_node
-            # Processing logic goes here
-            # ........
-
-            # Check if we need to move the left pointer
-            if f(left_node):
-                left_node = left_iterator.next()
-
-            # Check if we need to move the right pointer
-            if f(right_node):
-                right_node = right_iterator.next()
-
-        return
-```
-
-## Complexity Analysis
-
-It is quite easy to figure out the time and space complexity of the two-pointer technique. We traverse the entire tree using the forward and reverse iterators that do an inorder and reverse inorder traversal, respectively. We terminate when these two pointers meet in the middle, so each node is traversed exactly once, either by the forward or reverse iterator. And so the time complexity is linear **O(N)** in any case.
-
-The space complexity of inorder traversal and reverse inorder traversal using iterators depends on the maximum size of the stack in those iterators, which can be linear **O(N)** if the tree is a degenerate binary tree and **O(log(N))** if it is a height-balanced binary search tree.
-
-> **Best Case:** Height balanced binary search tree
+> **Algorithm**
 >
-> -   Space Complexity - **O(log(N))**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case:** Degenerate binary search tree
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
+> - **Step 1:** Build a forward iterator `left` over the BST.
+> - **Step 2:** Build a reverse iterator `right` over the BST.
+> - **Step 3:** Initialise `leftNode = left.next()`, `rightNode = right.next()`.
+> - **Step 4:** While `leftNode.val < rightNode.val` (i.e. they haven't crossed):
+>   - **Step 4.1:** Process the pair `(leftNode, rightNode)`.
+>   - **Step 4.2:** Decide whether to advance the left or right pointer (or both).
+
+The terminating condition `leftNode.val < rightNode.val` is the BST analogue of `i < j` in the array version. Once they cross, every pair has been considered.
+
+## Complexity
+
+| Operation | Time | Space |
+|---|---|---|
+| Initialising both iterators | O(h) | O(h) |
+| Loop body per step | O(1) (amortised by the iterator) | — |
+| Whole walk | O(n) | O(h) |
+
+Each iterator visits every node at most once. Because both iterators never overlap (one walks ascending, the other descending), every node is visited at most twice across both iterators. Total time **O(n)**.
 
 ***
 
 # Identifying the two pointer pattern
 
-The two-pointer technique can solve some specific types of binary search tree problems. These are generally easy or medium problems in which we need to traverse the nodes in a binary search tree in the sorted and reverse-sorted order simultaneously until some terminating condition is reached. We may also have a function `f` that determines whether we should move ahead in the forward and/or reverse direction. If the problem statement or its solution follows the generic template below, it can be solved by applying the sorted traversal technique.
+Use this pattern when:
 
-**Template:**
+- The problem reduces to **finding/checking pairs** of values from the BST that satisfy some relation (sum equals target, ratio is a multiple, distance ≤ d, etc.).
+- The relation has a **monotone** property — increasing one operand makes the relation move in one direction, increasing the other moves it in the opposite direction. (Sum is the cleanest example: increase either operand, the sum goes up.)
+- A naive O(n²) solution would compare every pair, but the BST's hidden sortedness lets us prune.
+- The problem might involve **two BSTs** at once — one source for the left pointer, another for the right.
 
-Given a binary search tree, traverse the nodes simultaneously in the sorted and reverse sorted order until some terminating condition is reached. Process the nodes in each iteration, and based on the output of some function `f`, move ahead in the forward and/or reverse direction. 
+If you find yourself reaching for an in-memory hash set or a sorted array conversion to solve a "pair" problem on a BST, two-pointer iterators are usually the better answer: same time, much less memory.
 
-## Example
+## Worked example — two-sum on a BST
 
-Let's consider the following problem as an example to better understand how to identify and solve a problem using the two-pointer technique.
+> **Problem:** Given a BST and a target, return `true` iff there exist two distinct nodes whose values sum to `target`.
 
-> **Problem statement:** Given a binary search tree and a `target`, find if there is a pair of nodes with a sum equal to `target`.
+The decision rule is exactly the array two-sum:
 
-// Diagram: Find the pair of nodes with the given sum in the binary search tree.
+- If `leftNode.val + rightNode.val == target`, return `true`.
+- If the sum is **too small**, the only way to grow it is to **move the left pointer** rightward (forward iterator → next, larger).
+- If the sum is **too big**, the only way to shrink it is to **move the right pointer** leftward (reverse iterator → next, smaller).
 
-## Traverse and search
+Loop until the iterators cross.
 
-We can solve the problem by doing a recursive inorder traversal of the binary search tree to traverse the nodes in the sorted order. For each node, we subtract the value of the node from `target` to compute the value of the other pair. We then search the binary search tree for a node with that value, and if such a node exists, we return true as we have found the pair. If the traversal completes without finding such a pair, we return false.
-
-// Diagram: Find the pair with the sum 13
-
-The implementation of the traverse and search technique is given below.
-
-C++
-
-```cpp
-#include <stack>
-
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class ForwardBstIterator {
-public:
-    stack<TreeNode *> stack;
-
-    ForwardBstIterator(TreeNode *root) {
-        pushAllLeft(root);
-    }
-
-    void pushAllLeft(TreeNode *node) {
-        while (node != nullptr) {
-            stack.push(node);
-            node = node->left;
-        }
-
-    bool hasNext() {
-        return !stack.empty();
-    }
-
-    TreeNode *next() {
-        if (!hasNext()) {
-            return nullptr;
-        }
-
-        TreeNode *node = stack.top();
-        stack.pop();
-        pushAllLeft(node->right);
-        return node;
-    }
-};
-
-class ReverseBstIterator {
-public:
-    stack<TreeNode *> stack;
-
-    ReverseBstIterator(TreeNode *root) {
-        pushAllRight(root);
-    }
-
-    void pushAllRight(TreeNode *node) {
-        while (node != nullptr) {
-            stack.push(node);
-            node = node->right;
-        }
-
-    bool hasNext() {
-        return !stack.empty();
-    }
-
-    TreeNode *next() {
-        if (!hasNext()) {
-            return nullptr;
-        }
-
-        TreeNode *node = stack.top();
-        stack.pop();
-        pushAllRight(node->left);
-        return node;
-    }
-};
-
-class Solution {
-public:
-    bool twoSumOnBST(TreeNode *root, int target) {
-        if (!root) {
-            return false;
-        }
-
-        // Initialize the left and right iterators
-        ForwardBstIterator *leftIterator = new ForwardBstIterator(root);
-        ReverseBstIterator *rightIterator = new ReverseBstIterator(root);
-
-        TreeNode *leftNode = leftIterator->next();
-        TreeNode *rightNode = rightIterator->next();
-
-// Diagram: while (leftNode != rightNode) {
-
-            // Check if the sum of the two nodes equals k
-            if (leftNode->val + rightNode->val == target) {
-                return true;
-            }
-
-            // If the sum is less than target, move the left pointer
-            // to the right
-            else if (leftNode->val + rightNode->val < target) {
-                leftNode = leftIterator->next();
-            }
-
-            // If the sum is greater than target, move the right pointer
-            // to the left
-            else {
-                rightNode = rightIterator->next();
-            }
-
-        // No pair found
-        return false;
-    }
-};
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["leftNode = 1, rightNode = 7<br/>sum = 8 &lt; 9"] --> B["advance left"]
+    B --> C["leftNode = 2, rightNode = 7<br/>sum = 9 ✓"]
+    style C fill:#bbf7d0,stroke:#16a34a
 ```
 
-Java
+<p align="center"><strong>Tree <code>[4, 2, 6, 1, null, null, 7]</code>, target <code>9</code>. Two pointers find the pair <code>(2, 7)</code> after one step.</strong></p>
 
-```java
-import java.util.*;
+The fit with the template:
 
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-// Diagram: class Solution {
-
-// Diagram: TreeNode search(TreeNode node, int target) {
-
-        // Return this node if it is null or has the target value
-        if (node == null || node.val == target) {
-            return node;
-        }
-
-        // Search the left subtree if the node is greater than the target
-        if (node.val > target) {
-            return search(node.left, target);
-        }
-        // Search the right subtree if the node is less than the target
-        else {
-            return search(node.right, target);
-        }
-
-// Diagram: boolean inorder(TreeNode node, TreeNode root, int target) {
-
-        // Return false if this is a null reference
-        if (node == null) {
-            return false;
-        }
-
-        // Check if any node of the pair is found in the left subtree
-        boolean left = inorder(node.left, root, target);
-
-        // Return true if one node of the pair is found in the left subtree
-        if (left) {
-            return true;
-        }
-
-        // Check if the current node can be paired with some other node of BST
-        TreeNode otherNode = search(root, target - node.val);
-
-        // If we found the other node and it is different from the current node, return true
-        if (otherNode != null && otherNode != node) {
-            return true;
-        }
-
-        // Check if any node of the pair is found in the right subtree
-        boolean right = inorder(node.right, root, target);
-
-        // Return true if one node of the pair is found in the right subtree
-        if (right) {
-            return true;
-        }
-
-        // Return false if no pair can be made with a node in the subtree of current node
-        return false;
-    }
-
-    public boolean twoSumOnBST(TreeNode root, int target) {
-        if (root == null) {
-            return false;
-        }
-
-        // Check if the tree has at least two nodes
-        if (root.left == null && root.right == null) {
-            return false;
-        }
-
-        // Use inorder traversal to find the pair
-        return inorder(root, root, target);
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-export class Solution {
-  search(node: TreeNode | null, target: number): TreeNode | null {
-
-    // Return this node if it is null of has the target value
-    if (!node || node.val === target) {
-      return node;
-    }
-
-    // Search the left subtree if the node is greater than the target
-    if (node.val > target) {
-      return this.search(node.left, target);
-    }
-    // Search the right subtree if the node is less than the target
-    else {
-      return this.search(node.right, target);
-    }
-
-// Diagram: inorder(node: TreeNode | null, root: TreeNode, target: number): boolean {
-
-    // Return false if this is a null reference
-    if (!node) {
-      return false;
-    }
-
-    // Check if the any node of the pair is found in the left subtree
-    const left = this.inorder(node.left, root, target);
-
-    // Return true if one node of the pair is found in the left subtree
-    if (left) {
-      return true;
-    }
-
-    // Check if the current node can be paired with some other node of BST
-    const otherNode = this.search(root, target - node.val);
-
-    // If we found the other node and it is different from the current node, return true
-    if (otherNode && otherNode !== node) {
-      return true;
-    }
-
-    // Check if the any node of the pair is found in the left subtree
-    const right = this.inorder(node.right, root, target);
-
-    // Return true if one node of the pair is found in the left subtree
-    if (right) {
-      return true;
-    }
-    // Return false if no pair can be made with a ndoe in the subtree of current node
-    return false;
-  }
-
-  twoSumOnBST(root: TreeNode | null, target: number): boolean {
-    if (!root) {
-      return false;
-    }
-
-    // Check if the tree has at least two nodes
-    if (!root.left && !root.right) {
-      return false;
-    }
-
-    // Use inorder traversal to find the pair
-    return this.inorder(root, root, target);
-  }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-export class Solution {
-  search(node, target) {
-
-    // Return this node if it is null or has the target value
-    if (!node || node.val === target) {
-      return node;
-    }
-
-    // Search the left subtree if the node is greater than the target
-    if (node.val > target) {
-      return this.search(node.left, target);
-    }
-    // Search the right subtree if the node is less than the target
-    else {
-      return this.search(node.right, target);
-    }
-
-// Diagram: inorder(node, root, target) {
-
-    // Return false if this is a null reference
-    if (!node) {
-      return false;
-    }
-
-    // Check if the any node of the pair is found in the left subtree
-    const left = this.inorder(node.left, root, target);
-
-    // Return true if one node of the pair is found in the left subtree
-    if (left) {
-      return true;
-    }
-
-    // Check if the current node can be paired with some other node of BST
-    const otherNode = this.search(root, target - node.val);
-
-    // If we found the other node and it is different from the current node, return true
-    if (otherNode && otherNode !== node) {
-      return true;
-    }
-
-    // Check if the any node of the pair is found in the left subtree
-    const right = this.inorder(node.right, root, target);
-
-    // Return true if one node of the pair is found in the left subtree
-    if (right) {
-      return true;
-    }
-
-    // Return false if no pair can be made with a node in the subtree of current node
-    return false;
-  }
-
-  twoSumOnBST(root, target) {
-    if (!root) {
-      return false;
-    }
-
-    // Check if the tree has at least two nodes
-    if (!root.left && !root.right) {
-      return false;
-    }
-
-    // Use inorder traversal to find the pair
-    return this.inorder(root, root, target);
-  }
-```
-
-Python
-
-```python
-#include <stack>
-```
-
-While the implementation of this solution is simple, it solves the problem in **O(Nlog(N))** time, as for every node in the tree, we need to search for its corresponding pair to make the target sum.
-
-## The two pointer technique
-
-The two-sum problem, where the values are stored in an array, can be solved by sorting the array values and traversing from both directions, moving the pointers depending on the sum of the two values. The two-pointer pattern in the array course explains a detailed proof of correctness for this solution, so we will not go into details of the proof in this lesson.
-
-We can similarly traverse the binary search tree in the sorted and reverse-sorted direction using the two-pointer technique. And so, the solution fits the generic template for the two-pointer pattern we learned earlier.
-
-**Template:**
-
-Given a binary search tree, traverse the nodes simultaneously in the sorted and reverse sorted order until they meet in the middle. Process the nodes (add them) in each iteration, and based on the output of some function `f` (sum < target) move ahead in the forward and/or reverse direction. 
-
-We create a forward iterator `left` and a reverse iterator `right` to traverse the tree on demand in the sorted(ascending) and reverse sorted (descending) order of values. We store the nodes pointed to by these iterators in two reference variables `leftNode` and `rightNode` and iterate using these iterators until the value of `leftNode` exceeds the value of `rightNode`. In each iteration, we add the values of `leftNode` and `rightNode` in a variable `sum` and compare it with `target`. If `sum` is equal to the `target`, it means the pair `leftNode` and `rightNode` is what we were looking for, and so we return true.
-
-If the sum is less than the `target`, we call `next()` on `left` to move ahead in the sorted direction. Otherwise, we call `next()` on `right` to move ahead in the reverse-sorted direction. If we reach the terminating condition, it means no pair exists with a sum equal to `target`, and so we return false.
-
-// Diagram: Find the pair with the sum 13
-
-The implementation of the two-pointer solution is given below.
-
-C++
-
-```cpp
-#include <stack>
-
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-// Diagram: using namespace std;
-
-class ForwardBstIterator {
-public:
-    stack<TreeNode *> stack;
-
-    ForwardBstIterator(TreeNode *root) {
-        pushAllLeft(root);
-    }
-
-    void pushAllLeft(TreeNode *node) {
-        while (node != nullptr) {
-            stack.push(node);
-            node = node->left;
-        }
-
-    bool hasNext() {
-        return !stack.empty();
-    }
-
-    TreeNode *next() {
-        if (!hasNext()) {
-            return nullptr;
-        }
-
-        TreeNode *node = stack.top();
-        stack.pop();
-        pushAllLeft(node->right);
-        return node;
-    }
-};
-
-class ReverseBstIterator {
-public:
-    stack<TreeNode *> stack;
-
-    ReverseBstIterator(TreeNode *root) {
-        pushAllRight(root);
-    }
-
-    void pushAllRight(TreeNode *node) {
-        while (node != nullptr) {
-            stack.push(node);
-            node = node->right;
-        }
-
-    bool hasNext() {
-        return !stack.empty();
-    }
-
-    TreeNode *next() {
-        if (!hasNext()) {
-            return nullptr;
-        }
-
-        TreeNode *node = stack.top();
-        stack.pop();
-        pushAllRight(node->left);
-        return node;
-    }
-};
-
-class Solution {
-public:
-    bool twoSumOnBST(TreeNode *root, int target) {
-        if (!root) {
-            return false;
-        }
-
-        // Initialize the left and right iterators
-        ForwardBstIterator *leftIterator = new ForwardBstIterator(root);
-        ReverseBstIterator *rightIterator = new ReverseBstIterator(root);
-
-        TreeNode *leftNode = leftIterator->next();
-        TreeNode *rightNode = rightIterator->next();
-
-// Diagram: while (leftNode != rightNode) {
-
-            // Check if the sum of the two nodes equals k
-            if (leftNode->val + rightNode->val == target) {
-                return true;
-            }
-
-            // If the sum is less than target, move the left pointer
-            // to the right
-            else if (leftNode->val + rightNode->val < target) {
-                leftNode = leftIterator->next();
-            }
-
-            // If the sum is greater than target, move the right pointer
-            // to the left
-            else {
-                rightNode = rightIterator->next();
-            }
-
-        // No pair found
-        return false;
-    }
-};
-```
-
-Java
-
-```java
-import java.util.*;
-
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *      int val;
- *      TreeNode left;
- *      TreeNode right;
- *      TreeNode() {}
- *      TreeNode(int val) { this.val = val; }
- * }
- */
-
-// Diagram: class Solution {
-
-// Diagram: TreeNode search(TreeNode node, int target) {
-
-        // Return this node if it is null or has the target value
-        if (node == null || node.val == target) {
-            return node;
-        }
-
-        // Search the left subtree if the node is greater than the target
-        if (node.val > target) {
-            return search(node.left, target);
-        }
-        // Search the right subtree if the node is less than the target
-        else {
-            return search(node.right, target);
-        }
-
-// Diagram: boolean inorder(TreeNode node, TreeNode root, int target) {
-
-        // Return false if this is a null reference
-        if (node == null) {
-            return false;
-        }
-
-        // Check if any node of the pair is found in the left subtree
-        boolean left = inorder(node.left, root, target);
-
-        // Return true if one node of the pair is found in the left subtree
-        if (left) {
-            return true;
-        }
-
-        // Check if the current node can be paired with some other node of BST
-        TreeNode otherNode = search(root, target - node.val);
-
-        // If we found the other node and it is different from the current node, return true
-        if (otherNode != null && otherNode != node) {
-            return true;
-        }
-
-        // Check if any node of the pair is found in the right subtree
-        boolean right = inorder(node.right, root, target);
-
-        // Return true if one node of the pair is found in the right subtree
-        if (right) {
-            return true;
-        }
-
-        // Return false if no pair can be made with a node in the subtree of current node
-        return false;
-    }
-
-    public boolean twoSumOnBST(TreeNode root, int target) {
-        if (root == null) {
-            return false;
-        }
-
-        // Check if the tree has at least two nodes
-        if (root.left == null && root.right == null) {
-            return false;
-        }
-
-        // Use inorder traversal to find the pair
-        return inorder(root, root, target);
-    }
-```
-
-Typescript
-
-```typescript
-/**
- * Definition for a binary tree node.
- * class TreeNode {
- *     val: number
- *     left: TreeNode | null
- *     right: TreeNode | null
- *     constructor(
- *         val?: number,
- *         left?: TreeNode | null,
- *         right?: TreeNode | null
- *     ) {
- *         this.val = (val===undefined ? 0 : val)
- *         this.left = (left===undefined ? null : left)
- *         this.right = (right===undefined ? null : right)
- *     }
- * }
- */
-
-class ForwardBstIterator {
-    stack: (TreeNode | null)[];
-
-    constructor(root: TreeNode | null) {
-        this.stack = [];
-        this.pushAllLeft(root);
-    }
-
-    pushAllLeft(node: TreeNode | null): void {
-        while (node !== null) {
-            this.stack.push(node);
-            node = node.left;
-        }
-
-    hasNext(): boolean {
-        return this.stack.length > 0;
-    }
-
-    next(): TreeNode | null {
-        if (!this.hasNext()) {
-            return null;
-        }
-
-        const node = this.stack.pop()!;
-        this.pushAllLeft(node.right);
-        return node;
-    }
-
-class ReverseBstIterator {
-    stack: (TreeNode | null)[];
-
-    constructor(root: TreeNode | null) {
-        this.stack = [];
-        this.pushAllRight(root);
-    }
-
-    pushAllRight(node: TreeNode | null): void {
-        while (node !== null) {
-            this.stack.push(node);
-            node = node.right;
-        }
-
-    hasNext(): boolean {
-        return this.stack.length > 0;
-    }
-
-    next(): TreeNode | null {
-        if (!this.hasNext()) {
-            return null;
-        }
-
-        const node = this.stack.pop()!;
-        this.pushAllRight(node.left);
-        return node;
-    }
-
-export class Solution {
-    twoSumOnBST(root: TreeNode | null, target: number): boolean {
-        if (!root) {
-            return false;
-        }
-
-        // Initialize the left and right iterators
-        const leftIterator: ForwardBstIterator = new ForwardBstIterator(
-            root
-        );
-        const rightIterator: ReverseBstIterator = new ReverseBstIterator(
-            root
-        );
-
-        let leftNode = leftIterator.next();
-        let rightNode = rightIterator.next();
-
-// Diagram: while (leftNode !== rightNode) {
-
-            // Check if the sum of the two nodes equals the target
-            if (leftNode.val + rightNode.val === target) {
-                return true;
-            }
-
-            // If the sum is less than target, move the left pointer
-            // to the right
-            else if (leftNode.val + rightNode.val < target) {
-                leftNode = leftIterator.next();
-            }
-
-            // If the sum is greater than target, move the right pointer
-            // to the left
-            else {
-                rightNode = rightIterator.next();
-            }
-
-        // No pair found
-        return false;
-    }
-```
-
-Javascript
-
-```javascript
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-
-class ForwardBstIterator {
-    stack;
-
-    constructor(root) {
-        this.stack = [];
-        this.pushAllLeft(root);
-    }
-
-    pushAllLeft(node) {
-        while (node !== null) {
-            this.stack.push(node);
-            node = node.left;
-        }
-
-    hasNext() {
-        return this.stack.length > 0;
-    }
-
-    next() {
-        if (!this.hasNext()) {
-            return null;
-        }
-
-        const node = this.stack.pop();
-        this.pushAllLeft(node.right);
-        return node;
-    }
-
-class ReverseBstIterator {
-    stack;
-
-    constructor(root) {
-        this.stack = [];
-        this.pushAllRight(root);
-    }
-
-    pushAllRight(node) {
-        while (node !== null) {
-            this.stack.push(node);
-            node = node.right;
-        }
-
-    hasNext() {
-        return this.stack.length > 0;
-    }
-
-    next() {
-        if (!this.hasNext()) {
-            return null;
-        }
-
-        const node = this.stack.pop();
-        this.pushAllRight(node.left);
-        return node;
-    }
-
-export class Solution {
-    twoSumOnBST(root, target) {
-        if (!root) {
-            return false;
-        }
-
-        // Initialize the left and right iterators
-        const leftIterator = new ForwardBstIterator(root);
-        const rightIterator = new ReverseBstIterator(root);
-
-        let leftNode = leftIterator.next();
-        let rightNode = rightIterator.next();
-
-// Diagram: while (leftNode !== rightNode) {
-
-            // Check if the sum of the two nodes equals the target
-            if (leftNode.val + rightNode.val === target) {
-                return true;
-            }
-
-            // If the sum is less than target, move the left pointer
-            // to the right
-            else if (leftNode.val + rightNode.val < target) {
-                leftNode = leftIterator.next();
-            }
-
-            // If the sum is greater than target, move the right pointer
-            // to the left
-            else {
-                rightNode = rightIterator.next();
-            }
-
-        // No pair found
-        return false;
-    }
-```
-
-Python
-
-```python
-"""
-Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val):
-        self.val = val
-        self.left = None
-        self.right = None
-"""
-
-// Diagram: from typing import Optional, List, Any
-
-class ForwardBstIterator:
-    def __init__(self, root: Optional[TreeNode]):
-        self.stack: List[TreeNode] = []
-        self.push_all_left(root)
-
-    def push_all_left(self, node: Optional[TreeNode]) -> None:
-        while node:
-            self.stack.append(node)
-            node = node.left
-
-    def has_next(self) -> bool:
-        return bool(self.stack)
-
-    def next(self) -> Optional[TreeNode]:
-        if not self.has_next():
-            return None
-
-        node = self.stack.pop()
-        self.push_all_left(node.right)
-        return node
-
-class ReverseBstIterator:
-    def __init__(self, root: Optional[TreeNode]):
-        self.stack: List[TreeNode] = []
-        self.push_all_right(root)
-
-    def push_all_right(self, node: Optional[TreeNode]) -> None:
-        while node:
-            self.stack.append(node)
-            node = node.right
-
-    def has_next(self) -> bool:
-        return bool(self.stack)
-
-    def next(self) -> Optional[TreeNode]:
-        if not self.has_next():
-            return None
-
-        node = self.stack.pop()
-        self.push_all_right(node.left)
-        return node
-
-class Solution:
-    def two_sum_on_bst(
-        self, root: Optional[TreeNode], target: int
-    ) -> bool:
-        if not root:
-            return False
-
-        # Initialize the left and right iterators
-        left_iterator: ForwardBstIterator = ForwardBstIterator(root)
-        right_iterator: ReverseBstIterator = ReverseBstIterator(root)
-
-        left_node: Optional[TreeNode] = left_iterator.next()
-        right_node: Optional[TreeNode] = right_iterator.next()
-
-        while left_node != right_node:
-
-            # Check if the sum of the two nodes equals the target
-            if left_node.val + right_node.val == target:
-                return True
-
-            # If the sum is less than target, move the left pointer
-            # to the right
-            elif left_node.val + right_node.val < target:
-                left_node = left_iterator.next()
-
-            # If the sum is greater than target, move the right pointer
-            # to the left
-            else:
-                right_node = right_iterator.next()
-
-        # No pair found
-        return False
-```
-
-While the two-pointer has a more complicated implementation than the traverse and search technique, it solves the problem in linear **O(N)** time and a single pass.
-
-## Example problems
-
-Most problems in this category are **easy** or **medium** problems; a list of a few is given below.
-
-> -   **[Two sum on BST](https://www.codeintuition.io/courses/binary-search-tree/CFD9R3mNQNz9fs_qMkTPB)**
-> -   **[Multiple tree](https://www.codeintuition.io/courses/binary-search-tree/3hsOnZI2ETpJw0qyUtdLc)**
-> -   **[Median in BST](https://www.codeintuition.io/courses/binary-search-tree/TM2keAMOC8UnzAB8IxYU4)**
-> -   **[BST pair sum](https://www.codeintuition.io/courses/binary-search-tree/3duWe0guUFCtJOMIDTxVg)**
-
-We will now solve these problems to understand the two-pointer technique better.
+- **f** = "compare sum to target → which way to step".
+- **state** = the running pair.
 
 ***
 
@@ -1564,139 +130,443 @@ We will now solve these problems to understand the two-pointer technique better.
 
 ## Problem Statement
 
-Given the **root** of a binary search tree and an integer value **target**, write a function that returns `true` if a pair of nodes in this tree exists that sum up to the target. Return `false` if no such pair exists.
+Given the **root** of a BST and an integer **target**, return `true` if some pair of nodes in the tree has values summing to `target`. Return `false` otherwise.
 
 ### Example 1
 
-> -   **Input:** root = \[4, 2, 6, 1, null, null, 7\], target = 9
-> -   **Output:** true
-> -   **Explanation:** The nodes with values 2 and 7 sum up to 9.
+> - **Input:** `root = [4, 2, 6, 1, null, null, 7]`, `target = 9`
+> - **Output:** `true`
+> - **Explanation:** Nodes `2` and `7` sum to `9`.
 
 ### Example 2
 
-> -   **Input:** root = \[2, 1, 4, null, null, 3, 7\], target = 16
-> -   **Output:** false
-> -   **Explanation:** There is no pair of nodes in the tree whose values sum up to 16.
+> - **Input:** `root = [2, 1, 4, null, null, 3, 7]`, `target = 16`
+> - **Output:** `false`
 
-## Solution
+## The Solution
 
-```cpp
-#include <stack>
+<div class="lang-tabs">
 
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+```python,editable
+class ForwardBstIterator:
+    def __init__(self, root):
+        self.stack = []
+        self._push_all_left(root)
+    def _push_all_left(self, node):
+        while node:
+            self.stack.append(node); node = node.left
+    def has_next(self):  return bool(self.stack)
+    def next(self):
+        node = self.stack.pop()
+        self._push_all_left(node.right)
+        return node
 
-using namespace std;
+class ReverseBstIterator:
+    def __init__(self, root):
+        self.stack = []
+        self._push_all_right(root)
+    def _push_all_right(self, node):
+        while node:
+            self.stack.append(node); node = node.right
+    def has_next(self):  return bool(self.stack)
+    def next(self):
+        node = self.stack.pop()
+        self._push_all_right(node.left)
+        return node
+
+class Solution:
+    def two_sum_on_bst(self, root, target):
+        if root is None:
+            return False
+        left  = ForwardBstIterator(root)
+        right = ReverseBstIterator(root)
+        left_node, right_node = left.next(), right.next()
+        # Loop while pointers haven't crossed.
+        while left_node and right_node and left_node.val < right_node.val:
+            s = left_node.val + right_node.val
+            if s == target:                   # exact pair found
+                return True
+            if s < target:
+                # Sum too small → grow it by advancing the smaller (left) pointer.
+                left_node = left.next()
+            else:
+                # Sum too large → shrink it by advancing the larger (right) pointer.
+                right_node = right.next()
+        return False
+```
+
+```java,editable
+import java.util.*;
 
 class ForwardBstIterator {
+    Deque<TreeNode> stack = new ArrayDeque<>();
+    ForwardBstIterator(TreeNode root) { pushAllLeft(root); }
+    private void pushAllLeft(TreeNode n) { while (n != null) { stack.push(n); n = n.left; } }
+    boolean hasNext() { return !stack.isEmpty(); }
+    TreeNode next() { TreeNode n = stack.pop(); pushAllLeft(n.right); return n; }
+}
+
+class ReverseBstIterator {
+    Deque<TreeNode> stack = new ArrayDeque<>();
+    ReverseBstIterator(TreeNode root) { pushAllRight(root); }
+    private void pushAllRight(TreeNode n) { while (n != null) { stack.push(n); n = n.right; } }
+    boolean hasNext() { return !stack.isEmpty(); }
+    TreeNode next() { TreeNode n = stack.pop(); pushAllRight(n.left); return n; }
+}
+
+class Solution {
+    public boolean twoSumOnBST(TreeNode root, int target) {
+        if (root == null) return false;
+        ForwardBstIterator left  = new ForwardBstIterator(root);
+        ReverseBstIterator right = new ReverseBstIterator(root);
+        TreeNode leftNode = left.next(), rightNode = right.next();
+        while (leftNode != null && rightNode != null && leftNode.val < rightNode.val) {
+            int s = leftNode.val + rightNode.val;
+            if (s == target) return true;
+            if (s < target) leftNode  = left.next();                                                                                // grow
+            else            rightNode = right.next();                                                                               // shrink
+        }
+        return false;
+    }
+}
+```
+
+```c,editable
+#include <stdlib.h>
+#include <stdbool.h>
+
+typedef struct { struct TreeNode **stack; int top; } Iter;
+
+static Iter *iter_new(int cap) {
+    Iter *it = malloc(sizeof(*it));
+    it->stack = malloc(sizeof(struct TreeNode *) * cap);
+    it->top = -1;
+    return it;
+}
+
+static void push_left(Iter *it, struct TreeNode *n)  { while (n) { it->stack[++it->top] = n; n = n->left;  } }
+static void push_right(Iter *it, struct TreeNode *n) { while (n) { it->stack[++it->top] = n; n = n->right; } }
+
+static struct TreeNode *fwd_next(Iter *it) {
+    if (it->top < 0) return NULL;
+    struct TreeNode *n = it->stack[it->top--];
+    push_left(it, n->right);
+    return n;
+}
+static struct TreeNode *rev_next(Iter *it) {
+    if (it->top < 0) return NULL;
+    struct TreeNode *n = it->stack[it->top--];
+    push_right(it, n->left);
+    return n;
+}
+
+bool twoSumOnBST(struct TreeNode *root, int target) {
+    if (!root) return false;
+    Iter *left  = iter_new(1024); push_left(left,  root);
+    Iter *right = iter_new(1024); push_right(right, root);
+    struct TreeNode *l = fwd_next(left), *r = rev_next(right);
+    bool ans = false;
+    while (l && r && l->val < r->val) {
+        int s = l->val + r->val;
+        if (s == target)      { ans = true; break; }
+        else if (s < target)  l = fwd_next(left);                                                                                          // grow
+        else                  r = rev_next(right);                                                                                          // shrink
+    }
+    free(left->stack); free(left); free(right->stack); free(right);
+    return ans;
+}
+```
+
+```cpp,editable
+#include <stack>
+
+class ForwardBstIterator {
+    std::stack<TreeNode *> st;
+    void pushAllLeft(TreeNode *n)  { while (n) { st.push(n); n = n->left;  } }
 public:
-    stack<TreeNode *> stack;
-
-    ForwardBstIterator(TreeNode *root) {
-        pushAllLeft(root);
-    }
-
-    void pushAllLeft(TreeNode *node) {
-        while (node != nullptr) {
-            stack.push(node);
-            node = node->left;
-        }
-    }
-
-    bool hasNext() {
-        return !stack.empty();
-    }
-
-    TreeNode *next() {
-        if (!hasNext()) {
-            return nullptr;
-        }
-
-        TreeNode *node = stack.top();
-        stack.pop();
-        pushAllLeft(node->right);
-        return node;
-    }
+    ForwardBstIterator(TreeNode *root) { pushAllLeft(root); }
+    bool hasNext() { return !st.empty(); }
+    TreeNode *next() { TreeNode *n = st.top(); st.pop(); pushAllLeft(n->right); return n; }
 };
 
 class ReverseBstIterator {
+    std::stack<TreeNode *> st;
+    void pushAllRight(TreeNode *n) { while (n) { st.push(n); n = n->right; } }
 public:
-    stack<TreeNode *> stack;
-
-    ReverseBstIterator(TreeNode *root) {
-        pushAllRight(root);
-    }
-
-    void pushAllRight(TreeNode *node) {
-        while (node != nullptr) {
-            stack.push(node);
-            node = node->right;
-        }
-    }
-
-    bool hasNext() {
-        return !stack.empty();
-    }
-
-    TreeNode *next() {
-        if (!hasNext()) {
-            return nullptr;
-        }
-
-        TreeNode *node = stack.top();
-        stack.pop();
-        pushAllRight(node->left);
-        return node;
-    }
+    ReverseBstIterator(TreeNode *root) { pushAllRight(root); }
+    bool hasNext() { return !st.empty(); }
+    TreeNode *next() { TreeNode *n = st.top(); st.pop(); pushAllRight(n->left); return n; }
 };
 
 class Solution {
 public:
     bool twoSumOnBST(TreeNode *root, int target) {
-        if (!root) {
-            return false;
+        if (!root) return false;
+        ForwardBstIterator left(root);
+        ReverseBstIterator right(root);
+        TreeNode *l = left.next(), *r = right.next();
+        while (l && r && l->val < r->val) {
+            int s = l->val + r->val;
+            if (s == target) return true;
+            if (s < target) l = left.next();                                                                                                  // grow
+            else            r = right.next();                                                                                                 // shrink
         }
-
-        // Initialize the left and right iterators
-        ForwardBstIterator leftIterator(root);
-        ReverseBstIterator rightIterator(root);
-
-        TreeNode *leftNode = leftIterator.next();
-        TreeNode *rightNode = rightIterator.next();
-
-        while (leftNode && rightNode && leftNode->val < rightNode->val) {
-
-            // Check if the sum of the two nodes equals k
-            if (leftNode->val + rightNode->val == target) {
-                return true;
-            }
-
-            // If the sum is less than target, move the left pointer
-            // to the right
-            else if (leftNode->val + rightNode->val < target) {
-                leftNode = leftIterator.next();
-            }
-
-            // If the sum is greater than target, move the right pointer
-            // to the left
-            else {
-                rightNode = rightIterator.next();
-            }
-        }
-
-        // No pair found
         return false;
     }
 };
 ```
+
+```scala,editable
+import scala.collection.mutable
+
+class ForwardBstIterator(root: TreeNode) {
+  private val stack = mutable.Stack[TreeNode]()
+  pushAllLeft(root)
+  private def pushAllLeft(n: TreeNode): Unit = { var x = n; while (x != null) { stack.push(x); x = x.left  } }
+  def hasNext: Boolean = stack.nonEmpty
+  def next: TreeNode = { val n = stack.pop(); pushAllLeft(n.right); n }
+}
+
+class ReverseBstIterator(root: TreeNode) {
+  private val stack = mutable.Stack[TreeNode]()
+  pushAllRight(root)
+  private def pushAllRight(n: TreeNode): Unit = { var x = n; while (x != null) { stack.push(x); x = x.right } }
+  def hasNext: Boolean = stack.nonEmpty
+  def next: TreeNode = { val n = stack.pop(); pushAllRight(n.left); n }
+}
+
+object Solution {
+  def twoSumOnBST(root: TreeNode, target: Int): Boolean = {
+    if (root == null) return false
+    val left  = new ForwardBstIterator(root)
+    val right = new ReverseBstIterator(root)
+    var l: TreeNode = left.next
+    var r: TreeNode = right.next
+    while (l != null && r != null && l.value < r.value) {
+      val s = l.value + r.value
+      if (s == target)      return true
+      else if (s < target)  l = left.next
+      else                  r = right.next
+    }
+    false
+  }
+}
+```
+
+```javascript,editable
+class ForwardBstIterator {
+  constructor(root) { this.stack = []; this._left(root); }
+  _left(n)  { while (n) { this.stack.push(n); n = n.left;  } }
+  hasNext() { return this.stack.length > 0; }
+  next()    { const n = this.stack.pop(); this._left(n.right);  return n; }
+}
+class ReverseBstIterator {
+  constructor(root) { this.stack = []; this._right(root); }
+  _right(n) { while (n) { this.stack.push(n); n = n.right; } }
+  hasNext() { return this.stack.length > 0; }
+  next()    { const n = this.stack.pop(); this._right(n.left); return n; }
+}
+
+function twoSumOnBST(root, target) {
+  if (root === null) return false;
+  const left = new ForwardBstIterator(root), right = new ReverseBstIterator(root);
+  let l = left.next(), r = right.next();
+  while (l && r && l.val < r.val) {
+    const s = l.val + r.val;
+    if (s === target) return true;
+    if (s < target) l = left.next();                                                                                                              // grow
+    else            r = right.next();                                                                                                             // shrink
+  }
+  return false;
+}
+```
+
+```typescript,editable
+class ForwardBstIterator {
+  private stack: TreeNode[] = [];
+  constructor(root: TreeNode | null) { this.left(root); }
+  private left(n: TreeNode | null)  { while (n !== null) { this.stack.push(n); n = n.left;  } }
+  hasNext(): boolean { return this.stack.length > 0; }
+  next(): TreeNode   { const n = this.stack.pop()!; this.left(n.right);  return n; }
+}
+class ReverseBstIterator {
+  private stack: TreeNode[] = [];
+  constructor(root: TreeNode | null) { this.right(root); }
+  private right(n: TreeNode | null) { while (n !== null) { this.stack.push(n); n = n.right; } }
+  hasNext(): boolean { return this.stack.length > 0; }
+  next(): TreeNode   { const n = this.stack.pop()!; this.right(n.left); return n; }
+}
+
+function twoSumOnBST(root: TreeNode | null, target: number): boolean {
+  if (root === null) return false;
+  const left = new ForwardBstIterator(root), right = new ReverseBstIterator(root);
+  let l: TreeNode | null = left.next(), r: TreeNode | null = right.next();
+  while (l && r && l.val < r.val) {
+    const s = l.val + r.val;
+    if (s === target) return true;
+    if (s < target) l = left.hasNext()  ? left.next()  : null;                                                                                       // grow
+    else            r = right.hasNext() ? right.next() : null;                                                                                       // shrink
+  }
+  return false;
+}
+```
+
+```go,editable
+type ForwardBstIterator struct{ stack []*TreeNode }
+func newForward(root *TreeNode) *ForwardBstIterator {
+    it := &ForwardBstIterator{}
+    it.pushLeft(root)
+    return it
+}
+func (it *ForwardBstIterator) pushLeft(n *TreeNode) { for n != nil { it.stack = append(it.stack, n); n = n.Left } }
+func (it *ForwardBstIterator) hasNext() bool { return len(it.stack) > 0 }
+func (it *ForwardBstIterator) next() *TreeNode {
+    if !it.hasNext() { return nil }
+    k := len(it.stack) - 1
+    n := it.stack[k]; it.stack = it.stack[:k]
+    it.pushLeft(n.Right)
+    return n
+}
+
+type ReverseBstIterator struct{ stack []*TreeNode }
+func newReverse(root *TreeNode) *ReverseBstIterator {
+    it := &ReverseBstIterator{}
+    it.pushRight(root)
+    return it
+}
+func (it *ReverseBstIterator) pushRight(n *TreeNode) { for n != nil { it.stack = append(it.stack, n); n = n.Right } }
+func (it *ReverseBstIterator) hasNext() bool { return len(it.stack) > 0 }
+func (it *ReverseBstIterator) next() *TreeNode {
+    if !it.hasNext() { return nil }
+    k := len(it.stack) - 1
+    n := it.stack[k]; it.stack = it.stack[:k]
+    it.pushRight(n.Left)
+    return n
+}
+
+func twoSumOnBST(root *TreeNode, target int) bool {
+    if root == nil { return false }
+    left  := newForward(root)
+    right := newReverse(root)
+    l, r := left.next(), right.next()
+    for l != nil && r != nil && l.Val < r.Val {
+        s := l.Val + r.Val
+        if s == target { return true }
+        if s < target  { l = left.next()  } else { r = right.next() }
+    }
+    return false
+}
+```
+
+```kotlin,editable
+class ForwardBstIterator(root: TreeNode?) {
+    private val stack = ArrayDeque<TreeNode>()
+    init { pushLeft(root) }
+    private fun pushLeft(start: TreeNode?) { var n = start; while (n != null) { stack.addLast(n); n = n.left } }
+    fun hasNext() = stack.isNotEmpty()
+    fun next(): TreeNode { val n = stack.removeLast(); pushLeft(n.right); return n }
+}
+
+class ReverseBstIterator(root: TreeNode?) {
+    private val stack = ArrayDeque<TreeNode>()
+    init { pushRight(root) }
+    private fun pushRight(start: TreeNode?) { var n = start; while (n != null) { stack.addLast(n); n = n.right } }
+    fun hasNext() = stack.isNotEmpty()
+    fun next(): TreeNode { val n = stack.removeLast(); pushRight(n.left); return n }
+}
+
+class Solution {
+    fun twoSumOnBST(root: TreeNode?, target: Int): Boolean {
+        if (root == null) return false
+        val left  = ForwardBstIterator(root)
+        val right = ReverseBstIterator(root)
+        var l: TreeNode? = left.next()
+        var r: TreeNode? = right.next()
+        while (l != null && r != null && l.`val` < r.`val`) {
+            val s = l.`val` + r.`val`
+            when {
+                s == target -> return true
+                s <  target -> l = if (left.hasNext())  left.next()  else null                                                                          // grow
+                else        -> r = if (right.hasNext()) right.next() else null                                                                          // shrink
+            }
+        }
+        return false
+    }
+}
+```
+
+```rust,editable
+use std::rc::Rc;
+use std::cell::RefCell;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+pub struct ForwardBstIterator { stack: Vec<Rc<RefCell<TreeNode>>> }
+impl ForwardBstIterator {
+    pub fn new(root: Tree) -> Self {
+        let mut it = Self { stack: Vec::new() };
+        it.push_left(root);
+        it
+    }
+    fn push_left(&mut self, mut n: Tree) {
+        while let Some(x) = n.clone() { self.stack.push(x.clone()); n = x.borrow().left.clone(); }
+    }
+    pub fn next(&mut self) -> Tree {
+        let n = self.stack.pop()?;
+        let right = n.borrow().right.clone();
+        self.push_left(right);
+        Some(n)
+    }
+}
+
+pub struct ReverseBstIterator { stack: Vec<Rc<RefCell<TreeNode>>> }
+impl ReverseBstIterator {
+    pub fn new(root: Tree) -> Self {
+        let mut it = Self { stack: Vec::new() };
+        it.push_right(root);
+        it
+    }
+    fn push_right(&mut self, mut n: Tree) {
+        while let Some(x) = n.clone() { self.stack.push(x.clone()); n = x.borrow().right.clone(); }
+    }
+    pub fn next(&mut self) -> Tree {
+        let n = self.stack.pop()?;
+        let left = n.borrow().left.clone();
+        self.push_right(left);
+        Some(n)
+    }
+}
+
+impl Solution {
+    pub fn two_sum_on_bst(root: Tree, target: i32) -> bool {
+        if root.is_none() { return false; }
+        let mut left  = ForwardBstIterator::new(root.clone());
+        let mut right = ReverseBstIterator::new(root);
+        let mut l = left.next(); let mut r = right.next();
+        while let (Some(ln), Some(rn)) = (l.clone(), r.clone()) {
+            let lv = ln.borrow().val; let rv = rn.borrow().val;
+            if lv >= rv { break; }
+            let s = lv + rv;
+            if s == target { return true; }
+            if s < target { l = left.next(); } else { r = right.next(); }
+        }
+        false
+    }
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — root = [4, 2, 6, 1, null, null, 7], target = 9</strong></summary>
+
+```
+Sorted view: [1, 2, 4, 6, 7]
+
+Step 1 │ leftNode=1, rightNode=7 │ sum=8 < 9 → advance left
+Step 2 │ leftNode=2, rightNode=7 │ sum=9 ✓  → return true
+```
+
+</details>
 
 ***
 
@@ -1704,134 +574,192 @@ public:
 
 ## Problem Statement
 
-Given the **root** of a binary search tree, write a function that returns `true` if, for every pair of nodes formed by taking one node from the start and one from the end of the in-order traversal, the node from the end is a multiple of the node from the start. Return `false` otherwise.
+Given the **root** of a BST, return `true` if for **every** pair of nodes formed by taking one from the start and one from the end of the in-order traversal, the *end* node's value is a positive multiple of the *start* node's value. Return `false` otherwise.
 
 ### Example 1
 
-> -   **Input:** root = \[4, 2, 6, 1, null, null, 7\]
-> -   **Output:** true
-> -   **Explanation:** For every pair of nodes from the start and end of an in-order traversal, the end node is a multiple of the start node.
+> - **Input:** `root = [4, 2, 6, 1, null, null, 7]`
+> - **Output:** `true`
+> - **Explanation:** Sorted: `[1, 2, 4, 6, 7]`. Pairs: `(1, 7)`, `(2, 6)`, `(4, 4)`. Each `right % left == 0`.
 
 ### Example 2
 
-> -   **Input:** root = \[2, 1, 5, null, null, 3, 7\]
-> -   **Output:** false
-> -   **Explanation:** The second node from the end (5) is not a multiple of the second node from the start (2).
+> - **Input:** `root = [2, 1, 5, null, null, 3, 7]`
+> - **Output:** `false`
+> - **Explanation:** Sorted: `[1, 2, 3, 5, 7]`. Pair `(2, 5)` fails (`5 % 2 ≠ 0`).
 
-## Solution
+## The Strategy
 
-```cpp
-#include <stack>
+Same shape as two-sum, but the predicate is "right.val % left.val == 0", and we always advance both pointers (each iteration consumes a unique pair). Stop early on any failure.
 
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+## The Solution
 
-using namespace std;
+<div class="lang-tabs">
 
-class ForwardBstIterator {
-public:
-    stack<TreeNode *> stack;
+```python,editable
+# Reuse the iterator classes defined in the previous problem.
+class Solution:
+    def multiple_tree(self, root):
+        if root is None:
+            return False
+        left  = ForwardBstIterator(root)
+        right = ReverseBstIterator(root)
+        l, r = left.next(), right.next()
+        # Step both pointers in tandem: each pair is (i-th smallest, i-th largest).
+        while l and r and l.val < r.val:
+            if r.val % l.val != 0:        # any pair failing kills the whole answer
+                return False
+            l, r = left.next(), right.next()
+        return True
+```
 
-    ForwardBstIterator(TreeNode *root) {
-        pushAllLeft(root);
-    }
-
-    void pushAllLeft(TreeNode *node) {
-        while (node != nullptr) {
-            stack.push(node);
-            node = node->left;
+```java,editable
+class Solution {
+    public boolean multipleTree(TreeNode root) {
+        if (root == null) return false;
+        ForwardBstIterator left  = new ForwardBstIterator(root);
+        ReverseBstIterator right = new ReverseBstIterator(root);
+        TreeNode l = left.next(), r = right.next();
+        while (l != null && r != null && l.val < r.val) {
+            if (r.val % l.val != 0) return false;                                                                                                                // failure
+            l = left.next(); r = right.next();                                                                                                                   // advance both
         }
+        return true;
     }
+}
+```
 
-    bool hasNext() {
-        return !stack.empty();
+```c,editable
+// Re-uses the Iter helpers from "Two sum on BST".
+bool multipleTree(struct TreeNode *root) {
+    if (!root) return false;
+    Iter *left  = iter_new(1024); push_left(left,  root);
+    Iter *right = iter_new(1024); push_right(right, root);
+    struct TreeNode *l = fwd_next(left), *r = rev_next(right);
+    bool ans = true;
+    while (l && r && l->val < r->val) {
+        if (r->val % l->val != 0) { ans = false; break; }                                                                                                          // failure
+        l = fwd_next(left); r = rev_next(right);
     }
+    free(left->stack); free(left); free(right->stack); free(right);
+    return ans;
+}
+```
 
-    TreeNode *next() {
-        if (!hasNext()) {
-            return nullptr;
-        }
-
-        TreeNode *node = stack.top();
-        stack.pop();
-        pushAllLeft(node->right);
-        return node;
-    }
-};
-
-class ReverseBstIterator {
-public:
-    stack<TreeNode *> stack;
-
-    ReverseBstIterator(TreeNode *root) {
-        pushAllRight(root);
-    }
-
-    void pushAllRight(TreeNode *node) {
-        while (node != nullptr) {
-            stack.push(node);
-            node = node->right;
-        }
-    }
-
-    bool hasNext() {
-        return !stack.empty();
-    }
-
-    TreeNode *next() {
-        if (!hasNext()) {
-            return nullptr;
-        }
-
-        TreeNode *node = stack.top();
-        stack.pop();
-        pushAllRight(node->left);
-        return node;
-    }
-};
-
+```cpp,editable
 class Solution {
 public:
     bool multipleTree(TreeNode *root) {
-        if (!root) {
-            return false;
+        if (!root) return false;
+        ForwardBstIterator left(root);
+        ReverseBstIterator right(root);
+        TreeNode *l = left.next(), *r = right.next();
+        while (l && r && l->val < r->val) {
+            if (r->val % l->val != 0) return false;                                                                                                                // failure
+            l = left.next(); r = right.next();
         }
-
-        // Initialize the left and right iterators
-        ForwardBstIterator leftIterator(root);
-        ReverseBstIterator rightIterator(root);
-
-        TreeNode *leftNode = leftIterator.next();
-        TreeNode *rightNode = rightIterator.next();
-
-        while (leftNode && rightNode && leftNode->val < rightNode->val) {
-
-            // Check if the right node's value is a multiple of the left
-            // node's value
-            if (rightNode->val % leftNode->val != 0) {
-                return false;
-            }
-
-            // Move to the left node to the next node in in-order
-            leftNode = leftIterator.next();
-
-            // Move the right node to the next node in reverse in-order
-            rightNode = rightIterator.next();
-        }
-
-        // If all pairs satisfy the condition, return true
         return true;
     }
 };
 ```
+
+```scala,editable
+object MultipleSolution {
+  def multipleTree(root: TreeNode): Boolean = {
+    if (root == null) return false
+    val left  = new ForwardBstIterator(root)
+    val right = new ReverseBstIterator(root)
+    var l = left.next; var r = right.next
+    while (l != null && r != null && l.value < r.value) {
+      if (r.value % l.value != 0) return false                                                                                                                      // failure
+      l = left.next; r = right.next
+    }
+    true
+  }
+}
+```
+
+```javascript,editable
+function multipleTree(root) {
+  if (root === null) return false;
+  const left  = new ForwardBstIterator(root);
+  const right = new ReverseBstIterator(root);
+  let l = left.next(), r = right.next();
+  while (l && r && l.val < r.val) {
+    if (r.val % l.val !== 0) return false;                                                                                                                          // failure
+    l = left.next(); r = right.next();                                                                                                                              // advance both
+  }
+  return true;
+}
+```
+
+```typescript,editable
+function multipleTree(root: TreeNode | null): boolean {
+  if (root === null) return false;
+  const left  = new ForwardBstIterator(root);
+  const right = new ReverseBstIterator(root);
+  let l: TreeNode | null = left.next();
+  let r: TreeNode | null = right.next();
+  while (l && r && l.val < r.val) {
+    if (r.val % l.val !== 0) return false;                                                                                                                            // failure
+    l = left.hasNext()  ? left.next()  : null;
+    r = right.hasNext() ? right.next() : null;
+  }
+  return true;
+}
+```
+
+```go,editable
+func multipleTree(root *TreeNode) bool {
+    if root == nil { return false }
+    left  := newForward(root)
+    right := newReverse(root)
+    l, r := left.next(), right.next()
+    for l != nil && r != nil && l.Val < r.Val {
+        if r.Val % l.Val != 0 { return false }                                                                                                                          // failure
+        l = left.next(); r = right.next()
+    }
+    return true
+}
+```
+
+```kotlin,editable
+class MultipleSolution {
+    fun multipleTree(root: TreeNode?): Boolean {
+        if (root == null) return false
+        val left  = ForwardBstIterator(root)
+        val right = ReverseBstIterator(root)
+        var l: TreeNode? = left.next()
+        var r: TreeNode? = right.next()
+        while (l != null && r != null && l.`val` < r.`val`) {
+            if (r.`val` % l.`val` != 0) return false                                                                                                                     // failure
+            l = if (left.hasNext())  left.next()  else null
+            r = if (right.hasNext()) right.next() else null
+        }
+        return true
+    }
+}
+```
+
+```rust,editable
+impl Solution {
+    pub fn multiple_tree(root: Tree) -> bool {
+        if root.is_none() { return false; }
+        let mut left  = ForwardBstIterator::new(root.clone());
+        let mut right = ReverseBstIterator::new(root);
+        let mut l = left.next(); let mut r = right.next();
+        while let (Some(ln), Some(rn)) = (l.clone(), r.clone()) {
+            let lv = ln.borrow().val; let rv = rn.borrow().val;
+            if lv >= rv { break; }
+            if rv % lv != 0 { return false; }                                                                                                                           // failure
+            l = left.next(); r = right.next();
+        }
+        true
+    }
+}
+```
+
+</div>
 
 ***
 
@@ -1839,150 +767,227 @@ public:
 
 ## Problem Statement
 
-Given the **root** of a binary search tree, write a function to find and return the median value of this tree. The value should be rounded down to the nearest integer.
+Given the **root** of a BST, return the **median** value, rounded down to the nearest integer.
 
-The median in a binary search tree is the middle value when the nodes are arranged in sorted order. If the number of nodes is odd, it's the middle node, and if even, it’s the average of the two middle nodes.
+> The median is the middle value of the sorted in-order sequence. If the count is odd, it's the single middle value. If even, it's the average of the two middle values, rounded down (integer division).
 
 ### Example 1
 
-> -   **Input:** root = \[5, 4, 6, 2, null, null, 7\]
-> -   **Output:** 5
-> -   **Explanation:** Since there is an odd number of nodes, the median is 5, which is the middle node of the binary search tree.
+> - **Input:** `root = [5, 4, 6, 2, null, null, 7]`
+> - **Output:** `5`
+> - **Explanation:** Sorted: `[2, 4, 5, 6, 7]`. Middle: `5`.
 
 ### Example 2
 
-> -   **Input:** root = \[10, 8, 14, 5, null, 13, 17\]
-> -   **Output:** 11
-> -   **Explanation:** Since there is an even number of nodes, the median is the average of the two middle nodes: (10 + 13) / 2 = 11.5, which rounds down to 11.
+> - **Input:** `root = [10, 8, 14, 5, null, 13, 17]`
+> - **Output:** `11`
+> - **Explanation:** Sorted: `[5, 8, 10, 13, 14, 17]`. Middle pair: `(10, 13)`. Average: `11`.
 
-## Solution
+## The Strategy
 
-```cpp
-#include <stack>
+The two-pointer pattern *naturally* finds the median: walk both iterators forward step-by-step. If the count is odd, eventually `leftNode == rightNode` — that single node's value is the median. If even, the loop ends when the two pointers cross, with `leftNode` and `rightNode` straddling the middle — the most recent pair's *average* is the median (rounded down).
 
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+## The Solution
 
-using namespace std;
+<div class="lang-tabs">
 
-class ForwardBstIterator {
-public:
-    stack<TreeNode *> stack;
+```python,editable
+class Solution:
+    def median_in_bst(self, root):
+        if root is None:
+            return -1
+        left  = ForwardBstIterator(root)
+        right = ReverseBstIterator(root)
+        l, r = left.next(), right.next()
+        median = -1
+        # Each iteration advances *both* pointers, eating one pair at a time.
+        while l and r and l.val < r.val:
+            # Even-count case: the last l, r before crossing are the two middles.
+            median = (l.val + r.val) // 2
+            l, r = left.next(), right.next()
+        # If we exited because l and r met at the same node, count was odd → that's the median.
+        if l is r and l is not None:
+            return l.val
+        return median
+```
 
-    ForwardBstIterator(TreeNode *root) {
-        pushAllLeft(root);
-    }
-
-    void pushAllLeft(TreeNode *node) {
-        while (node != nullptr) {
-            stack.push(node);
-            node = node->left;
+```java,editable
+class Solution {
+    public int medianInBst(TreeNode root) {
+        if (root == null) return -1;
+        ForwardBstIterator left  = new ForwardBstIterator(root);
+        ReverseBstIterator right = new ReverseBstIterator(root);
+        TreeNode l = left.next(), r = right.next();
+        int median = -1;
+        while (l != null && r != null && l.val < r.val) {
+            median = (l.val + r.val) / 2;                                                                                                                                  // straddle pair
+            l = left.next(); r = right.next();
         }
+        if (l == r && l != null) return l.val;                                                                                                                              // odd count
+        return median;
     }
+}
+```
 
-    bool hasNext() {
-        return !stack.empty();
+```c,editable
+int medianInBst(struct TreeNode *root) {
+    if (!root) return -1;
+    Iter *left  = iter_new(1024); push_left(left,  root);
+    Iter *right = iter_new(1024); push_right(right, root);
+    struct TreeNode *l = fwd_next(left), *r = rev_next(right);
+    int median = -1;
+    while (l && r && l->val < r->val) {
+        median = (l->val + r->val) / 2;                                                                                                                                       // straddle pair
+        l = fwd_next(left); r = rev_next(right);
     }
+    int ans = (l == r && l != NULL) ? l->val : median;
+    free(left->stack); free(left); free(right->stack); free(right);
+    return ans;
+}
+```
 
-    TreeNode *next() {
-        if (!hasNext()) {
-            return nullptr;
-        }
-
-        TreeNode *node = stack.top();
-        stack.pop();
-        pushAllLeft(node->right);
-        return node;
-    }
-};
-
-class ReverseBstIterator {
-public:
-    stack<TreeNode *> stack;
-
-    ReverseBstIterator(TreeNode *root) {
-        pushAllRight(root);
-    }
-
-    void pushAllRight(TreeNode *node) {
-        while (node != nullptr) {
-            stack.push(node);
-            node = node->right;
-        }
-    }
-
-    bool hasNext() {
-        return !stack.empty();
-    }
-
-    TreeNode *next() {
-        if (!hasNext()) {
-            return nullptr;
-        }
-
-        TreeNode *node = stack.top();
-        stack.pop();
-        pushAllRight(node->left);
-        return node;
-    }
-};
-
+```cpp,editable
 class Solution {
 public:
     int medianInBst(TreeNode *root) {
-        if (!root) {
-            return -1;
-        }
-
-        // Initialize the left and right iterators
-        ForwardBstIterator leftIterator(root);
-        ReverseBstIterator rightIterator(root);
-
-        TreeNode *leftNode = leftIterator.next();
-        TreeNode *rightNode = rightIterator.next();
-
-        // Variable to store the median value
+        if (!root) return -1;
+        ForwardBstIterator left(root);
+        ReverseBstIterator right(root);
+        TreeNode *l = left.next(), *r = right.next();
         int median = -1;
-
-        while (leftNode && rightNode && leftNode->val < rightNode->val) {
-
-            // Update the median with the average of the two nodes, if
-            // the tree has an even number of nodes, the median will be
-            // the average of the two middle nodes before exiting the
-            // loop
-            median = (leftNode->val + rightNode->val) / 2;
-
-            // Move to the left node to the next node in in-order
-            leftNode = leftIterator.next();
-
-            // Move the right node to the next node in reverse in-order
-            rightNode = rightIterator.next();
+        while (l && r && l->val < r->val) {
+            median = (l->val + r->val) / 2;                                                                                                                                     // straddle pair
+            l = left.next(); r = right.next();
         }
-
-        // If both iterators meet at the same node, it means the tree has
-        // an odd number of nodes
-        if (leftNode == rightNode) {
-            return leftNode->val;
-        }
-
-        // If the tree has an even number of nodes, return the last
-        // computed median
+        if (l == r && l != nullptr) return l->val;                                                                                                                              // odd count
         return median;
     }
 };
 ```
 
-***
+```scala,editable
+object MedianSolution {
+  def medianInBst(root: TreeNode): Int = {
+    if (root == null) return -1
+    val left  = new ForwardBstIterator(root)
+    val right = new ReverseBstIterator(root)
+    var l = left.next; var r = right.next
+    var median = -1
+    while (l != null && r != null && l.value < r.value) {
+      median = (l.value + r.value) / 2
+      l = left.next; r = right.next
+    }
+    if (l == r && l != null) l.value else median
+  }
+}
+```
 
-# BST pair sum
+```javascript,editable
+function medianInBst(root) {
+  if (root === null) return -1;
+  const left  = new ForwardBstIterator(root);
+  const right = new ReverseBstIterator(root);
+  let l = left.next(), r = right.next();
+  let median = -1;
+  while (l && r && l.val < r.val) {
+    median = Math.floor((l.val + r.val) / 2);                                                                                                                                     // straddle pair
+    l = left.next(); r = right.next();
+  }
+  if (l === r && l !== null) return l.val;                                                                                                                                        // odd count
+  return median;
+}
+```
+
+```typescript,editable
+function medianInBst(root: TreeNode | null): number {
+  if (root === null) return -1;
+  const left  = new ForwardBstIterator(root);
+  const right = new ReverseBstIterator(root);
+  let l: TreeNode | null = left.next(), r: TreeNode | null = right.next();
+  let median = -1;
+  while (l && r && l.val < r.val) {
+    median = Math.floor((l.val + r.val) / 2);                                                                                                                                       // straddle pair
+    l = left.hasNext()  ? left.next()  : null;
+    r = right.hasNext() ? right.next() : null;
+  }
+  if (l === r && l !== null) return l.val;                                                                                                                                          // odd count
+  return median;
+}
+```
+
+```go,editable
+func medianInBst(root *TreeNode) int {
+    if root == nil { return -1 }
+    left  := newForward(root)
+    right := newReverse(root)
+    l, r := left.next(), right.next()
+    median := -1
+    for l != nil && r != nil && l.Val < r.Val {
+        median = (l.Val + r.Val) / 2                                                                                                                                                 // straddle pair
+        l = left.next(); r = right.next()
+    }
+    if l == r && l != nil { return l.Val }                                                                                                                                            // odd count
+    return median
+}
+```
+
+```kotlin,editable
+class MedianSolution {
+    fun medianInBst(root: TreeNode?): Int {
+        if (root == null) return -1
+        val left  = ForwardBstIterator(root)
+        val right = ReverseBstIterator(root)
+        var l: TreeNode? = left.next()
+        var r: TreeNode? = right.next()
+        var median = -1
+        while (l != null && r != null && l.`val` < r.`val`) {
+            median = (l.`val` + r.`val`) / 2
+            l = if (left.hasNext())  left.next()  else null
+            r = if (right.hasNext()) right.next() else null
+        }
+        return if (l === r && l != null) l.`val` else median                                                                                                                            // odd count vs even count
+    }
+}
+```
+
+```rust,editable
+impl Solution {
+    pub fn median_in_bst(root: Tree) -> i32 {
+        if root.is_none() { return -1; }
+        let mut left  = ForwardBstIterator::new(root.clone());
+        let mut right = ReverseBstIterator::new(root);
+        let mut l = left.next(); let mut r = right.next();
+        let mut median = -1;
+        while let (Some(ln), Some(rn)) = (l.clone(), r.clone()) {
+            let lv = ln.borrow().val; let rv = rn.borrow().val;
+            if lv >= rv { break; }
+            median = (lv + rv) / 2;
+            l = left.next(); r = right.next();
+        }
+        match (l, r) {
+            (Some(ln), Some(rn)) if Rc::ptr_eq(&ln, &rn) => ln.borrow().val,                                                                                                              // odd count
+            _ => median,
+        }
+    }
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — root = [10, 8, 14, 5, null, 13, 17]</strong></summary>
+
+```
+Sorted: [5, 8, 10, 13, 14, 17]  (even count = 6)
+
+Step 1 │ l=5, r=17 │ 5 < 17 → median candidate = (5+17)/2 = 11 → advance both
+Step 2 │ l=8, r=14 │ 8 < 14 → median candidate = (8+14)/2 = 11 → advance both
+Step 3 │ l=10, r=13 │ 10 < 13 → median candidate = (10+13)/2 = 11 → advance both
+Step 4 │ l=13, r=10 │ 13 > 10 → loop exits (crossed)
+l != r → even count → return 11 ✓
+```
+
+</details>
 
 ***
 
@@ -1990,136 +995,243 @@ public:
 
 ## Problem Statement
 
-Given the **roots** of two binary search trees, **rootA** and **rootB**, and an integer value **target**, write a function that returns `true` if a pair of nodes (one node from each tree) exists that sum up to the target. Return `false` if no such pair exists.
+Given the **roots** of two BSTs `rootA` and `rootB`, and an integer **target**, return `true` if there's a pair of nodes (one from each tree) whose values sum to `target`. Return `false` otherwise.
 
 ### Example 1
 
-> -   **Input:** rootA = \[4, 2, 6, 1, null, null, 7\], rootB = \[2, 1, 4, null, null, 3, 8\], target = 15
-> -   **Output:** true
-> -   **Explanation:** The node with value 7 from the first tree and the node with value 8 from the second tree sum up to 15.
+> - **Input:** `rootA = [4, 2, 6, 1, null, null, 7]`, `rootB = [2, 1, 4, null, null, 3, 8]`, `target = 15`
+> - **Output:** `true`
+> - **Explanation:** `7 (from A) + 8 (from B) = 15`.
 
 ### Example 2
 
-> -   **Input:** rootA = \[4, 2, 6, 1, null, null, 7\], rootB = \[2, 1, 4, null, null, 3, 8\], target = 35
-> -   **Output:** false
-> -   **Explanation:** A sum of 35 cannot be made using the above trees.
+> - **Input:** `rootA = [4, 2, 6, 1, null, null, 7]`, `rootB = [2, 1, 4, null, null, 3, 8]`, `target = 35`
+> - **Output:** `false`
 
-## Solution
+## The Strategy
 
-```cpp
-#include <stack>
+This is the multi-tree generalisation of "two sum on BST". Run the **forward iterator on the first tree** and the **reverse iterator on the second tree**, and apply the same step rule. The crossing condition no longer applies — we stop when *either* iterator runs out (it won't cross because the two trees are independent).
 
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
+## The Solution
 
-using namespace std;
+<div class="lang-tabs">
 
-class ForwardBstIterator {
-public:
-    stack<TreeNode *> stack;
+```python,editable
+class Solution:
+    def bst_pair_sum(self, root_a, root_b, target):
+        if root_a is None or root_b is None:
+            return False
+        left  = ForwardBstIterator(root_a)            # ascending across tree A
+        right = ReverseBstIterator(root_b)            # descending across tree B
+        l, r = left.next(), right.next()
+        while l and r:
+            s = l.val + r.val
+            if s == target:
+                return True
+            if s < target:
+                # Sum too small → grow it from A's side.
+                l = left.next() if left.has_next() else None
+            else:
+                # Sum too large → shrink from B's side.
+                r = right.next() if right.has_next() else None
+        return False
+```
 
-    ForwardBstIterator(TreeNode *root) {
-        pushAllLeft(root);
-    }
-
-    void pushAllLeft(TreeNode *node) {
-        while (node != nullptr) {
-            stack.push(node);
-            node = node->left;
+```java,editable
+class Solution {
+    public boolean bstPairSum(TreeNode rootA, TreeNode rootB, int target) {
+        if (rootA == null || rootB == null) return false;
+        ForwardBstIterator left  = new ForwardBstIterator(rootA);
+        ReverseBstIterator right = new ReverseBstIterator(rootB);
+        TreeNode l = left.next(), r = right.next();
+        while (l != null && r != null) {
+            int s = l.val + r.val;
+            if (s == target) return true;
+            if (s < target) l = left.hasNext()  ? left.next()  : null;                                                                                                                  // grow from A
+            else            r = right.hasNext() ? right.next() : null;                                                                                                                  // shrink from B
         }
+        return false;
     }
+}
+```
 
-    bool hasNext() {
-        return !stack.empty(); 
+```c,editable
+bool bstPairSum(struct TreeNode *rootA, struct TreeNode *rootB, int target) {
+    if (!rootA || !rootB) return false;
+    Iter *left  = iter_new(1024); push_left(left,  rootA);
+    Iter *right = iter_new(1024); push_right(right, rootB);
+    struct TreeNode *l = fwd_next(left), *r = rev_next(right);
+    bool ans = false;
+    while (l && r) {
+        int s = l->val + r->val;
+        if (s == target)      { ans = true; break; }
+        else if (s < target)  l = fwd_next(left);                                                                                                                                          // grow from A
+        else                  r = rev_next(right);                                                                                                                                          // shrink from B
     }
+    free(left->stack); free(left); free(right->stack); free(right);
+    return ans;
+}
+```
 
-    TreeNode *next() {
-        if (!hasNext()) {
-            return nullptr;
-        }
-
-        TreeNode *node = stack.top();
-        stack.pop();
-        pushAllLeft(node->right);
-        return node;
-    }
-};
-
-class ReverseBstIterator {
-public:
-    stack<TreeNode *> stack;
-
-    ReverseBstIterator(TreeNode *root) {
-        pushAllRight(root); 
-    }
-
-    void pushAllRight(TreeNode *node) {
-        while (node != nullptr) {
-            stack.push(node);
-            node = node->right;
-        }
-    }
-
-    bool hasNext() {
-        return !stack.empty();
-    }
-
-    TreeNode *next() {
-        if (!hasNext()) {
-            return nullptr;
-        }
-
-        TreeNode *node = stack.top();
-        stack.pop();
-        pushAllRight(node->left);
-        return node;
-    }
-};
-
+```cpp,editable
 class Solution {
 public:
     bool bstPairSum(TreeNode *rootA, TreeNode *rootB, int target) {
-        if (!rootA || !rootB) {
-            return false;
+        if (!rootA || !rootB) return false;
+        ForwardBstIterator left(rootA);
+        ReverseBstIterator right(rootB);
+        TreeNode *l = left.next(), *r = right.next();
+        while (l && r) {
+            int s = l->val + r->val;
+            if (s == target) return true;
+            if (s < target) l = left.next();                                                                                                                                                  // grow
+            else            r = right.next();                                                                                                                                                 // shrink
         }
-
-        // Initialize the left and right iterators
-        ForwardBstIterator leftIterator(rootA);
-        ReverseBstIterator rightIterator(rootB);
-
-        TreeNode *leftNode = leftIterator.next();
-        TreeNode *rightNode = rightIterator.next();
-
-        while (leftNode && rightNode) {
-
-            // Check if the sum of the two nodes equals k
-            if (leftNode->val + rightNode->val == target) {
-                return true;
-            }
-
-            // If the sum is less than target, move the left pointer
-            // to the right
-            else if (leftNode->val + rightNode->val < target) {
-                leftNode = leftIterator.next();
-            }
-
-            // If the sum is greater than target, move the right pointer
-            // to the left
-            else {
-                rightNode = rightIterator.next();
-            }
-        }
-
-        // No pair found
         return false;
     }
 };
 ```
+
+```scala,editable
+object PairSumSolution {
+  def bstPairSum(rootA: TreeNode, rootB: TreeNode, target: Int): Boolean = {
+    if (rootA == null || rootB == null) return false
+    val left  = new ForwardBstIterator(rootA)
+    val right = new ReverseBstIterator(rootB)
+    var l = left.next; var r = right.next
+    while (l != null && r != null) {
+      val s = l.value + r.value
+      if (s == target)      return true
+      else if (s < target)  l = left.next
+      else                  r = right.next
+    }
+    false
+  }
+}
+```
+
+```javascript,editable
+function bstPairSum(rootA, rootB, target) {
+  if (rootA === null || rootB === null) return false;
+  const left  = new ForwardBstIterator(rootA);
+  const right = new ReverseBstIterator(rootB);
+  let l = left.next(), r = right.next();
+  while (l && r) {
+    const s = l.val + r.val;
+    if (s === target) return true;
+    if (s < target) l = left.next();                                                                                                                                                            // grow
+    else            r = right.next();                                                                                                                                                           // shrink
+  }
+  return false;
+}
+```
+
+```typescript,editable
+function bstPairSum(rootA: TreeNode | null, rootB: TreeNode | null, target: number): boolean {
+  if (rootA === null || rootB === null) return false;
+  const left  = new ForwardBstIterator(rootA);
+  const right = new ReverseBstIterator(rootB);
+  let l: TreeNode | null = left.next(), r: TreeNode | null = right.next();
+  while (l && r) {
+    const s = l.val + r.val;
+    if (s === target) return true;
+    if (s < target) l = left.hasNext()  ? left.next()  : null;                                                                                                                                    // grow
+    else            r = right.hasNext() ? right.next() : null;                                                                                                                                    // shrink
+  }
+  return false;
+}
+```
+
+```go,editable
+func bstPairSum(rootA, rootB *TreeNode, target int) bool {
+    if rootA == nil || rootB == nil { return false }
+    left  := newForward(rootA)
+    right := newReverse(rootB)
+    l, r := left.next(), right.next()
+    for l != nil && r != nil {
+        s := l.Val + r.Val
+        if s == target { return true }
+        if s < target  { l = left.next()  } else { r = right.next() }
+    }
+    return false
+}
+```
+
+```kotlin,editable
+class PairSumSolution {
+    fun bstPairSum(rootA: TreeNode?, rootB: TreeNode?, target: Int): Boolean {
+        if (rootA == null || rootB == null) return false
+        val left  = ForwardBstIterator(rootA)
+        val right = ReverseBstIterator(rootB)
+        var l: TreeNode? = left.next()
+        var r: TreeNode? = right.next()
+        while (l != null && r != null) {
+            val s = l.`val` + r.`val`
+            when {
+                s == target -> return true
+                s <  target -> l = if (left.hasNext())  left.next()  else null                                                                                                                       // grow
+                else        -> r = if (right.hasNext()) right.next() else null                                                                                                                       // shrink
+            }
+        }
+        return false
+    }
+}
+```
+
+```rust,editable
+impl Solution {
+    pub fn bst_pair_sum(root_a: Tree, root_b: Tree, target: i32) -> bool {
+        if root_a.is_none() || root_b.is_none() { return false; }
+        let mut left  = ForwardBstIterator::new(root_a);
+        let mut right = ReverseBstIterator::new(root_b);
+        let mut l = left.next(); let mut r = right.next();
+        while let (Some(ln), Some(rn)) = (l.clone(), r.clone()) {
+            let lv = ln.borrow().val; let rv = rn.borrow().val;
+            let s = lv + rv;
+            if s == target { return true; }
+            if s < target { l = left.next(); } else { r = right.next(); }
+        }
+        false
+    }
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — rootA = [4, 2, 6, 1, null, null, 7], rootB = [2, 1, 4, null, null, 3, 8], target = 15</strong></summary>
+
+```
+A sorted: [1, 2, 4, 6, 7]
+B sorted: [1, 2, 3, 4, 8]
+
+Step 1 │ l=1 (from A), r=8 (from B) │ sum=9  < 15 → advance left
+Step 2 │ l=2, r=8                  │ sum=10 < 15 → advance left
+Step 3 │ l=4, r=8                  │ sum=12 < 15 → advance left
+Step 4 │ l=6, r=8                  │ sum=14 < 15 → advance left
+Step 5 │ l=7, r=8                  │ sum=15 ✓   → return true
+```
+
+</details>
+
+***
+
+## Final Takeaway
+
+The Two Pointer pattern on BSTs is the meeting of two ideas you've already mastered: **iterators** that walk a BST in sorted order on demand (lesson 9), and **two-pointer reductions** familiar from sorted arrays. Run a forward iterator and a reverse iterator simultaneously, and you have a working `(small, large)` pair you can use to drive any sum/multiple/distance/comparison decision — without ever materialising the sorted array.
+
+The pay-off is striking: many "pair" problems on BSTs that would naively be O(n²) (compare every pair) or O(n) memory (flatten to array, then two-pointer) collapse to **O(n) time, O(h) space** with this pattern.
+
+Three patterns to keep:
+
+1. **Iterators turn BSTs into sorted streams.** Once you can `next()` and `hasNext()`, every algorithm that works on sorted arrays generalises directly to BSTs. The conversion is *free* in terms of memory.
+2. **Two iterators, two directions.** This is the BST analogue of the array two-pointer template — and it solves the same problem family (sum-to-target, pair properties, median, ranges).
+3. **Two BSTs at once.** Different sources of the left and right pointers gives us cross-tree operations like *bst-pair-sum*. The same trick scales further: streaming joins between two sorted indexes in a database use exactly this idea.
+
+---
+
+## Closing the Chapter
+
+You started this chapter with a static binary tree decorated with one extra rule, and you finish it able to **search, insert, delete, validate, range-query, iterate, and pair-traverse** with confidence. The single thread tying every lesson together is the **binary search property** — the small invariant that turns "look at every node" into "look at one path", and that turns ordered-set problems into single-pass tree walks. Every BST operation, every pattern, every pair of iterators in this chapter is a different way of leaning on that one rule.
+
+Heaps, the next chapter, change the rule — instead of "left smaller, right larger" it's "parent smaller than children". The shape becomes a different tool, optimised not for sorted iteration but for repeatedly extracting the minimum (or maximum). The mental model you've built here will transfer cleanly: it's still a tree, still a property, still a discipline on where values live. Different rule, different superpower.
