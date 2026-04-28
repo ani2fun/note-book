@@ -303,33 +303,269 @@ Sums computed: `11, 16, 15`. The maximum is `16` (window `[5, 1, 3, 7]`). And yo
 
 Given below is the generic code implementation of the fixed-sized sliding window technique. It maps directly to the four steps in the algorithm above — Step 3.1 (add), Step 3.2 (trim if oversized), Step 3.3 (process if full), Step 3.4 (advance `end`):
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
+def f_add(agg, x): return agg + x
+def f_remove(agg, x): return agg - x
+def process(agg): pass
+
 def fixed_size_sliding_window(arr: List[int], k: int) -> None:
-    start     = 0  # Left boundary — only moves when the window exceeds k
-    end       = 0  # Right boundary — advances every iteration (Step 3.4)
-    aggregate = 0  # Running value of f over arr[start..end]; default is problem-dependent
+    start = end = 0
+    aggregate = 0
 
     while end < len(arr):
+        aggregate = f_add(aggregate, arr[end])             # Step 3.1: extend right.
 
-        # Step 3.1: Add arr[end]'s contribution — new element enters the window
-        aggregate = f_add(aggregate, arr[end])
+        if end - start + 1 > k:                            # Step 3.2: trim oversize.
+            aggregate = f_remove(aggregate, arr[start])
+            start += 1
 
-        # Step 3.2: If window has grown past k, trim it from the left
-        # This keeps the window size at most k at all times
-        if end - start + 1 > k:
-            aggregate = f_remove(aggregate, arr[start])  # Remove arr[start]'s contribution
-            start += 1                                    # Shrink window from the left
-
-        # Step 3.3: Window is exactly k — it is a valid full window, so process it
-        # This check comes after trimming so we never process an oversized window
-        if end - start + 1 == k:
+        if end - start + 1 == k:                           # Step 3.3: process full window.
             process(aggregate)
 
-        # Step 3.4: Advance end to bring the next element into scope
-        end += 1
+        end += 1                                           # Step 3.4: advance right.
 ```
+
+```java,editable
+public class Main {
+    static int fAdd(int agg, int x)    { return agg + x; }
+    static int fRemove(int agg, int x) { return agg - x; }
+    static void process(int agg)       { /* problem-specific */ }
+
+    static void fixedSizeSlidingWindow(int[] arr, int k) {
+        int start = 0, end = 0, aggregate = 0;
+        while (end < arr.length) {
+            aggregate = fAdd(aggregate, arr[end]);
+
+            if (end - start + 1 > k) {
+                aggregate = fRemove(aggregate, arr[start]);
+                start++;
+            }
+
+            if (end - start + 1 == k) process(aggregate);
+
+            end++;
+        }
+    }
+
+    public static void main(String[] args) {
+        fixedSizeSlidingWindow(new int[]{1, 2, 3, 4, 5}, 3);
+        System.out.println("Template ran.");
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int  f_add(int agg, int x)    { return agg + x; }
+int  f_remove(int agg, int x) { return agg - x; }
+void process(int agg)         { (void)agg; }
+
+void fixed_size_sliding_window(int* arr, int n, int k) {
+    int start = 0, end = 0, aggregate = 0;
+    while (end < n) {
+        aggregate = f_add(aggregate, arr[end]);
+        if (end - start + 1 > k) {
+            aggregate = f_remove(aggregate, arr[start]);
+            start++;
+        }
+        if (end - start + 1 == k) process(aggregate);
+        end++;
+    }
+}
+
+int main() {
+    int arr[] = {1, 2, 3, 4, 5};
+    fixed_size_sliding_window(arr, 5, 3);
+    printf("Template ran.\n");
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+int  fAdd(int agg, int x)    { return agg + x; }
+int  fRemove(int agg, int x) { return agg - x; }
+void process(int)            { /* problem-specific */ }
+
+void fixedSizeSlidingWindow(const std::vector<int>& arr, int k) {
+    int start = 0, end = 0, aggregate = 0;
+    while (end < (int)arr.size()) {
+        aggregate = fAdd(aggregate, arr[end]);
+        if (end - start + 1 > k) {
+            aggregate = fRemove(aggregate, arr[start]);
+            start++;
+        }
+        if (end - start + 1 == k) process(aggregate);
+        end++;
+    }
+}
+
+int main() {
+    fixedSizeSlidingWindow({1, 2, 3, 4, 5}, 3);
+    std::cout << "Template ran.\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  def fAdd(agg: Int, x: Int): Int    = agg + x
+  def fRemove(agg: Int, x: Int): Int = agg - x
+  def process(agg: Int): Unit = ()
+
+  def fixedSizeSlidingWindow(arr: Array[Int], k: Int): Unit = {
+    var start = 0
+    var end = 0
+    var aggregate = 0
+    while (end < arr.length) {
+      aggregate = fAdd(aggregate, arr(end))
+      if (end - start + 1 > k) {
+        aggregate = fRemove(aggregate, arr(start))
+        start += 1
+      }
+      if (end - start + 1 == k) process(aggregate)
+      end += 1
+    }
+  }
+
+  fixedSizeSlidingWindow(Array(1, 2, 3, 4, 5), 3)
+  println("Template ran.")
+}
+```
+
+```javascript,editable
+const fAdd    = (agg, x) => agg + x;
+const fRemove = (agg, x) => agg - x;
+const process = (agg) => { /* problem-specific */ };
+
+function fixedSizeSlidingWindow(arr, k) {
+    let start = 0, end = 0, aggregate = 0;
+    while (end < arr.length) {
+        aggregate = fAdd(aggregate, arr[end]);
+        if (end - start + 1 > k) {
+            aggregate = fRemove(aggregate, arr[start]);
+            start++;
+        }
+        if (end - start + 1 === k) process(aggregate);
+        end++;
+    }
+}
+
+fixedSizeSlidingWindow([1, 2, 3, 4, 5], 3);
+console.log("Template ran.");
+```
+
+```typescript,editable
+const fAdd    = (agg: number, x: number): number => agg + x;
+const fRemove = (agg: number, x: number): number => agg - x;
+const process = (_: number): void => { /* problem-specific */ };
+
+function fixedSizeSlidingWindow(arr: number[], k: number): void {
+    let start = 0, end = 0, aggregate = 0;
+    while (end < arr.length) {
+        aggregate = fAdd(aggregate, arr[end]);
+        if (end - start + 1 > k) {
+            aggregate = fRemove(aggregate, arr[start]);
+            start++;
+        }
+        if (end - start + 1 === k) process(aggregate);
+        end++;
+    }
+}
+
+fixedSizeSlidingWindow([1, 2, 3, 4, 5], 3);
+console.log("Template ran.");
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func fAdd(agg, x int) int    { return agg + x }
+func fRemove(agg, x int) int { return agg - x }
+func process(agg int)        { _ = agg }
+
+func fixedSizeSlidingWindow(arr []int, k int) {
+    start, end, aggregate := 0, 0, 0
+    for end < len(arr) {
+        aggregate = fAdd(aggregate, arr[end])
+        if end-start+1 > k {
+            aggregate = fRemove(aggregate, arr[start])
+            start++
+        }
+        if end-start+1 == k {
+            process(aggregate)
+        }
+        end++
+    }
+}
+
+func main() {
+    fixedSizeSlidingWindow([]int{1, 2, 3, 4, 5}, 3)
+    fmt.Println("Template ran.")
+}
+```
+
+```kotlin,editable
+fun fAdd(agg: Int, x: Int) = agg + x
+fun fRemove(agg: Int, x: Int) = agg - x
+fun process(agg: Int) { /* problem-specific */ }
+
+fun fixedSizeSlidingWindow(arr: IntArray, k: Int) {
+    var start = 0
+    var end = 0
+    var aggregate = 0
+    while (end < arr.size) {
+        aggregate = fAdd(aggregate, arr[end])
+        if (end - start + 1 > k) {
+            aggregate = fRemove(aggregate, arr[start])
+            start++
+        }
+        if (end - start + 1 == k) process(aggregate)
+        end++
+    }
+}
+
+fun main() {
+    fixedSizeSlidingWindow(intArrayOf(1, 2, 3, 4, 5), 3)
+    println("Template ran.")
+}
+```
+
+```rust,editable
+fn f_add(agg: i32, x: i32) -> i32    { agg + x }
+fn f_remove(agg: i32, x: i32) -> i32 { agg - x }
+fn process(_agg: i32)                {}
+
+fn fixed_size_sliding_window(arr: &[i32], k: usize) {
+    let mut start = 0usize;
+    let mut end = 0usize;
+    let mut aggregate = 0i32;
+    while end < arr.len() {
+        aggregate = f_add(aggregate, arr[end]);
+        if end - start + 1 > k {
+            aggregate = f_remove(aggregate, arr[start]);
+            start += 1;
+        }
+        if end - start + 1 == k { process(aggregate); }
+        end += 1;
+    }
+}
+
+fn main() {
+    fixed_size_sliding_window(&[1, 2, 3, 4, 5], 3);
+    println!("Template ran.");
+}
+```
+
+</div>
 
 ---
 
@@ -462,28 +698,201 @@ Both operations are O(1) arithmetic on a single variable.
 
 Fix a starting index `i`, compute the sum of `k` elements starting there, check if it beats the current max:
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 def k_subarray_max_average_brute(arr: List[int], k: int) -> float:
     n = len(arr)
-    max_average = float('-inf')  # Start below any possible average
+    max_average = float('-inf')
 
-    # Outer loop: try every valid starting position (last valid start is n-k)
     for i in range(n - k + 1):
         current_sum = 0
-
-        # Inner loop: sum the k elements starting at index i
-        # This recomputes elements arr[i+1..i+k-1] that were already summed in the previous window
+        # Inner loop recomputes arr[i+1..i+k-1] each time — the O(n*k) cost.
         for j in range(k):
             current_sum += arr[i + j]
-
         max_average = max(max_average, current_sum / k)
-
     return max_average
 
 print(k_subarray_max_average_brute([1, 12, -5, -6, 50, 3], 4))  # 12.75
 ```
+
+```java,editable
+public class Main {
+    static double kSubarrayMaxAverageBrute(int[] arr, int k) {
+        int n = arr.length;
+        double maxAverage = Double.NEGATIVE_INFINITY;
+        for (int i = 0; i <= n - k; i++) {
+            double currentSum = 0;
+            for (int j = 0; j < k; j++) currentSum += arr[i + j];
+            maxAverage = Math.max(maxAverage, currentSum / k);
+        }
+        return maxAverage;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(kSubarrayMaxAverageBrute(new int[]{1, 12, -5, -6, 50, 3}, 4));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <float.h>
+
+double k_subarray_max_average_brute(int* arr, int n, int k) {
+    double max_average = -DBL_MAX;
+    for (int i = 0; i <= n - k; i++) {
+        double sum = 0;
+        for (int j = 0; j < k; j++) sum += arr[i + j];
+        double avg = sum / k;
+        if (avg > max_average) max_average = avg;
+    }
+    return max_average;
+}
+
+int main() {
+    int arr[] = {1, 12, -5, -6, 50, 3};
+    printf("%.2f\n", k_subarray_max_average_brute(arr, 6, 4));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <limits>
+#include <algorithm>
+
+double kSubarrayMaxAverageBrute(const std::vector<int>& arr, int k) {
+    int n = (int)arr.size();
+    double maxAverage = -std::numeric_limits<double>::infinity();
+    for (int i = 0; i <= n - k; i++) {
+        double sum = 0;
+        for (int j = 0; j < k; j++) sum += arr[i + j];
+        maxAverage = std::max(maxAverage, sum / k);
+    }
+    return maxAverage;
+}
+
+int main() {
+    std::cout << kSubarrayMaxAverageBrute({1, 12, -5, -6, 50, 3}, 4) << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  def kSubarrayMaxAverageBrute(arr: Array[Int], k: Int): Double = {
+    val n = arr.length
+    var maxAverage = Double.NegativeInfinity
+    for (i <- 0 to n - k) {
+      var sum = 0.0
+      for (j <- 0 until k) sum += arr(i + j)
+      maxAverage = math.max(maxAverage, sum / k)
+    }
+    maxAverage
+  }
+
+  println(kSubarrayMaxAverageBrute(Array(1, 12, -5, -6, 50, 3), 4))
+}
+```
+
+```javascript,editable
+function kSubarrayMaxAverageBrute(arr, k) {
+    const n = arr.length;
+    let maxAverage = -Infinity;
+    for (let i = 0; i <= n - k; i++) {
+        let sum = 0;
+        for (let j = 0; j < k; j++) sum += arr[i + j];
+        maxAverage = Math.max(maxAverage, sum / k);
+    }
+    return maxAverage;
+}
+
+console.log(kSubarrayMaxAverageBrute([1, 12, -5, -6, 50, 3], 4));
+```
+
+```typescript,editable
+function kSubarrayMaxAverageBrute(arr: number[], k: number): number {
+    const n = arr.length;
+    let maxAverage = -Infinity;
+    for (let i = 0; i <= n - k; i++) {
+        let sum = 0;
+        for (let j = 0; j < k; j++) sum += arr[i + j];
+        maxAverage = Math.max(maxAverage, sum / k);
+    }
+    return maxAverage;
+}
+
+console.log(kSubarrayMaxAverageBrute([1, 12, -5, -6, 50, 3], 4));
+```
+
+```go,editable
+package main
+
+import (
+    "fmt"
+    "math"
+)
+
+func kSubarrayMaxAverageBrute(arr []int, k int) float64 {
+    n := len(arr)
+    maxAverage := math.Inf(-1)
+    for i := 0; i <= n-k; i++ {
+        sum := 0.0
+        for j := 0; j < k; j++ {
+            sum += float64(arr[i+j])
+        }
+        avg := sum / float64(k)
+        if avg > maxAverage {
+            maxAverage = avg
+        }
+    }
+    return maxAverage
+}
+
+func main() {
+    fmt.Println(kSubarrayMaxAverageBrute([]int{1, 12, -5, -6, 50, 3}, 4))
+}
+```
+
+```kotlin,editable
+fun kSubarrayMaxAverageBrute(arr: IntArray, k: Int): Double {
+    val n = arr.size
+    var maxAverage = Double.NEGATIVE_INFINITY
+    for (i in 0..(n - k)) {
+        var sum = 0.0
+        for (j in 0 until k) sum += arr[i + j]
+        maxAverage = maxOf(maxAverage, sum / k)
+    }
+    return maxAverage
+}
+
+fun main() {
+    println(kSubarrayMaxAverageBrute(intArrayOf(1, 12, -5, -6, 50, 3), 4))
+}
+```
+
+```rust,editable
+fn k_subarray_max_average_brute(arr: &[i32], k: usize) -> f64 {
+    let n = arr.len();
+    let mut max_average = f64::NEG_INFINITY;
+    for i in 0..=(n - k) {
+        let mut sum = 0.0;
+        for j in 0..k { sum += arr[i + j] as f64; }
+        let avg = sum / k as f64;
+        if avg > max_average { max_average = avg; }
+    }
+    max_average
+}
+
+fn main() {
+    println!("{}", k_subarray_max_average_brute(&[1, 12, -5, -6, 50, 3], 4));
+}
+```
+
+</div>
 
 <details>
 <summary><strong>Trace — arr = [1, 12, -5, -6, 50, 3],  k = 4  (brute force)</strong></summary>
@@ -516,38 +925,293 @@ We apply the fixed sliding window algorithm directly. We initialise `start = 0`,
 - **Step 3.3:** If window size equals `k`, evaluate the average against `max_average`
 - **Step 3.4:** Advance `end`
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
     def k_subarray_max_average(self, arr: List[int], k: int) -> float:
-        n           = len(arr)
-        start       = 0             # Left boundary of the current window
-        end         = 0             # Right boundary — advances every iteration
-        window_sum  = 0             # Running sum of arr[start..end] (aggregate)
-        max_average = float('-inf') # Best average seen so far across all windows
+        n = len(arr)
+        start = end = 0
+        window_sum = 0
+        max_average = float('-inf')
 
         while end < n:
-            # Step 3.1: Add arr[end]'s contribution — new element enters the window
-            window_sum += arr[end]
-
-            # Step 3.2: If window grew past k, evict the leftmost element
-            if end - start + 1 > k:
-                window_sum -= arr[start]  # Remove arr[start]'s contribution
-                start += 1               # Shrink from the left
-
-            # Step 3.3: Window is exactly k — process it
-            # We track the sum (not the average) to avoid repeated division per step
-            if end - start + 1 == k:
+            window_sum += arr[end]                          # Step 3.1: extend.
+            if end - start + 1 > k:                         # Step 3.2: trim.
+                window_sum -= arr[start]
+                start += 1
+            if end - start + 1 == k:                        # Step 3.3: process.
                 max_average = max(max_average, window_sum / k)
-
-            # Step 3.4: Advance end to bring the next element into scope
-            end += 1
-
+            end += 1                                         # Step 3.4: advance.
         return max_average
+
 
 print(Solution().k_subarray_max_average([1, 12, -5, -6, 50, 3], 4))  # 12.75
 ```
+
+```java,editable
+public class Main {
+    static class Solution {
+        double kSubarrayMaxAverage(int[] arr, int k) {
+            int n = arr.length, start = 0, end = 0;
+            long windowSum = 0;
+            double maxAverage = Double.NEGATIVE_INFINITY;
+            while (end < n) {
+                windowSum += arr[end];
+                if (end - start + 1 > k) {
+                    windowSum -= arr[start];
+                    start++;
+                }
+                if (end - start + 1 == k) {
+                    maxAverage = Math.max(maxAverage, windowSum / (double) k);
+                }
+                end++;
+            }
+            return maxAverage;
+        }
+    }
+
+    public static void main(String[] args) {
+        System.out.println(new Solution().kSubarrayMaxAverage(new int[]{1, 12, -5, -6, 50, 3}, 4));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <float.h>
+
+double k_subarray_max_average(int* arr, int n, int k) {
+    int start = 0, end = 0;
+    long window_sum = 0;
+    double max_average = -DBL_MAX;
+    while (end < n) {
+        window_sum += arr[end];
+        if (end - start + 1 > k) {
+            window_sum -= arr[start];
+            start++;
+        }
+        if (end - start + 1 == k) {
+            double avg = (double) window_sum / k;
+            if (avg > max_average) max_average = avg;
+        }
+        end++;
+    }
+    return max_average;
+}
+
+int main() {
+    int arr[] = {1, 12, -5, -6, 50, 3};
+    printf("%.2f\n", k_subarray_max_average(arr, 6, 4));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <limits>
+#include <algorithm>
+
+class Solution {
+public:
+    double kSubarrayMaxAverage(const std::vector<int>& arr, int k) {
+        int n = (int)arr.size(), start = 0, end = 0;
+        long windowSum = 0;
+        double maxAverage = -std::numeric_limits<double>::infinity();
+        while (end < n) {
+            windowSum += arr[end];
+            if (end - start + 1 > k) {
+                windowSum -= arr[start];
+                start++;
+            }
+            if (end - start + 1 == k) {
+                maxAverage = std::max(maxAverage, (double) windowSum / k);
+            }
+            end++;
+        }
+        return maxAverage;
+    }
+};
+
+int main() {
+    std::cout << Solution().kSubarrayMaxAverage({1, 12, -5, -6, 50, 3}, 4) << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def kSubarrayMaxAverage(arr: Array[Int], k: Int): Double = {
+      val n = arr.length
+      var start = 0
+      var end = 0
+      var windowSum = 0L
+      var maxAverage = Double.NegativeInfinity
+      while (end < n) {
+        windowSum += arr(end)
+        if (end - start + 1 > k) {
+          windowSum -= arr(start)
+          start += 1
+        }
+        if (end - start + 1 == k) {
+          maxAverage = math.max(maxAverage, windowSum.toDouble / k)
+        }
+        end += 1
+      }
+      maxAverage
+    }
+  }
+
+  println(new Solution().kSubarrayMaxAverage(Array(1, 12, -5, -6, 50, 3), 4))
+}
+```
+
+```javascript,editable
+class Solution {
+    kSubarrayMaxAverage(arr, k) {
+        const n = arr.length;
+        let start = 0, end = 0, windowSum = 0;
+        let maxAverage = -Infinity;
+        while (end < n) {
+            windowSum += arr[end];
+            if (end - start + 1 > k) {
+                windowSum -= arr[start];
+                start++;
+            }
+            if (end - start + 1 === k) {
+                maxAverage = Math.max(maxAverage, windowSum / k);
+            }
+            end++;
+        }
+        return maxAverage;
+    }
+}
+
+console.log(new Solution().kSubarrayMaxAverage([1, 12, -5, -6, 50, 3], 4));
+```
+
+```typescript,editable
+class Solution {
+    kSubarrayMaxAverage(arr: number[], k: number): number {
+        const n = arr.length;
+        let start = 0, end = 0, windowSum = 0;
+        let maxAverage = -Infinity;
+        while (end < n) {
+            windowSum += arr[end];
+            if (end - start + 1 > k) {
+                windowSum -= arr[start];
+                start++;
+            }
+            if (end - start + 1 === k) {
+                maxAverage = Math.max(maxAverage, windowSum / k);
+            }
+            end++;
+        }
+        return maxAverage;
+    }
+}
+
+console.log(new Solution().kSubarrayMaxAverage([1, 12, -5, -6, 50, 3], 4));
+```
+
+```go,editable
+package main
+
+import (
+    "fmt"
+    "math"
+)
+
+func kSubarrayMaxAverage(arr []int, k int) float64 {
+    n, start, end := len(arr), 0, 0
+    windowSum := 0
+    maxAverage := math.Inf(-1)
+    for end < n {
+        windowSum += arr[end]
+        if end-start+1 > k {
+            windowSum -= arr[start]
+            start++
+        }
+        if end-start+1 == k {
+            avg := float64(windowSum) / float64(k)
+            if avg > maxAverage {
+                maxAverage = avg
+            }
+        }
+        end++
+    }
+    return maxAverage
+}
+
+func main() {
+    fmt.Println(kSubarrayMaxAverage([]int{1, 12, -5, -6, 50, 3}, 4))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun kSubarrayMaxAverage(arr: IntArray, k: Int): Double {
+        val n = arr.size
+        var start = 0
+        var end = 0
+        var windowSum = 0L
+        var maxAverage = Double.NEGATIVE_INFINITY
+        while (end < n) {
+            windowSum += arr[end]
+            if (end - start + 1 > k) {
+                windowSum -= arr[start]
+                start++
+            }
+            if (end - start + 1 == k) {
+                maxAverage = maxOf(maxAverage, windowSum.toDouble() / k)
+            }
+            end++
+        }
+        return maxAverage
+    }
+}
+
+fun main() {
+    println(Solution().kSubarrayMaxAverage(intArrayOf(1, 12, -5, -6, 50, 3), 4))
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn k_subarray_max_average(&self, arr: &[i32], k: usize) -> f64 {
+        let n = arr.len();
+        let mut start = 0usize;
+        let mut end = 0usize;
+        let mut window_sum: i64 = 0;
+        let mut max_average = f64::NEG_INFINITY;
+        while end < n {
+            window_sum += arr[end] as i64;
+            if end - start + 1 > k {
+                window_sum -= arr[start] as i64;
+                start += 1;
+            }
+            if end - start + 1 == k {
+                let avg = window_sum as f64 / k as f64;
+                if avg > max_average { max_average = avg; }
+            }
+            end += 1;
+        }
+        max_average
+    }
+}
+
+fn main() {
+    let s = Solution;
+    println!("{}", s.k_subarray_max_average(&[1, 12, -5, -6, 50, 3], 4));
+}
+```
+
+</div>
 
 <details>
 <summary><strong>Trace — arr = [1, 12, -5, -6, 50, 3],  k = 4  (sliding window)</strong></summary>
@@ -679,29 +1343,200 @@ flowchart TB
 
 ## Brute Force: Nested Loops, O(N × k)
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 def count_subarrays_brute(arr: List[int], k: int, target: int) -> int:
-    n     = len(arr)
+    n = len(arr)
     count = 0
-
-    # Try every valid starting position
     for i in range(n - k + 1):
         window_sum = 0
-
-        # Sum the k elements starting at index i — recomputes shared elements every time
         for j in range(k):
-            window_sum += arr[i + j]
-
+            window_sum += arr[i + j]      # Re-summed each window — that's the O(n*k) cost.
         if window_sum == target:
             count += 1
-
     return count
 
 print(count_subarrays_brute([1, 2, 3, 4, 5], 3, 9))  # 1
 print(count_subarrays_brute([1, 1, 1, 1, 1], 2, 2))  # 4
 ```
+
+```java,editable
+public class Main {
+    static int countSubarraysBrute(int[] arr, int k, int target) {
+        int n = arr.length, count = 0;
+        for (int i = 0; i <= n - k; i++) {
+            int windowSum = 0;
+            for (int j = 0; j < k; j++) windowSum += arr[i + j];
+            if (windowSum == target) count++;
+        }
+        return count;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(countSubarraysBrute(new int[]{1, 2, 3, 4, 5}, 3, 9));
+        System.out.println(countSubarraysBrute(new int[]{1, 1, 1, 1, 1}, 2, 2));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int count_subarrays_brute(int* arr, int n, int k, int target) {
+    int count = 0;
+    for (int i = 0; i <= n - k; i++) {
+        int window_sum = 0;
+        for (int j = 0; j < k; j++) window_sum += arr[i + j];
+        if (window_sum == target) count++;
+    }
+    return count;
+}
+
+int main() {
+    int a1[] = {1, 2, 3, 4, 5};
+    int a2[] = {1, 1, 1, 1, 1};
+    printf("%d\n", count_subarrays_brute(a1, 5, 3, 9));
+    printf("%d\n", count_subarrays_brute(a2, 5, 2, 2));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+int countSubarraysBrute(const std::vector<int>& arr, int k, int target) {
+    int n = (int)arr.size(), count = 0;
+    for (int i = 0; i <= n - k; i++) {
+        int windowSum = 0;
+        for (int j = 0; j < k; j++) windowSum += arr[i + j];
+        if (windowSum == target) count++;
+    }
+    return count;
+}
+
+int main() {
+    std::cout << countSubarraysBrute({1, 2, 3, 4, 5}, 3, 9) << "\n";
+    std::cout << countSubarraysBrute({1, 1, 1, 1, 1}, 2, 2) << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  def countSubarraysBrute(arr: Array[Int], k: Int, target: Int): Int = {
+    val n = arr.length
+    var count = 0
+    for (i <- 0 to n - k) {
+      var sum = 0
+      for (j <- 0 until k) sum += arr(i + j)
+      if (sum == target) count += 1
+    }
+    count
+  }
+
+  println(countSubarraysBrute(Array(1, 2, 3, 4, 5), 3, 9))
+  println(countSubarraysBrute(Array(1, 1, 1, 1, 1), 2, 2))
+}
+```
+
+```javascript,editable
+function countSubarraysBrute(arr, k, target) {
+    const n = arr.length;
+    let count = 0;
+    for (let i = 0; i <= n - k; i++) {
+        let sum = 0;
+        for (let j = 0; j < k; j++) sum += arr[i + j];
+        if (sum === target) count++;
+    }
+    return count;
+}
+
+console.log(countSubarraysBrute([1, 2, 3, 4, 5], 3, 9));
+console.log(countSubarraysBrute([1, 1, 1, 1, 1], 2, 2));
+```
+
+```typescript,editable
+function countSubarraysBrute(arr: number[], k: number, target: number): number {
+    const n = arr.length;
+    let count = 0;
+    for (let i = 0; i <= n - k; i++) {
+        let sum = 0;
+        for (let j = 0; j < k; j++) sum += arr[i + j];
+        if (sum === target) count++;
+    }
+    return count;
+}
+
+console.log(countSubarraysBrute([1, 2, 3, 4, 5], 3, 9));
+console.log(countSubarraysBrute([1, 1, 1, 1, 1], 2, 2));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func countSubarraysBrute(arr []int, k, target int) int {
+    n := len(arr)
+    count := 0
+    for i := 0; i <= n-k; i++ {
+        sum := 0
+        for j := 0; j < k; j++ {
+            sum += arr[i+j]
+        }
+        if sum == target {
+            count++
+        }
+    }
+    return count
+}
+
+func main() {
+    fmt.Println(countSubarraysBrute([]int{1, 2, 3, 4, 5}, 3, 9))
+    fmt.Println(countSubarraysBrute([]int{1, 1, 1, 1, 1}, 2, 2))
+}
+```
+
+```kotlin,editable
+fun countSubarraysBrute(arr: IntArray, k: Int, target: Int): Int {
+    val n = arr.size
+    var count = 0
+    for (i in 0..(n - k)) {
+        var sum = 0
+        for (j in 0 until k) sum += arr[i + j]
+        if (sum == target) count++
+    }
+    return count
+}
+
+fun main() {
+    println(countSubarraysBrute(intArrayOf(1, 2, 3, 4, 5), 3, 9))
+    println(countSubarraysBrute(intArrayOf(1, 1, 1, 1, 1), 2, 2))
+}
+```
+
+```rust,editable
+fn count_subarrays_brute(arr: &[i32], k: usize, target: i32) -> i32 {
+    let n = arr.len();
+    let mut count = 0;
+    for i in 0..=(n - k) {
+        let mut sum = 0;
+        for j in 0..k { sum += arr[i + j]; }
+        if sum == target { count += 1; }
+    }
+    count
+}
+
+fn main() {
+    println!("{}", count_subarrays_brute(&[1, 2, 3, 4, 5], 3, 9));
+    println!("{}", count_subarrays_brute(&[1, 1, 1, 1, 1], 2, 2));
+}
+```
+
+</div>
 
 <details>
 <summary><strong>Trace — arr = [1, 2, 3, 4, 5],  k = 3,  target = 9  (brute force)</strong></summary>
@@ -722,34 +1557,23 @@ Return: 1 ✓  —  total additions: 9 (3 windows × 3 elements)
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
     def count_subarrays_with_sum(self, arr: List[int], k: int, target: int) -> int:
-        # Initialize the window boundaries
-        start      = 0
-        end        = 0
-        # Running sum of elements in the current window
-        window_sum = 0
-        count      = 0
-
+        start = end = 0
+        window_sum = count = 0
         while end < len(arr):
-            # ① Expand: add the incoming element to the window sum
-            window_sum += arr[end]
-
-            # ② Contract: if window grew past k, evict the outgoing element
-            if end - start + 1 > k:
+            window_sum += arr[end]                     # ① expand
+            if end - start + 1 > k:                    # ② contract
                 window_sum -= arr[start]
                 start += 1
-
-            # ③ Process: when window is exactly k, check if sum matches target
-            if end - start + 1 == k:
-                if window_sum == target:
-                    count += 1
-
+            if end - start + 1 == k and window_sum == target:
+                count += 1                              # ③ process
             end += 1
-
         return count
 
 
@@ -760,6 +1584,272 @@ print(sol.count_subarrays_with_sum([3, 1, 4, 1, 5], 2, 5))   # 2
 print(sol.count_subarrays_with_sum([1, 2, 3], 4, 6))          # 0
 print(sol.count_subarrays_with_sum([5], 1, 5))                # 1
 ```
+
+```java,editable
+public class Main {
+    static class Solution {
+        int countSubarraysWithSum(int[] arr, int k, int target) {
+            int start = 0, end = 0, windowSum = 0, count = 0;
+            while (end < arr.length) {
+                windowSum += arr[end];
+                if (end - start + 1 > k) {
+                    windowSum -= arr[start];
+                    start++;
+                }
+                if (end - start + 1 == k && windowSum == target) count++;
+                end++;
+            }
+            return count;
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution sol = new Solution();
+        System.out.println(sol.countSubarraysWithSum(new int[]{1, 2, 3, 4, 5}, 3, 9));
+        System.out.println(sol.countSubarraysWithSum(new int[]{1, 1, 1, 1, 1}, 2, 2));
+        System.out.println(sol.countSubarraysWithSum(new int[]{3, 1, 4, 1, 5}, 2, 5));
+        System.out.println(sol.countSubarraysWithSum(new int[]{1, 2, 3}, 4, 6));
+        System.out.println(sol.countSubarraysWithSum(new int[]{5}, 1, 5));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int count_subarrays_with_sum(int* arr, int n, int k, int target) {
+    int start = 0, end = 0, window_sum = 0, count = 0;
+    while (end < n) {
+        window_sum += arr[end];
+        if (end - start + 1 > k) {
+            window_sum -= arr[start];
+            start++;
+        }
+        if (end - start + 1 == k && window_sum == target) count++;
+        end++;
+    }
+    return count;
+}
+
+int main() {
+    int a1[] = {1, 2, 3, 4, 5};
+    int a2[] = {1, 1, 1, 1, 1};
+    int a3[] = {3, 1, 4, 1, 5};
+    int a4[] = {1, 2, 3};
+    int a5[] = {5};
+    printf("%d\n", count_subarrays_with_sum(a1, 5, 3, 9));
+    printf("%d\n", count_subarrays_with_sum(a2, 5, 2, 2));
+    printf("%d\n", count_subarrays_with_sum(a3, 5, 2, 5));
+    printf("%d\n", count_subarrays_with_sum(a4, 3, 4, 6));
+    printf("%d\n", count_subarrays_with_sum(a5, 1, 1, 5));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+class Solution {
+public:
+    int countSubarraysWithSum(const std::vector<int>& arr, int k, int target) {
+        int start = 0, end = 0, windowSum = 0, count = 0;
+        while (end < (int)arr.size()) {
+            windowSum += arr[end];
+            if (end - start + 1 > k) {
+                windowSum -= arr[start];
+                start++;
+            }
+            if (end - start + 1 == k && windowSum == target) count++;
+            end++;
+        }
+        return count;
+    }
+};
+
+int main() {
+    Solution sol;
+    std::cout << sol.countSubarraysWithSum({1, 2, 3, 4, 5}, 3, 9) << "\n";
+    std::cout << sol.countSubarraysWithSum({1, 1, 1, 1, 1}, 2, 2) << "\n";
+    std::cout << sol.countSubarraysWithSum({3, 1, 4, 1, 5}, 2, 5) << "\n";
+    std::cout << sol.countSubarraysWithSum({1, 2, 3}, 4, 6)       << "\n";
+    std::cout << sol.countSubarraysWithSum({5}, 1, 5)              << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def countSubarraysWithSum(arr: Array[Int], k: Int, target: Int): Int = {
+      var start = 0
+      var end = 0
+      var windowSum = 0
+      var count = 0
+      while (end < arr.length) {
+        windowSum += arr(end)
+        if (end - start + 1 > k) {
+          windowSum -= arr(start)
+          start += 1
+        }
+        if (end - start + 1 == k && windowSum == target) count += 1
+        end += 1
+      }
+      count
+    }
+  }
+
+  val sol = new Solution
+  println(sol.countSubarraysWithSum(Array(1, 2, 3, 4, 5), 3, 9))
+  println(sol.countSubarraysWithSum(Array(1, 1, 1, 1, 1), 2, 2))
+  println(sol.countSubarraysWithSum(Array(3, 1, 4, 1, 5), 2, 5))
+  println(sol.countSubarraysWithSum(Array(1, 2, 3), 4, 6))
+  println(sol.countSubarraysWithSum(Array(5), 1, 5))
+}
+```
+
+```javascript,editable
+class Solution {
+    countSubarraysWithSum(arr, k, target) {
+        let start = 0, end = 0, windowSum = 0, count = 0;
+        while (end < arr.length) {
+            windowSum += arr[end];
+            if (end - start + 1 > k) {
+                windowSum -= arr[start];
+                start++;
+            }
+            if (end - start + 1 === k && windowSum === target) count++;
+            end++;
+        }
+        return count;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.countSubarraysWithSum([1, 2, 3, 4, 5], 3, 9));
+console.log(sol.countSubarraysWithSum([1, 1, 1, 1, 1], 2, 2));
+console.log(sol.countSubarraysWithSum([3, 1, 4, 1, 5], 2, 5));
+console.log(sol.countSubarraysWithSum([1, 2, 3], 4, 6));
+console.log(sol.countSubarraysWithSum([5], 1, 5));
+```
+
+```typescript,editable
+class Solution {
+    countSubarraysWithSum(arr: number[], k: number, target: number): number {
+        let start = 0, end = 0, windowSum = 0, count = 0;
+        while (end < arr.length) {
+            windowSum += arr[end];
+            if (end - start + 1 > k) {
+                windowSum -= arr[start];
+                start++;
+            }
+            if (end - start + 1 === k && windowSum === target) count++;
+            end++;
+        }
+        return count;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.countSubarraysWithSum([1, 2, 3, 4, 5], 3, 9));
+console.log(sol.countSubarraysWithSum([1, 1, 1, 1, 1], 2, 2));
+console.log(sol.countSubarraysWithSum([3, 1, 4, 1, 5], 2, 5));
+console.log(sol.countSubarraysWithSum([1, 2, 3], 4, 6));
+console.log(sol.countSubarraysWithSum([5], 1, 5));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func countSubarraysWithSum(arr []int, k, target int) int {
+    start, end, windowSum, count := 0, 0, 0, 0
+    for end < len(arr) {
+        windowSum += arr[end]
+        if end-start+1 > k {
+            windowSum -= arr[start]
+            start++
+        }
+        if end-start+1 == k && windowSum == target {
+            count++
+        }
+        end++
+    }
+    return count
+}
+
+func main() {
+    fmt.Println(countSubarraysWithSum([]int{1, 2, 3, 4, 5}, 3, 9))
+    fmt.Println(countSubarraysWithSum([]int{1, 1, 1, 1, 1}, 2, 2))
+    fmt.Println(countSubarraysWithSum([]int{3, 1, 4, 1, 5}, 2, 5))
+    fmt.Println(countSubarraysWithSum([]int{1, 2, 3}, 4, 6))
+    fmt.Println(countSubarraysWithSum([]int{5}, 1, 5))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun countSubarraysWithSum(arr: IntArray, k: Int, target: Int): Int {
+        var start = 0
+        var end = 0
+        var windowSum = 0
+        var count = 0
+        while (end < arr.size) {
+            windowSum += arr[end]
+            if (end - start + 1 > k) {
+                windowSum -= arr[start]
+                start++
+            }
+            if (end - start + 1 == k && windowSum == target) count++
+            end++
+        }
+        return count
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    println(sol.countSubarraysWithSum(intArrayOf(1, 2, 3, 4, 5), 3, 9))
+    println(sol.countSubarraysWithSum(intArrayOf(1, 1, 1, 1, 1), 2, 2))
+    println(sol.countSubarraysWithSum(intArrayOf(3, 1, 4, 1, 5), 2, 5))
+    println(sol.countSubarraysWithSum(intArrayOf(1, 2, 3), 4, 6))
+    println(sol.countSubarraysWithSum(intArrayOf(5), 1, 5))
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn count_subarrays_with_sum(&self, arr: &[i32], k: usize, target: i32) -> i32 {
+        let mut start = 0usize;
+        let mut end = 0usize;
+        let mut window_sum: i32 = 0;
+        let mut count = 0;
+        while end < arr.len() {
+            window_sum += arr[end];
+            if end - start + 1 > k {
+                window_sum -= arr[start];
+                start += 1;
+            }
+            if end - start + 1 == k && window_sum == target { count += 1; }
+            end += 1;
+        }
+        count
+    }
+}
+
+fn main() {
+    let s = Solution;
+    println!("{}", s.count_subarrays_with_sum(&[1, 2, 3, 4, 5], 3, 9));
+    println!("{}", s.count_subarrays_with_sum(&[1, 1, 1, 1, 1], 2, 2));
+    println!("{}", s.count_subarrays_with_sum(&[3, 1, 4, 1, 5], 2, 5));
+    println!("{}", s.count_subarrays_with_sum(&[1, 2, 3], 4, 6));
+    println!("{}", s.count_subarrays_with_sum(&[5], 1, 5));
+}
+```
+
+</div>
 
 ---
 
@@ -915,64 +2005,227 @@ w1 -> w2: "remove arr[0]=1 (-1), add arr[4]=0 (+0) → ones=2"
 
 ## Brute Force: Nested Loops, O(N × k)
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 def max_ones_brute(arr: List[int], k: int) -> int:
-    n        = len(arr)
+    n = len(arr)
     max_ones = 0
-
-    # Try every valid starting position
     for i in range(n - k + 1):
         ones = 0
-
-        # Count 1s in the window of size k starting at i
         for j in range(k):
             if arr[i + j] == 1:
                 ones += 1
-
         max_ones = max(max_ones, ones)
-
     return max_ones
 
 print(max_ones_brute([1, 0, 1, 1, 0, 1, 1, 0], 4))  # 3
 print(max_ones_brute([1, 1, 1, 1, 1], 3))            # 3
 ```
 
+```java,editable
+public class Main {
+    static int maxOnesBrute(int[] arr, int k) {
+        int n = arr.length, maxOnes = 0;
+        for (int i = 0; i <= n - k; i++) {
+            int ones = 0;
+            for (int j = 0; j < k; j++) if (arr[i + j] == 1) ones++;
+            maxOnes = Math.max(maxOnes, ones);
+        }
+        return maxOnes;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(maxOnesBrute(new int[]{1, 0, 1, 1, 0, 1, 1, 0}, 4));
+        System.out.println(maxOnesBrute(new int[]{1, 1, 1, 1, 1}, 3));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int max_ones_brute(int* arr, int n, int k) {
+    int max_ones = 0;
+    for (int i = 0; i <= n - k; i++) {
+        int ones = 0;
+        for (int j = 0; j < k; j++) if (arr[i + j] == 1) ones++;
+        if (ones > max_ones) max_ones = ones;
+    }
+    return max_ones;
+}
+
+int main() {
+    int a1[] = {1, 0, 1, 1, 0, 1, 1, 0};
+    int a2[] = {1, 1, 1, 1, 1};
+    printf("%d\n", max_ones_brute(a1, 8, 4));
+    printf("%d\n", max_ones_brute(a2, 5, 3));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+int maxOnesBrute(const std::vector<int>& arr, int k) {
+    int n = (int)arr.size(), maxOnes = 0;
+    for (int i = 0; i <= n - k; i++) {
+        int ones = 0;
+        for (int j = 0; j < k; j++) if (arr[i + j] == 1) ones++;
+        maxOnes = std::max(maxOnes, ones);
+    }
+    return maxOnes;
+}
+
+int main() {
+    std::cout << maxOnesBrute({1, 0, 1, 1, 0, 1, 1, 0}, 4) << "\n";
+    std::cout << maxOnesBrute({1, 1, 1, 1, 1}, 3)          << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  def maxOnesBrute(arr: Array[Int], k: Int): Int = {
+    val n = arr.length
+    var maxOnes = 0
+    for (i <- 0 to n - k) {
+      var ones = 0
+      for (j <- 0 until k) if (arr(i + j) == 1) ones += 1
+      maxOnes = math.max(maxOnes, ones)
+    }
+    maxOnes
+  }
+
+  println(maxOnesBrute(Array(1, 0, 1, 1, 0, 1, 1, 0), 4))
+  println(maxOnesBrute(Array(1, 1, 1, 1, 1), 3))
+}
+```
+
+```javascript,editable
+function maxOnesBrute(arr, k) {
+    const n = arr.length;
+    let maxOnes = 0;
+    for (let i = 0; i <= n - k; i++) {
+        let ones = 0;
+        for (let j = 0; j < k; j++) if (arr[i + j] === 1) ones++;
+        maxOnes = Math.max(maxOnes, ones);
+    }
+    return maxOnes;
+}
+
+console.log(maxOnesBrute([1, 0, 1, 1, 0, 1, 1, 0], 4));
+console.log(maxOnesBrute([1, 1, 1, 1, 1], 3));
+```
+
+```typescript,editable
+function maxOnesBrute(arr: number[], k: number): number {
+    const n = arr.length;
+    let maxOnes = 0;
+    for (let i = 0; i <= n - k; i++) {
+        let ones = 0;
+        for (let j = 0; j < k; j++) if (arr[i + j] === 1) ones++;
+        maxOnes = Math.max(maxOnes, ones);
+    }
+    return maxOnes;
+}
+
+console.log(maxOnesBrute([1, 0, 1, 1, 0, 1, 1, 0], 4));
+console.log(maxOnesBrute([1, 1, 1, 1, 1], 3));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func maxOnesBrute(arr []int, k int) int {
+    n := len(arr)
+    maxOnes := 0
+    for i := 0; i <= n-k; i++ {
+        ones := 0
+        for j := 0; j < k; j++ {
+            if arr[i+j] == 1 {
+                ones++
+            }
+        }
+        if ones > maxOnes {
+            maxOnes = ones
+        }
+    }
+    return maxOnes
+}
+
+func main() {
+    fmt.Println(maxOnesBrute([]int{1, 0, 1, 1, 0, 1, 1, 0}, 4))
+    fmt.Println(maxOnesBrute([]int{1, 1, 1, 1, 1}, 3))
+}
+```
+
+```kotlin,editable
+fun maxOnesBrute(arr: IntArray, k: Int): Int {
+    val n = arr.size
+    var maxOnes = 0
+    for (i in 0..(n - k)) {
+        var ones = 0
+        for (j in 0 until k) if (arr[i + j] == 1) ones++
+        maxOnes = maxOf(maxOnes, ones)
+    }
+    return maxOnes
+}
+
+fun main() {
+    println(maxOnesBrute(intArrayOf(1, 0, 1, 1, 0, 1, 1, 0), 4))
+    println(maxOnesBrute(intArrayOf(1, 1, 1, 1, 1), 3))
+}
+```
+
+```rust,editable
+fn max_ones_brute(arr: &[i32], k: usize) -> i32 {
+    let n = arr.len();
+    let mut max_ones = 0;
+    for i in 0..=(n - k) {
+        let mut ones = 0;
+        for j in 0..k { if arr[i + j] == 1 { ones += 1; } }
+        if ones > max_ones { max_ones = ones; }
+    }
+    max_ones
+}
+
+fn main() {
+    println!("{}", max_ones_brute(&[1, 0, 1, 1, 0, 1, 1, 0], 4));
+    println!("{}", max_ones_brute(&[1, 1, 1, 1, 1], 3));
+}
+```
+
+</div>
+
 ---
 
 ## Solution
+
+<div class="lang-tabs">
 
 ```python,editable
 from typing import List
 
 class Solution:
     def max_ones_in_window(self, arr: List[int], k: int) -> int:
-        # Initialize the window boundaries
-        start    = 0
-        end      = 0
-        # Running count of 1s in the current window
-        ones     = 0
-        max_ones = 0
-
+        start = end = 0
+        ones = max_ones = 0
         while end < len(arr):
-            # ① Expand: if the incoming element is 1, increment the ones count
             if arr[end] == 1:
-                ones += 1
-
-            # ② Contract: if window grew past k, evict the outgoing element
-            if end - start + 1 > k:
-                # Remove the outgoing element's contribution to the ones count
+                ones += 1                              # ① expand
+            if end - start + 1 > k:                    # ② contract
                 if arr[start] == 1:
                     ones -= 1
                 start += 1
-
-            # ③ Process: when window is exactly k, update the maximum ones count
-            if end - start + 1 == k:
+            if end - start + 1 == k:                   # ③ process
                 max_ones = max(max_ones, ones)
-
             end += 1
-
         return max_ones
 
 
@@ -983,6 +2236,278 @@ print(sol.max_ones_in_window([0, 0, 0, 0], 2))               # 0
 print(sol.max_ones_in_window([1, 0, 1, 0, 1, 0, 1], 3))      # 2
 print(sol.max_ones_in_window([1], 1))                        # 1
 ```
+
+```java,editable
+public class Main {
+    static class Solution {
+        int maxOnesInWindow(int[] arr, int k) {
+            int start = 0, end = 0, ones = 0, maxOnes = 0;
+            while (end < arr.length) {
+                if (arr[end] == 1) ones++;
+                if (end - start + 1 > k) {
+                    if (arr[start] == 1) ones--;
+                    start++;
+                }
+                if (end - start + 1 == k) maxOnes = Math.max(maxOnes, ones);
+                end++;
+            }
+            return maxOnes;
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution sol = new Solution();
+        System.out.println(sol.maxOnesInWindow(new int[]{1, 0, 1, 1, 0, 1, 1, 0}, 4));
+        System.out.println(sol.maxOnesInWindow(new int[]{1, 1, 1, 1, 1}, 3));
+        System.out.println(sol.maxOnesInWindow(new int[]{0, 0, 0, 0}, 2));
+        System.out.println(sol.maxOnesInWindow(new int[]{1, 0, 1, 0, 1, 0, 1}, 3));
+        System.out.println(sol.maxOnesInWindow(new int[]{1}, 1));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int max_ones_in_window(int* arr, int n, int k) {
+    int start = 0, end = 0, ones = 0, max_ones = 0;
+    while (end < n) {
+        if (arr[end] == 1) ones++;
+        if (end - start + 1 > k) {
+            if (arr[start] == 1) ones--;
+            start++;
+        }
+        if (end - start + 1 == k && ones > max_ones) max_ones = ones;
+        end++;
+    }
+    return max_ones;
+}
+
+int main() {
+    int a1[] = {1, 0, 1, 1, 0, 1, 1, 0};
+    int a2[] = {1, 1, 1, 1, 1};
+    int a3[] = {0, 0, 0, 0};
+    int a4[] = {1, 0, 1, 0, 1, 0, 1};
+    int a5[] = {1};
+    printf("%d\n", max_ones_in_window(a1, 8, 4));
+    printf("%d\n", max_ones_in_window(a2, 5, 3));
+    printf("%d\n", max_ones_in_window(a3, 4, 2));
+    printf("%d\n", max_ones_in_window(a4, 7, 3));
+    printf("%d\n", max_ones_in_window(a5, 1, 1));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+class Solution {
+public:
+    int maxOnesInWindow(const std::vector<int>& arr, int k) {
+        int start = 0, end = 0, ones = 0, maxOnes = 0;
+        int n = (int)arr.size();
+        while (end < n) {
+            if (arr[end] == 1) ones++;
+            if (end - start + 1 > k) {
+                if (arr[start] == 1) ones--;
+                start++;
+            }
+            if (end - start + 1 == k) maxOnes = std::max(maxOnes, ones);
+            end++;
+        }
+        return maxOnes;
+    }
+};
+
+int main() {
+    Solution sol;
+    std::cout << sol.maxOnesInWindow({1, 0, 1, 1, 0, 1, 1, 0}, 4) << "\n";
+    std::cout << sol.maxOnesInWindow({1, 1, 1, 1, 1}, 3)          << "\n";
+    std::cout << sol.maxOnesInWindow({0, 0, 0, 0}, 2)             << "\n";
+    std::cout << sol.maxOnesInWindow({1, 0, 1, 0, 1, 0, 1}, 3)    << "\n";
+    std::cout << sol.maxOnesInWindow({1}, 1)                      << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def maxOnesInWindow(arr: Array[Int], k: Int): Int = {
+      var start = 0
+      var end = 0
+      var ones = 0
+      var maxOnes = 0
+      while (end < arr.length) {
+        if (arr(end) == 1) ones += 1
+        if (end - start + 1 > k) {
+          if (arr(start) == 1) ones -= 1
+          start += 1
+        }
+        if (end - start + 1 == k) maxOnes = math.max(maxOnes, ones)
+        end += 1
+      }
+      maxOnes
+    }
+  }
+
+  val sol = new Solution
+  println(sol.maxOnesInWindow(Array(1, 0, 1, 1, 0, 1, 1, 0), 4))
+  println(sol.maxOnesInWindow(Array(1, 1, 1, 1, 1), 3))
+  println(sol.maxOnesInWindow(Array(0, 0, 0, 0), 2))
+  println(sol.maxOnesInWindow(Array(1, 0, 1, 0, 1, 0, 1), 3))
+  println(sol.maxOnesInWindow(Array(1), 1))
+}
+```
+
+```javascript,editable
+class Solution {
+    maxOnesInWindow(arr, k) {
+        let start = 0, end = 0, ones = 0, maxOnes = 0;
+        while (end < arr.length) {
+            if (arr[end] === 1) ones++;
+            if (end - start + 1 > k) {
+                if (arr[start] === 1) ones--;
+                start++;
+            }
+            if (end - start + 1 === k) maxOnes = Math.max(maxOnes, ones);
+            end++;
+        }
+        return maxOnes;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.maxOnesInWindow([1, 0, 1, 1, 0, 1, 1, 0], 4));
+console.log(sol.maxOnesInWindow([1, 1, 1, 1, 1], 3));
+console.log(sol.maxOnesInWindow([0, 0, 0, 0], 2));
+console.log(sol.maxOnesInWindow([1, 0, 1, 0, 1, 0, 1], 3));
+console.log(sol.maxOnesInWindow([1], 1));
+```
+
+```typescript,editable
+class Solution {
+    maxOnesInWindow(arr: number[], k: number): number {
+        let start = 0, end = 0, ones = 0, maxOnes = 0;
+        while (end < arr.length) {
+            if (arr[end] === 1) ones++;
+            if (end - start + 1 > k) {
+                if (arr[start] === 1) ones--;
+                start++;
+            }
+            if (end - start + 1 === k) maxOnes = Math.max(maxOnes, ones);
+            end++;
+        }
+        return maxOnes;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.maxOnesInWindow([1, 0, 1, 1, 0, 1, 1, 0], 4));
+console.log(sol.maxOnesInWindow([1, 1, 1, 1, 1], 3));
+console.log(sol.maxOnesInWindow([0, 0, 0, 0], 2));
+console.log(sol.maxOnesInWindow([1, 0, 1, 0, 1, 0, 1], 3));
+console.log(sol.maxOnesInWindow([1], 1));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func maxOnesInWindow(arr []int, k int) int {
+    start, end, ones, maxOnes := 0, 0, 0, 0
+    for end < len(arr) {
+        if arr[end] == 1 {
+            ones++
+        }
+        if end-start+1 > k {
+            if arr[start] == 1 {
+                ones--
+            }
+            start++
+        }
+        if end-start+1 == k && ones > maxOnes {
+            maxOnes = ones
+        }
+        end++
+    }
+    return maxOnes
+}
+
+func main() {
+    fmt.Println(maxOnesInWindow([]int{1, 0, 1, 1, 0, 1, 1, 0}, 4))
+    fmt.Println(maxOnesInWindow([]int{1, 1, 1, 1, 1}, 3))
+    fmt.Println(maxOnesInWindow([]int{0, 0, 0, 0}, 2))
+    fmt.Println(maxOnesInWindow([]int{1, 0, 1, 0, 1, 0, 1}, 3))
+    fmt.Println(maxOnesInWindow([]int{1}, 1))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun maxOnesInWindow(arr: IntArray, k: Int): Int {
+        var start = 0
+        var end = 0
+        var ones = 0
+        var maxOnes = 0
+        while (end < arr.size) {
+            if (arr[end] == 1) ones++
+            if (end - start + 1 > k) {
+                if (arr[start] == 1) ones--
+                start++
+            }
+            if (end - start + 1 == k) maxOnes = maxOf(maxOnes, ones)
+            end++
+        }
+        return maxOnes
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    println(sol.maxOnesInWindow(intArrayOf(1, 0, 1, 1, 0, 1, 1, 0), 4))
+    println(sol.maxOnesInWindow(intArrayOf(1, 1, 1, 1, 1), 3))
+    println(sol.maxOnesInWindow(intArrayOf(0, 0, 0, 0), 2))
+    println(sol.maxOnesInWindow(intArrayOf(1, 0, 1, 0, 1, 0, 1), 3))
+    println(sol.maxOnesInWindow(intArrayOf(1), 1))
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn max_ones_in_window(&self, arr: &[i32], k: usize) -> i32 {
+        let mut start = 0usize;
+        let mut end = 0usize;
+        let mut ones = 0i32;
+        let mut max_ones = 0i32;
+        while end < arr.len() {
+            if arr[end] == 1 { ones += 1; }
+            if end - start + 1 > k {
+                if arr[start] == 1 { ones -= 1; }
+                start += 1;
+            }
+            if end - start + 1 == k && ones > max_ones { max_ones = ones; }
+            end += 1;
+        }
+        max_ones
+    }
+}
+
+fn main() {
+    let s = Solution;
+    println!("{}", s.max_ones_in_window(&[1, 0, 1, 1, 0, 1, 1, 0], 4));
+    println!("{}", s.max_ones_in_window(&[1, 1, 1, 1, 1], 3));
+    println!("{}", s.max_ones_in_window(&[0, 0, 0, 0], 2));
+    println!("{}", s.max_ones_in_window(&[1, 0, 1, 0, 1, 0, 1], 3));
+    println!("{}", s.max_ones_in_window(&[1], 1));
+}
+```
+
+</div>
 
 ---
 
@@ -1140,36 +2665,26 @@ w2 -> w3: "remove 2 (+0), add -5 (+1) → neg=2"
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
     def count_negatives_per_window(self, arr: List[int], k: int) -> List[int]:
-        # Initialize the window boundaries
-        start     = 0
-        end       = 0
-        # Running count of negative numbers in the current window
+        start = end = 0
         neg_count = 0
-        result    = []
-
+        result = []
         while end < len(arr):
-            # ① Expand: if the incoming element is negative, increment the count
             if arr[end] < 0:
-                neg_count += 1
-
-            # ② Contract: if window grew past k, evict the outgoing element
-            if end - start + 1 > k:
-                # Remove the outgoing element's contribution to the negative count
+                neg_count += 1                          # ① expand
+            if end - start + 1 > k:                     # ② contract
                 if arr[start] < 0:
                     neg_count -= 1
                 start += 1
-
-            # ③ Process: when window is exactly k, record the count for this window
-            if end - start + 1 == k:
+            if end - start + 1 == k:                    # ③ process
                 result.append(neg_count)
-
             end += 1
-
         return result
 
 
@@ -1180,6 +2695,291 @@ print(sol.count_negatives_per_window([-1, -2, -3], 2))          # [2, 2]
 print(sol.count_negatives_per_window([-5, 1, -1, 2, -3], 3))   # [2, 1, 2]
 print(sol.count_negatives_per_window([-3], 1))                  # [1]
 ```
+
+```java,editable
+import java.util.*;
+
+public class Main {
+    static class Solution {
+        List<Integer> countNegativesPerWindow(int[] arr, int k) {
+            int start = 0, end = 0, negCount = 0;
+            List<Integer> result = new ArrayList<>();
+            while (end < arr.length) {
+                if (arr[end] < 0) negCount++;
+                if (end - start + 1 > k) {
+                    if (arr[start] < 0) negCount--;
+                    start++;
+                }
+                if (end - start + 1 == k) result.add(negCount);
+                end++;
+            }
+            return result;
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution sol = new Solution();
+        System.out.println(sol.countNegativesPerWindow(new int[]{-1, 2, -3, 4, -5}, 3));
+        System.out.println(sol.countNegativesPerWindow(new int[]{1, 2, 3, 4}, 2));
+        System.out.println(sol.countNegativesPerWindow(new int[]{-1, -2, -3}, 2));
+        System.out.println(sol.countNegativesPerWindow(new int[]{-5, 1, -1, 2, -3}, 3));
+        System.out.println(sol.countNegativesPerWindow(new int[]{-3}, 1));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int main_loop(int* arr, int n, int k, int* out) {
+    int start = 0, end = 0, neg = 0, idx = 0;
+    while (end < n) {
+        if (arr[end] < 0) neg++;
+        if (end - start + 1 > k) {
+            if (arr[start] < 0) neg--;
+            start++;
+        }
+        if (end - start + 1 == k) out[idx++] = neg;
+        end++;
+    }
+    return idx;
+}
+
+void print_arr(int* a, int n) {
+    printf("[");
+    for (int i = 0; i < n; i++) printf("%d%s", a[i], i + 1 < n ? ", " : "");
+    printf("]\n");
+}
+
+int main() {
+    int a1[] = {-1, 2, -3, 4, -5}; int o1[10]; int n1 = main_loop(a1, 5, 3, o1); print_arr(o1, n1);
+    int a2[] = {1, 2, 3, 4};       int o2[10]; int n2 = main_loop(a2, 4, 2, o2); print_arr(o2, n2);
+    int a3[] = {-1, -2, -3};       int o3[10]; int n3 = main_loop(a3, 3, 2, o3); print_arr(o3, n3);
+    int a4[] = {-5, 1, -1, 2, -3}; int o4[10]; int n4 = main_loop(a4, 5, 3, o4); print_arr(o4, n4);
+    int a5[] = {-3};               int o5[10]; int n5 = main_loop(a5, 1, 1, o5); print_arr(o5, n5);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+class Solution {
+public:
+    std::vector<int> countNegativesPerWindow(const std::vector<int>& arr, int k) {
+        int start = 0, end = 0, negCount = 0;
+        std::vector<int> result;
+        int n = (int)arr.size();
+        while (end < n) {
+            if (arr[end] < 0) negCount++;
+            if (end - start + 1 > k) {
+                if (arr[start] < 0) negCount--;
+                start++;
+            }
+            if (end - start + 1 == k) result.push_back(negCount);
+            end++;
+        }
+        return result;
+    }
+};
+
+void print(const std::vector<int>& v) {
+    std::cout << "[";
+    for (size_t i = 0; i < v.size(); i++) std::cout << v[i] << (i + 1 < v.size() ? ", " : "");
+    std::cout << "]\n";
+}
+
+int main() {
+    Solution sol;
+    print(sol.countNegativesPerWindow({-1, 2, -3, 4, -5}, 3));
+    print(sol.countNegativesPerWindow({1, 2, 3, 4}, 2));
+    print(sol.countNegativesPerWindow({-1, -2, -3}, 2));
+    print(sol.countNegativesPerWindow({-5, 1, -1, 2, -3}, 3));
+    print(sol.countNegativesPerWindow({-3}, 1));
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def countNegativesPerWindow(arr: Array[Int], k: Int): List[Int] = {
+      var start = 0
+      var end = 0
+      var negCount = 0
+      val result = scala.collection.mutable.ListBuffer.empty[Int]
+      while (end < arr.length) {
+        if (arr(end) < 0) negCount += 1
+        if (end - start + 1 > k) {
+          if (arr(start) < 0) negCount -= 1
+          start += 1
+        }
+        if (end - start + 1 == k) result += negCount
+        end += 1
+      }
+      result.toList
+    }
+  }
+
+  val sol = new Solution
+  println(sol.countNegativesPerWindow(Array(-1, 2, -3, 4, -5), 3))
+  println(sol.countNegativesPerWindow(Array(1, 2, 3, 4), 2))
+  println(sol.countNegativesPerWindow(Array(-1, -2, -3), 2))
+  println(sol.countNegativesPerWindow(Array(-5, 1, -1, 2, -3), 3))
+  println(sol.countNegativesPerWindow(Array(-3), 1))
+}
+```
+
+```javascript,editable
+class Solution {
+    countNegativesPerWindow(arr, k) {
+        let start = 0, end = 0, negCount = 0;
+        const result = [];
+        while (end < arr.length) {
+            if (arr[end] < 0) negCount++;
+            if (end - start + 1 > k) {
+                if (arr[start] < 0) negCount--;
+                start++;
+            }
+            if (end - start + 1 === k) result.push(negCount);
+            end++;
+        }
+        return result;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.countNegativesPerWindow([-1, 2, -3, 4, -5], 3));
+console.log(sol.countNegativesPerWindow([1, 2, 3, 4], 2));
+console.log(sol.countNegativesPerWindow([-1, -2, -3], 2));
+console.log(sol.countNegativesPerWindow([-5, 1, -1, 2, -3], 3));
+console.log(sol.countNegativesPerWindow([-3], 1));
+```
+
+```typescript,editable
+class Solution {
+    countNegativesPerWindow(arr: number[], k: number): number[] {
+        let start = 0, end = 0, negCount = 0;
+        const result: number[] = [];
+        while (end < arr.length) {
+            if (arr[end] < 0) negCount++;
+            if (end - start + 1 > k) {
+                if (arr[start] < 0) negCount--;
+                start++;
+            }
+            if (end - start + 1 === k) result.push(negCount);
+            end++;
+        }
+        return result;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.countNegativesPerWindow([-1, 2, -3, 4, -5], 3));
+console.log(sol.countNegativesPerWindow([1, 2, 3, 4], 2));
+console.log(sol.countNegativesPerWindow([-1, -2, -3], 2));
+console.log(sol.countNegativesPerWindow([-5, 1, -1, 2, -3], 3));
+console.log(sol.countNegativesPerWindow([-3], 1));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func countNegativesPerWindow(arr []int, k int) []int {
+    start, end, negCount := 0, 0, 0
+    var result []int
+    for end < len(arr) {
+        if arr[end] < 0 {
+            negCount++
+        }
+        if end-start+1 > k {
+            if arr[start] < 0 {
+                negCount--
+            }
+            start++
+        }
+        if end-start+1 == k {
+            result = append(result, negCount)
+        }
+        end++
+    }
+    return result
+}
+
+func main() {
+    fmt.Println(countNegativesPerWindow([]int{-1, 2, -3, 4, -5}, 3))
+    fmt.Println(countNegativesPerWindow([]int{1, 2, 3, 4}, 2))
+    fmt.Println(countNegativesPerWindow([]int{-1, -2, -3}, 2))
+    fmt.Println(countNegativesPerWindow([]int{-5, 1, -1, 2, -3}, 3))
+    fmt.Println(countNegativesPerWindow([]int{-3}, 1))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun countNegativesPerWindow(arr: IntArray, k: Int): List<Int> {
+        var start = 0
+        var end = 0
+        var negCount = 0
+        val result = mutableListOf<Int>()
+        while (end < arr.size) {
+            if (arr[end] < 0) negCount++
+            if (end - start + 1 > k) {
+                if (arr[start] < 0) negCount--
+                start++
+            }
+            if (end - start + 1 == k) result.add(negCount)
+            end++
+        }
+        return result
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    println(sol.countNegativesPerWindow(intArrayOf(-1, 2, -3, 4, -5), 3))
+    println(sol.countNegativesPerWindow(intArrayOf(1, 2, 3, 4), 2))
+    println(sol.countNegativesPerWindow(intArrayOf(-1, -2, -3), 2))
+    println(sol.countNegativesPerWindow(intArrayOf(-5, 1, -1, 2, -3), 3))
+    println(sol.countNegativesPerWindow(intArrayOf(-3), 1))
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn count_negatives_per_window(&self, arr: &[i32], k: usize) -> Vec<i32> {
+        let mut start = 0usize;
+        let mut end = 0usize;
+        let mut neg = 0i32;
+        let mut result: Vec<i32> = Vec::new();
+        while end < arr.len() {
+            if arr[end] < 0 { neg += 1; }
+            if end - start + 1 > k {
+                if arr[start] < 0 { neg -= 1; }
+                start += 1;
+            }
+            if end - start + 1 == k { result.push(neg); }
+            end += 1;
+        }
+        result
+    }
+}
+
+fn main() {
+    let s = Solution;
+    println!("{:?}", s.count_negatives_per_window(&[-1, 2, -3, 4, -5], 3));
+    println!("{:?}", s.count_negatives_per_window(&[1, 2, 3, 4], 2));
+    println!("{:?}", s.count_negatives_per_window(&[-1, -2, -3], 2));
+    println!("{:?}", s.count_negatives_per_window(&[-5, 1, -1, 2, -3], 3));
+    println!("{:?}", s.count_negatives_per_window(&[-3], 1));
+}
+```
+
+</div>
 
 ---
 
@@ -1353,42 +3153,29 @@ flowchart TB
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
     def count_equal_even_odd_windows(self, arr: List[int], k: int) -> int:
-        # If k is odd, an equal even/odd split is mathematically impossible
         if k % 2 != 0:
-            return 0
+            return 0                                    # Odd k can't split evenly.
 
-        # Initialize the window boundaries
-        start      = 0
-        end        = 0
-        # Running count of even numbers in the current window
-        even_count = 0
-        result     = 0
-
+        start = end = 0
+        even_count = result = 0
         while end < len(arr):
-            # ① Expand: if the incoming element is even, increment the even count
             if arr[end] % 2 == 0:
-                even_count += 1
-
-            # ② Contract: if window grew past k, evict the outgoing element
-            if end - start + 1 > k:
-                # Remove the outgoing element's contribution to the even count
+                even_count += 1                         # ① expand
+            if end - start + 1 > k:                     # ② contract
                 if arr[start] % 2 == 0:
                     even_count -= 1
                 start += 1
-
-            # ③ Process: when window is exactly k, check for equal even/odd split
-            if end - start + 1 == k:
-                # Equal split requires exactly k//2 even numbers (and k//2 odd numbers)
+            if end - start + 1 == k:                    # ③ process
                 if even_count == k // 2:
                     result += 1
-
             end += 1
-
         return result
 
 
@@ -1400,6 +3187,292 @@ print(sol.count_equal_even_odd_windows([2, 4, 6, 8], 2))       # 0
 print(sol.count_equal_even_odd_windows([1, 2, 3, 4, 5], 3))   # 0  (k is odd)
 print(sol.count_equal_even_odd_windows([1, 2], 2))             # 1
 ```
+
+```java,editable
+public class Main {
+    static class Solution {
+        int countEqualEvenOddWindows(int[] arr, int k) {
+            if (k % 2 != 0) return 0;
+            int start = 0, end = 0, evenCount = 0, result = 0;
+            while (end < arr.length) {
+                if (arr[end] % 2 == 0) evenCount++;
+                if (end - start + 1 > k) {
+                    if (arr[start] % 2 == 0) evenCount--;
+                    start++;
+                }
+                if (end - start + 1 == k && evenCount == k / 2) result++;
+                end++;
+            }
+            return result;
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution sol = new Solution();
+        System.out.println(sol.countEqualEvenOddWindows(new int[]{2, 3, 4, 5, 6}, 4));
+        System.out.println(sol.countEqualEvenOddWindows(new int[]{1, 2, 3, 4}, 2));
+        System.out.println(sol.countEqualEvenOddWindows(new int[]{1, 1, 1}, 2));
+        System.out.println(sol.countEqualEvenOddWindows(new int[]{2, 4, 6, 8}, 2));
+        System.out.println(sol.countEqualEvenOddWindows(new int[]{1, 2, 3, 4, 5}, 3));
+        System.out.println(sol.countEqualEvenOddWindows(new int[]{1, 2}, 2));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int count_equal_even_odd_windows(int* arr, int n, int k) {
+    if (k % 2 != 0) return 0;
+    int start = 0, end = 0, even_count = 0, result = 0;
+    while (end < n) {
+        if (arr[end] % 2 == 0) even_count++;
+        if (end - start + 1 > k) {
+            if (arr[start] % 2 == 0) even_count--;
+            start++;
+        }
+        if (end - start + 1 == k && even_count == k / 2) result++;
+        end++;
+    }
+    return result;
+}
+
+int main() {
+    int a1[] = {2, 3, 4, 5, 6};    printf("%d\n", count_equal_even_odd_windows(a1, 5, 4));
+    int a2[] = {1, 2, 3, 4};       printf("%d\n", count_equal_even_odd_windows(a2, 4, 2));
+    int a3[] = {1, 1, 1};          printf("%d\n", count_equal_even_odd_windows(a3, 3, 2));
+    int a4[] = {2, 4, 6, 8};       printf("%d\n", count_equal_even_odd_windows(a4, 4, 2));
+    int a5[] = {1, 2, 3, 4, 5};    printf("%d\n", count_equal_even_odd_windows(a5, 5, 3));
+    int a6[] = {1, 2};             printf("%d\n", count_equal_even_odd_windows(a6, 2, 2));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+class Solution {
+public:
+    int countEqualEvenOddWindows(const std::vector<int>& arr, int k) {
+        if (k % 2 != 0) return 0;
+        int start = 0, end = 0, evenCount = 0, result = 0;
+        int n = (int)arr.size();
+        while (end < n) {
+            if (arr[end] % 2 == 0) evenCount++;
+            if (end - start + 1 > k) {
+                if (arr[start] % 2 == 0) evenCount--;
+                start++;
+            }
+            if (end - start + 1 == k && evenCount == k / 2) result++;
+            end++;
+        }
+        return result;
+    }
+};
+
+int main() {
+    Solution sol;
+    std::cout << sol.countEqualEvenOddWindows({2, 3, 4, 5, 6}, 4) << "\n";
+    std::cout << sol.countEqualEvenOddWindows({1, 2, 3, 4}, 2)    << "\n";
+    std::cout << sol.countEqualEvenOddWindows({1, 1, 1}, 2)       << "\n";
+    std::cout << sol.countEqualEvenOddWindows({2, 4, 6, 8}, 2)    << "\n";
+    std::cout << sol.countEqualEvenOddWindows({1, 2, 3, 4, 5}, 3) << "\n";
+    std::cout << sol.countEqualEvenOddWindows({1, 2}, 2)          << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def countEqualEvenOddWindows(arr: Array[Int], k: Int): Int = {
+      if (k % 2 != 0) return 0
+      var start = 0
+      var end = 0
+      var evenCount = 0
+      var result = 0
+      while (end < arr.length) {
+        if (arr(end) % 2 == 0) evenCount += 1
+        if (end - start + 1 > k) {
+          if (arr(start) % 2 == 0) evenCount -= 1
+          start += 1
+        }
+        if (end - start + 1 == k && evenCount == k / 2) result += 1
+        end += 1
+      }
+      result
+    }
+  }
+
+  val sol = new Solution
+  println(sol.countEqualEvenOddWindows(Array(2, 3, 4, 5, 6), 4))
+  println(sol.countEqualEvenOddWindows(Array(1, 2, 3, 4), 2))
+  println(sol.countEqualEvenOddWindows(Array(1, 1, 1), 2))
+  println(sol.countEqualEvenOddWindows(Array(2, 4, 6, 8), 2))
+  println(sol.countEqualEvenOddWindows(Array(1, 2, 3, 4, 5), 3))
+  println(sol.countEqualEvenOddWindows(Array(1, 2), 2))
+}
+```
+
+```javascript,editable
+class Solution {
+    countEqualEvenOddWindows(arr, k) {
+        if (k % 2 !== 0) return 0;
+        let start = 0, end = 0, evenCount = 0, result = 0;
+        while (end < arr.length) {
+            if (arr[end] % 2 === 0) evenCount++;
+            if (end - start + 1 > k) {
+                if (arr[start] % 2 === 0) evenCount--;
+                start++;
+            }
+            if (end - start + 1 === k && evenCount === k / 2) result++;
+            end++;
+        }
+        return result;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.countEqualEvenOddWindows([2, 3, 4, 5, 6], 4));
+console.log(sol.countEqualEvenOddWindows([1, 2, 3, 4], 2));
+console.log(sol.countEqualEvenOddWindows([1, 1, 1], 2));
+console.log(sol.countEqualEvenOddWindows([2, 4, 6, 8], 2));
+console.log(sol.countEqualEvenOddWindows([1, 2, 3, 4, 5], 3));
+console.log(sol.countEqualEvenOddWindows([1, 2], 2));
+```
+
+```typescript,editable
+class Solution {
+    countEqualEvenOddWindows(arr: number[], k: number): number {
+        if (k % 2 !== 0) return 0;
+        let start = 0, end = 0, evenCount = 0, result = 0;
+        while (end < arr.length) {
+            if (arr[end] % 2 === 0) evenCount++;
+            if (end - start + 1 > k) {
+                if (arr[start] % 2 === 0) evenCount--;
+                start++;
+            }
+            if (end - start + 1 === k && evenCount === k / 2) result++;
+            end++;
+        }
+        return result;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.countEqualEvenOddWindows([2, 3, 4, 5, 6], 4));
+console.log(sol.countEqualEvenOddWindows([1, 2, 3, 4], 2));
+console.log(sol.countEqualEvenOddWindows([1, 1, 1], 2));
+console.log(sol.countEqualEvenOddWindows([2, 4, 6, 8], 2));
+console.log(sol.countEqualEvenOddWindows([1, 2, 3, 4, 5], 3));
+console.log(sol.countEqualEvenOddWindows([1, 2], 2));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func countEqualEvenOddWindows(arr []int, k int) int {
+    if k%2 != 0 {
+        return 0
+    }
+    start, end, evenCount, result := 0, 0, 0, 0
+    for end < len(arr) {
+        if arr[end]%2 == 0 {
+            evenCount++
+        }
+        if end-start+1 > k {
+            if arr[start]%2 == 0 {
+                evenCount--
+            }
+            start++
+        }
+        if end-start+1 == k && evenCount == k/2 {
+            result++
+        }
+        end++
+    }
+    return result
+}
+
+func main() {
+    fmt.Println(countEqualEvenOddWindows([]int{2, 3, 4, 5, 6}, 4))
+    fmt.Println(countEqualEvenOddWindows([]int{1, 2, 3, 4}, 2))
+    fmt.Println(countEqualEvenOddWindows([]int{1, 1, 1}, 2))
+    fmt.Println(countEqualEvenOddWindows([]int{2, 4, 6, 8}, 2))
+    fmt.Println(countEqualEvenOddWindows([]int{1, 2, 3, 4, 5}, 3))
+    fmt.Println(countEqualEvenOddWindows([]int{1, 2}, 2))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun countEqualEvenOddWindows(arr: IntArray, k: Int): Int {
+        if (k % 2 != 0) return 0
+        var start = 0
+        var end = 0
+        var evenCount = 0
+        var result = 0
+        while (end < arr.size) {
+            if (arr[end] % 2 == 0) evenCount++
+            if (end - start + 1 > k) {
+                if (arr[start] % 2 == 0) evenCount--
+                start++
+            }
+            if (end - start + 1 == k && evenCount == k / 2) result++
+            end++
+        }
+        return result
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    println(sol.countEqualEvenOddWindows(intArrayOf(2, 3, 4, 5, 6), 4))
+    println(sol.countEqualEvenOddWindows(intArrayOf(1, 2, 3, 4), 2))
+    println(sol.countEqualEvenOddWindows(intArrayOf(1, 1, 1), 2))
+    println(sol.countEqualEvenOddWindows(intArrayOf(2, 4, 6, 8), 2))
+    println(sol.countEqualEvenOddWindows(intArrayOf(1, 2, 3, 4, 5), 3))
+    println(sol.countEqualEvenOddWindows(intArrayOf(1, 2), 2))
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn count_equal_even_odd_windows(&self, arr: &[i32], k: usize) -> i32 {
+        if k % 2 != 0 { return 0; }
+        let mut start = 0usize;
+        let mut end = 0usize;
+        let mut even_count = 0i32;
+        let mut result = 0i32;
+        while end < arr.len() {
+            if arr[end] % 2 == 0 { even_count += 1; }
+            if end - start + 1 > k {
+                if arr[start] % 2 == 0 { even_count -= 1; }
+                start += 1;
+            }
+            if end - start + 1 == k && even_count == (k / 2) as i32 { result += 1; }
+            end += 1;
+        }
+        result
+    }
+}
+
+fn main() {
+    let s = Solution;
+    println!("{}", s.count_equal_even_odd_windows(&[2, 3, 4, 5, 6], 4));
+    println!("{}", s.count_equal_even_odd_windows(&[1, 2, 3, 4], 2));
+    println!("{}", s.count_equal_even_odd_windows(&[1, 1, 1], 2));
+    println!("{}", s.count_equal_even_odd_windows(&[2, 4, 6, 8], 2));
+    println!("{}", s.count_equal_even_odd_windows(&[1, 2, 3, 4, 5], 3));
+    println!("{}", s.count_equal_even_odd_windows(&[1, 2], 2));
+}
+```
+
+</div>
 
 ---
 
