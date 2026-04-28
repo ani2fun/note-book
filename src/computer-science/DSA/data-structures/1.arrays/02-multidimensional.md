@@ -280,10 +280,12 @@ flowchart LR
 
 ## Declaring a 2D Array in Python
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
-# 4 classes (rows) of 5 students each (cols) — using 5 instead of 60 keeps the demo readable.
+# 4 classes (rows) of 5 students each (cols) — 5 instead of 60 keeps the demo readable.
 rows: int = 4
 cols: int = 5
 
@@ -293,16 +295,215 @@ cols: int = 5
 ages: List[List[int]] = [[0] * cols for _ in range(rows)]
 
 # Two indices: ages[row][col] → ages[class][student].
-ages[0][0] = 6      # class 0, first student
-ages[1][2] = 8      # class 1, third student
-ages[3][4] = 10     # class 3, last student
+ages[0][0] = 6
+ages[1][2] = 8
+ages[3][4] = 10
 
 print("Class 1, Student 3:", ages[1][2])   # → 8
 
-# Iterating over the outer dimension hands you each inner list (one full row at a time).
+# Iterating the outer dimension hands you each inner list (one full row at a time).
 for row_index in range(rows):
     print(f"Class {row_index}:", ages[row_index])
 ```
+
+```java,editable
+import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int rows = 4;
+        int cols = 5;
+
+        // `new int[rows][cols]` allocates a true 2D rectangular grid, default 0.
+        int[][] ages = new int[rows][cols];
+
+        ages[0][0] = 6;
+        ages[1][2] = 8;
+        ages[3][4] = 10;
+
+        System.out.println("Class 1, Student 3: " + ages[1][2]);   // → 8
+
+        for (int rowIndex = 0; rowIndex < rows; rowIndex++) {
+            System.out.println("Class " + rowIndex + ": " + Arrays.toString(ages[rowIndex]));
+        }
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int main() {
+    int rows = 4, cols = 5;
+
+    /* True 2D fixed-size array, default 0 thanks to the {0} initializer. */
+    int ages[4][5] = {0};
+
+    ages[0][0] = 6;
+    ages[1][2] = 8;
+    ages[3][4] = 10;
+
+    printf("Class 1, Student 3: %d\n", ages[1][2]);   /* → 8 */
+
+    for (int rowIndex = 0; rowIndex < rows; rowIndex++) {
+        printf("Class %d: ", rowIndex);
+        for (int j = 0; j < cols; j++) printf("%d ", ages[rowIndex][j]);
+        printf("\n");
+    }
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+int main() {
+    int rows = 4, cols = 5;
+
+    // vector<vector<int>>(rows, vector<int>(cols, 0)) — each row constructed separately,
+    // so unlike the Python "*" trap, all rows are guaranteed independent.
+    std::vector<std::vector<int>> ages(rows, std::vector<int>(cols, 0));
+
+    ages[0][0] = 6;
+    ages[1][2] = 8;
+    ages[3][4] = 10;
+
+    std::cout << "Class 1, Student 3: " << ages[1][2] << "\n";   // → 8
+
+    for (int rowIndex = 0; rowIndex < rows; rowIndex++) {
+        std::cout << "Class " << rowIndex << ": ";
+        for (int v : ages[rowIndex]) std::cout << v << " ";
+        std::cout << "\n";
+    }
+}
+```
+
+```scala,editable
+object Main extends App {
+  val rows = 4
+  val cols = 5
+
+  // Array.ofDim builds a true rectangular 2D array with each row independent.
+  val ages: Array[Array[Int]] = Array.ofDim[Int](rows, cols)
+
+  ages(0)(0) = 6
+  ages(1)(2) = 8
+  ages(3)(4) = 10
+
+  println(s"Class 1, Student 3: ${ages(1)(2)}")   // → 8
+
+  for (rowIndex <- 0 until rows) {
+    println(s"Class $rowIndex: ${ages(rowIndex).mkString(", ")}")
+  }
+}
+```
+
+```javascript,editable
+const rows = 4;
+const cols = 5;
+
+// Array.from with a factory function — each row is built independently (no shared refs).
+const ages = Array.from({ length: rows }, () => new Array(cols).fill(0));
+
+ages[0][0] = 6;
+ages[1][2] = 8;
+ages[3][4] = 10;
+
+console.log("Class 1, Student 3:", ages[1][2]);   // → 8
+
+for (let rowIndex = 0; rowIndex < rows; rowIndex++) {
+    console.log(`Class ${rowIndex}:`, ages[rowIndex]);
+}
+```
+
+```typescript,editable
+const rows: number = 4;
+const cols: number = 5;
+
+// Array.from with a factory function — each row is built independently.
+const ages: number[][] = Array.from({ length: rows }, () => new Array(cols).fill(0));
+
+ages[0][0] = 6;
+ages[1][2] = 8;
+ages[3][4] = 10;
+
+console.log("Class 1, Student 3:", ages[1][2]);   // → 8
+
+for (let rowIndex = 0; rowIndex < rows; rowIndex++) {
+    console.log(`Class ${rowIndex}:`, ages[rowIndex]);
+}
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func main() {
+    rows, cols := 4, 5
+
+    // make a slice of slices; each inner slice is allocated separately.
+    ages := make([][]int, rows)
+    for i := range ages {
+        ages[i] = make([]int, cols)
+    }
+
+    ages[0][0] = 6
+    ages[1][2] = 8
+    ages[3][4] = 10
+
+    fmt.Println("Class 1, Student 3:", ages[1][2])   // → 8
+
+    for rowIndex := 0; rowIndex < rows; rowIndex++ {
+        fmt.Printf("Class %d: %v\n", rowIndex, ages[rowIndex])
+    }
+}
+```
+
+```kotlin,editable
+fun main() {
+    val rows = 4
+    val cols = 5
+
+    // Array(rows) { IntArray(cols) } — the lambda runs once per row, yielding
+    // independent inner arrays (mirrors Python's list-comprehension form).
+    val ages = Array(rows) { IntArray(cols) }
+
+    ages[0][0] = 6
+    ages[1][2] = 8
+    ages[3][4] = 10
+
+    println("Class 1, Student 3: ${ages[1][2]}")   // → 8
+
+    for (rowIndex in 0 until rows) {
+        println("Class $rowIndex: ${ages[rowIndex].toList()}")
+    }
+}
+```
+
+```rust,editable
+fn main() {
+    let rows = 4usize;
+    let cols = 5usize;
+
+    // vec![vec![0; cols]; rows] — vec!'s repeat form clones the inner vec,
+    // but Vec<T> clones produce independent buffers (no aliasing surprise).
+    let mut ages: Vec<Vec<i32>> = vec![vec![0; cols]; rows];
+
+    ages[0][0] = 6;
+    ages[1][2] = 8;
+    ages[3][4] = 10;
+
+    println!("Class 1, Student 3: {}", ages[1][2]);   // → 8
+
+    for row_index in 0..rows {
+        println!("Class {}: {:?}", row_index, ages[row_index]);
+    }
+}
+```
+
+</div>
 
 > **Common trap — don't use `[[0] * cols] * rows`!**
 >
@@ -646,16 +847,17 @@ arr: {
 
 Higher-level languages like Python and JavaScript inherently provide a **list** instead of a raw array. A list has a dynamic size and can store elements of different types — so the programmer doesn't need to provide a size when declaring or initializing a multidimensional array.
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
-# Declaring and initializing a 2D array (list of lists)
+# 2D = list of lists; 3D = list of lists of lists. The shape is implied by nesting.
 numbers2d: List[List[int]] = [
     [1, 2, 3],
     [4, 5, 6]
 ]
 
-# Declaring and initializing a 3D array (list of list of lists)
 numbers3d: List[List[List[int]]] = [
     [ [1, 2], [3, 4], [5, 6] ],
     [ [7, 8], [9, 10], [11, 12] ]
@@ -664,6 +866,197 @@ numbers3d: List[List[List[int]]] = [
 print("2D array:", numbers2d)
 print("3D array:", numbers3d)
 ```
+
+```java,editable
+import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        // 2D rectangular array literal.
+        int[][] numbers2d = {
+            {1, 2, 3},
+            {4, 5, 6}
+        };
+
+        // 3D array literal — nesting depth matches dimension count.
+        int[][][] numbers3d = {
+            { {1, 2}, {3, 4}, {5, 6} },
+            { {7, 8}, {9, 10}, {11, 12} }
+        };
+
+        System.out.println("2D array: " + Arrays.deepToString(numbers2d));
+        System.out.println("3D array: " + Arrays.deepToString(numbers3d));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int main() {
+    /* Fixed-shape 2D and 3D arrays — sizes baked into the type. */
+    int numbers2d[2][3] = {
+        {1, 2, 3},
+        {4, 5, 6}
+    };
+
+    int numbers3d[2][3][2] = {
+        { {1, 2}, {3, 4}, {5, 6} },
+        { {7, 8}, {9, 10}, {11, 12} }
+    };
+
+    printf("2D array:\n");
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 3; j++) printf("%d ", numbers2d[i][j]);
+        printf("\n");
+    }
+    printf("3D array:\n");
+    for (int i = 0; i < 2; i++)
+        for (int j = 0; j < 3; j++) {
+            for (int k = 0; k < 2; k++) printf("%d ", numbers3d[i][j][k]);
+            printf("| ");
+        }
+    printf("\n");
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+int main() {
+    // Nested vectors mirror Python's nested lists exactly.
+    std::vector<std::vector<int>> numbers2d = {
+        {1, 2, 3},
+        {4, 5, 6}
+    };
+
+    std::vector<std::vector<std::vector<int>>> numbers3d = {
+        { {1, 2}, {3, 4}, {5, 6} },
+        { {7, 8}, {9, 10}, {11, 12} }
+    };
+
+    std::cout << "2D array:\n";
+    for (auto& row : numbers2d) {
+        for (int v : row) std::cout << v << " ";
+        std::cout << "\n";
+    }
+    std::cout << "3D array dims: "
+              << numbers3d.size() << " x " << numbers3d[0].size()
+              << " x " << numbers3d[0][0].size() << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  // Array literals nest naturally; each level is its own Array.
+  val numbers2d: Array[Array[Int]] = Array(
+    Array(1, 2, 3),
+    Array(4, 5, 6)
+  )
+
+  val numbers3d: Array[Array[Array[Int]]] = Array(
+    Array(Array(1, 2), Array(3, 4), Array(5, 6)),
+    Array(Array(7, 8), Array(9, 10), Array(11, 12))
+  )
+
+  println("2D array: " + numbers2d.map(_.mkString("[", ",", "]")).mkString("[", ",", "]"))
+  println("3D first layer first row: " + numbers3d(0)(0).mkString(", "))
+}
+```
+
+```javascript,editable
+// JavaScript arrays nest with no separate type declaration.
+const numbers2d = [
+    [1, 2, 3],
+    [4, 5, 6]
+];
+
+const numbers3d = [
+    [ [1, 2], [3, 4], [5, 6] ],
+    [ [7, 8], [9, 10], [11, 12] ]
+];
+
+console.log("2D array:", numbers2d);
+console.log("3D array:", numbers3d);
+```
+
+```typescript,editable
+// number[][] and number[][][] make the shape explicit at the type level.
+const numbers2d: number[][] = [
+    [1, 2, 3],
+    [4, 5, 6]
+];
+
+const numbers3d: number[][][] = [
+    [ [1, 2], [3, 4], [5, 6] ],
+    [ [7, 8], [9, 10], [11, 12] ]
+];
+
+console.log("2D array:", numbers2d);
+console.log("3D array:", numbers3d);
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func main() {
+    // [][]int is "slice of int-slices" — Go's idiomatic 2D structure.
+    numbers2d := [][]int{
+        {1, 2, 3},
+        {4, 5, 6},
+    }
+
+    numbers3d := [][][]int{
+        { {1, 2}, {3, 4}, {5, 6} },
+        { {7, 8}, {9, 10}, {11, 12} },
+    }
+
+    fmt.Println("2D array:", numbers2d)
+    fmt.Println("3D array:", numbers3d)
+}
+```
+
+```kotlin,editable
+fun main() {
+    // arrayOf nests naturally; each level produces an Array of arrays.
+    val numbers2d: Array<IntArray> = arrayOf(
+        intArrayOf(1, 2, 3),
+        intArrayOf(4, 5, 6)
+    )
+
+    val numbers3d: Array<Array<IntArray>> = arrayOf(
+        arrayOf(intArrayOf(1, 2), intArrayOf(3, 4), intArrayOf(5, 6)),
+        arrayOf(intArrayOf(7, 8), intArrayOf(9, 10), intArrayOf(11, 12))
+    )
+
+    println("2D array: " + numbers2d.map { it.toList() })
+    println("3D array first layer: " + numbers3d[0].map { it.toList() })
+}
+```
+
+```rust,editable
+fn main() {
+    // Fixed-size nested arrays — the type carries every dimension's length.
+    let numbers2d: [[i32; 3]; 2] = [
+        [1, 2, 3],
+        [4, 5, 6]
+    ];
+
+    let numbers3d: [[[i32; 2]; 3]; 2] = [
+        [ [1, 2], [3, 4], [5, 6] ],
+        [ [7, 8], [9, 10], [11, 12] ]
+    ];
+
+    println!("2D array: {:?}", numbers2d);
+    println!("3D array: {:?}", numbers3d);
+}
+```
+
+</div>
 
 > **Tip:** In Python, there's no built-in multidimensional array type — you nest lists inside lists. The type annotation `List[List[int]]` is just a hint, but it clearly communicates the intended shape.
 
@@ -716,29 +1109,222 @@ The pattern generalises naturally:
 
 Different programming languages have different syntax, but the underlying access mechanism is the same.
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
-# Initializing a 2D array
 numbers2d: List[List[int]] = [
     [1, 2, 3],
     [4, 5, 6]
 ]
 
-# Accessing elements using [row][column]
+# Chain [] once per dimension to reach the value.
 print("Element at (0,0):", numbers2d[0][0])  # → 1
 print("Element at (1,2):", numbers2d[1][2])  # → 6
 
-# Initializing a 3D array
 numbers3d: List[List[List[int]]] = [
     [ [1, 2], [3, 4], [5, 6] ],
     [ [7, 8], [9, 10], [11, 12] ]
 ]
 
-# Accessing elements using [depth][row][column]
 print("Element at (0,1,1):", numbers3d[0][1][1])  # → 4
 print("Element at (1,2,0):", numbers3d[1][2][0])  # → 11
 ```
+
+```java,editable
+public class Main {
+    public static void main(String[] args) {
+        int[][] numbers2d = {
+            {1, 2, 3},
+            {4, 5, 6}
+        };
+
+        // Chain [] once per dimension.
+        System.out.println("Element at (0,0): " + numbers2d[0][0]);  // → 1
+        System.out.println("Element at (1,2): " + numbers2d[1][2]);  // → 6
+
+        int[][][] numbers3d = {
+            { {1, 2}, {3, 4}, {5, 6} },
+            { {7, 8}, {9, 10}, {11, 12} }
+        };
+
+        System.out.println("Element at (0,1,1): " + numbers3d[0][1][1]);  // → 4
+        System.out.println("Element at (1,2,0): " + numbers3d[1][2][0]);  // → 11
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int main() {
+    int numbers2d[2][3] = {
+        {1, 2, 3},
+        {4, 5, 6}
+    };
+
+    /* Chain [] once per dimension. */
+    printf("Element at (0,0): %d\n", numbers2d[0][0]);  /* → 1 */
+    printf("Element at (1,2): %d\n", numbers2d[1][2]);  /* → 6 */
+
+    int numbers3d[2][3][2] = {
+        { {1, 2}, {3, 4}, {5, 6} },
+        { {7, 8}, {9, 10}, {11, 12} }
+    };
+
+    printf("Element at (0,1,1): %d\n", numbers3d[0][1][1]);  /* → 4 */
+    printf("Element at (1,2,0): %d\n", numbers3d[1][2][0]);  /* → 11 */
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+int main() {
+    std::vector<std::vector<int>> numbers2d = {
+        {1, 2, 3},
+        {4, 5, 6}
+    };
+
+    std::cout << "Element at (0,0): " << numbers2d[0][0] << "\n";  // → 1
+    std::cout << "Element at (1,2): " << numbers2d[1][2] << "\n";  // → 6
+
+    std::vector<std::vector<std::vector<int>>> numbers3d = {
+        { {1, 2}, {3, 4}, {5, 6} },
+        { {7, 8}, {9, 10}, {11, 12} }
+    };
+
+    std::cout << "Element at (0,1,1): " << numbers3d[0][1][1] << "\n";  // → 4
+    std::cout << "Element at (1,2,0): " << numbers3d[1][2][0] << "\n";  // → 11
+}
+```
+
+```scala,editable
+object Main extends App {
+  val numbers2d = Array(
+    Array(1, 2, 3),
+    Array(4, 5, 6)
+  )
+
+  // arr(i)(j) chains the apply method once per dimension.
+  println(s"Element at (0,0): ${numbers2d(0)(0)}")  // → 1
+  println(s"Element at (1,2): ${numbers2d(1)(2)}")  // → 6
+
+  val numbers3d = Array(
+    Array(Array(1, 2), Array(3, 4), Array(5, 6)),
+    Array(Array(7, 8), Array(9, 10), Array(11, 12))
+  )
+
+  println(s"Element at (0,1,1): ${numbers3d(0)(1)(1)}")  // → 4
+  println(s"Element at (1,2,0): ${numbers3d(1)(2)(0)}")  // → 11
+}
+```
+
+```javascript,editable
+const numbers2d = [
+    [1, 2, 3],
+    [4, 5, 6]
+];
+
+console.log("Element at (0,0):", numbers2d[0][0]);  // → 1
+console.log("Element at (1,2):", numbers2d[1][2]);  // → 6
+
+const numbers3d = [
+    [ [1, 2], [3, 4], [5, 6] ],
+    [ [7, 8], [9, 10], [11, 12] ]
+];
+
+console.log("Element at (0,1,1):", numbers3d[0][1][1]);  // → 4
+console.log("Element at (1,2,0):", numbers3d[1][2][0]);  // → 11
+```
+
+```typescript,editable
+const numbers2d: number[][] = [
+    [1, 2, 3],
+    [4, 5, 6]
+];
+
+console.log("Element at (0,0):", numbers2d[0][0]);  // → 1
+console.log("Element at (1,2):", numbers2d[1][2]);  // → 6
+
+const numbers3d: number[][][] = [
+    [ [1, 2], [3, 4], [5, 6] ],
+    [ [7, 8], [9, 10], [11, 12] ]
+];
+
+console.log("Element at (0,1,1):", numbers3d[0][1][1]);  // → 4
+console.log("Element at (1,2,0):", numbers3d[1][2][0]);  // → 11
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func main() {
+    numbers2d := [][]int{
+        {1, 2, 3},
+        {4, 5, 6},
+    }
+
+    fmt.Println("Element at (0,0):", numbers2d[0][0])  // → 1
+    fmt.Println("Element at (1,2):", numbers2d[1][2])  // → 6
+
+    numbers3d := [][][]int{
+        { {1, 2}, {3, 4}, {5, 6} },
+        { {7, 8}, {9, 10}, {11, 12} },
+    }
+
+    fmt.Println("Element at (0,1,1):", numbers3d[0][1][1])  // → 4
+    fmt.Println("Element at (1,2,0):", numbers3d[1][2][0])  // → 11
+}
+```
+
+```kotlin,editable
+fun main() {
+    val numbers2d = arrayOf(
+        intArrayOf(1, 2, 3),
+        intArrayOf(4, 5, 6)
+    )
+
+    // arr[i][j] chains the indexer once per dimension.
+    println("Element at (0,0): ${numbers2d[0][0]}")  // → 1
+    println("Element at (1,2): ${numbers2d[1][2]}")  // → 6
+
+    val numbers3d = arrayOf(
+        arrayOf(intArrayOf(1, 2), intArrayOf(3, 4), intArrayOf(5, 6)),
+        arrayOf(intArrayOf(7, 8), intArrayOf(9, 10), intArrayOf(11, 12))
+    )
+
+    println("Element at (0,1,1): ${numbers3d[0][1][1]}")  // → 4
+    println("Element at (1,2,0): ${numbers3d[1][2][0]}")  // → 11
+}
+```
+
+```rust,editable
+fn main() {
+    let numbers2d: [[i32; 3]; 2] = [
+        [1, 2, 3],
+        [4, 5, 6]
+    ];
+
+    println!("Element at (0,0): {}", numbers2d[0][0]);  // → 1
+    println!("Element at (1,2): {}", numbers2d[1][2]);  // → 6
+
+    let numbers3d: [[[i32; 2]; 3]; 2] = [
+        [ [1, 2], [3, 4], [5, 6] ],
+        [ [7, 8], [9, 10], [11, 12] ]
+    ];
+
+    println!("Element at (0,1,1): {}", numbers3d[0][1][1]);  // → 4
+    println!("Element at (1,2,0): {}", numbers3d[1][2][0]);  // → 11
+}
+```
+
+</div>
 
 > **Think of it as unpacking layers.** `numbers2d[1]` gives you the entire second row (an array). `numbers2d[1][2]` then picks the third element from that row. Each `[]` unwraps one layer.
 
@@ -788,32 +1374,244 @@ arr.i.style.stroke: "#d97706"
 
 <p align="center"><strong>Multidimensional array elements can be modified using indices for all dimensions (highlighted = being updated).</strong></p>
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
-# Initializing a 2D array
 numbers2d: List[List[int]] = [
     [1, 2, 3],
     [4, 5, 6]
 ]
 
-# Modifying elements in the 2D array
+# arr[i][j] = x — overwrite the slot in place.
 numbers2d[1][1] = 60
-
 print("Modified 2D array:", numbers2d)  # → [[1, 2, 3], [4, 60, 6]]
 
-# Initializing a 3D array
 numbers3d: List[List[List[int]]] = [
     [ [1, 2], [3, 4], [5, 6] ],
     [ [7, 8], [9, 10], [11, 12] ]
 ]
 
-# Modifying elements in the 3D array
 numbers3d[0][1][1] = 40
 numbers3d[1][1][1] = 110
-
 print("Modified 3D array:", numbers3d)
 ```
+
+```java,editable
+import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[][] numbers2d = {
+            {1, 2, 3},
+            {4, 5, 6}
+        };
+
+        // arr[i][j] = x — overwrite the slot in place.
+        numbers2d[1][1] = 60;
+        System.out.println("Modified 2D array: " + Arrays.deepToString(numbers2d));
+
+        int[][][] numbers3d = {
+            { {1, 2}, {3, 4}, {5, 6} },
+            { {7, 8}, {9, 10}, {11, 12} }
+        };
+
+        numbers3d[0][1][1] = 40;
+        numbers3d[1][1][1] = 110;
+        System.out.println("Modified 3D array: " + Arrays.deepToString(numbers3d));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int main() {
+    int numbers2d[2][3] = {
+        {1, 2, 3},
+        {4, 5, 6}
+    };
+
+    /* arr[i][j] = x — overwrite the slot in place. */
+    numbers2d[1][1] = 60;
+    printf("Modified 2D array:\n");
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 3; j++) printf("%d ", numbers2d[i][j]);
+        printf("\n");
+    }
+
+    int numbers3d[2][3][2] = {
+        { {1, 2}, {3, 4}, {5, 6} },
+        { {7, 8}, {9, 10}, {11, 12} }
+    };
+
+    numbers3d[0][1][1] = 40;
+    numbers3d[1][1][1] = 110;
+    printf("3D[0][1][1] = %d, 3D[1][1][1] = %d\n",
+           numbers3d[0][1][1], numbers3d[1][1][1]);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+int main() {
+    std::vector<std::vector<int>> numbers2d = {
+        {1, 2, 3},
+        {4, 5, 6}
+    };
+
+    numbers2d[1][1] = 60;
+    std::cout << "Modified 2D array:\n";
+    for (auto& row : numbers2d) {
+        for (int v : row) std::cout << v << " ";
+        std::cout << "\n";
+    }
+
+    std::vector<std::vector<std::vector<int>>> numbers3d = {
+        { {1, 2}, {3, 4}, {5, 6} },
+        { {7, 8}, {9, 10}, {11, 12} }
+    };
+
+    numbers3d[0][1][1] = 40;
+    numbers3d[1][1][1] = 110;
+    std::cout << "3D[0][1][1] = " << numbers3d[0][1][1]
+              << ", 3D[1][1][1] = " << numbers3d[1][1][1] << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  val numbers2d = Array(
+    Array(1, 2, 3),
+    Array(4, 5, 6)
+  )
+
+  // arr(i)(j) = x — Scala's update form for nested arrays.
+  numbers2d(1)(1) = 60
+  println("Modified 2D array: " + numbers2d.map(_.mkString("[", ",", "]")).mkString("[", ",", "]"))
+
+  val numbers3d = Array(
+    Array(Array(1, 2), Array(3, 4), Array(5, 6)),
+    Array(Array(7, 8), Array(9, 10), Array(11, 12))
+  )
+
+  numbers3d(0)(1)(1) = 40
+  numbers3d(1)(1)(1) = 110
+  println(s"3D(0)(1)(1) = ${numbers3d(0)(1)(1)}, 3D(1)(1)(1) = ${numbers3d(1)(1)(1)}")
+}
+```
+
+```javascript,editable
+const numbers2d = [
+    [1, 2, 3],
+    [4, 5, 6]
+];
+
+numbers2d[1][1] = 60;
+console.log("Modified 2D array:", numbers2d);
+
+const numbers3d = [
+    [ [1, 2], [3, 4], [5, 6] ],
+    [ [7, 8], [9, 10], [11, 12] ]
+];
+
+numbers3d[0][1][1] = 40;
+numbers3d[1][1][1] = 110;
+console.log("Modified 3D array:", numbers3d);
+```
+
+```typescript,editable
+const numbers2d: number[][] = [
+    [1, 2, 3],
+    [4, 5, 6]
+];
+
+numbers2d[1][1] = 60;
+console.log("Modified 2D array:", numbers2d);
+
+const numbers3d: number[][][] = [
+    [ [1, 2], [3, 4], [5, 6] ],
+    [ [7, 8], [9, 10], [11, 12] ]
+];
+
+numbers3d[0][1][1] = 40;
+numbers3d[1][1][1] = 110;
+console.log("Modified 3D array:", numbers3d);
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func main() {
+    numbers2d := [][]int{
+        {1, 2, 3},
+        {4, 5, 6},
+    }
+
+    numbers2d[1][1] = 60
+    fmt.Println("Modified 2D array:", numbers2d)
+
+    numbers3d := [][][]int{
+        { {1, 2}, {3, 4}, {5, 6} },
+        { {7, 8}, {9, 10}, {11, 12} },
+    }
+
+    numbers3d[0][1][1] = 40
+    numbers3d[1][1][1] = 110
+    fmt.Println("Modified 3D array:", numbers3d)
+}
+```
+
+```kotlin,editable
+fun main() {
+    val numbers2d = arrayOf(
+        intArrayOf(1, 2, 3),
+        intArrayOf(4, 5, 6)
+    )
+
+    numbers2d[1][1] = 60
+    println("Modified 2D array: " + numbers2d.map { it.toList() })
+
+    val numbers3d = arrayOf(
+        arrayOf(intArrayOf(1, 2), intArrayOf(3, 4), intArrayOf(5, 6)),
+        arrayOf(intArrayOf(7, 8), intArrayOf(9, 10), intArrayOf(11, 12))
+    )
+
+    numbers3d[0][1][1] = 40
+    numbers3d[1][1][1] = 110
+    println("3D[0][1][1] = ${numbers3d[0][1][1]}, 3D[1][1][1] = ${numbers3d[1][1][1]}")
+}
+```
+
+```rust,editable
+fn main() {
+    // Mutability is required to update slots.
+    let mut numbers2d: [[i32; 3]; 2] = [
+        [1, 2, 3],
+        [4, 5, 6]
+    ];
+
+    numbers2d[1][1] = 60;
+    println!("Modified 2D array: {:?}", numbers2d);
+
+    let mut numbers3d: [[[i32; 2]; 3]; 2] = [
+        [ [1, 2], [3, 4], [5, 6] ],
+        [ [7, 8], [9, 10], [11, 12] ]
+    ];
+
+    numbers3d[0][1][1] = 40;
+    numbers3d[1][1][1] = 110;
+    println!("Modified 3D array: {:?}", numbers3d);
+}
+```
+
+</div>
 
 Different languages implement the syntax differently, but the result is the same — overwrite the value at the memory location identified by chaining the indices.
 
@@ -1079,6 +1877,8 @@ flowchart LR
 
 <p align="center"><strong>Traversing a 2D array requires two nested loops — one per dimension.</strong></p>
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
@@ -1087,17 +1887,14 @@ numbers2d: List[List[int]] = [
     [4, 5, 6]
 ]
 
-# Style 1 — index-based: useful when you need the (i, j) coordinates themselves
-# (e.g. assigning back to the array, computing neighbours, building a graph from a grid).
-# `len(numbers2d[i])` recomputes the row length per row so jagged arrays still work.
+# Style 1 — index-based: when you need (i, j) themselves (writes, neighbours, grid graphs).
 print("2D array traversal (index-based):")
 for i in range(len(numbers2d)):
     for j in range(len(numbers2d[i])):
         print(numbers2d[i][j], end=" ")
-    print()  # Newline at the end of each row keeps the output grid-shaped.
+    print()
 
-# Style 2 — for-each: shorter, but you lose the index. Use it when the values alone
-# are enough (printing, summing, searching for membership).
+# Style 2 — for-each: shorter, no index. Best when only values matter.
 print("2D array traversal (for-each):")
 for row in numbers2d:
     for value in row:
@@ -1105,18 +1902,255 @@ for row in numbers2d:
     print()
 ```
 
+```java,editable
+public class Main {
+    public static void main(String[] args) {
+        int[][] numbers2d = {
+            {1, 2, 3},
+            {4, 5, 6}
+        };
+
+        // Style 1 — index-based.
+        System.out.println("2D array traversal (index-based):");
+        for (int i = 0; i < numbers2d.length; i++) {
+            for (int j = 0; j < numbers2d[i].length; j++) {
+                System.out.print(numbers2d[i][j] + " ");
+            }
+            System.out.println();
+        }
+
+        // Style 2 — enhanced for (for-each).
+        System.out.println("2D array traversal (for-each):");
+        for (int[] row : numbers2d) {
+            for (int value : row) System.out.print(value + " ");
+            System.out.println();
+        }
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int main() {
+    int numbers2d[2][3] = {
+        {1, 2, 3},
+        {4, 5, 6}
+    };
+    int rows = 2, cols = 3;
+
+    /* Style 1 — index-based. */
+    printf("2D array traversal (index-based):\n");
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            printf("%d ", numbers2d[i][j]);
+        }
+        printf("\n");
+    }
+
+    /* C has no built-in for-each — index-based is the only built-in form. */
+    printf("2D array traversal (no for-each in C — same loop):\n");
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) printf("%d ", numbers2d[i][j]);
+        printf("\n");
+    }
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+int main() {
+    std::vector<std::vector<int>> numbers2d = {
+        {1, 2, 3},
+        {4, 5, 6}
+    };
+
+    // Style 1 — index-based.
+    std::cout << "2D array traversal (index-based):\n";
+    for (size_t i = 0; i < numbers2d.size(); i++) {
+        for (size_t j = 0; j < numbers2d[i].size(); j++) {
+            std::cout << numbers2d[i][j] << " ";
+        }
+        std::cout << "\n";
+    }
+
+    // Style 2 — range-based for (C++11+).
+    std::cout << "2D array traversal (for-each):\n";
+    for (auto& row : numbers2d) {
+        for (int value : row) std::cout << value << " ";
+        std::cout << "\n";
+    }
+}
+```
+
+```scala,editable
+object Main extends App {
+  val numbers2d = Array(
+    Array(1, 2, 3),
+    Array(4, 5, 6)
+  )
+
+  // Style 1 — index-based.
+  println("2D array traversal (index-based):")
+  for (i <- numbers2d.indices) {
+    for (j <- numbers2d(i).indices) print(s"${numbers2d(i)(j)} ")
+    println()
+  }
+
+  // Style 2 — for-each.
+  println("2D array traversal (for-each):")
+  for (row <- numbers2d) {
+    for (value <- row) print(s"$value ")
+    println()
+  }
+}
+```
+
+```javascript,editable
+const numbers2d = [
+    [1, 2, 3],
+    [4, 5, 6]
+];
+
+// Style 1 — index-based.
+console.log("2D array traversal (index-based):");
+for (let i = 0; i < numbers2d.length; i++) {
+    let line = "";
+    for (let j = 0; j < numbers2d[i].length; j++) {
+        line += numbers2d[i][j] + " ";
+    }
+    console.log(line);
+}
+
+// Style 2 — for...of.
+console.log("2D array traversal (for-each):");
+for (const row of numbers2d) {
+    console.log(row.join(" "));
+}
+```
+
+```typescript,editable
+const numbers2d: number[][] = [
+    [1, 2, 3],
+    [4, 5, 6]
+];
+
+// Style 1 — index-based.
+console.log("2D array traversal (index-based):");
+for (let i = 0; i < numbers2d.length; i++) {
+    let line: string = "";
+    for (let j = 0; j < numbers2d[i].length; j++) {
+        line += numbers2d[i][j] + " ";
+    }
+    console.log(line);
+}
+
+// Style 2 — for...of.
+console.log("2D array traversal (for-each):");
+for (const row of numbers2d) {
+    console.log(row.join(" "));
+}
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func main() {
+    numbers2d := [][]int{
+        {1, 2, 3},
+        {4, 5, 6},
+    }
+
+    // Style 1 — index-based.
+    fmt.Println("2D array traversal (index-based):")
+    for i := 0; i < len(numbers2d); i++ {
+        for j := 0; j < len(numbers2d[i]); j++ {
+            fmt.Print(numbers2d[i][j], " ")
+        }
+        fmt.Println()
+    }
+
+    // Style 2 — range-based.
+    fmt.Println("2D array traversal (for-each):")
+    for _, row := range numbers2d {
+        for _, value := range row {
+            fmt.Print(value, " ")
+        }
+        fmt.Println()
+    }
+}
+```
+
+```kotlin,editable
+fun main() {
+    val numbers2d = arrayOf(
+        intArrayOf(1, 2, 3),
+        intArrayOf(4, 5, 6)
+    )
+
+    // Style 1 — index-based.
+    println("2D array traversal (index-based):")
+    for (i in numbers2d.indices) {
+        for (j in numbers2d[i].indices) print("${numbers2d[i][j]} ")
+        println()
+    }
+
+    // Style 2 — for-each.
+    println("2D array traversal (for-each):")
+    for (row in numbers2d) {
+        for (value in row) print("$value ")
+        println()
+    }
+}
+```
+
+```rust,editable
+fn main() {
+    let numbers2d: [[i32; 3]; 2] = [
+        [1, 2, 3],
+        [4, 5, 6]
+    ];
+
+    // Style 1 — index-based.
+    println!("2D array traversal (index-based):");
+    for i in 0..numbers2d.len() {
+        for j in 0..numbers2d[i].len() {
+            print!("{} ", numbers2d[i][j]);
+        }
+        println!();
+    }
+
+    // Style 2 — for-each via iterator.
+    println!("2D array traversal (for-each):");
+    for row in &numbers2d {
+        for value in row {
+            print!("{} ", value);
+        }
+        println!();
+    }
+}
+```
+
+</div>
+
 For a 3D array, just add one more nesting level:
+
+<div class="lang-tabs">
 
 ```python,editable
 from typing import List
 
-# Initializing a 3D array
 numbers3d: List[List[List[int]]] = [
     [ [1, 2], [3, 4], [5, 6] ],
     [ [7, 8], [9, 10], [11, 12] ]
 ]
 
-# 3D traversal
+# Three nested loops — one per dimension. The innermost loop walks values.
 print("3D array traversal:")
 for matrix in numbers3d:
     for row in matrix:
@@ -1125,6 +2159,187 @@ for matrix in numbers3d:
         print(" ", end="")
     print()
 ```
+
+```java,editable
+public class Main {
+    public static void main(String[] args) {
+        int[][][] numbers3d = {
+            { {1, 2}, {3, 4}, {5, 6} },
+            { {7, 8}, {9, 10}, {11, 12} }
+        };
+
+        // One enhanced for per dimension.
+        System.out.println("3D array traversal:");
+        for (int[][] matrix : numbers3d) {
+            for (int[] row : matrix) {
+                for (int value : row) System.out.print(value + " ");
+                System.out.print("  ");
+            }
+            System.out.println();
+        }
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int main() {
+    int numbers3d[2][3][2] = {
+        { {1, 2}, {3, 4}, {5, 6} },
+        { {7, 8}, {9, 10}, {11, 12} }
+    };
+
+    /* Three nested index-based loops. */
+    printf("3D array traversal:\n");
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 3; j++) {
+            for (int k = 0; k < 2; k++) printf("%d ", numbers3d[i][j][k]);
+            printf("  ");
+        }
+        printf("\n");
+    }
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+int main() {
+    std::vector<std::vector<std::vector<int>>> numbers3d = {
+        { {1, 2}, {3, 4}, {5, 6} },
+        { {7, 8}, {9, 10}, {11, 12} }
+    };
+
+    // Three nested range-based for loops.
+    std::cout << "3D array traversal:\n";
+    for (auto& matrix : numbers3d) {
+        for (auto& row : matrix) {
+            for (int value : row) std::cout << value << " ";
+            std::cout << "  ";
+        }
+        std::cout << "\n";
+    }
+}
+```
+
+```scala,editable
+object Main extends App {
+  val numbers3d = Array(
+    Array(Array(1, 2), Array(3, 4), Array(5, 6)),
+    Array(Array(7, 8), Array(9, 10), Array(11, 12))
+  )
+
+  println("3D array traversal:")
+  for (matrix <- numbers3d) {
+    for (row <- matrix) {
+      for (value <- row) print(s"$value ")
+      print("  ")
+    }
+    println()
+  }
+}
+```
+
+```javascript,editable
+const numbers3d = [
+    [ [1, 2], [3, 4], [5, 6] ],
+    [ [7, 8], [9, 10], [11, 12] ]
+];
+
+console.log("3D array traversal:");
+for (const matrix of numbers3d) {
+    let line = "";
+    for (const row of matrix) {
+        for (const value of row) line += value + " ";
+        line += "  ";
+    }
+    console.log(line);
+}
+```
+
+```typescript,editable
+const numbers3d: number[][][] = [
+    [ [1, 2], [3, 4], [5, 6] ],
+    [ [7, 8], [9, 10], [11, 12] ]
+];
+
+console.log("3D array traversal:");
+for (const matrix of numbers3d) {
+    let line: string = "";
+    for (const row of matrix) {
+        for (const value of row) line += value + " ";
+        line += "  ";
+    }
+    console.log(line);
+}
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func main() {
+    numbers3d := [][][]int{
+        { {1, 2}, {3, 4}, {5, 6} },
+        { {7, 8}, {9, 10}, {11, 12} },
+    }
+
+    fmt.Println("3D array traversal:")
+    for _, matrix := range numbers3d {
+        for _, row := range matrix {
+            for _, value := range row {
+                fmt.Print(value, " ")
+            }
+            fmt.Print("  ")
+        }
+        fmt.Println()
+    }
+}
+```
+
+```kotlin,editable
+fun main() {
+    val numbers3d = arrayOf(
+        arrayOf(intArrayOf(1, 2), intArrayOf(3, 4), intArrayOf(5, 6)),
+        arrayOf(intArrayOf(7, 8), intArrayOf(9, 10), intArrayOf(11, 12))
+    )
+
+    println("3D array traversal:")
+    for (matrix in numbers3d) {
+        for (row in matrix) {
+            for (value in row) print("$value ")
+            print("  ")
+        }
+        println()
+    }
+}
+```
+
+```rust,editable
+fn main() {
+    let numbers3d: [[[i32; 2]; 3]; 2] = [
+        [ [1, 2], [3, 4], [5, 6] ],
+        [ [7, 8], [9, 10], [11, 12] ]
+    ];
+
+    println!("3D array traversal:");
+    for matrix in &numbers3d {
+        for row in matrix {
+            for value in row {
+                print!("{} ", value);
+            }
+            print!("  ");
+        }
+        println!();
+    }
+}
+```
+
+</div>
 
 > **Important:** The order of these loops affects performance depending on the order in which array items are stored in memory. We'll explore this in detail when we cover how a multidimensional array is laid out in memory (row-major vs column-major order).
 
@@ -1393,6 +2608,8 @@ The memory ribbon therefore fills up in this exact sequence:
 
 You can verify this yourself — run the code below and watch the order elements are visited:
 
+<div class="lang-tabs">
+
 ```python,editable
 arr = [
     [10, 20, 30, 40],  # Row 0
@@ -1400,11 +2617,173 @@ arr = [
     [90, 11, 12, 13],  # Row 2
 ]
 
+# Outer loop = rows (slow), inner loop = columns (fast) — matches row-major memory order.
 print("Row-major traversal order:")
-for i in range(3):          # outer: row — moves slowly
-    for j in range(4):      # inner: column — moves fastest
+for i in range(3):
+    for j in range(4):
         print(f"arr[{i}][{j}] = {arr[i][j]}")
 ```
+
+```java,editable
+public class Main {
+    public static void main(String[] args) {
+        int[][] arr = {
+            {10, 20, 30, 40},
+            {50, 60, 70, 80},
+            {90, 11, 12, 13}
+        };
+
+        System.out.println("Row-major traversal order:");
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 4; j++) {
+                System.out.println("arr[" + i + "][" + j + "] = " + arr[i][j]);
+            }
+        }
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int main() {
+    int arr[3][4] = {
+        {10, 20, 30, 40},
+        {50, 60, 70, 80},
+        {90, 11, 12, 13}
+    };
+
+    printf("Row-major traversal order:\n");
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 4; j++) {
+            printf("arr[%d][%d] = %d\n", i, j, arr[i][j]);
+        }
+    }
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+int main() {
+    std::vector<std::vector<int>> arr = {
+        {10, 20, 30, 40},
+        {50, 60, 70, 80},
+        {90, 11, 12, 13}
+    };
+
+    std::cout << "Row-major traversal order:\n";
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 4; j++) {
+            std::cout << "arr[" << i << "][" << j << "] = " << arr[i][j] << "\n";
+        }
+    }
+}
+```
+
+```scala,editable
+object Main extends App {
+  val arr = Array(
+    Array(10, 20, 30, 40),
+    Array(50, 60, 70, 80),
+    Array(90, 11, 12, 13)
+  )
+
+  println("Row-major traversal order:")
+  for (i <- 0 until 3; j <- 0 until 4) {
+    println(s"arr($i)($j) = ${arr(i)(j)}")
+  }
+}
+```
+
+```javascript,editable
+const arr = [
+    [10, 20, 30, 40],
+    [50, 60, 70, 80],
+    [90, 11, 12, 13]
+];
+
+console.log("Row-major traversal order:");
+for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 4; j++) {
+        console.log(`arr[${i}][${j}] = ${arr[i][j]}`);
+    }
+}
+```
+
+```typescript,editable
+const arr: number[][] = [
+    [10, 20, 30, 40],
+    [50, 60, 70, 80],
+    [90, 11, 12, 13]
+];
+
+console.log("Row-major traversal order:");
+for (let i: number = 0; i < 3; i++) {
+    for (let j: number = 0; j < 4; j++) {
+        console.log(`arr[${i}][${j}] = ${arr[i][j]}`);
+    }
+}
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func main() {
+    arr := [][]int{
+        {10, 20, 30, 40},
+        {50, 60, 70, 80},
+        {90, 11, 12, 13},
+    }
+
+    fmt.Println("Row-major traversal order:")
+    for i := 0; i < 3; i++ {
+        for j := 0; j < 4; j++ {
+            fmt.Printf("arr[%d][%d] = %d\n", i, j, arr[i][j])
+        }
+    }
+}
+```
+
+```kotlin,editable
+fun main() {
+    val arr = arrayOf(
+        intArrayOf(10, 20, 30, 40),
+        intArrayOf(50, 60, 70, 80),
+        intArrayOf(90, 11, 12, 13)
+    )
+
+    println("Row-major traversal order:")
+    for (i in 0 until 3) {
+        for (j in 0 until 4) {
+            println("arr[$i][$j] = ${arr[i][j]}")
+        }
+    }
+}
+```
+
+```rust,editable
+fn main() {
+    let arr = [
+        [10, 20, 30, 40],
+        [50, 60, 70, 80],
+        [90, 11, 12, 13]
+    ];
+
+    println!("Row-major traversal order:");
+    for i in 0..3 {
+        for j in 0..4 {
+            println!("arr[{}][{}] = {}", i, j, arr[i][j]);
+        }
+    }
+}
+```
+
+</div>
 
 ---
 
@@ -1486,22 +2865,162 @@ address = 1000 + 9 × 4  =  1036
 Verify by counting: Row 0 → offsets 0–3 · Row 1 → offsets 4–7 · Row 2 → offsets 8–11.
 The element at `[2][1]` is the 2nd element (j=1) inside Row 2, which starts at offset 8. So offset = 8 + 1 = **9**. ✓
 
+<div class="lang-tabs">
+
 ```python,editable
 # Reproduce the address formula by hand for a 3 x 4 array.
-base_address = 1000   # Where the array starts in memory
-element_size = 4      # int = 4 bytes per slot
+base_address = 1000
+element_size = 4
 num_cols     = 4      # D1 — the stride: how many elements wide each row is
 
 i, j = 2, 1           # Target element: arr[2][1]
 
-# Skip i complete rows (i × num_cols elements), then walk j steps into the current row.
-# num_cols (not num_rows) is the multiplier because that's the width of one row in memory.
+# Skip i full rows, then walk j into the current row. num_cols is the row width.
 offset  = i * num_cols + j
 address = base_address + offset * element_size
-
 print(f"arr[{i}][{j}] is at offset {offset}, memory address {address}")
 # Expected: offset = 9, address = 1036
 ```
+
+```java,editable
+public class Main {
+    public static void main(String[] args) {
+        int baseAddress = 1000;
+        int elementSize = 4;
+        int numCols = 4;
+
+        int i = 2, j = 1;
+
+        int offset  = i * numCols + j;
+        int address = baseAddress + offset * elementSize;
+        System.out.println("arr[" + i + "][" + j + "] is at offset " + offset
+                         + ", memory address " + address);
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int main() {
+    int base_address = 1000;
+    int element_size = 4;
+    int num_cols = 4;
+
+    int i = 2, j = 1;
+
+    int offset  = i * num_cols + j;
+    int address = base_address + offset * element_size;
+    printf("arr[%d][%d] is at offset %d, memory address %d\n", i, j, offset, address);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+
+int main() {
+    int base_address = 1000;
+    int element_size = 4;
+    int num_cols = 4;
+
+    int i = 2, j = 1;
+
+    int offset  = i * num_cols + j;
+    int address = base_address + offset * element_size;
+    std::cout << "arr[" << i << "][" << j << "] is at offset " << offset
+              << ", memory address " << address << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  val baseAddress = 1000
+  val elementSize = 4
+  val numCols     = 4
+
+  val i = 2
+  val j = 1
+
+  val offset  = i * numCols + j
+  val address = baseAddress + offset * elementSize
+  println(s"arr($i)($j) is at offset $offset, memory address $address")
+}
+```
+
+```javascript,editable
+const baseAddress = 1000;
+const elementSize = 4;
+const numCols = 4;
+
+const i = 2, j = 1;
+
+const offset  = i * numCols + j;
+const address = baseAddress + offset * elementSize;
+console.log(`arr[${i}][${j}] is at offset ${offset}, memory address ${address}`);
+```
+
+```typescript,editable
+const baseAddress: number = 1000;
+const elementSize: number = 4;
+const numCols: number = 4;
+
+const i: number = 2, j: number = 1;
+
+const offset  = i * numCols + j;
+const address = baseAddress + offset * elementSize;
+console.log(`arr[${i}][${j}] is at offset ${offset}, memory address ${address}`);
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func main() {
+    baseAddress := 1000
+    elementSize := 4
+    numCols := 4
+
+    i, j := 2, 1
+
+    offset  := i*numCols + j
+    address := baseAddress + offset*elementSize
+    fmt.Printf("arr[%d][%d] is at offset %d, memory address %d\n", i, j, offset, address)
+}
+```
+
+```kotlin,editable
+fun main() {
+    val baseAddress = 1000
+    val elementSize = 4
+    val numCols = 4
+
+    val i = 2
+    val j = 1
+
+    val offset  = i * numCols + j
+    val address = baseAddress + offset * elementSize
+    println("arr[$i][$j] is at offset $offset, memory address $address")
+}
+```
+
+```rust,editable
+fn main() {
+    let base_address = 1000;
+    let element_size = 4;
+    let num_cols = 4;
+
+    let i = 2;
+    let j = 1;
+
+    let offset  = i * num_cols + j;
+    let address = base_address + offset * element_size;
+    println!("arr[{}][{}] is at offset {}, memory address {}", i, j, offset, address);
+}
+```
+
+</div>
 
 ---
 
@@ -1710,26 +3229,211 @@ mem: {
 
 Notice the pattern: Layer 0 occupies addresses 2–22, Layer 1 occupies 26–46. Within each layer, Row 0 comes first, Row 1 second. Within each row, the column index climbs 0→1→2.
 
+<div class="lang-tabs">
+
 ```python,editable
-# Print the offset and address of every element in a 2 x 2 x 3 row-major array.
-base = 2              # Base address of the array
-element_size = 4      # int = 4 bytes per slot
-D3, D2, D1 = 2, 2, 3  # Outer-to-inner sizes (layer × row × column)
+# Print offset + address of every element in a 2 x 2 x 3 row-major array.
+base = 2
+element_size = 4
+D3, D2, D1 = 2, 2, 3
 
 print(f"{'Index':<16} {'Offset':>6} {'Address':>8}")
 print("-" * 32)
 
-# Loop nesting matches storage order: D3 outermost (slowest), D1 innermost (fastest).
-# Iterating in this order also guarantees offset increases by exactly 1 each step,
-# which is what makes row-major traversal cache-friendly.
+# D3 outermost (slowest), D1 innermost (fastest) — matches row-major storage,
+# so offset increases by exactly 1 per step.
 for i3 in range(D3):
     for i2 in range(D2):
         for i1 in range(D1):
-            # Offset formula: skip whole layers, then whole rows, then walk into the row.
             offset  = i3 * (D2 * D1) + i2 * D1 + i1
             address = base + offset * element_size
             print(f"[{i3}][{i2}][{i1}]          {offset:>6}    {address:>6}")
 ```
+
+```java,editable
+public class Main {
+    public static void main(String[] args) {
+        int base = 2;
+        int elementSize = 4;
+        int D3 = 2, D2 = 2, D1 = 3;
+
+        System.out.printf("%-16s %6s %8s%n", "Index", "Offset", "Address");
+        System.out.println("--------------------------------");
+        for (int i3 = 0; i3 < D3; i3++) {
+            for (int i2 = 0; i2 < D2; i2++) {
+                for (int i1 = 0; i1 < D1; i1++) {
+                    int offset  = i3 * (D2 * D1) + i2 * D1 + i1;
+                    int address = base + offset * elementSize;
+                    System.out.printf("[%d][%d][%d]          %6d    %6d%n", i3, i2, i1, offset, address);
+                }
+            }
+        }
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int main() {
+    int base = 2;
+    int element_size = 4;
+    int D3 = 2, D2 = 2, D1 = 3;
+
+    printf("%-16s %6s %8s\n", "Index", "Offset", "Address");
+    printf("--------------------------------\n");
+    for (int i3 = 0; i3 < D3; i3++) {
+        for (int i2 = 0; i2 < D2; i2++) {
+            for (int i1 = 0; i1 < D1; i1++) {
+                int offset  = i3 * (D2 * D1) + i2 * D1 + i1;
+                int address = base + offset * element_size;
+                printf("[%d][%d][%d]          %6d    %6d\n", i3, i2, i1, offset, address);
+            }
+        }
+    }
+    return 0;
+}
+```
+
+```cpp,editable
+#include <cstdio>
+
+int main() {
+    int base = 2;
+    int element_size = 4;
+    int D3 = 2, D2 = 2, D1 = 3;
+
+    std::printf("%-16s %6s %8s\n", "Index", "Offset", "Address");
+    std::printf("--------------------------------\n");
+    for (int i3 = 0; i3 < D3; i3++) {
+        for (int i2 = 0; i2 < D2; i2++) {
+            for (int i1 = 0; i1 < D1; i1++) {
+                int offset  = i3 * (D2 * D1) + i2 * D1 + i1;
+                int address = base + offset * element_size;
+                std::printf("[%d][%d][%d]          %6d    %6d\n", i3, i2, i1, offset, address);
+            }
+        }
+    }
+}
+```
+
+```scala,editable
+object Main extends App {
+  val base = 2
+  val elementSize = 4
+  val D3 = 2; val D2 = 2; val D1 = 3
+
+  println(f"${"Index"}%-16s ${"Offset"}%6s ${"Address"}%8s")
+  println("-" * 32)
+  for (i3 <- 0 until D3; i2 <- 0 until D2; i1 <- 0 until D1) {
+    val offset  = i3 * (D2 * D1) + i2 * D1 + i1
+    val address = base + offset * elementSize
+    println(f"[$i3][$i2][$i1]          $offset%6d    $address%6d")
+  }
+}
+```
+
+```javascript,editable
+const base = 2;
+const elementSize = 4;
+const [D3, D2, D1] = [2, 2, 3];
+
+console.log("Index            Offset  Address");
+console.log("--------------------------------");
+for (let i3 = 0; i3 < D3; i3++) {
+    for (let i2 = 0; i2 < D2; i2++) {
+        for (let i1 = 0; i1 < D1; i1++) {
+            const offset  = i3 * (D2 * D1) + i2 * D1 + i1;
+            const address = base + offset * elementSize;
+            console.log(`[${i3}][${i2}][${i1}]          ${String(offset).padStart(6)}    ${String(address).padStart(6)}`);
+        }
+    }
+}
+```
+
+```typescript,editable
+const base: number = 2;
+const elementSize: number = 4;
+const [D3, D2, D1]: [number, number, number] = [2, 2, 3];
+
+console.log("Index            Offset  Address");
+console.log("--------------------------------");
+for (let i3 = 0; i3 < D3; i3++) {
+    for (let i2 = 0; i2 < D2; i2++) {
+        for (let i1 = 0; i1 < D1; i1++) {
+            const offset  = i3 * (D2 * D1) + i2 * D1 + i1;
+            const address = base + offset * elementSize;
+            console.log(`[${i3}][${i2}][${i1}]          ${String(offset).padStart(6)}    ${String(address).padStart(6)}`);
+        }
+    }
+}
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func main() {
+    base := 2
+    elementSize := 4
+    D3, D2, D1 := 2, 2, 3
+
+    fmt.Printf("%-16s %6s %8s\n", "Index", "Offset", "Address")
+    fmt.Println("--------------------------------")
+    for i3 := 0; i3 < D3; i3++ {
+        for i2 := 0; i2 < D2; i2++ {
+            for i1 := 0; i1 < D1; i1++ {
+                offset  := i3*(D2*D1) + i2*D1 + i1
+                address := base + offset*elementSize
+                fmt.Printf("[%d][%d][%d]          %6d    %6d\n", i3, i2, i1, offset, address)
+            }
+        }
+    }
+}
+```
+
+```kotlin,editable
+fun main() {
+    val base = 2
+    val elementSize = 4
+    val D3 = 2; val D2 = 2; val D1 = 3
+
+    println("%-16s %6s %8s".format("Index", "Offset", "Address"))
+    println("--------------------------------")
+    for (i3 in 0 until D3) {
+        for (i2 in 0 until D2) {
+            for (i1 in 0 until D1) {
+                val offset  = i3 * (D2 * D1) + i2 * D1 + i1
+                val address = base + offset * elementSize
+                println("[$i3][$i2][$i1]          %6d    %6d".format(offset, address))
+            }
+        }
+    }
+}
+```
+
+```rust,editable
+fn main() {
+    let base = 2;
+    let element_size = 4;
+    let (d3, d2, d1) = (2, 2, 3);
+
+    println!("{:<16} {:>6} {:>8}", "Index", "Offset", "Address");
+    println!("--------------------------------");
+    for i3 in 0..d3 {
+        for i2 in 0..d2 {
+            for i1 in 0..d1 {
+                let offset  = i3 * (d2 * d1) + i2 * d1 + i1;
+                let address = base + offset * element_size;
+                println!("[{}][{}][{}]          {:>6}    {:>6}", i3, i2, i1, offset, address);
+            }
+        }
+    }
+}
+```
+
+</div>
 
 ---
 
@@ -1788,15 +3492,15 @@ flowchart LR
 
 Cross-check against the memory layout diagram above: `array[0][0][2]` is at address **10** ✓ and `array[1][1][2]` is the very last element at address **46** ✓.
 
+<div class="lang-tabs">
+
 ```python,editable
-# Reproduce what the subscript operator does for any (i3, i2, i1) on a 2 x 2 x 3 array.
+# Reproduce the subscript operator for a 2 x 2 x 3 row-major array.
 base = 2
 element_size = 4
-D2, D1 = 2, 3      # One layer is D2 rows × D1 cols, so a layer occupies D2 * D1 slots.
+D2, D1 = 2, 3      # One layer = D2 * D1 slots.
 
 def address_of(i3, i2, i1):
-    # Three strides composed left-to-right: layer stride (D2 * D1), row stride (D1), then
-    # the column step (no multiplier — innermost dimension always has stride 1).
     offset = i3 * (D2 * D1) + i2 * D1 + i1
     return base + offset * element_size, offset
 
@@ -1806,6 +3510,188 @@ print(f"array[0][0][2] → offset={offset}, address={addr}")   # expect 2, 10
 addr, offset = address_of(1, 1, 2)
 print(f"array[1][1][2] → offset={offset}, address={addr}")   # expect 11, 46
 ```
+
+```java,editable
+public class Main {
+    static final int BASE = 2;
+    static final int SIZE = 4;
+    static final int D2   = 2;
+    static final int D1   = 3;
+
+    static int[] addressOf(int i3, int i2, int i1) {
+        int offset = i3 * (D2 * D1) + i2 * D1 + i1;
+        return new int[] { BASE + offset * SIZE, offset };
+    }
+
+    public static void main(String[] args) {
+        int[] r1 = addressOf(0, 0, 2);
+        System.out.println("array[0][0][2] → offset=" + r1[1] + ", address=" + r1[0]);
+        int[] r2 = addressOf(1, 1, 2);
+        System.out.println("array[1][1][2] → offset=" + r2[1] + ", address=" + r2[0]);
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+#define BASE 2
+#define SIZE 4
+#define D2   2
+#define D1   3
+
+void address_of(int i3, int i2, int i1, int* addr, int* offset) {
+    *offset = i3 * (D2 * D1) + i2 * D1 + i1;
+    *addr   = BASE + (*offset) * SIZE;
+}
+
+int main() {
+    int addr, offset;
+    address_of(0, 0, 2, &addr, &offset);
+    printf("array[0][0][2] → offset=%d, address=%d\n", offset, addr);
+    address_of(1, 1, 2, &addr, &offset);
+    printf("array[1][1][2] → offset=%d, address=%d\n", offset, addr);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <utility>
+
+constexpr int BASE = 2;
+constexpr int SIZE = 4;
+constexpr int D2   = 2;
+constexpr int D1   = 3;
+
+std::pair<int,int> address_of(int i3, int i2, int i1) {
+    int offset = i3 * (D2 * D1) + i2 * D1 + i1;
+    return {BASE + offset * SIZE, offset};
+}
+
+int main() {
+    auto [addr1, off1] = address_of(0, 0, 2);
+    std::cout << "array[0][0][2] → offset=" << off1 << ", address=" << addr1 << "\n";
+    auto [addr2, off2] = address_of(1, 1, 2);
+    std::cout << "array[1][1][2] → offset=" << off2 << ", address=" << addr2 << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  val base = 2
+  val size = 4
+  val D2   = 2
+  val D1   = 3
+
+  def addressOf(i3: Int, i2: Int, i1: Int): (Int, Int) = {
+    val offset = i3 * (D2 * D1) + i2 * D1 + i1
+    (base + offset * size, offset)
+  }
+
+  val (a1, o1) = addressOf(0, 0, 2)
+  println(s"array[0][0][2] → offset=$o1, address=$a1")
+  val (a2, o2) = addressOf(1, 1, 2)
+  println(s"array[1][1][2] → offset=$o2, address=$a2")
+}
+```
+
+```javascript,editable
+const BASE = 2;
+const SIZE = 4;
+const D2   = 2;
+const D1   = 3;
+
+function addressOf(i3, i2, i1) {
+    const offset = i3 * (D2 * D1) + i2 * D1 + i1;
+    return [BASE + offset * SIZE, offset];
+}
+
+let [addr, offset] = addressOf(0, 0, 2);
+console.log(`array[0][0][2] → offset=${offset}, address=${addr}`);
+[addr, offset] = addressOf(1, 1, 2);
+console.log(`array[1][1][2] → offset=${offset}, address=${addr}`);
+```
+
+```typescript,editable
+const BASE: number = 2;
+const SIZE: number = 4;
+const D2: number   = 2;
+const D1: number   = 3;
+
+function addressOf(i3: number, i2: number, i1: number): [number, number] {
+    const offset = i3 * (D2 * D1) + i2 * D1 + i1;
+    return [BASE + offset * SIZE, offset];
+}
+
+let [addr, offset] = addressOf(0, 0, 2);
+console.log(`array[0][0][2] → offset=${offset}, address=${addr}`);
+[addr, offset] = addressOf(1, 1, 2);
+console.log(`array[1][1][2] → offset=${offset}, address=${addr}`);
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+const base = 2
+const size = 4
+const D2   = 2
+const D1   = 3
+
+func addressOf(i3, i2, i1 int) (int, int) {
+    offset := i3*(D2*D1) + i2*D1 + i1
+    return base + offset*size, offset
+}
+
+func main() {
+    addr, offset := addressOf(0, 0, 2)
+    fmt.Printf("array[0][0][2] → offset=%d, address=%d\n", offset, addr)
+    addr, offset = addressOf(1, 1, 2)
+    fmt.Printf("array[1][1][2] → offset=%d, address=%d\n", offset, addr)
+}
+```
+
+```kotlin,editable
+const val BASE = 2
+const val SIZE = 4
+const val D2   = 2
+const val D1   = 3
+
+fun addressOf(i3: Int, i2: Int, i1: Int): Pair<Int, Int> {
+    val offset = i3 * (D2 * D1) + i2 * D1 + i1
+    return Pair(BASE + offset * SIZE, offset)
+}
+
+fun main() {
+    var (addr, offset) = addressOf(0, 0, 2)
+    println("array[0][0][2] → offset=$offset, address=$addr")
+    val r = addressOf(1, 1, 2)
+    println("array[1][1][2] → offset=${r.second}, address=${r.first}")
+}
+```
+
+```rust,editable
+const BASE: i32 = 2;
+const SIZE: i32 = 4;
+const D2:   i32 = 2;
+const D1:   i32 = 3;
+
+fn address_of(i3: i32, i2: i32, i1: i32) -> (i32, i32) {
+    let offset = i3 * (D2 * D1) + i2 * D1 + i1;
+    (BASE + offset * SIZE, offset)
+}
+
+fn main() {
+    let (addr, offset) = address_of(0, 0, 2);
+    println!("array[0][0][2] → offset={}, address={}", offset, addr);
+    let (addr, offset) = address_of(1, 1, 2);
+    println!("array[1][1][2] → offset={}, address={}", offset, addr);
+}
+```
+
+</div>
 
 ---
 
@@ -1999,46 +3885,238 @@ flowchart TB
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
     def row_major_traversal(self, matrix: List[List[int]]) -> List[int]:
-
-        # Guard against empty input — len(matrix[0]) below would crash on an empty list.
         if not matrix:
             return []
 
         rows: int = len(matrix)
-        cols: int = len(matrix[0])    # All rows are assumed to have the same length.
+        cols: int = len(matrix[0])
         path: List[int] = []
 
-        # Outer loop = rows (slow dimension): only ticks once an entire row is consumed.
-        # This is what makes the traversal "row-major" — the row index changes least often.
+        # Outer = rows (slow), inner = cols (fast) → row-major visit order.
         for row in range(rows):
-            # Inner loop = columns (fast dimension): walks every cell of the current row.
-            # In Python (row-major storage), this hits consecutive memory slots → cache hits.
             for col in range(cols):
                 path.append(matrix[row][col])
-
         return path
 
 
-# --- Test it ---
 s = Solution()
-
-m1 = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-print("Example 1:", s.row_major_traversal(m1))   # [1, 2, 3, 4, 5, 6, 7, 8, 9]
-
-m2 = [[3, 2, 1, 7], [0, 6, 3, 2]]
-print("Example 2:", s.row_major_traversal(m2))   # [3, 2, 1, 7, 0, 6, 3, 2]
-
-m3 = [[1]]
-print("Example 3:", s.row_major_traversal(m3))   # [1]
-
-m4 = []
-print("Empty:    ", s.row_major_traversal(m4))   # []
+print("Example 1:", s.row_major_traversal([[1,2,3],[4,5,6],[7,8,9]]))
+print("Example 2:", s.row_major_traversal([[3,2,1,7],[0,6,3,2]]))
+print("Example 3:", s.row_major_traversal([[1]]))
+print("Empty:    ", s.row_major_traversal([]))
 ```
+
+```java,editable
+import java.util.*;
+
+public class Main {
+    static List<Integer> rowMajorTraversal(int[][] matrix) {
+        List<Integer> path = new ArrayList<>();
+        if (matrix.length == 0) return path;
+        int rows = matrix.length, cols = matrix[0].length;
+        // Outer = rows (slow), inner = cols (fast).
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+                path.add(matrix[row][col]);
+            }
+        }
+        return path;
+    }
+
+    public static void main(String[] args) {
+        System.out.println("Example 1: " + rowMajorTraversal(new int[][]{{1,2,3},{4,5,6},{7,8,9}}));
+        System.out.println("Example 2: " + rowMajorTraversal(new int[][]{{3,2,1,7},{0,6,3,2}}));
+        System.out.println("Example 3: " + rowMajorTraversal(new int[][]{{1}}));
+        System.out.println("Empty:     " + rowMajorTraversal(new int[][]{}));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+void row_major_traversal(int rows, int cols, int matrix[rows][cols]) {
+    /* Outer = rows (slow), inner = cols (fast). */
+    for (int row = 0; row < rows; row++) {
+        for (int col = 0; col < cols; col++) {
+            printf("%d ", matrix[row][col]);
+        }
+    }
+    printf("\n");
+}
+
+int main() {
+    int m1[3][3] = {{1,2,3},{4,5,6},{7,8,9}};
+    int m2[2][4] = {{3,2,1,7},{0,6,3,2}};
+    int m3[1][1] = {{1}};
+
+    printf("Example 1: "); row_major_traversal(3, 3, m1);
+    printf("Example 2: "); row_major_traversal(2, 4, m2);
+    printf("Example 3: "); row_major_traversal(1, 1, m3);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+std::vector<int> row_major_traversal(const std::vector<std::vector<int>>& matrix) {
+    std::vector<int> path;
+    if (matrix.empty()) return path;
+    int rows = matrix.size(), cols = matrix[0].size();
+    for (int row = 0; row < rows; row++) {
+        for (int col = 0; col < cols; col++) {
+            path.push_back(matrix[row][col]);
+        }
+    }
+    return path;
+}
+
+int main() {
+    auto print = [](const std::vector<int>& v) {
+        std::cout << "[";
+        for (size_t i = 0; i < v.size(); i++) std::cout << v[i] << (i + 1 < v.size() ? ", " : "");
+        std::cout << "]\n";
+    };
+    print(row_major_traversal({{1,2,3},{4,5,6},{7,8,9}}));
+    print(row_major_traversal({{3,2,1,7},{0,6,3,2}}));
+    print(row_major_traversal({{1}}));
+    print(row_major_traversal({}));
+}
+```
+
+```scala,editable
+object Main extends App {
+  def rowMajorTraversal(matrix: Array[Array[Int]]): List[Int] = {
+    if (matrix.isEmpty) return Nil
+    val buf = scala.collection.mutable.ListBuffer.empty[Int]
+    for (row <- matrix.indices; col <- matrix(row).indices) {
+      buf += matrix(row)(col)
+    }
+    buf.toList
+  }
+
+  println("Example 1: " + rowMajorTraversal(Array(Array(1,2,3), Array(4,5,6), Array(7,8,9))))
+  println("Example 2: " + rowMajorTraversal(Array(Array(3,2,1,7), Array(0,6,3,2))))
+  println("Example 3: " + rowMajorTraversal(Array(Array(1))))
+  println("Empty:     " + rowMajorTraversal(Array.empty[Array[Int]]))
+}
+```
+
+```javascript,editable
+function rowMajorTraversal(matrix) {
+    const path = [];
+    if (!matrix.length) return path;
+    const rows = matrix.length, cols = matrix[0].length;
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+            path.push(matrix[row][col]);
+        }
+    }
+    return path;
+}
+
+console.log("Example 1:", rowMajorTraversal([[1,2,3],[4,5,6],[7,8,9]]));
+console.log("Example 2:", rowMajorTraversal([[3,2,1,7],[0,6,3,2]]));
+console.log("Example 3:", rowMajorTraversal([[1]]));
+console.log("Empty:    ", rowMajorTraversal([]));
+```
+
+```typescript,editable
+function rowMajorTraversal(matrix: number[][]): number[] {
+    const path: number[] = [];
+    if (!matrix.length) return path;
+    const rows = matrix.length, cols = matrix[0].length;
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+            path.push(matrix[row][col]);
+        }
+    }
+    return path;
+}
+
+console.log("Example 1:", rowMajorTraversal([[1,2,3],[4,5,6],[7,8,9]]));
+console.log("Example 2:", rowMajorTraversal([[3,2,1,7],[0,6,3,2]]));
+console.log("Example 3:", rowMajorTraversal([[1]]));
+console.log("Empty:    ", rowMajorTraversal([]));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func rowMajorTraversal(matrix [][]int) []int {
+    path := []int{}
+    if len(matrix) == 0 {
+        return path
+    }
+    rows, cols := len(matrix), len(matrix[0])
+    for row := 0; row < rows; row++ {
+        for col := 0; col < cols; col++ {
+            path = append(path, matrix[row][col])
+        }
+    }
+    return path
+}
+
+func main() {
+    fmt.Println("Example 1:", rowMajorTraversal([][]int{{1,2,3},{4,5,6},{7,8,9}}))
+    fmt.Println("Example 2:", rowMajorTraversal([][]int{{3,2,1,7},{0,6,3,2}}))
+    fmt.Println("Example 3:", rowMajorTraversal([][]int{{1}}))
+    fmt.Println("Empty:    ", rowMajorTraversal([][]int{}))
+}
+```
+
+```kotlin,editable
+fun rowMajorTraversal(matrix: Array<IntArray>): List<Int> {
+    if (matrix.isEmpty()) return emptyList()
+    val path = mutableListOf<Int>()
+    for (row in matrix.indices) {
+        for (col in matrix[row].indices) {
+            path.add(matrix[row][col])
+        }
+    }
+    return path
+}
+
+fun main() {
+    println("Example 1: " + rowMajorTraversal(arrayOf(intArrayOf(1,2,3), intArrayOf(4,5,6), intArrayOf(7,8,9))))
+    println("Example 2: " + rowMajorTraversal(arrayOf(intArrayOf(3,2,1,7), intArrayOf(0,6,3,2))))
+    println("Example 3: " + rowMajorTraversal(arrayOf(intArrayOf(1))))
+    println("Empty:     " + rowMajorTraversal(emptyArray()))
+}
+```
+
+```rust,editable
+fn row_major_traversal(matrix: &[Vec<i32>]) -> Vec<i32> {
+    let mut path = Vec::new();
+    if matrix.is_empty() { return path; }
+    for row in matrix {
+        for &v in row {
+            path.push(v);
+        }
+    }
+    path
+}
+
+fn main() {
+    println!("Example 1: {:?}", row_major_traversal(&vec![vec![1,2,3], vec![4,5,6], vec![7,8,9]]));
+    println!("Example 2: {:?}", row_major_traversal(&vec![vec![3,2,1,7], vec![0,6,3,2]]));
+    println!("Example 3: {:?}", row_major_traversal(&vec![vec![1]]));
+    println!("Empty:     {:?}", row_major_traversal(&Vec::<Vec<i32>>::new()));
+}
+```
+
+</div>
 
 ---
 
@@ -2352,25 +4430,189 @@ Column-major offset = 2 × 3 + 1 = 7  → address 1028
 
 The same logical element `arr[1][2]` lives at **different memory addresses** depending on the storage order. This is why mixing row-major and column-major code (e.g., calling a Fortran library from C) requires explicit transposition.
 
+<div class="lang-tabs">
+
 ```python,editable
-# Same logical element arr[1][2] — compare where it actually lands under each storage order.
+# Same arr[1][2] — different addresses depending on storage order.
 base = 1000
 element_size = 4
 num_rows, num_cols = 3, 4
 
-i, j = 1, 2   # Logical coordinates: row 1, column 2
+i, j = 1, 2
 
-# Row-major:    skip i full rows (each num_cols wide), then j positions into the row.
-# Column-major: skip j full columns (each num_rows tall), then i positions down the column.
-# The two formulas are mirror images — the multiplier is always the *length of one stride
-# in the direction you're skipping*.
-row_major_offset  = i * num_cols + j
-col_major_offset  = j * num_rows + i
+# Multiplier is the stride in the direction you're skipping.
+row_major_offset  = i * num_cols + j      # skip i rows, walk j columns
+col_major_offset  = j * num_rows + i      # skip j cols, walk i rows
 
 print(f"arr[{i}][{j}]")
 print(f"  Row-major:    offset={row_major_offset}, address={base + row_major_offset * element_size}")
 print(f"  Column-major: offset={col_major_offset}, address={base + col_major_offset * element_size}")
 ```
+
+```java,editable
+public class Main {
+    public static void main(String[] args) {
+        int base = 1000;
+        int elementSize = 4;
+        int numRows = 3, numCols = 4;
+        int i = 1, j = 2;
+
+        int rowMajorOffset = i * numCols + j;
+        int colMajorOffset = j * numRows + i;
+
+        System.out.println("arr[" + i + "][" + j + "]");
+        System.out.println("  Row-major:    offset=" + rowMajorOffset
+            + ", address=" + (base + rowMajorOffset * elementSize));
+        System.out.println("  Column-major: offset=" + colMajorOffset
+            + ", address=" + (base + colMajorOffset * elementSize));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int main() {
+    int base = 1000, element_size = 4;
+    int num_rows = 3, num_cols = 4;
+    int i = 1, j = 2;
+
+    int row_major_offset = i * num_cols + j;
+    int col_major_offset = j * num_rows + i;
+
+    printf("arr[%d][%d]\n", i, j);
+    printf("  Row-major:    offset=%d, address=%d\n",
+           row_major_offset, base + row_major_offset * element_size);
+    printf("  Column-major: offset=%d, address=%d\n",
+           col_major_offset, base + col_major_offset * element_size);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+
+int main() {
+    int base = 1000, element_size = 4;
+    int num_rows = 3, num_cols = 4;
+    int i = 1, j = 2;
+
+    int row_major_offset = i * num_cols + j;
+    int col_major_offset = j * num_rows + i;
+
+    std::cout << "arr[" << i << "][" << j << "]\n";
+    std::cout << "  Row-major:    offset=" << row_major_offset
+              << ", address=" << (base + row_major_offset * element_size) << "\n";
+    std::cout << "  Column-major: offset=" << col_major_offset
+              << ", address=" << (base + col_major_offset * element_size) << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  val base = 1000
+  val elementSize = 4
+  val numRows = 3
+  val numCols = 4
+  val i = 1
+  val j = 2
+
+  val rowMajorOffset = i * numCols + j
+  val colMajorOffset = j * numRows + i
+
+  println(s"arr($i)($j)")
+  println(s"  Row-major:    offset=$rowMajorOffset, address=${base + rowMajorOffset * elementSize}")
+  println(s"  Column-major: offset=$colMajorOffset, address=${base + colMajorOffset * elementSize}")
+}
+```
+
+```javascript,editable
+const base = 1000;
+const elementSize = 4;
+const numRows = 3, numCols = 4;
+const i = 1, j = 2;
+
+const rowMajorOffset = i * numCols + j;
+const colMajorOffset = j * numRows + i;
+
+console.log(`arr[${i}][${j}]`);
+console.log(`  Row-major:    offset=${rowMajorOffset}, address=${base + rowMajorOffset * elementSize}`);
+console.log(`  Column-major: offset=${colMajorOffset}, address=${base + colMajorOffset * elementSize}`);
+```
+
+```typescript,editable
+const base: number = 1000;
+const elementSize: number = 4;
+const numRows: number = 3, numCols: number = 4;
+const i: number = 1, j: number = 2;
+
+const rowMajorOffset = i * numCols + j;
+const colMajorOffset = j * numRows + i;
+
+console.log(`arr[${i}][${j}]`);
+console.log(`  Row-major:    offset=${rowMajorOffset}, address=${base + rowMajorOffset * elementSize}`);
+console.log(`  Column-major: offset=${colMajorOffset}, address=${base + colMajorOffset * elementSize}`);
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func main() {
+    base := 1000
+    elementSize := 4
+    numRows, numCols := 3, 4
+    i, j := 1, 2
+
+    rowMajorOffset := i*numCols + j
+    colMajorOffset := j*numRows + i
+
+    fmt.Printf("arr[%d][%d]\n", i, j)
+    fmt.Printf("  Row-major:    offset=%d, address=%d\n",
+        rowMajorOffset, base+rowMajorOffset*elementSize)
+    fmt.Printf("  Column-major: offset=%d, address=%d\n",
+        colMajorOffset, base+colMajorOffset*elementSize)
+}
+```
+
+```kotlin,editable
+fun main() {
+    val base = 1000
+    val elementSize = 4
+    val numRows = 3
+    val numCols = 4
+    val i = 1
+    val j = 2
+
+    val rowMajorOffset = i * numCols + j
+    val colMajorOffset = j * numRows + i
+
+    println("arr[$i][$j]")
+    println("  Row-major:    offset=$rowMajorOffset, address=${base + rowMajorOffset * elementSize}")
+    println("  Column-major: offset=$colMajorOffset, address=${base + colMajorOffset * elementSize}")
+}
+```
+
+```rust,editable
+fn main() {
+    let base = 1000;
+    let element_size = 4;
+    let (num_rows, num_cols) = (3, 4);
+    let (i, j) = (1, 2);
+
+    let row_major_offset = i * num_cols + j;
+    let col_major_offset = j * num_rows + i;
+
+    println!("arr[{}][{}]", i, j);
+    println!("  Row-major:    offset={}, address={}",
+        row_major_offset, base + row_major_offset * element_size);
+    println!("  Column-major: offset={}, address={}",
+        col_major_offset, base + col_major_offset * element_size);
+}
+```
+
+</div>
 
 ---
 
@@ -2590,8 +4832,10 @@ mem: {
 
 Notice how adjacent slots in memory always differ only in their D₃ index (0 or 1). That's the signature of D₃ moving fastest.
 
+<div class="lang-tabs">
+
 ```python,editable
-# Print every element's column-major offset and address for a 2 x 2 x 3 array.
+# Column-major offsets + addresses for a 2 x 2 x 3 array.
 base = 2
 element_size = 4
 D3, D2, D1 = 2, 2, 3
@@ -2599,19 +4843,193 @@ D3, D2, D1 = 2, 2, 3
 print(f"{'Index':<16} {'Offset':>6} {'Address':>8}")
 print("-" * 32)
 
-# Column-major flips the row-major nesting: highest dimension D3 becomes the FAST
-# (innermost) loop, lowest dimension D1 becomes the SLOW (outermost) loop.
-# Iterating in this order makes offset increase by exactly 1 per step — i.e. it
-# walks memory sequentially the way Fortran/MATLAB would.
-for i1 in range(D1):           # D1 slowest — only ticks once D2 and D3 both finish
-    for i2 in range(D2):       # D2 middle
-        for i3 in range(D3):   # D3 fastest — flips on every step
-            # Column-major offset: skip whole D1-slabs (size D2*D3), then whole D2-rows
-            # within that slab (size D3), then walk i3 positions.
+# Loop nesting flipped vs row-major: D1 slowest (outer), D3 fastest (inner).
+for i1 in range(D1):
+    for i2 in range(D2):
+        for i3 in range(D3):
             offset  = i1 * (D2 * D3) + i2 * D3 + i3
             address = base + offset * element_size
             print(f"[{i3}][{i2}][{i1}]          {offset:>6}    {address:>6}")
 ```
+
+```java,editable
+public class Main {
+    public static void main(String[] args) {
+        int base = 2, elementSize = 4;
+        int D3 = 2, D2 = 2, D1 = 3;
+
+        System.out.printf("%-16s %6s %8s%n", "Index", "Offset", "Address");
+        System.out.println("--------------------------------");
+        for (int i1 = 0; i1 < D1; i1++) {
+            for (int i2 = 0; i2 < D2; i2++) {
+                for (int i3 = 0; i3 < D3; i3++) {
+                    int offset  = i1 * (D2 * D3) + i2 * D3 + i3;
+                    int address = base + offset * elementSize;
+                    System.out.printf("[%d][%d][%d]          %6d    %6d%n", i3, i2, i1, offset, address);
+                }
+            }
+        }
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int main() {
+    int base = 2, element_size = 4;
+    int D3 = 2, D2 = 2, D1 = 3;
+
+    printf("%-16s %6s %8s\n", "Index", "Offset", "Address");
+    printf("--------------------------------\n");
+    for (int i1 = 0; i1 < D1; i1++) {
+        for (int i2 = 0; i2 < D2; i2++) {
+            for (int i3 = 0; i3 < D3; i3++) {
+                int offset  = i1 * (D2 * D3) + i2 * D3 + i3;
+                int address = base + offset * element_size;
+                printf("[%d][%d][%d]          %6d    %6d\n", i3, i2, i1, offset, address);
+            }
+        }
+    }
+    return 0;
+}
+```
+
+```cpp,editable
+#include <cstdio>
+
+int main() {
+    int base = 2, element_size = 4;
+    int D3 = 2, D2 = 2, D1 = 3;
+
+    std::printf("%-16s %6s %8s\n", "Index", "Offset", "Address");
+    std::printf("--------------------------------\n");
+    for (int i1 = 0; i1 < D1; i1++) {
+        for (int i2 = 0; i2 < D2; i2++) {
+            for (int i3 = 0; i3 < D3; i3++) {
+                int offset  = i1 * (D2 * D3) + i2 * D3 + i3;
+                int address = base + offset * element_size;
+                std::printf("[%d][%d][%d]          %6d    %6d\n", i3, i2, i1, offset, address);
+            }
+        }
+    }
+}
+```
+
+```scala,editable
+object Main extends App {
+  val base = 2
+  val elementSize = 4
+  val D3 = 2; val D2 = 2; val D1 = 3
+
+  println(f"${"Index"}%-16s ${"Offset"}%6s ${"Address"}%8s")
+  println("-" * 32)
+  for (i1 <- 0 until D1; i2 <- 0 until D2; i3 <- 0 until D3) {
+    val offset  = i1 * (D2 * D3) + i2 * D3 + i3
+    val address = base + offset * elementSize
+    println(f"[$i3][$i2][$i1]          $offset%6d    $address%6d")
+  }
+}
+```
+
+```javascript,editable
+const base = 2, elementSize = 4;
+const [D3, D2, D1] = [2, 2, 3];
+
+console.log("Index            Offset  Address");
+console.log("--------------------------------");
+for (let i1 = 0; i1 < D1; i1++) {
+    for (let i2 = 0; i2 < D2; i2++) {
+        for (let i3 = 0; i3 < D3; i3++) {
+            const offset  = i1 * (D2 * D3) + i2 * D3 + i3;
+            const address = base + offset * elementSize;
+            console.log(`[${i3}][${i2}][${i1}]          ${String(offset).padStart(6)}    ${String(address).padStart(6)}`);
+        }
+    }
+}
+```
+
+```typescript,editable
+const base: number = 2, elementSize: number = 4;
+const [D3, D2, D1]: [number, number, number] = [2, 2, 3];
+
+console.log("Index            Offset  Address");
+console.log("--------------------------------");
+for (let i1 = 0; i1 < D1; i1++) {
+    for (let i2 = 0; i2 < D2; i2++) {
+        for (let i3 = 0; i3 < D3; i3++) {
+            const offset  = i1 * (D2 * D3) + i2 * D3 + i3;
+            const address = base + offset * elementSize;
+            console.log(`[${i3}][${i2}][${i1}]          ${String(offset).padStart(6)}    ${String(address).padStart(6)}`);
+        }
+    }
+}
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func main() {
+    base, elementSize := 2, 4
+    D3, D2, D1 := 2, 2, 3
+
+    fmt.Printf("%-16s %6s %8s\n", "Index", "Offset", "Address")
+    fmt.Println("--------------------------------")
+    for i1 := 0; i1 < D1; i1++ {
+        for i2 := 0; i2 < D2; i2++ {
+            for i3 := 0; i3 < D3; i3++ {
+                offset  := i1*(D2*D3) + i2*D3 + i3
+                address := base + offset*elementSize
+                fmt.Printf("[%d][%d][%d]          %6d    %6d\n", i3, i2, i1, offset, address)
+            }
+        }
+    }
+}
+```
+
+```kotlin,editable
+fun main() {
+    val base = 2
+    val elementSize = 4
+    val D3 = 2; val D2 = 2; val D1 = 3
+
+    println("%-16s %6s %8s".format("Index", "Offset", "Address"))
+    println("--------------------------------")
+    for (i1 in 0 until D1) {
+        for (i2 in 0 until D2) {
+            for (i3 in 0 until D3) {
+                val offset  = i1 * (D2 * D3) + i2 * D3 + i3
+                val address = base + offset * elementSize
+                println("[$i3][$i2][$i1]          %6d    %6d".format(offset, address))
+            }
+        }
+    }
+}
+```
+
+```rust,editable
+fn main() {
+    let base = 2;
+    let element_size = 4;
+    let (d3, d2, d1) = (2, 2, 3);
+
+    println!("{:<16} {:>6} {:>8}", "Index", "Offset", "Address");
+    println!("--------------------------------");
+    for i1 in 0..d1 {
+        for i2 in 0..d2 {
+            for i3 in 0..d3 {
+                let offset  = i1 * (d2 * d3) + i2 * d3 + i3;
+                let address = base + offset * element_size;
+                println!("[{}][{}][{}]          {:>6}    {:>6}", i3, i2, i1, offset, address);
+            }
+        }
+    }
+}
+```
+
+</div>
 
 ---
 
@@ -2683,28 +5101,172 @@ Now compare these offsets with the row-major results from the previous chapter:
 
 `array[1][1][2]` lands at offset 11 in *both* orderings — because it's the last element regardless of how you count. `array[0][0][2]`, however, is at offset 2 in row-major (early) but offset 8 in column-major (late). The storage order completely reshuffles the positions.
 
+<div class="lang-tabs">
+
 ```python,editable
-# Confirm: same (i3, i2, i1) lands at different offsets under each ordering.
+# Same (i3, i2, i1), two orderings → typically two offsets.
 D3, D2, D1 = 2, 2, 3
 
-# Row-major: I1 cycles fastest, so I3 picks up the largest stride (D2 * D1 = 6).
 def row_major_offset(i3, i2, i1):
     return i3 * (D2 * D1) + i2 * D1 + i1
 
-# Column-major: I3 cycles fastest, so I1 picks up the largest stride (D2 * D3 = 4).
-# The strides are computed differently because the dimension that's "slow" changes.
 def col_major_offset(i3, i2, i1):
     return i1 * (D2 * D3) + i2 * D3 + i3
 
-# array[1][1][2] is the LAST element either way — both orderings put it at offset 11.
-# array[0][0][2] is mid-array in row-major (offset 2) but late in col-major (offset 8)
-# because column-major holds D1 fixed for as long as possible before incrementing it.
 for elem in [(0, 0, 2), (1, 1, 2)]:
     i3, i2, i1 = elem
     rm = row_major_offset(i3, i2, i1)
     cm = col_major_offset(i3, i2, i1)
     print(f"array[{i3}][{i2}][{i1}]: row-major offset={rm}, col-major offset={cm}")
 ```
+
+```java,editable
+public class Main {
+    static final int D3 = 2, D2 = 2, D1 = 3;
+
+    static int rowMajorOffset(int i3, int i2, int i1) {
+        return i3 * (D2 * D1) + i2 * D1 + i1;
+    }
+    static int colMajorOffset(int i3, int i2, int i1) {
+        return i1 * (D2 * D3) + i2 * D3 + i3;
+    }
+
+    public static void main(String[] args) {
+        int[][] coords = {{0,0,2}, {1,1,2}};
+        for (int[] c : coords) {
+            int i3 = c[0], i2 = c[1], i1 = c[2];
+            System.out.println("array[" + i3 + "][" + i2 + "][" + i1 + "]: row-major offset="
+                + rowMajorOffset(i3, i2, i1) + ", col-major offset=" + colMajorOffset(i3, i2, i1));
+        }
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+#define D3 2
+#define D2 2
+#define D1 3
+
+int row_major_offset(int i3, int i2, int i1) { return i3 * (D2 * D1) + i2 * D1 + i1; }
+int col_major_offset(int i3, int i2, int i1) { return i1 * (D2 * D3) + i2 * D3 + i3; }
+
+int main() {
+    int coords[2][3] = {{0,0,2}, {1,1,2}};
+    for (int k = 0; k < 2; k++) {
+        int i3 = coords[k][0], i2 = coords[k][1], i1 = coords[k][2];
+        printf("array[%d][%d][%d]: row-major offset=%d, col-major offset=%d\n",
+            i3, i2, i1, row_major_offset(i3, i2, i1), col_major_offset(i3, i2, i1));
+    }
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+
+constexpr int D3 = 2, D2 = 2, D1 = 3;
+
+int row_major_offset(int i3, int i2, int i1) { return i3 * (D2 * D1) + i2 * D1 + i1; }
+int col_major_offset(int i3, int i2, int i1) { return i1 * (D2 * D3) + i2 * D3 + i3; }
+
+int main() {
+    int coords[2][3] = {{0,0,2}, {1,1,2}};
+    for (auto& c : coords) {
+        int i3 = c[0], i2 = c[1], i1 = c[2];
+        std::cout << "array[" << i3 << "][" << i2 << "][" << i1
+                  << "]: row-major offset=" << row_major_offset(i3, i2, i1)
+                  << ", col-major offset=" << col_major_offset(i3, i2, i1) << "\n";
+    }
+}
+```
+
+```scala,editable
+object Main extends App {
+  val D3 = 2; val D2 = 2; val D1 = 3
+  def rowMajor(i3: Int, i2: Int, i1: Int) = i3 * (D2 * D1) + i2 * D1 + i1
+  def colMajor(i3: Int, i2: Int, i1: Int) = i1 * (D2 * D3) + i2 * D3 + i3
+
+  for ((i3, i2, i1) <- Seq((0,0,2), (1,1,2))) {
+    println(s"array($i3)($i2)($i1): row-major offset=${rowMajor(i3,i2,i1)}, col-major offset=${colMajor(i3,i2,i1)}")
+  }
+}
+```
+
+```javascript,editable
+const [D3, D2, D1] = [2, 2, 3];
+const rowMajor = (i3, i2, i1) => i3 * (D2 * D1) + i2 * D1 + i1;
+const colMajor = (i3, i2, i1) => i1 * (D2 * D3) + i2 * D3 + i3;
+
+for (const [i3, i2, i1] of [[0,0,2], [1,1,2]]) {
+    console.log(`array[${i3}][${i2}][${i1}]: row-major offset=${rowMajor(i3,i2,i1)}, col-major offset=${colMajor(i3,i2,i1)}`);
+}
+```
+
+```typescript,editable
+const [D3, D2, D1]: [number, number, number] = [2, 2, 3];
+const rowMajor = (i3: number, i2: number, i1: number): number => i3 * (D2 * D1) + i2 * D1 + i1;
+const colMajor = (i3: number, i2: number, i1: number): number => i1 * (D2 * D3) + i2 * D3 + i3;
+
+for (const [i3, i2, i1] of [[0,0,2], [1,1,2]]) {
+    console.log(`array[${i3}][${i2}][${i1}]: row-major offset=${rowMajor(i3,i2,i1)}, col-major offset=${colMajor(i3,i2,i1)}`);
+}
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+const D3 = 2
+const D2 = 2
+const D1 = 3
+
+func rowMajor(i3, i2, i1 int) int { return i3*(D2*D1) + i2*D1 + i1 }
+func colMajor(i3, i2, i1 int) int { return i1*(D2*D3) + i2*D3 + i3 }
+
+func main() {
+    for _, c := range [][3]int{{0,0,2}, {1,1,2}} {
+        i3, i2, i1 := c[0], c[1], c[2]
+        fmt.Printf("array[%d][%d][%d]: row-major offset=%d, col-major offset=%d\n",
+            i3, i2, i1, rowMajor(i3,i2,i1), colMajor(i3,i2,i1))
+    }
+}
+```
+
+```kotlin,editable
+const val D3 = 2
+const val D2 = 2
+const val D1 = 3
+
+fun rowMajor(i3: Int, i2: Int, i1: Int) = i3 * (D2 * D1) + i2 * D1 + i1
+fun colMajor(i3: Int, i2: Int, i1: Int) = i1 * (D2 * D3) + i2 * D3 + i3
+
+fun main() {
+    for ((i3, i2, i1) in listOf(Triple(0,0,2), Triple(1,1,2))) {
+        println("array[$i3][$i2][$i1]: row-major offset=${rowMajor(i3,i2,i1)}, col-major offset=${colMajor(i3,i2,i1)}")
+    }
+}
+```
+
+```rust,editable
+const D3: i32 = 2;
+const D2: i32 = 2;
+const D1: i32 = 3;
+
+fn row_major(i3: i32, i2: i32, i1: i32) -> i32 { i3 * (D2 * D1) + i2 * D1 + i1 }
+fn col_major(i3: i32, i2: i32, i1: i32) -> i32 { i1 * (D2 * D3) + i2 * D3 + i3 }
+
+fn main() {
+    for &(i3, i2, i1) in &[(0,0,2), (1,1,2)] {
+        println!("array[{}][{}][{}]: row-major offset={}, col-major offset={}",
+            i3, i2, i1, row_major(i3,i2,i1), col_major(i3,i2,i1));
+    }
+}
+```
+
+</div>
 
 ---
 
@@ -2926,13 +5488,13 @@ The one critical change vs. row-major: **`col` is the outer loop variable, `row`
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
     def column_major_traversal(self, matrix: List[List[int]]) -> List[int]:
-
-        # Guard against empty input — len(matrix[0]) below would crash on an empty list.
         if not matrix:
             return []
 
@@ -2940,33 +5502,227 @@ class Solution:
         cols: int = len(matrix[0])
         path: List[int] = []
 
-        # Outer loop = columns (slow): the column index now ticks least often. This
-        # single swap relative to row-major flips the visit order entirely.
+        # Swap of row-major: cols outer (slow), rows inner (fast).
         for col in range(cols):
-            # Inner loop = rows (fast): drains an entire column top-to-bottom before
-            # the outer loop advances. In Python (row-major storage), each row jump
-            # crosses `cols` slots in memory — that's the cache-unfriendly path.
             for row in range(rows):
                 path.append(matrix[row][col])
-
         return path
 
 
-# --- Test it ---
 s = Solution()
-
-m1 = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-print("Example 1:", s.column_major_traversal(m1))   # [1, 4, 7, 2, 5, 8, 3, 6, 9]
-
-m2 = [[3, 2, 1, 7], [0, 6, 3, 2]]
-print("Example 2:", s.column_major_traversal(m2))   # [3, 0, 2, 6, 1, 3, 7, 2]
-
-m3 = [[1]]
-print("Example 3:", s.column_major_traversal(m3))   # [1]
-
-m4 = []
-print("Empty:    ", s.column_major_traversal(m4))   # []
+print("Example 1:", s.column_major_traversal([[1,2,3],[4,5,6],[7,8,9]]))
+print("Example 2:", s.column_major_traversal([[3,2,1,7],[0,6,3,2]]))
+print("Example 3:", s.column_major_traversal([[1]]))
+print("Empty:    ", s.column_major_traversal([]))
 ```
+
+```java,editable
+import java.util.*;
+
+public class Main {
+    static List<Integer> columnMajorTraversal(int[][] matrix) {
+        List<Integer> path = new ArrayList<>();
+        if (matrix.length == 0) return path;
+        int rows = matrix.length, cols = matrix[0].length;
+        for (int col = 0; col < cols; col++) {
+            for (int row = 0; row < rows; row++) {
+                path.add(matrix[row][col]);
+            }
+        }
+        return path;
+    }
+
+    public static void main(String[] args) {
+        System.out.println("Example 1: " + columnMajorTraversal(new int[][]{{1,2,3},{4,5,6},{7,8,9}}));
+        System.out.println("Example 2: " + columnMajorTraversal(new int[][]{{3,2,1,7},{0,6,3,2}}));
+        System.out.println("Example 3: " + columnMajorTraversal(new int[][]{{1}}));
+        System.out.println("Empty:     " + columnMajorTraversal(new int[][]{}));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+void column_major_traversal(int rows, int cols, int matrix[rows][cols]) {
+    /* cols outer (slow), rows inner (fast). */
+    for (int col = 0; col < cols; col++) {
+        for (int row = 0; row < rows; row++) {
+            printf("%d ", matrix[row][col]);
+        }
+    }
+    printf("\n");
+}
+
+int main() {
+    int m1[3][3] = {{1,2,3},{4,5,6},{7,8,9}};
+    int m2[2][4] = {{3,2,1,7},{0,6,3,2}};
+    int m3[1][1] = {{1}};
+
+    printf("Example 1: "); column_major_traversal(3, 3, m1);
+    printf("Example 2: "); column_major_traversal(2, 4, m2);
+    printf("Example 3: "); column_major_traversal(1, 1, m3);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+std::vector<int> column_major_traversal(const std::vector<std::vector<int>>& matrix) {
+    std::vector<int> path;
+    if (matrix.empty()) return path;
+    int rows = matrix.size(), cols = matrix[0].size();
+    for (int col = 0; col < cols; col++) {
+        for (int row = 0; row < rows; row++) {
+            path.push_back(matrix[row][col]);
+        }
+    }
+    return path;
+}
+
+int main() {
+    auto print = [](const std::vector<int>& v) {
+        std::cout << "[";
+        for (size_t i = 0; i < v.size(); i++) std::cout << v[i] << (i + 1 < v.size() ? ", " : "");
+        std::cout << "]\n";
+    };
+    print(column_major_traversal({{1,2,3},{4,5,6},{7,8,9}}));
+    print(column_major_traversal({{3,2,1,7},{0,6,3,2}}));
+    print(column_major_traversal({{1}}));
+    print(column_major_traversal({}));
+}
+```
+
+```scala,editable
+object Main extends App {
+  def columnMajorTraversal(matrix: Array[Array[Int]]): List[Int] = {
+    if (matrix.isEmpty) return Nil
+    val rows = matrix.length
+    val cols = matrix(0).length
+    val buf = scala.collection.mutable.ListBuffer.empty[Int]
+    for (col <- 0 until cols; row <- 0 until rows) buf += matrix(row)(col)
+    buf.toList
+  }
+
+  println("Example 1: " + columnMajorTraversal(Array(Array(1,2,3), Array(4,5,6), Array(7,8,9))))
+  println("Example 2: " + columnMajorTraversal(Array(Array(3,2,1,7), Array(0,6,3,2))))
+  println("Example 3: " + columnMajorTraversal(Array(Array(1))))
+  println("Empty:     " + columnMajorTraversal(Array.empty[Array[Int]]))
+}
+```
+
+```javascript,editable
+function columnMajorTraversal(matrix) {
+    const path = [];
+    if (!matrix.length) return path;
+    const rows = matrix.length, cols = matrix[0].length;
+    for (let col = 0; col < cols; col++) {
+        for (let row = 0; row < rows; row++) {
+            path.push(matrix[row][col]);
+        }
+    }
+    return path;
+}
+
+console.log("Example 1:", columnMajorTraversal([[1,2,3],[4,5,6],[7,8,9]]));
+console.log("Example 2:", columnMajorTraversal([[3,2,1,7],[0,6,3,2]]));
+console.log("Example 3:", columnMajorTraversal([[1]]));
+console.log("Empty:    ", columnMajorTraversal([]));
+```
+
+```typescript,editable
+function columnMajorTraversal(matrix: number[][]): number[] {
+    const path: number[] = [];
+    if (!matrix.length) return path;
+    const rows = matrix.length, cols = matrix[0].length;
+    for (let col = 0; col < cols; col++) {
+        for (let row = 0; row < rows; row++) {
+            path.push(matrix[row][col]);
+        }
+    }
+    return path;
+}
+
+console.log("Example 1:", columnMajorTraversal([[1,2,3],[4,5,6],[7,8,9]]));
+console.log("Example 2:", columnMajorTraversal([[3,2,1,7],[0,6,3,2]]));
+console.log("Example 3:", columnMajorTraversal([[1]]));
+console.log("Empty:    ", columnMajorTraversal([]));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func columnMajorTraversal(matrix [][]int) []int {
+    path := []int{}
+    if len(matrix) == 0 {
+        return path
+    }
+    rows, cols := len(matrix), len(matrix[0])
+    for col := 0; col < cols; col++ {
+        for row := 0; row < rows; row++ {
+            path = append(path, matrix[row][col])
+        }
+    }
+    return path
+}
+
+func main() {
+    fmt.Println("Example 1:", columnMajorTraversal([][]int{{1,2,3},{4,5,6},{7,8,9}}))
+    fmt.Println("Example 2:", columnMajorTraversal([][]int{{3,2,1,7},{0,6,3,2}}))
+    fmt.Println("Example 3:", columnMajorTraversal([][]int{{1}}))
+    fmt.Println("Empty:    ", columnMajorTraversal([][]int{}))
+}
+```
+
+```kotlin,editable
+fun columnMajorTraversal(matrix: Array<IntArray>): List<Int> {
+    if (matrix.isEmpty()) return emptyList()
+    val rows = matrix.size
+    val cols = matrix[0].size
+    val path = mutableListOf<Int>()
+    for (col in 0 until cols) {
+        for (row in 0 until rows) {
+            path.add(matrix[row][col])
+        }
+    }
+    return path
+}
+
+fun main() {
+    println("Example 1: " + columnMajorTraversal(arrayOf(intArrayOf(1,2,3), intArrayOf(4,5,6), intArrayOf(7,8,9))))
+    println("Example 2: " + columnMajorTraversal(arrayOf(intArrayOf(3,2,1,7), intArrayOf(0,6,3,2))))
+    println("Example 3: " + columnMajorTraversal(arrayOf(intArrayOf(1))))
+    println("Empty:     " + columnMajorTraversal(emptyArray()))
+}
+```
+
+```rust,editable
+fn column_major_traversal(matrix: &[Vec<i32>]) -> Vec<i32> {
+    let mut path = Vec::new();
+    if matrix.is_empty() { return path; }
+    let rows = matrix.len();
+    let cols = matrix[0].len();
+    for col in 0..cols {
+        for row in 0..rows {
+            path.push(matrix[row][col]);
+        }
+    }
+    path
+}
+
+fn main() {
+    println!("Example 1: {:?}", column_major_traversal(&vec![vec![1,2,3], vec![4,5,6], vec![7,8,9]]));
+    println!("Example 2: {:?}", column_major_traversal(&vec![vec![3,2,1,7], vec![0,6,3,2]]));
+    println!("Example 3: {:?}", column_major_traversal(&vec![vec![1]]));
+    println!("Empty:     {:?}", column_major_traversal(&Vec::<Vec<i32>>::new()));
+}
+```
+
+</div>
 
 ---
 
@@ -2995,24 +5751,195 @@ Trace through `[[3, 2, 1, 7], [0, 6, 3, 2]]`:
 
 ## Row-Major vs Column-Major — The Full Comparison
 
-```python,editable
-# Same matrix, same indexing, same Python — only the loop order differs.
-matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+<div class="lang-tabs">
 
+```python,editable
+# Same matrix, same indexing — only the loop order differs.
+matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
 rows = len(matrix)
 cols = len(matrix[0])
 
-# In a list comprehension, the LEFTMOST `for` is the outer loop.
-# Row-major: r is outer (slow) → finishes a row before moving to the next.
-# Column-major: c is outer (slow) → drains a column before moving to the next.
-row_major = [matrix[r][c] for r in range(rows) for c in range(cols)]
-col_major = [matrix[r][c] for c in range(cols) for r in range(rows)]
+# Leftmost `for` in a comprehension = outer loop.
+row_major = [matrix[r][c] for r in range(rows) for c in range(cols)]  # r outer (slow)
+col_major = [matrix[r][c] for c in range(cols) for r in range(rows)]  # c outer (slow)
 
 print("Row-major:    ", row_major)   # [1, 2, 3, 4, 5, 6, 7, 8, 9]
 print("Column-major: ", col_major)   # [1, 4, 7, 2, 5, 8, 3, 6, 9]
-
-# The ONLY difference: which loop variable is outer vs inner.
 ```
+
+```java,editable
+import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        int[][] matrix = {{1,2,3},{4,5,6},{7,8,9}};
+        int rows = matrix.length, cols = matrix[0].length;
+
+        List<Integer> rowMajor = new ArrayList<>();
+        for (int r = 0; r < rows; r++)
+            for (int c = 0; c < cols; c++)
+                rowMajor.add(matrix[r][c]);
+
+        List<Integer> colMajor = new ArrayList<>();
+        for (int c = 0; c < cols; c++)
+            for (int r = 0; r < rows; r++)
+                colMajor.add(matrix[r][c]);
+
+        System.out.println("Row-major:    " + rowMajor);
+        System.out.println("Column-major: " + colMajor);
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int main() {
+    int matrix[3][3] = {{1,2,3},{4,5,6},{7,8,9}};
+    int rows = 3, cols = 3;
+
+    printf("Row-major:    ");
+    for (int r = 0; r < rows; r++)
+        for (int c = 0; c < cols; c++) printf("%d ", matrix[r][c]);
+    printf("\n");
+
+    printf("Column-major: ");
+    for (int c = 0; c < cols; c++)
+        for (int r = 0; r < rows; r++) printf("%d ", matrix[r][c]);
+    printf("\n");
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+int main() {
+    std::vector<std::vector<int>> matrix = {{1,2,3},{4,5,6},{7,8,9}};
+    int rows = matrix.size(), cols = matrix[0].size();
+
+    std::cout << "Row-major:    ";
+    for (int r = 0; r < rows; r++)
+        for (int c = 0; c < cols; c++) std::cout << matrix[r][c] << " ";
+    std::cout << "\n";
+
+    std::cout << "Column-major: ";
+    for (int c = 0; c < cols; c++)
+        for (int r = 0; r < rows; r++) std::cout << matrix[r][c] << " ";
+    std::cout << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  val matrix = Array(Array(1,2,3), Array(4,5,6), Array(7,8,9))
+  val rows = matrix.length
+  val cols = matrix(0).length
+
+  val rowMajor = for (r <- 0 until rows; c <- 0 until cols) yield matrix(r)(c)
+  val colMajor = for (c <- 0 until cols; r <- 0 until rows) yield matrix(r)(c)
+
+  println("Row-major:    " + rowMajor.mkString(", "))
+  println("Column-major: " + colMajor.mkString(", "))
+}
+```
+
+```javascript,editable
+const matrix = [[1,2,3],[4,5,6],[7,8,9]];
+const rows = matrix.length, cols = matrix[0].length;
+
+const rowMajor = [];
+for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) rowMajor.push(matrix[r][c]);
+
+const colMajor = [];
+for (let c = 0; c < cols; c++)
+    for (let r = 0; r < rows; r++) colMajor.push(matrix[r][c]);
+
+console.log("Row-major:    ", rowMajor);
+console.log("Column-major: ", colMajor);
+```
+
+```typescript,editable
+const matrix: number[][] = [[1,2,3],[4,5,6],[7,8,9]];
+const rows = matrix.length, cols = matrix[0].length;
+
+const rowMajor: number[] = [];
+for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) rowMajor.push(matrix[r][c]);
+
+const colMajor: number[] = [];
+for (let c = 0; c < cols; c++)
+    for (let r = 0; r < rows; r++) colMajor.push(matrix[r][c]);
+
+console.log("Row-major:    ", rowMajor);
+console.log("Column-major: ", colMajor);
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func main() {
+    matrix := [][]int{{1,2,3},{4,5,6},{7,8,9}}
+    rows, cols := len(matrix), len(matrix[0])
+
+    rowMajor := []int{}
+    for r := 0; r < rows; r++ {
+        for c := 0; c < cols; c++ {
+            rowMajor = append(rowMajor, matrix[r][c])
+        }
+    }
+
+    colMajor := []int{}
+    for c := 0; c < cols; c++ {
+        for r := 0; r < rows; r++ {
+            colMajor = append(colMajor, matrix[r][c])
+        }
+    }
+
+    fmt.Println("Row-major:    ", rowMajor)
+    fmt.Println("Column-major: ", colMajor)
+}
+```
+
+```kotlin,editable
+fun main() {
+    val matrix = arrayOf(intArrayOf(1,2,3), intArrayOf(4,5,6), intArrayOf(7,8,9))
+    val rows = matrix.size
+    val cols = matrix[0].size
+
+    val rowMajor = mutableListOf<Int>()
+    for (r in 0 until rows) for (c in 0 until cols) rowMajor.add(matrix[r][c])
+
+    val colMajor = mutableListOf<Int>()
+    for (c in 0 until cols) for (r in 0 until rows) colMajor.add(matrix[r][c])
+
+    println("Row-major:    $rowMajor")
+    println("Column-major: $colMajor")
+}
+```
+
+```rust,editable
+fn main() {
+    let matrix = [[1,2,3], [4,5,6], [7,8,9]];
+    let rows = matrix.len();
+    let cols = matrix[0].len();
+
+    let mut row_major = Vec::new();
+    for r in 0..rows { for c in 0..cols { row_major.push(matrix[r][c]); } }
+
+    let mut col_major = Vec::new();
+    for c in 0..cols { for r in 0..rows { col_major.push(matrix[r][c]); } }
+
+    println!("Row-major:    {:?}", row_major);
+    println!("Column-major: {:?}", col_major);
+}
+```
+
+</div>
 
 The entire difference is **one loop swap**. That's all that separates row-major from column-major traversal in code.
 
