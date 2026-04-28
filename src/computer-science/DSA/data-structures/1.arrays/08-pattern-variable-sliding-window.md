@@ -355,42 +355,299 @@ The four adaptations you make when solving a specific problem:
 
 Given below is the generic code implementation of the variable-sized sliding window technique on an array `arr`, using `start` and `end` as the boundaries of the window.
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
+def f_add(agg, x): return agg + x
+def f_remove(agg, x): return agg - x
+def process(agg): pass
+
+# Stand-in flags — replace with the real problem-specific predicates.
+should_contract = False
+should_expand   = True
+
 def variable_sliding_window(arr: List[int]) -> None:
-    # Initialize start and end to 0 — both boundaries begin at the start of the array
-    start = 0
-    end   = 0
-
-    # Initialize aggregate to a default value dictated by the problem
-    # e.g. 0 for sum, 1 for product, {} for frequency map, float('-inf') for max
+    start = end = 0
     aggregate = 0
-
-    # Move end forward each iteration until it reaches the end of the array
     while end < len(arr):
+        aggregate = f_add(aggregate, arr[end])         # Step 3.1: add arr[end].
+        process(aggregate)                              # Step 3.2: process current window.
 
-        # Step 3.1: Add contribution of arr[end] to aggregate
-        # f_add must be O(1): += for sum, *= for product, dict update for freq map
-        aggregate = f_add(aggregate, arr[end])
-
-        # Step 3.2: Process aggregate — aggregate now holds f over arr[start..end]
-        # This is where the problem's output logic lives (update max, count, etc.)
-        process(aggregate)
-
-        # Step 3.3: Check if we should contract the window
-        # Use 'while' instead of 'if' when multiple contractions may be needed
-        if should_contract:
-            # Remove arr[start]'s contribution using the inverse function
+        if should_contract:                             # Step 3.3: shrink (use while if needed).
             aggregate = f_remove(aggregate, arr[start])
-            # Contract window from the left — arr[start] is no longer in the window
             start += 1
 
-        # Step 3.4: Check if we should expand the window
-        # arr[end+1]'s contribution will be added in the next iteration's Step 3.1
-        if should_expand:
+        if should_expand:                               # Step 3.4: extend right.
             end += 1
 ```
+
+```java,editable
+public class Main {
+    static int fAdd(int agg, int x)    { return agg + x; }
+    static int fRemove(int agg, int x) { return agg - x; }
+    static void process(int agg)       { /* problem-specific */ }
+
+    static boolean shouldContract = false;
+    static boolean shouldExpand   = true;
+
+    static void variableSlidingWindow(int[] arr) {
+        int start = 0, end = 0, aggregate = 0;
+        while (end < arr.length) {
+            aggregate = fAdd(aggregate, arr[end]);
+            process(aggregate);
+
+            if (shouldContract) {
+                aggregate = fRemove(aggregate, arr[start]);
+                start++;
+            }
+            if (shouldExpand) {
+                end++;
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        variableSlidingWindow(new int[]{1, 2, 3, 4});
+        System.out.println("Template ran.");
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdbool.h>
+
+int  f_add(int agg, int x)    { return agg + x; }
+int  f_remove(int agg, int x) { return agg - x; }
+void process(int agg)         { (void)agg; }
+
+bool should_contract = false;
+bool should_expand   = true;
+
+void variable_sliding_window(int* arr, int n) {
+    int start = 0, end = 0, aggregate = 0;
+    while (end < n) {
+        aggregate = f_add(aggregate, arr[end]);
+        process(aggregate);
+        if (should_contract) {
+            aggregate = f_remove(aggregate, arr[start]);
+            start++;
+        }
+        if (should_expand) end++;
+    }
+}
+
+int main() {
+    int arr[] = {1, 2, 3, 4};
+    variable_sliding_window(arr, 4);
+    printf("Template ran.\n");
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+int  fAdd(int agg, int x)    { return agg + x; }
+int  fRemove(int agg, int x) { return agg - x; }
+void process(int)            { /* problem-specific */ }
+
+bool shouldContract = false;
+bool shouldExpand   = true;
+
+void variableSlidingWindow(const std::vector<int>& arr) {
+    int start = 0, end = 0, aggregate = 0;
+    while (end < (int)arr.size()) {
+        aggregate = fAdd(aggregate, arr[end]);
+        process(aggregate);
+        if (shouldContract) {
+            aggregate = fRemove(aggregate, arr[start]);
+            start++;
+        }
+        if (shouldExpand) end++;
+    }
+}
+
+int main() {
+    variableSlidingWindow({1, 2, 3, 4});
+    std::cout << "Template ran.\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  def fAdd(agg: Int, x: Int): Int    = agg + x
+  def fRemove(agg: Int, x: Int): Int = agg - x
+  def process(agg: Int): Unit = ()
+
+  val shouldContract = false
+  val shouldExpand   = true
+
+  def variableSlidingWindow(arr: Array[Int]): Unit = {
+    var start = 0
+    var end = 0
+    var aggregate = 0
+    while (end < arr.length) {
+      aggregate = fAdd(aggregate, arr(end))
+      process(aggregate)
+      if (shouldContract) {
+        aggregate = fRemove(aggregate, arr(start))
+        start += 1
+      }
+      if (shouldExpand) end += 1
+    }
+  }
+
+  variableSlidingWindow(Array(1, 2, 3, 4))
+  println("Template ran.")
+}
+```
+
+```javascript,editable
+const fAdd    = (agg, x) => agg + x;
+const fRemove = (agg, x) => agg - x;
+const process = (agg)    => { /* problem-specific */ };
+
+const shouldContract = false;
+const shouldExpand   = true;
+
+function variableSlidingWindow(arr) {
+    let start = 0, end = 0, aggregate = 0;
+    while (end < arr.length) {
+        aggregate = fAdd(aggregate, arr[end]);
+        process(aggregate);
+        if (shouldContract) {
+            aggregate = fRemove(aggregate, arr[start]);
+            start++;
+        }
+        if (shouldExpand) end++;
+    }
+}
+
+variableSlidingWindow([1, 2, 3, 4]);
+console.log("Template ran.");
+```
+
+```typescript,editable
+const fAdd    = (agg: number, x: number): number => agg + x;
+const fRemove = (agg: number, x: number): number => agg - x;
+const process = (_: number): void => { /* problem-specific */ };
+
+const shouldContract: boolean = false;
+const shouldExpand:   boolean = true;
+
+function variableSlidingWindow(arr: number[]): void {
+    let start = 0, end = 0, aggregate = 0;
+    while (end < arr.length) {
+        aggregate = fAdd(aggregate, arr[end]);
+        process(aggregate);
+        if (shouldContract) {
+            aggregate = fRemove(aggregate, arr[start]);
+            start++;
+        }
+        if (shouldExpand) end++;
+    }
+}
+
+variableSlidingWindow([1, 2, 3, 4]);
+console.log("Template ran.");
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func fAdd(agg, x int) int    { return agg + x }
+func fRemove(agg, x int) int { return agg - x }
+func process(agg int)        { _ = agg }
+
+const shouldContract = false
+const shouldExpand   = true
+
+func variableSlidingWindow(arr []int) {
+    start, end, aggregate := 0, 0, 0
+    for end < len(arr) {
+        aggregate = fAdd(aggregate, arr[end])
+        process(aggregate)
+        if shouldContract {
+            aggregate = fRemove(aggregate, arr[start])
+            start++
+        }
+        if shouldExpand {
+            end++
+        }
+    }
+}
+
+func main() {
+    variableSlidingWindow([]int{1, 2, 3, 4})
+    fmt.Println("Template ran.")
+}
+```
+
+```kotlin,editable
+fun fAdd(agg: Int, x: Int) = agg + x
+fun fRemove(agg: Int, x: Int) = agg - x
+fun process(agg: Int) { /* problem-specific */ }
+
+val shouldContract = false
+val shouldExpand   = true
+
+fun variableSlidingWindow(arr: IntArray) {
+    var start = 0
+    var end = 0
+    var aggregate = 0
+    while (end < arr.size) {
+        aggregate = fAdd(aggregate, arr[end])
+        process(aggregate)
+        if (shouldContract) {
+            aggregate = fRemove(aggregate, arr[start])
+            start++
+        }
+        if (shouldExpand) end++
+    }
+}
+
+fun main() {
+    variableSlidingWindow(intArrayOf(1, 2, 3, 4))
+    println("Template ran.")
+}
+```
+
+```rust,editable
+fn f_add(agg: i32, x: i32) -> i32    { agg + x }
+fn f_remove(agg: i32, x: i32) -> i32 { agg - x }
+fn process(_agg: i32)                {}
+
+const SHOULD_CONTRACT: bool = false;
+const SHOULD_EXPAND:   bool = true;
+
+fn variable_sliding_window(arr: &[i32]) {
+    let mut start = 0usize;
+    let mut end = 0usize;
+    let mut aggregate = 0i32;
+    while end < arr.len() {
+        aggregate = f_add(aggregate, arr[end]);
+        process(aggregate);
+        if SHOULD_CONTRACT {
+            aggregate = f_remove(aggregate, arr[start]);
+            start += 1;
+        }
+        if SHOULD_EXPAND { end += 1; }
+    }
+}
+
+fn main() {
+    variable_sliding_window(&[1, 2, 3, 4]);
+    println!("Template ran.");
+}
+```
+
+</div>
 
 Notice how this template mirrors the fixed window structurally — the same `start`, `end`, `aggregate` trio — but the contraction and expansion decisions are now **conditional** rather than triggered mechanically by the window size crossing `k`. That conditionality is where all the problem-specific logic lives.
 
@@ -571,26 +828,204 @@ i3: "Outer loop i=3: all subarrays starting at index 3" {
 
 <p align="center"><strong>Brute force checks every subarray — N(N+1)/2 total. For each outer position <code>i</code>, the inner loop extends <code>j</code> rightward accumulating the sum. Every subarray is evaluated explicitly.</strong></p>
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 def max_subarray_sum_brute(arr: List[int]) -> int:
-    # Initialize max_sum to negative infinity — handles arrays that are entirely negative
-    max_sum = float('-inf')
-
-    # Outer loop: fix the starting index of the subarray
+    max_sum = float('-inf')                          # -∞ handles all-negative arrays.
     for i in range(len(arr)):
         current_sum = 0
-        # Inner loop: extend the subarray one element at a time from i rightward
         for j in range(i, len(arr)):
-            current_sum += arr[j]                    # Grow the subarray by arr[j]
-            max_sum = max(current_sum, max_sum)      # Update best seen so far
-
+            current_sum += arr[j]
+            max_sum = max(current_sum, max_sum)
     return max_sum
 
-# Test it
-print(max_subarray_sum_brute([-2, 1, -3, 4, -1, 2, 1, -5, 4]))  # Expected: 6
+print(max_subarray_sum_brute([-2, 1, -3, 4, -1, 2, 1, -5, 4]))   # 6
 ```
+
+```java,editable
+public class Main {
+    static int maxSubarraySumBrute(int[] arr) {
+        int maxSum = Integer.MIN_VALUE;
+        for (int i = 0; i < arr.length; i++) {
+            int currentSum = 0;
+            for (int j = i; j < arr.length; j++) {
+                currentSum += arr[j];
+                if (currentSum > maxSum) maxSum = currentSum;
+            }
+        }
+        return maxSum;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(maxSubarraySumBrute(new int[]{-2, 1, -3, 4, -1, 2, 1, -5, 4}));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <limits.h>
+
+int max_subarray_sum_brute(int* arr, int n) {
+    int max_sum = INT_MIN;
+    for (int i = 0; i < n; i++) {
+        int current = 0;
+        for (int j = i; j < n; j++) {
+            current += arr[j];
+            if (current > max_sum) max_sum = current;
+        }
+    }
+    return max_sum;
+}
+
+int main() {
+    int arr[] = {-2, 1, -3, 4, -1, 2, 1, -5, 4};
+    printf("%d\n", max_subarray_sum_brute(arr, 9));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <climits>
+#include <algorithm>
+
+int maxSubarraySumBrute(const std::vector<int>& arr) {
+    int maxSum = INT_MIN;
+    int n = (int)arr.size();
+    for (int i = 0; i < n; i++) {
+        int current = 0;
+        for (int j = i; j < n; j++) {
+            current += arr[j];
+            maxSum = std::max(maxSum, current);
+        }
+    }
+    return maxSum;
+}
+
+int main() {
+    std::cout << maxSubarraySumBrute({-2, 1, -3, 4, -1, 2, 1, -5, 4}) << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  def maxSubarraySumBrute(arr: Array[Int]): Int = {
+    var maxSum = Int.MinValue
+    for (i <- arr.indices) {
+      var current = 0
+      for (j <- i until arr.length) {
+        current += arr(j)
+        maxSum = math.max(maxSum, current)
+      }
+    }
+    maxSum
+  }
+
+  println(maxSubarraySumBrute(Array(-2, 1, -3, 4, -1, 2, 1, -5, 4)))
+}
+```
+
+```javascript,editable
+function maxSubarraySumBrute(arr) {
+    let maxSum = -Infinity;
+    for (let i = 0; i < arr.length; i++) {
+        let current = 0;
+        for (let j = i; j < arr.length; j++) {
+            current += arr[j];
+            maxSum = Math.max(maxSum, current);
+        }
+    }
+    return maxSum;
+}
+
+console.log(maxSubarraySumBrute([-2, 1, -3, 4, -1, 2, 1, -5, 4]));
+```
+
+```typescript,editable
+function maxSubarraySumBrute(arr: number[]): number {
+    let maxSum = -Infinity;
+    for (let i = 0; i < arr.length; i++) {
+        let current = 0;
+        for (let j = i; j < arr.length; j++) {
+            current += arr[j];
+            maxSum = Math.max(maxSum, current);
+        }
+    }
+    return maxSum;
+}
+
+console.log(maxSubarraySumBrute([-2, 1, -3, 4, -1, 2, 1, -5, 4]));
+```
+
+```go,editable
+package main
+
+import (
+    "fmt"
+    "math"
+)
+
+func maxSubarraySumBrute(arr []int) int {
+    maxSum := math.MinInt32
+    for i := 0; i < len(arr); i++ {
+        current := 0
+        for j := i; j < len(arr); j++ {
+            current += arr[j]
+            if current > maxSum {
+                maxSum = current
+            }
+        }
+    }
+    return maxSum
+}
+
+func main() {
+    fmt.Println(maxSubarraySumBrute([]int{-2, 1, -3, 4, -1, 2, 1, -5, 4}))
+}
+```
+
+```kotlin,editable
+fun maxSubarraySumBrute(arr: IntArray): Int {
+    var maxSum = Int.MIN_VALUE
+    for (i in arr.indices) {
+        var current = 0
+        for (j in i until arr.size) {
+            current += arr[j]
+            if (current > maxSum) maxSum = current
+        }
+    }
+    return maxSum
+}
+
+fun main() {
+    println(maxSubarraySumBrute(intArrayOf(-2, 1, -3, 4, -1, 2, 1, -5, 4)))
+}
+```
+
+```rust,editable
+fn max_subarray_sum_brute(arr: &[i32]) -> i32 {
+    let mut max_sum = i32::MIN;
+    for i in 0..arr.len() {
+        let mut current = 0;
+        for j in i..arr.len() {
+            current += arr[j];
+            if current > max_sum { max_sum = current; }
+        }
+    }
+    max_sum
+}
+
+fn main() {
+    println!("{}", max_subarray_sum_brute(&[-2, 1, -3, 4, -1, 2, 1, -5, 4]));
+}
+```
+
+</div>
 
 Though the solution is correct, it requires nested loops and has a time complexity of **O(N²)** in any case. For N = 100,000, this runs approximately 5 billion operations — completely impractical.
 
@@ -641,6 +1076,8 @@ flowchart TB
 
 <p align="center"><strong>The variable-sized sliding window skips all subarrays starting between <code>start+1</code> and <code>end</code>, and all subarrays starting at <code>start</code> and ending beyond <code>end</code>. Two resets occur — at <code>end=1</code> and <code>end=3</code> — discarding all subarrays rooted in those negative prefixes.</strong></p>
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
@@ -649,38 +1086,218 @@ def max_subarray_sum(arr: List[int]) -> int:
     if n == 0:
         return 0
 
-    start = 0  # Left boundary of the current window
-    end   = 0  # Right boundary — expands each iteration
-
-    # Seed with arr[0] — do NOT use 0 as initial value because all-negative arrays
-    # (like [-3, -1, -2]) would incorrectly return 0 instead of -1
-    current = arr[0]
-    max_sum = arr[0]
-
-    end += 1  # arr[0] is already seeded; begin the main loop from index 1
+    # Seed with arr[0] — using 0 would break all-negative inputs like [-3, -1, -2].
+    current = max_sum = arr[0]
+    start = 0
+    end = 1
 
     while end < n:
-
         if current < 0:
-            # The window invariant is broken — current prefix is negative.
-            # Per the proof below, all subarrays starting at 'start' or between
-            # start+1..end can never beat starting fresh from arr[end].
+            # Negative prefix can only hurt — restart fresh at end.
             current = arr[end]
-            start   = end + 1  # Reset: next window begins after the current end
+            start   = end
         else:
-            current += arr[end]  # Invariant holds — safely extend the window
-
-        max_sum = max(max_sum, current)  # Check if this window beats the current best
-
-        end += 1  # Expand: arr[end] will be added in the next iteration
-
+            current += arr[end]
+        max_sum = max(max_sum, current)
+        end += 1
     return max_sum
 
-# Test cases
-print(max_subarray_sum([-2, 1, -3, 4, -1, 2, 1, -5, 4]))  # Expected: 6
-print(max_subarray_sum([-3, -1, -2]))                       # Expected: -1 (all negative)
-print(max_subarray_sum([1]))                                 # Expected: 1
+
+print(max_subarray_sum([-2, 1, -3, 4, -1, 2, 1, -5, 4]))   # 6
+print(max_subarray_sum([-3, -1, -2]))                       # -1
+print(max_subarray_sum([1]))                                 # 1
 ```
+
+```java,editable
+public class Main {
+    static int maxSubarraySum(int[] arr) {
+        int n = arr.length;
+        if (n == 0) return 0;
+        int current = arr[0], maxSum = arr[0];
+        for (int end = 1; end < n; end++) {
+            if (current < 0) current = arr[end];
+            else             current += arr[end];
+            if (current > maxSum) maxSum = current;
+        }
+        return maxSum;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(maxSubarraySum(new int[]{-2, 1, -3, 4, -1, 2, 1, -5, 4}));
+        System.out.println(maxSubarraySum(new int[]{-3, -1, -2}));
+        System.out.println(maxSubarraySum(new int[]{1}));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int max_subarray_sum(int* arr, int n) {
+    if (n == 0) return 0;
+    int current = arr[0], max_sum = arr[0];
+    for (int end = 1; end < n; end++) {
+        if (current < 0) current = arr[end];
+        else             current += arr[end];
+        if (current > max_sum) max_sum = current;
+    }
+    return max_sum;
+}
+
+int main() {
+    int a1[] = {-2, 1, -3, 4, -1, 2, 1, -5, 4};
+    int a2[] = {-3, -1, -2};
+    int a3[] = {1};
+    printf("%d\n", max_subarray_sum(a1, 9));
+    printf("%d\n", max_subarray_sum(a2, 3));
+    printf("%d\n", max_subarray_sum(a3, 1));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+int maxSubarraySum(const std::vector<int>& arr) {
+    if (arr.empty()) return 0;
+    int current = arr[0], maxSum = arr[0];
+    for (size_t end = 1; end < arr.size(); end++) {
+        current = (current < 0) ? arr[end] : current + arr[end];
+        maxSum = std::max(maxSum, current);
+    }
+    return maxSum;
+}
+
+int main() {
+    std::cout << maxSubarraySum({-2, 1, -3, 4, -1, 2, 1, -5, 4}) << "\n";
+    std::cout << maxSubarraySum({-3, -1, -2})                    << "\n";
+    std::cout << maxSubarraySum({1})                              << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  def maxSubarraySum(arr: Array[Int]): Int = {
+    if (arr.isEmpty) return 0
+    var current = arr(0)
+    var maxSum = arr(0)
+    for (end <- 1 until arr.length) {
+      current = if (current < 0) arr(end) else current + arr(end)
+      maxSum = math.max(maxSum, current)
+    }
+    maxSum
+  }
+
+  println(maxSubarraySum(Array(-2, 1, -3, 4, -1, 2, 1, -5, 4)))
+  println(maxSubarraySum(Array(-3, -1, -2)))
+  println(maxSubarraySum(Array(1)))
+}
+```
+
+```javascript,editable
+function maxSubarraySum(arr) {
+    if (arr.length === 0) return 0;
+    let current = arr[0], maxSum = arr[0];
+    for (let end = 1; end < arr.length; end++) {
+        current = (current < 0) ? arr[end] : current + arr[end];
+        maxSum = Math.max(maxSum, current);
+    }
+    return maxSum;
+}
+
+console.log(maxSubarraySum([-2, 1, -3, 4, -1, 2, 1, -5, 4]));
+console.log(maxSubarraySum([-3, -1, -2]));
+console.log(maxSubarraySum([1]));
+```
+
+```typescript,editable
+function maxSubarraySum(arr: number[]): number {
+    if (arr.length === 0) return 0;
+    let current = arr[0], maxSum = arr[0];
+    for (let end = 1; end < arr.length; end++) {
+        current = (current < 0) ? arr[end] : current + arr[end];
+        maxSum = Math.max(maxSum, current);
+    }
+    return maxSum;
+}
+
+console.log(maxSubarraySum([-2, 1, -3, 4, -1, 2, 1, -5, 4]));
+console.log(maxSubarraySum([-3, -1, -2]));
+console.log(maxSubarraySum([1]));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func maxSubarraySum(arr []int) int {
+    if len(arr) == 0 {
+        return 0
+    }
+    current := arr[0]
+    maxSum := arr[0]
+    for end := 1; end < len(arr); end++ {
+        if current < 0 {
+            current = arr[end]
+        } else {
+            current += arr[end]
+        }
+        if current > maxSum {
+            maxSum = current
+        }
+    }
+    return maxSum
+}
+
+func main() {
+    fmt.Println(maxSubarraySum([]int{-2, 1, -3, 4, -1, 2, 1, -5, 4}))
+    fmt.Println(maxSubarraySum([]int{-3, -1, -2}))
+    fmt.Println(maxSubarraySum([]int{1}))
+}
+```
+
+```kotlin,editable
+fun maxSubarraySum(arr: IntArray): Int {
+    if (arr.isEmpty()) return 0
+    var current = arr[0]
+    var maxSum  = arr[0]
+    for (end in 1 until arr.size) {
+        current = if (current < 0) arr[end] else current + arr[end]
+        if (current > maxSum) maxSum = current
+    }
+    return maxSum
+}
+
+fun main() {
+    println(maxSubarraySum(intArrayOf(-2, 1, -3, 4, -1, 2, 1, -5, 4)))
+    println(maxSubarraySum(intArrayOf(-3, -1, -2)))
+    println(maxSubarraySum(intArrayOf(1)))
+}
+```
+
+```rust,editable
+fn max_subarray_sum(arr: &[i32]) -> i32 {
+    if arr.is_empty() { return 0; }
+    let mut current = arr[0];
+    let mut max_sum = arr[0];
+    for end in 1..arr.len() {
+        current = if current < 0 { arr[end] } else { current + arr[end] };
+        if current > max_sum { max_sum = current; }
+    }
+    max_sum
+}
+
+fn main() {
+    println!("{}", max_subarray_sum(&[-2, 1, -3, 4, -1, 2, 1, -5, 4]));
+    println!("{}", max_subarray_sum(&[-3, -1, -2]));
+    println!("{}", max_subarray_sum(&[1]));
+}
+```
+
+</div>
 
 <details>
 <summary><strong>Trace — arr = [-2, 1, -3, 4, -1, 2, 1, -5, 4]</strong></summary>
@@ -993,6 +1610,8 @@ If you guessed Kadane's algorithm from the identification section, you've alread
 
 ## The Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
@@ -1001,22 +1620,13 @@ def find_max_consecutive_ones(arr: List[int]) -> int:
     if n == 0:
         return 0
 
-    start   = 0   # Left boundary — fixed until we hit a 0, then leaps past it
-    end     = 0   # Right boundary — advances every iteration
-    max_len = 0   # Best length of an all-ones window seen so far
-
+    start = end = max_len = 0
     while end < n:
         if arr[end] == 0:
-            # Invariant broken — every window from 'start' through 'end' contains this 0.
-            # Leap past it in one move: cheaper than contracting step by step.
-            start = end + 1
+            start = end + 1                             # Leap past the 0 in one move.
         else:
-            # Invariant holds — current window is arr[start..end], all ones.
-            # Candidate length = end - start + 1
             max_len = max(max_len, end - start + 1)
-
-        end += 1  # Always expand — we must scan every position exactly once
-
+        end += 1
     return max_len
 
 
@@ -1026,6 +1636,225 @@ print(find_max_consecutive_ones([1, 1, 1, 1]))               # 4
 print(find_max_consecutive_ones([1]))                         # 1
 print(find_max_consecutive_ones([]))                          # 0
 ```
+
+```java,editable
+public class Main {
+    static int findMaxConsecutiveOnes(int[] arr) {
+        int n = arr.length;
+        if (n == 0) return 0;
+        int start = 0, end = 0, maxLen = 0;
+        while (end < n) {
+            if (arr[end] == 0) start = end + 1;
+            else               maxLen = Math.max(maxLen, end - start + 1);
+            end++;
+        }
+        return maxLen;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(findMaxConsecutiveOnes(new int[]{1, 1, 0, 1, 1, 1, 0, 1}));
+        System.out.println(findMaxConsecutiveOnes(new int[]{0, 0, 0}));
+        System.out.println(findMaxConsecutiveOnes(new int[]{1, 1, 1, 1}));
+        System.out.println(findMaxConsecutiveOnes(new int[]{1}));
+        System.out.println(findMaxConsecutiveOnes(new int[]{}));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int find_max_consecutive_ones(int* arr, int n) {
+    if (n == 0) return 0;
+    int start = 0, end = 0, max_len = 0;
+    while (end < n) {
+        if (arr[end] == 0) start = end + 1;
+        else if (end - start + 1 > max_len) max_len = end - start + 1;
+        end++;
+    }
+    return max_len;
+}
+
+int main() {
+    int a1[] = {1, 1, 0, 1, 1, 1, 0, 1}; printf("%d\n", find_max_consecutive_ones(a1, 8));
+    int a2[] = {0, 0, 0};                printf("%d\n", find_max_consecutive_ones(a2, 3));
+    int a3[] = {1, 1, 1, 1};             printf("%d\n", find_max_consecutive_ones(a3, 4));
+    int a4[] = {1};                      printf("%d\n", find_max_consecutive_ones(a4, 1));
+    printf("%d\n", find_max_consecutive_ones(NULL, 0));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+int findMaxConsecutiveOnes(const std::vector<int>& arr) {
+    int n = (int)arr.size();
+    if (n == 0) return 0;
+    int start = 0, end = 0, maxLen = 0;
+    while (end < n) {
+        if (arr[end] == 0) start = end + 1;
+        else               maxLen = std::max(maxLen, end - start + 1);
+        end++;
+    }
+    return maxLen;
+}
+
+int main() {
+    std::cout << findMaxConsecutiveOnes({1, 1, 0, 1, 1, 1, 0, 1}) << "\n";
+    std::cout << findMaxConsecutiveOnes({0, 0, 0})                << "\n";
+    std::cout << findMaxConsecutiveOnes({1, 1, 1, 1})             << "\n";
+    std::cout << findMaxConsecutiveOnes({1})                       << "\n";
+    std::cout << findMaxConsecutiveOnes({})                        << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  def findMaxConsecutiveOnes(arr: Array[Int]): Int = {
+    if (arr.isEmpty) return 0
+    var start = 0
+    var end = 0
+    var maxLen = 0
+    while (end < arr.length) {
+      if (arr(end) == 0) start = end + 1
+      else               maxLen = math.max(maxLen, end - start + 1)
+      end += 1
+    }
+    maxLen
+  }
+
+  println(findMaxConsecutiveOnes(Array(1, 1, 0, 1, 1, 1, 0, 1)))
+  println(findMaxConsecutiveOnes(Array(0, 0, 0)))
+  println(findMaxConsecutiveOnes(Array(1, 1, 1, 1)))
+  println(findMaxConsecutiveOnes(Array(1)))
+  println(findMaxConsecutiveOnes(Array.empty[Int]))
+}
+```
+
+```javascript,editable
+function findMaxConsecutiveOnes(arr) {
+    const n = arr.length;
+    if (n === 0) return 0;
+    let start = 0, end = 0, maxLen = 0;
+    while (end < n) {
+        if (arr[end] === 0) start = end + 1;
+        else                maxLen = Math.max(maxLen, end - start + 1);
+        end++;
+    }
+    return maxLen;
+}
+
+console.log(findMaxConsecutiveOnes([1, 1, 0, 1, 1, 1, 0, 1]));
+console.log(findMaxConsecutiveOnes([0, 0, 0]));
+console.log(findMaxConsecutiveOnes([1, 1, 1, 1]));
+console.log(findMaxConsecutiveOnes([1]));
+console.log(findMaxConsecutiveOnes([]));
+```
+
+```typescript,editable
+function findMaxConsecutiveOnes(arr: number[]): number {
+    const n = arr.length;
+    if (n === 0) return 0;
+    let start = 0, end = 0, maxLen = 0;
+    while (end < n) {
+        if (arr[end] === 0) start = end + 1;
+        else                maxLen = Math.max(maxLen, end - start + 1);
+        end++;
+    }
+    return maxLen;
+}
+
+console.log(findMaxConsecutiveOnes([1, 1, 0, 1, 1, 1, 0, 1]));
+console.log(findMaxConsecutiveOnes([0, 0, 0]));
+console.log(findMaxConsecutiveOnes([1, 1, 1, 1]));
+console.log(findMaxConsecutiveOnes([1]));
+console.log(findMaxConsecutiveOnes([]));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func findMaxConsecutiveOnes(arr []int) int {
+    n := len(arr)
+    if n == 0 {
+        return 0
+    }
+    start, end, maxLen := 0, 0, 0
+    for end < n {
+        if arr[end] == 0 {
+            start = end + 1
+        } else if end-start+1 > maxLen {
+            maxLen = end - start + 1
+        }
+        end++
+    }
+    return maxLen
+}
+
+func main() {
+    fmt.Println(findMaxConsecutiveOnes([]int{1, 1, 0, 1, 1, 1, 0, 1}))
+    fmt.Println(findMaxConsecutiveOnes([]int{0, 0, 0}))
+    fmt.Println(findMaxConsecutiveOnes([]int{1, 1, 1, 1}))
+    fmt.Println(findMaxConsecutiveOnes([]int{1}))
+    fmt.Println(findMaxConsecutiveOnes([]int{}))
+}
+```
+
+```kotlin,editable
+fun findMaxConsecutiveOnes(arr: IntArray): Int {
+    if (arr.isEmpty()) return 0
+    var start = 0
+    var end = 0
+    var maxLen = 0
+    while (end < arr.size) {
+        if (arr[end] == 0) start = end + 1
+        else               maxLen = maxOf(maxLen, end - start + 1)
+        end++
+    }
+    return maxLen
+}
+
+fun main() {
+    println(findMaxConsecutiveOnes(intArrayOf(1, 1, 0, 1, 1, 1, 0, 1)))
+    println(findMaxConsecutiveOnes(intArrayOf(0, 0, 0)))
+    println(findMaxConsecutiveOnes(intArrayOf(1, 1, 1, 1)))
+    println(findMaxConsecutiveOnes(intArrayOf(1)))
+    println(findMaxConsecutiveOnes(intArrayOf()))
+}
+```
+
+```rust,editable
+fn find_max_consecutive_ones(arr: &[i32]) -> usize {
+    if arr.is_empty() { return 0; }
+    let mut start = 0usize;
+    let mut end = 0usize;
+    let mut max_len = 0usize;
+    while end < arr.len() {
+        if arr[end] == 0 { start = end + 1; }
+        else {
+            let len = end - start + 1;
+            if len > max_len { max_len = len; }
+        }
+        end += 1;
+    }
+    max_len
+}
+
+fn main() {
+    println!("{}", find_max_consecutive_ones(&[1, 1, 0, 1, 1, 1, 0, 1]));
+    println!("{}", find_max_consecutive_ones(&[0, 0, 0]));
+    println!("{}", find_max_consecutive_ones(&[1, 1, 1, 1]));
+    println!("{}", find_max_consecutive_ones(&[1]));
+    println!("{}", find_max_consecutive_ones(&[]));
+}
+```
+
+</div>
 
 <details>
 <summary><strong>Trace — arr = [1, 1, 0, 1, 1, 1, 0, 1]</strong></summary>
@@ -1121,36 +1950,27 @@ It would contract immediately, leaving the window empty (`start = end + 1`), rec
 
 ## The Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 def longest_subarray_with_product_less_than_k(arr: List[int], k: int) -> int:
     n = len(arr)
-    # Guard: products of positive ints are always ≥ 1, so k ≤ 1 is unsatisfiable
     if n == 0 or k <= 1:
-        return 0
+        return 0                                       # k ≤ 1 unsatisfiable for positives.
 
-    start   = 0
-    end     = 0
-    product = 1    # Multiplicative identity — empty window has product 1
+    start = end = 0
+    product = 1
     max_len = 0
-
     while end < n:
-        product *= arr[end]  # Expand: include arr[end]'s contribution
-
-        # Contract until invariant (product < k) is restored.
-        # 'while' because one expansion may invalidate multiple earlier extensions.
-        # 'start <= end' guards against emptying the window entirely, which leaves
-        # product = 1 and start = end + 1 — the next iteration starts fresh.
+        product *= arr[end]
+        # `while` because one expansion may force several contractions.
         while product >= k and start <= end:
-            product //= arr[start]  # Remove arr[start]'s contribution (O(1) inverse)
-            start   += 1
-
-        # Invariant now holds — record the current window's length as a candidate
+            product //= arr[start]
+            start += 1
         max_len = max(max_len, end - start + 1)
-
         end += 1
-
     return max_len
 
 
@@ -1160,6 +1980,271 @@ print(longest_subarray_with_product_less_than_k([1, 2, 3], 1))          # 0
 print(longest_subarray_with_product_less_than_k([1, 1, 1], 2))          # 3
 print(longest_subarray_with_product_less_than_k([100, 100, 100], 50))   # 0
 ```
+
+```java,editable
+public class Main {
+    static int longestSubarrayWithProductLessThanK(int[] arr, int k) {
+        int n = arr.length;
+        if (n == 0 || k <= 1) return 0;
+        int start = 0, end = 0, maxLen = 0;
+        long product = 1;
+        while (end < n) {
+            product *= arr[end];
+            while (product >= k && start <= end) {
+                product /= arr[start];
+                start++;
+            }
+            maxLen = Math.max(maxLen, end - start + 1);
+            end++;
+        }
+        return maxLen;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(longestSubarrayWithProductLessThanK(new int[]{1, 2, 3, 4}, 10));
+        System.out.println(longestSubarrayWithProductLessThanK(new int[]{10, 5, 2, 6}, 100));
+        System.out.println(longestSubarrayWithProductLessThanK(new int[]{1, 2, 3}, 1));
+        System.out.println(longestSubarrayWithProductLessThanK(new int[]{1, 1, 1}, 2));
+        System.out.println(longestSubarrayWithProductLessThanK(new int[]{100, 100, 100}, 50));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int longest_subarray_with_product_less_than_k(int* arr, int n, int k) {
+    if (n == 0 || k <= 1) return 0;
+    int start = 0, end = 0, max_len = 0;
+    long long product = 1;
+    while (end < n) {
+        product *= arr[end];
+        while (product >= k && start <= end) {
+            product /= arr[start];
+            start++;
+        }
+        if (end - start + 1 > max_len) max_len = end - start + 1;
+        end++;
+    }
+    return max_len;
+}
+
+int main() {
+    int a1[] = {1, 2, 3, 4};      printf("%d\n", longest_subarray_with_product_less_than_k(a1, 4, 10));
+    int a2[] = {10, 5, 2, 6};     printf("%d\n", longest_subarray_with_product_less_than_k(a2, 4, 100));
+    int a3[] = {1, 2, 3};         printf("%d\n", longest_subarray_with_product_less_than_k(a3, 3, 1));
+    int a4[] = {1, 1, 1};         printf("%d\n", longest_subarray_with_product_less_than_k(a4, 3, 2));
+    int a5[] = {100, 100, 100};   printf("%d\n", longest_subarray_with_product_less_than_k(a5, 3, 50));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+int longestSubarrayWithProductLessThanK(const std::vector<int>& arr, int k) {
+    int n = (int)arr.size();
+    if (n == 0 || k <= 1) return 0;
+    int start = 0, end = 0, maxLen = 0;
+    long long product = 1;
+    while (end < n) {
+        product *= arr[end];
+        while (product >= k && start <= end) {
+            product /= arr[start];
+            start++;
+        }
+        maxLen = std::max(maxLen, end - start + 1);
+        end++;
+    }
+    return maxLen;
+}
+
+int main() {
+    std::cout << longestSubarrayWithProductLessThanK({1, 2, 3, 4}, 10)      << "\n";
+    std::cout << longestSubarrayWithProductLessThanK({10, 5, 2, 6}, 100)    << "\n";
+    std::cout << longestSubarrayWithProductLessThanK({1, 2, 3}, 1)          << "\n";
+    std::cout << longestSubarrayWithProductLessThanK({1, 1, 1}, 2)          << "\n";
+    std::cout << longestSubarrayWithProductLessThanK({100, 100, 100}, 50)   << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  def longestSubarrayWithProductLessThanK(arr: Array[Int], k: Int): Int = {
+    val n = arr.length
+    if (n == 0 || k <= 1) return 0
+    var start = 0
+    var end = 0
+    var product = 1L
+    var maxLen = 0
+    while (end < n) {
+      product *= arr(end)
+      while (product >= k && start <= end) {
+        product /= arr(start)
+        start += 1
+      }
+      maxLen = math.max(maxLen, end - start + 1)
+      end += 1
+    }
+    maxLen
+  }
+
+  println(longestSubarrayWithProductLessThanK(Array(1, 2, 3, 4), 10))
+  println(longestSubarrayWithProductLessThanK(Array(10, 5, 2, 6), 100))
+  println(longestSubarrayWithProductLessThanK(Array(1, 2, 3), 1))
+  println(longestSubarrayWithProductLessThanK(Array(1, 1, 1), 2))
+  println(longestSubarrayWithProductLessThanK(Array(100, 100, 100), 50))
+}
+```
+
+```javascript,editable
+function longestSubarrayWithProductLessThanK(arr, k) {
+    const n = arr.length;
+    if (n === 0 || k <= 1) return 0;
+    let start = 0, end = 0, maxLen = 0;
+    let product = 1;
+    while (end < n) {
+        product *= arr[end];
+        while (product >= k && start <= end) {
+            product = Math.floor(product / arr[start]);
+            start++;
+        }
+        maxLen = Math.max(maxLen, end - start + 1);
+        end++;
+    }
+    return maxLen;
+}
+
+console.log(longestSubarrayWithProductLessThanK([1, 2, 3, 4], 10));
+console.log(longestSubarrayWithProductLessThanK([10, 5, 2, 6], 100));
+console.log(longestSubarrayWithProductLessThanK([1, 2, 3], 1));
+console.log(longestSubarrayWithProductLessThanK([1, 1, 1], 2));
+console.log(longestSubarrayWithProductLessThanK([100, 100, 100], 50));
+```
+
+```typescript,editable
+function longestSubarrayWithProductLessThanK(arr: number[], k: number): number {
+    const n = arr.length;
+    if (n === 0 || k <= 1) return 0;
+    let start = 0, end = 0, maxLen = 0;
+    let product = 1;
+    while (end < n) {
+        product *= arr[end];
+        while (product >= k && start <= end) {
+            product = Math.floor(product / arr[start]);
+            start++;
+        }
+        maxLen = Math.max(maxLen, end - start + 1);
+        end++;
+    }
+    return maxLen;
+}
+
+console.log(longestSubarrayWithProductLessThanK([1, 2, 3, 4], 10));
+console.log(longestSubarrayWithProductLessThanK([10, 5, 2, 6], 100));
+console.log(longestSubarrayWithProductLessThanK([1, 2, 3], 1));
+console.log(longestSubarrayWithProductLessThanK([1, 1, 1], 2));
+console.log(longestSubarrayWithProductLessThanK([100, 100, 100], 50));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func longestSubarrayWithProductLessThanK(arr []int, k int) int {
+    n := len(arr)
+    if n == 0 || k <= 1 {
+        return 0
+    }
+    start, end, maxLen := 0, 0, 0
+    product := int64(1)
+    K := int64(k)
+    for end < n {
+        product *= int64(arr[end])
+        for product >= K && start <= end {
+            product /= int64(arr[start])
+            start++
+        }
+        if end-start+1 > maxLen {
+            maxLen = end - start + 1
+        }
+        end++
+    }
+    return maxLen
+}
+
+func main() {
+    fmt.Println(longestSubarrayWithProductLessThanK([]int{1, 2, 3, 4}, 10))
+    fmt.Println(longestSubarrayWithProductLessThanK([]int{10, 5, 2, 6}, 100))
+    fmt.Println(longestSubarrayWithProductLessThanK([]int{1, 2, 3}, 1))
+    fmt.Println(longestSubarrayWithProductLessThanK([]int{1, 1, 1}, 2))
+    fmt.Println(longestSubarrayWithProductLessThanK([]int{100, 100, 100}, 50))
+}
+```
+
+```kotlin,editable
+fun longestSubarrayWithProductLessThanK(arr: IntArray, k: Int): Int {
+    val n = arr.size
+    if (n == 0 || k <= 1) return 0
+    var start = 0
+    var end = 0
+    var product = 1L
+    var maxLen = 0
+    while (end < n) {
+        product *= arr[end]
+        while (product >= k && start <= end) {
+            product /= arr[start]
+            start++
+        }
+        if (end - start + 1 > maxLen) maxLen = end - start + 1
+        end++
+    }
+    return maxLen
+}
+
+fun main() {
+    println(longestSubarrayWithProductLessThanK(intArrayOf(1, 2, 3, 4), 10))
+    println(longestSubarrayWithProductLessThanK(intArrayOf(10, 5, 2, 6), 100))
+    println(longestSubarrayWithProductLessThanK(intArrayOf(1, 2, 3), 1))
+    println(longestSubarrayWithProductLessThanK(intArrayOf(1, 1, 1), 2))
+    println(longestSubarrayWithProductLessThanK(intArrayOf(100, 100, 100), 50))
+}
+```
+
+```rust,editable
+fn longest_subarray_with_product_less_than_k(arr: &[i32], k: i32) -> usize {
+    let n = arr.len();
+    if n == 0 || k <= 1 { return 0; }
+    let mut start = 0usize;
+    let mut end = 0usize;
+    let mut product: i64 = 1;
+    let mut max_len = 0usize;
+    let k64 = k as i64;
+    while end < n {
+        product *= arr[end] as i64;
+        while product >= k64 && start <= end {
+            product /= arr[start] as i64;
+            start += 1;
+        }
+        if end - start + 1 > max_len { max_len = end - start + 1; }
+        end += 1;
+    }
+    max_len
+}
+
+fn main() {
+    println!("{}", longest_subarray_with_product_less_than_k(&[1, 2, 3, 4], 10));
+    println!("{}", longest_subarray_with_product_less_than_k(&[10, 5, 2, 6], 100));
+    println!("{}", longest_subarray_with_product_less_than_k(&[1, 2, 3], 1));
+    println!("{}", longest_subarray_with_product_less_than_k(&[1, 1, 1], 2));
+    println!("{}", longest_subarray_with_product_less_than_k(&[100, 100, 100], 50));
+}
+```
+
+</div>
 
 <details>
 <summary><strong>Trace — arr = [10, 5, 2, 6], k = 100</strong></summary>
@@ -1265,6 +2350,8 @@ If you said "the first element", you already caught the edge case. Using `0` wou
 
 ## The Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
@@ -1272,26 +2359,10 @@ def max_subarray_sum(arr: List[int]) -> int:
     n = len(arr)
     if n == 0:
         return 0
-
-    # Seed with arr[0]. Using 0 would silently return an empty-subarray answer
-    # on all-negative inputs like [-3, -1, -2] — wrong by spec.
-    current = arr[0]
-    max_sum = arr[0]
-
-    # arr[0] is already counted; the main loop starts at index 1
+    current = max_sum = arr[0]
     for end in range(1, n):
-
-        if current < 0:
-            # Invariant broken — the proof tells us every subarray touching this
-            # prefix is beaten by one starting fresh at 'end'. Leap past it.
-            current = arr[end]
-        else:
-            # Invariant holds — safely extend the window to include arr[end]
-            current += arr[end]
-
-        # Every iteration records a candidate; covers the all-negative case
+        current = arr[end] if current < 0 else current + arr[end]
         max_sum = max(max_sum, current)
-
     return max_sum
 
 
@@ -1301,6 +2372,214 @@ print(max_subarray_sum([-3, -1, -2]))                      # -1
 print(max_subarray_sum([5, 4, -1, 7, 8]))                  # 23
 print(max_subarray_sum([-1]))                              # -1
 ```
+
+```java,editable
+public class Main {
+    static int maxSubarraySum(int[] arr) {
+        if (arr.length == 0) return 0;
+        int current = arr[0], maxSum = arr[0];
+        for (int end = 1; end < arr.length; end++) {
+            current = (current < 0) ? arr[end] : current + arr[end];
+            if (current > maxSum) maxSum = current;
+        }
+        return maxSum;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(maxSubarraySum(new int[]{-2, 1, -3, 4, -1, 2, 1, -5, 4}));
+        System.out.println(maxSubarraySum(new int[]{1}));
+        System.out.println(maxSubarraySum(new int[]{-3, -1, -2}));
+        System.out.println(maxSubarraySum(new int[]{5, 4, -1, 7, 8}));
+        System.out.println(maxSubarraySum(new int[]{-1}));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int max_subarray_sum(int* arr, int n) {
+    if (n == 0) return 0;
+    int current = arr[0], max_sum = arr[0];
+    for (int end = 1; end < n; end++) {
+        current = (current < 0) ? arr[end] : current + arr[end];
+        if (current > max_sum) max_sum = current;
+    }
+    return max_sum;
+}
+
+int main() {
+    int a1[] = {-2, 1, -3, 4, -1, 2, 1, -5, 4};
+    int a2[] = {1};
+    int a3[] = {-3, -1, -2};
+    int a4[] = {5, 4, -1, 7, 8};
+    int a5[] = {-1};
+    printf("%d\n", max_subarray_sum(a1, 9));
+    printf("%d\n", max_subarray_sum(a2, 1));
+    printf("%d\n", max_subarray_sum(a3, 3));
+    printf("%d\n", max_subarray_sum(a4, 5));
+    printf("%d\n", max_subarray_sum(a5, 1));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+int maxSubarraySum(const std::vector<int>& arr) {
+    if (arr.empty()) return 0;
+    int current = arr[0], maxSum = arr[0];
+    for (size_t end = 1; end < arr.size(); end++) {
+        current = (current < 0) ? arr[end] : current + arr[end];
+        maxSum = std::max(maxSum, current);
+    }
+    return maxSum;
+}
+
+int main() {
+    std::cout << maxSubarraySum({-2, 1, -3, 4, -1, 2, 1, -5, 4}) << "\n";
+    std::cout << maxSubarraySum({1})                              << "\n";
+    std::cout << maxSubarraySum({-3, -1, -2})                     << "\n";
+    std::cout << maxSubarraySum({5, 4, -1, 7, 8})                 << "\n";
+    std::cout << maxSubarraySum({-1})                             << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  def maxSubarraySum(arr: Array[Int]): Int = {
+    if (arr.isEmpty) return 0
+    var current = arr(0)
+    var maxSum = arr(0)
+    for (end <- 1 until arr.length) {
+      current = if (current < 0) arr(end) else current + arr(end)
+      maxSum = math.max(maxSum, current)
+    }
+    maxSum
+  }
+
+  println(maxSubarraySum(Array(-2, 1, -3, 4, -1, 2, 1, -5, 4)))
+  println(maxSubarraySum(Array(1)))
+  println(maxSubarraySum(Array(-3, -1, -2)))
+  println(maxSubarraySum(Array(5, 4, -1, 7, 8)))
+  println(maxSubarraySum(Array(-1)))
+}
+```
+
+```javascript,editable
+function maxSubarraySum(arr) {
+    if (arr.length === 0) return 0;
+    let current = arr[0], maxSum = arr[0];
+    for (let end = 1; end < arr.length; end++) {
+        current = (current < 0) ? arr[end] : current + arr[end];
+        maxSum = Math.max(maxSum, current);
+    }
+    return maxSum;
+}
+
+console.log(maxSubarraySum([-2, 1, -3, 4, -1, 2, 1, -5, 4]));
+console.log(maxSubarraySum([1]));
+console.log(maxSubarraySum([-3, -1, -2]));
+console.log(maxSubarraySum([5, 4, -1, 7, 8]));
+console.log(maxSubarraySum([-1]));
+```
+
+```typescript,editable
+function maxSubarraySum(arr: number[]): number {
+    if (arr.length === 0) return 0;
+    let current = arr[0], maxSum = arr[0];
+    for (let end = 1; end < arr.length; end++) {
+        current = (current < 0) ? arr[end] : current + arr[end];
+        maxSum = Math.max(maxSum, current);
+    }
+    return maxSum;
+}
+
+console.log(maxSubarraySum([-2, 1, -3, 4, -1, 2, 1, -5, 4]));
+console.log(maxSubarraySum([1]));
+console.log(maxSubarraySum([-3, -1, -2]));
+console.log(maxSubarraySum([5, 4, -1, 7, 8]));
+console.log(maxSubarraySum([-1]));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func maxSubarraySum(arr []int) int {
+    if len(arr) == 0 {
+        return 0
+    }
+    current := arr[0]
+    maxSum := arr[0]
+    for end := 1; end < len(arr); end++ {
+        if current < 0 {
+            current = arr[end]
+        } else {
+            current += arr[end]
+        }
+        if current > maxSum {
+            maxSum = current
+        }
+    }
+    return maxSum
+}
+
+func main() {
+    fmt.Println(maxSubarraySum([]int{-2, 1, -3, 4, -1, 2, 1, -5, 4}))
+    fmt.Println(maxSubarraySum([]int{1}))
+    fmt.Println(maxSubarraySum([]int{-3, -1, -2}))
+    fmt.Println(maxSubarraySum([]int{5, 4, -1, 7, 8}))
+    fmt.Println(maxSubarraySum([]int{-1}))
+}
+```
+
+```kotlin,editable
+fun maxSubarraySum(arr: IntArray): Int {
+    if (arr.isEmpty()) return 0
+    var current = arr[0]
+    var maxSum  = arr[0]
+    for (end in 1 until arr.size) {
+        current = if (current < 0) arr[end] else current + arr[end]
+        if (current > maxSum) maxSum = current
+    }
+    return maxSum
+}
+
+fun main() {
+    println(maxSubarraySum(intArrayOf(-2, 1, -3, 4, -1, 2, 1, -5, 4)))
+    println(maxSubarraySum(intArrayOf(1)))
+    println(maxSubarraySum(intArrayOf(-3, -1, -2)))
+    println(maxSubarraySum(intArrayOf(5, 4, -1, 7, 8)))
+    println(maxSubarraySum(intArrayOf(-1)))
+}
+```
+
+```rust,editable
+fn max_subarray_sum(arr: &[i32]) -> i32 {
+    if arr.is_empty() { return 0; }
+    let mut current = arr[0];
+    let mut max_sum = arr[0];
+    for end in 1..arr.len() {
+        current = if current < 0 { arr[end] } else { current + arr[end] };
+        if current > max_sum { max_sum = current; }
+    }
+    max_sum
+}
+
+fn main() {
+    println!("{}", max_subarray_sum(&[-2, 1, -3, 4, -1, 2, 1, -5, 4]));
+    println!("{}", max_subarray_sum(&[1]));
+    println!("{}", max_subarray_sum(&[-3, -1, -2]));
+    println!("{}", max_subarray_sum(&[5, 4, -1, 7, 8]));
+    println!("{}", max_subarray_sum(&[-1]));
+}
+```
+
+</div>
 
 <details>
 <summary><strong>Trace — arr = [-2, 1, -3, 4, -1, 2, 1, -5, 4]</strong></summary>
@@ -1401,6 +2680,8 @@ And here is the payoff: set `k = 0`, and this code becomes **identical in behavi
 
 ## The Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
@@ -1408,27 +2689,15 @@ def longest_ones_with_k_flips(arr: List[int], k: int) -> int:
     n = len(arr)
     if n == 0:
         return 0
-
-    start   = 0
-    zeros   = 0   # How many 0s are currently inside the window — this IS our 'aggregate'
-    max_len = 0
-
+    start = zeros = max_len = 0
     for end in range(n):
-
-        # Expand: if the incoming element is a 0, it costs one flip
         if arr[end] == 0:
-            zeros += 1
-
-        # Contract while the flip budget is blown.
-        # 'while' because we may need multiple shrinks to eject a single offending 0.
-        while zeros > k:
+            zeros += 1                                  # 0 costs one flip.
+        while zeros > k:                                # Over budget — shrink.
             if arr[start] == 0:
-                zeros -= 1   # Releasing a 0 gives back one flip
+                zeros -= 1
             start += 1
-
-        # Invariant restored — window arr[start..end] fits within the flip budget
         max_len = max(max_len, end - start + 1)
-
     return max_len
 
 
@@ -1438,6 +2707,253 @@ print(longest_ones_with_k_flips([0, 0, 0], 0))                      # 0
 print(longest_ones_with_k_flips([1, 1, 1], 5))                      # 3
 print(longest_ones_with_k_flips([0, 0, 1, 1, 0, 0, 1, 1, 1], 3))    # 9
 ```
+
+```java,editable
+public class Main {
+    static int longestOnesWithKFlips(int[] arr, int k) {
+        int n = arr.length;
+        if (n == 0) return 0;
+        int start = 0, zeros = 0, maxLen = 0;
+        for (int end = 0; end < n; end++) {
+            if (arr[end] == 0) zeros++;
+            while (zeros > k) {
+                if (arr[start] == 0) zeros--;
+                start++;
+            }
+            if (end - start + 1 > maxLen) maxLen = end - start + 1;
+        }
+        return maxLen;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(longestOnesWithKFlips(new int[]{1, 1, 0, 0, 1, 1, 1, 0, 1}, 2));
+        System.out.println(longestOnesWithKFlips(new int[]{1, 0, 1, 1, 0, 1}, 1));
+        System.out.println(longestOnesWithKFlips(new int[]{0, 0, 0}, 0));
+        System.out.println(longestOnesWithKFlips(new int[]{1, 1, 1}, 5));
+        System.out.println(longestOnesWithKFlips(new int[]{0, 0, 1, 1, 0, 0, 1, 1, 1}, 3));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int longest_ones_with_k_flips(int* arr, int n, int k) {
+    if (n == 0) return 0;
+    int start = 0, zeros = 0, max_len = 0;
+    for (int end = 0; end < n; end++) {
+        if (arr[end] == 0) zeros++;
+        while (zeros > k) {
+            if (arr[start] == 0) zeros--;
+            start++;
+        }
+        if (end - start + 1 > max_len) max_len = end - start + 1;
+    }
+    return max_len;
+}
+
+int main() {
+    int a1[] = {1, 1, 0, 0, 1, 1, 1, 0, 1}; printf("%d\n", longest_ones_with_k_flips(a1, 9, 2));
+    int a2[] = {1, 0, 1, 1, 0, 1};          printf("%d\n", longest_ones_with_k_flips(a2, 6, 1));
+    int a3[] = {0, 0, 0};                   printf("%d\n", longest_ones_with_k_flips(a3, 3, 0));
+    int a4[] = {1, 1, 1};                   printf("%d\n", longest_ones_with_k_flips(a4, 3, 5));
+    int a5[] = {0, 0, 1, 1, 0, 0, 1, 1, 1}; printf("%d\n", longest_ones_with_k_flips(a5, 9, 3));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+int longestOnesWithKFlips(const std::vector<int>& arr, int k) {
+    int n = (int)arr.size();
+    if (n == 0) return 0;
+    int start = 0, zeros = 0, maxLen = 0;
+    for (int end = 0; end < n; end++) {
+        if (arr[end] == 0) zeros++;
+        while (zeros > k) {
+            if (arr[start] == 0) zeros--;
+            start++;
+        }
+        maxLen = std::max(maxLen, end - start + 1);
+    }
+    return maxLen;
+}
+
+int main() {
+    std::cout << longestOnesWithKFlips({1, 1, 0, 0, 1, 1, 1, 0, 1}, 2) << "\n";
+    std::cout << longestOnesWithKFlips({1, 0, 1, 1, 0, 1}, 1)          << "\n";
+    std::cout << longestOnesWithKFlips({0, 0, 0}, 0)                   << "\n";
+    std::cout << longestOnesWithKFlips({1, 1, 1}, 5)                   << "\n";
+    std::cout << longestOnesWithKFlips({0, 0, 1, 1, 0, 0, 1, 1, 1}, 3) << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  def longestOnesWithKFlips(arr: Array[Int], k: Int): Int = {
+    if (arr.isEmpty) return 0
+    var start = 0
+    var zeros = 0
+    var maxLen = 0
+    for (end <- arr.indices) {
+      if (arr(end) == 0) zeros += 1
+      while (zeros > k) {
+        if (arr(start) == 0) zeros -= 1
+        start += 1
+      }
+      maxLen = math.max(maxLen, end - start + 1)
+    }
+    maxLen
+  }
+
+  println(longestOnesWithKFlips(Array(1, 1, 0, 0, 1, 1, 1, 0, 1), 2))
+  println(longestOnesWithKFlips(Array(1, 0, 1, 1, 0, 1), 1))
+  println(longestOnesWithKFlips(Array(0, 0, 0), 0))
+  println(longestOnesWithKFlips(Array(1, 1, 1), 5))
+  println(longestOnesWithKFlips(Array(0, 0, 1, 1, 0, 0, 1, 1, 1), 3))
+}
+```
+
+```javascript,editable
+function longestOnesWithKFlips(arr, k) {
+    const n = arr.length;
+    if (n === 0) return 0;
+    let start = 0, zeros = 0, maxLen = 0;
+    for (let end = 0; end < n; end++) {
+        if (arr[end] === 0) zeros++;
+        while (zeros > k) {
+            if (arr[start] === 0) zeros--;
+            start++;
+        }
+        maxLen = Math.max(maxLen, end - start + 1);
+    }
+    return maxLen;
+}
+
+console.log(longestOnesWithKFlips([1, 1, 0, 0, 1, 1, 1, 0, 1], 2));
+console.log(longestOnesWithKFlips([1, 0, 1, 1, 0, 1], 1));
+console.log(longestOnesWithKFlips([0, 0, 0], 0));
+console.log(longestOnesWithKFlips([1, 1, 1], 5));
+console.log(longestOnesWithKFlips([0, 0, 1, 1, 0, 0, 1, 1, 1], 3));
+```
+
+```typescript,editable
+function longestOnesWithKFlips(arr: number[], k: number): number {
+    const n = arr.length;
+    if (n === 0) return 0;
+    let start = 0, zeros = 0, maxLen = 0;
+    for (let end = 0; end < n; end++) {
+        if (arr[end] === 0) zeros++;
+        while (zeros > k) {
+            if (arr[start] === 0) zeros--;
+            start++;
+        }
+        maxLen = Math.max(maxLen, end - start + 1);
+    }
+    return maxLen;
+}
+
+console.log(longestOnesWithKFlips([1, 1, 0, 0, 1, 1, 1, 0, 1], 2));
+console.log(longestOnesWithKFlips([1, 0, 1, 1, 0, 1], 1));
+console.log(longestOnesWithKFlips([0, 0, 0], 0));
+console.log(longestOnesWithKFlips([1, 1, 1], 5));
+console.log(longestOnesWithKFlips([0, 0, 1, 1, 0, 0, 1, 1, 1], 3));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func longestOnesWithKFlips(arr []int, k int) int {
+    n := len(arr)
+    if n == 0 {
+        return 0
+    }
+    start, zeros, maxLen := 0, 0, 0
+    for end := 0; end < n; end++ {
+        if arr[end] == 0 {
+            zeros++
+        }
+        for zeros > k {
+            if arr[start] == 0 {
+                zeros--
+            }
+            start++
+        }
+        if end-start+1 > maxLen {
+            maxLen = end - start + 1
+        }
+    }
+    return maxLen
+}
+
+func main() {
+    fmt.Println(longestOnesWithKFlips([]int{1, 1, 0, 0, 1, 1, 1, 0, 1}, 2))
+    fmt.Println(longestOnesWithKFlips([]int{1, 0, 1, 1, 0, 1}, 1))
+    fmt.Println(longestOnesWithKFlips([]int{0, 0, 0}, 0))
+    fmt.Println(longestOnesWithKFlips([]int{1, 1, 1}, 5))
+    fmt.Println(longestOnesWithKFlips([]int{0, 0, 1, 1, 0, 0, 1, 1, 1}, 3))
+}
+```
+
+```kotlin,editable
+fun longestOnesWithKFlips(arr: IntArray, k: Int): Int {
+    if (arr.isEmpty()) return 0
+    var start = 0
+    var zeros = 0
+    var maxLen = 0
+    for (end in arr.indices) {
+        if (arr[end] == 0) zeros++
+        while (zeros > k) {
+            if (arr[start] == 0) zeros--
+            start++
+        }
+        if (end - start + 1 > maxLen) maxLen = end - start + 1
+    }
+    return maxLen
+}
+
+fun main() {
+    println(longestOnesWithKFlips(intArrayOf(1, 1, 0, 0, 1, 1, 1, 0, 1), 2))
+    println(longestOnesWithKFlips(intArrayOf(1, 0, 1, 1, 0, 1), 1))
+    println(longestOnesWithKFlips(intArrayOf(0, 0, 0), 0))
+    println(longestOnesWithKFlips(intArrayOf(1, 1, 1), 5))
+    println(longestOnesWithKFlips(intArrayOf(0, 0, 1, 1, 0, 0, 1, 1, 1), 3))
+}
+```
+
+```rust,editable
+fn longest_ones_with_k_flips(arr: &[i32], k: i32) -> usize {
+    if arr.is_empty() { return 0; }
+    let mut start = 0usize;
+    let mut zeros = 0i32;
+    let mut max_len = 0usize;
+    for end in 0..arr.len() {
+        if arr[end] == 0 { zeros += 1; }
+        while zeros > k {
+            if arr[start] == 0 { zeros -= 1; }
+            start += 1;
+        }
+        let len = end - start + 1;
+        if len > max_len { max_len = len; }
+    }
+    max_len
+}
+
+fn main() {
+    println!("{}", longest_ones_with_k_flips(&[1, 1, 0, 0, 1, 1, 1, 0, 1], 2));
+    println!("{}", longest_ones_with_k_flips(&[1, 0, 1, 1, 0, 1], 1));
+    println!("{}", longest_ones_with_k_flips(&[0, 0, 0], 0));
+    println!("{}", longest_ones_with_k_flips(&[1, 1, 1], 5));
+    println!("{}", longest_ones_with_k_flips(&[0, 0, 1, 1, 0, 0, 1, 1, 1], 3));
+}
+```
+
+</div>
 
 <details>
 <summary><strong>Trace — arr = [1, 1, 0, 0, 1, 1, 1, 0, 1], k = 2</strong></summary>
