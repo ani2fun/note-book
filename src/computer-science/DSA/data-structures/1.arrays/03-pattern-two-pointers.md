@@ -130,6 +130,8 @@ The specific "work" and "step size" in steps 2.1–2.3 change per problem. Every
 
 ## Generic Implementation
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
@@ -142,35 +144,303 @@ class Solution:
             left_val  = arr[left]
             right_val = arr[right]
 
-            # Problem-specific work goes here
-            # e.g. swap, compare, accumulate…
+            # Problem-specific work goes here (swap, compare, accumulate, etc.).
 
-            # Move left forward if the problem calls for it
             if self.should_move_left(left_val, right_val):
                 left += self.left_step(left_val, right_val)
-
-            # Move right backward if the problem calls for it
             if self.should_move_right(left_val, right_val):
                 right -= self.right_step(left_val, right_val)
 
-    def should_move_left(self, lv: int, rv: int) -> bool:
-        return True   # almost always True — move left every step
-
-    def should_move_right(self, lv: int, rv: int) -> bool:
-        return True   # almost always True — move right every step
-
-    def left_step(self, lv: int, rv: int) -> int:
-        return 1      # most problems step by 1
-
-    def right_step(self, lv: int, rv: int) -> int:
-        return 1      # most problems step by 1
+    def should_move_left(self, lv, rv):  return True
+    def should_move_right(self, lv, rv): return True
+    def left_step(self, lv, rv):  return 1
+    def right_step(self, lv, rv): return 1
 
 
-# Try it out — replace this body with a real problem later
 arr = [1, 2, 3, 4, 5, 6, 7]
 Solution().two_pointer(arr)
 print("Done — customise the template above to solve a real problem!")
 ```
+
+```java,editable
+public class Main {
+    static class Solution {
+        void twoPointer(int[] arr) {
+            int left = 0;
+            int right = arr.length - 1;
+
+            while (left < right) {
+                int leftVal  = arr[left];
+                int rightVal = arr[right];
+
+                // Problem-specific work goes here.
+
+                if (shouldMoveLeft(leftVal, rightVal))  left  += leftStep(leftVal, rightVal);
+                if (shouldMoveRight(leftVal, rightVal)) right -= rightStep(leftVal, rightVal);
+            }
+        }
+        boolean shouldMoveLeft(int lv, int rv)  { return true; }
+        boolean shouldMoveRight(int lv, int rv) { return true; }
+        int leftStep(int lv, int rv)  { return 1; }
+        int rightStep(int lv, int rv) { return 1; }
+    }
+
+    public static void main(String[] args) {
+        int[] arr = {1, 2, 3, 4, 5, 6, 7};
+        new Solution().twoPointer(arr);
+        System.out.println("Done — customise the template above to solve a real problem!");
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdbool.h>
+
+static bool should_move_left(int lv, int rv)  { (void)lv; (void)rv; return true; }
+static bool should_move_right(int lv, int rv) { (void)lv; (void)rv; return true; }
+static int  left_step(int lv, int rv)         { (void)lv; (void)rv; return 1; }
+static int  right_step(int lv, int rv)        { (void)lv; (void)rv; return 1; }
+
+void two_pointer(int* arr, int n) {
+    int left = 0;
+    int right = n - 1;
+
+    while (left < right) {
+        int left_val  = arr[left];
+        int right_val = arr[right];
+
+        /* Problem-specific work goes here. */
+
+        if (should_move_left(left_val, right_val))  left  += left_step(left_val, right_val);
+        if (should_move_right(left_val, right_val)) right -= right_step(left_val, right_val);
+    }
+}
+
+int main() {
+    int arr[] = {1, 2, 3, 4, 5, 6, 7};
+    two_pointer(arr, 7);
+    printf("Done — customise the template above to solve a real problem!\n");
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+class Solution {
+public:
+    void twoPointer(std::vector<int>& arr) {
+        int left = 0;
+        int right = (int)arr.size() - 1;
+
+        while (left < right) {
+            int leftVal  = arr[left];
+            int rightVal = arr[right];
+
+            // Problem-specific work goes here.
+
+            if (shouldMoveLeft(leftVal, rightVal))  left  += leftStep(leftVal, rightVal);
+            if (shouldMoveRight(leftVal, rightVal)) right -= rightStep(leftVal, rightVal);
+        }
+    }
+    bool shouldMoveLeft(int, int)  { return true; }
+    bool shouldMoveRight(int, int) { return true; }
+    int  leftStep(int, int)        { return 1; }
+    int  rightStep(int, int)       { return 1; }
+};
+
+int main() {
+    std::vector<int> arr = {1, 2, 3, 4, 5, 6, 7};
+    Solution().twoPointer(arr);
+    std::cout << "Done — customise the template above to solve a real problem!\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def twoPointer(arr: Array[Int]): Unit = {
+      var left = 0
+      var right = arr.length - 1
+
+      while (left < right) {
+        val leftVal  = arr(left)
+        val rightVal = arr(right)
+
+        // Problem-specific work goes here.
+
+        if (shouldMoveLeft(leftVal, rightVal))  left  += leftStep(leftVal, rightVal)
+        if (shouldMoveRight(leftVal, rightVal)) right -= rightStep(leftVal, rightVal)
+      }
+    }
+    def shouldMoveLeft(lv: Int, rv: Int)  = true
+    def shouldMoveRight(lv: Int, rv: Int) = true
+    def leftStep(lv: Int, rv: Int)  = 1
+    def rightStep(lv: Int, rv: Int) = 1
+  }
+
+  val arr = Array(1, 2, 3, 4, 5, 6, 7)
+  new Solution().twoPointer(arr)
+  println("Done — customise the template above to solve a real problem!")
+}
+```
+
+```javascript,editable
+class Solution {
+    twoPointer(arr) {
+        let left = 0;
+        let right = arr.length - 1;
+
+        while (left < right) {
+            const leftVal  = arr[left];
+            const rightVal = arr[right];
+
+            // Problem-specific work goes here.
+
+            if (this.shouldMoveLeft(leftVal, rightVal))  left  += this.leftStep(leftVal, rightVal);
+            if (this.shouldMoveRight(leftVal, rightVal)) right -= this.rightStep(leftVal, rightVal);
+        }
+    }
+    shouldMoveLeft(lv, rv)  { return true; }
+    shouldMoveRight(lv, rv) { return true; }
+    leftStep(lv, rv)  { return 1; }
+    rightStep(lv, rv) { return 1; }
+}
+
+const arr = [1, 2, 3, 4, 5, 6, 7];
+new Solution().twoPointer(arr);
+console.log("Done — customise the template above to solve a real problem!");
+```
+
+```typescript,editable
+class Solution {
+    twoPointer(arr: number[]): void {
+        let left = 0;
+        let right = arr.length - 1;
+
+        while (left < right) {
+            const leftVal  = arr[left];
+            const rightVal = arr[right];
+
+            // Problem-specific work goes here.
+
+            if (this.shouldMoveLeft(leftVal, rightVal))  left  += this.leftStep(leftVal, rightVal);
+            if (this.shouldMoveRight(leftVal, rightVal)) right -= this.rightStep(leftVal, rightVal);
+        }
+    }
+    shouldMoveLeft(lv: number, rv: number): boolean  { return true; }
+    shouldMoveRight(lv: number, rv: number): boolean { return true; }
+    leftStep(lv: number, rv: number): number  { return 1; }
+    rightStep(lv: number, rv: number): number { return 1; }
+}
+
+const arr: number[] = [1, 2, 3, 4, 5, 6, 7];
+new Solution().twoPointer(arr);
+console.log("Done — customise the template above to solve a real problem!");
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+type Solution struct{}
+
+func (s Solution) shouldMoveLeft(lv, rv int) bool  { return true }
+func (s Solution) shouldMoveRight(lv, rv int) bool { return true }
+func (s Solution) leftStep(lv, rv int) int         { return 1 }
+func (s Solution) rightStep(lv, rv int) int        { return 1 }
+
+func (s Solution) twoPointer(arr []int) {
+    left := 0
+    right := len(arr) - 1
+
+    for left < right {
+        leftVal  := arr[left]
+        rightVal := arr[right]
+
+        // Problem-specific work goes here.
+
+        if s.shouldMoveLeft(leftVal, rightVal) {
+            left += s.leftStep(leftVal, rightVal)
+        }
+        if s.shouldMoveRight(leftVal, rightVal) {
+            right -= s.rightStep(leftVal, rightVal)
+        }
+    }
+}
+
+func main() {
+    arr := []int{1, 2, 3, 4, 5, 6, 7}
+    Solution{}.twoPointer(arr)
+    fmt.Println("Done — customise the template above to solve a real problem!")
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun twoPointer(arr: IntArray) {
+        var left = 0
+        var right = arr.size - 1
+
+        while (left < right) {
+            val leftVal  = arr[left]
+            val rightVal = arr[right]
+
+            // Problem-specific work goes here.
+
+            if (shouldMoveLeft(leftVal, rightVal))  left  += leftStep(leftVal, rightVal)
+            if (shouldMoveRight(leftVal, rightVal)) right -= rightStep(leftVal, rightVal)
+        }
+    }
+    fun shouldMoveLeft(lv: Int, rv: Int) = true
+    fun shouldMoveRight(lv: Int, rv: Int) = true
+    fun leftStep(lv: Int, rv: Int) = 1
+    fun rightStep(lv: Int, rv: Int) = 1
+}
+
+fun main() {
+    val arr = intArrayOf(1, 2, 3, 4, 5, 6, 7)
+    Solution().twoPointer(arr)
+    println("Done — customise the template above to solve a real problem!")
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn should_move_left(&self, _lv: i32, _rv: i32) -> bool { true }
+    fn should_move_right(&self, _lv: i32, _rv: i32) -> bool { true }
+    fn left_step(&self, _lv: i32, _rv: i32) -> i32  { 1 }
+    fn right_step(&self, _lv: i32, _rv: i32) -> i32 { 1 }
+
+    fn two_pointer(&self, arr: &[i32]) {
+        let mut left  = 0i32;
+        let mut right = arr.len() as i32 - 1;
+
+        while left < right {
+            let left_val  = arr[left as usize];
+            let right_val = arr[right as usize];
+
+            // Problem-specific work goes here.
+
+            if self.should_move_left(left_val, right_val)  { left  += self.left_step(left_val, right_val); }
+            if self.should_move_right(left_val, right_val) { right -= self.right_step(left_val, right_val); }
+        }
+    }
+}
+
+fn main() {
+    let arr = [1, 2, 3, 4, 5, 6, 7];
+    Solution.two_pointer(&arr);
+    println!("Done — customise the template above to solve a real problem!");
+}
+```
+
+</div>
 
 ---
 
@@ -329,6 +599,8 @@ TEMP -> BACK: pass 2 — forwards copy
 
 <p align="center"><strong>Brute-force reversal — two full passes and O(n) extra space for the temp array.</strong></p>
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
@@ -337,11 +609,11 @@ class BruteForce:
         n = len(arr)
         temp = [0] * n
 
-        # Pass 1: copy arr backwards into temp
+        # Pass 1: copy arr backwards into temp.
         for i in range(n - 1, -1, -1):
             temp[n - 1 - i] = arr[i]
 
-        # Pass 2: copy temp back into arr
+        # Pass 2: copy temp back into arr.
         for i in range(n):
             arr[i] = temp[i]
 
@@ -350,6 +622,180 @@ arr = [1, 2, 3, 4, 5]
 BruteForce().reverse(arr)
 print(arr)   # [5, 4, 3, 2, 1]
 ```
+
+```java,editable
+import java.util.Arrays;
+
+public class Main {
+    static class BruteForce {
+        void reverse(int[] arr) {
+            int n = arr.length;
+            int[] temp = new int[n];
+            // Pass 1: copy backwards into temp.
+            for (int i = n - 1; i >= 0; i--) temp[n - 1 - i] = arr[i];
+            // Pass 2: copy temp back into arr.
+            for (int i = 0; i < n; i++) arr[i] = temp[i];
+        }
+    }
+
+    public static void main(String[] args) {
+        int[] arr = {1, 2, 3, 4, 5};
+        new BruteForce().reverse(arr);
+        System.out.println(Arrays.toString(arr));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+
+void reverse_brute(int* arr, int n) {
+    int* temp = (int*)malloc(n * sizeof(int));
+    for (int i = n - 1; i >= 0; i--) temp[n - 1 - i] = arr[i];
+    for (int i = 0; i < n; i++) arr[i] = temp[i];
+    free(temp);
+}
+
+int main() {
+    int arr[] = {1, 2, 3, 4, 5};
+    int n = 5;
+    reverse_brute(arr, n);
+    for (int i = 0; i < n; i++) printf("%d ", arr[i]);
+    printf("\n");
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+class BruteForce {
+public:
+    void reverse(std::vector<int>& arr) {
+        int n = (int)arr.size();
+        std::vector<int> temp(n);
+        for (int i = n - 1; i >= 0; i--) temp[n - 1 - i] = arr[i];
+        for (int i = 0; i < n; i++) arr[i] = temp[i];
+    }
+};
+
+int main() {
+    std::vector<int> arr = {1, 2, 3, 4, 5};
+    BruteForce().reverse(arr);
+    for (int v : arr) std::cout << v << " ";
+    std::cout << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  class BruteForce {
+    def reverse(arr: Array[Int]): Unit = {
+      val n = arr.length
+      val temp = new Array[Int](n)
+      for (i <- (n - 1) to 0 by -1) temp(n - 1 - i) = arr(i)
+      for (i <- 0 until n) arr(i) = temp(i)
+    }
+  }
+
+  val arr = Array(1, 2, 3, 4, 5)
+  new BruteForce().reverse(arr)
+  println(arr.mkString(", "))
+}
+```
+
+```javascript,editable
+class BruteForce {
+    reverse(arr) {
+        const n = arr.length;
+        const temp = new Array(n);
+        for (let i = n - 1; i >= 0; i--) temp[n - 1 - i] = arr[i];
+        for (let i = 0; i < n; i++) arr[i] = temp[i];
+    }
+}
+
+const arr = [1, 2, 3, 4, 5];
+new BruteForce().reverse(arr);
+console.log(arr);
+```
+
+```typescript,editable
+class BruteForce {
+    reverse(arr: number[]): void {
+        const n = arr.length;
+        const temp: number[] = new Array(n);
+        for (let i = n - 1; i >= 0; i--) temp[n - 1 - i] = arr[i];
+        for (let i = 0; i < n; i++) arr[i] = temp[i];
+    }
+}
+
+const arr: number[] = [1, 2, 3, 4, 5];
+new BruteForce().reverse(arr);
+console.log(arr);
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func reverseBrute(arr []int) {
+    n := len(arr)
+    temp := make([]int, n)
+    for i := n - 1; i >= 0; i-- {
+        temp[n-1-i] = arr[i]
+    }
+    for i := 0; i < n; i++ {
+        arr[i] = temp[i]
+    }
+}
+
+func main() {
+    arr := []int{1, 2, 3, 4, 5}
+    reverseBrute(arr)
+    fmt.Println(arr)
+}
+```
+
+```kotlin,editable
+class BruteForce {
+    fun reverse(arr: IntArray) {
+        val n = arr.size
+        val temp = IntArray(n)
+        for (i in n - 1 downTo 0) temp[n - 1 - i] = arr[i]
+        for (i in 0 until n) arr[i] = temp[i]
+    }
+}
+
+fun main() {
+    val arr = intArrayOf(1, 2, 3, 4, 5)
+    BruteForce().reverse(arr)
+    println(arr.toList())
+}
+```
+
+```rust,editable
+struct BruteForce;
+
+impl BruteForce {
+    fn reverse(&self, arr: &mut [i32]) {
+        let n = arr.len();
+        let mut temp = vec![0i32; n];
+        for i in (0..n).rev() { temp[n - 1 - i] = arr[i]; }
+        for i in 0..n { arr[i] = temp[i]; }
+    }
+}
+
+fn main() {
+    let mut arr = [1, 2, 3, 4, 5];
+    BruteForce.reverse(&mut arr);
+    println!("{:?}", arr);
+}
+```
+
+</div>
 
 This works, but it uses O(n) extra space and touches every element twice. We can do better.
 
@@ -398,26 +844,20 @@ flowchart TB
 
 <p align="center"><strong>Two-pointer reversal on <code>[1, 2, 3, 4, 5]</code> — two swaps close the gap from both ends; the middle element needs no swap.</strong></p>
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
     def reverse(self, arr: List[int]) -> None:
-        left  = 0              # Start at the leftmost element
-        right = len(arr) - 1   # Start at the rightmost element
+        left, right = 0, len(arr) - 1
 
-        # Stop when pointers meet or cross:
-        #   - Odd-length array: left == right at the middle element — it's already in place, no swap needed
-        #   - Even-length array: left > right means all pairs have been swapped
+        # Stop when pointers meet (odd length: middle stays put) or cross (even length: done).
         while left < right:
-            # Swap the two ends — these elements are equidistant from center
-            # and belong in each other's positions after reversal
-            arr[left], arr[right] = arr[right], arr[left]
-
-            left  += 1  # This position is finalized — move inward
-            right -= 1  # This position is finalized — move inward
-        # Invariant at exit: every pair (0, n-1), (1, n-2), ... has been swapped.
-        # The array is fully reversed in-place.
+            arr[left], arr[right] = arr[right], arr[left]   # swap equidistant ends
+            left  += 1                                       # close the window from the left
+            right -= 1                                       # close the window from the right
 
 
 arr = [1, 2, 3, 4, 5]
@@ -428,6 +868,247 @@ arr2 = [1, 2, 3, 4]
 Solution().reverse(arr2)
 print(arr2)  # [4, 3, 2, 1]
 ```
+
+```java,editable
+import java.util.Arrays;
+
+public class Main {
+    static class Solution {
+        void reverse(int[] arr) {
+            int left = 0;
+            int right = arr.length - 1;
+
+            while (left < right) {
+                int tmp = arr[left];
+                arr[left] = arr[right];
+                arr[right] = tmp;
+                left++;
+                right--;
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        int[] arr = {1, 2, 3, 4, 5};
+        new Solution().reverse(arr);
+        System.out.println(Arrays.toString(arr));
+
+        int[] arr2 = {1, 2, 3, 4};
+        new Solution().reverse(arr2);
+        System.out.println(Arrays.toString(arr2));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+void reverse_arr(int* arr, int n) {
+    int left = 0, right = n - 1;
+    while (left < right) {
+        int tmp = arr[left];
+        arr[left]  = arr[right];
+        arr[right] = tmp;
+        left++;
+        right--;
+    }
+}
+
+void print_arr(int* arr, int n) {
+    for (int i = 0; i < n; i++) printf("%d ", arr[i]);
+    printf("\n");
+}
+
+int main() {
+    int arr[] = {1, 2, 3, 4, 5};
+    reverse_arr(arr, 5);
+    print_arr(arr, 5);
+
+    int arr2[] = {1, 2, 3, 4};
+    reverse_arr(arr2, 4);
+    print_arr(arr2, 4);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+class Solution {
+public:
+    void reverse(std::vector<int>& arr) {
+        int left = 0;
+        int right = (int)arr.size() - 1;
+        while (left < right) {
+            std::swap(arr[left], arr[right]);
+            left++;
+            right--;
+        }
+    }
+};
+
+int main() {
+    std::vector<int> arr = {1, 2, 3, 4, 5};
+    Solution().reverse(arr);
+    for (int v : arr) std::cout << v << " ";
+    std::cout << "\n";
+
+    std::vector<int> arr2 = {1, 2, 3, 4};
+    Solution().reverse(arr2);
+    for (int v : arr2) std::cout << v << " ";
+    std::cout << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def reverse(arr: Array[Int]): Unit = {
+      var left = 0
+      var right = arr.length - 1
+      while (left < right) {
+        val tmp = arr(left)
+        arr(left)  = arr(right)
+        arr(right) = tmp
+        left  += 1
+        right -= 1
+      }
+    }
+  }
+
+  val arr = Array(1, 2, 3, 4, 5)
+  new Solution().reverse(arr)
+  println(arr.mkString(", "))
+
+  val arr2 = Array(1, 2, 3, 4)
+  new Solution().reverse(arr2)
+  println(arr2.mkString(", "))
+}
+```
+
+```javascript,editable
+class Solution {
+    reverse(arr) {
+        let left = 0;
+        let right = arr.length - 1;
+        while (left < right) {
+            [arr[left], arr[right]] = [arr[right], arr[left]];   // destructuring swap
+            left++;
+            right--;
+        }
+    }
+}
+
+const arr = [1, 2, 3, 4, 5];
+new Solution().reverse(arr);
+console.log(arr);
+
+const arr2 = [1, 2, 3, 4];
+new Solution().reverse(arr2);
+console.log(arr2);
+```
+
+```typescript,editable
+class Solution {
+    reverse(arr: number[]): void {
+        let left = 0;
+        let right = arr.length - 1;
+        while (left < right) {
+            [arr[left], arr[right]] = [arr[right], arr[left]];
+            left++;
+            right--;
+        }
+    }
+}
+
+const arr: number[] = [1, 2, 3, 4, 5];
+new Solution().reverse(arr);
+console.log(arr);
+
+const arr2: number[] = [1, 2, 3, 4];
+new Solution().reverse(arr2);
+console.log(arr2);
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func reverseArr(arr []int) {
+    left, right := 0, len(arr)-1
+    for left < right {
+        arr[left], arr[right] = arr[right], arr[left]
+        left++
+        right--
+    }
+}
+
+func main() {
+    arr := []int{1, 2, 3, 4, 5}
+    reverseArr(arr)
+    fmt.Println(arr)
+
+    arr2 := []int{1, 2, 3, 4}
+    reverseArr(arr2)
+    fmt.Println(arr2)
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun reverse(arr: IntArray) {
+        var left = 0
+        var right = arr.size - 1
+        while (left < right) {
+            val tmp = arr[left]
+            arr[left]  = arr[right]
+            arr[right] = tmp
+            left++
+            right--
+        }
+    }
+}
+
+fun main() {
+    val arr = intArrayOf(1, 2, 3, 4, 5)
+    Solution().reverse(arr)
+    println(arr.toList())
+
+    val arr2 = intArrayOf(1, 2, 3, 4)
+    Solution().reverse(arr2)
+    println(arr2.toList())
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn reverse(&self, arr: &mut [i32]) {
+        let mut left = 0usize;
+        let mut right = arr.len().saturating_sub(1);
+        while left < right {
+            arr.swap(left, right);
+            left  += 1;
+            right -= 1;
+        }
+    }
+}
+
+fn main() {
+    let mut arr = [1, 2, 3, 4, 5];
+    Solution.reverse(&mut arr);
+    println!("{:?}", arr);
+
+    let mut arr2 = [1, 2, 3, 4];
+    Solution.reverse(&mut arr2);
+    println!("{:?}", arr2);
+}
+```
+
+</div>
 
 One pass. No extra memory. The two-pointer template applied directly.
 
@@ -663,36 +1344,280 @@ Every box is checked with nothing extra needed. This is the purest direct applic
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
     def flip_characters(self, chars: List[str]) -> None:
-        left  = 0
-        right = len(chars) - 1
-
+        left, right = 0, len(chars) - 1
         while left < right:
-            # Swap the mirror pair
-            chars[left], chars[right] = chars[right], chars[left]
-
-            # Move both pointers inward
+            chars[left], chars[right] = chars[right], chars[left]   # swap mirror pair
             left  += 1
             right -= 1
 
 
-# --- Test ---
 c1 = ['h', 'e', 'l', 'l', 'o']
-Solution().flip_characters(c1)
-print(c1)   # ['o', 'l', 'l', 'e', 'h']
+Solution().flip_characters(c1); print(c1)   # ['o', 'l', 'l', 'e', 'h']
 
 c2 = ['A', 'B', 'C', 'D']
-Solution().flip_characters(c2)
-print(c2)   # ['D', 'C', 'B', 'A']
+Solution().flip_characters(c2); print(c2)   # ['D', 'C', 'B', 'A']
 
 c3 = ['X']
-Solution().flip_characters(c3)
-print(c3)   # ['X']
+Solution().flip_characters(c3); print(c3)   # ['X']
 ```
+
+```java,editable
+import java.util.Arrays;
+
+public class Main {
+    static class Solution {
+        void flipCharacters(char[] chars) {
+            int left = 0;
+            int right = chars.length - 1;
+            while (left < right) {
+                char tmp = chars[left];
+                chars[left]  = chars[right];
+                chars[right] = tmp;
+                left++;
+                right--;
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        char[] c1 = {'h','e','l','l','o'};
+        new Solution().flipCharacters(c1);
+        System.out.println(Arrays.toString(c1));
+
+        char[] c2 = {'A','B','C','D'};
+        new Solution().flipCharacters(c2);
+        System.out.println(Arrays.toString(c2));
+
+        char[] c3 = {'X'};
+        new Solution().flipCharacters(c3);
+        System.out.println(Arrays.toString(c3));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+void flip_characters(char* chars, int n) {
+    int left = 0, right = n - 1;
+    while (left < right) {
+        char tmp = chars[left];
+        chars[left]  = chars[right];
+        chars[right] = tmp;
+        left++;
+        right--;
+    }
+}
+
+void print_chars(char* chars, int n) {
+    putchar('[');
+    for (int i = 0; i < n; i++) printf("'%c'%s", chars[i], i + 1 < n ? ", " : "");
+    printf("]\n");
+}
+
+int main() {
+    char c1[] = {'h','e','l','l','o'};
+    flip_characters(c1, 5); print_chars(c1, 5);
+    char c2[] = {'A','B','C','D'};
+    flip_characters(c2, 4); print_chars(c2, 4);
+    char c3[] = {'X'};
+    flip_characters(c3, 1); print_chars(c3, 1);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+class Solution {
+public:
+    void flipCharacters(std::vector<char>& chars) {
+        int left = 0;
+        int right = (int)chars.size() - 1;
+        while (left < right) {
+            std::swap(chars[left], chars[right]);
+            left++;
+            right--;
+        }
+    }
+};
+
+void print_v(const std::vector<char>& v) {
+    std::cout << "[";
+    for (size_t i = 0; i < v.size(); i++) std::cout << "'" << v[i] << "'" << (i + 1 < v.size() ? ", " : "");
+    std::cout << "]\n";
+}
+
+int main() {
+    std::vector<char> c1 = {'h','e','l','l','o'};
+    Solution().flipCharacters(c1); print_v(c1);
+    std::vector<char> c2 = {'A','B','C','D'};
+    Solution().flipCharacters(c2); print_v(c2);
+    std::vector<char> c3 = {'X'};
+    Solution().flipCharacters(c3); print_v(c3);
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def flipCharacters(chars: Array[Char]): Unit = {
+      var left = 0
+      var right = chars.length - 1
+      while (left < right) {
+        val tmp = chars(left)
+        chars(left)  = chars(right)
+        chars(right) = tmp
+        left  += 1
+        right -= 1
+      }
+    }
+  }
+
+  val c1 = Array('h','e','l','l','o')
+  new Solution().flipCharacters(c1); println(c1.mkString("[", ", ", "]"))
+  val c2 = Array('A','B','C','D')
+  new Solution().flipCharacters(c2); println(c2.mkString("[", ", ", "]"))
+  val c3 = Array('X')
+  new Solution().flipCharacters(c3); println(c3.mkString("[", ", ", "]"))
+}
+```
+
+```javascript,editable
+class Solution {
+    flipCharacters(chars) {
+        let left = 0;
+        let right = chars.length - 1;
+        while (left < right) {
+            [chars[left], chars[right]] = [chars[right], chars[left]];
+            left++;
+            right--;
+        }
+    }
+}
+
+const c1 = ['h','e','l','l','o'];
+new Solution().flipCharacters(c1); console.log(c1);
+
+const c2 = ['A','B','C','D'];
+new Solution().flipCharacters(c2); console.log(c2);
+
+const c3 = ['X'];
+new Solution().flipCharacters(c3); console.log(c3);
+```
+
+```typescript,editable
+class Solution {
+    flipCharacters(chars: string[]): void {
+        let left = 0;
+        let right = chars.length - 1;
+        while (left < right) {
+            [chars[left], chars[right]] = [chars[right], chars[left]];
+            left++;
+            right--;
+        }
+    }
+}
+
+const c1: string[] = ['h','e','l','l','o'];
+new Solution().flipCharacters(c1); console.log(c1);
+
+const c2: string[] = ['A','B','C','D'];
+new Solution().flipCharacters(c2); console.log(c2);
+
+const c3: string[] = ['X'];
+new Solution().flipCharacters(c3); console.log(c3);
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func flipCharacters(chars []byte) {
+    left, right := 0, len(chars)-1
+    for left < right {
+        chars[left], chars[right] = chars[right], chars[left]
+        left++
+        right--
+    }
+}
+
+func main() {
+    c1 := []byte{'h','e','l','l','o'}
+    flipCharacters(c1); fmt.Println(string(c1))
+
+    c2 := []byte{'A','B','C','D'}
+    flipCharacters(c2); fmt.Println(string(c2))
+
+    c3 := []byte{'X'}
+    flipCharacters(c3); fmt.Println(string(c3))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun flipCharacters(chars: CharArray) {
+        var left = 0
+        var right = chars.size - 1
+        while (left < right) {
+            val tmp = chars[left]
+            chars[left]  = chars[right]
+            chars[right] = tmp
+            left++
+            right--
+        }
+    }
+}
+
+fun main() {
+    val c1 = charArrayOf('h','e','l','l','o')
+    Solution().flipCharacters(c1); println(c1.toList())
+
+    val c2 = charArrayOf('A','B','C','D')
+    Solution().flipCharacters(c2); println(c2.toList())
+
+    val c3 = charArrayOf('X')
+    Solution().flipCharacters(c3); println(c3.toList())
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn flip_characters(&self, chars: &mut [char]) {
+        let mut left = 0usize;
+        let mut right = chars.len().saturating_sub(1);
+        while left < right {
+            chars.swap(left, right);
+            left  += 1;
+            right -= 1;
+        }
+    }
+}
+
+fn main() {
+    let mut c1 = ['h','e','l','l','o'];
+    Solution.flip_characters(&mut c1); println!("{:?}", c1);
+
+    let mut c2 = ['A','B','C','D'];
+    Solution.flip_characters(&mut c2); println!("{:?}", c2);
+
+    let mut c3 = ['X'];
+    Solution.flip_characters(&mut c3); println!("{:?}", c3);
+}
+```
+
+</div>
 
 ---
 
@@ -891,23 +1816,20 @@ This early-exit property makes two-pointer palindrome checking efficient in prac
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 class Solution:
     def is_palindrome(self, s: str) -> bool:
-        left  = 0
-        right = len(s) - 1
-
+        left, right = 0, len(s) - 1
         while left < right:
             if s[left] != s[right]:
-                return False   # mismatch found — not a palindrome
-
+                return False
             left  += 1
             right -= 1
+        return True
 
-        return True   # all mirror pairs matched
 
-
-# --- Test ---
 sol = Solution()
 print(sol.is_palindrome("racecar"))  # True
 print(sol.is_palindrome("hello"))    # False
@@ -916,6 +1838,242 @@ print(sol.is_palindrome("a"))        # True
 print(sol.is_palindrome("ab"))       # False
 print(sol.is_palindrome("aa"))       # True
 ```
+
+```java,editable
+public class Main {
+    static class Solution {
+        boolean isPalindrome(String s) {
+            int left = 0;
+            int right = s.length() - 1;
+            while (left < right) {
+                if (s.charAt(left) != s.charAt(right)) return false;
+                left++;
+                right--;
+            }
+            return true;
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution sol = new Solution();
+        System.out.println(sol.isPalindrome("racecar"));
+        System.out.println(sol.isPalindrome("hello"));
+        System.out.println(sol.isPalindrome("abcba"));
+        System.out.println(sol.isPalindrome("a"));
+        System.out.println(sol.isPalindrome("ab"));
+        System.out.println(sol.isPalindrome("aa"));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
+
+bool is_palindrome(const char* s) {
+    int left = 0, right = (int)strlen(s) - 1;
+    while (left < right) {
+        if (s[left] != s[right]) return false;
+        left++;
+        right--;
+    }
+    return true;
+}
+
+int main() {
+    printf("%d\n", is_palindrome("racecar"));
+    printf("%d\n", is_palindrome("hello"));
+    printf("%d\n", is_palindrome("abcba"));
+    printf("%d\n", is_palindrome("a"));
+    printf("%d\n", is_palindrome("ab"));
+    printf("%d\n", is_palindrome("aa"));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <string>
+
+class Solution {
+public:
+    bool isPalindrome(const std::string& s) {
+        int left = 0;
+        int right = (int)s.size() - 1;
+        while (left < right) {
+            if (s[left] != s[right]) return false;
+            left++;
+            right--;
+        }
+        return true;
+    }
+};
+
+int main() {
+    Solution sol;
+    std::cout << std::boolalpha
+              << sol.isPalindrome("racecar") << "\n"
+              << sol.isPalindrome("hello")   << "\n"
+              << sol.isPalindrome("abcba")   << "\n"
+              << sol.isPalindrome("a")       << "\n"
+              << sol.isPalindrome("ab")      << "\n"
+              << sol.isPalindrome("aa")      << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def isPalindrome(s: String): Boolean = {
+      var left = 0
+      var right = s.length - 1
+      while (left < right) {
+        if (s(left) != s(right)) return false
+        left  += 1
+        right -= 1
+      }
+      true
+    }
+  }
+
+  val sol = new Solution
+  println(sol.isPalindrome("racecar"))
+  println(sol.isPalindrome("hello"))
+  println(sol.isPalindrome("abcba"))
+  println(sol.isPalindrome("a"))
+  println(sol.isPalindrome("ab"))
+  println(sol.isPalindrome("aa"))
+}
+```
+
+```javascript,editable
+class Solution {
+    isPalindrome(s) {
+        let left = 0;
+        let right = s.length - 1;
+        while (left < right) {
+            if (s[left] !== s[right]) return false;
+            left++;
+            right--;
+        }
+        return true;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.isPalindrome("racecar"));
+console.log(sol.isPalindrome("hello"));
+console.log(sol.isPalindrome("abcba"));
+console.log(sol.isPalindrome("a"));
+console.log(sol.isPalindrome("ab"));
+console.log(sol.isPalindrome("aa"));
+```
+
+```typescript,editable
+class Solution {
+    isPalindrome(s: string): boolean {
+        let left = 0;
+        let right = s.length - 1;
+        while (left < right) {
+            if (s[left] !== s[right]) return false;
+            left++;
+            right--;
+        }
+        return true;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.isPalindrome("racecar"));
+console.log(sol.isPalindrome("hello"));
+console.log(sol.isPalindrome("abcba"));
+console.log(sol.isPalindrome("a"));
+console.log(sol.isPalindrome("ab"));
+console.log(sol.isPalindrome("aa"));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func isPalindrome(s string) bool {
+    left, right := 0, len(s)-1
+    for left < right {
+        if s[left] != s[right] {
+            return false
+        }
+        left++
+        right--
+    }
+    return true
+}
+
+func main() {
+    fmt.Println(isPalindrome("racecar"))
+    fmt.Println(isPalindrome("hello"))
+    fmt.Println(isPalindrome("abcba"))
+    fmt.Println(isPalindrome("a"))
+    fmt.Println(isPalindrome("ab"))
+    fmt.Println(isPalindrome("aa"))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun isPalindrome(s: String): Boolean {
+        var left = 0
+        var right = s.length - 1
+        while (left < right) {
+            if (s[left] != s[right]) return false
+            left++
+            right--
+        }
+        return true
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    println(sol.isPalindrome("racecar"))
+    println(sol.isPalindrome("hello"))
+    println(sol.isPalindrome("abcba"))
+    println(sol.isPalindrome("a"))
+    println(sol.isPalindrome("ab"))
+    println(sol.isPalindrome("aa"))
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn is_palindrome(&self, s: &str) -> bool {
+        let bytes = s.as_bytes();
+        let mut left = 0usize;
+        let mut right = bytes.len().saturating_sub(1);
+        while left < right {
+            if bytes[left] != bytes[right] { return false; }
+            left  += 1;
+            right -= 1;
+        }
+        true
+    }
+}
+
+fn main() {
+    let s = Solution;
+    println!("{}", s.is_palindrome("racecar"));
+    println!("{}", s.is_palindrome("hello"));
+    println!("{}", s.is_palindrome("abcba"));
+    println!("{}", s.is_palindrome("a"));
+    println!("{}", s.is_palindrome("ab"));
+    println!("{}", s.is_palindrome("aa"));
+}
+```
+
+</div>
 
 ---
 
@@ -1092,24 +2250,18 @@ This is a direct application with one variation: each pointer doesn't step by ex
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 class Solution:
     def vowel_exchange(self, s: str) -> str:
         VOWELS = set("aeiouAEIOU")
         chars  = list(s)   # strings are immutable — work on a list
-        left   = 0
-        right  = len(chars) - 1
+        left, right = 0, len(chars) - 1
 
         while left < right:
-            # Advance left until it sits on a vowel (or crosses right)
-            while left < right and chars[left] not in VOWELS:
-                left += 1
-
-            # Retreat right until it sits on a vowel (or crosses left)
-            while left < right and chars[right] not in VOWELS:
-                right -= 1
-
-            # Both pointers are on vowels — swap them
+            while left < right and chars[left]  not in VOWELS: left  += 1
+            while left < right and chars[right] not in VOWELS: right -= 1
             if left < right:
                 chars[left], chars[right] = chars[right], chars[left]
                 left  += 1
@@ -1118,7 +2270,6 @@ class Solution:
         return "".join(chars)
 
 
-# --- Test ---
 sol = Solution()
 print(sol.vowel_exchange("hello"))     # "holle"
 print(sol.vowel_exchange("leetcode"))  # "leotcede"
@@ -1126,6 +2277,309 @@ print(sol.vowel_exchange("bcdfg"))     # "bcdfg"
 print(sol.vowel_exchange("aeiou"))     # "uoiea"
 print(sol.vowel_exchange("a"))         # "a"
 ```
+
+```java,editable
+public class Main {
+    static class Solution {
+        boolean isVowel(char c) {
+            return "aeiouAEIOU".indexOf(c) >= 0;
+        }
+
+        String vowelExchange(String s) {
+            char[] chars = s.toCharArray();
+            int left = 0, right = chars.length - 1;
+            while (left < right) {
+                while (left < right && !isVowel(chars[left]))  left++;
+                while (left < right && !isVowel(chars[right])) right--;
+                if (left < right) {
+                    char tmp = chars[left];
+                    chars[left]  = chars[right];
+                    chars[right] = tmp;
+                    left++;
+                    right--;
+                }
+            }
+            return new String(chars);
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution sol = new Solution();
+        System.out.println(sol.vowelExchange("hello"));
+        System.out.println(sol.vowelExchange("leetcode"));
+        System.out.println(sol.vowelExchange("bcdfg"));
+        System.out.println(sol.vowelExchange("aeiou"));
+        System.out.println(sol.vowelExchange("a"));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <string.h>
+#include <stdbool.h>
+
+bool is_vowel(char c) {
+    return strchr("aeiouAEIOU", c) != NULL;
+}
+
+void vowel_exchange(char* s) {
+    int left = 0, right = (int)strlen(s) - 1;
+    while (left < right) {
+        while (left < right && !is_vowel(s[left]))  left++;
+        while (left < right && !is_vowel(s[right])) right--;
+        if (left < right) {
+            char tmp = s[left];
+            s[left]  = s[right];
+            s[right] = tmp;
+            left++;
+            right--;
+        }
+    }
+}
+
+int main() {
+    char s1[] = "hello";    vowel_exchange(s1); printf("%s\n", s1);
+    char s2[] = "leetcode"; vowel_exchange(s2); printf("%s\n", s2);
+    char s3[] = "bcdfg";    vowel_exchange(s3); printf("%s\n", s3);
+    char s4[] = "aeiou";    vowel_exchange(s4); printf("%s\n", s4);
+    char s5[] = "a";        vowel_exchange(s5); printf("%s\n", s5);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <string>
+
+class Solution {
+public:
+    bool isVowel(char c) { return std::string("aeiouAEIOU").find(c) != std::string::npos; }
+
+    std::string vowelExchange(std::string s) {
+        int left = 0, right = (int)s.size() - 1;
+        while (left < right) {
+            while (left < right && !isVowel(s[left]))  left++;
+            while (left < right && !isVowel(s[right])) right--;
+            if (left < right) {
+                std::swap(s[left], s[right]);
+                left++;
+                right--;
+            }
+        }
+        return s;
+    }
+};
+
+int main() {
+    Solution sol;
+    std::cout << sol.vowelExchange("hello")    << "\n";
+    std::cout << sol.vowelExchange("leetcode") << "\n";
+    std::cout << sol.vowelExchange("bcdfg")    << "\n";
+    std::cout << sol.vowelExchange("aeiou")    << "\n";
+    std::cout << sol.vowelExchange("a")        << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  val Vowels: Set[Char] = "aeiouAEIOU".toSet
+
+  class Solution {
+    def vowelExchange(s: String): String = {
+      val chars = s.toCharArray
+      var left = 0
+      var right = chars.length - 1
+      while (left < right) {
+        while (left < right && !Vowels.contains(chars(left)))  left  += 1
+        while (left < right && !Vowels.contains(chars(right))) right -= 1
+        if (left < right) {
+          val tmp = chars(left)
+          chars(left)  = chars(right)
+          chars(right) = tmp
+          left  += 1
+          right -= 1
+        }
+      }
+      new String(chars)
+    }
+  }
+
+  val sol = new Solution
+  println(sol.vowelExchange("hello"))
+  println(sol.vowelExchange("leetcode"))
+  println(sol.vowelExchange("bcdfg"))
+  println(sol.vowelExchange("aeiou"))
+  println(sol.vowelExchange("a"))
+}
+```
+
+```javascript,editable
+class Solution {
+    isVowel(c) { return "aeiouAEIOU".includes(c); }
+
+    vowelExchange(s) {
+        const chars = s.split("");
+        let left = 0, right = chars.length - 1;
+        while (left < right) {
+            while (left < right && !this.isVowel(chars[left]))  left++;
+            while (left < right && !this.isVowel(chars[right])) right--;
+            if (left < right) {
+                [chars[left], chars[right]] = [chars[right], chars[left]];
+                left++;
+                right--;
+            }
+        }
+        return chars.join("");
+    }
+}
+
+const sol = new Solution();
+console.log(sol.vowelExchange("hello"));
+console.log(sol.vowelExchange("leetcode"));
+console.log(sol.vowelExchange("bcdfg"));
+console.log(sol.vowelExchange("aeiou"));
+console.log(sol.vowelExchange("a"));
+```
+
+```typescript,editable
+class Solution {
+    isVowel(c: string): boolean { return "aeiouAEIOU".includes(c); }
+
+    vowelExchange(s: string): string {
+        const chars = s.split("");
+        let left = 0, right = chars.length - 1;
+        while (left < right) {
+            while (left < right && !this.isVowel(chars[left]))  left++;
+            while (left < right && !this.isVowel(chars[right])) right--;
+            if (left < right) {
+                [chars[left], chars[right]] = [chars[right], chars[left]];
+                left++;
+                right--;
+            }
+        }
+        return chars.join("");
+    }
+}
+
+const sol = new Solution();
+console.log(sol.vowelExchange("hello"));
+console.log(sol.vowelExchange("leetcode"));
+console.log(sol.vowelExchange("bcdfg"));
+console.log(sol.vowelExchange("aeiou"));
+console.log(sol.vowelExchange("a"));
+```
+
+```go,editable
+package main
+
+import (
+    "fmt"
+    "strings"
+)
+
+func isVowel(c byte) bool {
+    return strings.ContainsRune("aeiouAEIOU", rune(c))
+}
+
+func vowelExchange(s string) string {
+    chars := []byte(s)
+    left, right := 0, len(chars)-1
+    for left < right {
+        for left < right && !isVowel(chars[left]) {
+            left++
+        }
+        for left < right && !isVowel(chars[right]) {
+            right--
+        }
+        if left < right {
+            chars[left], chars[right] = chars[right], chars[left]
+            left++
+            right--
+        }
+    }
+    return string(chars)
+}
+
+func main() {
+    fmt.Println(vowelExchange("hello"))
+    fmt.Println(vowelExchange("leetcode"))
+    fmt.Println(vowelExchange("bcdfg"))
+    fmt.Println(vowelExchange("aeiou"))
+    fmt.Println(vowelExchange("a"))
+}
+```
+
+```kotlin,editable
+class Solution {
+    private val vowels = "aeiouAEIOU".toSet()
+
+    fun vowelExchange(s: String): String {
+        val chars = s.toCharArray()
+        var left = 0
+        var right = chars.size - 1
+        while (left < right) {
+            while (left < right && chars[left]  !in vowels) left++
+            while (left < right && chars[right] !in vowels) right--
+            if (left < right) {
+                val tmp = chars[left]
+                chars[left]  = chars[right]
+                chars[right] = tmp
+                left++
+                right--
+            }
+        }
+        return String(chars)
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    println(sol.vowelExchange("hello"))
+    println(sol.vowelExchange("leetcode"))
+    println(sol.vowelExchange("bcdfg"))
+    println(sol.vowelExchange("aeiou"))
+    println(sol.vowelExchange("a"))
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn is_vowel(c: u8) -> bool {
+        matches!(c, b'a'|b'e'|b'i'|b'o'|b'u'|b'A'|b'E'|b'I'|b'O'|b'U')
+    }
+
+    fn vowel_exchange(&self, s: &str) -> String {
+        let mut chars: Vec<u8> = s.bytes().collect();
+        let mut left = 0usize;
+        let mut right = chars.len().saturating_sub(1);
+
+        while left < right {
+            while left < right && !Self::is_vowel(chars[left])  { left  += 1; }
+            while left < right && !Self::is_vowel(chars[right]) { right -= 1; }
+            if left < right {
+                chars.swap(left, right);
+                left  += 1;
+                right -= 1;
+            }
+        }
+        String::from_utf8(chars).unwrap()
+    }
+}
+
+fn main() {
+    let s = Solution;
+    println!("{}", s.vowel_exchange("hello"));
+    println!("{}", s.vowel_exchange("leetcode"));
+    println!("{}", s.vowel_exchange("bcdfg"));
+    println!("{}", s.vowel_exchange("aeiou"));
+    println!("{}", s.vowel_exchange("a"));
+}
+```
+
+</div>
 
 ---
 
@@ -1299,6 +2753,8 @@ The outer scan that finds word boundaries is bookkeeping — once a `[word_start
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
@@ -1309,20 +2765,15 @@ class Solution:
         i = 0
 
         while i < n:
-            # Skip spaces between words
             if chars[i] == ' ':
                 i += 1
                 continue
-
-            # Mark the start of the word
             word_start = i
-
-            # Find the end of the word
             while i < n and chars[i] != ' ':
                 i += 1
-            word_end = i - 1   # last character of this word
+            word_end = i - 1
 
-            # Two-pointer reverse within [word_start, word_end]
+            # Two-pointer reverse within [word_start, word_end].
             left, right = word_start, word_end
             while left < right:
                 chars[left], chars[right] = chars[right], chars[left]
@@ -1332,7 +2783,6 @@ class Solution:
         return "".join(chars)
 
 
-# --- Test ---
 sol = Solution()
 print(sol.reverse_words("the sky"))      # "eht yks"
 print(sol.reverse_words("hello world"))  # "olleh dlrow"
@@ -1340,6 +2790,306 @@ print(sol.reverse_words("hello"))        # "olleh"
 print(sol.reverse_words("a b c"))        # "a b c"
 print(sol.reverse_words(""))             # ""
 ```
+
+```java,editable
+public class Main {
+    static class Solution {
+        String reverseWords(String s) {
+            char[] chars = s.toCharArray();
+            int n = chars.length, i = 0;
+
+            while (i < n) {
+                if (chars[i] == ' ') { i++; continue; }
+                int wordStart = i;
+                while (i < n && chars[i] != ' ') i++;
+                int wordEnd = i - 1;
+
+                int left = wordStart, right = wordEnd;
+                while (left < right) {
+                    char tmp = chars[left];
+                    chars[left]  = chars[right];
+                    chars[right] = tmp;
+                    left++;
+                    right--;
+                }
+            }
+            return new String(chars);
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution sol = new Solution();
+        System.out.println(sol.reverseWords("the sky"));
+        System.out.println(sol.reverseWords("hello world"));
+        System.out.println(sol.reverseWords("hello"));
+        System.out.println(sol.reverseWords("a b c"));
+        System.out.println(sol.reverseWords(""));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <string.h>
+
+void reverse_range(char* s, int left, int right) {
+    while (left < right) {
+        char tmp = s[left];
+        s[left]  = s[right];
+        s[right] = tmp;
+        left++;
+        right--;
+    }
+}
+
+void reverse_words(char* s) {
+    int n = (int)strlen(s);
+    int i = 0;
+    while (i < n) {
+        if (s[i] == ' ') { i++; continue; }
+        int word_start = i;
+        while (i < n && s[i] != ' ') i++;
+        reverse_range(s, word_start, i - 1);
+    }
+}
+
+int main() {
+    char s1[] = "the sky";     reverse_words(s1); printf("%s\n", s1);
+    char s2[] = "hello world"; reverse_words(s2); printf("%s\n", s2);
+    char s3[] = "hello";       reverse_words(s3); printf("%s\n", s3);
+    char s4[] = "a b c";       reverse_words(s4); printf("%s\n", s4);
+    char s5[] = "";            reverse_words(s5); printf("'%s'\n", s5);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <string>
+#include <algorithm>
+
+class Solution {
+public:
+    std::string reverseWords(std::string s) {
+        int n = (int)s.size(), i = 0;
+        while (i < n) {
+            if (s[i] == ' ') { i++; continue; }
+            int wordStart = i;
+            while (i < n && s[i] != ' ') i++;
+            std::reverse(s.begin() + wordStart, s.begin() + i);
+        }
+        return s;
+    }
+};
+
+int main() {
+    Solution sol;
+    std::cout << sol.reverseWords("the sky")     << "\n";
+    std::cout << sol.reverseWords("hello world") << "\n";
+    std::cout << sol.reverseWords("hello")       << "\n";
+    std::cout << sol.reverseWords("a b c")       << "\n";
+    std::cout << "'" << sol.reverseWords("") << "'\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def reverseWords(s: String): String = {
+      val chars = s.toCharArray
+      val n = chars.length
+      var i = 0
+      while (i < n) {
+        if (chars(i) == ' ') {
+          i += 1
+        } else {
+          val wordStart = i
+          while (i < n && chars(i) != ' ') i += 1
+          var left = wordStart
+          var right = i - 1
+          while (left < right) {
+            val tmp = chars(left)
+            chars(left)  = chars(right)
+            chars(right) = tmp
+            left  += 1
+            right -= 1
+          }
+        }
+      }
+      new String(chars)
+    }
+  }
+
+  val sol = new Solution
+  println(sol.reverseWords("the sky"))
+  println(sol.reverseWords("hello world"))
+  println(sol.reverseWords("hello"))
+  println(sol.reverseWords("a b c"))
+  println(s"'${sol.reverseWords("")}'")
+}
+```
+
+```javascript,editable
+class Solution {
+    reverseWords(s) {
+        const chars = s.split("");
+        const n = chars.length;
+        let i = 0;
+        while (i < n) {
+            if (chars[i] === ' ') { i++; continue; }
+            const wordStart = i;
+            while (i < n && chars[i] !== ' ') i++;
+            let left = wordStart, right = i - 1;
+            while (left < right) {
+                [chars[left], chars[right]] = [chars[right], chars[left]];
+                left++;
+                right--;
+            }
+        }
+        return chars.join("");
+    }
+}
+
+const sol = new Solution();
+console.log(sol.reverseWords("the sky"));
+console.log(sol.reverseWords("hello world"));
+console.log(sol.reverseWords("hello"));
+console.log(sol.reverseWords("a b c"));
+console.log("'" + sol.reverseWords("") + "'");
+```
+
+```typescript,editable
+class Solution {
+    reverseWords(s: string): string {
+        const chars = s.split("");
+        const n = chars.length;
+        let i = 0;
+        while (i < n) {
+            if (chars[i] === ' ') { i++; continue; }
+            const wordStart = i;
+            while (i < n && chars[i] !== ' ') i++;
+            let left = wordStart, right = i - 1;
+            while (left < right) {
+                [chars[left], chars[right]] = [chars[right], chars[left]];
+                left++;
+                right--;
+            }
+        }
+        return chars.join("");
+    }
+}
+
+const sol = new Solution();
+console.log(sol.reverseWords("the sky"));
+console.log(sol.reverseWords("hello world"));
+console.log(sol.reverseWords("hello"));
+console.log(sol.reverseWords("a b c"));
+console.log("'" + sol.reverseWords("") + "'");
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func reverseRange(s []byte, left, right int) {
+    for left < right {
+        s[left], s[right] = s[right], s[left]
+        left++
+        right--
+    }
+}
+
+func reverseWords(s string) string {
+    chars := []byte(s)
+    n := len(chars)
+    i := 0
+    for i < n {
+        if chars[i] == ' ' {
+            i++
+            continue
+        }
+        wordStart := i
+        for i < n && chars[i] != ' ' {
+            i++
+        }
+        reverseRange(chars, wordStart, i-1)
+    }
+    return string(chars)
+}
+
+func main() {
+    fmt.Println(reverseWords("the sky"))
+    fmt.Println(reverseWords("hello world"))
+    fmt.Println(reverseWords("hello"))
+    fmt.Println(reverseWords("a b c"))
+    fmt.Println("'" + reverseWords("") + "'")
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun reverseWords(s: String): String {
+        val chars = s.toCharArray()
+        val n = chars.size
+        var i = 0
+        while (i < n) {
+            if (chars[i] == ' ') { i++; continue }
+            val wordStart = i
+            while (i < n && chars[i] != ' ') i++
+            var left = wordStart
+            var right = i - 1
+            while (left < right) {
+                val tmp = chars[left]
+                chars[left]  = chars[right]
+                chars[right] = tmp
+                left++
+                right--
+            }
+        }
+        return String(chars)
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    println(sol.reverseWords("the sky"))
+    println(sol.reverseWords("hello world"))
+    println(sol.reverseWords("hello"))
+    println(sol.reverseWords("a b c"))
+    println("'${sol.reverseWords("")}'")
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn reverse_words(&self, s: &str) -> String {
+        let mut chars: Vec<u8> = s.bytes().collect();
+        let n = chars.len();
+        let mut i = 0usize;
+        while i < n {
+            if chars[i] == b' ' { i += 1; continue; }
+            let word_start = i;
+            while i < n && chars[i] != b' ' { i += 1; }
+            chars[word_start..i].reverse();
+        }
+        String::from_utf8(chars).unwrap()
+    }
+}
+
+fn main() {
+    let s = Solution;
+    println!("{}", s.reverse_words("the sky"));
+    println!("{}", s.reverse_words("hello world"));
+    println!("{}", s.reverse_words("hello"));
+    println!("{}", s.reverse_words("a b c"));
+    println!("'{}'", s.reverse_words(""));
+}
+```
+
+</div>
 
 ---
 
@@ -1527,6 +3277,8 @@ Reverse Segments is structurally identical to Flip Characters — the only diffe
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List, Tuple
 
@@ -1539,35 +3291,312 @@ class Solution:
             left  += 1
             right -= 1
 
-    def reverse_segments(
-        self,
-        arr: List[int],
-        segments: List[Tuple[int, int]]
-    ) -> None:
-        """Reverse each segment in-place."""
+    def reverse_segments(self, arr: List[int], segments: List[Tuple[int, int]]) -> None:
         for l, r in segments:
             self.reverse_segment(arr, l, r)
 
 
-# --- Test ---
 sol = Solution()
 
 a1 = [1, 2, 3, 4, 5, 6, 7, 8]
-sol.reverse_segments(a1, [(0, 3), (4, 7)])
-print(a1)   # [4, 3, 2, 1, 8, 7, 6, 5]
+sol.reverse_segments(a1, [(0, 3), (4, 7)]); print(a1)   # [4, 3, 2, 1, 8, 7, 6, 5]
 
 a2 = [1, 2, 3, 4, 5]
-sol.reverse_segments(a2, [(1, 3)])
-print(a2)   # [1, 4, 3, 2, 5]
+sol.reverse_segments(a2, [(1, 3)]); print(a2)           # [1, 4, 3, 2, 5]
 
 a3 = [1, 2, 3, 4, 5]
-sol.reverse_segments(a3, [(0, 4)])
-print(a3)   # [5, 4, 3, 2, 1]
+sol.reverse_segments(a3, [(0, 4)]); print(a3)           # [5, 4, 3, 2, 1]
 
 a4 = [1, 2, 3]
-sol.reverse_segments(a4, [(1, 1)])
-print(a4)   # [1, 2, 3]
+sol.reverse_segments(a4, [(1, 1)]); print(a4)           # [1, 2, 3]
 ```
+
+```java,editable
+import java.util.Arrays;
+
+public class Main {
+    static class Solution {
+        void reverseSegment(int[] arr, int l, int r) {
+            int left = l, right = r;
+            while (left < right) {
+                int tmp = arr[left];
+                arr[left]  = arr[right];
+                arr[right] = tmp;
+                left++;
+                right--;
+            }
+        }
+        void reverseSegments(int[] arr, int[][] segments) {
+            for (int[] seg : segments) reverseSegment(arr, seg[0], seg[1]);
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution sol = new Solution();
+
+        int[] a1 = {1,2,3,4,5,6,7,8};
+        sol.reverseSegments(a1, new int[][]{{0,3},{4,7}}); System.out.println(Arrays.toString(a1));
+
+        int[] a2 = {1,2,3,4,5};
+        sol.reverseSegments(a2, new int[][]{{1,3}}); System.out.println(Arrays.toString(a2));
+
+        int[] a3 = {1,2,3,4,5};
+        sol.reverseSegments(a3, new int[][]{{0,4}}); System.out.println(Arrays.toString(a3));
+
+        int[] a4 = {1,2,3};
+        sol.reverseSegments(a4, new int[][]{{1,1}}); System.out.println(Arrays.toString(a4));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+void reverse_segment(int* arr, int l, int r) {
+    int left = l, right = r;
+    while (left < right) {
+        int tmp = arr[left];
+        arr[left]  = arr[right];
+        arr[right] = tmp;
+        left++;
+        right--;
+    }
+}
+
+void print_arr(int* arr, int n) {
+    for (int i = 0; i < n; i++) printf("%d ", arr[i]);
+    printf("\n");
+}
+
+int main() {
+    int a1[] = {1,2,3,4,5,6,7,8};
+    reverse_segment(a1, 0, 3); reverse_segment(a1, 4, 7); print_arr(a1, 8);
+
+    int a2[] = {1,2,3,4,5};
+    reverse_segment(a2, 1, 3); print_arr(a2, 5);
+
+    int a3[] = {1,2,3,4,5};
+    reverse_segment(a3, 0, 4); print_arr(a3, 5);
+
+    int a4[] = {1,2,3};
+    reverse_segment(a4, 1, 1); print_arr(a4, 3);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <utility>
+
+class Solution {
+public:
+    void reverseSegment(std::vector<int>& arr, int l, int r) {
+        int left = l, right = r;
+        while (left < right) {
+            std::swap(arr[left], arr[right]);
+            left++;
+            right--;
+        }
+    }
+    void reverseSegments(std::vector<int>& arr,
+                         const std::vector<std::pair<int,int>>& segments) {
+        for (auto& [l, r] : segments) reverseSegment(arr, l, r);
+    }
+};
+
+void print_v(const std::vector<int>& v) {
+    for (int x : v) std::cout << x << " ";
+    std::cout << "\n";
+}
+
+int main() {
+    Solution sol;
+    std::vector<int> a1 = {1,2,3,4,5,6,7,8};
+    sol.reverseSegments(a1, {{0,3},{4,7}}); print_v(a1);
+
+    std::vector<int> a2 = {1,2,3,4,5};
+    sol.reverseSegments(a2, {{1,3}}); print_v(a2);
+
+    std::vector<int> a3 = {1,2,3,4,5};
+    sol.reverseSegments(a3, {{0,4}}); print_v(a3);
+
+    std::vector<int> a4 = {1,2,3};
+    sol.reverseSegments(a4, {{1,1}}); print_v(a4);
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def reverseSegment(arr: Array[Int], l: Int, r: Int): Unit = {
+      var left = l
+      var right = r
+      while (left < right) {
+        val tmp = arr(left)
+        arr(left)  = arr(right)
+        arr(right) = tmp
+        left  += 1
+        right -= 1
+      }
+    }
+    def reverseSegments(arr: Array[Int], segments: Seq[(Int, Int)]): Unit =
+      segments.foreach { case (l, r) => reverseSegment(arr, l, r) }
+  }
+
+  val sol = new Solution
+
+  val a1 = Array(1,2,3,4,5,6,7,8)
+  sol.reverseSegments(a1, Seq((0,3), (4,7))); println(a1.mkString(", "))
+
+  val a2 = Array(1,2,3,4,5); sol.reverseSegments(a2, Seq((1,3))); println(a2.mkString(", "))
+  val a3 = Array(1,2,3,4,5); sol.reverseSegments(a3, Seq((0,4))); println(a3.mkString(", "))
+  val a4 = Array(1,2,3);     sol.reverseSegments(a4, Seq((1,1))); println(a4.mkString(", "))
+}
+```
+
+```javascript,editable
+class Solution {
+    reverseSegment(arr, l, r) {
+        let left = l, right = r;
+        while (left < right) {
+            [arr[left], arr[right]] = [arr[right], arr[left]];
+            left++;
+            right--;
+        }
+    }
+    reverseSegments(arr, segments) {
+        for (const [l, r] of segments) this.reverseSegment(arr, l, r);
+    }
+}
+
+const sol = new Solution();
+
+const a1 = [1,2,3,4,5,6,7,8];
+sol.reverseSegments(a1, [[0,3],[4,7]]); console.log(a1);
+
+const a2 = [1,2,3,4,5]; sol.reverseSegments(a2, [[1,3]]); console.log(a2);
+const a3 = [1,2,3,4,5]; sol.reverseSegments(a3, [[0,4]]); console.log(a3);
+const a4 = [1,2,3];     sol.reverseSegments(a4, [[1,1]]); console.log(a4);
+```
+
+```typescript,editable
+class Solution {
+    reverseSegment(arr: number[], l: number, r: number): void {
+        let left = l, right = r;
+        while (left < right) {
+            [arr[left], arr[right]] = [arr[right], arr[left]];
+            left++;
+            right--;
+        }
+    }
+    reverseSegments(arr: number[], segments: [number, number][]): void {
+        for (const [l, r] of segments) this.reverseSegment(arr, l, r);
+    }
+}
+
+const sol = new Solution();
+
+const a1: number[] = [1,2,3,4,5,6,7,8];
+sol.reverseSegments(a1, [[0,3],[4,7]]); console.log(a1);
+
+const a2: number[] = [1,2,3,4,5]; sol.reverseSegments(a2, [[1,3]]); console.log(a2);
+const a3: number[] = [1,2,3,4,5]; sol.reverseSegments(a3, [[0,4]]); console.log(a3);
+const a4: number[] = [1,2,3];     sol.reverseSegments(a4, [[1,1]]); console.log(a4);
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func reverseSegment(arr []int, l, r int) {
+    left, right := l, r
+    for left < right {
+        arr[left], arr[right] = arr[right], arr[left]
+        left++
+        right--
+    }
+}
+
+func reverseSegments(arr []int, segments [][2]int) {
+    for _, s := range segments {
+        reverseSegment(arr, s[0], s[1])
+    }
+}
+
+func main() {
+    a1 := []int{1,2,3,4,5,6,7,8}
+    reverseSegments(a1, [][2]int{{0,3}, {4,7}}); fmt.Println(a1)
+
+    a2 := []int{1,2,3,4,5}; reverseSegments(a2, [][2]int{{1,3}}); fmt.Println(a2)
+    a3 := []int{1,2,3,4,5}; reverseSegments(a3, [][2]int{{0,4}}); fmt.Println(a3)
+    a4 := []int{1,2,3};     reverseSegments(a4, [][2]int{{1,1}}); fmt.Println(a4)
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun reverseSegment(arr: IntArray, l: Int, r: Int) {
+        var left = l
+        var right = r
+        while (left < right) {
+            val tmp = arr[left]
+            arr[left]  = arr[right]
+            arr[right] = tmp
+            left++
+            right--
+        }
+    }
+    fun reverseSegments(arr: IntArray, segments: List<Pair<Int, Int>>) {
+        for ((l, r) in segments) reverseSegment(arr, l, r)
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    val a1 = intArrayOf(1,2,3,4,5,6,7,8)
+    sol.reverseSegments(a1, listOf(0 to 3, 4 to 7)); println(a1.toList())
+
+    val a2 = intArrayOf(1,2,3,4,5); sol.reverseSegments(a2, listOf(1 to 3)); println(a2.toList())
+    val a3 = intArrayOf(1,2,3,4,5); sol.reverseSegments(a3, listOf(0 to 4)); println(a3.toList())
+    val a4 = intArrayOf(1,2,3);     sol.reverseSegments(a4, listOf(1 to 1)); println(a4.toList())
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn reverse_segment(&self, arr: &mut [i32], l: usize, r: usize) {
+        let mut left = l;
+        let mut right = r;
+        while left < right {
+            arr.swap(left, right);
+            left  += 1;
+            right -= 1;
+        }
+    }
+    fn reverse_segments(&self, arr: &mut [i32], segments: &[(usize, usize)]) {
+        for &(l, r) in segments {
+            self.reverse_segment(arr, l, r);
+        }
+    }
+}
+
+fn main() {
+    let s = Solution;
+
+    let mut a1 = [1,2,3,4,5,6,7,8];
+    s.reverse_segments(&mut a1, &[(0,3), (4,7)]); println!("{:?}", a1);
+
+    let mut a2 = [1,2,3,4,5]; s.reverse_segments(&mut a2, &[(1,3)]); println!("{:?}", a2);
+    let mut a3 = [1,2,3,4,5]; s.reverse_segments(&mut a3, &[(0,4)]); println!("{:?}", a3);
+    let mut a4 = [1,2,3];     s.reverse_segments(&mut a4, &[(1,1)]); println!("{:?}", a4);
+}
+```
+
+</div>
 
 ---
 
@@ -1769,13 +3798,13 @@ This reuses `reverse_segment(arr, l, r)` from the previous lesson twice.
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
-
     def _reverse(self, chars: List[str], l: int, r: int) -> None:
-        """Two-pointer reversal of chars[l..r] in-place."""
         while l < r:
             chars[l], chars[r] = chars[r], chars[l]
             l += 1
@@ -1783,35 +3812,347 @@ class Solution:
 
     def reverse_word_order(self, s: str) -> str:
         chars = list(s)
-        n     = len(chars)
+        n = len(chars)
 
-        # Step 1: Reverse the entire string
+        # Step 1: reverse the whole string.
         self._reverse(chars, 0, n - 1)
 
-        # Step 2: Reverse each word individually
+        # Step 2: reverse each word individually — restoring intra-word order.
         i = 0
         while i < n:
             if chars[i] == ' ':
                 i += 1
                 continue
-
             word_start = i
             while i < n and chars[i] != ' ':
                 i += 1
-            word_end = i - 1
-
-            self._reverse(chars, word_start, word_end)
+            self._reverse(chars, word_start, i - 1)
 
         return "".join(chars)
 
 
-# --- Test ---
 sol = Solution()
 print(sol.reverse_word_order("the sky is blue"))   # "blue is sky the"
 print(sol.reverse_word_order("hello world"))        # "world hello"
 print(sol.reverse_word_order("hello"))              # "hello"
 print(sol.reverse_word_order("a good example"))     # "example good a"
 ```
+
+```java,editable
+public class Main {
+    static class Solution {
+        void reverse(char[] chars, int l, int r) {
+            while (l < r) {
+                char tmp = chars[l];
+                chars[l] = chars[r];
+                chars[r] = tmp;
+                l++;
+                r--;
+            }
+        }
+
+        String reverseWordOrder(String s) {
+            char[] chars = s.toCharArray();
+            int n = chars.length;
+            reverse(chars, 0, n - 1);                  // Step 1
+            int i = 0;
+            while (i < n) {                            // Step 2
+                if (chars[i] == ' ') { i++; continue; }
+                int wordStart = i;
+                while (i < n && chars[i] != ' ') i++;
+                reverse(chars, wordStart, i - 1);
+            }
+            return new String(chars);
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution sol = new Solution();
+        System.out.println(sol.reverseWordOrder("the sky is blue"));
+        System.out.println(sol.reverseWordOrder("hello world"));
+        System.out.println(sol.reverseWordOrder("hello"));
+        System.out.println(sol.reverseWordOrder("a good example"));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <string.h>
+
+void reverse_range(char* s, int l, int r) {
+    while (l < r) {
+        char tmp = s[l];
+        s[l] = s[r];
+        s[r] = tmp;
+        l++;
+        r--;
+    }
+}
+
+void reverse_word_order(char* s) {
+    int n = (int)strlen(s);
+    reverse_range(s, 0, n - 1);                      /* Step 1 */
+    int i = 0;
+    while (i < n) {                                   /* Step 2 */
+        if (s[i] == ' ') { i++; continue; }
+        int word_start = i;
+        while (i < n && s[i] != ' ') i++;
+        reverse_range(s, word_start, i - 1);
+    }
+}
+
+int main() {
+    char s1[] = "the sky is blue"; reverse_word_order(s1); printf("%s\n", s1);
+    char s2[] = "hello world";     reverse_word_order(s2); printf("%s\n", s2);
+    char s3[] = "hello";           reverse_word_order(s3); printf("%s\n", s3);
+    char s4[] = "a good example";  reverse_word_order(s4); printf("%s\n", s4);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <string>
+#include <algorithm>
+
+class Solution {
+public:
+    std::string reverseWordOrder(std::string s) {
+        int n = (int)s.size();
+        std::reverse(s.begin(), s.end());            // Step 1
+        int i = 0;
+        while (i < n) {                              // Step 2
+            if (s[i] == ' ') { i++; continue; }
+            int wordStart = i;
+            while (i < n && s[i] != ' ') i++;
+            std::reverse(s.begin() + wordStart, s.begin() + i);
+        }
+        return s;
+    }
+};
+
+int main() {
+    Solution sol;
+    std::cout << sol.reverseWordOrder("the sky is blue") << "\n";
+    std::cout << sol.reverseWordOrder("hello world")     << "\n";
+    std::cout << sol.reverseWordOrder("hello")           << "\n";
+    std::cout << sol.reverseWordOrder("a good example")  << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def reverse(chars: Array[Char], l0: Int, r0: Int): Unit = {
+      var l = l0
+      var r = r0
+      while (l < r) {
+        val tmp = chars(l)
+        chars(l) = chars(r)
+        chars(r) = tmp
+        l += 1
+        r -= 1
+      }
+    }
+
+    def reverseWordOrder(s: String): String = {
+      val chars = s.toCharArray
+      val n = chars.length
+      reverse(chars, 0, n - 1)                       // Step 1
+      var i = 0
+      while (i < n) {                                // Step 2
+        if (chars(i) == ' ') {
+          i += 1
+        } else {
+          val wordStart = i
+          while (i < n && chars(i) != ' ') i += 1
+          reverse(chars, wordStart, i - 1)
+        }
+      }
+      new String(chars)
+    }
+  }
+
+  val sol = new Solution
+  println(sol.reverseWordOrder("the sky is blue"))
+  println(sol.reverseWordOrder("hello world"))
+  println(sol.reverseWordOrder("hello"))
+  println(sol.reverseWordOrder("a good example"))
+}
+```
+
+```javascript,editable
+class Solution {
+    reverse(chars, l, r) {
+        while (l < r) {
+            [chars[l], chars[r]] = [chars[r], chars[l]];
+            l++;
+            r--;
+        }
+    }
+
+    reverseWordOrder(s) {
+        const chars = s.split("");
+        const n = chars.length;
+        this.reverse(chars, 0, n - 1);                // Step 1
+        let i = 0;
+        while (i < n) {                                // Step 2
+            if (chars[i] === ' ') { i++; continue; }
+            const wordStart = i;
+            while (i < n && chars[i] !== ' ') i++;
+            this.reverse(chars, wordStart, i - 1);
+        }
+        return chars.join("");
+    }
+}
+
+const sol = new Solution();
+console.log(sol.reverseWordOrder("the sky is blue"));
+console.log(sol.reverseWordOrder("hello world"));
+console.log(sol.reverseWordOrder("hello"));
+console.log(sol.reverseWordOrder("a good example"));
+```
+
+```typescript,editable
+class Solution {
+    reverse(chars: string[], l: number, r: number): void {
+        while (l < r) {
+            [chars[l], chars[r]] = [chars[r], chars[l]];
+            l++;
+            r--;
+        }
+    }
+
+    reverseWordOrder(s: string): string {
+        const chars = s.split("");
+        const n = chars.length;
+        this.reverse(chars, 0, n - 1);                // Step 1
+        let i = 0;
+        while (i < n) {                                // Step 2
+            if (chars[i] === ' ') { i++; continue; }
+            const wordStart = i;
+            while (i < n && chars[i] !== ' ') i++;
+            this.reverse(chars, wordStart, i - 1);
+        }
+        return chars.join("");
+    }
+}
+
+const sol = new Solution();
+console.log(sol.reverseWordOrder("the sky is blue"));
+console.log(sol.reverseWordOrder("hello world"));
+console.log(sol.reverseWordOrder("hello"));
+console.log(sol.reverseWordOrder("a good example"));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func reverseRange(s []byte, l, r int) {
+    for l < r {
+        s[l], s[r] = s[r], s[l]
+        l++
+        r--
+    }
+}
+
+func reverseWordOrder(s string) string {
+    chars := []byte(s)
+    n := len(chars)
+    reverseRange(chars, 0, n-1)                      // Step 1
+    i := 0
+    for i < n {                                       // Step 2
+        if chars[i] == ' ' {
+            i++
+            continue
+        }
+        wordStart := i
+        for i < n && chars[i] != ' ' {
+            i++
+        }
+        reverseRange(chars, wordStart, i-1)
+    }
+    return string(chars)
+}
+
+func main() {
+    fmt.Println(reverseWordOrder("the sky is blue"))
+    fmt.Println(reverseWordOrder("hello world"))
+    fmt.Println(reverseWordOrder("hello"))
+    fmt.Println(reverseWordOrder("a good example"))
+}
+```
+
+```kotlin,editable
+class Solution {
+    private fun reverse(chars: CharArray, l0: Int, r0: Int) {
+        var l = l0
+        var r = r0
+        while (l < r) {
+            val tmp = chars[l]
+            chars[l] = chars[r]
+            chars[r] = tmp
+            l++
+            r--
+        }
+    }
+
+    fun reverseWordOrder(s: String): String {
+        val chars = s.toCharArray()
+        val n = chars.size
+        reverse(chars, 0, n - 1)                      // Step 1
+        var i = 0
+        while (i < n) {                                // Step 2
+            if (chars[i] == ' ') { i++; continue }
+            val wordStart = i
+            while (i < n && chars[i] != ' ') i++
+            reverse(chars, wordStart, i - 1)
+        }
+        return String(chars)
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    println(sol.reverseWordOrder("the sky is blue"))
+    println(sol.reverseWordOrder("hello world"))
+    println(sol.reverseWordOrder("hello"))
+    println(sol.reverseWordOrder("a good example"))
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn reverse_word_order(&self, s: &str) -> String {
+        let mut chars: Vec<u8> = s.bytes().collect();
+        let n = chars.len();
+        chars.reverse();                              // Step 1
+        let mut i = 0usize;
+        while i < n {                                  // Step 2
+            if chars[i] == b' ' { i += 1; continue; }
+            let word_start = i;
+            while i < n && chars[i] != b' ' { i += 1; }
+            chars[word_start..i].reverse();
+        }
+        String::from_utf8(chars).unwrap()
+    }
+}
+
+fn main() {
+    let s = Solution;
+    println!("{}", s.reverse_word_order("the sky is blue"));
+    println!("{}", s.reverse_word_order("hello world"));
+    println!("{}", s.reverse_word_order("hello"));
+    println!("{}", s.reverse_word_order("a good example"));
+}
+```
+
+</div>
 
 ---
 
