@@ -1,774 +1,886 @@
-# Max-flow Min-cut theorem
+# 10. Max-flow min-cut theorem
 
-## Table of Contents
+This lesson teaches you to answer "given a network of pipes with capacities, what's the most water (or traffic, or data, or merchandise) we can push through it?" — and reveals the deep, beautiful theorem that links the answer to the **weakest link** in the network.
 
-1. [Understanding the maximum flow problem](#understanding-the-maximum-flow-problem)
-2. [Understanding the max flow min cut theorem](#understanding-the-max-flow-min-cut-theorem)
-3. [Understanding the Ford-Fulkerson method](#understanding-the-ford-fulkerson-method)
-4. [Understanding reverse edges in Ford-Fulkerson method](#understanding-reverse-edges-in-ford-fulkerson-method)
-5. [Find maximum flow](#find-maximum-flow)
+## Table of contents
 
-***
-
-# Understanding the maximum flow problem
-
-The max flow problem is another common class of problems that can be modeled as a graph. The goal is to find the maximum flow through a flow network, a directed graph in which each edge has a capacity and receives flow. The amount of flow in the edge is capped by its capacity. The flow network has two special nodes, the source and the sink, where the flow starts and terminates. For all nodes except the source and the sink, there is a **conservation of flow**, which means the amount of flow going into a node should be the same as the flow coming out of it. The following example shows a simple flow network with the source and sink nodes and the capacity of edges.
-
-// Diagram: A flow network with source and sink nodes and the capacity of edges.
-
-The goal of the maximum flow problem is to find the maximum flow that can go through the network from the source node to the sink node. To better understand why this is such an important problem, let's look at real-life examples that can be modeled as flow networks.
-
-## Road network
-
-Consider a road network in a city that has a lot of traffic. The government wants to increase the capacity of this network and decongest the traffic by adding more roads. However, before starting the work, they need to know the maximum traffic that could pass through the network after the work is finished. This problem can be modeled as a flow network where nodes denote existing roads' start and end points, and the edges denote roads. The capacity of an edge is the maximum traffic that can flow through the road. The source and the sink for the network would be the entry and exit of traffic into the road network.
-
-// Diagram: Traffic on a road network can be modeled as a flow network, and the maximum flow represents the network's capacity.
-
-They can choose the one that meets their expectations by comparing the maximum flow between different proposed options.
-
-## Hot water network
-
-Consider a construction company that has to build a network to supply hot water to a new development from a central heat station. The water is heated at the heat station and supplied to houses to keep them warm. The cold water is circulated back to the heat station for reheating. Such a system may involve multiple segments with different capacities depending on the size of the houses. However, they need to ensure the network has enough capacity to meet the demand from all houses in winter.
-
-Such a system can also be modeled as a flow network, where the source and the sink nodes are different ends of the heat station. The nodes in the network denote houses and the edges denote the pipes between them. The maximum water that can flow through a pipe is the capacity of that edge. 
-
-// Diagram: A heating network's network of pipes can be modeled as a flow network, and the maximum flow represents the network's capacity.
-
-The company can compare the maximum flow between different proposed options and choose the one that meets their expectations.
-
-## Logistic network
-
-Consider a logistics company that transports goods from a manufacturing plant to a warehouse in another city. The warehouse and the final destination have intermediate cities connected via a road network. The company operates only a fixed number of trucks between a pair of cities, and there is no warehousing capacity in any intermediate city. The manufacturing plant needs to know the maximum amount of goods to be delivered to the warehouse daily and set their manufacturing output accordingly.This problem can also be modeled as a flow network where the factory is the source node and the warehouse is the sink node. The intermediate cities are the other nodes in the network, and the carrying capacity of trucks between cities is the capacity of edges in the graph.
-
-// Diagram: The logistic network can be modeled as a flow network, and the maximum flow is the maximum deliverable capacity.
-
-Finding the maximum flow in the resulting flow network allows the manufacturing company to control the out and prevent wastage.
-
-Many more real-life problems can be modeled as flow networks, and solving them requires finding the maximum flow in the network. The examples above are small networks, but flow networks could also span hundreds of thousands of nodes, so we need an efficient algorithm to solve them.
+1. [The maximum flow problem](#the-maximum-flow-problem)
+2. [Three pieces of vocabulary](#three-pieces-of-vocabulary)
+3. [The max-flow min-cut theorem](#the-max-flow-min-cut-theorem)
+4. [The Ford-Fulkerson method](#the-ford-fulkerson-method)
+5. [Why we need reverse edges](#why-we-need-reverse-edges)
+6. [Implementation](#implementation)
 
 ***
 
-# Understanding the max-flow min-cut theorem
+# The Maximum Flow Problem
 
-Now that we know what flow networks are and the maximum flow problem, we can explore the fundamental theorem and its solution. The max-flow min-cut theorem states that for any flow network, the maximum flow from the source to the sink is the minimum sum of weights of edges that, if removed, will completely disconnect the source and sink. Consider the flow network given below; we will use it as an example to prove the max-flow min-cut theorem.
+Take any directed graph where each edge carries a **capacity** — a maximum amount it can transmit. Pick a **source** node `s` and a **sink** node `t`. The question:
 
-// Diagram: A flow network with a source and sink where edge weight is the maximum capacity of the edge.
+> *What is the maximum amount of "stuff" you can push from `s` to `t`* — given that no edge can carry more than its capacity, and that no node (other than `s` and `t`) can hoard or invent stuff (everything coming in must go out)?
 
-Before we dive deeper into this theorem, we need to know some terminologies used to to prove its correctness.
+That last rule is **conservation of flow**: an internal node is a junction, not a tank.
 
-## Residual graph
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    S((s)) -->|"10"| A((A))
+    S -->|"5"| B((B))
+    A -->|"15"| C((C))
+    A -->|"4"| B
+    B -->|"10"| C
+    C -->|"10"| T((t))
+    A -->|"5"| T
+```
 
-In a flow network with some flow f from the source to the sink node, the capacity of all edges with flow is reduced. The remaining capacity of such edges is called their residual capacity. A graph representing the flow network with the residual capacity of its edges is called a residual graph.
+<p align="center"><strong>A flow network. Each edge label is the maximum capacity. Find the maximum amount that can flow from <code>s</code> to <code>t</code> obeying capacities and conservation.</strong></p>
 
-A residual graph also has reverse edges between nodes with some flow in them, and the residual capacity of these reverse edges is the total flow in the forward edge. We will learn later why these reverse edges are so crucial when we learn how to find the maximum flow in a flow network.
+This pattern shows up in surprisingly many places:
 
-// Diagram: The residual graph for a flow network with some flow.
+- **Road networks.** Edges = roads, capacities = lanes × speed limit. Maximum flow = peak traffic that can move through the network.
+- **Heating systems.** Edges = pipes, capacities = pipe diameters. Maximum flow = peak water deliverable to all houses.
+- **Data centres.** Edges = network cables, capacities = bandwidth. Maximum flow = bytes/sec deliverable from server to client.
+- **Logistics.** Edges = trucking routes, capacities = trucks × payload. Maximum flow = goods/day deliverable.
+- **Bipartite matching.** A surprising one — you can solve "match every applicant to a job" by reducing it to max-flow. We'll cover that in the next lesson.
 
-## Augmenting path
+> *Before reading on — for the network above, what's the answer? Try to push flow by hand and see what the maximum total turns out to be. Spend 60 seconds before scrolling.*
 
-In a flow network with some flow `f` from the source to the sink node; an augmenting path is a simple path from the source node to the sink node in the residual graph. The maximum flow that can be augmented through an augmenting path is the minimum residual capacity of all its edges. And so, if we augment flow `fp` through an augmenting path, the total flow in the network becomes `f + fp`. 
-
-// Diagram: A flow network can have many augmenting paths.
-
-## Cut
-
-A cut of the flow network denoted by `cut(S, T)`, partitions the graph's nodes into two disjoint sets, `S`, and `T`, such that the set `S` contains the source node and the set `T` contains the sink node.
-
-// Diagram: A cut divides the flow network into two disjoint sets, S and T.
-
-A flow network can have many cuts. All the cuts for the flow network from our example above are given below.
-
-// Diagram: A flow network can have many cuts
-
-### Capacity of a cut
-
-The capacity of a cut `capacity(S, T)` is the sum of the capacity of all edges from nodes in the set `S` to nodes is set `T` in the `cut(S, T)` of a flow network.
-
-// Diagram: The capacity of a cut is the sum of the capacity of edges from nodes in set S to nodes in set T.
-
-The flow network in the example above has three cuts, the capacity of which is given below.
-
-// Diagram: The capacity of a cut is the sum of capacity of edges from nodes in set S to nodes in set T.
-
-The max-flow min-cut theorem states that the maximum flow in the network `fmax` equals the minimum `cut(S, T)`, and the residual graph for the network has no augmenting paths.
-
-## Proof of correctness
-
-Consider a flow network with some flow `f` flowing from the source node to the sink node. Since nodes do not store flow, for all nodes except the source and the sink, the sum of all incoming flow must equal the sum of outgoing flow. For the source and the sink node, the sum of all outgoing flow from the source should equal the sum of all incoming flow to the sink. This preserves the conservation of flow.
-
-// Diagram: The net flow for all nodes except source and sink should be 0
-
-For a flow network with a flow `f`, for **every** `cut(S, T)`, the net outgoing flow from set `S` should be equal to `f`. This is because, as per above, the net flow for all nodes in `S` except the source is always 0, and the net flow from the source node is `f`.  Hence, the net flow from set `S` should be `f` for the conservation of flow to hold. Also, the flow `f` can not exceed `capacity(S, T).` This proves that for a flow `f` in the flow network, **every** `cut(S, T)` has a flow f, and f cannot exceed the capacity of **any** `cut(S, T)`.
-
-// Diagram: The net flow across any set is equal to the total flow in the network.
-
-Since the above is true for **any** flow value for **every** `cut(S, T)`, it also holds for the maximum flow in the network, i.e., the maximum flow fmax cannot be greater than any `cut(S, T)` of the network. Conversely, the maximum flow `fmax` is bounded by the **minimum** `cut(S, T)`.
-
-// Diagram: The maximum flow in the graph in the network is bounded by the capacity of minimum cut.
-
-The max-flow min-cut theorem states that the maximum flow in the network `fmax` equals the minimum `cut(S, T)`, and the residual graph for the network has no augmenting paths.
-
-This theorem can be proved in two parts. The first is that a flow network whose residual graph does not have any augmenting paths has the maximum flow. We can prove this by contradiction. Consider `fmax` is the maximum flow in the network that has an augmenting path in its residual graph. In that case, we can augment more flow in the augmenting path and increase the flow in the network, which contradicts `fmax` being the maximum flow.
-
-// Diagram: A flow network with maximum flow.
-
-The second part is that the flow in a network with no augmenting paths in its residual graph equals the capacity of some `cut(S, T)`. Consider a network with the maximum flow `fmax` such that it has no augmenting paths in its residual graph. We create two sets, `S` and `T`, such that all nodes with a path from the source with nonzero residual capacity belong to `S`, and the remaining belong to `T`.
-
-// Diagram: The residual graph of a flow network with maximum flow and no augmenting path can pe separated into two sets.
-
-The source node trivially belongs to `S`, and since the residual graph has no augmenting paths, the sink node belongs to `T`. Based on the condition above, the remaining nodes can be assigned to `S` or `T`. This makes the set `S` and `T` a `cut(S, T)` of the flow network.
-
-// Diagram: The two sets represent a cut of the flow network.
-
-Now, for any pair of nodes `u` and `v` belonging to sets `S` and `T`, respectively, if there is an edge from `u` to `v` in the flow network, it shouldn't have any residual capacity, meaning flow from node `u` to `v` should be equal to the capacity of the edge from `u` to `v`. This is because if it has any residual capacity, there would be a path from source to node `v` in the residual graph with non-zero residual capacity, meaning `v` should belong to the set `S` in the first place. If we sum up the flow from all such node pairs, the total flow will be equal to the `capacity(S, T)` which is also the total outward from set `S`.
-
-// Diagram: The flow in each edge from nodes in set S to set T should equal the edge's capacity.
-
-Similarly, if there is an edge from the node `v` to node `u` in the flow network, the flow on that edge should be 0. This is because if there is some flow from the node `v` to node `u` in the network, it would mean there is a reverse edge with some residual capacity from the node `u` to node `v` in the residual graph. This would mean that there is a path with nonzero residual capacity from the source node to the node `v` in the residual graph, and node `v` should belong to the set `S`.
-
-// Diagram: The flow in each edge from nodes in set T to set S should be 0.
-
-Summing it all up, this means there is no flow from the set `T` to set `S`, and so the net from the set `S` to `T` **equals** `capacity(S, T)`. And since all flow in a flow network is bounded by the capacity of the minimum cut, this means that the `cut(S, T)` is the minimum cut flow equals the `capacity(S, T)` of the minimum cut.
-
-// Diagram: The maximum flow in a network is equal to the capacity of the minimum cut.
-
-The two parts above together prove the max-flow min-cut theorem, which states that a flow network with no augmenting path has the maximum flow, which is equal to the capacity of the minimum cut. As we will learn later in this course, the max-flow min-cut theorem has many applications in graph theory.
+The answer is 15. There are several ways to achieve it; one is `s → A → C → t` (flow 10) plus `s → A → t` (flow 5) plus `s → B → C → t` (flow 5), but the last would require routing around the bottleneck — and the actual max stops at 15 because of capacity constraints on edges into `t`. The maximum flow is hard to pin down by inspection — and that's the point of the algorithm we'll learn.
 
 ***
 
-# Understanding the Ford-Fulkerson method
+# Three Pieces of Vocabulary
 
-The Ford-Fulkerson method uses the max-flow min-cut theorem to solve the maximum flow problem for flow networks. It is called a method because some parts of its protocol do not specify implementation. A method is a more general algorithm where individual steps can be implemented differently. For the Ford-Fulkerson method to work, a graph should have at least one source and sink node, where the maximum flow must be calculated from the source to the sink. Consider the flow network below, where values in edges denote their maximum capacity.
+Before we attack the algorithm, we need three concepts that everyone in the field uses interchangeably with their abbreviations.
 
-// Diagram: A flow network with source and sink where edge weight denotes the capacity of an edge.
+---
 
-## Algorithm
+## 1. Residual Graph
 
-The Ford-Fulkerson method starts by initialising a variable `maxFlow` to 0 and repeatedly tries to find an augmenting path in the residual graph. If an augmenting path is found, it gets the minimum capacity of the edges in the augmenting path in a variable `pathFlow` and adds it to `maxFlow`. It then simulates the flow (`pathFlow`) through the augmenting path in the residual graph to generate a new residual graph for the next iteration. This process is repeated until an augmenting path can no longer be found, at which point the value in `maxFlow` denotes the maximum possible flow in the graph.
+When some flow has already been pushed through the network, each edge has *less remaining capacity* than its original. The **residual graph** is the same network but each edge's weight is its **remaining (unused) capacity**.
 
-To better understand the algorithm, let's examine the first two iterations in the method using the following graph.
+```d2
+direction: right
 
-// Diagram: A flow network with source and sink where edge weight denotes the capacity of an edge.
+orig: "Original capacity" {
+  grid-rows: 1
+  grid-columns: 1
+  grid-gap: 0
+  e: "u → v: cap = 10"
+}
 
-We start the method by initializing a variable `maxFlow` which keeps track of the maximum flow in the graph. Then, we initialize the first residual graph `residualGraph` and set the capacity of all edges equal to the capacity of the edges in the input graph.
+flow: "Push flow 6 along u → v" {
+  grid-rows: 1
+  grid-columns: 1
+  grid-gap: 0
+  e: "flow now uses 6 of 10"
+}
 
-// Diagram: The residual graph at the start of the Ford-Fulkerson method.
+resid: "Residual graph" {
+  grid-rows: 2
+  grid-columns: 1
+  grid-gap: 0
+  e1: "u → v: residual = 10 - 6 = 4"
+  e2: "v → u: residual = 6 (REVERSE edge!)"
+}
 
-We then start from the source node and try to find a path to the sink node where all the edges have non-zero residual capacity (augmenting path). Ford Fulerkson's method does not specify the algorithm for finding the path. We will use a depth-first search to illustrate this example.
+orig -> flow -> resid
+```
 
-It is important to note that multiple augmenting paths could be present in the graph, but a depth-first search will choose the first one it finds.
+<p align="center"><strong>Pushing flow updates the residual graph. The forward edge loses capacity equal to the flow; a reverse edge appears (or grows) carrying capacity equal to the flow.</strong></p>
 
-// Diagram: There could be multiple augmented paths present in the graph.
+The **reverse edge** is the bit that surprises everyone. We'll dedicate a section to why it matters — but the mechanical rule is simple: every time you push flow `f` along `u → v`, decrease the forward edge's residual by `f` and *increase* the reverse edge's residual by `f`.
 
-Consider that we chose the augmenting path `1` from the example. Once we choose a path, we find the maximum flow that can pass through it, which is the minimum of the residual capacities of its edges in a variable `pathFlow`.
+---
 
-// Diagram: The maximum flow through the augmenting path is the minimum residual capacity of its edges.
+## 2. Augmenting Path
 
-Once we find the maximum flow possible through the augmenting path (`pathFlow`), we simulate the flow by reducing `pathFlow` from the residual capacity of all edges in the augmenting path, and add it to `maxFlow`.
+An **augmenting path** in the residual graph is any simple `s → … → t` path where every edge has *positive remaining capacity*. The amount of flow you can push along an augmenting path is the **minimum residual capacity** of any edge on it (the bottleneck).
 
-// Diagram: Reduce pathFlow from the residual capacity of all edges in the augmenting path and add it to maxFlow.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    S((s)) -->|"7"| A((A))
+    A -->|"3"| B((B))
+    B -->|"5"| T((t))
+```
 
-We also add **reverse edges** along the augmenting path with the same capacity as the simulated flow (`pathFlow`) in the `residualGraph`. These reverse edges can be used in an augmenting path in some later iteration and allow for reorienting the flow in the graph. Simulating flow in a reverse edge means reducing the same flow from the real edge between the corresponding nodes. We will learn more about reverse edges and why they are crucial later in this course.
+<p align="center"><strong>Augmenting path <code>s → A → B → t</code> with residual capacities 7, 3, 5. The bottleneck is 3, so 3 units can be pushed along this path.</strong></p>
 
-// Diagram: Add reverse edges in the augmenting path with the capacity pathFlow.
+If we push 3 units along this path, the residuals become 4, 0, 2. Edge `A → B` is now saturated and can't carry any more flow.
 
-Once we have added reverse edges, we get a new residual graph that can be used for the next iteration.
+---
 
-// Diagram: We get the new residual graph for the next iteration.
+## 3. Cut
 
-In the next iteration, once again, we try to find an augmenting path in the `residualGraph`. We perform a depth-first search to find paths from the source to the sink with some residual capacity; this time, also exploring paths via the reverse edges. Note that just like before, there may be other augmenting paths, but we chose any one of them.
+A **cut** `(S, T)` partitions the graph's nodes into two sets — `S` containing the source, `T` containing the sink — such that any edge from `S` to `T` is "crossed" by the cut.
 
-// Diagram: Find an augmenting path in the residual graph.
+The **capacity of a cut** is the sum of capacities of all edges going *from* `S` *to* `T` (reverse-direction edges don't count).
 
-Once we find an augmenting path in the residual graph, we again find the maximum flow that can pass through it, which is the minimum of the residual capacities of its edges and store it in the variable `pathFlow`.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph S["Set S"]
+      So((s))
+      A((A))
+    end
+    subgraph T["Set T"]
+      B((B))
+      Si((t))
+    end
+    So -->|"5"| A
+    So -->|"3"| B
+    A -->|"4"| B
+    A -->|"2"| Si
+    B -->|"6"| Si
+```
 
-// Diagram: The maximum flow through the augmenting path is the minimum residual capacity of its edges.
+<p align="center"><strong>Cut <code>(S, T)</code> with <code>S = {s, A}</code>, <code>T = {B, t}</code>. Edges crossing the cut left-to-right: <code>s→B (3)</code>, <code>A→B (4)</code>, <code>A→t (2)</code>. Capacity of this cut = 3 + 4 + 2 = 9.</strong></p>
 
-We then simulate the flow by reducing `pathFlow` from the residual capacity of all edges in the augmenting path, and add it to `maxFlow`.
+A graph has many possible cuts. Each one represents a possible "wall" separating source from sink — and the capacity of that cut is the maximum amount of flow that can ever cross it. The smallest such wall is therefore the **bottleneck of the entire network**.
 
-// Diagram: Flow through reverse edges signifies reduced flow from previous paths.
+***
 
-We also add **reverse edges** along the augmenting path with the same capacity as the simulated flow (`pathFlow`) in the `residualGraph`.
+# The Max-Flow Min-Cut Theorem
 
-// Diagram: Add reverse edges with the same capacity as pathFlow.
+> **Theorem.** In any flow network, the **maximum flow** from source to sink equals the **minimum capacity of any cut** separating them.
 
-Once we have added reverse edges, we get a new residual graph that can be used for the next iteration.
+In symbols:
 
-// Diagram: We get the new residual graph for the next iteration.
+```
+max flow = min cut capacity
+```
 
-We repeat the same steps to find an augmenting path in `residualGraph` and simulate flow in it until an augmented path can no longer be found. When an augmenting path can no longer be found, the value of `maxFlow` will be the maximum possible flow in the graph.
+This is one of the most beautiful results in graph theory. It says: *"the most you can push is exactly limited by your weakest wall."* Intuitive in retrospect, dazzling at first encounter.
 
-The steps below summarize the Ford-Fulkerson's method using a residual graph implemented as an adjacency matrix.
+> *Before reading on — read the theorem twice. Why must max-flow ≤ min-cut be obvious? Why is the equality much harder?*
 
-> **Algorithm**
->
-> **dfs(\[ref\] residualGraph, \[re\] visited, \[ref\] path, node, sink)**
->
-> -   **Step 1:** Add `node` to `visited` set
-> -   **Step 2:** Append `node` to `path`
-> -   **Step 3:** if `node` is `sink` return `true`
-> -   **Step 4:** Iterate over all the neighbours of `node` in a variable `neighbour` and do the following
->     -   **Step 4.1:** If `neighbour` not in `visited` and `residualGraph\[node\]\[neighbour\]` > 0 do the following:
->         -   **Step 4.1.1:** If the call to `dfs(residualGraph, visited, path, neighbour, sink)` returns `true`, return `true`
-> -   **Step 5:** Pop the `node` from the end of `path`
-> -   **Step 6:** Return `false`
->
-> **fordFulkersonMethod(\[ref\] graph, source, sink)**
->
-> -   **Step 1:** Create a two-dimensional array `residualGraph` to hold the adjacency matrix of the residual graph
-> -   **Step 2:** Initialize `residualGraph` with the weights between nodes in `graph`
-> -   **Step 3:** Initialize a variable `maxFlow` to 0
-> -   **Step 4:** Iterate while call to `dfs(residualGraph, visited, path, source, sink)` returns true:
->     -   **Step 4.1:** Initilize a variable `pathFlow` to `infinite`
->     -   **Step 4.2:** Iterate in `path` taking two items at a time in variables `u` and `v` and for each do the following:
->         -   **Step 4.2.1:** Set `pathFlow` to `min(pathFlow, residualGraph\[u\]\[v\])`
->     -   **Step 4.3:** Iterate in `path` taking two items at a time in variables `u` and `v` and for each do the following:
->         -   **Step 4.3.1:** Reduce `pathFlow` from `residualGraph\[u\]\[v\]`
->         -   **Step 4.3.2:** Add `pathFlow` to `residualGraph\[v\]\[u\]`
->     -   **Step 4.4:** Add `pathFlow` to `maxFlow`
-> -   **Step 5:** Return `maxFlow`
+The "≤" direction is easy: every flow must cross every cut, so it can't exceed any cut's capacity (and certainly not the min). The "≥" direction is the surprise — it says we can *always* find a flow as big as the min cut. Why aren't there gaps?
 
-## Implementation
+## The Proof in One Paragraph
 
-Consider that we have a graph of **N** nodes, where the nodes are enumerated from**0**to**N-1**, and we are given the adjacency listof the graph as a two-dimensional list of pairs `graph`, where the first item in the pair is the enumeration of the neighbouring node and the second item is the weight (capacity) of the edge.
+Suppose the max flow `f_max` has no augmenting path in its residual graph (otherwise we could push more flow and `f_max` wasn't max). Define `S` as all nodes reachable from `s` in the residual graph and `T` as the rest. Source ∈ `S`; sink ∈ `T` (sink unreachable in the residual graph by assumption). Now look at every edge `u → v` with `u ∈ S, v ∈ T` in the original graph: it must be saturated (zero residual) — otherwise `v` would be reachable from `s`. So all `S → T` edges are full. The total flow is the total capacity of the `(S, T)` cut. Hence `f_max = capacity(S, T) ≥ min cut`. Combined with the easy direction, equality. ∎
 
-We implement the residual graph as an adjacency matrix by creating a two-dimensional array `residualGraph` and initialize it by setting the capacity of edges between nodes to the same as the input `graph`.
+The corollary that drives every max-flow algorithm:
 
-The reason we store it as an adjacency matrix and not a list is that it simplifies the addition of forward and reverse edges and manipulating weights.
+> **A flow is maximum if and only if no augmenting path exists in its residual graph.**
 
-We create a `dfs` function that finds an augmenting path in the `residualGraph` and returns a boolean `true` or `false` and is call it repeatedly until it returns `false`. In each iteration, we pass it an empty `visited` set and an empty `path` list, and it tries to find an augmenting path in the `residualGraph`.
+This gives us the algorithmic recipe: **keep finding augmenting paths and pushing flow until you can't**. That's exactly Ford-Fulkerson.
 
-If it finds a path, the nodes in the path are added in the correct order to the `path` , list which is then used to find the maximum possible flow that can be simulated through it in `pathFlow`.
+***
 
-The `residualGraph` is then updated by simulating `pathFlow` through it, `pathFlow` is added to `maxFlow` and all variables (`pathFlow`, `visited`, `path`) are reset for the next iteration. At the end of all iterations, we get the maximum flow in `maxFlow`.
+# The Ford-Fulkerson Method
 
-C++
+> **Repeat:** find any augmenting path in the residual graph; push as much flow along it as possible; update the residual graph; record the contribution to total flow. **Stop** when no augmenting path remains.
 
-```cpp
-#include <climits>
+The word "method" (rather than "algorithm") is intentional: Ford-Fulkerson **doesn't specify** how to find the augmenting path. You can use DFS (any path will do), BFS (shortest path — leads to the **Edmonds-Karp** specialisation with cleaner runtime guarantees), or anything that finds *some* path with all edges having positive residual.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    Init["maxFlow = 0<br/>residual = copy of capacity"] --> Loop{"Augmenting<br/>path exists?"}
+    Loop -->|"yes"| Push["pathFlow = min residual on path<br/>maxFlow += pathFlow<br/>update residuals (forward & reverse)"]
+    Push --> Loop
+    Loop -->|"no"| Done["return maxFlow"]
+```
+
+<p align="center"><strong>The Ford-Fulkerson outer loop. Each iteration finds one augmenting path and squeezes the bottleneck flow out of it. Stop when the residual graph has no s–t path left.</strong></p>
+
+***
+
+# Why We Need Reverse Edges
+
+The single most important — and confusing — part of Ford-Fulkerson is the **reverse edge**. When we push flow `f` along `u → v`, we add (or grow) a residual edge from `v` back to `u` with capacity `f`. Why?
+
+Because the algorithm is allowed to make **mistakes early** that it can later **undo**.
+
+Consider this graph:
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    S((s)) -->|"10"| A((A))
+    S -->|"10"| B((B))
+    A -->|"1"| B
+    A -->|"10"| T((t))
+    B -->|"10"| T
+```
+
+Suppose DFS first finds the path `s → A → B → t` and pushes 1 unit (the `A → B` edge is the bottleneck at 1). Now `A → B` has 0 residual; total flow = 1.
+
+Without reverse edges, DFS could next find `s → A → t` (push 9) and `s → B → t` (push 10). Total = 1 + 9 + 10 = **20**. But we pushed 1 unit through `A → B` at the start, which was wasteful — the *true* max flow is 20, but it requires us to *not* use `A → B`.
+
+Now suppose DFS first picked the bad path and got stuck. With reverse edges:
+
+- After `s → A → B → t (1)`, the residual graph has a reverse edge `B → A` with capacity 1.
+- DFS finds `s → B → A → t` (using the reverse edge). Bottleneck = 1. Push 1.
+- This effectively *cancels* the original flow through `A → B` — flow on `A → B` is back to 0, while we've "rerouted" through `s → B → A → t` instead.
+- Total: 2 units flow = 1 (s→A→B→t) + 1 (s→B→A→t). The 1 on `A→B` and 1 on `B→A` cancel, leaving 0 on `A→B` and 1 unit `s→B→...→t` and 1 unit `s→...→A→t`. (This is what the maths says.)
+- DFS keeps finding paths until done. Final answer: 20.
+
+> **The reverse-edge insight.** Reverse edges let the algorithm *undo* a poor early choice. They convert Ford-Fulkerson from "greedy and wrong" into "explorative and provably optimal".
+
+Without reverse edges, you'd have to be clever about which augmenting path to choose; with them, you can pick *any* path each iteration and the algorithm still converges to the maximum.
+
+***
+
+# Implementation
+
+We use a **2D residual matrix** `residual[u][v]` instead of an adjacency list — it makes adding reverse edges and updating residuals trivial (just two cell updates per edge per push). For each iteration we DFS from source to sink, find the path's bottleneck, and update.
+
+The graph is given as an adjacency list of `(neighbour, capacity)` pairs.
+
+<div class="lang-tabs">
+
+```python,editable
+from typing import List, Tuple
+
+INF = float('inf')
+
+class Solution:
+    def dfs(self,
+            residual: List[List[int]],
+            visited: set,
+            path: List[int],
+            node: int,
+            sink: int) -> bool:
+        visited.add(node)
+        path.append(node)
+        if node == sink:
+            return True
+        # Try every potential neighbour with positive residual capacity.
+        for neighbour in range(len(residual)):
+            if neighbour not in visited and residual[node][neighbour] > 0:
+                if self.dfs(residual, visited, path, neighbour, sink):
+                    return True
+        path.pop()
+        return False
+
+    def max_flow(self,
+                 graph: List[List[Tuple[int, int]]],
+                 source: int,
+                 sink: int) -> int:
+        n = len(graph)
+        if n == 0:
+            return 0
+
+        # Build NxN residual matrix from adjacency list.
+        residual = [[0] * n for _ in range(n)]
+        for u in range(n):
+            for v, cap in graph[u]:
+                residual[u][v] = cap
+
+        max_flow = 0
+        while True:
+            visited: set = set()
+            path: List[int] = []
+            if not self.dfs(residual, visited, path, source, sink):
+                break
+
+            # Bottleneck — minimum residual on the augmenting path.
+            path_flow = INF
+            for i in range(len(path) - 1):
+                u, v = path[i], path[i + 1]
+                path_flow = min(path_flow, residual[u][v])
+
+            # Push: subtract from forward edges, add to reverse edges.
+            for i in range(len(path) - 1):
+                u, v = path[i], path[i + 1]
+                residual[u][v] -= path_flow
+                residual[v][u] += path_flow      # reverse edge — the magic step.
+
+            max_flow += path_flow
+        return max_flow
+
+
+# Example: 6-node network.
+graph = [
+    [(1, 10), (2, 10)],     # s = 0
+    [(2, 2), (3, 4), (4, 8)],
+    [(4, 9)],
+    [(5, 10)],
+    [(3, 6), (5, 10)],
+    [],                     # t = 5
+]
+print(Solution().max_flow(graph, 0, 5))   # 19
+```
+
+```java,editable
+import java.util.*;
+
+public class Main {
+    static class Solution {
+        public boolean dfs(int[][] residual, Set<Integer> visited,
+                           List<Integer> path, int node, int sink) {
+            visited.add(node);
+            path.add(node);
+            if (node == sink) return true;
+            for (int neighbour = 0; neighbour < residual.length; neighbour++) {
+                if (!visited.contains(neighbour) && residual[node][neighbour] > 0) {
+                    if (dfs(residual, visited, path, neighbour, sink)) return true;
+                }
+            }
+            path.remove(path.size() - 1);
+            return false;
+        }
+
+        public int maxFlow(List<List<int[]>> graph, int source, int sink) {
+            int n = graph.size();
+            if (n == 0) return 0;
+            int[][] residual = new int[n][n];
+            for (int u = 0; u < n; u++)
+                for (int[] e : graph.get(u))
+                    residual[u][e[0]] = e[1];
+
+            int maxFlow = 0;
+            while (true) {
+                Set<Integer> visited = new HashSet<>();
+                List<Integer> path = new ArrayList<>();
+                if (!dfs(residual, visited, path, source, sink)) break;
+
+                int pathFlow = Integer.MAX_VALUE;
+                for (int i = 0; i < path.size() - 1; i++)
+                    pathFlow = Math.min(pathFlow, residual[path.get(i)][path.get(i + 1)]);
+
+                for (int i = 0; i < path.size() - 1; i++) {
+                    int u = path.get(i), v = path.get(i + 1);
+                    residual[u][v] -= pathFlow;
+                    residual[v][u] += pathFlow;
+                }
+                maxFlow += pathFlow;
+            }
+            return maxFlow;
+        }
+    }
+
+    public static void main(String[] args) {
+        List<List<int[]>> graph = List.of(
+            List.of(new int[]{1, 10}, new int[]{2, 10}),
+            List.of(new int[]{2, 2}, new int[]{3, 4}, new int[]{4, 8}),
+            List.of(new int[]{4, 9}),
+            List.of(new int[]{5, 10}),
+            List.of(new int[]{3, 6}, new int[]{5, 10}),
+            List.of());
+        System.out.println(new Solution().maxFlow(graph, 0, 5));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <limits.h>
+
+typedef struct { int to, cap; } Edge;
+typedef struct { Edge* data; int size; } AdjList;
+
+static bool dfs(int** residual, int n, bool* visited, int* path, int* path_size,
+                int node, int sink) {
+    visited[node] = true;
+    path[(*path_size)++] = node;
+    if (node == sink) return true;
+    for (int neighbour = 0; neighbour < n; neighbour++) {
+        if (!visited[neighbour] && residual[node][neighbour] > 0) {
+            if (dfs(residual, n, visited, path, path_size, neighbour, sink)) return true;
+        }
+    }
+    (*path_size)--;
+    return false;
+}
+
+int max_flow(AdjList* graph, int n, int source, int sink) {
+    int** r = malloc(n * sizeof(int*));
+    for (int i = 0; i < n; i++) r[i] = calloc(n, sizeof(int));
+    for (int u = 0; u < n; u++)
+        for (int j = 0; j < graph[u].size; j++)
+            r[u][graph[u].data[j].to] = graph[u].data[j].cap;
+
+    int max_flow = 0;
+    while (true) {
+        bool* visited = calloc(n, sizeof(bool));
+        int* path = malloc(n * sizeof(int));
+        int path_size = 0;
+        if (!dfs(r, n, visited, path, &path_size, source, sink)) {
+            free(visited); free(path); break;
+        }
+        int path_flow = INT_MAX;
+        for (int i = 0; i < path_size - 1; i++)
+            if (r[path[i]][path[i+1]] < path_flow) path_flow = r[path[i]][path[i+1]];
+        for (int i = 0; i < path_size - 1; i++) {
+            r[path[i]][path[i+1]] -= path_flow;
+            r[path[i+1]][path[i]] += path_flow;
+        }
+        max_flow += path_flow;
+        free(visited); free(path);
+    }
+    for (int i = 0; i < n; i++) free(r[i]);
+    free(r);
+    return max_flow;
+}
+
+int main() {
+    Edge e0[] = {{1,10},{2,10}};
+    Edge e1[] = {{2,2},{3,4},{4,8}};
+    Edge e2[] = {{4,9}};
+    Edge e3[] = {{5,10}};
+    Edge e4[] = {{3,6},{5,10}};
+    AdjList g[] = {{e0,2},{e1,3},{e2,1},{e3,1},{e4,2},{NULL,0}};
+    printf("%d\n", max_flow(g, 6, 0, 5));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
 #include <unordered_set>
-
-// Diagram: using namespace std;
+#include <climits>
 
 class Solution {
 public:
-    bool dfs(
-        vector<vector<int>> &residualGraph,
-        unordered_set<int> &visited,
-        vector<int> &path,
-        int node,
-        int sink
-    ) {
-
-        // Mark the current node as visited in the graph to avoid
-        // visiting it again
+    bool dfs(std::vector<std::vector<int>>& residual,
+             std::unordered_set<int>& visited, std::vector<int>& path,
+             int node, int sink) {
         visited.insert(node);
-
-        // Add the current node to the path
         path.push_back(node);
-
-        // If the current node is the sink, return true
-        if (node == sink) {
-            return true;
+        if (node == sink) return true;
+        for (int neighbour = 0; neighbour < (int)residual.size(); neighbour++) {
+            if (visited.find(neighbour) == visited.end() && residual[node][neighbour] > 0) {
+                if (dfs(residual, visited, path, neighbour, sink)) return true;
+            }
         }
-
-        // Explore all neighbours of the current node
-        for (int neighbour = 0; neighbour < residualGraph.size();
-             ++neighbour) {
-
-            // If the neighbour is not visited and has a positive
-            // capacity in the residual graph, recursively call DFS
-            if (visited.find(neighbour) == visited.end() &&
-                residualGraph[node][neighbour] > 0) {
-
-                // If the DFS call returns true, propagate the result
-                // back to the previous call
-                if (dfs(residualGraph, visited, path, neighbour, sink)) {
-                    return true;
-                }
-
-        // If no path to the sink is found, remove the current node
-        // from the path
         path.pop_back();
-
-        // If no path to the sink is found from this node, backtrack
         return false;
     }
 
-    int maximumFlow(
-        vector<vector<pair<int, int>>> &graph,
-        int source,
-        int sink
-    ) {
+    int maxFlow(std::vector<std::vector<std::pair<int, int>>>& graph, int source, int sink) {
+        int n = (int)graph.size();
+        std::vector<std::vector<int>> residual(n, std::vector<int>(n, 0));
+        for (int u = 0; u < n; u++)
+            for (auto& [v, cap] : graph[u]) residual[u][v] = cap;
 
-        // Number of nodes in the graph
-        int N = graph.size();
-
-        // If the graph is empty, return 0
-        if (N == 0) {
-            return 0;
-        }
-
-        // Create a residual graph and initialize it with the original
-        // capacities
-        vector<vector<int>> residualGraph(N, vector<int>(N, 0));
-        for (int node = 0; node < N; ++node) {
-            for (auto &[neighbour, capacity] : graph[node])
-                residualGraph[node][neighbour] = capacity;
-        }
-
-        // Initialize the maximum flow
         int maxFlow = 0;
-
-        // Find augmenting paths in the residual graph using
-        // Depth-First Search
         while (true) {
+            std::unordered_set<int> visited;
+            std::vector<int> path;
+            if (!dfs(residual, visited, path, source, sink)) break;
 
-            // Create a set to keep track of visited nodes
-            unordered_set<int> visited;
-
-            // Vector to store the path from source to sink
-            vector<int> path;
-
-            // If no more augmenting paths exist, break
-            if (!dfs(residualGraph, visited, path, source, sink)) {
-                break;
-            }
-
-            // Find the minimum capacity along the augmenting path
             int pathFlow = INT_MAX;
-            for (int i = 0; i < path.size() - 1; ++i) {
-                int u = path[i];
-                int v = path[i + 1];
-                pathFlow = min(pathFlow, residualGraph[u][v]);
+            for (int i = 0; i < (int)path.size() - 1; i++)
+                pathFlow = std::min(pathFlow, residual[path[i]][path[i+1]]);
+            for (int i = 0; i < (int)path.size() - 1; i++) {
+                residual[path[i]][path[i+1]] -= pathFlow;
+                residual[path[i+1]][path[i]] += pathFlow;
             }
-
-            // Update the residual capacities and reverse edges along the
-            // augmenting path
-            for (int i = 0; i < path.size() - 1; ++i) {
-                int u = path[i];
-                int v = path[i + 1];
-                residualGraph[u][v] -= pathFlow;
-                residualGraph[v][u] += pathFlow;
-            }
-
-            // Add the path flow to the maximum flow
             maxFlow += pathFlow;
         }
-
         return maxFlow;
     }
 };
+
+int main() {
+    std::vector<std::vector<std::pair<int, int>>> g = {
+        {{1, 10}, {2, 10}}, {{2, 2}, {3, 4}, {4, 8}},
+        {{4, 9}}, {{5, 10}}, {{3, 6}, {5, 10}}, {}};
+    std::cout << Solution().maxFlow(g, 0, 5) << "\n";
+}
 ```
 
-Java
+```scala,editable
+import scala.collection.mutable
 
-```java
-import java.util.*;
-
-class Solution {
-    public boolean dfs(
-        int[][] residualGraph,
-        Set<Integer> visited,
-        List<Integer> path,
-        int node,
-        int sink
-    ) {
-
-        // Mark the current node as visited in the graph to avoid
-        // visiting it again
-        visited.add(node);
-
-        // Add the current node to the path
-        path.add(node);
-
-        // If the current node is the sink, return true
-        if (node == sink) {
-            return true;
+object Main extends App {
+  class Solution {
+    def dfs(residual: Array[Array[Int]], visited: mutable.Set[Int],
+            path: mutable.ArrayBuffer[Int], node: Int, sink: Int): Boolean = {
+      visited.add(node); path.append(node)
+      if (node == sink) return true
+      for (neighbour <- residual.indices) {
+        if (!visited.contains(neighbour) && residual(node)(neighbour) > 0) {
+          if (dfs(residual, visited, path, neighbour, sink)) return true
         }
+      }
+      path.remove(path.length - 1)
+      false
+    }
 
-        // Explore all neighbours of the current node
-        for (
-            int neighbour = 0;
-            neighbour < residualGraph.length;
-            ++neighbour
-        ) {
+    def maxFlow(graph: Array[Array[(Int, Int)]], source: Int, sink: Int): Int = {
+      val n = graph.length
+      val residual = Array.ofDim[Int](n, n)
+      for (u <- 0 until n; (v, cap) <- graph(u)) residual(u)(v) = cap
 
-            // If the neighbour is not visited and has a positive
-            // capacity in the residual graph, recursively call DFS
-            if (
-                !visited.contains(neighbour) &&
-                residualGraph[node][neighbour] > 0
-            ) {
+      var total = 0
+      var continue = true
+      while (continue) {
+        val visited = mutable.Set.empty[Int]
+        val path = mutable.ArrayBuffer.empty[Int]
+        if (!dfs(residual, visited, path, source, sink)) {
+          continue = false
+        } else {
+          var pathFlow = Int.MaxValue
+          for (i <- 0 until path.length - 1) pathFlow = math.min(pathFlow, residual(path(i))(path(i+1)))
+          for (i <- 0 until path.length - 1) {
+            residual(path(i))(path(i+1)) -= pathFlow
+            residual(path(i+1))(path(i)) += pathFlow
+          }
+          total += pathFlow
+        }
+      }
+      total
+    }
+  }
 
-                // If the DFS call returns true, propagate the result
-                // back to the previous call
-                if (dfs(residualGraph, visited, path, neighbour, sink)) {
-                    return true;
-                }
+  val g = Array(
+    Array((1, 10), (2, 10)), Array((2, 2), (3, 4), (4, 8)),
+    Array((4, 9)), Array((5, 10)), Array((3, 6), (5, 10)),
+    Array.empty[(Int, Int)])
+  println(new Solution().maxFlow(g, 0, 5))
+}
+```
 
-        // If no path to the sink is found, remove the current node
-        // from the path
-        path.remove(path.size() - 1);
-
-        // If no path to the sink is found from this node, backtrack
+```javascript,editable
+class Solution {
+    dfs(residual, visited, path, node, sink) {
+        visited.add(node); path.push(node);
+        if (node === sink) return true;
+        for (let n = 0; n < residual.length; n++) {
+            if (!visited.has(n) && residual[node][n] > 0) {
+                if (this.dfs(residual, visited, path, n, sink)) return true;
+            }
+        }
+        path.pop();
         return false;
     }
 
-    public int maximumFlow(
-        List<List<List<Integer>>> graph,
-        int source,
-        int sink
-    ) {
+    maxFlow(graph, source, sink) {
+        const n = graph.length;
+        const residual = Array.from({length: n}, () => Array(n).fill(0));
+        for (let u = 0; u < n; u++)
+            for (const [v, cap] of graph[u]) residual[u][v] = cap;
 
-        // Number of nodes in the graph
-        int N = graph.size();
-
-        // If the graph is empty, return 0
-        if (N == 0) {
-            return 0;
-        }
-
-        // Create a residual graph and initialize it with the original
-        // capacities
-        int[][] residualGraph = new int[N][N];
-        for (int node = 0; node < N; ++node) {
-            for (List<Integer> edge : graph.get(node)) {
-                int neighbour = edge.get(0);
-                int capacity = edge.get(1);
-                residualGraph[node][neighbour] = capacity;
-            }
-
-        // Initialize the maximum flow
-        int maxFlow = 0;
-
-        // Find augmenting paths in the residual graph using
-        // Depth-First Search
+        let total = 0;
         while (true) {
-
-            // Create a set to keep track of visited nodes
-            Set<Integer> visited = new HashSet<>();
-
-            // Vector to store the path from source to sink
-            List<Integer> path = new ArrayList<>();
-
-            // If no more augmenting paths exist, break
-            if (!dfs(residualGraph, visited, path, source, sink)) {
-                break;
+            const visited = new Set();
+            const path = [];
+            if (!this.dfs(residual, visited, path, source, sink)) break;
+            let pathFlow = Infinity;
+            for (let i = 0; i < path.length - 1; i++)
+                pathFlow = Math.min(pathFlow, residual[path[i]][path[i+1]]);
+            for (let i = 0; i < path.length - 1; i++) {
+                residual[path[i]][path[i+1]] -= pathFlow;
+                residual[path[i+1]][path[i]] += pathFlow;
             }
-
-            // Find the minimum capacity along the augmenting path
-            int pathFlow = Integer.MAX_VALUE;
-            for (int i = 0; i < path.size() - 1; ++i) {
-                int u = path.get(i);
-                int v = path.get(i + 1);
-                pathFlow = Math.min(pathFlow, residualGraph[u][v]);
-            }
-
-            // Update the residual capacities and reverse edges along the
-            // augmenting path
-            for (int i = 0; i < path.size() - 1; ++i) {
-                int u = path.get(i);
-                int v = path.get(i + 1);
-                residualGraph[u][v] -= pathFlow;
-                residualGraph[v][u] += pathFlow;
-            }
-
-            // Add the path flow to the maximum flow
-            maxFlow += pathFlow;
+            total += pathFlow;
         }
-
-        return maxFlow;
+        return total;
     }
+}
+
+const graph = [
+    [[1,10],[2,10]], [[2,2],[3,4],[4,8]], [[4,9]],
+    [[5,10]], [[3,6],[5,10]], []];
+console.log(new Solution().maxFlow(graph, 0, 5));
 ```
 
-Typescript
-
-```typescript
-export class Solution {
-    dfs(
-        residualGraph: number[][],
-        visited: Set<number>,
-        path: number[],
-        node: number,
-        sink: number
-    ): boolean {
-
-        // Mark the current node as visited in the graph to avoid
-        // visiting it again
-        visited.add(node);
-
-        // Add the current node to the path
-        path.push(node);
-
-        // If the current node is the sink, return true
-        if (node === sink) {
-            return true;
+```typescript,editable
+class Solution {
+    dfs(residual: number[][], visited: Set<number>, path: number[],
+        node: number, sink: number): boolean {
+        visited.add(node); path.push(node);
+        if (node === sink) return true;
+        for (let n = 0; n < residual.length; n++) {
+            if (!visited.has(n) && residual[node][n] > 0) {
+                if (this.dfs(residual, visited, path, n, sink)) return true;
+            }
         }
+        path.pop();
+        return false;
+    }
 
-        // Explore all neighbours of the current node
-        for (
-```
+    maxFlow(graph: [number, number][][], source: number, sink: number): number {
+        const n = graph.length;
+        const residual: number[][] = Array.from({length: n}, () => Array(n).fill(0));
+        for (let u = 0; u < n; u++)
+            for (const [v, cap] of graph[u]) residual[u][v] = cap;
 
-Javascript
-
-```javascript
-export class Solution {
-    dfs(residualGraph, visited, path, node, sink) {
-
-        // Mark the current node as visited in the graph to avoid
-        // visiting it again
-        visited.add(node);
-
-        // Add the current node to the path
-        path.push(node);
-
-        // If the current node is the sink, return true
-        if (node === sink) {
-            return true;
+        let total = 0;
+        while (true) {
+            const visited = new Set<number>();
+            const path: number[] = [];
+            if (!this.dfs(residual, visited, path, source, sink)) break;
+            let pathFlow = Infinity;
+            for (let i = 0; i < path.length - 1; i++)
+                pathFlow = Math.min(pathFlow, residual[path[i]][path[i+1]]);
+            for (let i = 0; i < path.length - 1; i++) {
+                residual[path[i]][path[i+1]] -= pathFlow;
+                residual[path[i+1]][path[i]] += pathFlow;
+            }
+            total += pathFlow;
         }
+        return total;
+    }
+}
 
-        // Explore all neighbours of the current node
-        for (
-            let neighbour = 0;
-            neighbour < residualGraph.length;
-            ++neighbour
-        ) {
-
-            // If the neighbour is not visited and has a positive
+const graph: [number, number][][] = [
+    [[1,10],[2,10]], [[2,2],[3,4],[4,8]], [[4,9]],
+    [[5,10]], [[3,6],[5,10]], []];
+console.log(new Solution().maxFlow(graph, 0, 5));
 ```
 
-Python
+```go,editable
+package main
 
-```python
-import sys
-from typing import List, Tuple, Set
+import (
+    "fmt"
+    "math"
+)
 
-class Solution:
-    def dfs(
-        self,
-        residual_graph: List[List[int]],
-        visited: Set[int],
-        path: List[int],
-        node: int,
-        sink: int,
-    ) -> bool:
+func dfsMF(residual [][]int, visited []bool, path *[]int, node, sink int) bool {
+    visited[node] = true
+    *path = append(*path, node)
+    if node == sink {
+        return true
+    }
+    for n := range residual {
+        if !visited[n] && residual[node][n] > 0 {
+            if dfsMF(residual, visited, path, n, sink) {
+                return true
+            }
+        }
+    }
+    *path = (*path)[:len(*path)-1]
+    return false
+}
 
-        # Mark the current node as visited in the graph to avoid
-        # visiting it again
-        visited.add(node)
+func maxFlow(graph [][][2]int, source, sink int) int {
+    n := len(graph)
+    residual := make([][]int, n)
+    for i := range residual {
+        residual[i] = make([]int, n)
+    }
+    for u := 0; u < n; u++ {
+        for _, e := range graph[u] {
+            residual[u][e[0]] = e[1]
+        }
+    }
 
-        # Add the current node to the path
-        path.append(node)
+    total := 0
+    for {
+        visited := make([]bool, n)
+        path := []int{}
+        if !dfsMF(residual, visited, &path, source, sink) {
+            break
+        }
+        pathFlow := math.MaxInt32
+        for i := 0; i < len(path)-1; i++ {
+            if residual[path[i]][path[i+1]] < pathFlow {
+                pathFlow = residual[path[i]][path[i+1]]
+            }
+        }
+        for i := 0; i < len(path)-1; i++ {
+            residual[path[i]][path[i+1]] -= pathFlow
+            residual[path[i+1]][path[i]] += pathFlow
+        }
+        total += pathFlow
+    }
+    return total
+}
 
-        # If the current node is the sink, return true
-        if node == sink:
-            return True
+func main() {
+    g := [][][2]int{
+        {{1, 10}, {2, 10}}, {{2, 2}, {3, 4}, {4, 8}}, {{4, 9}},
+        {{5, 10}}, {{3, 6}, {5, 10}}, {}}
+    fmt.Println(maxFlow(g, 0, 5))
+}
 ```
 
-## Proof of Correctness
+```kotlin,editable
+class Solution {
+    fun dfs(residual: Array<IntArray>, visited: MutableSet<Int>,
+            path: MutableList<Int>, node: Int, sink: Int): Boolean {
+        visited.add(node); path.add(node)
+        if (node == sink) return true
+        for (neighbour in residual.indices) {
+            if (neighbour !in visited && residual[node][neighbour] > 0) {
+                if (dfs(residual, visited, path, neighbour, sink)) return true
+            }
+        }
+        path.removeAt(path.size - 1)
+        return false
+    }
 
-Ford-Fulkerson's method uses the max-flow min-cut theorem, which states that the flow in a flow network that does not have any augmenting path in the residual graph is the maximum flow. We repeatedly simulate flow in the graph until we can no longer find an augmenting path, and so, the total flow simulated in the end is the maximum flow.
+    fun maxFlow(graph: List<List<IntArray>>, source: Int, sink: Int): Int {
+        val n = graph.size
+        val residual = Array(n) { IntArray(n) }
+        for (u in 0 until n) for (e in graph[u]) residual[u][e[0]] = e[1]
+
+        var total = 0
+        while (true) {
+            val visited = mutableSetOf<Int>()
+            val path = mutableListOf<Int>()
+            if (!dfs(residual, visited, path, source, sink)) break
+            var pathFlow = Int.MAX_VALUE
+            for (i in 0 until path.size - 1)
+                pathFlow = minOf(pathFlow, residual[path[i]][path[i + 1]])
+            for (i in 0 until path.size - 1) {
+                residual[path[i]][path[i + 1]] -= pathFlow
+                residual[path[i + 1]][path[i]] += pathFlow
+            }
+            total += pathFlow
+        }
+        return total
+    }
+}
+
+fun main() {
+    val g = listOf(
+        listOf(intArrayOf(1, 10), intArrayOf(2, 10)),
+        listOf(intArrayOf(2, 2), intArrayOf(3, 4), intArrayOf(4, 8)),
+        listOf(intArrayOf(4, 9)),
+        listOf(intArrayOf(5, 10)),
+        listOf(intArrayOf(3, 6), intArrayOf(5, 10)),
+        listOf())
+    println(Solution().maxFlow(g, 0, 5))
+}
+```
+
+```rust,editable
+fn dfs(residual: &mut Vec<Vec<i32>>, visited: &mut Vec<bool>,
+       path: &mut Vec<usize>, node: usize, sink: usize) -> bool {
+    visited[node] = true;
+    path.push(node);
+    if node == sink { return true; }
+    let n = residual.len();
+    for neighbour in 0..n {
+        if !visited[neighbour] && residual[node][neighbour] > 0 {
+            if dfs(residual, visited, path, neighbour, sink) { return true; }
+        }
+    }
+    path.pop();
+    false
+}
+
+fn max_flow(graph: &Vec<Vec<(usize, i32)>>, source: usize, sink: usize) -> i32 {
+    let n = graph.len();
+    let mut residual: Vec<Vec<i32>> = vec![vec![0; n]; n];
+    for u in 0..n {
+        for &(v, cap) in &graph[u] {
+            residual[u][v] = cap;
+        }
+    }
+    let mut total = 0;
+    loop {
+        let mut visited = vec![false; n];
+        let mut path: Vec<usize> = Vec::new();
+        if !dfs(&mut residual, &mut visited, &mut path, source, sink) { break; }
+        let mut path_flow = i32::MAX;
+        for i in 0..path.len() - 1 {
+            path_flow = path_flow.min(residual[path[i]][path[i + 1]]);
+        }
+        for i in 0..path.len() - 1 {
+            residual[path[i]][path[i + 1]] -= path_flow;
+            residual[path[i + 1]][path[i]] += path_flow;
+        }
+        total += path_flow;
+    }
+    total
+}
+
+fn main() {
+    let g: Vec<Vec<(usize, i32)>> = vec![
+        vec![(1, 10), (2, 10)],
+        vec![(2, 2), (3, 4), (4, 8)],
+        vec![(4, 9)],
+        vec![(5, 10)],
+        vec![(3, 6), (5, 10)],
+        vec![]];
+    println!("{}", max_flow(&g, 0, 5));
+}
+```
+
+</div>
 
 ## Complexity Analysis
 
-The runtime and space complexity of the Ford-Fulkerson method depend heavily on the algorithm used to find the augmented path. We only do constant time **O(1)** operations after finding an augmented path, and so, if we use depth-first or breadth-first search, each such iteration takes **O(N+E)** time, where **N** is the number of nodes and **E** is the number of edges in the graph. In the worst case, each iteration will only increase the flow by one, so if the maximum flow in a graph is **F**, the worst-case runtime complexity is **O(F\*(N+E))**. In the best case, we may find the max flow in the first iteration, so the best-case time complexity is **O(N+E)**.
+| | Complexity | Reasoning |
+|---|---|---|
+| **Time** | O(E × max_flow) | Each augmenting path adds at least 1 to the flow; finding a path costs O(E) |
+| **Space** | O(N²) | The residual matrix |
 
-In any case, we create a two-dimensional array of size **NxN** to store the residual graph through all the iterations, and so the space complexity is **O(N^2)**.
+The worst-case time is *pathological*: if the algorithm picks bad augmenting paths, it can take as many iterations as the *value* of the max flow — exponential in the number of edges in the worst case. **Edmonds-Karp** (Ford-Fulkerson with BFS for path-finding) fixes this — its bound is O(V × E²), polynomial regardless of capacity values. In practice, both are fast for small networks.
 
-> **Best Case**
->
-> -   Space Complexity - **O(N^2)**
-> -   Time Complexity - **O(N+E)**
->
-> **Worst Case**
->
-> -   Space Complexity - **O(N^2)**
-> -   Time Complexity - **O(F\*(N+E))**
+---
 
-***
+## Final Takeaway
 
-# Understanding reverse edges in Ford-Fulkerson method
+The max-flow / min-cut duality is one of the deepest ideas in graph theory: *the most you can push equals the weakest wall*. Ford-Fulkerson turns the theorem into an algorithm by greedily filling augmenting paths and using **reverse edges** to undo any earlier wrong turns. The result is correct *no matter which augmenting path you pick* — a rare property that makes the algorithm both elegant and forgiving.
 
-The Ford-Fulkerson method to find the maximum flow in a graph makes use of reverse edges when simulating flow in the graph. The reverse edges are crucial as they allow reducing already simulated flow in some edges if more total flow can be simulated in the graph as a result. Let's look at an example to understand it better. Given below is a flow graph and the maximum flow that can flow through it.
+Once you have max-flow, a startling number of seemingly unrelated problems collapse into it. The next lesson covers the most famous one: **bipartite matching** — assigning workers to jobs, students to schools, content to viewers — solved by reducing it to a max-flow problem with capacity 1 on every edge.
 
-// Diagram: A flow network and the maximum flow through it.
+> **Transfer challenge.** A scheduling system has 5 servers, each with a CPU capacity. 8 jobs arrive, each with a CPU requirement. Each job can run on a subset of servers (compatibility list). Sketch how to model "what's the maximum number of jobs we can schedule?" as a max-flow problem.
 
-In every iteration of the Ford-Fulkerson method, we try to find an augmenting path in the residual graph. It is important to note that while there may be multiple augmenting paths, we choose the first one we find. We call this path `p1`.
+<details>
+<summary><strong>Sketch</strong></summary>
 
-// Diagram: We chose one of many augmenting paths and call it p1.
+Build a graph with:
+- A source `s`.
+- One node per job; edge from `s` to each job-node with capacity = job's CPU requirement.
+- One node per server; edge from each server-node to a sink `t` with capacity = server's CPU capacity.
+- For each (job, compatible server) pair: edge from job-node to server-node with capacity = job's CPU requirement.
 
-This is a greedy approach as we may end up choosing a path that does not maximise the flow in the graph. To simulate the flow, we find the minimum capacity of all edges in the path and reduce it from the capacity of all edges. In our example, this results in the edge between node `a` and  node `b` having 0 capacity, which blocks us from utilising the remaining edges that can carry more flow from source to sink.
+Run Ford-Fulkerson from `s` to `t`. The max-flow equals the maximum CPU-weighted job throughput. The "what assignment?" answer is read off the saturated edges in the residual graph.
 
-// Diagram: Simulate flow in the residual graph by reducing the minimum capacity in the augmenting path from all edges in the path.
+This is one of dozens of problems where max-flow shows up disguised as something else.
 
-Also, it is important to note that the resulting graph is **not** the residual graph for the next iteration yet. A residual graph, by definition, is a graph where the edges denote the remaining capacity of an edge in the corresponding flow network. 
-
-However, since the edges in the previous augmenting path are now carrying some flow, the flow in those edges can also be reduced to create capacity in reverse. To account for that, every time we reduce the capacity of a real edge to simulate flow, we must also add a reverse edge with the same capacity. This gives us the residual graph for the next iteration.
-
-// Diagram: Add reverse edges with the same capacity as simulated flow to get the residual graph for the next iteration.
-
-Now, in the next iteration, when we find another augmenting path again, say we chose the path that goes through the reverse edge. We call the path `p2`.
-
-// Diagram: The augmenting path for the next iteration has a reverse edge.
-
-We simulate the flow again in the augmenting path, the same way, by reducing the minimum capacity from the capacity of all edges.
-
-// Diagram: Simulate flow in the residual graph by reducing the minimum capacity in the augmenting path from all edges in the path.
-
-Note, however, that the flow simulated in reverse edges means reducing the active flow of the real edge between the nodes by the same amount. Since a reverse edge is only added when we simulate flow in a real edge, it is guaranteed that every reverse edge will have a corresponding real edge with the simulated flow in it equal to or greater than the capacity of the reverse edge
-
-// Diagram: Flow in a reverse edge means reduced flow in the corresponding real edge.
-
-Note that the reduced flow between node `a` and `b` does not affect the total flow simulated in the graph. This is because the reduced flow is simply reoriented to a different path. The flow that was going from node `a` to node `b` through `p1` is now redirected to the sink following the segment of `p2` outwards from node `a`. Similarly, the flow that was earlier received by node `b` from node `a` through `p1` is compensated by the flow simulated in `p2` .
-
-This effectively rebalances the flow between both paths to reach the optimal solution for the entire graph.
-
-// Diagram: Reorienting the flow between the paths p1 and p2.
-
-Without the reverse edges, the augmenting path finding algorithm only looks for the remaining capacity of edges to find a path. However, with reverse edges, it can also look for paths that may exist if the flow in some edges is reduced. The reduced flow is compensated by reorienting the incoming flow from the old and new paths, having a net zero effect on the total flow currently simulated. This way, a previous incorrect decision does not block the algorithm from finding an optimal solution it can rectify decisions in the next iterations.
-
-***
-
-# Find maximum flow
-
-## Problem Statement
-
-Given a **weighted** **directed graph** represented as an adjacency list, and two nodes, **source** and **sink**, write a function to find the maximum flow between the source and sink nodes in the graph using the capacities of the edges.
-
-The graph is given as follows: `graph[i]` is a list of pairs `[neighbour, capacity]`, where each pair indicates a directed edge from node `i` to the node neighbour with the specified capacity.
-
-In a flow network, every edge has a flow capacity, and the maximum flow of a path can't exceed the flow capacity of an edge in the path.
-
-### Example 1
-
-> -   **Input:** graph = \[\[\[1,1\]\], \[\[4,5\]\], \[\[1,2\]\], \[\[1,3\]\], \[\]\], source = 0, sink = 4
-> -   **Output:** 1
-> -   **Explanation:** Only 1 unit can flow from the network 0->1->4.
-
-### Example 2
-
-> -   **Input:** graph = \[\[\[1, 8\], \[2, 10\]\], \[\], \[\[3, 3\]\], \[\[1, 2\]\]\], source = 0, sink = 1
-> -   **Output:** 10
-> -   **Explanation:** A total of 10 units can flow from the network, 8 units through the nodes 0->1 and 2 units through nodes 0->2->3->1.
-
-## Solution
-
-```cpp
-#include <climits>
-#include <unordered_set>
-
-using namespace std;
-
-class Solution {
-public:
-    bool dfs(
-        vector<vector<int>> &residualGraph,
-        unordered_set<int> &visited,
-        vector<int> &path,
-        int node,
-        int sink
-    ) {
-
-        // Mark the current node as visited in the graph to avoid
-        // visiting it again
-        visited.insert(node);
-
-        // Add the current node to the path
-        path.push_back(node);
-
-        // If the current node is the sink, return true
-        if (node == sink) {
-            return true;
-        }
-
-        // Explore all neighbours of the current node
-        for (int neighbour = 0; neighbour < residualGraph.size();
-             ++neighbour) {
-
-            // If the neighbour is not visited and has a positive
-            // capacity in the residual graph, recursively call DFS
-            if (visited.find(neighbour) == visited.end() &&
-                residualGraph[node][neighbour] > 0) {
-
-                // If the DFS call returns true, propagate the result
-                // back to the previous call
-                if (dfs(residualGraph, visited, path, neighbour, sink)) {
-                    return true;
-                }
-            }
-        }
-
-        // If no path to the sink is found, remove the current node
-        // from the path
-        path.pop_back();
-
-        // If no path to the sink is found from this node, backtrack
-        return false;
-    }
-
-    int maximumFlow(
-        vector<vector<pair<int, int>>> &graph,
-        int source,
-        int sink
-    ) {
-
-        // Number of nodes in the graph
-        int N = graph.size();
-
-        // If the graph is empty, return 0
-        if (N == 0) {
-            return 0;
-        }
-
-        // Create a residual graph and initialize it with the original
-        // capacities
-        vector<vector<int>> residualGraph(N, vector<int>(N, 0));
-        for (int node = 0; node < N; ++node) {
-            for (auto &[neighbour, capacity] : graph[node])
-                residualGraph[node][neighbour] = capacity;
-        }
-
-        // Initialize the maximum flow
-        int maxFlow = 0;
-
-        // Find augmenting paths in the residual graph using
-        // Depth-First Search
-        while (true) {
-
-            // Create a set to keep track of visited nodes
-            unordered_set<int> visited;
-
-            // Vector to store the path from source to sink
-            vector<int> path;
-
-            // If no more augmenting paths exist, break
-            if (!dfs(residualGraph, visited, path, source, sink)) {
-                break;
-            }
-
-            // Find the minimum capacity along the augmenting path
-            int pathFlow = INT_MAX;
-            for (int i = 0; i < path.size() - 1; ++i) {
-                int u = path[i];
-                int v = path[i + 1];
-                pathFlow = min(pathFlow, residualGraph[u][v]);
-            }
-
-            // Update the residual capacities and reverse edges along the
-            // augmenting path
-            for (int i = 0; i < path.size() - 1; ++i) {
-                int u = path[i];
-                int v = path[i + 1];
-                residualGraph[u][v] -= pathFlow;
-                residualGraph[v][u] += pathFlow;
-            }
-
-            // Add the path flow to the maximum flow
-            maxFlow += pathFlow;
-        }
-
-        return maxFlow;
-    }
-};
-```
+</details>

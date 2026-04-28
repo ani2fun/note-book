@@ -1,1037 +1,1201 @@
-# Traversing a graph
+# 4. Traversing a graph
 
-## Table of Contents
+This lesson teaches the **two fundamental ways to walk every node of a graph** — depth-first and breadth-first traversal. Together, these two patterns are the foundation of essentially every advanced graph algorithm you'll meet later.
 
-1. [Understanding depth first traversal](#understanding-depth-first-traversal)
-2. [Implement depth first traversal](#understanding-depth-first-traversal)
-3. [Understanding breadth first traversal](#understanding-breadth-first-traversal)
-4. [Implement breadth first traversal](#understanding-breadth-first-traversal)
+## Table of contents
+
+1. [Why a `for` loop isn't enough](#why-a-for-loop-isnt-enough)
+2. [Depth-first traversal — go deep, then back](#depth-first-traversal--go-deep-then-back)
+3. [DFS implementation](#dfs-implementation)
+4. [Breadth-first traversal — ripple outward](#breadth-first-traversal--ripple-outward)
+5. [BFS implementation](#bfs-implementation)
+6. [DFS vs BFS — when to choose which](#dfs-vs-bfs--when-to-choose-which)
 
 ***
 
-# Understanding depth first traversal
+# Why a `for` Loop Isn't Enough
 
-Unlike linear data structures, we cannot traverse all nodes in a graph using simple loops. The depth-first traversal is a fundamental traversal algorithm for graph data structures that uses depth-first search to visit all nodes connected to a node. The depth-first search is a **recursive** algorithm that starts from a node and explores one complete branch at a time. As we will see later, the depth-first traversal algorithm makes multiple depth-first searches from different sources to traverse all the nodes in a graph.
+For an array, "visit every element" is a one-line `for` loop. For a tree it's a slightly fancier recursion. For a graph? **Neither works.**
 
-// Diagram: Depth first search explores one complete branch at a time.
+Walk through why a naive `for i in 0..N-1` fails:
 
-## Algorithm
+- It would visit nodes in their *index order*, ignoring the structure entirely.
+- It tells you nothing about which nodes are reachable from which.
+- It can't naturally answer "what's connected to node X?" — the question every graph algorithm asks.
 
-The depth-first traversal algorithm utilises the depth-first search algorithm to traverse all nodes connected to a given node. The depth-first search algorithm is quite straightforward as it fully explores one branch before backtracking to other branches. It can be considered a generalisation of the three tree traversal algorithms (preorder, inorder and postorder traversal).
+Even tree recursion fails on graphs because graphs can have **cycles**. A pure recursive walk on a cyclic graph runs forever — A → B → C → A → B → C → A → … until your call stack explodes.
 
-The simple recursive equation given below summarizes the depth-first search algorithm from a source node.
-
-// Diagram: The recursive equation for depth first search algorithm.
-
-Only applying depth-first search from any one node in the graph may not be enough, as it may not cover all the nodes of the graph if the graph is disconnected.
-
-// Diagram: Calling dfs once will not visit all the nodes in a disconnected graph.
-
-And so, the depth-first traversal algorithm performs depth-first search from every unvisited node until all nodes are visited. This way, all the nodes in the graph are traversed, even in disconnected graphs.
-
-// Diagram: Applying depth-first search from all unvisited nodes until no node is unvisited covers the entire graph.
-
-To traverse all the nodes in the graph, we initialize a `visited` set and iterate over all the nodes of the graph. For any node that is not in the `visited` set, we call the depth-first search function on it. The depth-first search function takes as input the current node and the reference to the `visited` set. For languages that do not support passing data by reference, the `visited` set can be created in the global scope to share the same copy between recursive function calls.
-
-As we enter a node, we add the node to the `visited` set to make sure they are not revisited if there are cycles. We then iterate over all the neighbours of the node and recursively call the depth-first search on the unvisited nodes, which in turn recursively performs the same operation. The algorithm backtracks from a node when there are no unvisited neighbours left.
-
-This way, at the end of the top-level call to the depth-first search function, all the nodes connected to the top-level node are visited and added to the `visited` set. We then continue our iteration over the graph nodes in the calling function and repeat the same process for the remaining unvisited nodes. At the end of all iterations, all the nodes of the graph will be visited and added to the `visited` set, completing the depth-first traversal.
-
-The steps below summarize the depth-first traversal algorithm using depth-first search and a `visited` set.
-
-> **Algorithm**
->
-> **dfs(node, \[ref\] graph, \[ref\] visited)**
->
-> -   **Step 1:** Add `node` to `visited` set
-> -   **Step 2:** Iterate over all the neighbours of `node` in a variable `neighbour` and do the following
->     -   **Step 2.1:** If `neighbour` is not in `visited` set call `dfs(neighbour, graph, visited)`
->
-> **depthFirstTraversal(\[ref\] graph)**
->
-> -   **Step 1:** Create a `visited` set
-> -   **Step 2:** Iterate over all the nodes in the graph in a variable `node` and do the following
->     -   **Step 2.1:** If `node` not in `visited` set call `dfs(node, graph, visited)`
-
-Let's examine a sample graph and see how the depth-first traversal algorithm is executed on it.
-
-Depth first traversal in a graph.
-
-## Implementation
-
-Consider that we have a graph of size**N**, where the nodes are enumerated from**0**to**N-1**, and we are given the adjacency listof the graph as a two-dimensional list of integers `graph`, where the value is the enumeration of the neighbour node. 
-
-Given below is the implementation of the depth-first traversal algorithm. We create a recursive `dfs` function that takes as input the current node, a reference to the adjacency list `graph` and a reference to the `visited` set. For languages where passing by reference is not supported, we create the variables in the enclosing scope to make the same copy available in recursive calls.
-
-We create the visited set in the calling function, `depthFirstTraversal`, and iterate over all the nodes in the graph, calling `dfs` on all the unvisited nodes.
-
-C++
-
-```cpp
-#include <unordered_set>
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    void dfs(
-        vector<vector<int>> &graph,
-        int node,
-        unordered_set<int> &visited,
-        vector<int> &result
-    ) {
-
-        // Mark the current node as visited in the graph to avoid
-        // visiting it again
-        visited.insert(node);
-
-        // Add the current node to the result list
-        result.push_back(node);
-
-        // Traverse all the neighbours of the current node
-        for (int neighbour : graph[node]) {
-
-            // If the neighbour is not visited, recursively call the DFS
-            // function on the neighbour
-            if (visited.find(neighbour) == visited.end()) {
-                dfs(graph, neighbour, visited, result);
-            }
-
-// Diagram: vector<int> depthFirstTraversal(vector<vector<int>> &graph) {
-
-        // Number of nodes in the graph
-        int N = graph.size();
-
-        // If the graph is empty, return an empty result
-        if (N == 0) {
-            return {};
-        }
-
-        // Initialize a vector to store the result of the DFS which will
-        // contain the nodes visited during the DFS traversal
-        vector<int> result;
-
-        // Initialize visited set
-        unordered_set<int> visited;
-
-        // Traverse all nodes in the graph
-        for (int node = 0; node < N; node++) {
-
-            // If the node is already visited, continue to the next node
-            if (visited.find(node) != visited.end()) {
-                continue;
-            }
-
-            // Perform DFS on this new node to visit all the nodes
-            // connected to it.
-            dfs(graph, node, visited, result);
-        }
-
-        return result;
-    }
-};
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A((A)) --> B((B))
+    B --> C((C))
+    C --> A
 ```
 
-Java
+<p align="center"><strong>A 3-node cycle. A naive recursive walk from A visits A, B, C, A, B, C, ... forever. Graphs need a way to remember "I've already been here".</strong></p>
 
-```java
-#include <unordered_set>
+So graph traversal must:
 
-// Diagram: using namespace std;
+1. Pick **some sensible order** to visit nodes (not just index order).
+2. **Remember which nodes are already visited** so cycles don't trap us.
+3. Handle **disconnected graphs** — sometimes a single starting node can't reach the whole graph.
 
-class Solution {
-public:
-    void dfs(
-        vector<vector<int>> &graph,
-        int node,
-        unordered_set<int> &visited,
-        vector<int> &result
-    ) {
+Two famous orderings handle (1) cleanly. They share the visited-tracking and disconnected-handling machinery, but disagree on the order. They're called **depth-first** and **breadth-first** traversal — and choosing between them is one of the most common decisions in graph code.
 
-        // Mark the current node as visited in the graph to avoid
-        // visiting it again
-        visited.insert(node);
+> *Before reading on — picture a 5-node graph and yourself starting at node 0. Without any rules, list the order you'd visit nodes. Now redo it imagining you can only walk one path at a time and must finish each path before starting another. Then redo it imagining you must visit all "1-step neighbours" before any "2-step neighbour". Those last two are DFS and BFS.*
 
-        // Add the current node to the result list
-        result.push_back(node);
+***
 
-        // Traverse all the neighbours of the current node
-        for (int neighbour : graph[node]) {
+# Depth-First Traversal — Go Deep, Then Back
+
+**Depth-first search (DFS)** says: follow one path as deep as possible. When you hit a dead end (or already-visited territory), back up to the last branching point and try a different unexplored path.
+
+Think of a maze. You stand at a fork. You pick a corridor and walk to its end. Stuck or seen-before? Walk back to the fork. Pick the next corridor. Repeat. Eventually every corridor is walked.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    A((A)) --> B((B))
+    A --> C((C))
+    B --> D((D))
+    B --> E((E))
+    C --> F((F))
+    style A fill:#fde68a,stroke:#d97706
+    style B fill:#fde68a,stroke:#d97706
+    style D fill:#fde68a,stroke:#d97706
 ```
 
-Typescript
+<p align="center"><strong>Starting from A, DFS explores A → B → D fully before backing up to B and exploring B → E, then backing up to A and exploring A → C → F. The highlighted subtree is the first complete branch DFS finishes.</strong></p>
 
-```typescript
-export class Solution {
-    dfs(
-        graph: number[][],
-        node: number,
-        visited: Set<number>,
-        result: number[]
-    ): void {
+DFS naturally maps to **recursion**. The function call stack *is* the trail of branching points you'd retrace in the maze. Every recursive call goes one step deeper; every `return` is the act of "backing up".
 
-        // Mark the current node as visited in the graph to avoid
-        // visiting it again
-        visited.add(node);
+---
 
-        // Add the current node to the result list
-        result.push(node);
+## The Core Recursive Idea
 
-        // Traverse all the neighbours of the current node
-        for (const neighbour of graph[node]) {
+For one starting node `s`, DFS is two lines:
 
-            // If the neighbour is not visited, recursively call the DFS
-            // function on the neighbour
-            if (!visited.has(neighbour)) {
-                this.dfs(graph, neighbour, visited, result);
-            }
-
-// Diagram: depthFirstTraversal(graph: number[][]): number[] {
-
-        // Number of nodes in the graph
-        const N: number = graph.length;
-
-        // If the graph is empty, return an empty result
-        if (N === 0) {
-            return [];
-        }
-
-        // Initialize a list to store the result of the DFS which will
-        // contain the nodes visited during the DFS traversal
-        const result: number[] = [];
-
-        // Initialize visited set
-        const visited: Set<number> = new Set();
-
-        // Perform DFS from the source node
-        // Traverse all nodes in the graph
-        for (let node = 0; node < N; node++) {
-
-            // If the node is already visited, continue to the next node
-            if (visited.has(node)) {
-                continue;
-            }
-
-            // Perform DFS on this new node to visit all the nodes
-            // connected to it.
-            this.dfs(graph, node, visited, result);
-        }
-
-        return result;
-    }
+```
+dfs(s):
+    mark s visited
+    for each neighbour n of s:
+        if n not visited:  dfs(n)
 ```
 
-Javascript
+That's the whole search. Read it twice — it's exactly "I'm here; let me finish exploring everywhere I can reach from here, recursively, before I leave."
 
-```javascript
-export class Solution {
-    dfs(graph, node, visited, result) {
+But this only finds the **connected component** containing `s`. If the graph has 3 disconnected pieces, calling `dfs(s)` only walks the piece containing `s` — the other two are untouched.
 
-        // Mark the current node as visited in the graph to avoid
-        // visiting it again
-        visited.add(node);
-
-        // Add the current node to the result list
-        result.push(node);
-
-        // Traverse all the neighbours of the current node
-        for (const neighbour of graph[node]) {
-
-            // If the neighbour is not visited, recursively call the DFS
-            // function on the neighbour
-            if (!visited.has(neighbour)) {
-                this.dfs(graph, neighbour, visited, result);
-            }
-
-// Diagram: depthFirstTraversal(graph) {
-
-        // Number of nodes in the graph
-        const N = graph.length;
-
-        // If the graph is empty, return an empty result
-        if (N === 0) {
-            return [];
-        }
-
-        // Initialize a list to store the result of the DFS which will
-        // contain the nodes visited during the DFS traversal
-        const result = [];
-
-        // Initialize visited set
-        const visited = new Set();
-
-        // Traverse all nodes in the graph
-        for (let node = 0; node < N; node++) {
-
-            // If the node is already visited, continue to the next node
-            if (visited.has(node)) {
-                continue;
-            }
-
-            // Perform DFS on this new node to visit all the nodes
-            // connected to it.
-            this.dfs(graph, node, visited, result);
-        }
-
-        return result;
-    }
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph C1["Reached by dfs(0)"]
+      direction LR
+      A0((0)) --- A1((1))
+      A0 --- A2((2))
+    end
+    subgraph C2["Untouched"]
+      direction LR
+      B0((3)) --- B1((4))
+    end
+    subgraph C3["Untouched"]
+      direction LR
+      C0((5))
+    end
 ```
 
-Python
+<p align="center"><strong>Calling dfs(0) reaches only the leftmost component. Nodes 3, 4 and 5 stay unvisited — DFS from a single source can't cross the disconnect.</strong></p>
 
-```python
+The fix is a wrapper that loops over every node and calls `dfs` from each unvisited one:
+
+```
+depthFirstTraversal(graph):
+    visited = empty set
+    for each node v in graph:
+        if v not visited:  dfs(v)
+```
+
+For a connected graph, the outer loop runs `dfs` exactly once and stops. For a disconnected graph, it runs `dfs` once per component. Either way, every node is visited exactly once.
+
+---
+
+## The Two-Level Algorithm
+
+Step-by-step, in human words:
+
+> **`dfs(node, graph, visited, result)`**
+> 1. Mark `node` as visited.
+> 2. Append `node` to the result.
+> 3. For each `neighbour` in `graph[node]`:
+>    - If `neighbour` not visited, recursively call `dfs(neighbour)`.
+>
+> **`depthFirstTraversal(graph)`**
+> 1. Create an empty `visited` set and an empty `result` list.
+> 2. For each `node` from 0 to N-1:
+>    - If `node` not visited, call `dfs(node, ...)`.
+> 3. Return `result`.
+
+> *Before reading on — for the graph below, predict the DFS order starting from node 0. Don't peek at the trace until you've written your guess down.*
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    N0((0)) --> N1((1))
+    N1 --> N4((4))
+    N4 --> N2((2))
+    N4 --> N3((3))
+    N2 --> N3
+    N3 --> N0
+```
+
+<p align="center"><strong>Test graph for the DFS dry run. Adjacency list: <code>0→[1], 1→[4], 2→[3], 3→[0], 4→[2,3]</code>.</strong></p>
+
+DFS from 0: visit 0, go to 1, go to 4, go to 4's first unvisited neighbour 2, go to 2's first unvisited neighbour 3 (3's only neighbour 0 is already visited so we return), back to 2 (no more), back to 4, try 4's next neighbour 3 (already visited), return. Full order: **0, 1, 4, 2, 3**.
+
+If your guess matched: you've internalised "go deep first". If not, trace it once more on paper before moving on.
+
+***
+
+# DFS Implementation
+
+We assume the graph is given as an adjacency list `graph` where `graph[i]` is the list of neighbours of node `i`. Nodes are integers `0..N-1`.
+
+<div class="lang-tabs">
+
+```python,editable
 from typing import List, Set
 
 class Solution:
-    def dfs(
-        self,
-        graph: List[List[int]],
-        node: int,
-        visited: Set[int],
-        result: List[int],
-    ) -> None:
-
-        # Mark the current node as visited
+    def dfs(self,
+            graph: List[List[int]],
+            node: int,
+            visited: Set[int],
+            result: List[int]) -> None:
+        # 1) mark current node visited BEFORE recursing — prevents revisits if a
+        #    cycle leads back here through one of our neighbours.
         visited.add(node)
-
-        # Add the current node to the result list
+        # 2) append AFTER marking so that 'visited' and 'result' stay in lock-step.
         result.append(node)
 
-        # Traverse all the neighbours of the current node
         for neighbour in graph[node]:
-
-            # If the neighbour is not visited, recursively call the DFS
-            # function on the neighbour
+            # Skip neighbours we've already covered — without this check, cycles loop forever.
             if neighbour not in visited:
                 self.dfs(graph, neighbour, visited, result)
 
     def depth_first_traversal(self, graph: List[List[int]]) -> List[int]:
-
-        # Number of nodes in the graph
         n = len(graph)
-
-        # If the graph is empty, return an empty result
         if n == 0:
             return []
 
-        # Initialize a list to store the result of the DFS which will
-        # contain the nodes visited during the DFS traversal
+        visited: Set[int] = set()
         result: List[int] = []
 
-        # Initialize visited set
-        visited: Set[int] = set()
-
-        # Traverse all nodes in the graph
+        # Outer loop handles disconnected graphs — every component gets its own DFS root.
         for node in range(n):
-
-            # If the node is already visited, continue to the next node
-            if node in visited:
-
-            # Perform DFS on this new node to visit all the nodes
-            # connected to it.
-            self.dfs(graph, node, visited, result)
-
+            if node not in visited:
+                self.dfs(graph, node, visited, result)
         return result
+
+
+graph = [[1], [4], [3], [0], [2, 3]]
+print(Solution().depth_first_traversal(graph))   # → [0, 1, 4, 2, 3]
 ```
+
+```java,editable
+import java.util.*;
+
+public class Main {
+    static class Solution {
+        public void dfs(List<List<Integer>> graph, int node,
+                        Set<Integer> visited, List<Integer> result) {
+            visited.add(node);
+            result.add(node);
+            for (int neighbour : graph.get(node)) {
+                if (!visited.contains(neighbour)) dfs(graph, neighbour, visited, result);
+            }
+        }
+
+        public List<Integer> depthFirstTraversal(List<List<Integer>> graph) {
+            int n = graph.size();
+            if (n == 0) return new ArrayList<>();
+
+            Set<Integer> visited = new HashSet<>();
+            List<Integer> result = new ArrayList<>();
+
+            // Outer loop seeds DFS for every disconnected component.
+            for (int node = 0; node < n; node++) {
+                if (!visited.contains(node)) dfs(graph, node, visited, result);
+            }
+            return result;
+        }
+    }
+
+    public static void main(String[] args) {
+        List<List<Integer>> graph = List.of(
+            List.of(1), List.of(4), List.of(3), List.of(0), List.of(2, 3));
+        System.out.println(new Solution().depthFirstTraversal(graph));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
+typedef struct { int* data; int size; } AdjList;
+
+static void dfs(AdjList* graph, int node, bool* visited, int* result, int* idx) {
+    visited[node] = true;
+    result[(*idx)++] = node;
+    for (int i = 0; i < graph[node].size; i++) {
+        int neighbour = graph[node].data[i];
+        if (!visited[neighbour]) dfs(graph, neighbour, visited, result, idx);
+    }
+}
+
+void depth_first_traversal(AdjList* graph, int n, int* result, int* result_size) {
+    bool* visited = calloc(n, sizeof(bool));
+    int idx = 0;
+    for (int node = 0; node < n; node++) {
+        if (!visited[node]) dfs(graph, node, visited, result, &idx);
+    }
+    *result_size = idx;
+    free(visited);
+}
+
+int main() {
+    int n0[] = {1}, n1[] = {4}, n2[] = {3}, n3[] = {0}, n4[] = {2, 3};
+    AdjList g[] = {{n0, 1}, {n1, 1}, {n2, 1}, {n3, 1}, {n4, 2}};
+    int result[5], size;
+    depth_first_traversal(g, 5, result, &size);
+    for (int i = 0; i < size; i++) printf("%d ", result[i]);
+    printf("\n");
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <unordered_set>
+
+class Solution {
+public:
+    void dfs(std::vector<std::vector<int>>& graph, int node,
+             std::unordered_set<int>& visited, std::vector<int>& result) {
+        visited.insert(node);
+        result.push_back(node);
+        for (int neighbour : graph[node]) {
+            if (visited.find(neighbour) == visited.end())
+                dfs(graph, neighbour, visited, result);
+        }
+    }
+
+    std::vector<int> depthFirstTraversal(std::vector<std::vector<int>>& graph) {
+        int n = (int)graph.size();
+        if (n == 0) return {};
+        std::vector<int> result;
+        std::unordered_set<int> visited;
+        for (int node = 0; node < n; node++) {
+            if (visited.find(node) == visited.end()) dfs(graph, node, visited, result);
+        }
+        return result;
+    }
+};
+
+int main() {
+    std::vector<std::vector<int>> graph = {{1}, {4}, {3}, {0}, {2, 3}};
+    auto out = Solution().depthFirstTraversal(graph);
+    for (int v : out) std::cout << v << " ";
+    std::cout << "\n";
+}
+```
+
+```scala,editable
+import scala.collection.mutable.{ArrayBuffer, HashSet}
+
+object Main extends App {
+  class Solution {
+    def dfs(graph: Array[Array[Int]], node: Int,
+            visited: HashSet[Int], result: ArrayBuffer[Int]): Unit = {
+      visited.add(node)
+      result.append(node)
+      for (neighbour <- graph(node) if !visited.contains(neighbour))
+        dfs(graph, neighbour, visited, result)
+    }
+
+    def depthFirstTraversal(graph: Array[Array[Int]]): ArrayBuffer[Int] = {
+      val n = graph.length
+      val visited = HashSet.empty[Int]
+      val result = ArrayBuffer.empty[Int]
+      for (node <- 0 until n if !visited.contains(node))
+        dfs(graph, node, visited, result)
+      result
+    }
+  }
+
+  val graph = Array(Array(1), Array(4), Array(3), Array(0), Array(2, 3))
+  println(new Solution().depthFirstTraversal(graph).mkString(", "))
+}
+```
+
+```javascript,editable
+class Solution {
+    dfs(graph, node, visited, result) {
+        visited.add(node);
+        result.push(node);
+        for (const neighbour of graph[node]) {
+            if (!visited.has(neighbour)) this.dfs(graph, neighbour, visited, result);
+        }
+    }
+
+    depthFirstTraversal(graph) {
+        const n = graph.length;
+        if (n === 0) return [];
+        const visited = new Set();
+        const result = [];
+        for (let node = 0; node < n; node++) {
+            if (!visited.has(node)) this.dfs(graph, node, visited, result);
+        }
+        return result;
+    }
+}
+
+const graph = [[1], [4], [3], [0], [2, 3]];
+console.log(new Solution().depthFirstTraversal(graph));
+```
+
+```typescript,editable
+class Solution {
+    dfs(graph: number[][], node: number, visited: Set<number>, result: number[]): void {
+        visited.add(node);
+        result.push(node);
+        for (const neighbour of graph[node]) {
+            if (!visited.has(neighbour)) this.dfs(graph, neighbour, visited, result);
+        }
+    }
+
+    depthFirstTraversal(graph: number[][]): number[] {
+        const n = graph.length;
+        if (n === 0) return [];
+        const visited = new Set<number>();
+        const result: number[] = [];
+        for (let node = 0; node < n; node++) {
+            if (!visited.has(node)) this.dfs(graph, node, visited, result);
+        }
+        return result;
+    }
+}
+
+const graph: number[][] = [[1], [4], [3], [0], [2, 3]];
+console.log(new Solution().depthFirstTraversal(graph));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func dfs(graph [][]int, node int, visited []bool, result *[]int) {
+    visited[node] = true
+    *result = append(*result, node)
+    for _, neighbour := range graph[node] {
+        if !visited[neighbour] {
+            dfs(graph, neighbour, visited, result)
+        }
+    }
+}
+
+func depthFirstTraversal(graph [][]int) []int {
+    n := len(graph)
+    if n == 0 {
+        return nil
+    }
+    visited := make([]bool, n)
+    result := []int{}
+    for node := 0; node < n; node++ {
+        if !visited[node] {
+            dfs(graph, node, visited, &result)
+        }
+    }
+    return result
+}
+
+func main() {
+    graph := [][]int{{1}, {4}, {3}, {0}, {2, 3}}
+    fmt.Println(depthFirstTraversal(graph))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun dfs(graph: List<List<Int>>, node: Int,
+            visited: MutableSet<Int>, result: MutableList<Int>) {
+        visited.add(node)
+        result.add(node)
+        for (neighbour in graph[node]) {
+            if (neighbour !in visited) dfs(graph, neighbour, visited, result)
+        }
+    }
+
+    fun depthFirstTraversal(graph: List<List<Int>>): List<Int> {
+        val n = graph.size
+        if (n == 0) return emptyList()
+        val visited = mutableSetOf<Int>()
+        val result = mutableListOf<Int>()
+        for (node in 0 until n) {
+            if (node !in visited) dfs(graph, node, visited, result)
+        }
+        return result
+    }
+}
+
+fun main() {
+    val graph = listOf(listOf(1), listOf(4), listOf(3), listOf(0), listOf(2, 3))
+    println(Solution().depthFirstTraversal(graph))
+}
+```
+
+```rust,editable
+fn dfs(graph: &[Vec<usize>], node: usize, visited: &mut Vec<bool>, result: &mut Vec<usize>) {
+    visited[node] = true;
+    result.push(node);
+    for &neighbour in &graph[node] {
+        if !visited[neighbour] {
+            dfs(graph, neighbour, visited, result);
+        }
+    }
+}
+
+fn depth_first_traversal(graph: &[Vec<usize>]) -> Vec<usize> {
+    let n = graph.len();
+    let mut visited = vec![false; n];
+    let mut result = Vec::new();
+    for node in 0..n {
+        if !visited[node] {
+            dfs(graph, node, &mut visited, &mut result);
+        }
+    }
+    result
+}
+
+fn main() {
+    let graph: Vec<Vec<usize>> = vec![vec![1], vec![4], vec![3], vec![0], vec![2, 3]];
+    println!("{:?}", depth_first_traversal(&graph));
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — graph = [[1], [4], [3], [0], [2, 3]]</strong></summary>
+
+```
+Step │ Stack (top = current)        │ Action                         │ visited       │ result
+─────┼──────────────────────────────┼────────────────────────────────┼───────────────┼────────
+1    │ dfs(0)                       │ enter 0, visited += 0          │ {0}           │ [0]
+2    │ dfs(0) → dfs(1)              │ enter 1, visited += 1          │ {0,1}         │ [0,1]
+3    │ dfs(0) → dfs(1) → dfs(4)     │ enter 4, visited += 4          │ {0,1,4}       │ [0,1,4]
+4    │ → → dfs(4) → dfs(2)          │ enter 2, visited += 2          │ {0,1,2,4}     │ [0,1,4,2]
+5    │ → → → dfs(2) → dfs(3)        │ enter 3, visited += 3          │ {0,1,2,3,4}   │ [0,1,4,2,3]
+6    │ → → → dfs(3) checks 0        │ 0 visited; return              │               │
+7    │ pop back to dfs(2)           │ no more neighbours; return     │               │
+8    │ pop back to dfs(4)           │ next neighbour 3 already visited; return       │
+9    │ pop back to dfs(1) → dfs(0)  │ no unvisited neighbours; return                │
+10   │ outer loop: 1,2,3,4 visited  │ done                           │               │
+Result: [0, 1, 4, 2, 3] ✓
+```
+
+</details>
+
+---
 
 ## Complexity Analysis
 
-The runtime complexity of the recursive algorithm should be easy to understand. Since we visit every node and every edge exactly once in the traversal, the time complexity **O(N + E),** where **N** is the total number of nodes and **E** is the total number of edges.Since this algorithm is recursive, the functional call stack's size depends on the recursion depth. In the worst case, the graph would be linear (a straight line), so the recursion would proceed to a depth of **N**, and the space complexity would be **O(N)**. In the best case, it would only go to a depth of 1, and thus the space complexity would be constant, **O(1)**.
+| | Complexity | Reasoning |
+|---|---|---|
+| **Time** | O(N + E) | Each node is marked visited once; each edge is examined once when its endpoint is processed |
+| **Space** | O(N) | The `visited` set stores up to N entries; the recursion stack depth is at most N for a long chain |
 
-// Diagram: The best and the worst case graphs for stack depth
+The recursion stack depth varies: on a linear path (0 → 1 → 2 → ... → N-1) the stack reaches N frames; on a star (everyone connected directly to a hub) the stack is at most 2 frames. The worst case is the long-chain shape, so we report O(N).
 
-However, in any case, we create a visited set that will house all the nodes of the graph, leading to a space complexity of **O(N)** in all cases.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    subgraph Best["Best case — flat star, depth ≈ 2"]
+      H((0))
+      A((1))
+      B((2))
+      C((3))
+      D((4))
+      H --- A
+      H --- B
+      H --- C
+      H --- D
+    end
+    subgraph Worst["Worst case — linear chain, depth = N"]
+      direction LR
+      W0((0)) --- W1((1)) --- W2((2)) --- W3((3)) --- W4((4))
+    end
+```
 
-> **Best Case**
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N+E)**
->
-> **Worst Case**
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N+E)**
+<p align="center"><strong>The recursion-depth extremes. A balanced graph sits between the two — but the algorithmic bound has to assume the worst.</strong></p>
+
+For graphs deeper than a few thousand nodes, default recursion can blow the call stack. The fix is to convert DFS to an explicit-stack iterative form — same algorithm, your own stack instead of the call stack. We'll use that form in problems where deep graphs are expected.
+
+DFS is wonderful when you want to *exhaustively explore one path at a time* — looking for cycles, finding any path, doing topological sort. But what if you want the **shortest** path? DFS doesn't give you that — it might find one path, but not necessarily the shortest. For shortest-path problems, you need a different ordering: **breadth-first**.
 
 ***
 
-# Depth first traversal
+# Breadth-First Traversal — Ripple Outward
 
-## Problem Statement
+**Breadth-first search (BFS)** says: visit every node at distance 1 before any node at distance 2; every node at distance 2 before any node at distance 3; and so on.
 
-Given a **directed** **graph** represented as an adjacency list and a **source** node, write a function to return a list containing all the nodes in the order in which they would appear in a depth-first traversal starting from the first node.
+Picture a stone dropped in a pond. Concentric ripples expand outward. Every point at radius 1 is reached together; then every point at radius 2; then radius 3. BFS is that — applied to graph nodes instead of water molecules.
 
-The graph is given as follows: `graph[i]` is a list of all nodes you can visit from the node `i` (i.e., there is a directed edge from the node `i` to node `graph[i][j]`).
-
-> -   If the graph is disconnected, you must traverse all the nodes in a sequential order. That is, after completing a depth-first traversal on one component, execute it again using the next unvisited node as the source to cover the remaining subgraphs.
-
-### Example 1
-
-> -   **Input:** graph = \[\[1\], \[4\], \[3\], \[0\], \[2, 3\]\]
-> -   **Output:** \[0, 1, 4, 2, 3\]
-> -   **Explanation:** This represents the depth-first traversal starting from node 0.
-
-### Example 2
-
-> -   **Input:** graph = \[\[4\], \[0, 3\], \[0, 4\], \[2, 4\], \[1\]\]
-> -   **Output:** \[0, 4, 1, 3, 2\]
-> -   **Explanation:** This represents the depth-first traversal starting from node 0.
-
-## Solution
-
-```cpp
-#include <unordered_set>
-
-using namespace std;
-
-class Solution {
-public:
-    void dfs(
-        vector<vector<int>> &graph,
-        int node,
-        unordered_set<int> &visited,
-        vector<int> &result
-    ) {
-
-        // Mark the current node as visited in the graph to avoid
-        // visiting it again
-        visited.insert(node);
-
-        // Add the current node to the result list
-        result.push_back(node);
-
-        // Traverse all the neighbours of the current node
-        for (int neighbour : graph[node]) {
-
-            // If the neighbour is not visited, recursively call the DFS
-            // function on the neighbour
-            if (visited.find(neighbour) == visited.end()) {
-                dfs(graph, neighbour, visited, result);
-            }
-        }
-    }
-
-    vector<int> depthFirstTraversal(vector<vector<int>> &graph) {
-
-        // Number of nodes in the graph
-        int N = graph.size();
-
-        // If the graph is empty, return an empty result
-        if (N == 0) {
-            return {};
-        }
-
-        // Initialize a vector to store the result of the DFS which will
-        // contain the nodes visited during the DFS traversal
-        vector<int> result;
-
-        // Initialize visited set
-        unordered_set<int> visited;
-
-        // Traverse all nodes in the graph
-        for (int node = 0; node < N; node++) {
-
-            // If the node is already visited, continue to the next node
-            if (visited.find(node) != visited.end()) {
-                continue;
-            }
-
-            // Perform DFS on this new node to visit all the nodes
-            // connected to it.
-            dfs(graph, node, visited, result);
-        }
-
-        return result;
-    }
-};
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    A(("A<br/>(d=0)")) --> B(("B<br/>(d=1)"))
+    A --> C(("C<br/>(d=1)"))
+    B --> D(("D<br/>(d=2)"))
+    B --> E(("E<br/>(d=2)"))
+    C --> F(("F<br/>(d=2)"))
 ```
+
+<p align="center"><strong>BFS from A. The label <code>d</code> is the distance (in hops) from the source. BFS visits all <code>d=1</code> nodes before any <code>d=2</code> node.</strong></p>
+
+BFS is exactly tree level-order traversal generalised to graphs. The only difference is the visited set — without it, cycles would let nodes appear at multiple "levels" and re-enter the queue forever.
+
+---
+
+## The Mechanism — A Queue
+
+DFS uses recursion (= the implicit call stack — last-in-first-out). BFS uses an **explicit queue** — first-in-first-out. The queue's order *is* the wavefront of the ripple.
+
+```
+bfs(source):
+    queue = [source]
+    mark source visited
+    while queue not empty:
+        node = queue.pop_front()
+        for each neighbour n of node:
+            if n not visited:
+                mark n visited
+                queue.push_back(n)
+```
+
+The queue starts with the source. We pop the front node, examine its neighbours, and **push every unvisited neighbour to the back**. Because pushes go to the back and pops come from the front, by the time we get to depth-2 nodes, every depth-1 node has already been popped.
+
+> **Why mark visited at push, not pop?** If you marked at pop, a node could be pushed multiple times by different parents before it's first popped — bloating the queue and risking duplicate work. Marking at push guarantees each node enters the queue exactly once. This is the single most common BFS bug — write it on a sticky note.
+
+Just like DFS, a single BFS only walks one connected component. The wrapper looping over every node solves that:
+
+```
+breadthFirstTraversal(graph):
+    visited = empty set
+    for each node v in graph:
+        if v not visited:  bfs(v)
+```
+
+---
+
+## The Two-Level Algorithm
+
+Step-by-step:
+
+> **`bfs(source, graph, visited, result)`**
+> 1. Create an empty `queue`.
+> 2. Add `source` to the queue and mark it visited.
+> 3. While queue is not empty:
+>    - Pop `node` from front of queue.
+>    - Append `node` to result.
+>    - For each `neighbour` in `graph[node]`:
+>      - If `neighbour` not visited: mark it visited and push to queue.
+>
+> **`breadthFirstTraversal(graph)`**
+> 1. Create empty `visited` set and `result` list.
+> 2. For each `node` from 0 to N-1:
+>    - If `node` not visited, call `bfs(node, ...)`.
+> 3. Return `result`.
+
+> *Before reading on — for the same graph as the DFS dry run, predict the BFS order from node 0.*
+
+DFS gave us **0, 1, 4, 2, 3**. BFS from 0: queue starts `[0]`. Pop 0 → push 1 → queue `[1]`. Pop 1 → push 4 → queue `[4]`. Pop 4 → push 2 (and 3) → queue `[2,3]`. Pop 2 → 3 is already queued so nothing new. Pop 3 → 0 visited. Done. Order: **0, 1, 4, 2, 3**.
+
+For *this* graph, DFS and BFS happen to agree because each node has at most one new neighbour per visit, so depth and breadth produce the same sequence. On a denser graph, they'd diverge sharply.
 
 ***
 
-# Understanding breadth first traversal
+# BFS Implementation
 
-The depth-first traversal algorithm that we learned earlier uses the depth-first search algorithm that relies on the function call stack, and may not be the best solution for some graph exploration use cases. The breadth-first traversal is another fundamental graph traversal algorithm that uses breadth-first search to explore all nodes at a fixed distance (depth) before moving to nodes at the next greater distance (depth). It can be visualized as moving outwards from the centre of concentric circles, covering one full circle at a time.
+<div class="lang-tabs">
 
-// Diagram: Breadth first search explores all neighbours first.
-
-Just like depth-first search is the generalization of preorder, inorder, and postorder traversals, breadth-first search is the generalization of level traversal. The only difference between the level order traversal of a tree and the breadth-first search of a graph is that we maintain map to keep track of nodes that are already scheduled to visit, as graphs can have cycles.
-
-## Algorithm
-
-The breadth-first traversal algorithm utilises the breadth-first search algorithm to traverse all nodes connected to a given node. The breadth-first search is a simple two-step algorithm in which we maintain a `queue` of nodes to visit and a `visited` set to keep track of nodes **scheduled** for a visit. It can be considered a generalisation of the level order traversal algorithm for trees.
-
-// Diagram: The breadth-first search algorithm uses a queue and a visited set.
-
-Only applying breadth-first search from any one node in the graph may not be enough, as it may not cover all the nodes of the graph if the graph is disconnected.
-
-// Diagram: Calling bfs once will not visit all the nodes in a disconnected graph.
-
-And so, the breadth-first traversal algorithm performs breadth-first search from every unvisited node until all nodes are visited. This way, all the nodes in the graph are traversed, even in disconnected graphs.
-
-// Diagram: Applying breadth-first search from all unvisited nodes until no node is unvisited covers the entire graph.
-
-To traverse all the nodes in the graph, we initialize a `visited` set and iterate over all the nodes of the graph. For any node that is not in the `visited` set, we call the breadth-first search function on it. The breadth-first search function takes as input the current node and the reference to the `visited` set. For languages that do not support passing data by reference, the `visited` set can be created in the global scope to share the same copy between function calls.
-
-The breadth-first search function initializes a local `queue` to schedule visits to nodes.
-
-// Diagram: The breadth-first search initializes a local queue to schedule visits.
-
-We start by adding the source node (passed as input) to the `queue` and iterate while the `queue` is not empty.
-
-// Diagram: Add the source node to the queue to start bfs.
-
-In each iteration, we pop a node from the front of the queue, which is equivalent to visiting it. We then use the `visited` set to find all its neighbours that are **not** scheduled for a visit and push them to the `queue`. Once we add a neighbour to the queue, we also add it to the `visited` set so that we don't add it to the `queue` again from another path.
-
-Since we add all the neighbours of a node to the `queue` **before** visiting them and the queue follows a FIFO (first in, first out order), it is guaranteed that we visit all neighbours of a node before visiting any other node.
-
-This process is repeated until the `queue` is empty, which means that all nodes reachable from the top-level source node have been traversed and added to the `visited` set.
-
-// Diagram: All nodes connected to the source node are visited after the call to bfs.
-
-We then continue our iteration over the graph nodes in the calling function and repeat the same process for the remaining unvisited nodes. At the end of all iterations, all the nodes of the graph will be visited and added to the `visited` set, completing the breadth-first traversal.
-
-The steps below summarize the breadth-first traversal algorithm using breadth-first search and a `visited` set.
-
-> **Algorithm**
->
-> **bfs(node, \[ref\] graph, \[ref\] visited)**
->
-> -   **Step 1:** Create a `queue` and add the `node` to it.
-> -   **Step 2:** Add `node` to the `visited` set
-> -   **Step 3:** Iterate while `queue` is not empty and do the following:
->     -   **Step 3.1:** Pop a node from the front of the `queue` in the variable `node`
->     -   **Step 3.2:** Iterate over all the neighbours of `node` in a variable `neighbour` and do the following:
->         -   **Step 3.2.1:** If `neighbour` is not in `visited` set, add `neighbour` to the `queue` and `visited` set
->
-> **breadthFirstTraversal(\[ref\] graph)**
->
-> -   **Step 1:** Create a `visited` set
-> -   **Step 2:** Iterate over all the nodes in the graph in a variable `node` and do the following
->     -   **Step 2.1:** If `node` not in `visited` set call `bfs(node, graph, visited)`
-
-Let's examine a sample graph and see how the breadth-first traversal algorithm is executed on it.
-
-Breadth first search in a graph starting from node 1.
-
-## Implementation
-
-Consider that we have a graph of size **N**, where the nodes are enumerated from **0** to **N-1**, and we are given the adjacency list of the graph as a two-dimensional list of integers `graph`, where the value is the enumeration of the neighbour node.
-
-Given below is the implementation of the breadth-first traversal algorithm. We create a `bfs` function that takes as input the current node, a reference to the adjacency list `graph` and a reference to the `visited` set. For languages where passing by reference is not supported, we create the variables in the enclosing scope. The bfs function creates a local variable `queue` every time it is called to schedule the nodes to visit.
-
-We create the `visited` set in the calling function `breadthFirstTraversal`, and iterate over all the nodes in the graph, calling `bfs` on all the unvisited nodes.
-
-C++
-
-```cpp
-#include <queue>
-#include <unordered_set>
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    void bfs(
-        vector<vector<int>> &graph,
-        int source,
-        unordered_set<int> &visited,
-        vector<int> &result
-    ) {
-
-        // Create a queue to perform breadth-first search
-        queue<int> queue;
-
-        // Add the source node to the queue
-        queue.push(source);
-
-        // Mark the current node as visited
-        visited.insert(source);
-
-        // Perform BFS
-        while (!queue.empty()) {
-
-            // Get the front node from the queue
-            int node = queue.front();
-            queue.pop();
-
-            // Add the current node to the result
-            result.push_back(node);
-
-            // Visit all the neighbours of the current node
-            for (int neighbour : graph[node]) {
-
-                // If the neighbour is not visited, add it to the queue
-                if (visited.find(neighbour) == visited.end()) {
-
-                    // Add the neighbour to the queue
-                    queue.push(neighbour);
-
-                    // Mark the neighbour node as visited
-                    visited.insert(neighbour);
-                }
-
-// Diagram: vector<int> breadthFirstTraversal(vector<vector<int>> &graph) {
-
-        // Number of nodes in the graph
-        int N = graph.size();
-
-        // If the graph is empty, return an empty result
-        if (N == 0) {
-            return {};
-        }
-
-        // Initialize a vector to store the result of the BFS which will
-        // contain the nodes visited during the BFS traversal
-        vector<int> result;
-
-        // Initialize visited set
-        unordered_set<int> visited;
-
-        // Traverse all nodes in the graph
-        for (int node = 0; node < N; node++) {
-
-            // If the node is already visited, continue to the next node
-            if (visited.find(node) != visited.end()) {
-                continue;
-            }
-
-            // Perform BFS on this new node to visit all the nodes
-            // connected to it.
-            bfs(graph, node, visited, result);
-        }
-
-        return result;
-    }
-};
-```
-
-Java
-
-```java
-import java.util.*;
-
-class Solution {
-    public void bfs(
-        List<List<Integer>> graph,
-        int source,
-        Set<Integer> visited,
-        List<Integer> result
-    ) {
-
-        // Create a queue to perform breadth-first search
-        Queue<Integer> queue = new LinkedList<>();
-
-        // Add the source node to the queue
-        queue.add(source);
-
-        // Mark the source node as visited
-        visited.add(source);
-
-        // Perform BFS
-        while (!queue.isEmpty()) {
-
-            // Get the front node from the queue
-            int node = queue.poll();
-
-            // Add the current node to the result
-            result.add(node);
-
-            // Visit all the neighbours of the current node
-            for (int neighbour : graph.get(node)) {
-
-                // If the neighbour is not visited, add it to the queue
-                if (!visited.contains(neighbour)) {
-
-                    // Add the neighbour to the queue
-                    queue.add(neighbour);
-
-                    // Mark the neighbour node as visited
-                    visited.add(neighbour);
-                }
-
-    public List<Integer> breadthFirstTraversal(
-        List<List<Integer>> graph
-    ) {
-
-        // Number of nodes in the graph
-        int N = graph.size();
-
-        // If the graph is empty, return an empty result
-        if (N == 0) {
-            return new ArrayList<>();
-        }
-
-        // Initialize a list to store the result of the BFS which will
-        // contain the nodes visited during the BFS traversal
-        List<Integer> result = new ArrayList<>();
-
-        // Initialize visited set
-        Set<Integer> visited = new HashSet<>();
-
-        // Traverse all nodes in the graph
-        for (int node = 0; node < N; node++) {
-
-            // If the node is already visited, continue to the next node
-            if (visited.contains(node)) {
-                continue;
-            }
-
-            // Perform DFS on this new node to visit all the nodes
-            // connected to it.
-            bfs(graph, node, visited, result);
-        }
-
-        return result;
-    }
-```
-
-Typescript
-
-```typescript
-export class Solution {
-    bfs(
-        graph: number[][],
-        source: number,
-        visited: Set<number>,
-        result: number[]
-    ) {
-
-        // Create a queue to perform breadth-first search
-        const queue: number[] = [];
-
-        // Add the source node to the queue
-        queue.push(source);
-
-        // Mark the current node as visited
-        visited.add(source);
-
-        // Perform BFS
-        while (queue.length > 0) {
-            const node: number = queue.shift()!;
-
-            // Add the current node to the result
-            result.push(node);
-
-            // Visit all the neighbours of the current node
-            for (const neighbour of graph[node]) {
-
-                // If the neighbour is not visited, add it to the queue
-                if (!visited.has(neighbour)) {
-
-                    // Add the neighbour to the queue
-                    queue.push(neighbour);
-
-                    // Mark the neighbour node as visited
-                    visited.add(neighbour);
-                }
-
-// Diagram: breadthFirstTraversal(graph: number[][]): number[] {
-
-        // Number of nodes in the graph
-        const N: number = graph.length;
-
-        // If the graph is empty, return an empty result
-        if (N === 0) {
-            return [];
-        }
-
-        // Initialize a list to store the result of the BFS which will
-        // contain the nodes visited during the BFS traversal
-        const result: number[] = [];
-
-        // Initialize visited set
-        const visited: Set<number> = new Set();
-
-        // Traverse all nodes in the graph
-        for (let node = 0; node < N; node++) {
-
-            // If the node is already visited, continue to the next node
-            if (visited.has(node)) {
-                continue;
-            }
-
-            // Perform BFS on this new node to visit all the nodes
-            // connected to it.
-            this.bfs(graph, node, visited, result);
-        }
-
-        return result;
-    }
-```
-
-Javascript
-
-```javascript
-export class Solution {
-    bfs(graph, source, visited, result) {
-
-        // Create a queue to perform breadth-first search
-        const queue = [];
-
-        // Add the source node to the queue
-        queue.push(source);
-
-        // Mark the current node as visited
-        visited.add(source);
-
-        // Perform BFS
-        while (queue.length > 0) {
-
-            // Get the front node from the queue
-            const node = queue.shift();
-
-            // Add the current node to the result
-            result.push(node);
-
-            // Visit all the neighbours of the current node
-            for (const neighbour of graph[node]) {
-
-                // If the neighbour is not visited, add it to the queue
-                if (!visited.has(neighbour)) {
-
-                    // Add the neighbour to the queue
-                    queue.push(neighbour);
-
-                    // Mark the neighbour node as visited
-                    visited.add(neighbour);
-                }
-
-// Diagram: breadthFirstTraversal(graph) {
-
-        // Number of nodes in the graph
-        const N = graph.length;
-
-        // If the graph is empty, return an empty result
-        if (N === 0) {
-            return {};
-        }
-
-        // Initialize a list to store the result of the BFS which will
-        // contain the nodes visited during the BFS traversal
-        const result = [];
-
-        // Initialize visited set
-        const visited = new Set();
-
-        // Traverse all nodes in the graph
-        for (let node = 0; node < N; node++) {
-
-            // If the node is already visited, continue to the next node
-            if (visited.has(node)) {
-                continue;
-            }
-
-            // Perform BFS on this new node to visit all the nodes
-            // connected to it.
-            this.bfs(graph, node, visited, result);
-        }
-
-        return result;
-    }
-```
-
-Python
-
-```python
-from queue import Queue
+```python,editable
 from typing import List, Set
 from collections import deque
 
 class Solution:
-    def bfs(
-        self,
-        graph: List[List[int]],
-        source: int,
-        visited: Set[int],
-        result: List[int],
-    ) -> None:
-
-        # Create a queue to perform breadth-first search
-        queue = Queue()
-
-        # Add the source node to the queue
-        queue.put(source)
-
-        # Mark the current node as visited
+    def bfs(self,
+            graph: List[List[int]],
+            source: int,
+            visited: Set[int],
+            result: List[int]) -> None:
+        # deque gives O(1) append/popleft; using a plain list with pop(0) would be O(n).
+        queue = deque([source])
+        # IMPORTANT: mark visited at PUSH, not POP. Otherwise a node can be pushed
+        # multiple times by different parents before it's popped once.
         visited.add(source)
 
-        # Perform BFS from the source node
-        while not queue.empty():
-            node = queue.get()
-
-            # Add the current node to the result
+        while queue:
+            node = queue.popleft()
             result.append(node)
-
-            # Visit all the neighbours of the current node
             for neighbour in graph[node]:
-
-                # If the neighbour is not visited, add it to the queue
                 if neighbour not in visited:
-
-                    # Add the neighbour to the queue
-                    queue.put(neighbour)
-
-                    # Mark the neighbour node as visited
                     visited.add(neighbour)
+                    queue.append(neighbour)
 
-    def breadth_first_traversal(
-        self, graph: List[List[int]]
-    ) -> List[int]:
-
-        # Number of nodes in the graph
+    def breadth_first_traversal(self, graph: List[List[int]]) -> List[int]:
         n = len(graph)
-
-        # If the graph is empty, return an empty result
         if n == 0:
             return []
-
-        # Initialize a list to store the result of the BFS which will
-        # contain the nodes visited during the BFS traversal
-        result: List[int] = []
-
-        # Initialize visited set
         visited: Set[int] = set()
-
-        # Traverse all nodes in the graph
+        result: List[int] = []
         for node in range(n):
-
-            # If the node is already visited, all the nodes connected to
-            # it are also visited
-            if node in visited:
-
-            # Perform BFS on this new node to visit all the nodes
-            # connected to it.
-            self.bfs(graph, node, visited, result)
-
+            if node not in visited:
+                self.bfs(graph, node, visited, result)
         return result
+
+
+graph = [[1], [4], [3], [0], [2, 3]]
+print(Solution().breadth_first_traversal(graph))
 ```
 
-## Complexity Analysis
+```java,editable
+import java.util.*;
 
-In any case, every node in the graph is added to the queue only once, so the outer while loop iterates **N** times, where **N** is the total number of nodes in the graph. We perform constant-time operations for each node and iterate through all its edges. When considering all the nodes in the graph, we get **O(N)** as the sum of all constant operations. Iterating through all the edges for every node accounts for **O(E)** time, where **E** is the total number of edges in the graph. Therefore, the overall runtime complexity of breadth-first search is **O(N+E)** in all cases.
+public class Main {
+    static class Solution {
+        public void bfs(List<List<Integer>> graph, int source,
+                        Set<Integer> visited, List<Integer> result) {
+            Queue<Integer> queue = new ArrayDeque<>();
+            queue.add(source);
+            visited.add(source);   // mark at push, not pop
+            while (!queue.isEmpty()) {
+                int node = queue.poll();
+                result.add(node);
+                for (int neighbour : graph.get(node)) {
+                    if (!visited.contains(neighbour)) {
+                        visited.add(neighbour);
+                        queue.add(neighbour);
+                    }
+                }
+            }
+        }
 
-Since we create a queue to enforce the breadth-first order, the maximum size of the queue during runtime impacts the memory required. In the worst case, the graph could be fully connected and only one level deep. This means all the nodes would be added to the queue at once, so the space complexity would be **O(N)**. In the best case, the graph would be disconnected entirely, or each node only has one neighbour, so the maximum size of the queue would be one, and the space complexity would be constant **O(1)**.
+        public List<Integer> breadthFirstTraversal(List<List<Integer>> graph) {
+            int n = graph.size();
+            if (n == 0) return new ArrayList<>();
+            Set<Integer> visited = new HashSet<>();
+            List<Integer> result = new ArrayList<>();
+            for (int node = 0; node < n; node++) {
+                if (!visited.contains(node)) bfs(graph, node, visited, result);
+            }
+            return result;
+        }
+    }
 
-// Diagram: The best and the worst case graphs for stack depth
+    public static void main(String[] args) {
+        List<List<Integer>> graph = List.of(
+            List.of(1), List.of(4), List.of(3), List.of(0), List.of(2, 3));
+        System.out.println(new Solution().breadthFirstTraversal(graph));
+    }
+}
+```
 
-However, in any case, we create a visited set that will house all the nodes of the graph, leading to a space complexity of **O(N)** in all cases.
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
-> **Best Case**
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N+E)**
->
-> **Worst Case**
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N+E)**
+typedef struct { int* data; int size; } AdjList;
 
-***
+static void bfs(AdjList* graph, int source, bool* visited, int* result, int* idx, int n) {
+    int* queue = malloc(n * sizeof(int));
+    int head = 0, tail = 0;
+    queue[tail++] = source;
+    visited[source] = true;
+    while (head < tail) {
+        int node = queue[head++];
+        result[(*idx)++] = node;
+        for (int i = 0; i < graph[node].size; i++) {
+            int neighbour = graph[node].data[i];
+            if (!visited[neighbour]) {
+                visited[neighbour] = true;
+                queue[tail++] = neighbour;
+            }
+        }
+    }
+    free(queue);
+}
 
-# Breadth first traversal
+void breadth_first_traversal(AdjList* graph, int n, int* result, int* result_size) {
+    bool* visited = calloc(n, sizeof(bool));
+    int idx = 0;
+    for (int node = 0; node < n; node++) {
+        if (!visited[node]) bfs(graph, node, visited, result, &idx, n);
+    }
+    *result_size = idx;
+    free(visited);
+}
 
-## Problem Statement
+int main() {
+    int n0[] = {1}, n1[] = {4}, n2[] = {3}, n3[] = {0}, n4[] = {2, 3};
+    AdjList g[] = {{n0, 1}, {n1, 1}, {n2, 1}, {n3, 1}, {n4, 2}};
+    int result[5], size;
+    breadth_first_traversal(g, 5, result, &size);
+    for (int i = 0; i < size; i++) printf("%d ", result[i]);
+    printf("\n");
+    return 0;
+}
+```
 
-Given a **directed** **graph** represented as an adjacency list and a **source** node, write a function to return a list containing all the nodes in the order in which they would appear in a breadth-first traversal starting from the first node.
-
-The graph is given as follows: `graph[i]` is a list of all nodes you can visit from the node `i` (i.e., there is a directed edge from the node `i` to node `graph[i][j]`).
-
-> -   If the graph is disconnected, you must traverse all the nodes in a sequential order. That is, after completing a breadth-first traversal on one component, execute it again using the next unvisited node as the source to cover the remaining subgraphs.
-
-### Example 1
-
-> -   **Input:** graph = \[\[1, 2\], \[4\], \[3\], \[0\], \[2, 3\]\]
-> -   **Output:** \[0, 1, 2, 4, 3\]
-> -   **Explanation:** This represents the breadth-first traversal starting from node 0.
-
-### Example 2
-
-> -   **Input:** graph = \[\[4\], \[0, 3\], \[0, 4\], \[2, 4\], \[1\]\]
-> -   **Output:** \[0, 4, 1, 3, 2\]
-> -   **Explanation:** This represents the breadth-first traversal starting from node 0.
-
-## Solution
-
-```cpp
+```cpp,editable
+#include <iostream>
+#include <vector>
 #include <queue>
 #include <unordered_set>
 
-using namespace std;
-
 class Solution {
 public:
-    void bfs(
-        vector<vector<int>> &graph,
-        int source,
-        unordered_set<int> &visited,
-        vector<int> &result
-    ) {
-
-        // Create a queue to perform breadth-first search
-        queue<int> queue;
-
-        // Add the source node to the queue
-        queue.push(source);
-
-        // Mark the current node as visited
+    void bfs(std::vector<std::vector<int>>& graph, int source,
+             std::unordered_set<int>& visited, std::vector<int>& result) {
+        std::queue<int> q;
+        q.push(source);
         visited.insert(source);
-
-        // Perform BFS
-        while (!queue.empty()) {
-
-            // Get the front node from the queue
-            int node = queue.front();
-            queue.pop();
-
-            // Add the current node to the result
+        while (!q.empty()) {
+            int node = q.front(); q.pop();
             result.push_back(node);
-
-            // Visit all the neighbours of the current node
-            for (int neighbour : graph[node]) {
-
-                // If the neighbour is not visited, add it to the queue
-                if (visited.find(neighbour) == visited.end()) {
-
-                    // Add the neighbour to the queue
-                    queue.push(neighbour);
-
-                    // Mark the neighbour node as visited
-                    visited.insert(neighbour);
+            for (int n : graph[node]) {
+                if (visited.find(n) == visited.end()) {
+                    visited.insert(n);
+                    q.push(n);
                 }
             }
         }
     }
 
-    vector<int> breadthFirstTraversal(vector<vector<int>> &graph) {
-
-        // Number of nodes in the graph
-        int N = graph.size();
-
-        // If the graph is empty, return an empty result
-        if (N == 0) {
-            return {};
+    std::vector<int> breadthFirstTraversal(std::vector<std::vector<int>>& graph) {
+        int n = (int)graph.size();
+        if (n == 0) return {};
+        std::vector<int> result;
+        std::unordered_set<int> visited;
+        for (int node = 0; node < n; node++) {
+            if (visited.find(node) == visited.end()) bfs(graph, node, visited, result);
         }
-
-        // Initialize a vector to store the result of the BFS which will
-        // contain the nodes visited during the BFS traversal
-        vector<int> result;
-
-        // Initialize visited set
-        unordered_set<int> visited;
-
-        // Traverse all nodes in the graph
-        for (int node = 0; node < N; node++) {
-
-            // If the node is already visited, continue to the next node
-            if (visited.find(node) != visited.end()) {
-                continue;
-            }
-
-            // Perform BFS on this new node to visit all the nodes
-            // connected to it.
-            bfs(graph, node, visited, result);
-        }
-
         return result;
     }
 };
+
+int main() {
+    std::vector<std::vector<int>> graph = {{1}, {4}, {3}, {0}, {2, 3}};
+    auto out = Solution().breadthFirstTraversal(graph);
+    for (int v : out) std::cout << v << " ";
+    std::cout << "\n";
+}
 ```
+
+```scala,editable
+import scala.collection.mutable.{ArrayBuffer, HashSet, Queue}
+
+object Main extends App {
+  class Solution {
+    def bfs(graph: Array[Array[Int]], source: Int,
+            visited: HashSet[Int], result: ArrayBuffer[Int]): Unit = {
+      val queue = Queue[Int]()
+      queue.enqueue(source)
+      visited.add(source)
+      while (queue.nonEmpty) {
+        val node = queue.dequeue()
+        result.append(node)
+        for (n <- graph(node) if !visited.contains(n)) {
+          visited.add(n)
+          queue.enqueue(n)
+        }
+      }
+    }
+
+    def breadthFirstTraversal(graph: Array[Array[Int]]): ArrayBuffer[Int] = {
+      val visited = HashSet.empty[Int]
+      val result = ArrayBuffer.empty[Int]
+      for (node <- graph.indices if !visited.contains(node))
+        bfs(graph, node, visited, result)
+      result
+    }
+  }
+
+  val graph = Array(Array(1), Array(4), Array(3), Array(0), Array(2, 3))
+  println(new Solution().breadthFirstTraversal(graph).mkString(", "))
+}
+```
+
+```javascript,editable
+class Solution {
+    bfs(graph, source, visited, result) {
+        const queue = [source];
+        visited.add(source);
+        let head = 0;       // index-based head avoids O(n) shift on plain array.
+        while (head < queue.length) {
+            const node = queue[head++];
+            result.push(node);
+            for (const n of graph[node]) {
+                if (!visited.has(n)) {
+                    visited.add(n);
+                    queue.push(n);
+                }
+            }
+        }
+    }
+
+    breadthFirstTraversal(graph) {
+        const n = graph.length;
+        if (n === 0) return [];
+        const visited = new Set();
+        const result = [];
+        for (let node = 0; node < n; node++) {
+            if (!visited.has(node)) this.bfs(graph, node, visited, result);
+        }
+        return result;
+    }
+}
+
+const graph = [[1], [4], [3], [0], [2, 3]];
+console.log(new Solution().breadthFirstTraversal(graph));
+```
+
+```typescript,editable
+class Solution {
+    bfs(graph: number[][], source: number, visited: Set<number>, result: number[]): void {
+        const queue: number[] = [source];
+        visited.add(source);
+        let head = 0;
+        while (head < queue.length) {
+            const node = queue[head++];
+            result.push(node);
+            for (const n of graph[node]) {
+                if (!visited.has(n)) {
+                    visited.add(n);
+                    queue.push(n);
+                }
+            }
+        }
+    }
+
+    breadthFirstTraversal(graph: number[][]): number[] {
+        const n = graph.length;
+        if (n === 0) return [];
+        const visited = new Set<number>();
+        const result: number[] = [];
+        for (let node = 0; node < n; node++) {
+            if (!visited.has(node)) this.bfs(graph, node, visited, result);
+        }
+        return result;
+    }
+}
+
+const graph: number[][] = [[1], [4], [3], [0], [2, 3]];
+console.log(new Solution().breadthFirstTraversal(graph));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func bfs(graph [][]int, source int, visited []bool, result *[]int) {
+    queue := []int{source}
+    visited[source] = true
+    for len(queue) > 0 {
+        node := queue[0]
+        queue = queue[1:]
+        *result = append(*result, node)
+        for _, n := range graph[node] {
+            if !visited[n] {
+                visited[n] = true
+                queue = append(queue, n)
+            }
+        }
+    }
+}
+
+func breadthFirstTraversal(graph [][]int) []int {
+    n := len(graph)
+    if n == 0 {
+        return nil
+    }
+    visited := make([]bool, n)
+    result := []int{}
+    for node := 0; node < n; node++ {
+        if !visited[node] {
+            bfs(graph, node, visited, &result)
+        }
+    }
+    return result
+}
+
+func main() {
+    graph := [][]int{{1}, {4}, {3}, {0}, {2, 3}}
+    fmt.Println(breadthFirstTraversal(graph))
+}
+```
+
+```kotlin,editable
+import java.util.ArrayDeque
+
+class Solution {
+    fun bfs(graph: List<List<Int>>, source: Int,
+            visited: MutableSet<Int>, result: MutableList<Int>) {
+        val queue = ArrayDeque<Int>()
+        queue.add(source)
+        visited.add(source)
+        while (queue.isNotEmpty()) {
+            val node = queue.poll()
+            result.add(node)
+            for (n in graph[node]) {
+                if (n !in visited) {
+                    visited.add(n)
+                    queue.add(n)
+                }
+            }
+        }
+    }
+
+    fun breadthFirstTraversal(graph: List<List<Int>>): List<Int> {
+        val n = graph.size
+        if (n == 0) return emptyList()
+        val visited = mutableSetOf<Int>()
+        val result = mutableListOf<Int>()
+        for (node in 0 until n) {
+            if (node !in visited) bfs(graph, node, visited, result)
+        }
+        return result
+    }
+}
+
+fun main() {
+    val graph = listOf(listOf(1), listOf(4), listOf(3), listOf(0), listOf(2, 3))
+    println(Solution().breadthFirstTraversal(graph))
+}
+```
+
+```rust,editable
+use std::collections::VecDeque;
+
+fn bfs(graph: &[Vec<usize>], source: usize, visited: &mut Vec<bool>, result: &mut Vec<usize>) {
+    let mut queue: VecDeque<usize> = VecDeque::new();
+    queue.push_back(source);
+    visited[source] = true;
+    while let Some(node) = queue.pop_front() {
+        result.push(node);
+        for &n in &graph[node] {
+            if !visited[n] {
+                visited[n] = true;
+                queue.push_back(n);
+            }
+        }
+    }
+}
+
+fn breadth_first_traversal(graph: &[Vec<usize>]) -> Vec<usize> {
+    let n = graph.len();
+    let mut visited = vec![false; n];
+    let mut result = Vec::new();
+    for node in 0..n {
+        if !visited[node] {
+            bfs(graph, node, &mut visited, &mut result);
+        }
+    }
+    result
+}
+
+fn main() {
+    let graph: Vec<Vec<usize>> = vec![vec![1], vec![4], vec![3], vec![0], vec![2, 3]];
+    println!("{:?}", breadth_first_traversal(&graph));
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — graph = [[1], [4], [3], [0], [2, 3]] starting from node 0</strong></summary>
+
+```
+Step │ Queue        │ Action                                  │ visited       │ result
+─────┼──────────────┼─────────────────────────────────────────┼───────────────┼──────────
+1    │ [0]          │ push 0; mark 0                          │ {0}           │ []
+2    │ [1]          │ pop 0; push 1; mark 1                   │ {0,1}         │ [0]
+3    │ [4]          │ pop 1; push 4; mark 4                   │ {0,1,4}       │ [0,1]
+4    │ [2,3]        │ pop 4; push 2,3; mark 2,3               │ {0,1,2,3,4}   │ [0,1,4]
+5    │ [3]          │ pop 2; 3 already marked → no push       │ {0,1,2,3,4}   │ [0,1,4,2]
+6    │ [ ]          │ pop 3; 0 already marked → no push       │ {0,1,2,3,4}   │ [0,1,4,2,3]
+Result: [0, 1, 4, 2, 3] ✓
+```
+
+</details>
+
+---
+
+## Complexity Analysis
+
+| | Complexity | Reasoning |
+|---|---|---|
+| **Time** | O(N + E) | Each node enters the queue at most once; each edge is examined exactly once when its endpoint is dequeued |
+| **Space** | O(N) | The queue holds at most N entries; visited stores up to N |
+
+Same Big-O as DFS — both visit every node and every edge once. The constant factors and the *order* differ, not the asymptotic cost.
+
+***
+
+# DFS vs BFS — When to Choose Which
+
+The two traversals share their Big-O budget. They differ in three ways that matter at the algorithm-choice stage:
+
+| | DFS | BFS |
+|---|---|---|
+| Data structure | Recursion (call stack) | Queue (explicit) |
+| Order | One path deep, then back | Concentric "rings" outward |
+| Memory shape | Stack depth = longest path | Queue width = max ring size |
+| Sweet spot | Topology / cycles / paths / "exists a path" | **Shortest path** in unweighted graphs / level-by-level |
+
+```d2
+direction: right
+
+decision: "Pick a traversal" {
+  q1: |md
+    **Need shortest path**
+
+    in unweighted graph?
+  |
+  q2: |md
+    **Need to track levels**
+
+    or distances from start?
+  |
+  q3: |md
+    **Doing topological sort,**
+
+    cycle detection,
+
+    or 'find any path'?
+  |
+  bfs: |md
+    **BFS**
+
+    Use a queue.
+  |
+  dfs: |md
+    **DFS**
+
+    Use recursion.
+  |
+
+  q1 -> bfs: yes
+  q2 -> bfs: yes
+  q3 -> dfs: yes
+}
+```
+
+<p align="center"><strong>Quick selection guide. The headline rule: shortest-path-on-unweighted ⇒ BFS; everything else, default to DFS.</strong></p>
+
+DFS is also the only sensible choice when the graph is a tree-shaped DAG (e.g. a directory tree or a JSON tree) and you want full traversal in one pass — the call stack handles backtracking naturally.
+
+BFS is the only sensible choice when the question contains the word *"shortest"*, *"minimum hops"*, *"closest"*, or *"level"*. In an unweighted graph, BFS finds the minimum-hop path from the source to any other node "for free" — it's a side effect of the wavefront.
+
+> **Memory trick — "DFS dives, BFS sweeps."** DFS dives down one path; BFS sweeps across every depth.
+
+---
+
+## Final Takeaway
+
+DFS and BFS aren't two algorithms — they're **two perspectives on the same act of visiting every node**. Once both perspectives are second nature, every advanced graph algorithm (Dijkstra, topological sort, bipartite check, cycle detection, shortest path on grids) is a small mutation of one of them.
+
+You now have:
+- A mental model for each (deep dive / ripple)
+- The two-level structure that handles disconnected graphs
+- Implementations in 10 languages
+- The selection rule for when to use which
+
+The rest of this chapter weaponises these two patterns. Cycle detection? DFS plus a 3-colour state. Topological sort? DFS plus a "completed" stack. Shortest path on grid? BFS plus directional moves. Once you see the seed pattern, the rest writes itself.
+
+But there's a different kind of graph we haven't talked about yet — one that's all around you in 2D and grows up to 3D, 4D, even higher. **Grids.** They're graphs in disguise, and they have their own quirks. That's the next lesson.
+
+> **Transfer challenge.** You have a 1024-node graph where the longest path is 1023 nodes. You want to traverse it. Your runtime gives you a 1MB call stack. Which traversal do you pick, and why? Could the other one work with a small change?
+
+<details>
+<summary><strong>Solution</strong></summary>
+
+DFS recursion with default Python (~1KB per frame) would overflow at depth ~1000. Pick **BFS** — the queue lives on the heap, no stack-depth concern. Alternatively, convert DFS to **iterative DFS** with your own explicit stack on the heap — same algorithm, no recursion, no stack overflow. Most production graph code uses iterative DFS for exactly this reason.
+
+</details>

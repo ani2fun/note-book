@@ -1,1164 +1,1526 @@
-# Pattern: Depth-first search
+# 12. Pattern: Depth-first search
 
-## Table of Contents
+This lesson teaches you the DFS **pattern** — the family of problems where you need to enumerate, score, or filter every path from a source through some destination. Once you can recognise the pattern, the implementation writes itself.
 
-1. [Understanding the depth-first search pattern](#pattern-depth-first-search)
-2. [Identifying the depth-first search pattern](#identifying-the-depth-first-search-pattern)
-3. [Source to target paths](#source-to-target-paths)
-4. [Target paths](#target-paths)
-5. [Hamiltonian paths](#hamiltonian-paths)
-6. [Simple cycles](#simple-cycles)
+## Table of contents
+
+1. [Why DFS is more than traversal](#why-dfs-is-more-than-traversal)
+2. [The DFS pattern template](#the-dfs-pattern-template)
+3. [Identifying the pattern](#identifying-the-pattern)
+4. [Problem: Source to target paths](#problem-source-to-target-paths)
+5. [Problem: Target paths with given weight](#problem-target-paths-with-given-weight)
+6. [Problem: Hamiltonian paths](#problem-hamiltonian-paths)
+7. [Problem: Simple cycles](#problem-simple-cycles)
 
 ***
 
-# Understanding depth-first search pattern
+# Why DFS Is More Than Traversal
 
-The depth-first search algorithm starts from a node and explores all the nodes in a branch before backtracking and choosing other paths. It makes arbitrary choices of nodes at each depth until it can no longer make a choice and backtracks to update previous choices. It is a recursive algorithm that keeps track of all nodes in the path using a stack, enabling backtracking. The recursive implementation of the algorithm uses the function call stack to store nodes and any additional context at each step. Many graph problems can be efficiently solved using depth-first search.
+In lesson 4 you used DFS as a *traversal* — a way to visit every node exactly once. That's its simplest use. But DFS has a second, much more powerful use: **enumerating paths**.
 
-The depth-first search pattern is a classification of problems that can be solved using the depth-first search algorithm.
+Every recursive call walks deeper into one specific path. Every `return` after the recursive call backtracks one step and tries an alternative. With a small twist on the basic traversal — **track which nodes are *currently on the path* (not which have *ever* been visited)** — DFS becomes a tool for exploring every possible route from source to destination.
 
-// Diagram: The depth-first search algorithm explores one complete branch at a time.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A((0)) --> B((1))
+    A --> C((2))
+    B --> D((4))
+    C --> E((3))
+    C --> D
+    E --> D
+    D --> A
+```
 
-## The depth-first search algorithm
+<p align="center"><strong>How many paths exist from 0 to 4? Try to count by hand. The answer is 3 — and DFS systematically enumerates them.</strong></p>
 
-Let's examine the generic problem that can only be solved efficiently using depth-first search to better understand the pattern. Consider have a graph, a source and destination node, a function `f` and a function `g`. We need to find the aggregated value of the function `f` over nodes in **all** the simple paths from the source node to the destination node. We need to further aggregate those aggregated values into a single value using the function `g`.
+The "currently on path" set replaces the "visited" set. Without this swap, a node could only be visited once across the whole algorithm — and we'd miss paths that legitimately revisit nodes via a different route. The set behaves like a **stack** that mirrors the recursion: push on entry, pop on exit. When the node leaves the stack, it's available for use in *other* paths through it.
 
-// Diagram: Aggregate all paths from source to destination using the functions f and g.
+> *Before reading on — for the graph above, list all 3 paths from node 0 to node 4. Try to do it without code. Why did you have to "back up" each time?*
 
-We can use depth-first search to solve the problem by exploring one path at a time, until either reaches a dead end or the destination node. The recursive nature of the algorithm allows us to build a path on the fly and backtrack when necessary.
+The paths: `0 → 1 → 4`, `0 → 2 → 4`, `0 → 2 → 3 → 4`. After exploring the second one, you "backed up" to node 2 to try its other neighbour (3). After the third, you backed up to 0 to try… nothing more, you've exhausted the options. That backtrack-as-you-go process is *exactly* what DFS does, and the path stack is what tracks where you are.
 
-However, unlike depth-first traversal, which also uses depth-first search, we don't need a `visited` set to keep track of **all** previously visited nodes. We only need to keep track of nodes in the currently explored path, because if we ever reach a previously visited node not in the current path, the resulting path must still be explored, as it will be counted as a unique path to the destination node.
+***
 
-// Diagram: We revisit the same node from different paths, which must be counted as unique.
+# The DFS Pattern Template
 
-We initialize two variables `pathAggregate` and `aggregate` to hold aggregated value of nodes in path over function `f` and the final aggregated values of all paths over the function `g` respectively with default values. We also initialise a set `nodesInPath` to hold all nodes in the currently explored path. As we will see later, it will be used to efficiently look up if a node exists in the current path.
+The general DFS-pattern problem looks like this:
 
-// Diagram: Initialize aggregate variables and a set to track the nodes in the current depth-first search path.
+> Given a graph, a source `s`, and a destination `t`, **aggregate** some function `f` over the nodes (or edges) of every valid `s → t` path, then **aggregate** those per-path values using a function `g`.
 
-We then start the depth-first search from the source node, and since all nodes need to share the same copy of `pathAggregate`, `aggregate`, and `nodesInPath`, we pass them by reference. For languages that do not support passing data by reference, these can also be created in the enclosing scope to make the same copy available across the recursive calls.
+Different choices of `f` and `g` give different problems:
 
-As we enter a node, we add it to `nodesInPath` and add its contribution to `pathAggregate` using the function `f`.
+| Problem | `f` (per node) | `g` (across paths) |
+|---|---|---|
+| List all paths | Append node to current path | Add path to result list |
+| Count paths | +1 | Sum |
+| Sum of all path weights | Add edge weight | Sum |
+| Max-weight path | Add edge weight | Max |
+| Number of paths matching a constraint | Check & set flag | Count flagged |
+| All Hamiltonian paths | Like "all paths" + length check | Filter by length == N |
 
-// Diagram: Add the node to nodesInPath set and its contribution to pathAggregate on entering the node.
+The structure of the algorithm is **identical** across all of them. Only the per-node and per-path operations change.
 
-We then check if the current node is the destination node. If it is, we add the contribution of `pathAggregate` to `aggregate` using the function `g`.
+---
 
-// Diagram: Add the contribution of pathAggregate to aggregate using the function g if the current node is the destination node.
+## The Generic Algorithm
 
-On the other hand, if the current node is not the destination node, we iterate over all its neighbours, and for each neighbour not already in `nodesInPath`, recursively call depth-first search on it.
+```
+dfs(node, graph, in_path, path_aggregate, total_aggregate):
+    in_path.add(node)
+    path_aggregate <- f(path_aggregate, node)        # apply f
+    
+    if node == destination:
+        total_aggregate <- g(total_aggregate, path_aggregate)   # apply g
+    else:
+        for neighbour in graph[node]:
+            if neighbour not in in_path:
+                dfs(neighbour, ...)
+    
+    in_path.remove(node)
+    path_aggregate <- f⁻¹(path_aggregate, node)      # UNDO f on backtrack
+```
 
-In any case, finally, we remove the contribution of the current node from `pathAggregate` using the inverse of the function `f` and remove it from `nodesInPath` before exiting the node and backtracking to the parent node. This way `pathAggregate` always has the aggregated value of the function `f` over all nodes in the path from the source node to the current node.
+The four key steps that distinguish this from a plain traversal:
 
-// Diagram: Remove the node from nodesInPath set and its contribution from pathAggregate on exit from the node.
+1. **`in_path` is the current-path stack**, not a global visited set.
+2. **`f` is applied on entry** to update the running per-path aggregate.
+3. **`g` is applied at the destination** to absorb a complete path's contribution.
+4. **`f⁻¹` is applied on exit** to undo the entry's update before backtracking — keeping `path_aggregate` correct for the parent's other branches.
 
-At the end of the depth-first search from the source node, `pathAggregate` will have the default value and `aggregate` will have the aggregated value of the function `f` over all paths from source to destination, aggregated over the function `g`. Let's look at the example given below to understand the algorithm better.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    Enter["enter node:<br/>in_path.add(node)<br/>path_aggregate += f(node)"] --> Check{"node == dest?"}
+    Check -->|"yes"| Record["total += g(path_aggregate)"]
+    Check -->|"no"| Loop["for each neighbour<br/>not in in_path:<br/>recurse"]
+    Record --> Exit
+    Loop --> Exit["leave node:<br/>in_path.remove(node)<br/>path_aggregate -= f(node)"]
+```
 
-Aggregate all paths from node(0) to node(2) using the functions f and g.
+<p align="center"><strong>The DFS-pattern recipe. The "leave node" step is what makes the algorithm correct — without undoing on the way out, sibling branches inherit a polluted aggregate.</strong></p>
 
-## Algorithm
+The "undo on exit" step is the most-forgotten line in DFS-pattern code. Plant a sticky note: **whatever you change on entry, undo on exit.**
 
-The generic algorithm given below finds the aggregated value of a function`f`over all paths from the source node to the destination node. It further aggregates those values into a single value using the function `g`. 
+***
 
-> **Algorithm**
->
-> **dfs(\[ref\] graph, node, destination, \[ref\] nodesInPath, \[ref\] pathAggregate, \[ref\] aggregate)**
->
-> -   **Step 1:** Add node to `nodesInPath`
-> -   **Step 2:** Add contribution of `node` to `pathAggregate` using the function `f`
-> -   **Step 3:** if `node` is the `destination` node do the following:
->     -   **Step 3.1:** Add contribution of `pathAggregate` to `aggregate` using the function `g`
-> -   **Step 4:** if `node` is not the `destination` node do the following:
->     -   **Step 4.1:** Iterate over all the neighbours of `node` in a variable `neighbour` and do the following
->         -   **Step 4.1.1:** If `neighbour` not in `nodesInPath` call `dfs(graph, neighbour, destination, nodesInPath, pathAggregate, aggregate)`
-> -   **Step 5:** Remove `node` from `nodesInPath`
-> -   **Step 6:** Remove the contribution of `node` from `pathAggregate` using the inverse of function `f`
->
-> **callingFunction(\[ref\] graph, source, destination)**
->
-> -   **Step 1:** Create a variable `aggregate` and initialize it with a default value
-> -   **Step 2:** Create a variable `pathAggregate` and initialize it with a default value
-> -   **Step 3:** Create a set `nodesInPath`
-> -   **Step 4:** Call `dfs(graph, source, destination, nodesInPath, pathAggregate, aggregate)`
-> -   **Step 5:** Return `aggregate`
+# Identifying the Pattern
 
-## Implementation
+You can recognise a DFS-pattern problem by these signals:
 
-Consider that we have a graph of size **N**, where the nodes are enumerated from **0** to **N-1**, and we are given the adjacency list of the graph as a two-dimensional list of integers `graph`, where the value is the enumeration of the neighbour node.
+- The problem mentions **paths** between two specific nodes.
+- It asks for *all*, *count*, *sum*, *max*, *min*, or *exists* over those paths.
+- The same node may appear in different paths (so a per-traversal "visited" set won't do — we need the per-path "in_path" set instead).
+- The graph is **small enough** that exponential enumeration is acceptable. (Path counts can be exponential in N — DFS is for problems where N ≤ ~20 or the graph is sparse.)
 
-We implement a recursive function `dfs` and use a set `nodesInPath` to process all nodes in all paths from the source node to the destination node.
+A non-exhaustive list of problems that fit:
 
-C++
+- All paths from source to destination
+- Paths with sum equal to a target value
+- Hamiltonian paths (a path visiting every node exactly once)
+- Cycles passing through specific nodes
+- Maze "all routes" from entrance to exit
+- Combination/permutation generation (these *are* DFS on an implicit graph)
 
-```cpp
+If your problem has any of these flavours, you reach for DFS — and you write the same skeleton every time, just with different `f` / `g` operations.
+
+We'll now apply the template to four classic problems, each with a different choice of `f` and `g`.
+
+***
+
+# Problem: Source to Target Paths
+
+## The Problem
+
+Given a directed graph as adjacency list, return *all* paths from node `0` to node `N-1`.
+
+```
+Input:  graph = [[1, 2], [4], [3, 4], [4], []]
+Output: [[0, 1, 4], [0, 2, 3, 4], [0, 2, 4]]
+
+Input:  graph = [[4], [0, 3], [0, 4], [2, 4], []]
+Output: [[0, 4]]
+```
+
+## Pattern Mapping
+
+- `f`: append node to current path list.
+- `g`: append a copy of the current path to `paths` when destination reached.
+- `f⁻¹`: pop last element from current path list on exit.
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+from typing import List, Set
+
+class Solution:
+    def dfs(self,
+            graph: List[List[int]],
+            node: int,
+            path: List[int],
+            paths: List[List[int]],
+            in_path: Set[int]) -> None:
+        in_path.add(node)
+        path.append(node)                      # f: enter
+
+        if node == len(graph) - 1:
+            paths.append(path.copy())          # g: record a snapshot of the path
+        else:
+            for neighbour in graph[node]:
+                if neighbour not in in_path:
+                    self.dfs(graph, neighbour, path, paths, in_path)
+
+        path.pop()                             # f⁻¹: leave
+        in_path.discard(node)
+
+    def source_to_target_paths(self, graph: List[List[int]]) -> List[List[int]]:
+        paths: List[List[int]] = []
+        path: List[int] = []
+        in_path: Set[int] = set()
+        self.dfs(graph, 0, path, paths, in_path)
+        return paths
+
+
+print(Solution().source_to_target_paths([[1, 2], [4], [3, 4], [4], []]))
+```
+
+```java,editable
+import java.util.*;
+
+public class Main {
+    static class Solution {
+        public void dfs(List<List<Integer>> graph, int node, List<Integer> path,
+                        List<List<Integer>> paths, Set<Integer> inPath) {
+            inPath.add(node);
+            path.add(node);
+            if (node == graph.size() - 1) paths.add(new ArrayList<>(path));
+            else for (int n : graph.get(node))
+                if (!inPath.contains(n)) dfs(graph, n, path, paths, inPath);
+            path.remove(path.size() - 1);
+            inPath.remove(node);
+        }
+
+        public List<List<Integer>> sourceToTargetPaths(List<List<Integer>> graph) {
+            List<List<Integer>> paths = new ArrayList<>();
+            dfs(graph, 0, new ArrayList<>(), paths, new HashSet<>());
+            return paths;
+        }
+    }
+
+    public static void main(String[] args) {
+        var g = List.of(List.of(1, 2), List.of(4), List.of(3, 4), List.of(4), List.<Integer>of());
+        System.out.println(new Solution().sourceToTargetPaths(g));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
+typedef struct { int* data; int size; } AdjList;
+
+static int** all_paths;
+static int* all_path_lengths;
+static int total_paths;
+
+static void dfs(AdjList* graph, int n, int node, int* path, int path_size, bool* in_path) {
+    in_path[node] = true;
+    path[path_size++] = node;
+    if (node == n - 1) {
+        all_paths = realloc(all_paths, (total_paths + 1) * sizeof(int*));
+        all_path_lengths = realloc(all_path_lengths, (total_paths + 1) * sizeof(int));
+        all_paths[total_paths] = malloc(path_size * sizeof(int));
+        for (int i = 0; i < path_size; i++) all_paths[total_paths][i] = path[i];
+        all_path_lengths[total_paths] = path_size;
+        total_paths++;
+    } else {
+        for (int i = 0; i < graph[node].size; i++) {
+            int neighbour = graph[node].data[i];
+            if (!in_path[neighbour]) dfs(graph, n, neighbour, path, path_size, in_path);
+        }
+    }
+    in_path[node] = false;
+}
+
+int main() {
+    int g0[]={1,2}, g1[]={4}, g2[]={3,4}, g3[]={4};
+    AdjList g[]={{g0,2},{g1,1},{g2,2},{g3,1},{NULL,0}};
+    int path[10];
+    bool in_path[5] = {false};
+    all_paths = NULL; all_path_lengths = NULL; total_paths = 0;
+    dfs(g, 5, 0, path, 0, in_path);
+    for (int i = 0; i < total_paths; i++) {
+        printf("[");
+        for (int j = 0; j < all_path_lengths[i]; j++) printf("%d ", all_paths[i][j]);
+        printf("]\n");
+        free(all_paths[i]);
+    }
+    free(all_paths); free(all_path_lengths);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
 #include <vector>
 #include <unordered_set>
 
-// Diagram: using namespace std;
-
-class Solution
-{
+class Solution {
 public:
-  void dfs(
-      vector<vector<int>> &graph,
-      int node,
-      int destination,
-      unordered_set<int> &nodesInPath,
-      int &pathAggregate,
-      int &aggregate)
-  {
-
-    // Add the current node to nodesInPath
-    nodesInPath.insert(node);
-
-    // Add the contibution of the current node node pathAggregate
-    // using the function f
-    pathAggregate = f(node, pathAggregate);
-
-    // If the current node is the destination node, add the contribution
-    // of this path to aggregate
-    if (node == destination)
-    {
-      // Add the contibution of pathAggregate to aggregate
-      // using the function g
-      aggregate = g(pathAggregate, aggregate);
+    void dfs(std::vector<std::vector<int>>& graph, int node,
+             std::vector<int>& path, std::vector<std::vector<int>>& paths,
+             std::unordered_set<int>& inPath) {
+        inPath.insert(node);
+        path.push_back(node);
+        if (node == (int)graph.size() - 1) paths.push_back(path);
+        else for (int n : graph[node])
+            if (inPath.find(n) == inPath.end()) dfs(graph, n, path, paths, inPath);
+        path.pop_back();
+        inPath.erase(node);
     }
-    else
-    {
-      for (int neighbour : graph[node])
-      {
-        if (nodesInPath.find(neighbour) == nodesInPath.end())
-        {
-          // If the neighbour is not in the current path, recursively
-          // explore it
-          dfs(graph, neighbour, destination, nodesInPath, pathAggregate, aggregate);
-        }
 
-    // Remove the current node from nodesInPath before exit
-    nodesInPath.erase(node);
-
-    // Remove the contibution of the node to pathAggregate
-    // using the inverse of function f before exit
-    pathAggregate = fInverse(node, pathAggregate);
-  }
-
-  int callingFunction(vector<vector<int>> &graph, int source, int destination)
-  {
-    // Initilize aggregate to a default value
-    int aggregate = 0;
-
-    // Initilize the pathAggregate to a default value
-    int pathAggregate = 0;
-
-    // Set to store nodes in the current path
-    unordered_set<int> nodesInPath;
-
-    // Perform dfs starting from the source node
-    dfs(graph, source, destination, nodesInPath, pathAggregate, aggregate);
-
-    // Return the aggregated value
-    return aggregate;
-  }
+    std::vector<std::vector<int>> sourceToTargetPaths(std::vector<std::vector<int>>& graph) {
+        std::vector<std::vector<int>> paths;
+        std::vector<int> path;
+        std::unordered_set<int> inPath;
+        dfs(graph, 0, path, paths, inPath);
+        return paths;
+    }
 };
+
+int main() {
+    std::vector<std::vector<int>> g = {{1, 2}, {4}, {3, 4}, {4}, {}};
+    for (auto& p : Solution().sourceToTargetPaths(g)) {
+        for (int v : p) std::cout << v << " ";
+        std::cout << "\n";
+    }
+}
 ```
 
-Java
+```scala,editable
+import scala.collection.mutable
 
-```java
+object Main extends App {
+  class Solution {
+    def dfs(graph: Array[Array[Int]], node: Int,
+            path: mutable.ArrayBuffer[Int],
+            paths: mutable.ArrayBuffer[Seq[Int]],
+            inPath: mutable.Set[Int]): Unit = {
+      inPath.add(node); path.append(node)
+      if (node == graph.length - 1) paths.append(path.toSeq)
+      else for (n <- graph(node) if !inPath.contains(n)) dfs(graph, n, path, paths, inPath)
+      path.remove(path.length - 1)
+      inPath.remove(node)
+    }
+
+    def sourceToTargetPaths(graph: Array[Array[Int]]): Seq[Seq[Int]] = {
+      val paths = mutable.ArrayBuffer.empty[Seq[Int]]
+      dfs(graph, 0, mutable.ArrayBuffer.empty, paths, mutable.Set.empty)
+      paths.toSeq
+    }
+  }
+
+  val g = Array(Array(1, 2), Array(4), Array(3, 4), Array(4), Array.empty[Int])
+  println(new Solution().sourceToTargetPaths(g))
+}
+```
+
+```javascript,editable
+class Solution {
+    dfs(graph, node, path, paths, inPath) {
+        inPath.add(node); path.push(node);
+        if (node === graph.length - 1) paths.push([...path]);
+        else for (const n of graph[node])
+            if (!inPath.has(n)) this.dfs(graph, n, path, paths, inPath);
+        path.pop();
+        inPath.delete(node);
+    }
+
+    sourceToTargetPaths(graph) {
+        const paths = [];
+        this.dfs(graph, 0, [], paths, new Set());
+        return paths;
+    }
+}
+
+console.log(new Solution().sourceToTargetPaths([[1, 2], [4], [3, 4], [4], []]));
+```
+
+```typescript,editable
+class Solution {
+    dfs(graph: number[][], node: number, path: number[],
+        paths: number[][], inPath: Set<number>): void {
+        inPath.add(node); path.push(node);
+        if (node === graph.length - 1) paths.push([...path]);
+        else for (const n of graph[node])
+            if (!inPath.has(n)) this.dfs(graph, n, path, paths, inPath);
+        path.pop();
+        inPath.delete(node);
+    }
+
+    sourceToTargetPaths(graph: number[][]): number[][] {
+        const paths: number[][] = [];
+        this.dfs(graph, 0, [], paths, new Set<number>());
+        return paths;
+    }
+}
+
+console.log(new Solution().sourceToTargetPaths([[1, 2], [4], [3, 4], [4], []]));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func dfsST(graph [][]int, node int, path []int, paths *[][]int, inPath []bool) {
+    inPath[node] = true
+    path = append(path, node)
+    if node == len(graph)-1 {
+        cp := make([]int, len(path)); copy(cp, path)
+        *paths = append(*paths, cp)
+    } else {
+        for _, n := range graph[node] {
+            if !inPath[n] {
+                dfsST(graph, n, path, paths, inPath)
+            }
+        }
+    }
+    inPath[node] = false
+}
+
+func sourceToTargetPaths(graph [][]int) [][]int {
+    paths := [][]int{}
+    inPath := make([]bool, len(graph))
+    dfsST(graph, 0, []int{}, &paths, inPath)
+    return paths
+}
+
+func main() {
+    fmt.Println(sourceToTargetPaths([][]int{{1, 2}, {4}, {3, 4}, {4}, {}}))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun dfs(graph: List<List<Int>>, node: Int,
+            path: MutableList<Int>, paths: MutableList<List<Int>>,
+            inPath: MutableSet<Int>) {
+        inPath.add(node); path.add(node)
+        if (node == graph.size - 1) paths.add(path.toList())
+        else for (n in graph[node]) if (n !in inPath) dfs(graph, n, path, paths, inPath)
+        path.removeAt(path.size - 1)
+        inPath.remove(node)
+    }
+
+    fun sourceToTargetPaths(graph: List<List<Int>>): List<List<Int>> {
+        val paths = mutableListOf<List<Int>>()
+        dfs(graph, 0, mutableListOf(), paths, mutableSetOf())
+        return paths
+    }
+}
+
+fun main() {
+    println(Solution().sourceToTargetPaths(listOf(listOf(1, 2), listOf(4), listOf(3, 4), listOf(4), listOf())))
+}
+```
+
+```rust,editable
+fn dfs(graph: &[Vec<usize>], node: usize, path: &mut Vec<usize>,
+       paths: &mut Vec<Vec<usize>>, in_path: &mut Vec<bool>) {
+    in_path[node] = true;
+    path.push(node);
+    if node == graph.len() - 1 {
+        paths.push(path.clone());
+    } else {
+        for &n in &graph[node] {
+            if !in_path[n] { dfs(graph, n, path, paths, in_path); }
+        }
+    }
+    path.pop();
+    in_path[node] = false;
+}
+
+fn source_to_target_paths(graph: &[Vec<usize>]) -> Vec<Vec<usize>> {
+    let mut paths: Vec<Vec<usize>> = Vec::new();
+    let mut in_path = vec![false; graph.len()];
+    dfs(graph, 0, &mut Vec::new(), &mut paths, &mut in_path);
+    paths
+}
+
+fn main() {
+    let g: Vec<Vec<usize>> = vec![vec![1, 2], vec![4], vec![3, 4], vec![4], vec![]];
+    println!("{:?}", source_to_target_paths(&g));
+}
+```
+
+</div>
+
+***
+
+# Problem: Target Paths With Given Weight
+
+## The Problem
+
+Given a **weighted** directed graph, source, destination, and target weight, return all paths from source to destination whose **edge weights sum to exactly the target**.
+
+```
+Input:  graph = [[(1,2),(3,5)], [(4,2)], [(4,1)], [(2,2)], [(3,1)]],
+        source = 0, destination = 3, target = 5
+Output: [[0,1,4,3], [0,3]]
+```
+
+## Pattern Mapping
+
+- `f`: append node to path list AND add edge weight to running sum.
+- `g`: append the path *only if* the running sum equals target.
+- `f⁻¹`: pop node AND subtract the edge weight on exit.
+
+The only twist from the previous problem is the running edge-weight sum carried alongside the path.
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+from typing import List, Tuple, Set
+
+class Solution:
+    def dfs(self,
+            graph: List[List[Tuple[int, int]]],
+            node: int,
+            destination: int,
+            current_sum: int,
+            target: int,
+            path: List[int],
+            paths: List[List[int]],
+            in_path: Set[int]) -> None:
+        in_path.add(node)
+        path.append(node)
+
+        # Check at the destination — only the sum-equals-target paths qualify.
+        if node == destination and current_sum == target:
+            paths.append(path.copy())
+        else:
+            for neighbour, weight in graph[node]:
+                if neighbour not in in_path:
+                    self.dfs(graph, neighbour, destination, current_sum + weight,
+                             target, path, paths, in_path)
+
+        path.pop()
+        in_path.discard(node)
+
+    def target_paths(self,
+                     graph: List[List[Tuple[int, int]]],
+                     source: int, destination: int, target: int) -> List[List[int]]:
+        paths: List[List[int]] = []
+        self.dfs(graph, source, destination, 0, target, [], paths, set())
+        return paths
+
+
+graph = [[(1, 2), (3, 5)], [(4, 2)], [(4, 1)], [(2, 2)], [(3, 1)]]
+print(Solution().target_paths(graph, 0, 3, 5))   # [[0,1,4,3], [0,3]]
+```
+
+```java,editable
 import java.util.*;
 
-// Diagram: class Solution {
-
-    // Graph must be stored as an instance variable since it's used across methods
-    private List<List<Integer>> graph;
-
-    // These are promoted to class-level since Java passes primitives by value
-    private int aggregate = 0;
-    private int pathAggregate = 0;
-
-    // Perform DFS to explore all paths
-    public void dfs(
-        int node,
-        int destination,
-        Set<Integer> nodesInPath
-    ) {
-
-        // Add the current node to nodesInPath
-        nodesInPath.add(node);
-
-        // Add the contribution of the current node to pathAggregate using function f
-        pathAggregate = f(node, pathAggregate);
-
-        // If the current node is the destination node, add the contribution of this path
-        if (node == destination) {
-            // Add the contribution of pathAggregate to aggregate using function g
-            aggregate = g(pathAggregate, aggregate);
-        } else {
-            for (int neighbour : graph.get(node)) {
-                if (!nodesInPath.contains(neighbour)) {
-                    // If the neighbour is not in the current path, recursively explore it
-                    dfs(neighbour, destination, nodesInPath);
-                }
-
-        // Remove the current node from nodesInPath before exit (backtrack)
-        nodesInPath.remove(node);
-
-        // Remove the contribution of the node from pathAggregate using inverse of function f
-        pathAggregate = fInverse(node, pathAggregate);
-    }
-
-    public int callingFunction(List<List<Integer>> graph, int source, int destination) {
-        // Set the graph
-        this.graph = graph;
-
-        // Initialize aggregate and pathAggregate to default values
-        this.aggregate = 0;
-        this.pathAggregate = 0;
-
-        // Set to store nodes in the current path
-        Set<Integer> nodesInPath = new HashSet<>();
-
-        // Perform DFS starting from the source node
-        dfs(source, destination, nodesInPath);
-
-        // Return the aggregated value
-        return aggregate;
-    }
-
-```
-
-Typescript
-
-```typescript
-class Solution {
-  // Used to simulate pass-by-reference
-  private pathAggregate: number = 0;
-  private aggregate: number = 0;
-
-  // Recursive function to explore all paths from node to destination
-  dfs(
-    graph: number[][],
-    node: number,
-    destination: number,
-    nodesInPath: Set<number>
-  ): void {
-    // Add the current node to nodesInPath
-    nodesInPath.add(node);
-
-    // Add the contribution of the current node to pathAggregate using the function f
-    this.pathAggregate = f(node, this.pathAggregate);
-
-    // If the current node is the destination node, add the contribution of this path to aggregate
-    if (node === destination) {
-      // Add the contribution of pathAggregate to aggregate using the function g
-      this.aggregate = g(this.pathAggregate, this.aggregate);
-    } else {
-      for (const neighbour of graph[node]) {
-        if (!nodesInPath.has(neighbour)) {
-          // If the neighbour is not in the current path, recursively explore it
-          this.dfs(graph, neighbour, destination, nodesInPath);
+public class Main {
+    static class Solution {
+        public void dfs(List<List<int[]>> graph, int node, int dest, int curSum, int target,
+                        List<Integer> path, List<List<Integer>> paths, Set<Integer> inPath) {
+            inPath.add(node);
+            path.add(node);
+            if (node == dest && curSum == target) paths.add(new ArrayList<>(path));
+            else {
+                for (int[] e : graph.get(node))
+                    if (!inPath.contains(e[0]))
+                        dfs(graph, e[0], dest, curSum + e[1], target, path, paths, inPath);
+            }
+            path.remove(path.size() - 1);
+            inPath.remove(node);
         }
 
-    // Remove the current node from nodesInPath before exit
-    nodesInPath.delete(node);
+        public List<List<Integer>> targetPaths(List<List<int[]>> graph, int source, int dest, int target) {
+            List<List<Integer>> paths = new ArrayList<>();
+            dfs(graph, source, dest, 0, target, new ArrayList<>(), paths, new HashSet<>());
+            return paths;
+        }
+    }
 
-    // Remove the contribution of the node to pathAggregate using the inverse of function f
-    this.pathAggregate = fInverse(node, this.pathAggregate);
-  }
-
-  // Entry point
-  callingFunction(graph: number[][], source: number, destination: number): number {
-    // Initialize aggregate to a default value
-    this.aggregate = 0;
-
-    // Initialize pathAggregate to a default value
-    this.pathAggregate = 0;
-
-    // Set to store nodes in the current path
-    const nodesInPath: Set<number> = new Set();
-
-    // Perform DFS starting from the source node
-    this.dfs(graph, source, destination, nodesInPath);
-
-    // Return the aggregated value
-    return this.aggregate;
-  }
+    public static void main(String[] args) {
+        var g = List.of(
+            List.of(new int[]{1, 2}, new int[]{3, 5}),
+            List.of(new int[]{4, 2}),
+            List.of(new int[]{4, 1}),
+            List.of(new int[]{2, 2}),
+            List.of(new int[]{3, 1}));
+        System.out.println(new Solution().targetPaths(g, 0, 3, 5));
+    }
+}
 ```
 
-Javascript
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
-```javascript
-class Solution {
-  // Used to simulate pass-by-reference
-  pathAggregate = 0;
-  aggregate = 0;
+typedef struct { int to, w; } Edge;
+typedef struct { Edge* data; int size; } AdjList;
 
-  // Recursive function to explore all paths from node to destination
-  dfs(
-    graph,
-    node,
-    destination,
-    nodesInPath
-  ) {
-    // Add the current node to nodesInPath
-    nodesInPath.add(node);
+static int** result; static int* result_lens; static int result_n;
 
-    // Add the contribution of the current node to pathAggregate using the function f
-    this.pathAggregate = f(node, this.pathAggregate);
-
-    // If the current node is the destination node, add the contribution of this path to aggregate
-    if (node === destination) {
-      // Add the contribution of pathAggregate to aggregate using the function g
-      this.aggregate = g(this.pathAggregate, this.aggregate);
+static void dfs(AdjList* g, int node, int dest, int sum, int target,
+                int* path, int len, bool* in_path) {
+    in_path[node] = true;
+    path[len++] = node;
+    if (node == dest && sum == target) {
+        result = realloc(result, (result_n + 1) * sizeof(int*));
+        result_lens = realloc(result_lens, (result_n + 1) * sizeof(int));
+        result[result_n] = malloc(len * sizeof(int));
+        for (int i = 0; i < len; i++) result[result_n][i] = path[i];
+        result_lens[result_n++] = len;
     } else {
-      for (const neighbour of graph[node]) {
-        if (!nodesInPath.has(neighbour)) {
-          // If the neighbour is not in the current path, recursively explore it
-          this.dfs(graph, neighbour, destination, nodesInPath);
+        for (int i = 0; i < g[node].size; i++) {
+            Edge e = g[node].data[i];
+            if (!in_path[e.to]) dfs(g, e.to, dest, sum + e.w, target, path, len, in_path);
+        }
+    }
+    in_path[node] = false;
+}
+
+int main() {
+    Edge e0[]={{1,2},{3,5}}, e1[]={{4,2}}, e2[]={{4,1}}, e3[]={{2,2}}, e4[]={{3,1}};
+    AdjList g[]={{e0,2},{e1,1},{e2,1},{e3,1},{e4,1}};
+    int path[10]; bool ip[5]={false};
+    result=NULL; result_lens=NULL; result_n=0;
+    dfs(g, 0, 3, 0, 5, path, 0, ip);
+    for (int i = 0; i < result_n; i++) {
+        for (int j = 0; j < result_lens[i]; j++) printf("%d ", result[i][j]);
+        printf("\n"); free(result[i]);
+    }
+    free(result); free(result_lens);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <unordered_set>
+
+class Solution {
+public:
+    void dfs(std::vector<std::vector<std::pair<int, int>>>& graph, int node, int dest,
+             int curSum, int target, std::vector<int>& path,
+             std::vector<std::vector<int>>& paths, std::unordered_set<int>& inPath) {
+        inPath.insert(node);
+        path.push_back(node);
+        if (node == dest && curSum == target) paths.push_back(path);
+        else {
+            for (auto& [n, w] : graph[node])
+                if (inPath.find(n) == inPath.end())
+                    dfs(graph, n, dest, curSum + w, target, path, paths, inPath);
+        }
+        path.pop_back();
+        inPath.erase(node);
+    }
+
+    std::vector<std::vector<int>> targetPaths(std::vector<std::vector<std::pair<int, int>>>& graph,
+                                              int source, int dest, int target) {
+        std::vector<std::vector<int>> paths;
+        std::vector<int> path;
+        std::unordered_set<int> inPath;
+        dfs(graph, source, dest, 0, target, path, paths, inPath);
+        return paths;
+    }
+};
+
+int main() {
+    std::vector<std::vector<std::pair<int, int>>> g = {
+        {{1, 2}, {3, 5}}, {{4, 2}}, {{4, 1}}, {{2, 2}}, {{3, 1}}};
+    for (auto& p : Solution().targetPaths(g, 0, 3, 5)) {
+        for (int v : p) std::cout << v << " ";
+        std::cout << "\n";
+    }
+}
+```
+
+```scala,editable
+import scala.collection.mutable
+
+object Main extends App {
+  class Solution {
+    def dfs(graph: Array[Array[(Int, Int)]], node: Int, dest: Int, curSum: Int, target: Int,
+            path: mutable.ArrayBuffer[Int], paths: mutable.ArrayBuffer[Seq[Int]],
+            inPath: mutable.Set[Int]): Unit = {
+      inPath.add(node); path.append(node)
+      if (node == dest && curSum == target) paths.append(path.toSeq)
+      else for ((n, w) <- graph(node) if !inPath.contains(n))
+        dfs(graph, n, dest, curSum + w, target, path, paths, inPath)
+      path.remove(path.length - 1)
+      inPath.remove(node)
+    }
+
+    def targetPaths(graph: Array[Array[(Int, Int)]], source: Int, dest: Int, target: Int): Seq[Seq[Int]] = {
+      val paths = mutable.ArrayBuffer.empty[Seq[Int]]
+      dfs(graph, source, dest, 0, target, mutable.ArrayBuffer.empty, paths, mutable.Set.empty)
+      paths.toSeq
+    }
+  }
+
+  val g = Array(
+    Array((1, 2), (3, 5)), Array((4, 2)), Array((4, 1)), Array((2, 2)), Array((3, 1)))
+  println(new Solution().targetPaths(g, 0, 3, 5))
+}
+```
+
+```javascript,editable
+class Solution {
+    dfs(graph, node, dest, curSum, target, path, paths, inPath) {
+        inPath.add(node); path.push(node);
+        if (node === dest && curSum === target) paths.push([...path]);
+        else for (const [n, w] of graph[node])
+            if (!inPath.has(n)) this.dfs(graph, n, dest, curSum + w, target, path, paths, inPath);
+        path.pop();
+        inPath.delete(node);
+    }
+
+    targetPaths(graph, source, dest, target) {
+        const paths = [];
+        this.dfs(graph, source, dest, 0, target, [], paths, new Set());
+        return paths;
+    }
+}
+
+const g = [[[1,2],[3,5]], [[4,2]], [[4,1]], [[2,2]], [[3,1]]];
+console.log(new Solution().targetPaths(g, 0, 3, 5));
+```
+
+```typescript,editable
+class Solution {
+    dfs(graph: [number, number][][], node: number, dest: number, curSum: number, target: number,
+        path: number[], paths: number[][], inPath: Set<number>): void {
+        inPath.add(node); path.push(node);
+        if (node === dest && curSum === target) paths.push([...path]);
+        else for (const [n, w] of graph[node])
+            if (!inPath.has(n)) this.dfs(graph, n, dest, curSum + w, target, path, paths, inPath);
+        path.pop();
+        inPath.delete(node);
+    }
+
+    targetPaths(graph: [number, number][][], source: number, dest: number, target: number): number[][] {
+        const paths: number[][] = [];
+        this.dfs(graph, source, dest, 0, target, [], paths, new Set<number>());
+        return paths;
+    }
+}
+
+const g: [number, number][][] = [[[1,2],[3,5]], [[4,2]], [[4,1]], [[2,2]], [[3,1]]];
+console.log(new Solution().targetPaths(g, 0, 3, 5));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func dfsTP(graph [][][2]int, node, dest, curSum, target int, path []int,
+           paths *[][]int, inPath []bool) {
+    inPath[node] = true
+    path = append(path, node)
+    if node == dest && curSum == target {
+        cp := make([]int, len(path)); copy(cp, path)
+        *paths = append(*paths, cp)
+    } else {
+        for _, e := range graph[node] {
+            if !inPath[e[0]] {
+                dfsTP(graph, e[0], dest, curSum+e[1], target, path, paths, inPath)
+            }
+        }
+    }
+    inPath[node] = false
+}
+
+func targetPaths(graph [][][2]int, source, dest, target int) [][]int {
+    paths := [][]int{}
+    inPath := make([]bool, len(graph))
+    dfsTP(graph, source, dest, 0, target, []int{}, &paths, inPath)
+    return paths
+}
+
+func main() {
+    g := [][][2]int{{{1, 2}, {3, 5}}, {{4, 2}}, {{4, 1}}, {{2, 2}}, {{3, 1}}}
+    fmt.Println(targetPaths(g, 0, 3, 5))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun dfs(graph: List<List<IntArray>>, node: Int, dest: Int, curSum: Int, target: Int,
+            path: MutableList<Int>, paths: MutableList<List<Int>>, inPath: MutableSet<Int>) {
+        inPath.add(node); path.add(node)
+        if (node == dest && curSum == target) paths.add(path.toList())
+        else for (e in graph[node])
+            if (e[0] !in inPath) dfs(graph, e[0], dest, curSum + e[1], target, path, paths, inPath)
+        path.removeAt(path.size - 1)
+        inPath.remove(node)
+    }
+
+    fun targetPaths(graph: List<List<IntArray>>, source: Int, dest: Int, target: Int): List<List<Int>> {
+        val paths = mutableListOf<List<Int>>()
+        dfs(graph, source, dest, 0, target, mutableListOf(), paths, mutableSetOf())
+        return paths
+    }
+}
+
+fun main() {
+    val g = listOf(
+        listOf(intArrayOf(1, 2), intArrayOf(3, 5)),
+        listOf(intArrayOf(4, 2)),
+        listOf(intArrayOf(4, 1)),
+        listOf(intArrayOf(2, 2)),
+        listOf(intArrayOf(3, 1)))
+    println(Solution().targetPaths(g, 0, 3, 5))
+}
+```
+
+```rust,editable
+fn dfs(graph: &[Vec<(usize, i32)>], node: usize, dest: usize, cur: i32, target: i32,
+       path: &mut Vec<usize>, paths: &mut Vec<Vec<usize>>, in_path: &mut Vec<bool>) {
+    in_path[node] = true;
+    path.push(node);
+    if node == dest && cur == target {
+        paths.push(path.clone());
+    } else {
+        for &(n, w) in &graph[node] {
+            if !in_path[n] {
+                dfs(graph, n, dest, cur + w, target, path, paths, in_path);
+            }
+        }
+    }
+    path.pop();
+    in_path[node] = false;
+}
+
+fn target_paths(graph: &[Vec<(usize, i32)>], source: usize, dest: usize, target: i32) -> Vec<Vec<usize>> {
+    let mut paths: Vec<Vec<usize>> = Vec::new();
+    let mut in_path = vec![false; graph.len()];
+    dfs(graph, source, dest, 0, target, &mut Vec::new(), &mut paths, &mut in_path);
+    paths
+}
+
+fn main() {
+    let g: Vec<Vec<(usize, i32)>> = vec![
+        vec![(1, 2), (3, 5)], vec![(4, 2)], vec![(4, 1)], vec![(2, 2)], vec![(3, 1)]];
+    println!("{:?}", target_paths(&g, 0, 3, 5));
+}
+```
+
+</div>
+
+***
+
+# Problem: Hamiltonian Paths
+
+## The Problem
+
+A **Hamiltonian path** visits *every* vertex of the graph exactly once. Given a directed graph, source, and destination, find all Hamiltonian paths from source to destination.
+
+```
+Input:  graph = [[1, 2], [0, 2, 3], [0, 1, 3], [1, 2]], source = 0, destination = 3
+Output: [[0, 1, 2, 3], [0, 2, 1, 3]]
+```
+
+## Pattern Mapping
+
+- `f`: same as before (append to path).
+- `g`: record the path *only if* destination is reached **and** every node has been visited.
+- `f⁻¹`: same as before.
+
+The only twist: the destination check now requires `path.length == N`.
+
+> *Before reading on — Hamiltonian path detection is famously **NP-hard**. Why is it still tractable here? What property of the input keeps the algorithm fast?*
+
+It's tractable because we're enumerating, not deciding existence faster than brute force. DFS with the "in_path" pruning has worst case O(N!) in pathological cases — but for typical small graphs (N ≤ ~20) it's fast enough. The intractability shows up when N gets larger; below that, DFS is the only sane approach.
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+from typing import List, Set
+
+class Solution:
+    def dfs(self,
+            graph: List[List[int]],
+            node: int,
+            destination: int,
+            path: List[int],
+            paths: List[List[int]],
+            in_path: Set[int]) -> None:
+        in_path.add(node)
+        path.append(node)
+        # Hamiltonian = destination reached AND every vertex visited.
+        if node == destination and len(in_path) == len(graph):
+            paths.append(path.copy())
+        else:
+            for neighbour in graph[node]:
+                if neighbour not in in_path:
+                    self.dfs(graph, neighbour, destination, path, paths, in_path)
+        path.pop()
+        in_path.discard(node)
+
+    def hamiltonian_paths(self,
+                          graph: List[List[int]],
+                          source: int, destination: int) -> List[List[int]]:
+        paths: List[List[int]] = []
+        self.dfs(graph, source, destination, [], paths, set())
+        return paths
+
+
+graph = [[1, 2], [0, 2, 3], [0, 1, 3], [1, 2]]
+print(Solution().hamiltonian_paths(graph, 0, 3))
+```
+
+```java,editable
+import java.util.*;
+
+public class Main {
+    static class Solution {
+        public void dfs(List<List<Integer>> graph, int node, int dest,
+                        List<Integer> path, List<List<Integer>> paths, Set<Integer> inPath) {
+            inPath.add(node);
+            path.add(node);
+            if (node == dest && inPath.size() == graph.size()) paths.add(new ArrayList<>(path));
+            else for (int n : graph.get(node))
+                if (!inPath.contains(n)) dfs(graph, n, dest, path, paths, inPath);
+            path.remove(path.size() - 1);
+            inPath.remove(node);
         }
 
-    // Remove the current node from nodesInPath before exit
-    nodesInPath.delete(node);
+        public List<List<Integer>> hamiltonianPaths(List<List<Integer>> graph, int source, int dest) {
+            List<List<Integer>> paths = new ArrayList<>();
+            dfs(graph, source, dest, new ArrayList<>(), paths, new HashSet<>());
+            return paths;
+        }
+    }
 
-    // Remove the contribution of the node to pathAggregate using the inverse of function f
-    this.pathAggregate = fInverse(node, this.pathAggregate);
-  }
-
-  // Entry point
-  callingFunction(graph, source, destination) {
-    // Initialize aggregate to a default value
-    this.aggregate = 0;
-
-    // Initialize pathAggregate to a default value
-    this.pathAggregate = 0;
-
-    // Set to store nodes in the current path
-    const nodesInPath = new Set();
-
-    // Perform DFS starting from the source node
-    this.dfs(graph, source, destination, nodesInPath);
-
-    // Return the aggregated value
-    return this.aggregate;
-  }
+    public static void main(String[] args) {
+        var g = List.of(List.of(1, 2), List.of(0, 2, 3), List.of(0, 1, 3), List.of(1, 2));
+        System.out.println(new Solution().hamiltonianPaths(g, 0, 3));
+    }
+}
 ```
 
-Python
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
-```python
+typedef struct { int* data; int size; } AdjList;
+static int** out; static int* out_lens; static int out_n;
+
+static void dfs(AdjList* g, int n, int node, int dest, int* path, int len,
+                bool* in_path, int visited_count) {
+    in_path[node] = true;
+    path[len++] = node;
+    visited_count++;
+    if (node == dest && visited_count == n) {
+        out = realloc(out, (out_n + 1) * sizeof(int*));
+        out_lens = realloc(out_lens, (out_n + 1) * sizeof(int));
+        out[out_n] = malloc(len * sizeof(int));
+        for (int i = 0; i < len; i++) out[out_n][i] = path[i];
+        out_lens[out_n++] = len;
+    } else {
+        for (int i = 0; i < g[node].size; i++) {
+            int nb = g[node].data[i];
+            if (!in_path[nb]) dfs(g, n, nb, dest, path, len, in_path, visited_count);
+        }
+    }
+    in_path[node] = false;
+}
+
+int main() {
+    int g0[]={1,2}, g1[]={0,2,3}, g2[]={0,1,3}, g3[]={1,2};
+    AdjList g[]={{g0,2},{g1,3},{g2,3},{g3,2}};
+    int path[10]; bool ip[4]={false};
+    out=NULL; out_lens=NULL; out_n=0;
+    dfs(g, 4, 0, 3, path, 0, ip, 0);
+    for (int i = 0; i < out_n; i++) {
+        for (int j = 0; j < out_lens[i]; j++) printf("%d ", out[i][j]);
+        printf("\n"); free(out[i]);
+    }
+    free(out); free(out_lens);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <unordered_set>
+
+class Solution {
+public:
+    void dfs(std::vector<std::vector<int>>& graph, int node, int dest,
+             std::vector<int>& path, std::vector<std::vector<int>>& paths,
+             std::unordered_set<int>& inPath) {
+        inPath.insert(node);
+        path.push_back(node);
+        if (node == dest && (int)inPath.size() == (int)graph.size())
+            paths.push_back(path);
+        else for (int n : graph[node])
+            if (inPath.find(n) == inPath.end()) dfs(graph, n, dest, path, paths, inPath);
+        path.pop_back();
+        inPath.erase(node);
+    }
+
+    std::vector<std::vector<int>> hamiltonianPaths(std::vector<std::vector<int>>& graph,
+                                                   int source, int dest) {
+        std::vector<std::vector<int>> paths;
+        std::vector<int> path;
+        std::unordered_set<int> inPath;
+        dfs(graph, source, dest, path, paths, inPath);
+        return paths;
+    }
+};
+
+int main() {
+    std::vector<std::vector<int>> g = {{1, 2}, {0, 2, 3}, {0, 1, 3}, {1, 2}};
+    for (auto& p : Solution().hamiltonianPaths(g, 0, 3)) {
+        for (int v : p) std::cout << v << " ";
+        std::cout << "\n";
+    }
+}
+```
+
+```scala,editable
+import scala.collection.mutable
+
+object Main extends App {
+  class Solution {
+    def dfs(graph: Array[Array[Int]], node: Int, dest: Int,
+            path: mutable.ArrayBuffer[Int], paths: mutable.ArrayBuffer[Seq[Int]],
+            inPath: mutable.Set[Int]): Unit = {
+      inPath.add(node); path.append(node)
+      if (node == dest && inPath.size == graph.length) paths.append(path.toSeq)
+      else for (n <- graph(node) if !inPath.contains(n)) dfs(graph, n, dest, path, paths, inPath)
+      path.remove(path.length - 1)
+      inPath.remove(node)
+    }
+
+    def hamiltonianPaths(graph: Array[Array[Int]], source: Int, dest: Int): Seq[Seq[Int]] = {
+      val paths = mutable.ArrayBuffer.empty[Seq[Int]]
+      dfs(graph, source, dest, mutable.ArrayBuffer.empty, paths, mutable.Set.empty)
+      paths.toSeq
+    }
+  }
+
+  val g = Array(Array(1, 2), Array(0, 2, 3), Array(0, 1, 3), Array(1, 2))
+  println(new Solution().hamiltonianPaths(g, 0, 3))
+}
+```
+
+```javascript,editable
+class Solution {
+    dfs(graph, node, dest, path, paths, inPath) {
+        inPath.add(node); path.push(node);
+        if (node === dest && inPath.size === graph.length) paths.push([...path]);
+        else for (const n of graph[node])
+            if (!inPath.has(n)) this.dfs(graph, n, dest, path, paths, inPath);
+        path.pop();
+        inPath.delete(node);
+    }
+
+    hamiltonianPaths(graph, source, dest) {
+        const paths = [];
+        this.dfs(graph, source, dest, [], paths, new Set());
+        return paths;
+    }
+}
+
+console.log(new Solution().hamiltonianPaths([[1, 2], [0, 2, 3], [0, 1, 3], [1, 2]], 0, 3));
+```
+
+```typescript,editable
+class Solution {
+    dfs(graph: number[][], node: number, dest: number,
+        path: number[], paths: number[][], inPath: Set<number>): void {
+        inPath.add(node); path.push(node);
+        if (node === dest && inPath.size === graph.length) paths.push([...path]);
+        else for (const n of graph[node])
+            if (!inPath.has(n)) this.dfs(graph, n, dest, path, paths, inPath);
+        path.pop();
+        inPath.delete(node);
+    }
+
+    hamiltonianPaths(graph: number[][], source: number, dest: number): number[][] {
+        const paths: number[][] = [];
+        this.dfs(graph, source, dest, [], paths, new Set<number>());
+        return paths;
+    }
+}
+
+console.log(new Solution().hamiltonianPaths([[1, 2], [0, 2, 3], [0, 1, 3], [1, 2]], 0, 3));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func dfsHP(graph [][]int, node, dest int, path []int, paths *[][]int, inPath []bool, visited int) {
+    inPath[node] = true
+    path = append(path, node)
+    visited++
+    if node == dest && visited == len(graph) {
+        cp := make([]int, len(path)); copy(cp, path)
+        *paths = append(*paths, cp)
+    } else {
+        for _, n := range graph[node] {
+            if !inPath[n] {
+                dfsHP(graph, n, dest, path, paths, inPath, visited)
+            }
+        }
+    }
+    inPath[node] = false
+}
+
+func hamiltonianPaths(graph [][]int, source, dest int) [][]int {
+    paths := [][]int{}
+    inPath := make([]bool, len(graph))
+    dfsHP(graph, source, dest, []int{}, &paths, inPath, 0)
+    return paths
+}
+
+func main() {
+    fmt.Println(hamiltonianPaths([][]int{{1, 2}, {0, 2, 3}, {0, 1, 3}, {1, 2}}, 0, 3))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun dfs(graph: List<List<Int>>, node: Int, dest: Int,
+            path: MutableList<Int>, paths: MutableList<List<Int>>, inPath: MutableSet<Int>) {
+        inPath.add(node); path.add(node)
+        if (node == dest && inPath.size == graph.size) paths.add(path.toList())
+        else for (n in graph[node]) if (n !in inPath) dfs(graph, n, dest, path, paths, inPath)
+        path.removeAt(path.size - 1)
+        inPath.remove(node)
+    }
+
+    fun hamiltonianPaths(graph: List<List<Int>>, source: Int, dest: Int): List<List<Int>> {
+        val paths = mutableListOf<List<Int>>()
+        dfs(graph, source, dest, mutableListOf(), paths, mutableSetOf())
+        return paths
+    }
+}
+
+fun main() {
+    println(Solution().hamiltonianPaths(listOf(listOf(1, 2), listOf(0, 2, 3), listOf(0, 1, 3), listOf(1, 2)), 0, 3))
+}
+```
+
+```rust,editable
+fn dfs(graph: &[Vec<usize>], node: usize, dest: usize, path: &mut Vec<usize>,
+       paths: &mut Vec<Vec<usize>>, in_path: &mut Vec<bool>, visited: usize) {
+    in_path[node] = true;
+    path.push(node);
+    let visited = visited + 1;
+    if node == dest && visited == graph.len() {
+        paths.push(path.clone());
+    } else {
+        for &n in &graph[node] {
+            if !in_path[n] { dfs(graph, n, dest, path, paths, in_path, visited); }
+        }
+    }
+    path.pop();
+    in_path[node] = false;
+}
+
+fn hamiltonian_paths(graph: &[Vec<usize>], source: usize, dest: usize) -> Vec<Vec<usize>> {
+    let mut paths: Vec<Vec<usize>> = Vec::new();
+    let mut in_path = vec![false; graph.len()];
+    dfs(graph, source, dest, &mut Vec::new(), &mut paths, &mut in_path, 0);
+    paths
+}
+
+fn main() {
+    let g: Vec<Vec<usize>> = vec![vec![1, 2], vec![0, 2, 3], vec![0, 1, 3], vec![1, 2]];
+    println!("{:?}", hamiltonian_paths(&g, 0, 3));
+}
+```
+
+</div>
+
+***
+
+# Problem: Simple Cycles
+
+## The Problem
+
+Given a directed graph, source, and destination, count the number of **simple cycles** that *start at the source*, *pass through the destination*, and *return to the source* without repeating any other node.
+
+```
+Input:  graph = [[1, 2], [0, 2, 3], [0, 1, 3], [1, 2]], source = 0, destination = 3
+Output: 2
+Explanation: Cycles 0 → 1 → 3 → 2 → 0 and 0 → 2 → 3 → 1 → 0 both start/end at 0 and pass through 3.
+```
+
+## Pattern Mapping
+
+- `f`: same in_path tracking.
+- The loop check at each step: if a neighbour is the *source* AND the path has length ≥ 3 (a cycle needs at least 3 nodes) AND the destination has been visited along the way → count one cycle.
+- `f⁻¹`: same.
+
+The only structural difference from previous problems: there's no explicit "destination reached → record" branch. Instead, the cycle-completion check is *inline* with the neighbour iteration — when we find a neighbour that's the source and the path qualifies, we increment the counter.
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
 from typing import List, Set
 
 class Solution:
     def __init__(self):
-        # These are used to simulate pass-by-reference
-        self.path_aggregate: int = 0
-        self.aggregate: int = 0
+        self.cycles = 0
 
-    def dfs(
-        self,
-        graph: List[List[int]],
-        node: int,
-        destination: int,
-        nodes_in_path: Set[int],
-    ) -> None:
+    def dfs(self,
+            graph: List[List[int]],
+            node: int,
+            source: int,
+            destination: int,
+            in_path: Set[int]) -> None:
+        in_path.add(node)
+        for neighbour in graph[node]:
+            if neighbour not in in_path:
+                self.dfs(graph, neighbour, source, destination, in_path)
+            elif (neighbour == source
+                  and len(in_path) > 2                    # need ≥ 3 nodes for a cycle
+                  and destination in in_path):            # destination on the loop
+                self.cycles += 1
+        in_path.discard(node)
 
-        # Add the current node to nodes_in_path
-        nodes_in_path.add(node)
+    def simple_cycles(self,
+                      graph: List[List[int]],
+                      source: int, destination: int) -> int:
+        self.cycles = 0
+        self.dfs(graph, source, source, destination, set())
+        return self.cycles
 
-        # Add the contribution of the current node to path_aggregate
-        # using the function f
-        self.path_aggregate = f(node, self.path_aggregate)
 
-        # If the current node is the destination node, add the contribution
-        # of this path to aggregate
-        if node == destination:
-            # Add the contribution of path_aggregate to aggregate
-            # using the function g
-            self.aggregate = g(self.path_aggregate, self.aggregate)
-        else:
-            for neighbour in graph[node]:
-                if neighbour not in nodes_in_path:
-                    # If the neighbour is not in the current path, recursively
-                    # explore it
-                    self.dfs(graph, neighbour, destination, nodes_in_path)
-
-        # Remove the current node from nodes_in_path before exit
-        nodes_in_path.remove(node)
-
-        # Remove the contribution of the node to path_aggregate
-        # using the inverse of function f before exit
-        self.path_aggregate = f_inverse(node, self.path_aggregate)
-
-    def calling_function(
-        self,
-        graph: List[List[int]],
-        source: int,
-        destination: int
-    ) -> int:
-
-        # Initialize aggregates
-        self.aggregate = 0
-        self.path_aggregate = 0
-
-        # Set to store nodes in the current path
-        nodes_in_path: Set[int] = set()
-
-        # Perform DFS starting from the source node
-        self.dfs(graph, source, destination, nodes_in_path)
-
-        # Return the aggregated value
-        return self.aggregate
+graph = [[1, 2], [0, 2, 3], [0, 1, 3], [1, 2]]
+print(Solution().simple_cycles(graph, 0, 3))   # 2
 ```
 
-## Complexity Analysis
-
-Unlike regular depth-first traversal, where we do not revisit a node after marking it visited, when using depth-first search to explore all paths from the source to the destination node, we mark a node **unvisited** from the `nodesInPath` set once it is no longer in the **current** path.
-
-This is because, when exploring all paths from the source node, we may reach the same node from a path that was already marked as visited in some previous path. To ensure that we treat the current path independently of the previous one and explore it fully, we need to mark nodes as unvisited when they are no longer part of the current path. As a consequence, we end up exploring all possible paths in the graph from the source node to any other node.
-
-// Diagram: Every revisit to the same node is from a different path that must be counted.
-
-Consider a graph with **N** nodes and **E** edges, where the average number of edges per node is **e** and the function `f` and `g` are constant **O(1)** time functions.
-
-In the worst case, when we have a complete graph where every node is connected to every other node, we end up exploring (**N-1)!** paths. This is because every possible combination of nodes (including subsets) can make up a path, and there are (**N-1)!** such combinations, leading to (**N-1)!** paths from any node. Since we only perform constant-time functions in each recursive call that builds the path, the worst-case time complexity is **O(N!)**.
-
-In the best case, the graph may be a connected, acyclic, undirected graph (a tree), which means that only one path exists between any two nodes. And so the total number of paths from the source node to any other node is **N**, where **N** is the number of nodes, leading to a linear **O(N)** time complexity.
-
-// Diagram: A tree is the best case for the algorithm.
-
-The space complexity depends on the maximum size of the function call stack, which would be the maximum length of any path. Since the algorithm explores all paths from the source node in any case, the space complexity is bound by the maximum length of a simple path in a graph, which is **N**, leading to a linear **O(N)** space complexity.
-
-> **Best Case:** The graph is a connected, undirected acyclic graph (tree)
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case:** The graph is a complete graph
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N!)**
-
-***
-
-# Identifying the depth-first search pattern
-
-There are many graph problems that can only be solved efficiently by depth-first search. These are generally **medium** or **hard** problems where we need to process all nodes in a path from a source node to a destination node. In most cases, we need to find the aggregated value of a function `f` over all the nodes in some or all paths from a source node to a destination node. Some problems may even go further and require further aggregating the path aggregates over another function `g`. For most problems, this results in a single value that represents the combined contribution of all paths from the source node to the destination node.
-
-If the problem statement or its solution follows the generic template below, it can be solved using depth-first search.
-
-**Template:**Given a graph, find the aggregated value of a function `f` over some paths from a source node to a destination node. Optionally, further aggregate the path aggregates over a function `g`.
-
-## Example
-
-Let's consider the following problem as an example to better understand how to identify and solve a problem using depth-first search.
-
-> **Problem statement:** Given a directed graph where nodes are enumerated from `0` to `n-1`, find and return all the paths from node 0 to node `n-1`
-
-// Diagram: Find all paths from node(0) to node(2).
-
-## The depth-first search solution
-
-The problem description fits the template for the depth-first search pattern we learned earlier.
-
-**Template:**Given a graph, find the aggregated value of a function `f` (add to list) over some (all) the paths from a source node(0) to a destination node(n-1). Further aggregate the path aggregates over a function `g` (add to list).
-
-We start by creating a two-dimensional list `paths` to hold all the paths from the source to the destination node. We create a list `path` and a set `nodesInPath`to keep track of all the nodes in the current path in the right order, and efficiently look up if a node exists in the current path.
-
-We then start the depth-first search from the source node, passing the lists and set as references. We add a node to `path` list and `nodesInPath` as we enter it and remove it as we exit it. When we reach the destination node, we add the path list, which now holds the nodes in `path` from the source to the destination to the `paths` list. For all other nodes, we recursively visit all its neighbours that are not already in the `nodesInPath` set.
-
-This way, at the end of the depth-first search from the source node, the `paths` will have all the source-to-destination paths.
-
-Find all paths from node(0) to node(2).
-
-The implementation of the depth-first solution to solve the problem is given below.
-
-C++
-
-```cpp
-#include <unordered_set>
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-    void dfs(
-        vector<vector<int>> &graph,
-        int node,
-        vector<int> &path,
-        vector<vector<int>> &paths,
-        unordered_set<int> &nodesInPath
-    ) {
-
-        // Insert the current node into the set of nodes in the current
-        // path to avoid cycles
-        nodesInPath.insert(node);
-
-        // Add the current node to the path
-        path.push_back(node);
-
-        // If the current node is the destination node, add the current
-        // path to the paths list
-        if (node == graph.size() - 1) {
-            paths.push_back(path);
-        }
-
-        // Else, recursively explore all the neighbours of the current
-        // node
-        else {
-            for (int neighbour : graph[node]) {
-
-                // Perform DFS on the neighbour node if it is not already
-                // in the current path to avoid cycles
-                if (nodesInPath.find(neighbour) == nodesInPath.end()) {
-                    dfs(graph, neighbour, path, paths, nodesInPath);
-                }
-
-        // Remove the current node from the path as we are done exploring
-        // it
-        path.pop_back();
-
-        // Remove the current node from the set of nodes in the current
-        // path to allow it to be visited again in other paths
-        nodesInPath.erase(node);
-    }
-
-// Diagram: vector<vector<int>> sourceToTargetPaths(vector<vector<int>> &graph) {
-
-        // Result list to store all the paths
-        vector<vector<int>> paths;
-
-        // List to store the current path
-        vector<int> path;
-
-        // Set to keep track of nodes in the current path
-        unordered_set<int> nodesInPath;
-
-        // Perform DFS starting from node 0
-        dfs(graph, 0, path, paths, nodesInPath);
-
-        // Return the list of paths
-        return paths;
-    }
-};
-```
-
-Java
-
-```java
+```java,editable
 import java.util.*;
 
-class Solution {
-    public void dfs(
-        List<List<Integer>> graph,
-        int node,
-        List<Integer> path,
-        List<List<Integer>> paths,
-        Set<Integer> nodesInPath
-    ) {
-
-        // Insert the current node into the set of nodes in the current
-        // path to avoid cycles
-        nodesInPath.add(node);
-
-        // Add the current node to the path
-        path.add(node);
-
-        // If the current node is the destination node, add the current
-        // path to the paths list
-        if (node == graph.size() - 1) {
-            paths.add(new ArrayList<>(path));
-        }
-
-        // Else, recursively explore all the neighbours of the current
-        // node
-        else {
-            for (int neighbour : graph.get(node)) {
-
-                // Perform DFS on the neighbour node if it is not already
-                // in the current path to avoid cycles
-                if (!nodesInPath.contains(neighbour)) {
-                    dfs(graph, neighbour, path, paths, nodesInPath);
-                }
-
-        // Remove the current node from the path as we are done exploring
-        // it
-        path.remove(path.size() - 1);
-
-        // Remove the current node from the set of nodes in the current
-        // path to allow it to be visited again in other paths
-        nodesInPath.remove(node);
-    }
-
-    public List<List<Integer>> sourceToTargetPaths(
-        List<List<Integer>> graph
-    ) {
-
-        // Result list to store all the paths
-        List<List<Integer>> paths = new ArrayList<>();
-
-        // List to store the current path
-        List<Integer> path = new ArrayList<>();
-
-        // Set to keep track of nodes in the current path
-        Set<Integer> nodesInPath = new HashSet<>();
-
-        // Perform DFS starting from node 0
-        dfs(graph, 0, path, paths, nodesInPath);
-
-        // Return the list of paths
-        return paths;
-    }
-```
-
-Typescript
-
-```typescript
-export class Solution {
-    dfs(
-        graph: number[][],
-        node: number,
-        path: number[],
-        paths: number[][],
-        nodesInPath: Set<number>
-    ): void {
-
-        // Insert the current node into the set of nodes in the current
-        // path to avoid cycles
-        nodesInPath.add(node);
-
-        // Add the current node to the path
-        path.push(node);
-
-        // If the current node is the destination node, add the current
-        // path to the paths list
-        if (node === graph.length - 1) {
-            paths.push([...path]);
-        }
-
-        // Else, recursively explore all the neighbours of the current
-        // node
-        else {
-            for (const neighbour of graph[node]) {
-
-                // Perform DFS on the neighbour node if it is not already
-                // in the current path to avoid cycles
-                if (!nodesInPath.has(neighbour)) {
-                    this.dfs(graph, neighbour, path, paths, nodesInPath);
-                }
-
-        // Remove the current node from the path as we are done exploring
-        path.pop();
-
-        // Remove the current node from the set of nodes in the current
-        // path to allow it to be visited again in other paths
-        nodesInPath.delete(node);
-    }
-
-// Diagram: sourceToTargetPaths(graph: number[][]): number[][] {
-
-        // Result list to store all the paths
-        const paths: number[][] = [];
-
-        // List to store the current path
-        const path: number[] = [];
-
-        // Set to keep track of nodes in the current path
-        const nodesInPath: Set<number> = new Set();
-
-        // Perform DFS starting from node 0
-        this.dfs(graph, 0, path, paths, nodesInPath);
-
-        // Return the list of paths
-        return paths;
-    }
-```
-
-Javascript
-
-```javascript
-export class Solution {
-    dfs(graph, node, path, paths, nodesInPath) {
-
-        // Insert the current node into the set of nodes in the current
-        // path to avoid cycles
-        nodesInPath.add(node);
-
-        // Add the current node to the path
-        path.push(node);
-
-        // If the current node is the destination node, add the current
-        // path to the paths list
-        if (node === graph.length - 1) {
-            paths.push([...path]);
-        }
-
-        // Else, recursively explore all the neighbours of the current
-        // node
-        else {
-            for (const neighbour of graph[node]) {
-
-                // Perform DFS on the neighbour node if it is not already
-                // in the current path to avoid cycles
-                if (!nodesInPath.has(neighbour)) {
-                    this.dfs(graph, neighbour, path, paths, nodesInPath);
-                }
-
-        // Remove the current node from the path as we are done exploring
-        path.pop();
-
-        // Remove the current node from the set of nodes in the current
-        // path to allow it to be visited again in other paths
-        nodesInPath.delete(node);
-    }
-
-// Diagram: sourceToTargetPaths(graph) {
-
-        // Result list to store all the paths
-        const paths = [];
-
-        // List to store the current path
-        const path = [];
-
-        // Set to keep track of nodes in the current path
-        const nodesInPath = new Set();
-
-        // Perform DFS starting from node 0
-        this.dfs(graph, 0, path, paths, nodesInPath);
-
-        // Return the list of paths
-        return paths;
-    }
-```
-
-Python
-
-```python
-#include <unordered_set>
-```
-
-.
-
-## Example problems
-
-Most problems that fall under this category are**medium** or **hard**problems; a list of a few is given below.
-
-> -   **[Source to target paths](https://www.codeintuition.io/courses/graph/YAQ6SYOEpo45NOYGIxPbJ)**
-> -   **[Target paths](https://www.codeintuition.io/courses/graph/EQ7W4YKkuz_B0SwKD3U9C)**
-> -   **[Hamiltonian paths](https://www.codeintuition.io/courses/graph/CSkjAX5VBcSN8EZhUGCXu)**
-> -   **[Simple cycles](https://www.codeintuition.io/courses/graph/emSEXkb3MdqLuIagVIF9v)**
-
-We will now solve these problems to gain a deeper understanding of the depth-first search pattern.
-
-***
-
-# Source to target paths
-
-## Problem Statement
-
-Given a **directed** **graph** represented as an adjacency list, write a function to find and return all the paths from node `0` to node `n - 1`. You can return the answer in **any order**.
-
-The graph is given as follows: `graph[i]` is a list of all nodes you can visit from node `i` (i.e., there is a directed edge from node `i` to node `graph[i][j]`).
-
-### Example 1
-
-> -   **Input:** graph = \[\[1, 2\], \[4\], \[3, 4\], \[4\], \[0\]\]
-> -   **Output:** \[\[0, 1, 4\], \[0, 2, 3, 4\], \[0, 2, 4\]\]
-> -   **Explanation:** Above are all the paths from node 0 to node 4.
-
-### Example 2
-
-> -   **Input:** graph = \[\[4\], \[0, 3\], \[0, 4\], \[2, 4\], \[1\]\]
-> -   **Output:** \[\[0, 4\]\]
-> -   **Explanation:** Above are all the paths from node 0 to node 4.
-
-## Solution
-
-```cpp
-#include <unordered_set>
-
-using namespace std;
-
-class Solution {
-public:
-    void dfs(
-        vector<vector<int>> &graph,
-        int node,
-        vector<int> &path,
-        vector<vector<int>> &paths,
-        unordered_set<int> &nodesInPath
-    ) {
-
-        // Insert the current node into the set of nodes in the current
-        // path to avoid cycles
-        nodesInPath.insert(node);
-
-        // Add the current node to the path
-        path.push_back(node);
-
-        // If the current node is the destination node, add the current
-        // path to the paths list
-        if (node == graph.size() - 1) {
-            paths.push_back(path);
-        }
-
-        // Else, recursively explore all the neighbours of the current
-        // node
-        else {
-            for (int neighbour : graph[node]) {
-
-                // Perform DFS on the neighbour node if it is not already
-                // in the current path to avoid cycles
-                if (nodesInPath.find(neighbour) == nodesInPath.end()) {
-                    dfs(graph, neighbour, path, paths, nodesInPath);
-                }
+public class Main {
+    static class Solution {
+        int cycles = 0;
+        public void dfs(List<List<Integer>> graph, int node, int source, int dest, Set<Integer> inPath) {
+            inPath.add(node);
+            for (int n : graph.get(node)) {
+                if (!inPath.contains(n)) dfs(graph, n, source, dest, inPath);
+                else if (n == source && inPath.size() > 2 && inPath.contains(dest)) cycles++;
             }
+            inPath.remove(node);
         }
 
-        // Remove the current node from the path as we are done exploring
-        // it
-        path.pop_back();
-
-        // Remove the current node from the set of nodes in the current
-        // path to allow it to be visited again in other paths
-        nodesInPath.erase(node);
+        public int simpleCycles(List<List<Integer>> graph, int source, int dest) {
+            cycles = 0;
+            dfs(graph, source, source, dest, new HashSet<>());
+            return cycles;
+        }
     }
 
-    vector<vector<int>> sourceToTargetPaths(vector<vector<int>> &graph) {
-
-        // Result list to store all the paths
-        vector<vector<int>> paths;
-
-        // List to store the current path
-        vector<int> path;
-
-        // Set to keep track of nodes in the current path
-        unordered_set<int> nodesInPath;
-
-        // Perform DFS starting from node 0
-        dfs(graph, 0, path, paths, nodesInPath);
-
-        // Return the list of paths
-        return paths;
+    public static void main(String[] args) {
+        var g = List.of(List.of(1, 2), List.of(0, 2, 3), List.of(0, 1, 3), List.of(1, 2));
+        System.out.println(new Solution().simpleCycles(g, 0, 3));
     }
-};
+}
 ```
 
-***
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
-# Target paths
+typedef struct { int* data; int size; } AdjList;
+static int cycles_count = 0;
 
-## Problem Statement
+static void dfs(AdjList* g, int node, int source, int dest, bool* in_path,
+                int path_size, bool dest_in_path) {
+    in_path[node] = true;
+    path_size++;
+    bool now_dest = dest_in_path || (node == dest);
+    for (int i = 0; i < g[node].size; i++) {
+        int n = g[node].data[i];
+        if (!in_path[n]) dfs(g, n, source, dest, in_path, path_size, now_dest);
+        else if (n == source && path_size > 2 && now_dest) cycles_count++;
+    }
+    in_path[node] = false;
+}
 
-Given a **weighted directed graph** represented as an adjacency list, a **source**, a **destination**, and a **target**, write a function to find all the paths from the source to the destination where the total edge weight equals the target. You can return the answer in **any order**.
+int main() {
+    int g0[]={1,2}, g1[]={0,2,3}, g2[]={0,1,3}, g3[]={1,2};
+    AdjList g[]={{g0,2},{g1,3},{g2,3},{g3,2}};
+    bool ip[4]={false};
+    cycles_count = 0;
+    dfs(g, 0, 0, 3, ip, 0, false);
+    printf("%d\n", cycles_count);
+    return 0;
+}
+```
 
-The graph is given as follows: `graph[i]` is a list of pairs `[neighbour, weight]`, where each pair indicates a directed edge from node `i` to the node neighbour with the specified weight.
-
-### Example 1
-
-> -   **Input:** graph = \[\[\[1, 2\], \[3, 5\]\], \[\[4, 2\]\], \[\[4, 1\]\], \[\[2, 2\]\], \[\[3, 1\]\]\], source = 0, destination = 3, target = 5
-> -   **Output:** \[\[0, 1, 4, 3\], \[0, 3\]\]
-> -   **Explanation:** Above are all the paths from the source to the destination where the total edge weight equals the target.
-
-### Example 2
-
-> -   **Input:** graph = \[\[\[4, 2\]\], \[\[3, 3\], \[0, 4\]\], \[\[4, 3\], \[0, 1\]\], \[\[2, 1\], \[4, 4\]\], \[\[1, 5\]\]\], source = 3, destination = 4, target = 4
-> -   **Output:** \[\[3, 2, 4\], \[3, 2, 0, 4\], \[3, 4\]\]
-> -   **Explanation:** Above are all the paths from the source to the destination where the total edge weight equals the target.
-
-## Solution
-
-```cpp
+```cpp,editable
+#include <iostream>
+#include <vector>
 #include <unordered_set>
-
-using namespace std;
 
 class Solution {
 public:
-    void dfs(
-        vector<vector<pair<int, int>>> &graph,
-        int node,
-        int destination,
-        int currentSum,
-        int target,
-        vector<int> &path,
-        vector<vector<int>> &paths,
-        unordered_set<int> &nodesInPath
-    ) {
-
-        // Insert the current node into the set of nodes in the current
-        // path to avoid revisiting the same node
-        nodesInPath.insert(node);
-
-        // Add the current node to the path
-        path.push_back(node);
-
-        // If the current node is the destination and the path sum equals
-        // the target sum, store the current path
-        if (node == destination && currentSum == target) {
-            paths.push_back(path);
-        }
-
-        // Else, explore all the neighbours of the current node
-        else {
-            for (auto &edge : graph[node]) {
-                int neighbour = edge.first;
-                int weight = edge.second;
-
-                // Perform DFS on the neighbour node if it is not already
-                // in the current path to avoid cycles
-                if (nodesInPath.find(neighbour) == nodesInPath.end()) {
-
-                    // Explore neighbour and add its edge weight to the
-                    // current sum
-                    dfs(graph,
-                        neighbour,
-                        destination,
-                        currentSum + weight,
-                        target,
-                        path,
-                        paths,
-                        nodesInPath);
-                }
-            }
-        }
-
-        // Remove the current node from the path as we are done exploring
-        // it
-        path.pop_back();
-
-        // Remove the current node from the set of nodes in the current
-        // path to allow it to be visited again in other paths
-        nodesInPath.erase(node);
-    }
-
-    vector<vector<int>> targetPaths(
-        vector<vector<pair<int, int>>> &graph,
-        int source,
-        int destination,
-        int target
-    ) {
-
-        // Result list to store all the Hamiltonian paths
-        vector<vector<int>> paths;
-
-        // List to store the current path being explored
-        vector<int> path;
-
-        // Set to keep track of nodes currently in the path
-        unordered_set<int> nodesInPath;
-
-        // Perform DFS starting from the source node with an initial sum
-        // of 0
-        dfs(graph,
-            source,
-            destination,
-            0,
-            target,
-            path,
-            paths,
-            nodesInPath);
-
-        // Return the list of valid paths with the given sum
-        return paths;
-    }
-};
-```
-
-***
-
-# Target paths
-
-***
-
-# Hamiltonian paths
-
-## Problem Statement
-
-Given a **directed graph** represented as an adjacency list, a **source** and a **destination**, write a function to find and return all the hamiltonian paths from the source to the destination. You can return the answer in **any order**.
-
-The graph is given as follows: `graph[i]` is a list of all nodes you can visit from node `i` (i.e., there is a directed edge from node `i` to node `graph[i][j]`).
-
-A Hamiltonian path is a path in a graph that visits each vertex exactly once without repetition.
-
-### Example 1
-
-> -   **Input:** graph = \[\[1, 2\], \[0, 2, 3\], \[0, 1, 3\], \[1, 2\]\], source = 0, destination = 3
-> -   **Output:** \[\[0, 1, 2, 3\], \[0, 2, 1, 3\]\]
-> -   **Explanation:** Above are all the hamiltonian paths from the node 0 to node 3.
-
-### Example 2
-
-> -   **Input:** graph = \[\[1\], \[0, 2\], \[1, 3\], \[2\]\], source = 0, destination = 3
-> -   **Output:** \[\[0, 1, 2, 3\]\]
-> -   **Explanation:** Above are all the hamiltonian paths from the node 0 to node 3.
-
-## Solution
-
-```cpp
-#include <unordered_set>
-
-using namespace std;
-
-class Solution {
-public:
-    void dfs(
-        vector<vector<int>> &graph,
-        int node,
-        int destination,
-        vector<int> &path,
-        vector<vector<int>> &paths,
-        unordered_set<int> &nodesInPath
-    ) {
-
-        // Insert the current node into the set of nodes in the current
-        // path to avoid revisiting the same node
-        nodesInPath.insert(node);
-
-        // Add the current node to the path
-        path.push_back(node);
-
-        // If the current node is the destination node and all nodes
-        // have been visited, we have found a valid Hamiltonian Path
-        if (node == destination && nodesInPath.size() == graph.size()) {
-            paths.push_back(path);
-        }
-
-        // Else, recursively explore all the neighbours of the current
-        // node
-        else {
-            for (int neighbour : graph[node]) {
-
-                // Perform DFS on the neighbour node if it is not already
-                // in the current path to avoid cycles
-                if (nodesInPath.find(neighbour) == nodesInPath.end()) {
-                    dfs(graph,
-                        neighbour,
-                        destination,
-                        path,
-                        paths,
-                        nodesInPath);
-                }
-            }
-        }
-
-        // Remove the current node from the path as we are done exploring
-        // it
-        path.pop_back();
-
-        // Remove the current node from the set of nodes in the current
-        // path to allow it to be visited again in other possible paths
-        nodesInPath.erase(node);
-    }
-
-    vector<vector<int>> hamiltonianPaths(
-        vector<vector<int>> &graph,
-        int source,
-        int destination
-    ) {
-
-        // Result list to store all the Hamiltonian paths
-        vector<vector<int>> paths;
-
-        // List to store the current path being explored
-        vector<int> path;
-
-        // Set to keep track of nodes currently in the path
-        unordered_set<int> nodesInPath;
-
-        // Perform DFS starting from the source node
-        dfs(graph, source, destination, path, paths, nodesInPath);
-
-        // Return the list of all valid Hamiltonian paths
-        return paths;
-    }
-};
-```
-
-***
-
-# Simple cycles
-
-## Problem Statement
-
-Given a **directed graph** represented as an adjacency list, a **source** and a **destination**, write a function to find and return the total number of simple cycles in this graph that start at the source and pass through the destination.
-
-The graph is given as follows: `graph[i]` is a list of all nodes you can visit from node `i` (i.e., there is a directed edge from node `i` to node `graph[i][j]`).
-
-A simple cycle is a path that starts and ends at the same node without repeating any other nodes.
-
-### Example 1
-
-> -   **Input:** graph = \[\[1, 2\], \[0, 2, 3\], \[0, 1, 3\], \[1, 2\]\], source = 0, destination = 3
-> -   **Output:** 2
-> -   **Explanation:** There are two simple cycles in the graph that start and end at the source node 0 and also include the destination node 3, they are: \[0, 1, 3, 2, 0\] and \[0, 2, 3, 1, 0\].
-
-### Example 2
-
-> -   **Input:** graph = \[\[1\], \[0, 2\], \[1, 3\], \[2\]\], source = 0, destination = 3
-> -   **Output:** 0
-> -   **Explanation:** There are no simple cycles that start at the source and pass through the destination.
-
-## Solution
-
-```cpp
-#include <unordered_set>
-
-using namespace std;
-
-class Solution {
-public:
-
-    // Counter to store total simple cycles
     int cycles = 0;
-
-    void dfs(
-        vector<vector<int>> &graph,
-        int node,
-        int source,
-        int destination,
-        unordered_set<int> &nodesInPath
-    ) {
-
-        // Insert the current node into the set of nodes in the current
-        // path to detect cycles
-        nodesInPath.insert(node);
-
-        // Explore all neighbors of the current node
-        for (int neighbor : graph[node]) {
-
-            // Case 1: Neighbor is not visited yet, continue DFS
-            if (nodesInPath.find(neighbor) == nodesInPath.end()) {
-                dfs(graph, neighbor, source, destination, nodesInPath);
-            }
-
-            // Case 2: Neighbor is the starting node and forms a valid
-            // cycle Path must have at least 3 nodes and include the
-            // destination
-            else if (neighbor == source && nodesInPath.size() > 2 &&
-                     nodesInPath.find(destination) !=
-                         nodesInPath.end()) {
+    void dfs(std::vector<std::vector<int>>& graph, int node, int source, int dest,
+             std::unordered_set<int>& inPath) {
+        inPath.insert(node);
+        for (int n : graph[node]) {
+            if (inPath.find(n) == inPath.end()) dfs(graph, n, source, dest, inPath);
+            else if (n == source && inPath.size() > 2 && inPath.find(dest) != inPath.end())
                 cycles++;
-            }
         }
-
-        // Remove the current node from the current path as we are done
-        // exploring it
-        nodesInPath.erase(node);
+        inPath.erase(node);
     }
 
-    int simpleCycles(
-        vector<vector<int>> &graph,
-        int source,
-        int destination
-    ) {
-
-        // Set to keep track of nodes in the current path
-        unordered_set<int> nodesInPath;
-
-        // Perform DFS starting from the source node
-        dfs(graph, source, source, destination, nodesInPath);
-
-        // Return total cycles found
+    int simpleCycles(std::vector<std::vector<int>>& graph, int source, int dest) {
+        cycles = 0;
+        std::unordered_set<int> inPath;
+        dfs(graph, source, source, dest, inPath);
         return cycles;
     }
 };
+
+int main() {
+    std::vector<std::vector<int>> g = {{1, 2}, {0, 2, 3}, {0, 1, 3}, {1, 2}};
+    std::cout << Solution().simpleCycles(g, 0, 3) << "\n";
+}
 ```
+
+```scala,editable
+import scala.collection.mutable
+
+object Main extends App {
+  class Solution {
+    var cycles = 0
+    def dfs(graph: Array[Array[Int]], node: Int, source: Int, dest: Int,
+            inPath: mutable.Set[Int]): Unit = {
+      inPath.add(node)
+      for (n <- graph(node)) {
+        if (!inPath.contains(n)) dfs(graph, n, source, dest, inPath)
+        else if (n == source && inPath.size > 2 && inPath.contains(dest)) cycles += 1
+      }
+      inPath.remove(node)
+    }
+
+    def simpleCycles(graph: Array[Array[Int]], source: Int, dest: Int): Int = {
+      cycles = 0
+      dfs(graph, source, source, dest, mutable.Set.empty)
+      cycles
+    }
+  }
+
+  val g = Array(Array(1, 2), Array(0, 2, 3), Array(0, 1, 3), Array(1, 2))
+  println(new Solution().simpleCycles(g, 0, 3))
+}
+```
+
+```javascript,editable
+class Solution {
+    constructor() { this.cycles = 0; }
+    dfs(graph, node, source, dest, inPath) {
+        inPath.add(node);
+        for (const n of graph[node]) {
+            if (!inPath.has(n)) this.dfs(graph, n, source, dest, inPath);
+            else if (n === source && inPath.size > 2 && inPath.has(dest)) this.cycles++;
+        }
+        inPath.delete(node);
+    }
+
+    simpleCycles(graph, source, dest) {
+        this.cycles = 0;
+        this.dfs(graph, source, source, dest, new Set());
+        return this.cycles;
+    }
+}
+
+console.log(new Solution().simpleCycles([[1, 2], [0, 2, 3], [0, 1, 3], [1, 2]], 0, 3));
+```
+
+```typescript,editable
+class Solution {
+    cycles = 0;
+    dfs(graph: number[][], node: number, source: number, dest: number, inPath: Set<number>): void {
+        inPath.add(node);
+        for (const n of graph[node]) {
+            if (!inPath.has(n)) this.dfs(graph, n, source, dest, inPath);
+            else if (n === source && inPath.size > 2 && inPath.has(dest)) this.cycles++;
+        }
+        inPath.delete(node);
+    }
+
+    simpleCycles(graph: number[][], source: number, dest: number): number {
+        this.cycles = 0;
+        this.dfs(graph, source, source, dest, new Set<number>());
+        return this.cycles;
+    }
+}
+
+console.log(new Solution().simpleCycles([[1, 2], [0, 2, 3], [0, 1, 3], [1, 2]], 0, 3));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+var cyclesCount int
+
+func dfsSC(graph [][]int, node, source, dest int, inPath []bool, pathSize int, destSeen bool) {
+    inPath[node] = true
+    pathSize++
+    nowSeen := destSeen || node == dest
+    for _, n := range graph[node] {
+        if !inPath[n] {
+            dfsSC(graph, n, source, dest, inPath, pathSize, nowSeen)
+        } else if n == source && pathSize > 2 && nowSeen {
+            cyclesCount++
+        }
+    }
+    inPath[node] = false
+}
+
+func simpleCycles(graph [][]int, source, dest int) int {
+    cyclesCount = 0
+    inPath := make([]bool, len(graph))
+    dfsSC(graph, source, source, dest, inPath, 0, false)
+    return cyclesCount
+}
+
+func main() {
+    fmt.Println(simpleCycles([][]int{{1, 2}, {0, 2, 3}, {0, 1, 3}, {1, 2}}, 0, 3))
+}
+```
+
+```kotlin,editable
+class Solution {
+    var cycles = 0
+    fun dfs(graph: List<List<Int>>, node: Int, source: Int, dest: Int, inPath: MutableSet<Int>) {
+        inPath.add(node)
+        for (n in graph[node]) {
+            if (n !in inPath) dfs(graph, n, source, dest, inPath)
+            else if (n == source && inPath.size > 2 && dest in inPath) cycles++
+        }
+        inPath.remove(node)
+    }
+
+    fun simpleCycles(graph: List<List<Int>>, source: Int, dest: Int): Int {
+        cycles = 0
+        dfs(graph, source, source, dest, mutableSetOf())
+        return cycles
+    }
+}
+
+fun main() {
+    println(Solution().simpleCycles(listOf(listOf(1, 2), listOf(0, 2, 3), listOf(0, 1, 3), listOf(1, 2)), 0, 3))
+}
+```
+
+```rust,editable
+fn dfs(graph: &[Vec<usize>], node: usize, source: usize, dest: usize,
+       in_path: &mut Vec<bool>, path_size: usize, dest_seen: bool, cycles: &mut i32) {
+    in_path[node] = true;
+    let path_size = path_size + 1;
+    let now_seen = dest_seen || node == dest;
+    for &n in &graph[node] {
+        if !in_path[n] {
+            dfs(graph, n, source, dest, in_path, path_size, now_seen, cycles);
+        } else if n == source && path_size > 2 && now_seen {
+            *cycles += 1;
+        }
+    }
+    in_path[node] = false;
+}
+
+fn simple_cycles(graph: &[Vec<usize>], source: usize, dest: usize) -> i32 {
+    let mut cycles = 0;
+    let mut in_path = vec![false; graph.len()];
+    dfs(graph, source, source, dest, &mut in_path, 0, false, &mut cycles);
+    cycles
+}
+
+fn main() {
+    let g: Vec<Vec<usize>> = vec![vec![1, 2], vec![0, 2, 3], vec![0, 1, 3], vec![1, 2]];
+    println!("{}", simple_cycles(&g, 0, 3));
+}
+```
+
+</div>
+
+## Complexity Analysis
+
+| | Complexity | Reasoning |
+|---|---|---|
+| **Time** | O(V! × E) worst case | Number of paths can be up to V! in dense graphs; each visit costs O(E) |
+| **Space** | O(V) | Recursion depth + path storage + in_path set |
+
+This is the price of enumeration — exponential in the worst case. The `in_path` constraint prunes heavily on most real inputs.
+
+---
+
+## Final Takeaway
+
+The DFS pattern is **the** tool when you need to *enumerate, score, or filter* paths through a graph. Once you internalise the four-step recipe — *enter, check destination, recurse, leave* — the rest is choosing what `f` and `g` should compute.
+
+Watch for the giveaways: phrasing like *"all paths"*, *"paths with [property]"*, *"count cycles"*, *"Hamiltonian"*, *"longest/shortest path"* — these are pattern-matching signals that DFS is the right approach.
+
+The next pattern lessons explore three other DFS-flavoured problem families: **connected components** (count or label disjoint pieces of a graph), **two-colouring** (test for bipartiteness), and **shortest paths** with BFS and Dijkstra. Each one applies a small twist to DFS or BFS — and once you recognise the family, the implementation is mechanical.
+
+> **Transfer challenge.** A delivery-robot pathfinding system needs to count the number of distinct valid routes from a warehouse to a destination, with the constraint that the route cost (sum of edge weights) is below a budget. Sketch the f and g you'd use.
+
+<details>
+<summary><strong>Sketch</strong></summary>
+
+- `f` (per node): add edge weight to running sum.
+- `g` (at destination): if running sum ≤ budget, increment a counter.
+- `f⁻¹` (on exit): subtract edge weight.
+
+This is exactly "Target paths with given weight" generalised from "= target" to "≤ budget". Same skeleton; one symbol changes.
+
+</details>
