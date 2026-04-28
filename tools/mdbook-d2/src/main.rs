@@ -1,4 +1,10 @@
-// mdbook preprocessor: renders ```d2 fenced blocks to inline SVG via kroki.io.
+// mdbook preprocessor: renders ```d2 fenced blocks to inline SVG.
+//
+// Default renderer is the local `d2` CLI binary (d2lang.com). This was
+// previously the public kroki.io HTTP API, but kroki's free tier is
+// unreliable (frequent 504s and timeouts during burst renders) which
+// produced visible "D2 render error" blocks on the deployed site. The
+// kroki path is still available as a fallback when MDBOOK_D2_USE_KROKI=1.
 //
 // Protocol (mdbook): https://rust-lang.github.io/mdBook/for_developers/preprocessors.html
 //   * Invoked as `mdbook-d2 supports <renderer>` to advertise renderer support.
@@ -6,12 +12,12 @@
 //   * Invoked as `mdbook-d2` to preprocess: reads `[ctx, book]` JSON from stdin,
 //     writes the modified `book` JSON to stdout.
 //
-// Performance: we render in three passes so kroki calls happen concurrently
-// across all chapters (rather than one block at a time).
+// Performance: we render in three passes so renderer invocations happen
+// concurrently across all chapters (rather than one block at a time).
 //   1. Walk every chapter; replace each ```d2 fence with an HTML-comment
 //      placeholder and collect the source into a flat Vec.
 //   2. Render all sources in parallel (8 worker threads), with disk caching
-//      keyed on the source content. Cache hits skip the network entirely.
+//      keyed on the source content. Cache hits skip rendering entirely.
 //   3. Walk every chapter again, substituting each placeholder with its SVG
 //      (or a visible error block on render failure).
 
@@ -30,11 +36,16 @@ use serde_json::Value;
 
 const KROKI_URL_ENV: &str = "MDBOOK_D2_KROKI_URL";
 const DEFAULT_KROKI_URL: &str = "https://kroki.io/d2/svg";
+const USE_KROKI_ENV: &str = "MDBOOK_D2_USE_KROKI";
+const D2_BIN_ENV: &str = "MDBOOK_D2_BIN";
+const DEFAULT_D2_BIN: &str = "d2";
 const CACHE_DIR_ENV: &str = "MDBOOK_D2_CACHE_DIR";
 const DEFAULT_CACHE_DIR: &str = ".mdbook-d2-cache";
 // Bumped on any change that would invalidate previously-cached SVGs (e.g.
-// switching kroki versions, post-processing tweaks). Doesn't have to bump
-// on every preprocessor change — only when output bytes would differ.
+// renderer switch with different output bytes, post-processing tweaks).
+// Kept at 1 across the kroki -> local-d2 renderer switch because kroki
+// uses d2 internally and the post-processed output is byte-equivalent in
+// practice; existing on-disk caches stay valid.
 const CACHE_VERSION: u32 = 1;
 const FENCE_OPEN: &str = "```d2";
 const FENCE_CLOSE: &str = "```";
@@ -81,7 +92,7 @@ fn run() -> Result<(), String> {
         .and_then(|v| v.as_array_mut())
         .ok_or_else(|| "book.items missing or not an array".to_string())?;
 
-    let kroki_url = env::var(KROKI_URL_ENV).unwrap_or_else(|_| DEFAULT_KROKI_URL.to_string());
+    let renderer = pick_renderer();
     let cache_dir = PathBuf::from(env::var(CACHE_DIR_ENV).unwrap_or_else(|_| DEFAULT_CACHE_DIR.to_string()));
     fs::create_dir_all(&cache_dir).map_err(|e| format!("create cache dir {}: {e}", cache_dir.display()))?;
 
@@ -97,7 +108,7 @@ fn run() -> Result<(), String> {
 
     // Pass 2: parallel render (cache-aware).
     let started = Instant::now();
-    let (results, stats) = render_all(sources, &kroki_url, &cache_dir);
+    let (results, stats) = render_all(sources, &renderer, &cache_dir);
     let elapsed = started.elapsed();
     eprintln!(
         "[mdbook-d2] {} blocks in {:.2}s ({} cached, {} fetched, {} failed)",
@@ -234,7 +245,7 @@ enum RenderOutcome {
 
 fn render_all(
     sources: Vec<String>,
-    kroki_url: &str,
+    renderer: &Renderer,
     cache_dir: &Path,
 ) -> (Vec<Result<String, String>>, RenderStats) {
     let total = sources.len();
@@ -242,7 +253,7 @@ fn render_all(
         return (Vec::new(), RenderStats::default());
     }
 
-    let kroki_url = Arc::new(kroki_url.to_string());
+    let renderer = Arc::new(renderer.clone());
     let cache_dir = Arc::new(cache_dir.to_path_buf());
 
     // Round-robin partition into N buckets.
@@ -257,12 +268,12 @@ fn render_all(
     std::thread::scope(|scope| {
         let mut handles = Vec::with_capacity(workers);
         for bucket in buckets {
-            let kroki_url = Arc::clone(&kroki_url);
+            let renderer = Arc::clone(&renderer);
             let cache_dir = Arc::clone(&cache_dir);
             let handle = scope.spawn(move || {
                 bucket
                     .into_iter()
-                    .map(|(idx, src)| (idx, render_one_cached(&src, &kroki_url, &cache_dir)))
+                    .map(|(idx, src)| (idx, render_one_cached(&src, &renderer, &cache_dir)))
                     .collect::<Vec<_>>()
             });
             handles.push(handle);
@@ -300,7 +311,7 @@ fn render_all(
     (results, stats)
 }
 
-fn render_one_cached(source: &str, kroki_url: &str, cache_dir: &Path) -> RenderOutcome {
+fn render_one_cached(source: &str, renderer: &Renderer, cache_dir: &Path) -> RenderOutcome {
     let key = cache_key(source);
     let path = cache_dir.join(format!("{key}.svg"));
 
@@ -308,7 +319,7 @@ fn render_one_cached(source: &str, kroki_url: &str, cache_dir: &Path) -> RenderO
         return RenderOutcome::Cached(svg);
     }
 
-    match render_via_kroki(source, kroki_url) {
+    match renderer.render(source) {
         Ok(svg) => {
             // Best-effort cache write; failure here doesn't fail the build.
             let _ = fs::write(&path, &svg);
@@ -318,11 +329,96 @@ fn render_one_cached(source: &str, kroki_url: &str, cache_dir: &Path) -> RenderO
     }
 }
 
+#[derive(Clone)]
+enum Renderer {
+    D2Cli { bin: String },
+    Kroki { url: String },
+}
+
+fn pick_renderer() -> Renderer {
+    let use_kroki = matches!(
+        env::var(USE_KROKI_ENV).ok().as_deref(),
+        Some("1") | Some("true") | Some("TRUE")
+    );
+    if use_kroki {
+        let url = env::var(KROKI_URL_ENV).unwrap_or_else(|_| DEFAULT_KROKI_URL.to_string());
+        Renderer::Kroki { url }
+    } else {
+        let bin = env::var(D2_BIN_ENV).unwrap_or_else(|_| DEFAULT_D2_BIN.to_string());
+        Renderer::D2Cli { bin }
+    }
+}
+
+impl Renderer {
+    fn render(&self, source: &str) -> Result<String, String> {
+        match self {
+            Renderer::D2Cli { bin } => render_via_d2_cli(source, bin),
+            Renderer::Kroki { url } => render_via_kroki(source, url),
+        }
+    }
+}
+
 fn cache_key(source: &str) -> String {
     let mut hasher = DefaultHasher::new();
     CACHE_VERSION.hash(&mut hasher);
     source.hash(&mut hasher);
     format!("{:016x}", hasher.finish())
+}
+
+fn render_via_d2_cli(source: &str, bin: &str) -> Result<String, String> {
+    // d2 reads from stdin and writes to stdout when both paths are "-".
+    // Disable colour codes in stderr to keep error messages readable when
+    // surfaced through mdbook.
+    let mut child = Command::new(bin)
+        .args(["-", "-"])
+        .env("NO_COLOR", "1")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| {
+            if let io::ErrorKind::NotFound = e.kind() {
+                format!(
+                    "d2 binary `{bin}` not found on PATH. Install from https://d2lang.com/ \
+                     or set {D2_BIN_ENV} to its absolute path. To fall back to kroki.io, \
+                     set {USE_KROKI_ENV}=1."
+                )
+            } else {
+                format!("spawn `{bin}`: {e}")
+            }
+        })?;
+
+    {
+        let stdin = child
+            .stdin
+            .as_mut()
+            .ok_or_else(|| "d2 stdin unavailable".to_string())?;
+        stdin
+            .write_all(source.as_bytes())
+            .map_err(|e| format!("write source to d2: {e}"))?;
+    }
+
+    let output = child
+        .wait_with_output()
+        .map_err(|e| format!("wait d2: {e}"))?;
+
+    if !output.status.success() {
+        let err = String::from_utf8_lossy(&output.stderr);
+        let body = String::from_utf8_lossy(&output.stdout);
+        return Err(format!(
+            "d2 status {}: {}{}",
+            output.status,
+            err.trim(),
+            if body.trim().is_empty() {
+                String::new()
+            } else {
+                format!(" — output: {}", body.trim())
+            }
+        ));
+    }
+
+    let svg = String::from_utf8(output.stdout).map_err(|e| format!("svg utf-8: {e}"))?;
+    Ok(post_process_svg(&svg))
 }
 
 fn render_via_kroki(source: &str, kroki_url: &str) -> Result<String, String> {
@@ -425,23 +521,26 @@ fn render_via_kroki_once(source: &str, kroki_url: &str) -> Result<String, String
     }
 
     let svg = String::from_utf8(output.stdout).map_err(|e| format!("svg utf-8: {e}"))?;
+    Ok(post_process_svg(&svg))
+}
 
+fn post_process_svg(svg: &str) -> String {
     // Strip leading <?xml …?> declaration so the SVG inlines cleanly inside
     // a <div>. The XML decl is harmless but makes raw HTML noisier.
-    let svg = if let Some(rest) = svg.trim_start().strip_prefix("<?xml") {
+    let stripped = if let Some(rest) = svg.trim_start().strip_prefix("<?xml") {
         match rest.find("?>") {
             Some(idx) => rest[idx + 2..].trim_start().to_string(),
-            None => svg,
+            None => svg.to_string(),
         }
     } else {
-        svg
+        svg.to_string()
     };
 
     // CommonMark "Type 6" HTML blocks (including <div>) terminate at a blank
     // line, after which markdown parsing resumes mid-SVG and wraps fragments
     // in <p> tags — producing broken HTML. Collapse any blank lines inside the
     // SVG into a single newline so the entire div stays one HTML block.
-    Ok(collapse_blank_lines(&svg))
+    collapse_blank_lines(&stripped)
 }
 
 fn collapse_blank_lines(s: &str) -> String {
@@ -531,7 +630,7 @@ fn replace_placeholders_in_string(
                 out.push_str("</div>");
             }
             Err(e) => {
-                errors.push(format!("kroki render failed: {e}"));
+                errors.push(format!("d2 render failed: {e}"));
                 out.push_str("<div class=\"d2 d2--error\">\n<strong>D2 render error:</strong> ");
                 out.push_str(&html_escape(e));
                 out.push_str("\n</div>");

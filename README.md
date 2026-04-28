@@ -58,10 +58,22 @@ rustc --version
 ```bash
 cargo install mdbook
 cargo install mdbook-pagetoc                # right-side per-page table of contents
-cargo install --path tools/mdbook-d2        # vendored: renders ```d2 fenced blocks to SVG via kroki.io
+cargo install --path tools/mdbook-d2        # vendored: pipes ```d2 fenced blocks through the d2 CLI at build time
 ```
 
 The `mdbook-d2` preprocessor lives in `tools/mdbook-d2` and is built from source so the version stays pinned with the repo.
+
+It shells out to the [d2 CLI](https://d2lang.com/) — install it once via Homebrew or the official script:
+
+```bash
+# macOS / Linux (Homebrew)
+brew install d2
+
+# or the official installer
+curl -fsSL https://d2lang.com/install.sh | sh -s --
+```
+
+If you prefer the kroki.io HTTP renderer (the previous default), set `MDBOOK_D2_USE_KROKI=1` before `mdbook build` — but note kroki's free tier returns 504s during burst renders, which is why local d2 is the new default.
 
 ---
 
