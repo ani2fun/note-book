@@ -9,8 +9,8 @@ src = "src"
 edition = "2021"
 
 [output.html]
-default-theme = "light"
-preferred-dark-theme = "navy"
+default-theme = "snow-storm"
+preferred-dark-theme = "polar-night"
 smart-punctuation = true
 mathjax-support = true
 git-repository-url = "https://github.com/ani2fun/note-book/tree/main"

@@ -26,35 +26,35 @@ Many linked list problems require us to reverse the entire list or a part of it.
 The reversal pattern is a classification of linked list problems that can be solved using the linked list reversal algorithm.
 
 ```d2
-direction: right
+direction: down
 
 before: "Before — segment [start, end]" {
   direction: right
-  p: "·"
-  s: start {style.fill: "#fde68a"; style.stroke: "#d97706"}
-  m: "·"
-  e: end {style.fill: "#fde68a"; style.stroke: "#d97706"}
-  a: "·"
-  p -> s
-  s -> m
-  m -> e
-  e -> a
+  a: {grid-columns: 2; grid-gap: 0; value: a; next}
+  s: {grid-columns: 2; grid-gap: 0; value: start; next; style.fill: "#fde68a"; style.stroke: "#d97706"}
+  m: {grid-columns: 2; grid-gap: 0; value: "..."; next}
+  e: {grid-columns: 2; grid-gap: 0; value: end; next; style.fill: "#fde68a"; style.stroke: "#d97706"}
+  z: {grid-columns: 2; grid-gap: 0; value: z; next}
+  a.next -> s.value
+  s.next -> m.value
+  m.next -> e.value
+  e.next -> z.value
 }
 
 after: "After — segment reversed in place" {
   direction: right
-  p: "·"
-  e: end {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
-  m: "·"
-  s: start {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
-  a: "·"
-  p -> e
-  e -> m
-  m -> s
-  s -> a
+  a: {grid-columns: 2; grid-gap: 0; value: a; next}
+  e: {grid-columns: 2; grid-gap: 0; value: end; next; style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  m: {grid-columns: 2; grid-gap: 0; value: "..."; next}
+  s: {grid-columns: 2; grid-gap: 0; value: start; next; style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  z: {grid-columns: 2; grid-gap: 0; value: z; next}
+  a.next -> e.value
+  e.next -> m.value
+  m.next -> s.value
+  s.next -> z.value
 }
 
-before -> after: "flip each node's next within the segment"
+before -> after: "flip each next pointer within the segment"
 ```
 
 <p align="center"><strong>The reversal pattern flips a contiguous segment <code>[start, end]</code> in place — the nodes before <code>start</code> and after <code>end</code> remain untouched. Stitch the reversed segment back to its neighbours and you're done.</strong></p>
