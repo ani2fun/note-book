@@ -121,35 +121,243 @@ The cleanup loops are what separate simultaneous traversal from the two-pointer 
 
 ## The Template
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
+def should_advance_arr1(a: int, b: int) -> bool: return True
+def should_advance_arr2(a: int, b: int) -> bool: return True
+
 def simultaneous_traversal(arr1: List[int], arr2: List[int]) -> None:
-    index1 = 0  # Current position in arr1
-    index2 = 0  # Current position in arr2
+    index1, index2 = 0, 0
 
-    # Main loop: run while both arrays have unprocessed elements.
-    # At each step, the condition decides which index advances.
+    # Main loop — both arrays still have unprocessed elements.
     while index1 < len(arr1) and index2 < len(arr2):
-
         if should_advance_arr1(arr1[index1], arr2[index2]):
-            # process arr1[index1]
-            index1 += 1  # Move arr1 forward
-
+            index1 += 1
         if should_advance_arr2(arr1[index1], arr2[index2]):
-            # process arr2[index2]
-            index2 += 1  # Move arr2 forward
+            index2 += 1
 
-    # arr2 exhausted first — process any remaining elements in arr1
+    # Drain whichever array has leftovers — only one of these loops runs.
     while index1 < len(arr1):
-        # process arr1[index1]
         index1 += 1
-
-    # arr1 exhausted first — process any remaining elements in arr2
     while index2 < len(arr2):
-        # process arr2[index2]
         index2 += 1
 ```
+
+```java,editable
+public class Main {
+    static boolean shouldAdvanceArr1(int a, int b) { return true; }
+    static boolean shouldAdvanceArr2(int a, int b) { return true; }
+
+    static void simultaneousTraversal(int[] arr1, int[] arr2) {
+        int i1 = 0, i2 = 0;
+        while (i1 < arr1.length && i2 < arr2.length) {
+            if (shouldAdvanceArr1(arr1[i1], arr2[i2])) i1++;
+            if (i1 < arr1.length && i2 < arr2.length
+                && shouldAdvanceArr2(arr1[i1], arr2[i2])) i2++;
+        }
+        while (i1 < arr1.length) i1++;
+        while (i2 < arr2.length) i2++;
+    }
+
+    public static void main(String[] args) {
+        simultaneousTraversal(new int[]{1, 2, 3}, new int[]{4, 5, 6});
+        System.out.println("Template ran (no output by design — fill in process steps).");
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdbool.h>
+
+static bool should_advance_arr1(int a, int b) { (void)a; (void)b; return true; }
+static bool should_advance_arr2(int a, int b) { (void)a; (void)b; return true; }
+
+void simultaneous_traversal(int* arr1, int n1, int* arr2, int n2) {
+    int i1 = 0, i2 = 0;
+    while (i1 < n1 && i2 < n2) {
+        if (should_advance_arr1(arr1[i1], arr2[i2])) i1++;
+        if (i1 < n1 && i2 < n2 && should_advance_arr2(arr1[i1], arr2[i2])) i2++;
+    }
+    while (i1 < n1) i1++;
+    while (i2 < n2) i2++;
+}
+
+int main() {
+    int a1[] = {1, 2, 3};
+    int a2[] = {4, 5, 6};
+    simultaneous_traversal(a1, 3, a2, 3);
+    printf("Template ran.\n");
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+bool shouldAdvanceArr1(int, int) { return true; }
+bool shouldAdvanceArr2(int, int) { return true; }
+
+void simultaneousTraversal(const std::vector<int>& arr1,
+                           const std::vector<int>& arr2) {
+    size_t i1 = 0, i2 = 0;
+    while (i1 < arr1.size() && i2 < arr2.size()) {
+        if (shouldAdvanceArr1(arr1[i1], arr2[i2])) i1++;
+        if (i1 < arr1.size() && i2 < arr2.size()
+            && shouldAdvanceArr2(arr1[i1], arr2[i2])) i2++;
+    }
+    while (i1 < arr1.size()) i1++;
+    while (i2 < arr2.size()) i2++;
+}
+
+int main() {
+    simultaneousTraversal({1, 2, 3}, {4, 5, 6});
+    std::cout << "Template ran.\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  def shouldAdvanceArr1(a: Int, b: Int): Boolean = true
+  def shouldAdvanceArr2(a: Int, b: Int): Boolean = true
+
+  def simultaneousTraversal(arr1: Array[Int], arr2: Array[Int]): Unit = {
+    var i1 = 0
+    var i2 = 0
+    while (i1 < arr1.length && i2 < arr2.length) {
+      if (shouldAdvanceArr1(arr1(i1), arr2(i2))) i1 += 1
+      if (i1 < arr1.length && i2 < arr2.length
+          && shouldAdvanceArr2(arr1(i1), arr2(i2))) i2 += 1
+    }
+    while (i1 < arr1.length) i1 += 1
+    while (i2 < arr2.length) i2 += 1
+  }
+
+  simultaneousTraversal(Array(1, 2, 3), Array(4, 5, 6))
+  println("Template ran.")
+}
+```
+
+```javascript,editable
+function shouldAdvanceArr1(a, b) { return true; }
+function shouldAdvanceArr2(a, b) { return true; }
+
+function simultaneousTraversal(arr1, arr2) {
+    let i1 = 0, i2 = 0;
+    while (i1 < arr1.length && i2 < arr2.length) {
+        if (shouldAdvanceArr1(arr1[i1], arr2[i2])) i1++;
+        if (i1 < arr1.length && i2 < arr2.length
+            && shouldAdvanceArr2(arr1[i1], arr2[i2])) i2++;
+    }
+    while (i1 < arr1.length) i1++;
+    while (i2 < arr2.length) i2++;
+}
+
+simultaneousTraversal([1, 2, 3], [4, 5, 6]);
+console.log("Template ran.");
+```
+
+```typescript,editable
+function shouldAdvanceArr1(a: number, b: number): boolean { return true; }
+function shouldAdvanceArr2(a: number, b: number): boolean { return true; }
+
+function simultaneousTraversal(arr1: number[], arr2: number[]): void {
+    let i1 = 0, i2 = 0;
+    while (i1 < arr1.length && i2 < arr2.length) {
+        if (shouldAdvanceArr1(arr1[i1], arr2[i2])) i1++;
+        if (i1 < arr1.length && i2 < arr2.length
+            && shouldAdvanceArr2(arr1[i1], arr2[i2])) i2++;
+    }
+    while (i1 < arr1.length) i1++;
+    while (i2 < arr2.length) i2++;
+}
+
+simultaneousTraversal([1, 2, 3], [4, 5, 6]);
+console.log("Template ran.");
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func shouldAdvanceArr1(a, b int) bool { return true }
+func shouldAdvanceArr2(a, b int) bool { return true }
+
+func simultaneousTraversal(arr1, arr2 []int) {
+    i1, i2 := 0, 0
+    for i1 < len(arr1) && i2 < len(arr2) {
+        if shouldAdvanceArr1(arr1[i1], arr2[i2]) {
+            i1++
+        }
+        if i1 < len(arr1) && i2 < len(arr2) &&
+            shouldAdvanceArr2(arr1[i1], arr2[i2]) {
+            i2++
+        }
+    }
+    for i1 < len(arr1) {
+        i1++
+    }
+    for i2 < len(arr2) {
+        i2++
+    }
+}
+
+func main() {
+    simultaneousTraversal([]int{1, 2, 3}, []int{4, 5, 6})
+    fmt.Println("Template ran.")
+}
+```
+
+```kotlin,editable
+fun shouldAdvanceArr1(a: Int, b: Int) = true
+fun shouldAdvanceArr2(a: Int, b: Int) = true
+
+fun simultaneousTraversal(arr1: IntArray, arr2: IntArray) {
+    var i1 = 0
+    var i2 = 0
+    while (i1 < arr1.size && i2 < arr2.size) {
+        if (shouldAdvanceArr1(arr1[i1], arr2[i2])) i1++
+        if (i1 < arr1.size && i2 < arr2.size
+            && shouldAdvanceArr2(arr1[i1], arr2[i2])) i2++
+    }
+    while (i1 < arr1.size) i1++
+    while (i2 < arr2.size) i2++
+}
+
+fun main() {
+    simultaneousTraversal(intArrayOf(1, 2, 3), intArrayOf(4, 5, 6))
+    println("Template ran.")
+}
+```
+
+```rust,editable
+fn should_advance_arr1(_a: i32, _b: i32) -> bool { true }
+fn should_advance_arr2(_a: i32, _b: i32) -> bool { true }
+
+fn simultaneous_traversal(arr1: &[i32], arr2: &[i32]) {
+    let mut i1 = 0usize;
+    let mut i2 = 0usize;
+    while i1 < arr1.len() && i2 < arr2.len() {
+        if should_advance_arr1(arr1[i1], arr2[i2]) { i1 += 1; }
+        if i1 < arr1.len() && i2 < arr2.len()
+            && should_advance_arr2(arr1[i1], arr2[i2]) { i2 += 1; }
+    }
+    while i1 < arr1.len() { i1 += 1; }
+    while i2 < arr2.len() { i2 += 1; }
+}
+
+fn main() {
+    simultaneous_traversal(&[1, 2, 3], &[4, 5, 6]);
+    println!("Template ran.");
+}
+```
+
+</div>
 
 ---
 
@@ -356,30 +564,222 @@ flowchart TB
 
 <p align="center"><strong>Brute force — for each character of s, scan forward in t until found or t is exhausted. Correct, but the nested structure is error-prone.</strong></p>
 
+<div class="lang-tabs">
+
 ```python,editable
-from typing import List
-
 def is_subsequence_brute(s: str, t: str) -> bool:
-    j = 0  # Tracks current position in t across iterations of the outer loop
-
-    # For each character in s, search for it in t starting from where we left off
+    j = 0
     for i in range(len(s)):
         if j == len(t):
-            # t is exhausted but s still has characters left — can't be a subsequence
             return False
-
-        # Scan t forward until we find s[i] or exhaust t
         while j < len(t):
             if s[i] == t[j]:
-                j += 1  # Found s[i] at t[j] — advance t past this match
-                break   # Move to the next character in s
-            j += 1      # t[j] doesn't match — skip it
+                j += 1
+                break
+            j += 1
+    return True
 
-    return True  # All characters of s were found in t in order
-
-print(is_subsequence_brute("ace", "abcde"))  # True
-print(is_subsequence_brute("aec", "abcde"))  # False
+print(is_subsequence_brute("ace", "abcde"))   # True
+print(is_subsequence_brute("aec", "abcde"))   # False
 ```
+
+```java,editable
+public class Main {
+    static boolean isSubsequenceBrute(String s, String t) {
+        int j = 0;
+        for (int i = 0; i < s.length(); i++) {
+            if (j == t.length()) return false;
+            while (j < t.length()) {
+                if (s.charAt(i) == t.charAt(j)) { j++; break; }
+                j++;
+            }
+        }
+        return true;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(isSubsequenceBrute("ace", "abcde"));
+        System.out.println(isSubsequenceBrute("aec", "abcde"));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
+
+bool is_subsequence_brute(const char* s, const char* t) {
+    int j = 0;
+    int ns = (int)strlen(s), nt = (int)strlen(t);
+    for (int i = 0; i < ns; i++) {
+        if (j == nt) return false;
+        while (j < nt) {
+            if (s[i] == t[j]) { j++; break; }
+            j++;
+        }
+    }
+    return true;
+}
+
+int main() {
+    printf("%d\n", is_subsequence_brute("ace", "abcde"));
+    printf("%d\n", is_subsequence_brute("aec", "abcde"));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <string>
+
+bool isSubsequenceBrute(const std::string& s, const std::string& t) {
+    int j = 0;
+    for (size_t i = 0; i < s.size(); i++) {
+        if (j == (int)t.size()) return false;
+        while (j < (int)t.size()) {
+            if (s[i] == t[j]) { j++; break; }
+            j++;
+        }
+    }
+    return true;
+}
+
+int main() {
+    std::cout << std::boolalpha
+              << isSubsequenceBrute("ace", "abcde") << "\n"
+              << isSubsequenceBrute("aec", "abcde") << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  def isSubsequenceBrute(s: String, t: String): Boolean = {
+    var j = 0
+    var i = 0
+    while (i < s.length) {
+      if (j == t.length) return false
+      var matched = false
+      while (j < t.length && !matched) {
+        if (s(i) == t(j)) { j += 1; matched = true }
+        else              { j += 1 }
+      }
+      i += 1
+    }
+    true
+  }
+
+  println(isSubsequenceBrute("ace", "abcde"))
+  println(isSubsequenceBrute("aec", "abcde"))
+}
+```
+
+```javascript,editable
+function isSubsequenceBrute(s, t) {
+    let j = 0;
+    for (let i = 0; i < s.length; i++) {
+        if (j === t.length) return false;
+        while (j < t.length) {
+            if (s[i] === t[j]) { j++; break; }
+            j++;
+        }
+    }
+    return true;
+}
+
+console.log(isSubsequenceBrute("ace", "abcde"));
+console.log(isSubsequenceBrute("aec", "abcde"));
+```
+
+```typescript,editable
+function isSubsequenceBrute(s: string, t: string): boolean {
+    let j = 0;
+    for (let i = 0; i < s.length; i++) {
+        if (j === t.length) return false;
+        while (j < t.length) {
+            if (s[i] === t[j]) { j++; break; }
+            j++;
+        }
+    }
+    return true;
+}
+
+console.log(isSubsequenceBrute("ace", "abcde"));
+console.log(isSubsequenceBrute("aec", "abcde"));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func isSubsequenceBrute(s, t string) bool {
+    j := 0
+    for i := 0; i < len(s); i++ {
+        if j == len(t) {
+            return false
+        }
+        for j < len(t) {
+            if s[i] == t[j] {
+                j++
+                break
+            }
+            j++
+        }
+    }
+    return true
+}
+
+func main() {
+    fmt.Println(isSubsequenceBrute("ace", "abcde"))
+    fmt.Println(isSubsequenceBrute("aec", "abcde"))
+}
+```
+
+```kotlin,editable
+fun isSubsequenceBrute(s: String, t: String): Boolean {
+    var j = 0
+    for (i in s.indices) {
+        if (j == t.length) return false
+        while (j < t.length) {
+            if (s[i] == t[j]) { j++; break }
+            j++
+        }
+    }
+    return true
+}
+
+fun main() {
+    println(isSubsequenceBrute("ace", "abcde"))
+    println(isSubsequenceBrute("aec", "abcde"))
+}
+```
+
+```rust,editable
+fn is_subsequence_brute(s: &str, t: &str) -> bool {
+    let sb = s.as_bytes();
+    let tb = t.as_bytes();
+    let mut j = 0usize;
+    for i in 0..sb.len() {
+        if j == tb.len() { return false; }
+        while j < tb.len() {
+            if sb[i] == tb[j] {
+                j += 1;
+                break;
+            }
+            j += 1;
+        }
+    }
+    true
+}
+
+fn main() {
+    println!("{}", is_subsequence_brute("ace", "abcde"));
+    println!("{}", is_subsequence_brute("aec", "abcde"));
+}
+```
+
+</div>
 
 <details>
 <summary><strong>Trace — s = "ace", t = "abcde"  (brute force)</strong></summary>
@@ -450,32 +850,231 @@ flowchart LR
 
 <p align="center"><strong>Simultaneous traversal — <code>index2</code> always advances; <code>index1</code> only advances on a match. The two-pointer structure makes the logic explicit and easy to follow.</strong></p>
 
-```python,editable
-from typing import List
+<div class="lang-tabs">
 
+```python,editable
 class Solution:
     def subsequence_checker(self, s: str, t: str) -> bool:
-        index1 = 0  # Points at the current character in s we're trying to find in t
-        index2 = 0  # Points at the current character in t we're examining
-
-        # Run while both strings have unexamined characters
+        index1, index2 = 0, 0
         while index1 < len(s) and index2 < len(t):
             if s[index1] == t[index2]:
-                # Found the current target character from s — move s's pointer forward
-                index1 += 1
-            # Always advance t's pointer — we examine every character of t exactly once
-            index2 += 1
-
-        # If index1 reached the end of s, all characters were matched in order
-        # If index1 < len(s), t ran out before all of s was matched
-        return index1 == len(s)
+                index1 += 1                  # Advance s only on a match.
+            index2 += 1                      # Always advance t — every char examined once.
+        return index1 == len(s)              # All of s consumed → subsequence.
 
 
-print(Solution().subsequence_checker("ace", "abcde"))  # True
-print(Solution().subsequence_checker("aec", "abcde"))  # False
-print(Solution().subsequence_checker("", "abcde"))     # True  (empty string is always a subsequence)
-print(Solution().subsequence_checker("abc", ""))       # False (non-empty s can't match empty t)
+print(Solution().subsequence_checker("ace", "abcde"))   # True
+print(Solution().subsequence_checker("aec", "abcde"))   # False
+print(Solution().subsequence_checker("", "abcde"))      # True
+print(Solution().subsequence_checker("abc", ""))        # False
 ```
+
+```java,editable
+public class Main {
+    static class Solution {
+        boolean subsequenceChecker(String s, String t) {
+            int i1 = 0, i2 = 0;
+            while (i1 < s.length() && i2 < t.length()) {
+                if (s.charAt(i1) == t.charAt(i2)) i1++;
+                i2++;
+            }
+            return i1 == s.length();
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution sol = new Solution();
+        System.out.println(sol.subsequenceChecker("ace", "abcde"));
+        System.out.println(sol.subsequenceChecker("aec", "abcde"));
+        System.out.println(sol.subsequenceChecker("", "abcde"));
+        System.out.println(sol.subsequenceChecker("abc", ""));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
+
+bool subsequence_checker(const char* s, const char* t) {
+    int i1 = 0, i2 = 0;
+    int ns = (int)strlen(s), nt = (int)strlen(t);
+    while (i1 < ns && i2 < nt) {
+        if (s[i1] == t[i2]) i1++;
+        i2++;
+    }
+    return i1 == ns;
+}
+
+int main() {
+    printf("%d\n", subsequence_checker("ace", "abcde"));
+    printf("%d\n", subsequence_checker("aec", "abcde"));
+    printf("%d\n", subsequence_checker("", "abcde"));
+    printf("%d\n", subsequence_checker("abc", ""));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <string>
+
+class Solution {
+public:
+    bool subsequenceChecker(const std::string& s, const std::string& t) {
+        size_t i1 = 0, i2 = 0;
+        while (i1 < s.size() && i2 < t.size()) {
+            if (s[i1] == t[i2]) i1++;
+            i2++;
+        }
+        return i1 == s.size();
+    }
+};
+
+int main() {
+    Solution sol;
+    std::cout << std::boolalpha
+              << sol.subsequenceChecker("ace", "abcde") << "\n"
+              << sol.subsequenceChecker("aec", "abcde") << "\n"
+              << sol.subsequenceChecker("", "abcde")    << "\n"
+              << sol.subsequenceChecker("abc", "")      << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def subsequenceChecker(s: String, t: String): Boolean = {
+      var i1 = 0
+      var i2 = 0
+      while (i1 < s.length && i2 < t.length) {
+        if (s(i1) == t(i2)) i1 += 1
+        i2 += 1
+      }
+      i1 == s.length
+    }
+  }
+
+  val sol = new Solution
+  println(sol.subsequenceChecker("ace", "abcde"))
+  println(sol.subsequenceChecker("aec", "abcde"))
+  println(sol.subsequenceChecker("", "abcde"))
+  println(sol.subsequenceChecker("abc", ""))
+}
+```
+
+```javascript,editable
+class Solution {
+    subsequenceChecker(s, t) {
+        let i1 = 0, i2 = 0;
+        while (i1 < s.length && i2 < t.length) {
+            if (s[i1] === t[i2]) i1++;
+            i2++;
+        }
+        return i1 === s.length;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.subsequenceChecker("ace", "abcde"));
+console.log(sol.subsequenceChecker("aec", "abcde"));
+console.log(sol.subsequenceChecker("", "abcde"));
+console.log(sol.subsequenceChecker("abc", ""));
+```
+
+```typescript,editable
+class Solution {
+    subsequenceChecker(s: string, t: string): boolean {
+        let i1 = 0, i2 = 0;
+        while (i1 < s.length && i2 < t.length) {
+            if (s[i1] === t[i2]) i1++;
+            i2++;
+        }
+        return i1 === s.length;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.subsequenceChecker("ace", "abcde"));
+console.log(sol.subsequenceChecker("aec", "abcde"));
+console.log(sol.subsequenceChecker("", "abcde"));
+console.log(sol.subsequenceChecker("abc", ""));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func subsequenceChecker(s, t string) bool {
+    i1, i2 := 0, 0
+    for i1 < len(s) && i2 < len(t) {
+        if s[i1] == t[i2] {
+            i1++
+        }
+        i2++
+    }
+    return i1 == len(s)
+}
+
+func main() {
+    fmt.Println(subsequenceChecker("ace", "abcde"))
+    fmt.Println(subsequenceChecker("aec", "abcde"))
+    fmt.Println(subsequenceChecker("", "abcde"))
+    fmt.Println(subsequenceChecker("abc", ""))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun subsequenceChecker(s: String, t: String): Boolean {
+        var i1 = 0
+        var i2 = 0
+        while (i1 < s.length && i2 < t.length) {
+            if (s[i1] == t[i2]) i1++
+            i2++
+        }
+        return i1 == s.length
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    println(sol.subsequenceChecker("ace", "abcde"))
+    println(sol.subsequenceChecker("aec", "abcde"))
+    println(sol.subsequenceChecker("", "abcde"))
+    println(sol.subsequenceChecker("abc", ""))
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn subsequence_checker(&self, s: &str, t: &str) -> bool {
+        let sb = s.as_bytes();
+        let tb = t.as_bytes();
+        let mut i1 = 0usize;
+        let mut i2 = 0usize;
+        while i1 < sb.len() && i2 < tb.len() {
+            if sb[i1] == tb[i2] { i1 += 1; }
+            i2 += 1;
+        }
+        i1 == sb.len()
+    }
+}
+
+fn main() {
+    let s = Solution;
+    println!("{}", s.subsequence_checker("ace", "abcde"));
+    println!("{}", s.subsequence_checker("aec", "abcde"));
+    println!("{}", s.subsequence_checker("", "abcde"));
+    println!("{}", s.subsequence_checker("abc", ""));
+}
+```
+
+</div>
 
 <details>
 <summary><strong>Trace — s = "ace", t = "abcde"  (simultaneous traversal)</strong></summary>
@@ -607,34 +1206,242 @@ flowchart TB
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 class Solution:
     def is_subsequence(self, s: str, t: str) -> bool:
-        # Points at the next character in s we need to find inside t
-        index1 = 0
-        # Points at the current character in t we are examining
-        index2 = 0
-
-        # Run while both strings still have unexamined characters
+        index1, index2 = 0, 0
         while index1 < len(s) and index2 < len(t):
             if s[index1] == t[index2]:
-                # Found the current target — advance s's pointer to the next target
                 index1 += 1
-            # Always advance t's pointer: we examine every character of t exactly once
             index2 += 1
-
-        # If index1 reached the end of s, every character was matched in order
-        # If index1 < len(s), t ran out before all of s was matched
         return index1 == len(s)
 
 
 sol = Solution()
 print(sol.is_subsequence("ace", "abcde"))  # True
 print(sol.is_subsequence("aec", "abcde"))  # False
-print(sol.is_subsequence("", "abc"))       # True  — empty is always a subsequence
-print(sol.is_subsequence("abc", ""))       # False — non-empty s can't fit in empty t
-print(sol.is_subsequence("abc", "abc"))    # True  — s equals t, still a valid subsequence
+print(sol.is_subsequence("", "abc"))       # True
+print(sol.is_subsequence("abc", ""))       # False
+print(sol.is_subsequence("abc", "abc"))    # True
 ```
+
+```java,editable
+public class Main {
+    static class Solution {
+        boolean isSubsequence(String s, String t) {
+            int i1 = 0, i2 = 0;
+            while (i1 < s.length() && i2 < t.length()) {
+                if (s.charAt(i1) == t.charAt(i2)) i1++;
+                i2++;
+            }
+            return i1 == s.length();
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution sol = new Solution();
+        System.out.println(sol.isSubsequence("ace", "abcde"));
+        System.out.println(sol.isSubsequence("aec", "abcde"));
+        System.out.println(sol.isSubsequence("", "abc"));
+        System.out.println(sol.isSubsequence("abc", ""));
+        System.out.println(sol.isSubsequence("abc", "abc"));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
+
+bool is_subsequence(const char* s, const char* t) {
+    int i1 = 0, i2 = 0;
+    int ns = (int)strlen(s), nt = (int)strlen(t);
+    while (i1 < ns && i2 < nt) {
+        if (s[i1] == t[i2]) i1++;
+        i2++;
+    }
+    return i1 == ns;
+}
+
+int main() {
+    printf("%d\n", is_subsequence("ace", "abcde"));
+    printf("%d\n", is_subsequence("aec", "abcde"));
+    printf("%d\n", is_subsequence("", "abc"));
+    printf("%d\n", is_subsequence("abc", ""));
+    printf("%d\n", is_subsequence("abc", "abc"));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <string>
+
+class Solution {
+public:
+    bool isSubsequence(const std::string& s, const std::string& t) {
+        size_t i1 = 0, i2 = 0;
+        while (i1 < s.size() && i2 < t.size()) {
+            if (s[i1] == t[i2]) i1++;
+            i2++;
+        }
+        return i1 == s.size();
+    }
+};
+
+int main() {
+    Solution sol;
+    std::cout << std::boolalpha
+              << sol.isSubsequence("ace", "abcde") << "\n"
+              << sol.isSubsequence("aec", "abcde") << "\n"
+              << sol.isSubsequence("", "abc")      << "\n"
+              << sol.isSubsequence("abc", "")      << "\n"
+              << sol.isSubsequence("abc", "abc")   << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def isSubsequence(s: String, t: String): Boolean = {
+      var i1 = 0
+      var i2 = 0
+      while (i1 < s.length && i2 < t.length) {
+        if (s(i1) == t(i2)) i1 += 1
+        i2 += 1
+      }
+      i1 == s.length
+    }
+  }
+
+  val sol = new Solution
+  println(sol.isSubsequence("ace", "abcde"))
+  println(sol.isSubsequence("aec", "abcde"))
+  println(sol.isSubsequence("", "abc"))
+  println(sol.isSubsequence("abc", ""))
+  println(sol.isSubsequence("abc", "abc"))
+}
+```
+
+```javascript,editable
+class Solution {
+    isSubsequence(s, t) {
+        let i1 = 0, i2 = 0;
+        while (i1 < s.length && i2 < t.length) {
+            if (s[i1] === t[i2]) i1++;
+            i2++;
+        }
+        return i1 === s.length;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.isSubsequence("ace", "abcde"));
+console.log(sol.isSubsequence("aec", "abcde"));
+console.log(sol.isSubsequence("", "abc"));
+console.log(sol.isSubsequence("abc", ""));
+console.log(sol.isSubsequence("abc", "abc"));
+```
+
+```typescript,editable
+class Solution {
+    isSubsequence(s: string, t: string): boolean {
+        let i1 = 0, i2 = 0;
+        while (i1 < s.length && i2 < t.length) {
+            if (s[i1] === t[i2]) i1++;
+            i2++;
+        }
+        return i1 === s.length;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.isSubsequence("ace", "abcde"));
+console.log(sol.isSubsequence("aec", "abcde"));
+console.log(sol.isSubsequence("", "abc"));
+console.log(sol.isSubsequence("abc", ""));
+console.log(sol.isSubsequence("abc", "abc"));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func isSubsequence(s, t string) bool {
+    i1, i2 := 0, 0
+    for i1 < len(s) && i2 < len(t) {
+        if s[i1] == t[i2] {
+            i1++
+        }
+        i2++
+    }
+    return i1 == len(s)
+}
+
+func main() {
+    fmt.Println(isSubsequence("ace", "abcde"))
+    fmt.Println(isSubsequence("aec", "abcde"))
+    fmt.Println(isSubsequence("", "abc"))
+    fmt.Println(isSubsequence("abc", ""))
+    fmt.Println(isSubsequence("abc", "abc"))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun isSubsequence(s: String, t: String): Boolean {
+        var i1 = 0
+        var i2 = 0
+        while (i1 < s.length && i2 < t.length) {
+            if (s[i1] == t[i2]) i1++
+            i2++
+        }
+        return i1 == s.length
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    println(sol.isSubsequence("ace", "abcde"))
+    println(sol.isSubsequence("aec", "abcde"))
+    println(sol.isSubsequence("", "abc"))
+    println(sol.isSubsequence("abc", ""))
+    println(sol.isSubsequence("abc", "abc"))
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn is_subsequence(&self, s: &str, t: &str) -> bool {
+        let sb = s.as_bytes();
+        let tb = t.as_bytes();
+        let mut i1 = 0usize;
+        let mut i2 = 0usize;
+        while i1 < sb.len() && i2 < tb.len() {
+            if sb[i1] == tb[i2] { i1 += 1; }
+            i2 += 1;
+        }
+        i1 == sb.len()
+    }
+}
+
+fn main() {
+    let s = Solution;
+    println!("{}", s.is_subsequence("ace", "abcde"));
+    println!("{}", s.is_subsequence("aec", "abcde"));
+    println!("{}", s.is_subsequence("", "abc"));
+    println!("{}", s.is_subsequence("abc", ""));
+    println!("{}", s.is_subsequence("abc", "abc"));
+}
+```
+
+</div>
 
 ---
 
@@ -878,30 +1685,25 @@ flowchart TB
 
 ## The Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
-    def merge_sorted_arrays(
-        self, arr1: List[int], m: int, arr2: List[int], n: int
-    ) -> None:
-        i1 = m - 1      # Last valid element in arr1 (positions m..m+n-1 are zeros)
-        i2 = n - 1      # Last element in arr2
-        i3 = m + n - 1  # Next write slot — starts at the very back of arr1
-
-        # Fill from the back: at each step, the larger of the two candidates claims slot i3
+    def merge_sorted_arrays(self, arr1: List[int], m: int,
+                                  arr2: List[int], n: int) -> None:
+        # Fill arr1 from the back: arr1's tail is reserved zeros, so writes never clobber unread data.
+        i1, i2, i3 = m - 1, n - 1, m + n - 1
         while i1 >= 0 and i2 >= 0:
             if arr1[i1] > arr2[i2]:
-                arr1[i3] = arr1[i1]  # arr1's candidate wins — move it to the write slot
-                i1 -= 1              # arr1's read pointer steps one position left
+                arr1[i3] = arr1[i1]
+                i1 -= 1
             else:
-                arr1[i3] = arr2[i2]  # arr2's candidate wins (also handles ties — either is correct)
-                i2 -= 1              # arr2's read pointer steps one position left
-            i3 -= 1                  # Write slot moves left regardless of which candidate won
-
-        # If arr2 still has elements, they are all smaller than anything already placed.
-        # Copy them directly — no comparison needed.
-        # If arr1 still has elements (i1 >= 0), they are already in position — do nothing.
+                arr1[i3] = arr2[i2]
+                i2 -= 1
+            i3 -= 1
+        # Anything left in arr2 is smaller than everything already placed → copy directly.
         while i2 >= 0:
             arr1[i3] = arr2[i2]
             i2 -= 1
@@ -910,22 +1712,294 @@ class Solution:
 
 sol = Solution()
 
-arr1 = [1, 2, 3, 0, 0]
-sol.merge_sorted_arrays(arr1, 3, [4, 5], 2)
-print(arr1)  # [1, 2, 3, 4, 5]
-
-arr1 = [1, 2, 5, 0, 0]
-sol.merge_sorted_arrays(arr1, 3, [3, 4], 2)
-print(arr1)  # [1, 2, 3, 4, 5]
-
-arr1 = [1]
-sol.merge_sorted_arrays(arr1, 1, [], 0)
-print(arr1)  # [1]
-
-arr1 = [0]
-sol.merge_sorted_arrays(arr1, 0, [1], 1)
-print(arr1)  # [1]
+arr1 = [1, 2, 3, 0, 0]; sol.merge_sorted_arrays(arr1, 3, [4, 5], 2); print(arr1)
+arr1 = [1, 2, 5, 0, 0]; sol.merge_sorted_arrays(arr1, 3, [3, 4], 2); print(arr1)
+arr1 = [1];             sol.merge_sorted_arrays(arr1, 1, [], 0);     print(arr1)
+arr1 = [0];             sol.merge_sorted_arrays(arr1, 0, [1], 1);    print(arr1)
 ```
+
+```java,editable
+import java.util.Arrays;
+
+public class Main {
+    static class Solution {
+        void mergeSortedArrays(int[] arr1, int m, int[] arr2, int n) {
+            int i1 = m - 1, i2 = n - 1, i3 = m + n - 1;
+            while (i1 >= 0 && i2 >= 0) {
+                if (arr1[i1] > arr2[i2]) { arr1[i3] = arr1[i1]; i1--; }
+                else                     { arr1[i3] = arr2[i2]; i2--; }
+                i3--;
+            }
+            while (i2 >= 0) { arr1[i3] = arr2[i2]; i2--; i3--; }
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution sol = new Solution();
+
+        int[] a1 = {1, 2, 3, 0, 0};
+        sol.mergeSortedArrays(a1, 3, new int[]{4, 5}, 2);
+        System.out.println(Arrays.toString(a1));
+
+        int[] a2 = {1, 2, 5, 0, 0};
+        sol.mergeSortedArrays(a2, 3, new int[]{3, 4}, 2);
+        System.out.println(Arrays.toString(a2));
+
+        int[] a3 = {1};
+        sol.mergeSortedArrays(a3, 1, new int[]{}, 0);
+        System.out.println(Arrays.toString(a3));
+
+        int[] a4 = {0};
+        sol.mergeSortedArrays(a4, 0, new int[]{1}, 1);
+        System.out.println(Arrays.toString(a4));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+void merge_sorted_arrays(int* arr1, int m, int* arr2, int n) {
+    int i1 = m - 1, i2 = n - 1, i3 = m + n - 1;
+    while (i1 >= 0 && i2 >= 0) {
+        if (arr1[i1] > arr2[i2]) { arr1[i3] = arr1[i1]; i1--; }
+        else                     { arr1[i3] = arr2[i2]; i2--; }
+        i3--;
+    }
+    while (i2 >= 0) { arr1[i3] = arr2[i2]; i2--; i3--; }
+}
+
+void print_arr(int* arr, int n) {
+    printf("[");
+    for (int i = 0; i < n; i++) printf("%d%s", arr[i], i + 1 < n ? ", " : "");
+    printf("]\n");
+}
+
+int main() {
+    int a1[] = {1, 2, 3, 0, 0};
+    int b1[] = {4, 5};
+    merge_sorted_arrays(a1, 3, b1, 2); print_arr(a1, 5);
+
+    int a2[] = {1, 2, 5, 0, 0};
+    int b2[] = {3, 4};
+    merge_sorted_arrays(a2, 3, b2, 2); print_arr(a2, 5);
+
+    int a3[] = {1};
+    merge_sorted_arrays(a3, 1, NULL, 0); print_arr(a3, 1);
+
+    int a4[] = {0};
+    int b4[] = {1};
+    merge_sorted_arrays(a4, 0, b4, 1); print_arr(a4, 1);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+class Solution {
+public:
+    void mergeSortedArrays(std::vector<int>& arr1, int m,
+                           std::vector<int>& arr2, int n) {
+        int i1 = m - 1, i2 = n - 1, i3 = m + n - 1;
+        while (i1 >= 0 && i2 >= 0) {
+            if (arr1[i1] > arr2[i2]) { arr1[i3] = arr1[i1]; i1--; }
+            else                     { arr1[i3] = arr2[i2]; i2--; }
+            i3--;
+        }
+        while (i2 >= 0) { arr1[i3] = arr2[i2]; i2--; i3--; }
+    }
+};
+
+void print(const std::vector<int>& v) {
+    std::cout << "[";
+    for (size_t i = 0; i < v.size(); i++) std::cout << v[i] << (i + 1 < v.size() ? ", " : "");
+    std::cout << "]\n";
+}
+
+int main() {
+    Solution sol;
+
+    std::vector<int> a1 = {1, 2, 3, 0, 0};
+    std::vector<int> b1 = {4, 5};
+    sol.mergeSortedArrays(a1, 3, b1, 2); print(a1);
+
+    std::vector<int> a2 = {1, 2, 5, 0, 0};
+    std::vector<int> b2 = {3, 4};
+    sol.mergeSortedArrays(a2, 3, b2, 2); print(a2);
+
+    std::vector<int> a3 = {1};
+    std::vector<int> b3 = {};
+    sol.mergeSortedArrays(a3, 1, b3, 0); print(a3);
+
+    std::vector<int> a4 = {0};
+    std::vector<int> b4 = {1};
+    sol.mergeSortedArrays(a4, 0, b4, 1); print(a4);
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def mergeSortedArrays(arr1: Array[Int], m: Int, arr2: Array[Int], n: Int): Unit = {
+      var i1 = m - 1
+      var i2 = n - 1
+      var i3 = m + n - 1
+      while (i1 >= 0 && i2 >= 0) {
+        if (arr1(i1) > arr2(i2)) { arr1(i3) = arr1(i1); i1 -= 1 }
+        else                      { arr1(i3) = arr2(i2); i2 -= 1 }
+        i3 -= 1
+      }
+      while (i2 >= 0) { arr1(i3) = arr2(i2); i2 -= 1; i3 -= 1 }
+    }
+  }
+
+  val sol = new Solution
+
+  val a1 = Array(1, 2, 3, 0, 0); sol.mergeSortedArrays(a1, 3, Array(4, 5), 2); println(a1.mkString(", "))
+  val a2 = Array(1, 2, 5, 0, 0); sol.mergeSortedArrays(a2, 3, Array(3, 4), 2); println(a2.mkString(", "))
+  val a3 = Array(1);             sol.mergeSortedArrays(a3, 1, Array.empty[Int], 0); println(a3.mkString(", "))
+  val a4 = Array(0);             sol.mergeSortedArrays(a4, 0, Array(1), 1);    println(a4.mkString(", "))
+}
+```
+
+```javascript,editable
+class Solution {
+    mergeSortedArrays(arr1, m, arr2, n) {
+        let i1 = m - 1, i2 = n - 1, i3 = m + n - 1;
+        while (i1 >= 0 && i2 >= 0) {
+            if (arr1[i1] > arr2[i2]) { arr1[i3] = arr1[i1]; i1--; }
+            else                     { arr1[i3] = arr2[i2]; i2--; }
+            i3--;
+        }
+        while (i2 >= 0) { arr1[i3] = arr2[i2]; i2--; i3--; }
+    }
+}
+
+const sol = new Solution();
+
+let a1 = [1, 2, 3, 0, 0]; sol.mergeSortedArrays(a1, 3, [4, 5], 2); console.log(a1);
+let a2 = [1, 2, 5, 0, 0]; sol.mergeSortedArrays(a2, 3, [3, 4], 2); console.log(a2);
+let a3 = [1];             sol.mergeSortedArrays(a3, 1, [], 0);     console.log(a3);
+let a4 = [0];             sol.mergeSortedArrays(a4, 0, [1], 1);    console.log(a4);
+```
+
+```typescript,editable
+class Solution {
+    mergeSortedArrays(arr1: number[], m: number, arr2: number[], n: number): void {
+        let i1 = m - 1, i2 = n - 1, i3 = m + n - 1;
+        while (i1 >= 0 && i2 >= 0) {
+            if (arr1[i1] > arr2[i2]) { arr1[i3] = arr1[i1]; i1--; }
+            else                     { arr1[i3] = arr2[i2]; i2--; }
+            i3--;
+        }
+        while (i2 >= 0) { arr1[i3] = arr2[i2]; i2--; i3--; }
+    }
+}
+
+const sol = new Solution();
+
+let a1: number[] = [1, 2, 3, 0, 0]; sol.mergeSortedArrays(a1, 3, [4, 5], 2); console.log(a1);
+let a2: number[] = [1, 2, 5, 0, 0]; sol.mergeSortedArrays(a2, 3, [3, 4], 2); console.log(a2);
+let a3: number[] = [1];             sol.mergeSortedArrays(a3, 1, [], 0);     console.log(a3);
+let a4: number[] = [0];             sol.mergeSortedArrays(a4, 0, [1], 1);    console.log(a4);
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func mergeSortedArrays(arr1 []int, m int, arr2 []int, n int) {
+    i1, i2, i3 := m-1, n-1, m+n-1
+    for i1 >= 0 && i2 >= 0 {
+        if arr1[i1] > arr2[i2] {
+            arr1[i3] = arr1[i1]
+            i1--
+        } else {
+            arr1[i3] = arr2[i2]
+            i2--
+        }
+        i3--
+    }
+    for i2 >= 0 {
+        arr1[i3] = arr2[i2]
+        i2--
+        i3--
+    }
+}
+
+func main() {
+    a1 := []int{1, 2, 3, 0, 0}; mergeSortedArrays(a1, 3, []int{4, 5}, 2); fmt.Println(a1)
+    a2 := []int{1, 2, 5, 0, 0}; mergeSortedArrays(a2, 3, []int{3, 4}, 2); fmt.Println(a2)
+    a3 := []int{1};             mergeSortedArrays(a3, 1, []int{}, 0);     fmt.Println(a3)
+    a4 := []int{0};             mergeSortedArrays(a4, 0, []int{1}, 1);    fmt.Println(a4)
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun mergeSortedArrays(arr1: IntArray, m: Int, arr2: IntArray, n: Int) {
+        var i1 = m - 1
+        var i2 = n - 1
+        var i3 = m + n - 1
+        while (i1 >= 0 && i2 >= 0) {
+            if (arr1[i1] > arr2[i2]) { arr1[i3] = arr1[i1]; i1-- }
+            else                     { arr1[i3] = arr2[i2]; i2-- }
+            i3--
+        }
+        while (i2 >= 0) { arr1[i3] = arr2[i2]; i2--; i3-- }
+    }
+}
+
+fun main() {
+    val sol = Solution()
+
+    val a1 = intArrayOf(1, 2, 3, 0, 0); sol.mergeSortedArrays(a1, 3, intArrayOf(4, 5), 2); println(a1.toList())
+    val a2 = intArrayOf(1, 2, 5, 0, 0); sol.mergeSortedArrays(a2, 3, intArrayOf(3, 4), 2); println(a2.toList())
+    val a3 = intArrayOf(1);             sol.mergeSortedArrays(a3, 1, intArrayOf(), 0);    println(a3.toList())
+    val a4 = intArrayOf(0);             sol.mergeSortedArrays(a4, 0, intArrayOf(1), 1);   println(a4.toList())
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn merge_sorted_arrays(&self, arr1: &mut [i32], m: i32, arr2: &[i32], n: i32) {
+        let mut i1 = m - 1;
+        let mut i2 = n - 1;
+        let mut i3 = m + n - 1;
+        while i1 >= 0 && i2 >= 0 {
+            if arr1[i1 as usize] > arr2[i2 as usize] {
+                arr1[i3 as usize] = arr1[i1 as usize];
+                i1 -= 1;
+            } else {
+                arr1[i3 as usize] = arr2[i2 as usize];
+                i2 -= 1;
+            }
+            i3 -= 1;
+        }
+        while i2 >= 0 {
+            arr1[i3 as usize] = arr2[i2 as usize];
+            i2 -= 1;
+            i3 -= 1;
+        }
+    }
+}
+
+fn main() {
+    let s = Solution;
+
+    let mut a1 = [1, 2, 3, 0, 0]; s.merge_sorted_arrays(&mut a1, 3, &[4, 5], 2); println!("{:?}", a1);
+    let mut a2 = [1, 2, 5, 0, 0]; s.merge_sorted_arrays(&mut a2, 3, &[3, 4], 2); println!("{:?}", a2);
+    let mut a3 = [1];             s.merge_sorted_arrays(&mut a3, 1, &[], 0);     println!("{:?}", a3);
+    let mut a4 = [0];             s.merge_sorted_arrays(&mut a4, 0, &[1], 1);    println!("{:?}", a4);
+}
+```
+
+</div>
 
 <details>
 <summary><strong>Trace — arr1 = [1, 2, 5, 0, 0], m = 3, arr2 = [3, 4], n = 2</strong></summary>
@@ -1087,26 +2161,237 @@ flowchart TB
 
 ## Brute Force: Nested Loops, O(N × M)
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 def unique_intersections_brute(arr1: List[int], arr2: List[int]) -> List[int]:
-    # Use a set to avoid recording duplicates in the result
     seen = set()
     result = []
-
-    # For every element in arr1, scan all of arr2 for a match
     for x in arr1:
         for y in arr2:
             if x == y and x not in seen:
                 result.append(x)
                 seen.add(x)
-                break  # No need to keep scanning arr2 for this x
-
+                break
     return result
 
 print(unique_intersections_brute([1, 2, 2, 3, 4], [2, 2, 3, 5]))  # [2, 3]
 ```
+
+```java,editable
+import java.util.*;
+
+public class Main {
+    static List<Integer> uniqueIntersectionsBrute(int[] arr1, int[] arr2) {
+        Set<Integer> seen = new HashSet<>();
+        List<Integer> result = new ArrayList<>();
+        for (int x : arr1) {
+            for (int y : arr2) {
+                if (x == y && !seen.contains(x)) {
+                    result.add(x);
+                    seen.add(x);
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(uniqueIntersectionsBrute(new int[]{1, 2, 2, 3, 4}, new int[]{2, 2, 3, 5}));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdbool.h>
+
+int main() {
+    int arr1[] = {1, 2, 2, 3, 4};
+    int arr2[] = {2, 2, 3, 5};
+    int n1 = 5, n2 = 4;
+
+    int seen[100] = {0};   /* boolean flags for small ints in this demo */
+    printf("[");
+    int first = 1;
+    for (int i = 0; i < n1; i++) {
+        for (int j = 0; j < n2; j++) {
+            if (arr1[i] == arr2[j] && !seen[arr1[i]]) {
+                if (!first) printf(", ");
+                printf("%d", arr1[i]);
+                seen[arr1[i]] = 1;
+                first = 0;
+                break;
+            }
+        }
+    }
+    printf("]\n");
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <unordered_set>
+
+std::vector<int> uniqueIntersectionsBrute(const std::vector<int>& arr1,
+                                          const std::vector<int>& arr2) {
+    std::unordered_set<int> seen;
+    std::vector<int> result;
+    for (int x : arr1) {
+        for (int y : arr2) {
+            if (x == y && !seen.count(x)) {
+                result.push_back(x);
+                seen.insert(x);
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+int main() {
+    auto r = uniqueIntersectionsBrute({1, 2, 2, 3, 4}, {2, 2, 3, 5});
+    std::cout << "[";
+    for (size_t i = 0; i < r.size(); i++) std::cout << r[i] << (i + 1 < r.size() ? ", " : "");
+    std::cout << "]\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  def uniqueIntersectionsBrute(arr1: Array[Int], arr2: Array[Int]): List[Int] = {
+    val seen = scala.collection.mutable.Set[Int]()
+    val result = scala.collection.mutable.ListBuffer.empty[Int]
+    for (x <- arr1) {
+      var found = false
+      for (y <- arr2 if !found) {
+        if (x == y && !seen.contains(x)) {
+          result += x
+          seen += x
+          found = true
+        }
+      }
+    }
+    result.toList
+  }
+
+  println(uniqueIntersectionsBrute(Array(1, 2, 2, 3, 4), Array(2, 2, 3, 5)))
+}
+```
+
+```javascript,editable
+function uniqueIntersectionsBrute(arr1, arr2) {
+    const seen = new Set();
+    const result = [];
+    for (const x of arr1) {
+        for (const y of arr2) {
+            if (x === y && !seen.has(x)) {
+                result.push(x);
+                seen.add(x);
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+console.log(uniqueIntersectionsBrute([1, 2, 2, 3, 4], [2, 2, 3, 5]));
+```
+
+```typescript,editable
+function uniqueIntersectionsBrute(arr1: number[], arr2: number[]): number[] {
+    const seen = new Set<number>();
+    const result: number[] = [];
+    for (const x of arr1) {
+        for (const y of arr2) {
+            if (x === y && !seen.has(x)) {
+                result.push(x);
+                seen.add(x);
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+console.log(uniqueIntersectionsBrute([1, 2, 2, 3, 4], [2, 2, 3, 5]));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func uniqueIntersectionsBrute(arr1, arr2 []int) []int {
+    seen := map[int]bool{}
+    var result []int
+    for _, x := range arr1 {
+        for _, y := range arr2 {
+            if x == y && !seen[x] {
+                result = append(result, x)
+                seen[x] = true
+                break
+            }
+        }
+    }
+    return result
+}
+
+func main() {
+    fmt.Println(uniqueIntersectionsBrute([]int{1, 2, 2, 3, 4}, []int{2, 2, 3, 5}))
+}
+```
+
+```kotlin,editable
+fun uniqueIntersectionsBrute(arr1: IntArray, arr2: IntArray): List<Int> {
+    val seen = mutableSetOf<Int>()
+    val result = mutableListOf<Int>()
+    for (x in arr1) {
+        for (y in arr2) {
+            if (x == y && x !in seen) {
+                result.add(x)
+                seen.add(x)
+                break
+            }
+        }
+    }
+    return result
+}
+
+fun main() {
+    println(uniqueIntersectionsBrute(intArrayOf(1, 2, 2, 3, 4), intArrayOf(2, 2, 3, 5)))
+}
+```
+
+```rust,editable
+use std::collections::HashSet;
+
+fn unique_intersections_brute(arr1: &[i32], arr2: &[i32]) -> Vec<i32> {
+    let mut seen: HashSet<i32> = HashSet::new();
+    let mut result = Vec::new();
+    for &x in arr1 {
+        for &y in arr2 {
+            if x == y && !seen.contains(&x) {
+                result.push(x);
+                seen.insert(x);
+                break;
+            }
+        }
+    }
+    result
+}
+
+fn main() {
+    println!("{:?}", unique_intersections_brute(&[1, 2, 2, 3, 4], &[2, 2, 3, 5]));
+}
+```
+
+</div>
 
 Works, but rescans `arr2` for every element in `arr1` — O(N × M) and easy to get wrong with the duplicate-tracking logic.
 
@@ -1114,46 +2399,356 @@ Works, but rescans `arr2` for every element in `arr1` — O(N × M) and easy to 
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
     def unique_intersections(self, arr1: List[int], arr2: List[int]) -> List[int]:
-        # Sort both arrays to enable simultaneous traversal
         arr1.sort()
         arr2.sort()
-
         result = []
-        # Initialize pointers at the start of each array
-        i = 0
-        j = 0
+        i = j = 0
 
-        # Main loop: run while both arrays have unprocessed elements
         while i < len(arr1) and j < len(arr2):
             if arr1[i] == arr2[j]:
-                # Common element found — record only if it is not a duplicate of the last result entry
+                # Skip duplicates by comparing against the last recorded result.
                 if not result or result[-1] != arr1[i]:
                     result.append(arr1[i])
-                # Advance both pointers past this match
                 i += 1
                 j += 1
             elif arr1[i] < arr2[j]:
-                # arr1's element is smaller — it can't match anything in arr2 at or before j
-                i += 1
+                i += 1                         # arr1's element is too small → skip.
             else:
-                # arr2's element is smaller — it can't match anything in arr1 at or before i
-                j += 1
-
+                j += 1                         # arr2's element is too small → skip.
         return result
 
 
 sol = Solution()
-print(sol.unique_intersections([1, 2, 2, 3, 4], [2, 2, 3, 5]))    # [2, 3]
-print(sol.unique_intersections([1, 3, 5], [2, 4, 6]))              # []
-print(sol.unique_intersections([2, 2, 2], [2, 2]))                 # [2]
-print(sol.unique_intersections([1, 2, 3, 4, 5], [1, 3, 5, 7]))    # [1, 3, 5]
-print(sol.unique_intersections([], [1, 2, 3]))                     # []
+print(sol.unique_intersections([1, 2, 2, 3, 4], [2, 2, 3, 5]))   # [2, 3]
+print(sol.unique_intersections([1, 3, 5], [2, 4, 6]))             # []
+print(sol.unique_intersections([2, 2, 2], [2, 2]))                # [2]
+print(sol.unique_intersections([1, 2, 3, 4, 5], [1, 3, 5, 7]))   # [1, 3, 5]
+print(sol.unique_intersections([], [1, 2, 3]))                    # []
 ```
+
+```java,editable
+import java.util.*;
+
+public class Main {
+    static class Solution {
+        List<Integer> uniqueIntersections(int[] arr1, int[] arr2) {
+            Arrays.sort(arr1);
+            Arrays.sort(arr2);
+            List<Integer> result = new ArrayList<>();
+            int i = 0, j = 0;
+            while (i < arr1.length && j < arr2.length) {
+                if (arr1[i] == arr2[j]) {
+                    if (result.isEmpty() || result.get(result.size() - 1) != arr1[i])
+                        result.add(arr1[i]);
+                    i++; j++;
+                } else if (arr1[i] < arr2[j]) {
+                    i++;
+                } else {
+                    j++;
+                }
+            }
+            return result;
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution sol = new Solution();
+        System.out.println(sol.uniqueIntersections(new int[]{1, 2, 2, 3, 4}, new int[]{2, 2, 3, 5}));
+        System.out.println(sol.uniqueIntersections(new int[]{1, 3, 5}, new int[]{2, 4, 6}));
+        System.out.println(sol.uniqueIntersections(new int[]{2, 2, 2}, new int[]{2, 2}));
+        System.out.println(sol.uniqueIntersections(new int[]{1, 2, 3, 4, 5}, new int[]{1, 3, 5, 7}));
+        System.out.println(sol.uniqueIntersections(new int[]{}, new int[]{1, 2, 3}));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+
+int cmp(const void* a, const void* b) { return (*(int*)a) - (*(int*)b); }
+
+void unique_intersections(int* arr1, int n1, int* arr2, int n2) {
+    qsort(arr1, n1, sizeof(int), cmp);
+    qsort(arr2, n2, sizeof(int), cmp);
+
+    printf("[");
+    int i = 0, j = 0, last = 0, has_last = 0, first = 1;
+    while (i < n1 && j < n2) {
+        if (arr1[i] == arr2[j]) {
+            if (!has_last || last != arr1[i]) {
+                if (!first) printf(", ");
+                printf("%d", arr1[i]);
+                last = arr1[i];
+                has_last = 1;
+                first = 0;
+            }
+            i++;
+            j++;
+        } else if (arr1[i] < arr2[j]) i++;
+        else                          j++;
+    }
+    printf("]\n");
+}
+
+int main() {
+    int a1[] = {1, 2, 2, 3, 4}; int b1[] = {2, 2, 3, 5}; unique_intersections(a1, 5, b1, 4);
+    int a2[] = {1, 3, 5};       int b2[] = {2, 4, 6};    unique_intersections(a2, 3, b2, 3);
+    int a3[] = {2, 2, 2};       int b3[] = {2, 2};       unique_intersections(a3, 3, b3, 2);
+    int a4[] = {1, 2, 3, 4, 5}; int b4[] = {1, 3, 5, 7}; unique_intersections(a4, 5, b4, 4);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+class Solution {
+public:
+    std::vector<int> uniqueIntersections(std::vector<int> arr1, std::vector<int> arr2) {
+        std::sort(arr1.begin(), arr1.end());
+        std::sort(arr2.begin(), arr2.end());
+        std::vector<int> result;
+        size_t i = 0, j = 0;
+        while (i < arr1.size() && j < arr2.size()) {
+            if (arr1[i] == arr2[j]) {
+                if (result.empty() || result.back() != arr1[i])
+                    result.push_back(arr1[i]);
+                i++; j++;
+            } else if (arr1[i] < arr2[j]) {
+                i++;
+            } else {
+                j++;
+            }
+        }
+        return result;
+    }
+};
+
+void print(const std::vector<int>& v) {
+    std::cout << "[";
+    for (size_t i = 0; i < v.size(); i++) std::cout << v[i] << (i + 1 < v.size() ? ", " : "");
+    std::cout << "]\n";
+}
+
+int main() {
+    Solution sol;
+    print(sol.uniqueIntersections({1, 2, 2, 3, 4}, {2, 2, 3, 5}));
+    print(sol.uniqueIntersections({1, 3, 5}, {2, 4, 6}));
+    print(sol.uniqueIntersections({2, 2, 2}, {2, 2}));
+    print(sol.uniqueIntersections({1, 2, 3, 4, 5}, {1, 3, 5, 7}));
+    print(sol.uniqueIntersections({}, {1, 2, 3}));
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def uniqueIntersections(arr1: Array[Int], arr2: Array[Int]): List[Int] = {
+      val a = arr1.sorted
+      val b = arr2.sorted
+      val result = scala.collection.mutable.ListBuffer.empty[Int]
+      var i = 0
+      var j = 0
+      while (i < a.length && j < b.length) {
+        if (a(i) == b(j)) {
+          if (result.isEmpty || result.last != a(i)) result += a(i)
+          i += 1
+          j += 1
+        } else if (a(i) < b(j)) i += 1
+        else                    j += 1
+      }
+      result.toList
+    }
+  }
+
+  val sol = new Solution
+  println(sol.uniqueIntersections(Array(1, 2, 2, 3, 4), Array(2, 2, 3, 5)))
+  println(sol.uniqueIntersections(Array(1, 3, 5), Array(2, 4, 6)))
+  println(sol.uniqueIntersections(Array(2, 2, 2), Array(2, 2)))
+  println(sol.uniqueIntersections(Array(1, 2, 3, 4, 5), Array(1, 3, 5, 7)))
+  println(sol.uniqueIntersections(Array.empty[Int], Array(1, 2, 3)))
+}
+```
+
+```javascript,editable
+class Solution {
+    uniqueIntersections(arr1, arr2) {
+        arr1.sort((a, b) => a - b);
+        arr2.sort((a, b) => a - b);
+        const result = [];
+        let i = 0, j = 0;
+        while (i < arr1.length && j < arr2.length) {
+            if (arr1[i] === arr2[j]) {
+                if (result.length === 0 || result[result.length - 1] !== arr1[i])
+                    result.push(arr1[i]);
+                i++; j++;
+            } else if (arr1[i] < arr2[j]) {
+                i++;
+            } else {
+                j++;
+            }
+        }
+        return result;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.uniqueIntersections([1, 2, 2, 3, 4], [2, 2, 3, 5]));
+console.log(sol.uniqueIntersections([1, 3, 5], [2, 4, 6]));
+console.log(sol.uniqueIntersections([2, 2, 2], [2, 2]));
+console.log(sol.uniqueIntersections([1, 2, 3, 4, 5], [1, 3, 5, 7]));
+console.log(sol.uniqueIntersections([], [1, 2, 3]));
+```
+
+```typescript,editable
+class Solution {
+    uniqueIntersections(arr1: number[], arr2: number[]): number[] {
+        arr1.sort((a, b) => a - b);
+        arr2.sort((a, b) => a - b);
+        const result: number[] = [];
+        let i = 0, j = 0;
+        while (i < arr1.length && j < arr2.length) {
+            if (arr1[i] === arr2[j]) {
+                if (result.length === 0 || result[result.length - 1] !== arr1[i])
+                    result.push(arr1[i]);
+                i++; j++;
+            } else if (arr1[i] < arr2[j]) {
+                i++;
+            } else {
+                j++;
+            }
+        }
+        return result;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.uniqueIntersections([1, 2, 2, 3, 4], [2, 2, 3, 5]));
+console.log(sol.uniqueIntersections([1, 3, 5], [2, 4, 6]));
+console.log(sol.uniqueIntersections([2, 2, 2], [2, 2]));
+console.log(sol.uniqueIntersections([1, 2, 3, 4, 5], [1, 3, 5, 7]));
+console.log(sol.uniqueIntersections([], [1, 2, 3]));
+```
+
+```go,editable
+package main
+
+import (
+    "fmt"
+    "sort"
+)
+
+func uniqueIntersections(arr1, arr2 []int) []int {
+    sort.Ints(arr1)
+    sort.Ints(arr2)
+    var result []int
+    i, j := 0, 0
+    for i < len(arr1) && j < len(arr2) {
+        switch {
+        case arr1[i] == arr2[j]:
+            if len(result) == 0 || result[len(result)-1] != arr1[i] {
+                result = append(result, arr1[i])
+            }
+            i++
+            j++
+        case arr1[i] < arr2[j]:
+            i++
+        default:
+            j++
+        }
+    }
+    return result
+}
+
+func main() {
+    fmt.Println(uniqueIntersections([]int{1, 2, 2, 3, 4}, []int{2, 2, 3, 5}))
+    fmt.Println(uniqueIntersections([]int{1, 3, 5}, []int{2, 4, 6}))
+    fmt.Println(uniqueIntersections([]int{2, 2, 2}, []int{2, 2}))
+    fmt.Println(uniqueIntersections([]int{1, 2, 3, 4, 5}, []int{1, 3, 5, 7}))
+    fmt.Println(uniqueIntersections([]int{}, []int{1, 2, 3}))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun uniqueIntersections(arr1: IntArray, arr2: IntArray): List<Int> {
+        arr1.sort()
+        arr2.sort()
+        val result = mutableListOf<Int>()
+        var i = 0
+        var j = 0
+        while (i < arr1.size && j < arr2.size) {
+            when {
+                arr1[i] == arr2[j] -> {
+                    if (result.isEmpty() || result.last() != arr1[i]) result.add(arr1[i])
+                    i++; j++
+                }
+                arr1[i] < arr2[j] -> i++
+                else              -> j++
+            }
+        }
+        return result
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    println(sol.uniqueIntersections(intArrayOf(1, 2, 2, 3, 4), intArrayOf(2, 2, 3, 5)))
+    println(sol.uniqueIntersections(intArrayOf(1, 3, 5), intArrayOf(2, 4, 6)))
+    println(sol.uniqueIntersections(intArrayOf(2, 2, 2), intArrayOf(2, 2)))
+    println(sol.uniqueIntersections(intArrayOf(1, 2, 3, 4, 5), intArrayOf(1, 3, 5, 7)))
+    println(sol.uniqueIntersections(intArrayOf(), intArrayOf(1, 2, 3)))
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn unique_intersections(&self, arr1: &mut [i32], arr2: &mut [i32]) -> Vec<i32> {
+        arr1.sort();
+        arr2.sort();
+        let mut result: Vec<i32> = Vec::new();
+        let mut i = 0usize;
+        let mut j = 0usize;
+        while i < arr1.len() && j < arr2.len() {
+            if arr1[i] == arr2[j] {
+                if result.last() != Some(&arr1[i]) {
+                    result.push(arr1[i]);
+                }
+                i += 1;
+                j += 1;
+            } else if arr1[i] < arr2[j] {
+                i += 1;
+            } else {
+                j += 1;
+            }
+        }
+        result
+    }
+}
+
+fn main() {
+    let s = Solution;
+    let mut a1 = [1, 2, 2, 3, 4]; let mut b1 = [2, 2, 3, 5]; println!("{:?}", s.unique_intersections(&mut a1, &mut b1));
+    let mut a2 = [1, 3, 5];       let mut b2 = [2, 4, 6];    println!("{:?}", s.unique_intersections(&mut a2, &mut b2));
+    let mut a3 = [2, 2, 2];       let mut b3 = [2, 2];       println!("{:?}", s.unique_intersections(&mut a3, &mut b3));
+    let mut a4 = [1, 2, 3, 4, 5]; let mut b4 = [1, 3, 5, 7]; println!("{:?}", s.unique_intersections(&mut a4, &mut b4));
+    let mut a5: [i32; 0] = [];    let mut b5 = [1, 2, 3];    println!("{:?}", s.unique_intersections(&mut a5, &mut b5));
+}
+```
+
+</div>
 
 ---
 
@@ -1309,35 +2904,27 @@ flowchart TB
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
     def repeated_intersections(self, arr1: List[int], arr2: List[int]) -> List[int]:
-        # Sort both arrays to enable simultaneous traversal
         arr1.sort()
         arr2.sort()
-
         result = []
-        # Initialize pointers at the start of each array
-        i = 0
-        j = 0
+        i = j = 0
 
-        # Main loop: run while both arrays have unprocessed elements
         while i < len(arr1) and j < len(arr2):
             if arr1[i] == arr2[j]:
-                # Common element found — record every match, duplicates included
-                result.append(arr1[i])
-                # Advance both pointers to look for the next shared element
+                result.append(arr1[i])         # Record EVERY match — duplicates included.
                 i += 1
                 j += 1
             elif arr1[i] < arr2[j]:
-                # arr1's element is smaller — no match possible at this position
                 i += 1
             else:
-                # arr2's element is smaller — no match possible at this position
                 j += 1
-
         return result
 
 
@@ -1348,6 +2935,311 @@ print(sol.repeated_intersections([1, 3, 5], [2, 4, 6]))           # []
 print(sol.repeated_intersections([1, 2, 3], [1, 2, 3]))           # [1, 2, 3]
 print(sol.repeated_intersections([], [1, 2]))                     # []
 ```
+
+```java,editable
+import java.util.*;
+
+public class Main {
+    static class Solution {
+        List<Integer> repeatedIntersections(int[] arr1, int[] arr2) {
+            Arrays.sort(arr1);
+            Arrays.sort(arr2);
+            List<Integer> result = new ArrayList<>();
+            int i = 0, j = 0;
+            while (i < arr1.length && j < arr2.length) {
+                if (arr1[i] == arr2[j]) {
+                    result.add(arr1[i]);
+                    i++; j++;
+                } else if (arr1[i] < arr2[j]) {
+                    i++;
+                } else {
+                    j++;
+                }
+            }
+            return result;
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution sol = new Solution();
+        System.out.println(sol.repeatedIntersections(new int[]{1, 2, 2, 3}, new int[]{2, 2, 3, 3}));
+        System.out.println(sol.repeatedIntersections(new int[]{2, 2, 2}, new int[]{2, 2}));
+        System.out.println(sol.repeatedIntersections(new int[]{1, 3, 5}, new int[]{2, 4, 6}));
+        System.out.println(sol.repeatedIntersections(new int[]{1, 2, 3}, new int[]{1, 2, 3}));
+        System.out.println(sol.repeatedIntersections(new int[]{}, new int[]{1, 2}));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+
+int cmp(const void* a, const void* b) { return (*(int*)a) - (*(int*)b); }
+
+void repeated_intersections(int* arr1, int n1, int* arr2, int n2) {
+    qsort(arr1, n1, sizeof(int), cmp);
+    qsort(arr2, n2, sizeof(int), cmp);
+
+    printf("[");
+    int i = 0, j = 0, first = 1;
+    while (i < n1 && j < n2) {
+        if (arr1[i] == arr2[j]) {
+            if (!first) printf(", ");
+            printf("%d", arr1[i]);
+            first = 0;
+            i++;
+            j++;
+        } else if (arr1[i] < arr2[j]) i++;
+        else                          j++;
+    }
+    printf("]\n");
+}
+
+int main() {
+    int a1[] = {1, 2, 2, 3}; int b1[] = {2, 2, 3, 3}; repeated_intersections(a1, 4, b1, 4);
+    int a2[] = {2, 2, 2};    int b2[] = {2, 2};       repeated_intersections(a2, 3, b2, 2);
+    int a3[] = {1, 3, 5};    int b3[] = {2, 4, 6};    repeated_intersections(a3, 3, b3, 3);
+    int a4[] = {1, 2, 3};    int b4[] = {1, 2, 3};    repeated_intersections(a4, 3, b4, 3);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+class Solution {
+public:
+    std::vector<int> repeatedIntersections(std::vector<int> arr1, std::vector<int> arr2) {
+        std::sort(arr1.begin(), arr1.end());
+        std::sort(arr2.begin(), arr2.end());
+        std::vector<int> result;
+        size_t i = 0, j = 0;
+        while (i < arr1.size() && j < arr2.size()) {
+            if (arr1[i] == arr2[j]) {
+                result.push_back(arr1[i]);
+                i++; j++;
+            } else if (arr1[i] < arr2[j]) {
+                i++;
+            } else {
+                j++;
+            }
+        }
+        return result;
+    }
+};
+
+void print(const std::vector<int>& v) {
+    std::cout << "[";
+    for (size_t i = 0; i < v.size(); i++) std::cout << v[i] << (i + 1 < v.size() ? ", " : "");
+    std::cout << "]\n";
+}
+
+int main() {
+    Solution sol;
+    print(sol.repeatedIntersections({1, 2, 2, 3}, {2, 2, 3, 3}));
+    print(sol.repeatedIntersections({2, 2, 2}, {2, 2}));
+    print(sol.repeatedIntersections({1, 3, 5}, {2, 4, 6}));
+    print(sol.repeatedIntersections({1, 2, 3}, {1, 2, 3}));
+    print(sol.repeatedIntersections({}, {1, 2}));
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def repeatedIntersections(arr1: Array[Int], arr2: Array[Int]): List[Int] = {
+      val a = arr1.sorted
+      val b = arr2.sorted
+      val result = scala.collection.mutable.ListBuffer.empty[Int]
+      var i = 0
+      var j = 0
+      while (i < a.length && j < b.length) {
+        if (a(i) == b(j)) {
+          result += a(i)
+          i += 1
+          j += 1
+        } else if (a(i) < b(j)) i += 1
+        else                    j += 1
+      }
+      result.toList
+    }
+  }
+
+  val sol = new Solution
+  println(sol.repeatedIntersections(Array(1, 2, 2, 3), Array(2, 2, 3, 3)))
+  println(sol.repeatedIntersections(Array(2, 2, 2), Array(2, 2)))
+  println(sol.repeatedIntersections(Array(1, 3, 5), Array(2, 4, 6)))
+  println(sol.repeatedIntersections(Array(1, 2, 3), Array(1, 2, 3)))
+  println(sol.repeatedIntersections(Array.empty[Int], Array(1, 2)))
+}
+```
+
+```javascript,editable
+class Solution {
+    repeatedIntersections(arr1, arr2) {
+        arr1.sort((a, b) => a - b);
+        arr2.sort((a, b) => a - b);
+        const result = [];
+        let i = 0, j = 0;
+        while (i < arr1.length && j < arr2.length) {
+            if (arr1[i] === arr2[j]) {
+                result.push(arr1[i]);
+                i++; j++;
+            } else if (arr1[i] < arr2[j]) {
+                i++;
+            } else {
+                j++;
+            }
+        }
+        return result;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.repeatedIntersections([1, 2, 2, 3], [2, 2, 3, 3]));
+console.log(sol.repeatedIntersections([2, 2, 2], [2, 2]));
+console.log(sol.repeatedIntersections([1, 3, 5], [2, 4, 6]));
+console.log(sol.repeatedIntersections([1, 2, 3], [1, 2, 3]));
+console.log(sol.repeatedIntersections([], [1, 2]));
+```
+
+```typescript,editable
+class Solution {
+    repeatedIntersections(arr1: number[], arr2: number[]): number[] {
+        arr1.sort((a, b) => a - b);
+        arr2.sort((a, b) => a - b);
+        const result: number[] = [];
+        let i = 0, j = 0;
+        while (i < arr1.length && j < arr2.length) {
+            if (arr1[i] === arr2[j]) {
+                result.push(arr1[i]);
+                i++; j++;
+            } else if (arr1[i] < arr2[j]) {
+                i++;
+            } else {
+                j++;
+            }
+        }
+        return result;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.repeatedIntersections([1, 2, 2, 3], [2, 2, 3, 3]));
+console.log(sol.repeatedIntersections([2, 2, 2], [2, 2]));
+console.log(sol.repeatedIntersections([1, 3, 5], [2, 4, 6]));
+console.log(sol.repeatedIntersections([1, 2, 3], [1, 2, 3]));
+console.log(sol.repeatedIntersections([], [1, 2]));
+```
+
+```go,editable
+package main
+
+import (
+    "fmt"
+    "sort"
+)
+
+func repeatedIntersections(arr1, arr2 []int) []int {
+    sort.Ints(arr1)
+    sort.Ints(arr2)
+    var result []int
+    i, j := 0, 0
+    for i < len(arr1) && j < len(arr2) {
+        switch {
+        case arr1[i] == arr2[j]:
+            result = append(result, arr1[i])
+            i++
+            j++
+        case arr1[i] < arr2[j]:
+            i++
+        default:
+            j++
+        }
+    }
+    return result
+}
+
+func main() {
+    fmt.Println(repeatedIntersections([]int{1, 2, 2, 3}, []int{2, 2, 3, 3}))
+    fmt.Println(repeatedIntersections([]int{2, 2, 2}, []int{2, 2}))
+    fmt.Println(repeatedIntersections([]int{1, 3, 5}, []int{2, 4, 6}))
+    fmt.Println(repeatedIntersections([]int{1, 2, 3}, []int{1, 2, 3}))
+    fmt.Println(repeatedIntersections([]int{}, []int{1, 2}))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun repeatedIntersections(arr1: IntArray, arr2: IntArray): List<Int> {
+        arr1.sort()
+        arr2.sort()
+        val result = mutableListOf<Int>()
+        var i = 0
+        var j = 0
+        while (i < arr1.size && j < arr2.size) {
+            when {
+                arr1[i] == arr2[j] -> {
+                    result.add(arr1[i])
+                    i++; j++
+                }
+                arr1[i] < arr2[j] -> i++
+                else              -> j++
+            }
+        }
+        return result
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    println(sol.repeatedIntersections(intArrayOf(1, 2, 2, 3), intArrayOf(2, 2, 3, 3)))
+    println(sol.repeatedIntersections(intArrayOf(2, 2, 2), intArrayOf(2, 2)))
+    println(sol.repeatedIntersections(intArrayOf(1, 3, 5), intArrayOf(2, 4, 6)))
+    println(sol.repeatedIntersections(intArrayOf(1, 2, 3), intArrayOf(1, 2, 3)))
+    println(sol.repeatedIntersections(intArrayOf(), intArrayOf(1, 2)))
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn repeated_intersections(&self, arr1: &mut [i32], arr2: &mut [i32]) -> Vec<i32> {
+        arr1.sort();
+        arr2.sort();
+        let mut result: Vec<i32> = Vec::new();
+        let mut i = 0usize;
+        let mut j = 0usize;
+        while i < arr1.len() && j < arr2.len() {
+            if arr1[i] == arr2[j] {
+                result.push(arr1[i]);
+                i += 1;
+                j += 1;
+            } else if arr1[i] < arr2[j] {
+                i += 1;
+            } else {
+                j += 1;
+            }
+        }
+        result
+    }
+}
+
+fn main() {
+    let s = Solution;
+    let mut a1 = [1, 2, 2, 3]; let mut b1 = [2, 2, 3, 3]; println!("{:?}", s.repeated_intersections(&mut a1, &mut b1));
+    let mut a2 = [2, 2, 2];    let mut b2 = [2, 2];       println!("{:?}", s.repeated_intersections(&mut a2, &mut b2));
+    let mut a3 = [1, 3, 5];    let mut b3 = [2, 4, 6];    println!("{:?}", s.repeated_intersections(&mut a3, &mut b3));
+    let mut a4 = [1, 2, 3];    let mut b4 = [1, 2, 3];    println!("{:?}", s.repeated_intersections(&mut a4, &mut b4));
+    let mut a5: [i32; 0] = []; let mut b5 = [1, 2];       println!("{:?}", s.repeated_intersections(&mut a5, &mut b5));
+}
+```
+
+</div>
 
 ---
 
