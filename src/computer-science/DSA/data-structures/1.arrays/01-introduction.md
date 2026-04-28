@@ -146,22 +146,22 @@ mem: Memory {
   grid-columns: 6
   grid-gap: 0
   b0: |md
-    **0** · 8 bits
+    **0**<br/>8 bits
   |
   b1: |md
-    **1** · 8 bits
+    **1**<br/>8 bits
   |
   b2: |md
-    **2** · 8 bits
+    **2**<br/>8 bits
   |
   b3: |md
-    **3** · 8 bits
+    **3**<br/>8 bits
   |
   b4: |md
-    **4** · 8 bits
+    **4**<br/>8 bits
   |
   b5: |md
-    **5** · 8 bits
+    **5**<br/>8 bits
   |
 }
 
@@ -516,19 +516,19 @@ arr: array {
   grid-columns: 5
   grid-gap: 0
   v1: |md
-    value1 `0`
+    value1<br/>`0`
   |
   v2: |md
-    value2 `1`
+    value2<br/>`1`
   |
   v3: |md
-    value3 `2`
+    value3<br/>`2`
   |
   v4: |md
-    value4 `3`
+    value4<br/>`3`
   |
   v5: |md
-    value5 `4`
+    value5<br/>`4`
   |
 }
 ```
@@ -564,19 +564,19 @@ arr: array {
   grid-columns: 5
   grid-gap: 0
   v1: |md
-    value1 `0`
+    value1<br/>`0`
   |
   v2: |md
-    value2 `1`
+    value2<br/>`1`
   | {style.fill: "#fde68a"; style.stroke: "#d97706"}
   v3: |md
-    value3 `2`
+    value3<br/>`2`
   | {style.fill: "#fde68a"; style.stroke: "#d97706"}
   v4: |md
-    value4 `3`
+    value4<br/>`3`
   |
   v5: |md
-    value5 `4`
+    value5<br/>`4`
   |
 }
 ```
@@ -736,28 +736,28 @@ mem: Memory {
   grid-columns: 8
   grid-gap: 0
   b0: |md
-    **0** · 8 bits
+    **0**<br/>8 bits
   |
   b1: |md
-    **1** · 8 bits
+    **1**<br/>8 bits
   |
   b2: |md
-    **2** · 8 bits
+    **2**<br/>8 bits
   |
   b3: |md
-    **3** · 8 bits
+    **3**<br/>8 bits
   |
   b4: |md
-    **4** · 8 bits
+    **4**<br/>8 bits
   |
   b5: |md
-    **5** · 8 bits
+    **5**<br/>8 bits
   |
   b6: |md
-    **6** · 8 bits
+    **6**<br/>8 bits
   |
   b7: |md
-    **7** · 8 bits
+    **7**<br/>8 bits
   |
 }
 
@@ -790,19 +790,19 @@ arr: "array (5 ints, base address = 2)" {
   grid-columns: 5
   grid-gap: 0
   e0: |md
-    **value1** · `[0]` · `2→5`
+    **value1**<br/>`[0]`<br/>`2→5`
   |
   e1: |md
-    **value2** · `[1]` · `6→9`
+    **value2**<br/>`[1]`<br/>`6→9`
   |
   e2: |md
-    **value3** · `[2]` · `10→13`
+    **value3**<br/>`[2]`<br/>`10→13`
   |
   e3: |md
-    **value4** · `[3]` · `14→17`
+    **value4**<br/>`[3]`<br/>`14→17`
   |
   e4: |md
-    **value5** · `[4]` · `18→21`
+    **value5**<br/>`[4]`<br/>`18→21`
   |
 }
 
@@ -924,19 +924,19 @@ arr: "array (mapped into memory)" {
   grid-columns: 5
   grid-gap: 0
   e0: |md
-    **value1** · `[0]` · `2→5`
+    **value1**<br/>`[0]`<br/>`2→5`
   |
   e1: |md
-    **value2** · `[1]` · `6→9`
+    **value2**<br/>`[1]`<br/>`6→9`
   |
   e2: |md
-    **value3** · `[2]` · `10→13`
+    **value3**<br/>`[2]`<br/>`10→13`
   |
   e3: |md
-    **value4** · `[3]` · `14→17`
+    **value4**<br/>`[3]`<br/>`14→17`
   |
   e4: |md
-    **value5** · `[4]` · `18→21`
+    **value5**<br/>`[4]`<br/>`18→21`
   |
 }
 
@@ -962,30 +962,30 @@ The program already knows the base address and the size of the data type — thi
 
 ```d2
 c2: |md
-  **array[2]** · `2 + (2 × 4) = 10`
+  **array[2]**<br/>`2 + (2 × 4) = 10`
 | {style.fill: "#fef9c3"; style.stroke: "#d97706"}
 
 c3: |md
-  **array[3]** · `2 + (3 × 4) = 14`
+  **array[3]**<br/>`2 + (3 × 4) = 14`
 | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
 
 arr: array {
   grid-columns: 5
   grid-gap: 0
   e0: |md
-    value1 · `2`
+    value1<br/>`2`
   |
   e1: |md
-    value2 · `6`
+    value2<br/>`6`
   |
   e2: |md
-    value3 · `10`
+    value3<br/>`10`
   | {style.fill: "#fef9c3"; style.stroke: "#d97706"}
   e3: |md
-    value4 · `14`
+    value4<br/>`14`
   | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
   e4: |md
-    value5 · `18`
+    value5<br/>`18`
   |
 }
 
