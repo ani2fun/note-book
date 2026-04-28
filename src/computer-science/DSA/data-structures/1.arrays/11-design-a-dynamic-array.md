@@ -45,68 +45,43 @@ Step-by-step:
 Think of it like a gym membership: one heavy leg-day costs 2 hours, other days cost 20 minutes — but the *average* over a month is still reasonable because the expensive days are rare.
 
 ```d2
+direction: right
+
 cost: "Cost of each pushBack as capacity doubles" {
+  grid-rows: 3
   grid-columns: 8
   grid-gap: 0
-  p1: |md
-    push 1
-
-    cost=1
-
-    cap=1
-  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
-  p2: |md
-    push 2
-
-    cost=2
-
-    resize + copy 1, cap=2
-  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
-  p3: |md
-    push 3
-
-    cost=3
-
-    resize + copy 2, cap=4
-  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
-  p4: |md
-    push 4
-
-    cost=1
-
-    cap=4
-  |
-  p5: |md
-    push 5
-
-    cost=5
-
-    resize + copy 4, cap=8
-  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
-  p6: |md
-    push 6
-
-    cost=1
-  |
-  p7: |md
-    push 7
-
-    cost=1
-  |
-  p8: |md
-    push 8
-
-    cost=1
-  |
+  p1: "push 1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  p2: "push 2" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  p3: "push 3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  p4: "push 4"
+  p5: "push 5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  p6: "push 6"
+  p7: "push 7"
+  p8: "push 8"
+  c1: "cost = 1"
+  c2: "cost = 2"
+  c3: "cost = 3"
+  c4: "cost = 1"
+  c5: "cost = 5"
+  c6: "cost = 1"
+  c7: "cost = 1"
+  c8: "cost = 1"
+  cap1: "cap = 1"
+  cap2: "cap = 2"
+  cap3: "cap = 4"
+  cap4: "cap = 4"
+  cap5: "cap = 8"
+  cap6: "cap = 8"
+  cap7: "cap = 8"
+  cap8: "cap = 8"
 }
 
 total: |md
-  8 pushes total cost = 1+2+3+1+5+1+1+1 = 15 ≤ 2×8
-
-  **Average = 15/8 ≈ 1.87 = O(1)**
+  8 pushes, total cost = `1+2+3+1+5+1+1+1` = **15** ≤ 2×8.<br/>**Average = 15 / 8 ≈ 1.87 = O(1)**.
 | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
 
-cost -> total
+cost -> total: "amortise"
 ```
 
 <p align="center"><strong>Expensive resizes are rare. Each doubling event pays for itself against the cheap pushes that follow it — the <em>average</em> cost is constant.</strong></p>
