@@ -107,21 +107,186 @@ flowchart TB
 
 <p align="center"><strong>Brute-force nested loops check every pair — O(n²) time, correct but slow. For n=8 that's 28 pairs checked.</strong></p>
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 def two_sum_brute(arr: List[int], target: int) -> List[int]:
-    # Fix one element of the pair at position i and search for its complement
     for i in range(len(arr)):
-        # Start j at i+1 to avoid using the same element twice and re-checking pairs
-        # (pair (i,j) and (j,i) are the same — j>i ensures we only check each pair once)
+        # Start j at i+1: same-element use is forbidden, and (i,j) ≡ (j,i) — skip duplicates.
         for j in range(i + 1, len(arr)):
-            if arr[i] + arr[j] == target:  # Found a valid pair
+            if arr[i] + arr[j] == target:
                 return [arr[i], arr[j]]
-    return []  # Exhausted all pairs — no solution exists
+    return []
 
 print(two_sum_brute([3, 5, 2, 8, 7, 1, 9, 4], 13))  # [5, 8]
 ```
+
+```java,editable
+import java.util.Arrays;
+
+public class Main {
+    static int[] twoSumBrute(int[] arr, int target) {
+        for (int i = 0; i < arr.length; i++) {
+            for (int j = i + 1; j < arr.length; j++) {
+                if (arr[i] + arr[j] == target) {
+                    return new int[] { arr[i], arr[j] };
+                }
+            }
+        }
+        return new int[0];
+    }
+
+    public static void main(String[] args) {
+        System.out.println(Arrays.toString(twoSumBrute(new int[]{3,5,2,8,7,1,9,4}, 13)));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+void two_sum_brute(int* arr, int n, int target, int* out, int* found) {
+    for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
+            if (arr[i] + arr[j] == target) {
+                out[0] = arr[i];
+                out[1] = arr[j];
+                *found = 1;
+                return;
+            }
+        }
+    }
+    *found = 0;
+}
+
+int main() {
+    int arr[] = {3, 5, 2, 8, 7, 1, 9, 4};
+    int out[2], found = 0;
+    two_sum_brute(arr, 8, 13, out, &found);
+    if (found) printf("[%d, %d]\n", out[0], out[1]);
+    else       printf("[]\n");
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+std::vector<int> twoSumBrute(const std::vector<int>& arr, int target) {
+    for (size_t i = 0; i < arr.size(); i++) {
+        for (size_t j = i + 1; j < arr.size(); j++) {
+            if (arr[i] + arr[j] == target) {
+                return { arr[i], arr[j] };
+            }
+        }
+    }
+    return {};
+}
+
+int main() {
+    auto r = twoSumBrute({3,5,2,8,7,1,9,4}, 13);
+    std::cout << "[";
+    for (size_t i = 0; i < r.size(); i++) std::cout << r[i] << (i + 1 < r.size() ? ", " : "");
+    std::cout << "]\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  def twoSumBrute(arr: Array[Int], target: Int): Array[Int] = {
+    for (i <- arr.indices; j <- (i + 1) until arr.length) {
+      if (arr(i) + arr(j) == target) return Array(arr(i), arr(j))
+    }
+    Array.empty[Int]
+  }
+
+  println(twoSumBrute(Array(3,5,2,8,7,1,9,4), 13).mkString("[", ", ", "]"))
+}
+```
+
+```javascript,editable
+function twoSumBrute(arr, target) {
+    for (let i = 0; i < arr.length; i++) {
+        for (let j = i + 1; j < arr.length; j++) {
+            if (arr[i] + arr[j] === target) return [arr[i], arr[j]];
+        }
+    }
+    return [];
+}
+
+console.log(twoSumBrute([3,5,2,8,7,1,9,4], 13));
+```
+
+```typescript,editable
+function twoSumBrute(arr: number[], target: number): number[] {
+    for (let i = 0; i < arr.length; i++) {
+        for (let j = i + 1; j < arr.length; j++) {
+            if (arr[i] + arr[j] === target) return [arr[i], arr[j]];
+        }
+    }
+    return [];
+}
+
+console.log(twoSumBrute([3,5,2,8,7,1,9,4], 13));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func twoSumBrute(arr []int, target int) []int {
+    for i := 0; i < len(arr); i++ {
+        for j := i + 1; j < len(arr); j++ {
+            if arr[i]+arr[j] == target {
+                return []int{arr[i], arr[j]}
+            }
+        }
+    }
+    return []int{}
+}
+
+func main() {
+    fmt.Println(twoSumBrute([]int{3,5,2,8,7,1,9,4}, 13))
+}
+```
+
+```kotlin,editable
+fun twoSumBrute(arr: IntArray, target: Int): IntArray {
+    for (i in arr.indices) {
+        for (j in (i + 1) until arr.size) {
+            if (arr[i] + arr[j] == target) return intArrayOf(arr[i], arr[j])
+        }
+    }
+    return intArrayOf()
+}
+
+fun main() {
+    println(twoSumBrute(intArrayOf(3,5,2,8,7,1,9,4), 13).toList())
+}
+```
+
+```rust,editable
+fn two_sum_brute(arr: &[i32], target: i32) -> Vec<i32> {
+    for i in 0..arr.len() {
+        for j in (i + 1)..arr.len() {
+            if arr[i] + arr[j] == target {
+                return vec![arr[i], arr[j]];
+            }
+        }
+    }
+    Vec::new()
+}
+
+fn main() {
+    println!("{:?}", two_sum_brute(&[3,5,2,8,7,1,9,4], 13));
+}
+```
+
+</div>
 
 <details>
 <summary><strong>Trace — arr = [3, 5, 2, 8, 7, 1, 9, 4],  target = 13  (brute force)</strong></summary>
@@ -275,37 +440,246 @@ R -> arr.a7
 
 <p align="center"><strong>Sorted array with two pointers — <code>left = 0</code> points at the smallest element, <code>right = n−1</code> points at the largest.</strong></p>
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 def two_sum(arr: List[int], target: int) -> List[int]:
-    # Reduction step: sort the array so left=min, right=max at every step.
-    # Sorting is safe here because we only need values, not original indices (Q1=No).
+    # Reduction step: sort so arr[left] is always the min, arr[right] always the max
+    # of remaining elements. Safe because indices don't matter (Q1 = No).
     arr.sort()
+    left, right = 0, len(arr) - 1
 
-    left  = 0           # Points at the current minimum of remaining elements
-    right = len(arr) - 1  # Points at the current maximum of remaining elements
-
-    while left < right:  # Stop when pointers meet — no valid unseen pairs remain
+    while left < right:
         current_sum = arr[left] + arr[right]
-
         if current_sum == target:
-            return [arr[left], arr[right]]  # Found the pair
-
+            return [arr[left], arr[right]]
         elif current_sum < target:
-            # arr[right] is already the MAX — no larger partner exists for arr[left].
-            # The only way to increase the sum is to move left rightward (to a bigger value).
+            # arr[right] is the MAX — left's only chance to grow the sum is to move right.
             left += 1
-
-        else:  # current_sum > target
-            # arr[left] is already the MIN — no smaller partner exists for arr[right].
-            # The only way to decrease the sum is to move right leftward (to a smaller value).
+        else:
+            # arr[left] is the MIN — right's only chance to shrink the sum is to move left.
             right -= 1
 
-    return []  # Pointers crossed — no valid pair found
+    return []
 
 print(two_sum([3, 5, 2, 8, 7, 1, 9, 4], 13))  # [4, 9]
 ```
+
+```java,editable
+import java.util.Arrays;
+
+public class Main {
+    static int[] twoSum(int[] arr, int target) {
+        Arrays.sort(arr);
+        int left = 0, right = arr.length - 1;
+
+        while (left < right) {
+            int currentSum = arr[left] + arr[right];
+            if (currentSum == target) return new int[] { arr[left], arr[right] };
+            else if (currentSum < target) left++;
+            else                          right--;
+        }
+        return new int[0];
+    }
+
+    public static void main(String[] args) {
+        System.out.println(Arrays.toString(twoSum(new int[]{3,5,2,8,7,1,9,4}, 13)));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+
+int cmp(const void* a, const void* b) {
+    return (*(int*)a) - (*(int*)b);
+}
+
+void two_sum(int* arr, int n, int target, int* out, int* found) {
+    qsort(arr, n, sizeof(int), cmp);
+    int left = 0, right = n - 1;
+    while (left < right) {
+        int sum = arr[left] + arr[right];
+        if (sum == target) {
+            out[0] = arr[left];
+            out[1] = arr[right];
+            *found = 1;
+            return;
+        }
+        if (sum < target) left++;
+        else              right--;
+    }
+    *found = 0;
+}
+
+int main() {
+    int arr[] = {3, 5, 2, 8, 7, 1, 9, 4};
+    int out[2], found = 0;
+    two_sum(arr, 8, 13, out, &found);
+    if (found) printf("[%d, %d]\n", out[0], out[1]);
+    else       printf("[]\n");
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+std::vector<int> twoSum(std::vector<int> arr, int target) {
+    std::sort(arr.begin(), arr.end());
+    int left = 0, right = (int)arr.size() - 1;
+
+    while (left < right) {
+        int sum = arr[left] + arr[right];
+        if (sum == target)  return { arr[left], arr[right] };
+        else if (sum < target) left++;
+        else                   right--;
+    }
+    return {};
+}
+
+int main() {
+    auto r = twoSum({3,5,2,8,7,1,9,4}, 13);
+    std::cout << "[";
+    for (size_t i = 0; i < r.size(); i++) std::cout << r[i] << (i + 1 < r.size() ? ", " : "");
+    std::cout << "]\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  def twoSum(arr: Array[Int], target: Int): Array[Int] = {
+    val sorted = arr.sorted
+    var left = 0
+    var right = sorted.length - 1
+
+    while (left < right) {
+      val sum = sorted(left) + sorted(right)
+      if (sum == target) return Array(sorted(left), sorted(right))
+      else if (sum < target) left  += 1
+      else                   right -= 1
+    }
+    Array.empty[Int]
+  }
+
+  println(twoSum(Array(3,5,2,8,7,1,9,4), 13).mkString("[", ", ", "]"))
+}
+```
+
+```javascript,editable
+function twoSum(arr, target) {
+    arr.sort((a, b) => a - b);   // ascending numeric sort — JS default sort is lexicographic
+    let left = 0, right = arr.length - 1;
+
+    while (left < right) {
+        const sum = arr[left] + arr[right];
+        if (sum === target) return [arr[left], arr[right]];
+        else if (sum < target) left++;
+        else                   right--;
+    }
+    return [];
+}
+
+console.log(twoSum([3,5,2,8,7,1,9,4], 13));
+```
+
+```typescript,editable
+function twoSum(arr: number[], target: number): number[] {
+    arr.sort((a, b) => a - b);
+    let left = 0, right = arr.length - 1;
+
+    while (left < right) {
+        const sum = arr[left] + arr[right];
+        if (sum === target) return [arr[left], arr[right]];
+        else if (sum < target) left++;
+        else                   right--;
+    }
+    return [];
+}
+
+console.log(twoSum([3,5,2,8,7,1,9,4], 13));
+```
+
+```go,editable
+package main
+
+import (
+    "fmt"
+    "sort"
+)
+
+func twoSum(arr []int, target int) []int {
+    sort.Ints(arr)
+    left, right := 0, len(arr)-1
+
+    for left < right {
+        sum := arr[left] + arr[right]
+        switch {
+        case sum == target:
+            return []int{arr[left], arr[right]}
+        case sum < target:
+            left++
+        default:
+            right--
+        }
+    }
+    return []int{}
+}
+
+func main() {
+    fmt.Println(twoSum([]int{3,5,2,8,7,1,9,4}, 13))
+}
+```
+
+```kotlin,editable
+fun twoSum(arr: IntArray, target: Int): IntArray {
+    arr.sort()
+    var left = 0
+    var right = arr.size - 1
+
+    while (left < right) {
+        val sum = arr[left] + arr[right]
+        when {
+            sum == target  -> return intArrayOf(arr[left], arr[right])
+            sum  < target  -> left++
+            else           -> right--
+        }
+    }
+    return intArrayOf()
+}
+
+fun main() {
+    println(twoSum(intArrayOf(3,5,2,8,7,1,9,4), 13).toList())
+}
+```
+
+```rust,editable
+fn two_sum(arr: &mut [i32], target: i32) -> Vec<i32> {
+    arr.sort();
+    let mut left = 0usize;
+    let mut right = arr.len() - 1;
+
+    while left < right {
+        let sum = arr[left] + arr[right];
+        if sum == target { return vec![arr[left], arr[right]]; }
+        else if sum < target { left  += 1; }
+        else                 { right -= 1; }
+    }
+    Vec::new()
+}
+
+fn main() {
+    let mut arr = [3, 5, 2, 8, 7, 1, 9, 4];
+    println!("{:?}", two_sum(&mut arr, 13));
+}
+```
+
+</div>
 
 <details>
 <summary><strong>Trace — arr = [3, 5, 2, 8, 7, 1, 9, 4],  target = 13  (two-pointer)</strong></summary>
@@ -596,43 +970,289 @@ flowchart TB
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
     def two_sum(self, arr: List[int], target: int) -> List[int]:
-        # Sort the array to enable the two-pointer reduction
-        arr.sort()
+        arr.sort()                       # Reduction step: enables left=min, right=max.
+        left, right = 0, len(arr) - 1
 
-        # Initialize left pointer at the smallest element
-        left  = 0
-        # Initialize right pointer at the largest element
-        right = len(arr) - 1
-
-        # Run while there are unseen pairs remaining
         while left < right:
             current = arr[left] + arr[right]
-
             if current == target:
                 return [arr[left], arr[right]]
             elif current < target:
-                # Sum too small — move left pointer to a larger value
-                left += 1
+                left += 1                # Sum too small — left's the only one that can grow it.
             else:
-                # Sum too large — move right pointer to a smaller value
-                right -= 1
-
-        # Pointers crossed — no valid pair exists
+                right -= 1               # Sum too large — right's the only one that can shrink it.
         return []
 
 
-# --- Test ---
 sol = Solution()
-print(sol.two_sum([2, 8, 3, 6, 4], 7))         # [3, 4]
-print(sol.two_sum([2, -1, 5, -4, 3], 34))       # []
-print(sol.two_sum([2], 2))                       # []
-print(sol.two_sum([-3, -1, 0, 2, 4, 6], 3))     # [-3, 6] or [1, 2] — sorted pick
+print(sol.two_sum([2, 8, 3, 6, 4], 7))           # [3, 4]
+print(sol.two_sum([2, -1, 5, -4, 3], 34))        # []
+print(sol.two_sum([2], 2))                        # []
+print(sol.two_sum([-3, -1, 0, 2, 4, 6], 3))       # [-3, 6]
 ```
+
+```java,editable
+import java.util.Arrays;
+
+public class Main {
+    static class Solution {
+        int[] twoSum(int[] arr, int target) {
+            Arrays.sort(arr);
+            int left = 0, right = arr.length - 1;
+            while (left < right) {
+                int current = arr[left] + arr[right];
+                if (current == target) return new int[]{ arr[left], arr[right] };
+                else if (current < target) left++;
+                else                       right--;
+            }
+            return new int[0];
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution s = new Solution();
+        System.out.println(Arrays.toString(s.twoSum(new int[]{2,8,3,6,4}, 7)));
+        System.out.println(Arrays.toString(s.twoSum(new int[]{2,-1,5,-4,3}, 34)));
+        System.out.println(Arrays.toString(s.twoSum(new int[]{2}, 2)));
+        System.out.println(Arrays.toString(s.twoSum(new int[]{-3,-1,0,2,4,6}, 3)));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+
+int cmp(const void* a, const void* b) { return (*(int*)a) - (*(int*)b); }
+
+void two_sum(int* arr, int n, int target, int* out, int* found) {
+    qsort(arr, n, sizeof(int), cmp);
+    int left = 0, right = n - 1;
+    while (left < right) {
+        int sum = arr[left] + arr[right];
+        if (sum == target) { out[0] = arr[left]; out[1] = arr[right]; *found = 1; return; }
+        if (sum  < target) left++;
+        else               right--;
+    }
+    *found = 0;
+}
+
+void run(int* arr, int n, int target) {
+    int out[2], found = 0;
+    two_sum(arr, n, target, out, &found);
+    if (found) printf("[%d, %d]\n", out[0], out[1]);
+    else       printf("[]\n");
+}
+
+int main() {
+    int a1[] = {2,8,3,6,4};      run(a1, 5, 7);
+    int a2[] = {2,-1,5,-4,3};    run(a2, 5, 34);
+    int a3[] = {2};              run(a3, 1, 2);
+    int a4[] = {-3,-1,0,2,4,6};  run(a4, 6, 3);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+class Solution {
+public:
+    std::vector<int> twoSum(std::vector<int> arr, int target) {
+        std::sort(arr.begin(), arr.end());
+        int left = 0, right = (int)arr.size() - 1;
+        while (left < right) {
+            int sum = arr[left] + arr[right];
+            if (sum == target) return { arr[left], arr[right] };
+            else if (sum < target) left++;
+            else                   right--;
+        }
+        return {};
+    }
+};
+
+void run(Solution& s, std::vector<int> arr, int target) {
+    auto r = s.twoSum(arr, target);
+    std::cout << "[";
+    for (size_t i = 0; i < r.size(); i++) std::cout << r[i] << (i + 1 < r.size() ? ", " : "");
+    std::cout << "]\n";
+}
+
+int main() {
+    Solution s;
+    run(s, {2,8,3,6,4}, 7);
+    run(s, {2,-1,5,-4,3}, 34);
+    run(s, {2}, 2);
+    run(s, {-3,-1,0,2,4,6}, 3);
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def twoSum(arr: Array[Int], target: Int): Array[Int] = {
+      val sorted = arr.sorted
+      var left = 0
+      var right = sorted.length - 1
+      while (left < right) {
+        val sum = sorted(left) + sorted(right)
+        if (sum == target) return Array(sorted(left), sorted(right))
+        else if (sum < target) left  += 1
+        else                   right -= 1
+      }
+      Array.empty[Int]
+    }
+  }
+
+  val sol = new Solution
+  println(sol.twoSum(Array(2,8,3,6,4), 7).mkString("[", ", ", "]"))
+  println(sol.twoSum(Array(2,-1,5,-4,3), 34).mkString("[", ", ", "]"))
+  println(sol.twoSum(Array(2), 2).mkString("[", ", ", "]"))
+  println(sol.twoSum(Array(-3,-1,0,2,4,6), 3).mkString("[", ", ", "]"))
+}
+```
+
+```javascript,editable
+class Solution {
+    twoSum(arr, target) {
+        arr.sort((a, b) => a - b);
+        let left = 0, right = arr.length - 1;
+        while (left < right) {
+            const sum = arr[left] + arr[right];
+            if (sum === target) return [arr[left], arr[right]];
+            else if (sum < target) left++;
+            else                   right--;
+        }
+        return [];
+    }
+}
+
+const sol = new Solution();
+console.log(sol.twoSum([2,8,3,6,4], 7));
+console.log(sol.twoSum([2,-1,5,-4,3], 34));
+console.log(sol.twoSum([2], 2));
+console.log(sol.twoSum([-3,-1,0,2,4,6], 3));
+```
+
+```typescript,editable
+class Solution {
+    twoSum(arr: number[], target: number): number[] {
+        arr.sort((a, b) => a - b);
+        let left = 0, right = arr.length - 1;
+        while (left < right) {
+            const sum = arr[left] + arr[right];
+            if (sum === target) return [arr[left], arr[right]];
+            else if (sum < target) left++;
+            else                   right--;
+        }
+        return [];
+    }
+}
+
+const sol = new Solution();
+console.log(sol.twoSum([2,8,3,6,4], 7));
+console.log(sol.twoSum([2,-1,5,-4,3], 34));
+console.log(sol.twoSum([2], 2));
+console.log(sol.twoSum([-3,-1,0,2,4,6], 3));
+```
+
+```go,editable
+package main
+
+import (
+    "fmt"
+    "sort"
+)
+
+func twoSum(arr []int, target int) []int {
+    sort.Ints(arr)
+    left, right := 0, len(arr)-1
+    for left < right {
+        sum := arr[left] + arr[right]
+        switch {
+        case sum == target:
+            return []int{arr[left], arr[right]}
+        case sum < target:
+            left++
+        default:
+            right--
+        }
+    }
+    return []int{}
+}
+
+func main() {
+    fmt.Println(twoSum([]int{2,8,3,6,4}, 7))
+    fmt.Println(twoSum([]int{2,-1,5,-4,3}, 34))
+    fmt.Println(twoSum([]int{2}, 2))
+    fmt.Println(twoSum([]int{-3,-1,0,2,4,6}, 3))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun twoSum(arr: IntArray, target: Int): IntArray {
+        arr.sort()
+        var left = 0
+        var right = arr.size - 1
+        while (left < right) {
+            val sum = arr[left] + arr[right]
+            when {
+                sum == target -> return intArrayOf(arr[left], arr[right])
+                sum  < target -> left++
+                else          -> right--
+            }
+        }
+        return intArrayOf()
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    println(sol.twoSum(intArrayOf(2,8,3,6,4), 7).toList())
+    println(sol.twoSum(intArrayOf(2,-1,5,-4,3), 34).toList())
+    println(sol.twoSum(intArrayOf(2), 2).toList())
+    println(sol.twoSum(intArrayOf(-3,-1,0,2,4,6), 3).toList())
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn two_sum(&self, arr: &mut [i32], target: i32) -> Vec<i32> {
+        arr.sort();
+        let mut left = 0usize;
+        let mut right = arr.len().saturating_sub(1);
+        while left < right {
+            let sum = arr[left] + arr[right];
+            if sum == target { return vec![arr[left], arr[right]]; }
+            else if sum < target { left  += 1; }
+            else                 { right -= 1; }
+        }
+        Vec::new()
+    }
+}
+
+fn main() {
+    let s = Solution;
+    let mut a1 = [2, 8, 3, 6, 4];           println!("{:?}", s.two_sum(&mut a1, 7));
+    let mut a2 = [2, -1, 5, -4, 3];         println!("{:?}", s.two_sum(&mut a2, 34));
+    let mut a3 = [2];                       println!("{:?}", s.two_sum(&mut a3, 2));
+    let mut a4 = [-3, -1, 0, 2, 4, 6];      println!("{:?}", s.two_sum(&mut a4, 3));
+}
+```
+
+</div>
 
 ---
 
@@ -793,44 +1413,305 @@ flowchart TB
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
     def target_limited_two_sum(self, arr: List[int], target: int) -> int:
-        # Sort the array to enable the two-pointer reduction
-        arr.sort()
-        n = len(arr)
+        arr.sort()                       # Reduction: enables left=min, right=max.
+        left, right = 0, len(arr) - 1
+        max_sum = -1                     # Sentinel: no valid pair found yet.
 
-        # Initialize left pointer at the smallest element
-        left   = 0
-        # Initialize right pointer at the largest element
-        right  = n - 1
-        # Track the best valid sum found so far
-        maxSum = -1
-
-        # Run while there are unseen pairs remaining
         while left < right:
             total = arr[left] + arr[right]
-
             if total < target:
-                # Valid pair — record it and push left forward to find a larger valid sum
-                maxSum = max(maxSum, total)
+                max_sum = max(max_sum, total)   # Valid; try a larger one.
                 left += 1
             else:
-                # Sum meets or exceeds target — shrink from the right
-                right -= 1
-
-        return maxSum
+                right -= 1                       # Too big — shrink from max side.
+        return max_sum
 
 
-# --- Test ---
 sol = Solution()
 print(sol.target_limited_two_sum([34, 23, 1, 24, 75, 33, 54, 8], 60))  # 58
 print(sol.target_limited_two_sum([34, 23, 1, 24, 75, 33, 54, 8], 36))  # 35
 print(sol.target_limited_two_sum([10, 20, 30], 15))                     # -1
 print(sol.target_limited_two_sum([1, 2], 10))                           # 3
 ```
+
+```java,editable
+import java.util.Arrays;
+
+public class Main {
+    static class Solution {
+        int targetLimitedTwoSum(int[] arr, int target) {
+            Arrays.sort(arr);
+            int left = 0, right = arr.length - 1, maxSum = -1;
+            while (left < right) {
+                int total = arr[left] + arr[right];
+                if (total < target) {
+                    maxSum = Math.max(maxSum, total);
+                    left++;
+                } else {
+                    right--;
+                }
+            }
+            return maxSum;
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution s = new Solution();
+        System.out.println(s.targetLimitedTwoSum(new int[]{34,23,1,24,75,33,54,8}, 60));
+        System.out.println(s.targetLimitedTwoSum(new int[]{34,23,1,24,75,33,54,8}, 36));
+        System.out.println(s.targetLimitedTwoSum(new int[]{10,20,30}, 15));
+        System.out.println(s.targetLimitedTwoSum(new int[]{1,2}, 10));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+
+int cmp(const void* a, const void* b) { return (*(int*)a) - (*(int*)b); }
+
+int target_limited_two_sum(int* arr, int n, int target) {
+    qsort(arr, n, sizeof(int), cmp);
+    int left = 0, right = n - 1, max_sum = -1;
+    while (left < right) {
+        int total = arr[left] + arr[right];
+        if (total < target) {
+            if (total > max_sum) max_sum = total;
+            left++;
+        } else {
+            right--;
+        }
+    }
+    return max_sum;
+}
+
+int main() {
+    int a1[] = {34,23,1,24,75,33,54,8};
+    int a2[] = {34,23,1,24,75,33,54,8};
+    int a3[] = {10,20,30};
+    int a4[] = {1,2};
+
+    printf("%d\n", target_limited_two_sum(a1, 8, 60));
+    printf("%d\n", target_limited_two_sum(a2, 8, 36));
+    printf("%d\n", target_limited_two_sum(a3, 3, 15));
+    printf("%d\n", target_limited_two_sum(a4, 2, 10));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+class Solution {
+public:
+    int targetLimitedTwoSum(std::vector<int> arr, int target) {
+        std::sort(arr.begin(), arr.end());
+        int left = 0, right = (int)arr.size() - 1, maxSum = -1;
+        while (left < right) {
+            int total = arr[left] + arr[right];
+            if (total < target) {
+                maxSum = std::max(maxSum, total);
+                left++;
+            } else {
+                right--;
+            }
+        }
+        return maxSum;
+    }
+};
+
+int main() {
+    Solution s;
+    std::cout << s.targetLimitedTwoSum({34,23,1,24,75,33,54,8}, 60) << "\n";
+    std::cout << s.targetLimitedTwoSum({34,23,1,24,75,33,54,8}, 36) << "\n";
+    std::cout << s.targetLimitedTwoSum({10,20,30}, 15) << "\n";
+    std::cout << s.targetLimitedTwoSum({1,2}, 10) << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def targetLimitedTwoSum(arr: Array[Int], target: Int): Int = {
+      val sorted = arr.sorted
+      var left = 0
+      var right = sorted.length - 1
+      var maxSum = -1
+      while (left < right) {
+        val total = sorted(left) + sorted(right)
+        if (total < target) {
+          if (total > maxSum) maxSum = total
+          left += 1
+        } else {
+          right -= 1
+        }
+      }
+      maxSum
+    }
+  }
+
+  val sol = new Solution
+  println(sol.targetLimitedTwoSum(Array(34,23,1,24,75,33,54,8), 60))
+  println(sol.targetLimitedTwoSum(Array(34,23,1,24,75,33,54,8), 36))
+  println(sol.targetLimitedTwoSum(Array(10,20,30), 15))
+  println(sol.targetLimitedTwoSum(Array(1,2), 10))
+}
+```
+
+```javascript,editable
+class Solution {
+    targetLimitedTwoSum(arr, target) {
+        arr.sort((a, b) => a - b);
+        let left = 0, right = arr.length - 1, maxSum = -1;
+        while (left < right) {
+            const total = arr[left] + arr[right];
+            if (total < target) {
+                if (total > maxSum) maxSum = total;
+                left++;
+            } else {
+                right--;
+            }
+        }
+        return maxSum;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.targetLimitedTwoSum([34,23,1,24,75,33,54,8], 60));
+console.log(sol.targetLimitedTwoSum([34,23,1,24,75,33,54,8], 36));
+console.log(sol.targetLimitedTwoSum([10,20,30], 15));
+console.log(sol.targetLimitedTwoSum([1,2], 10));
+```
+
+```typescript,editable
+class Solution {
+    targetLimitedTwoSum(arr: number[], target: number): number {
+        arr.sort((a, b) => a - b);
+        let left = 0, right = arr.length - 1, maxSum = -1;
+        while (left < right) {
+            const total = arr[left] + arr[right];
+            if (total < target) {
+                if (total > maxSum) maxSum = total;
+                left++;
+            } else {
+                right--;
+            }
+        }
+        return maxSum;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.targetLimitedTwoSum([34,23,1,24,75,33,54,8], 60));
+console.log(sol.targetLimitedTwoSum([34,23,1,24,75,33,54,8], 36));
+console.log(sol.targetLimitedTwoSum([10,20,30], 15));
+console.log(sol.targetLimitedTwoSum([1,2], 10));
+```
+
+```go,editable
+package main
+
+import (
+    "fmt"
+    "sort"
+)
+
+func targetLimitedTwoSum(arr []int, target int) int {
+    sort.Ints(arr)
+    left, right, maxSum := 0, len(arr)-1, -1
+    for left < right {
+        total := arr[left] + arr[right]
+        if total < target {
+            if total > maxSum {
+                maxSum = total
+            }
+            left++
+        } else {
+            right--
+        }
+    }
+    return maxSum
+}
+
+func main() {
+    fmt.Println(targetLimitedTwoSum([]int{34,23,1,24,75,33,54,8}, 60))
+    fmt.Println(targetLimitedTwoSum([]int{34,23,1,24,75,33,54,8}, 36))
+    fmt.Println(targetLimitedTwoSum([]int{10,20,30}, 15))
+    fmt.Println(targetLimitedTwoSum([]int{1,2}, 10))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun targetLimitedTwoSum(arr: IntArray, target: Int): Int {
+        arr.sort()
+        var left = 0
+        var right = arr.size - 1
+        var maxSum = -1
+        while (left < right) {
+            val total = arr[left] + arr[right]
+            if (total < target) {
+                if (total > maxSum) maxSum = total
+                left++
+            } else {
+                right--
+            }
+        }
+        return maxSum
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    println(sol.targetLimitedTwoSum(intArrayOf(34,23,1,24,75,33,54,8), 60))
+    println(sol.targetLimitedTwoSum(intArrayOf(34,23,1,24,75,33,54,8), 36))
+    println(sol.targetLimitedTwoSum(intArrayOf(10,20,30), 15))
+    println(sol.targetLimitedTwoSum(intArrayOf(1,2), 10))
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn target_limited_two_sum(&self, arr: &mut [i32], target: i32) -> i32 {
+        arr.sort();
+        let mut left = 0usize;
+        let mut right = arr.len().saturating_sub(1);
+        let mut max_sum = -1i32;
+        while left < right {
+            let total = arr[left] + arr[right];
+            if total < target {
+                if total > max_sum { max_sum = total; }
+                left += 1;
+            } else {
+                right -= 1;
+            }
+        }
+        max_sum
+    }
+}
+
+fn main() {
+    let s = Solution;
+    let mut a1 = [34,23,1,24,75,33,54,8]; println!("{}", s.target_limited_two_sum(&mut a1, 60));
+    let mut a2 = [34,23,1,24,75,33,54,8]; println!("{}", s.target_limited_two_sum(&mut a2, 36));
+    let mut a3 = [10,20,30];              println!("{}", s.target_limited_two_sum(&mut a3, 15));
+    let mut a4 = [1,2];                   println!("{}", s.target_limited_two_sum(&mut a4, 10));
+}
+```
+
+</div>
 
 ---
 
@@ -1004,61 +1885,383 @@ flowchart TB
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
-
-    def skip_duplicates_left(self, arr: List[int], left: int, right: int) -> int:
-        # Skip all consecutive equal values from the left side
+    def _skip_left(self, arr, left, right):
         while left < right and arr[left] == arr[left + 1]:
             left += 1
-        # Return the index one step past the last duplicate
         return left + 1
 
-    def skip_duplicates_right(self, arr: List[int], left: int, right: int) -> int:
-        # Skip all consecutive equal values from the right side
+    def _skip_right(self, arr, left, right):
         while left < right and arr[right] == arr[right - 1]:
             right -= 1
-        # Return the index one step past the last duplicate
         return right - 1
 
-    def duplicate_aware_two_sum(
-        self, arr: List[int], target: int
-    ) -> List[List[int]]:
-        # Sort the array to enable the two-pointer reduction
+    def duplicate_aware_two_sum(self, arr: List[int], target: int) -> List[List[int]]:
         arr.sort()
         result = []
-        left   = 0
-        right  = len(arr) - 1
+        left, right = 0, len(arr) - 1
 
-        # Run while there are unseen pairs remaining
         while left < right:
             total = arr[left] + arr[right]
-
             if total == target:
                 result.append([arr[left], arr[right]])
-                # Skip past consecutive duplicates on both sides before moving inward
-                left  = self.skip_duplicates_left(arr, left, right)
-                right = self.skip_duplicates_right(arr, left, right)
-
+                # Slide both pointers past their runs of duplicates so each pair appears once.
+                left  = self._skip_left(arr, left, right)
+                right = self._skip_right(arr, left, right)
             elif total < target:
-                # Sum too small — move left pointer to a larger value
                 left += 1
             else:
-                # Sum too large — move right pointer to a smaller value
                 right -= 1
-
         return result
 
 
-# --- Test ---
 sol = Solution()
 print(sol.duplicate_aware_two_sum([1, 2, 2, 3, 4, 5], 6))   # [[1,5],[2,4]]
 print(sol.duplicate_aware_two_sum([1, 2, 2, 2, 2], 3))       # [[1,2]]
 print(sol.duplicate_aware_two_sum([2], 2))                    # []
 print(sol.duplicate_aware_two_sum([3, 3, 3], 6))              # [[3,3]]
 ```
+
+```java,editable
+import java.util.*;
+
+public class Main {
+    static class Solution {
+        int skipLeft(int[] arr, int left, int right) {
+            while (left < right && arr[left] == arr[left + 1]) left++;
+            return left + 1;
+        }
+        int skipRight(int[] arr, int left, int right) {
+            while (left < right && arr[right] == arr[right - 1]) right--;
+            return right - 1;
+        }
+
+        List<List<Integer>> duplicateAwareTwoSum(int[] arr, int target) {
+            Arrays.sort(arr);
+            List<List<Integer>> result = new ArrayList<>();
+            int left = 0, right = arr.length - 1;
+            while (left < right) {
+                int total = arr[left] + arr[right];
+                if (total == target) {
+                    result.add(Arrays.asList(arr[left], arr[right]));
+                    left  = skipLeft(arr, left, right);
+                    right = skipRight(arr, left, right);
+                } else if (total < target) {
+                    left++;
+                } else {
+                    right--;
+                }
+            }
+            return result;
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution s = new Solution();
+        System.out.println(s.duplicateAwareTwoSum(new int[]{1,2,2,3,4,5}, 6));
+        System.out.println(s.duplicateAwareTwoSum(new int[]{1,2,2,2,2}, 3));
+        System.out.println(s.duplicateAwareTwoSum(new int[]{2}, 2));
+        System.out.println(s.duplicateAwareTwoSum(new int[]{3,3,3}, 6));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+
+int cmp(const void* a, const void* b) { return (*(int*)a) - (*(int*)b); }
+
+void duplicate_aware_two_sum(int* arr, int n, int target) {
+    qsort(arr, n, sizeof(int), cmp);
+    int left = 0, right = n - 1;
+    printf("[");
+    int first = 1;
+    while (left < right) {
+        int total = arr[left] + arr[right];
+        if (total == target) {
+            if (!first) printf(", ");
+            printf("[%d, %d]", arr[left], arr[right]);
+            first = 0;
+            while (left < right && arr[left]  == arr[left + 1])  left++;
+            while (left < right && arr[right] == arr[right - 1]) right--;
+            left++;
+            right--;
+        } else if (total < target) {
+            left++;
+        } else {
+            right--;
+        }
+    }
+    printf("]\n");
+}
+
+int main() {
+    int a1[] = {1,2,2,3,4,5}; duplicate_aware_two_sum(a1, 6, 6);
+    int a2[] = {1,2,2,2,2};   duplicate_aware_two_sum(a2, 5, 3);
+    int a3[] = {2};           duplicate_aware_two_sum(a3, 1, 2);
+    int a4[] = {3,3,3};       duplicate_aware_two_sum(a4, 3, 6);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+class Solution {
+public:
+    std::vector<std::vector<int>> duplicateAwareTwoSum(std::vector<int> arr, int target) {
+        std::sort(arr.begin(), arr.end());
+        std::vector<std::vector<int>> result;
+        int left = 0, right = (int)arr.size() - 1;
+        while (left < right) {
+            int total = arr[left] + arr[right];
+            if (total == target) {
+                result.push_back({arr[left], arr[right]});
+                while (left < right && arr[left]  == arr[left + 1])  left++;
+                while (left < right && arr[right] == arr[right - 1]) right--;
+                left++;
+                right--;
+            } else if (total < target) {
+                left++;
+            } else {
+                right--;
+            }
+        }
+        return result;
+    }
+};
+
+void print(const std::vector<std::vector<int>>& v) {
+    std::cout << "[";
+    for (size_t i = 0; i < v.size(); i++) {
+        std::cout << "[" << v[i][0] << ", " << v[i][1] << "]" << (i + 1 < v.size() ? ", " : "");
+    }
+    std::cout << "]\n";
+}
+
+int main() {
+    Solution s;
+    print(s.duplicateAwareTwoSum({1,2,2,3,4,5}, 6));
+    print(s.duplicateAwareTwoSum({1,2,2,2,2}, 3));
+    print(s.duplicateAwareTwoSum({2}, 2));
+    print(s.duplicateAwareTwoSum({3,3,3}, 6));
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def duplicateAwareTwoSum(arr: Array[Int], target: Int): List[List[Int]] = {
+      val sorted = arr.sorted
+      val result = scala.collection.mutable.ListBuffer.empty[List[Int]]
+      var left = 0
+      var right = sorted.length - 1
+      while (left < right) {
+        val total = sorted(left) + sorted(right)
+        if (total == target) {
+          result += List(sorted(left), sorted(right))
+          while (left < right && sorted(left)  == sorted(left + 1))  left  += 1
+          while (left < right && sorted(right) == sorted(right - 1)) right -= 1
+          left  += 1
+          right -= 1
+        } else if (total < target) left  += 1
+        else                       right -= 1
+      }
+      result.toList
+    }
+  }
+
+  val sol = new Solution
+  println(sol.duplicateAwareTwoSum(Array(1,2,2,3,4,5), 6))
+  println(sol.duplicateAwareTwoSum(Array(1,2,2,2,2), 3))
+  println(sol.duplicateAwareTwoSum(Array(2), 2))
+  println(sol.duplicateAwareTwoSum(Array(3,3,3), 6))
+}
+```
+
+```javascript,editable
+class Solution {
+    duplicateAwareTwoSum(arr, target) {
+        arr.sort((a, b) => a - b);
+        const result = [];
+        let left = 0, right = arr.length - 1;
+        while (left < right) {
+            const total = arr[left] + arr[right];
+            if (total === target) {
+                result.push([arr[left], arr[right]]);
+                while (left < right && arr[left]  === arr[left + 1])  left++;
+                while (left < right && arr[right] === arr[right - 1]) right--;
+                left++;
+                right--;
+            } else if (total < target) {
+                left++;
+            } else {
+                right--;
+            }
+        }
+        return result;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.duplicateAwareTwoSum([1,2,2,3,4,5], 6));
+console.log(sol.duplicateAwareTwoSum([1,2,2,2,2], 3));
+console.log(sol.duplicateAwareTwoSum([2], 2));
+console.log(sol.duplicateAwareTwoSum([3,3,3], 6));
+```
+
+```typescript,editable
+class Solution {
+    duplicateAwareTwoSum(arr: number[], target: number): number[][] {
+        arr.sort((a, b) => a - b);
+        const result: number[][] = [];
+        let left = 0, right = arr.length - 1;
+        while (left < right) {
+            const total = arr[left] + arr[right];
+            if (total === target) {
+                result.push([arr[left], arr[right]]);
+                while (left < right && arr[left]  === arr[left + 1])  left++;
+                while (left < right && arr[right] === arr[right - 1]) right--;
+                left++;
+                right--;
+            } else if (total < target) {
+                left++;
+            } else {
+                right--;
+            }
+        }
+        return result;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.duplicateAwareTwoSum([1,2,2,3,4,5], 6));
+console.log(sol.duplicateAwareTwoSum([1,2,2,2,2], 3));
+console.log(sol.duplicateAwareTwoSum([2], 2));
+console.log(sol.duplicateAwareTwoSum([3,3,3], 6));
+```
+
+```go,editable
+package main
+
+import (
+    "fmt"
+    "sort"
+)
+
+func duplicateAwareTwoSum(arr []int, target int) [][]int {
+    sort.Ints(arr)
+    var result [][]int
+    left, right := 0, len(arr)-1
+    for left < right {
+        total := arr[left] + arr[right]
+        switch {
+        case total == target:
+            result = append(result, []int{arr[left], arr[right]})
+            for left < right && arr[left] == arr[left+1] {
+                left++
+            }
+            for left < right && arr[right] == arr[right-1] {
+                right--
+            }
+            left++
+            right--
+        case total < target:
+            left++
+        default:
+            right--
+        }
+    }
+    return result
+}
+
+func main() {
+    fmt.Println(duplicateAwareTwoSum([]int{1,2,2,3,4,5}, 6))
+    fmt.Println(duplicateAwareTwoSum([]int{1,2,2,2,2}, 3))
+    fmt.Println(duplicateAwareTwoSum([]int{2}, 2))
+    fmt.Println(duplicateAwareTwoSum([]int{3,3,3}, 6))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun duplicateAwareTwoSum(arr: IntArray, target: Int): List<List<Int>> {
+        arr.sort()
+        val result = mutableListOf<List<Int>>()
+        var left = 0
+        var right = arr.size - 1
+        while (left < right) {
+            val total = arr[left] + arr[right]
+            when {
+                total == target -> {
+                    result.add(listOf(arr[left], arr[right]))
+                    while (left < right && arr[left]  == arr[left + 1])  left++
+                    while (left < right && arr[right] == arr[right - 1]) right--
+                    left++
+                    right--
+                }
+                total < target -> left++
+                else           -> right--
+            }
+        }
+        return result
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    println(sol.duplicateAwareTwoSum(intArrayOf(1,2,2,3,4,5), 6))
+    println(sol.duplicateAwareTwoSum(intArrayOf(1,2,2,2,2), 3))
+    println(sol.duplicateAwareTwoSum(intArrayOf(2), 2))
+    println(sol.duplicateAwareTwoSum(intArrayOf(3,3,3), 6))
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn duplicate_aware_two_sum(&self, arr: &mut [i32], target: i32) -> Vec<Vec<i32>> {
+        arr.sort();
+        let mut result = Vec::new();
+        let mut left = 0i32;
+        let mut right = arr.len() as i32 - 1;
+        while left < right {
+            let total = arr[left as usize] + arr[right as usize];
+            if total == target {
+                result.push(vec![arr[left as usize], arr[right as usize]]);
+                while left < right && arr[left  as usize] == arr[(left  + 1) as usize] { left  += 1; }
+                while left < right && arr[right as usize] == arr[(right - 1) as usize] { right -= 1; }
+                left  += 1;
+                right -= 1;
+            } else if total < target {
+                left += 1;
+            } else {
+                right -= 1;
+            }
+        }
+        result
+    }
+}
+
+fn main() {
+    let s = Solution;
+    let mut a1 = [1,2,2,3,4,5]; println!("{:?}", s.duplicate_aware_two_sum(&mut a1, 6));
+    let mut a2 = [1,2,2,2,2];   println!("{:?}", s.duplicate_aware_two_sum(&mut a2, 3));
+    let mut a3 = [2];           println!("{:?}", s.duplicate_aware_two_sum(&mut a3, 2));
+    let mut a4 = [3,3,3];       println!("{:?}", s.duplicate_aware_two_sum(&mut a4, 6));
+}
+```
+
+</div>
 
 ---
 
@@ -1381,42 +2584,274 @@ flowchart TB
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
     def largest_container(self, heights: List[int]) -> int:
-        # Initialize left pointer at the first wall
-        left     = 0
-        # Initialize right pointer at the last wall
-        right    = len(heights) - 1
+        left, right = 0, len(heights) - 1
         max_area = 0
 
-        # Run while there is a valid container between the two pointers
         while left < right:
-            # Compute the area of the current container
             width  = right - left
             height = min(heights[left], heights[right])
-            area   = width * height
-            # Update maximum area if current container is larger
-            max_area = max(max_area, area)
+            max_area = max(max_area, width * height)
 
-            # Move the shorter wall inward — it is the only pointer that can improve the area
+            # Move the shorter wall inward — only the bottleneck can improve the area.
             if heights[left] < heights[right]:
                 left += 1
             else:
                 right -= 1
-
         return max_area
 
 
-# --- Test ---
 sol = Solution()
 print(sol.largest_container([2, 4, 3, 3, 5, 2, 4, 3, 2]))   # 20
 print(sol.largest_container([1, 8, 6, 2, 5, 4, 8, 3, 7]))   # 49
 print(sol.largest_container([1, 1]))                          # 1
 print(sol.largest_container([4, 3, 2, 1, 4]))                 # 16
 ```
+
+```java,editable
+public class Main {
+    static class Solution {
+        int largestContainer(int[] heights) {
+            int left = 0, right = heights.length - 1, maxArea = 0;
+            while (left < right) {
+                int width  = right - left;
+                int height = Math.min(heights[left], heights[right]);
+                maxArea = Math.max(maxArea, width * height);
+                if (heights[left] < heights[right]) left++;
+                else                                right--;
+            }
+            return maxArea;
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution s = new Solution();
+        System.out.println(s.largestContainer(new int[]{2,4,3,3,5,2,4,3,2}));
+        System.out.println(s.largestContainer(new int[]{1,8,6,2,5,4,8,3,7}));
+        System.out.println(s.largestContainer(new int[]{1,1}));
+        System.out.println(s.largestContainer(new int[]{4,3,2,1,4}));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int min(int a, int b) { return a < b ? a : b; }
+int max(int a, int b) { return a > b ? a : b; }
+
+int largest_container(int* heights, int n) {
+    int left = 0, right = n - 1, max_area = 0;
+    while (left < right) {
+        int width  = right - left;
+        int height = min(heights[left], heights[right]);
+        max_area   = max(max_area, width * height);
+        if (heights[left] < heights[right]) left++;
+        else                                right--;
+    }
+    return max_area;
+}
+
+int main() {
+    int a1[] = {2,4,3,3,5,2,4,3,2}; printf("%d\n", largest_container(a1, 9));
+    int a2[] = {1,8,6,2,5,4,8,3,7}; printf("%d\n", largest_container(a2, 9));
+    int a3[] = {1,1};               printf("%d\n", largest_container(a3, 2));
+    int a4[] = {4,3,2,1,4};         printf("%d\n", largest_container(a4, 5));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+class Solution {
+public:
+    int largestContainer(const std::vector<int>& heights) {
+        int left = 0, right = (int)heights.size() - 1, maxArea = 0;
+        while (left < right) {
+            int width  = right - left;
+            int height = std::min(heights[left], heights[right]);
+            maxArea    = std::max(maxArea, width * height);
+            if (heights[left] < heights[right]) left++;
+            else                                right--;
+        }
+        return maxArea;
+    }
+};
+
+int main() {
+    Solution s;
+    std::cout << s.largestContainer({2,4,3,3,5,2,4,3,2}) << "\n";
+    std::cout << s.largestContainer({1,8,6,2,5,4,8,3,7}) << "\n";
+    std::cout << s.largestContainer({1,1})               << "\n";
+    std::cout << s.largestContainer({4,3,2,1,4})         << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def largestContainer(heights: Array[Int]): Int = {
+      var left = 0
+      var right = heights.length - 1
+      var maxArea = 0
+      while (left < right) {
+        val width  = right - left
+        val height = math.min(heights(left), heights(right))
+        maxArea    = math.max(maxArea, width * height)
+        if (heights(left) < heights(right)) left  += 1
+        else                                right -= 1
+      }
+      maxArea
+    }
+  }
+
+  val sol = new Solution
+  println(sol.largestContainer(Array(2,4,3,3,5,2,4,3,2)))
+  println(sol.largestContainer(Array(1,8,6,2,5,4,8,3,7)))
+  println(sol.largestContainer(Array(1,1)))
+  println(sol.largestContainer(Array(4,3,2,1,4)))
+}
+```
+
+```javascript,editable
+class Solution {
+    largestContainer(heights) {
+        let left = 0, right = heights.length - 1, maxArea = 0;
+        while (left < right) {
+            const width  = right - left;
+            const height = Math.min(heights[left], heights[right]);
+            maxArea = Math.max(maxArea, width * height);
+            if (heights[left] < heights[right]) left++;
+            else                                right--;
+        }
+        return maxArea;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.largestContainer([2,4,3,3,5,2,4,3,2]));
+console.log(sol.largestContainer([1,8,6,2,5,4,8,3,7]));
+console.log(sol.largestContainer([1,1]));
+console.log(sol.largestContainer([4,3,2,1,4]));
+```
+
+```typescript,editable
+class Solution {
+    largestContainer(heights: number[]): number {
+        let left = 0, right = heights.length - 1, maxArea = 0;
+        while (left < right) {
+            const width  = right - left;
+            const height = Math.min(heights[left], heights[right]);
+            maxArea = Math.max(maxArea, width * height);
+            if (heights[left] < heights[right]) left++;
+            else                                right--;
+        }
+        return maxArea;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.largestContainer([2,4,3,3,5,2,4,3,2]));
+console.log(sol.largestContainer([1,8,6,2,5,4,8,3,7]));
+console.log(sol.largestContainer([1,1]));
+console.log(sol.largestContainer([4,3,2,1,4]));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func minInt(a, b int) int { if a < b { return a }; return b }
+func maxInt(a, b int) int { if a > b { return a }; return b }
+
+func largestContainer(heights []int) int {
+    left, right, maxArea := 0, len(heights)-1, 0
+    for left < right {
+        width  := right - left
+        height := minInt(heights[left], heights[right])
+        maxArea = maxInt(maxArea, width*height)
+        if heights[left] < heights[right] {
+            left++
+        } else {
+            right--
+        }
+    }
+    return maxArea
+}
+
+func main() {
+    fmt.Println(largestContainer([]int{2,4,3,3,5,2,4,3,2}))
+    fmt.Println(largestContainer([]int{1,8,6,2,5,4,8,3,7}))
+    fmt.Println(largestContainer([]int{1,1}))
+    fmt.Println(largestContainer([]int{4,3,2,1,4}))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun largestContainer(heights: IntArray): Int {
+        var left = 0
+        var right = heights.size - 1
+        var maxArea = 0
+        while (left < right) {
+            val width  = right - left
+            val height = minOf(heights[left], heights[right])
+            maxArea    = maxOf(maxArea, width * height)
+            if (heights[left] < heights[right]) left++
+            else                                right--
+        }
+        return maxArea
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    println(sol.largestContainer(intArrayOf(2,4,3,3,5,2,4,3,2)))
+    println(sol.largestContainer(intArrayOf(1,8,6,2,5,4,8,3,7)))
+    println(sol.largestContainer(intArrayOf(1,1)))
+    println(sol.largestContainer(intArrayOf(4,3,2,1,4)))
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn largest_container(&self, heights: &[i32]) -> i32 {
+        let mut left = 0usize;
+        let mut right = heights.len() - 1;
+        let mut max_area = 0i32;
+        while left < right {
+            let width  = (right - left) as i32;
+            let height = heights[left].min(heights[right]);
+            max_area   = max_area.max(width * height);
+            if heights[left] < heights[right] { left  += 1; }
+            else                              { right -= 1; }
+        }
+        max_area
+    }
+}
+
+fn main() {
+    let s = Solution;
+    println!("{}", s.largest_container(&[2,4,3,3,5,2,4,3,2]));
+    println!("{}", s.largest_container(&[1,8,6,2,5,4,8,3,7]));
+    println!("{}", s.largest_container(&[1,1]));
+    println!("{}", s.largest_container(&[4,3,2,1,4]));
+}
+```
+
+</div>
 
 ---
 
