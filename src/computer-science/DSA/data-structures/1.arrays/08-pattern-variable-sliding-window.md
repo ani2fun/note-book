@@ -34,7 +34,9 @@ There has to be a better way. And there is — but it demands a harder question:
 Forget the train car with fixed seats. Picture a **rubber band** stretched across the array. The left end is pinned at index `start`. The right end is held at index `end`. As you move through the array, the band can **stretch** (moving `end` forward to include more elements) or **compress** (moving `start` forward to shrink from the left).
 
 ```d2
-stretch_before: "Before: window = arr[1..2]" {
+direction: right
+
+stretch_before: "Before: arr[1..2]" {
   grid-columns: 6
   grid-gap: 0
   a0: "2"
@@ -46,14 +48,12 @@ stretch_before: "Before: window = arr[1..2]" {
 }
 
 stretch_op: |md
-  `end += 1`
+  **`end += 1`**
 
-  Right edge advances from index 2 → 3.
-
-  Window grows by one cell on the right.
+  `end`: 2 → 3, window grows right
 |
 
-stretch_after: "After: window = arr[1..3]" {
+stretch_after: "After: arr[1..3]" {
   grid-columns: 6
   grid-gap: 0
   b0: "2"
@@ -69,7 +69,9 @@ stretch_op -> stretch_after
 ```
 
 ```d2
-compress_before: "Before: window = arr[1..3]" {
+direction: right
+
+compress_before: "Before: arr[1..3]" {
   grid-columns: 6
   grid-gap: 0
   a0: "2"
@@ -81,14 +83,12 @@ compress_before: "Before: window = arr[1..3]" {
 }
 
 compress_op: |md
-  `start += 1`
+  **`start += 1`**
 
-  Left edge advances from index 1 → 2.
-
-  Window shrinks by one cell on the left.
+  `start`: 1 → 2, window shrinks left
 |
 
-compress_after: "After: window = arr[2..3]" {
+compress_after: "After: arr[2..3]" {
   grid-columns: 6
   grid-gap: 0
   b0: "2"
