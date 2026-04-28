@@ -115,37 +115,13 @@ The window always starts with `start = 0` and `end = 0`, representing a zero-siz
 
 Some problems require computing the output of an aggregate function over **all** subarrays of an array and then aggregating those results into a single value. To solve these naively, you would need to run fixed-sized sliding windows of every size from 1 to N through the array — one pass per size. That is O(N²) total work.
 
-```d2
-direction: right
-
-s0: "Starting at index 0" {
-  grid-columns: 4
-  grid-gap: 16
-  w0a: "[2]"
-  w0b: "[2,5]"
-  w0c: "[2,5,1]"
-  w0d: "[2,5,1,3]"
-}
-
-s1: "Starting at index 1" {
-  grid-columns: 3
-  grid-gap: 16
-  w1a: "[5]"
-  w1b: "[5,1]"
-  w1c: "[5,1,3]"
-}
-
-s2: "Starting at index 2" {
-  grid-columns: 2
-  grid-gap: 16
-  w2a: "[1]"
-  w2b: "[1,3]"
-}
-
-s3: "Starting at index 3" {
-  w3a: "[3]"
-}
-```
+| Starts at | Subarrays                               | Count |
+|----------:|-----------------------------------------|------:|
+| `i = 0`   | `[2]`, `[2,5]`, `[2,5,1]`, `[2,5,1,3]`  | 4     |
+| `i = 1`   | `[5]`, `[5,1]`, `[5,1,3]`               | 3     |
+| `i = 2`   | `[1]`, `[1,3]`                          | 2     |
+| `i = 3`   | `[3]`                                   | 1     |
+| **Total** |                                         | **10** |
 
 <p align="center"><strong>All 10 distinct subarrays of <code>[2, 5, 1, 3]</code>. An array of size N has N(N+1)/2 subarrays — for N=1000 that is 500,500; for N=10,000 that is over 50 million.</strong></p>
 

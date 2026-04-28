@@ -328,6 +328,8 @@ The `<=` vs `<` distinction is the only edge-case knob. If your problem treats t
 Because the input is sorted by start, any interval we process from this point forward has a start coordinate `≥ arr[i].start`. The intervals already inside `merged` (excluding the last) all have **end coordinates that come before `merged.last.start`** — otherwise they would have been merged into `merged.last` themselves. So they cannot possibly overlap with anything still to come.
 
 ```d2
+direction: right
+
 m: "merged so far" {
   grid-columns: 3
   grid-gap: 0
@@ -337,15 +339,11 @@ m: "merged so far" {
 }
 
 future: |md
-  Any future `arr[i]` has `start ≥ 15`
-
-  (input is sorted)
+  Any future `arr[i]` has `start ≥ 15`<br/>(input is sorted)
 |
 
 conc: |md
-  Future intervals can ONLY touch
-
-  or extend `[15,18]` — never `[1,6]` or `[8,12]`
+  Future intervals can ONLY touch or extend `[15,18]` — never `[1,6]` or `[8,12]`
 | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
 
 m -> future

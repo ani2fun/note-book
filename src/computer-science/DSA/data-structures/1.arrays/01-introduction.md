@@ -583,61 +583,9 @@ Traversal is one of the most common operations on an array. It is the **only** w
 
 The pointer starts at index `0` and steps forward one cell at a time until it reaches the end:
 
-<div class="array-traversal-demo">
-  <p id="traversal-index-label" style="font-family: monospace; font-size: 1.1em; margin-bottom: 8px;">index = 0</p>
-  <div id="traversal-array" style="display: flex; gap: 4px; margin-bottom: 12px;"></div>
-  <div style="display: flex; gap: 8px; align-items: center;">
-    <button onclick="traversalPrev()" style="padding: 6px 14px; cursor: pointer;">◄ Prev</button>
-    <button onclick="traversalNext()" style="padding: 6px 14px; cursor: pointer;">Next ►</button>
-    <button onclick="traversalReset()" style="padding: 6px 14px; cursor: pointer;">↺ Reset</button>
-    <span id="traversal-step-label" style="font-family: monospace; color: #64748b;">step 1 of 5</span>
-  </div>
-</div>
+<div class="array-stepper" data-values="1, 2, 3, 4, 5" data-label="index"></div>
 
-<script>
-(function() {
-  const values = [1, 2, 3, 4, 5];
-  let idx = 0;
-
-  function render() {
-    const container = document.getElementById('traversal-array');
-    const label = document.getElementById('traversal-index-label');
-    const stepLabel = document.getElementById('traversal-step-label');
-    if (!container) return;
-
-    label.textContent = 'index = ' + idx;
-    stepLabel.textContent = 'step ' + (idx + 1) + ' of ' + values.length;
-
-    container.innerHTML = '';
-    values.forEach(function(val, i) {
-      const cell = document.createElement('div');
-      cell.style.cssText = [
-        'width: 72px',
-        'padding: 10px 4px',
-        'text-align: center',
-        'border: 2px solid ' + (i === idx ? '#3b82f6' : '#94a3b8'),
-        'border-radius: 4px',
-        'background: ' + (i === idx ? '#dbeafe' : '#f8fafc'),
-        'color: ' + (i === idx ? '#1e3a5f' : '#475569'),
-        'font-family: monospace',
-        'font-size: 0.9em',
-        'transition: all 0.2s'
-      ].join(';');
-      cell.innerHTML = '<div>' + val + '</div><div style="font-size:0.75em;margin-top:4px;color:#64748b;">[' + i + ']</div>';
-      container.appendChild(cell);
-    });
-  }
-
-  window.traversalNext = function() { if (idx < values.length - 1) { idx++; render(); } };
-  window.traversalPrev = function() { if (idx > 0) { idx--; render(); } };
-  window.traversalReset = function() { idx = 0; render(); };
-
-  document.addEventListener('DOMContentLoaded', render);
-  setTimeout(render, 100);
-})();
-</script>
-
-<p align="center"><strong>Traversing an array using a loop control variable <code>index</code>. Click Next/Prev to step through.</strong></p>
+<p align="center"><strong>Traversing an array using a loop control variable <code>index</code>. Click Next/Prev to step through, or use the ←/→ keys when the widget is focused.</strong></p>
 
 Higher-level languages have built-in functions to get the array's length. For lower-level languages like C/C++, the programmer needs to track the array's size manually.
 

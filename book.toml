@@ -26,7 +26,8 @@ additional-js = [
   "theme/piston-playground.js",
   "theme/pagetoc.js",
   "theme/pagetoc-mobile.js",
-  "theme/d2-slides.js"
+  "theme/d2-slides.js",
+  "theme/array-stepper.js"
 ]
 
 [preprocessor.d2]

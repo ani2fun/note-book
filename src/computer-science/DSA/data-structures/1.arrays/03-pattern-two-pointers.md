@@ -46,7 +46,7 @@ config:
     tertiaryColor: "#fef9c3"
 ---
 flowchart LR
-  L(["left = 0\n→"]) -->|"starts here"| A0
+  L(["left = 0<br/>→"]) -->|"starts here"| A0
 
   subgraph ARR["Array"]
     direction LR
@@ -54,7 +54,7 @@ flowchart LR
   end
 
   An -->|"starts here"| R(["← right = n-1"])
-  MID -.->|"loop ends when\nleft ≥ right"| STOP(["✓ done"])
+  MID -.->|"loop ends when<br/>left ≥ right"| STOP(["✓ done"])
 ```
 
 <p align="center"><strong>The two-pointer traversal — <code>left</code> starts at index 0 and advances right; <code>right</code> starts at index n−1 and retreats left. They meet in the middle.</strong></p>
@@ -1043,7 +1043,7 @@ flowchart TB
     direction LR
     P1L(["left"]) --> H1["h"] --- E1["e"] --- L2["l"] --- L3["l"] --- O1["o"]
     O1 --> P1R(["right"])
-    note1(["left skips 'h'\nstops at 'e'"])
+    note1(["left skips 'h'<br/>stops at 'e'"])
   end
   subgraph S2["'e' vowel found, 'o' vowel found  →  swap!  left=2, right=3"]
     direction LR
@@ -1685,9 +1685,9 @@ config:
     tertiaryColor: "#fef9c3"
 ---
 flowchart TB
-  ORIG["Original string\n'the sky is blue'"]
-  STEP1["Step 1: Reverse the entire string\n'eulb si yks eht'"]
-  STEP2["Step 2: Reverse each individual word\n'blue is sky the'"]
+  ORIG["Original string<br/>'the sky is blue'"]
+  STEP1["Step 1: Reverse the entire string<br/>'eulb si yks eht'"]
+  STEP2["Step 2: Reverse each individual word<br/>'blue is sky the'"]
   DONE(["✓  Word order reversed, characters intact"])
 
   ORIG -->|"two-pointer reverse full string"| STEP1
@@ -1878,12 +1878,12 @@ config:
 ---
 flowchart TB
   TP["Two-Pointer Direct Application"]
-  FC["Flip Characters\nSwap chars from both ends"]
-  PC["Palindrome Checker\nCompare chars from both ends"]
-  VE["Vowel Exchange\nScan to vowel, then swap"]
-  RW["Reverse Words\nApply reversal per word"]
-  RS["Reverse Segments\nApply reversal per segment range"]
-  RWO["Reverse Word Order\nFull reverse + per-word reverse"]
+  FC["Flip Characters<br/>Swap chars from both ends"]
+  PC["Palindrome Checker<br/>Compare chars from both ends"]
+  VE["Vowel Exchange<br/>Scan to vowel, then swap"]
+  RW["Reverse Words<br/>Apply reversal per word"]
+  RS["Reverse Segments<br/>Apply reversal per segment range"]
+  RWO["Reverse Word Order<br/>Full reverse + per-word reverse"]
 
   TP --> FC
   TP --> PC

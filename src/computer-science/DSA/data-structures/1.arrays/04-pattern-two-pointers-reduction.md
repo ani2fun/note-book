@@ -447,9 +447,9 @@ config:
     tertiaryColor: "#fef9c3"
 ---
 flowchart TB
-  INV["Invariant: every pair is considered\nbefore either element is discarded"]
-  D1["When arr[left] is discarded:\narr[left] paired with all elements\nfrom arr[left+1] to arr[right]\n(right is still the max)"]
-  D2["When arr[right] is discarded:\narr[right] paired with all elements\nfrom arr[left] to arr[right-1]\n(left is now the min of remainder)"]
+  INV["Invariant: every pair is considered<br/>before either element is discarded"]
+  D1["When arr[left] is discarded:<br/>arr[left] paired with all elements<br/>from arr[left+1] to arr[right]<br/>(right is still the max)"]
+  D2["When arr[right] is discarded:<br/>arr[right] paired with all elements<br/>from arr[left] to arr[right-1]<br/>(left is now the min of remainder)"]
   INV --> D1
   INV --> D2
 ```
@@ -751,7 +751,7 @@ flowchart TB
   Loop{"left < right?"}
   Calc["sum = arr[left] + arr[right]"]
   Valid{"sum < target?"}
-  Record["maxSum = max(maxSum, sum)\nleft++  (try larger sums)"]
+  Record["maxSum = max(maxSum, sum)<br/>left++  (try larger sums)"]
   Reduce["right--  (reduce sum below target)"]
   Done(["return maxSum"])
 
@@ -954,8 +954,8 @@ flowchart TB
   Calc["total = arr[left] + arr[right]"]
   Match{"total == target?"}
   Record["result.append([arr[left], arr[right]])"]
-  SkipL["skip left duplicates\n(while arr[left]==arr[left+1]: left++)"]
-  SkipR["skip right duplicates\n(while arr[right]==arr[right-1]: right--)"]
+  SkipL["skip left duplicates<br/>(while arr[left]==arr[left+1]: left++)"]
+  SkipR["skip right duplicates<br/>(while arr[right]==arr[right-1]: right--)"]
   Move["left++,  right--"]
   Less["left++  (increase sum)"]
   Greater["right--  (decrease sum)"]

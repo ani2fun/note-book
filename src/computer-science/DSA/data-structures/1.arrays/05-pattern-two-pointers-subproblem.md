@@ -710,13 +710,13 @@ config:
 ---
 flowchart TB
   Sort["Sort arr"]
-  Outer["for i in 0 → n-3\n(fix arr[i])"]
+  Outer["for i in 0 → n-3<br/>(fix arr[i])"]
   SkipI{"arr[i] == arr[i-1]?\n(duplicate outer)"}
-  SetTP["left = i+1,  right = n-1\ntarget = -arr[i]"]
+  SetTP["left = i+1,  right = n-1<br/>target = -arr[i]"]
   InLoop{"left < right?"}
   Calc["total = arr[left] + arr[right]"]
   Found{"total == target?"}
-  Record["append [arr[i], arr[left], arr[right]]\nskip left & right duplicates\nleft++,  right--"]
+  Record["append [arr[i], arr[left], arr[right]]<br/>skip left & right duplicates<br/>left++,  right--"]
   Less["left++"]
   Greater["right--"]
   CanBreak{"arr[i] > 0?"}
@@ -969,17 +969,17 @@ config:
 flowchart TB
   Sort["Sort arr"]
   Init["closest = arr[0]+arr[1]+arr[2]"]
-  Outer["for i in 0 → n-3\n(fix arr[i])"]
+  Outer["for i in 0 → n-3<br/>(fix arr[i])"]
   SetTP["left = i+1,  right = n-1"]
   InLoop{"left < right?"}
   Calc["total = arr[i]+arr[left]+arr[right]"]
   Exact{"total == target?"}
-  ReturnExact["return total\n(distance = 0, can't improve)"]
+  ReturnExact["return total<br/>(distance = 0, can't improve)"]
   Update{"|total−target| < |closest−target|?"}
   Save["closest = total"]
   Dir{"total < target?"}
-  IncLeft["left++\n(sum too small, need bigger value)"]
-  DecRight["right--\n(sum too big, need smaller value)"]
+  IncLeft["left++<br/>(sum too small, need bigger value)"]
+  DecRight["right--<br/>(sum too big, need smaller value)"]
   ReturnClosest["return closest"]
 
   Sort --> Init --> Outer --> SetTP --> InLoop
