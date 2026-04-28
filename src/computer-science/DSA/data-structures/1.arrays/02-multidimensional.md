@@ -676,49 +676,31 @@ arr: {
   grid-columns: 3
   grid-gap: 0
   a: |md
-    `[0,0]`
-
-    value1
+    `[0,0]` value1
   |
   b: |md
-    `[0,1]`
-
-    value2
+    `[0,1]` value2
   |
   c: |md
-    `[0,2]`
-
-    value3
+    `[0,2]` value3
   |
   d: |md
-    `[1,0]`
-
-    value4
+    `[1,0]` value4
   |
   e: |md
-    `[1,1]`
-
-    value5
+    `[1,1]` value5
   |
   f: |md
-    `[1,2]`
-
-    value6
+    `[1,2]` value6
   |
   g: |md
-    `[2,0]`
-
-    value7
+    `[2,0]` value7
   |
   h: |md
-    `[2,1]`
-
-    value8
+    `[2,1]` value8
   |
   i: |md
-    `[2,2]`
-
-    value9
+    `[2,2]` value9
   |
 }
 ```
@@ -769,49 +751,31 @@ arr: {
   grid-columns: 3
   grid-gap: 0
   a: |md
-    `[0,0]`
-
-    value1
+    `[0,0]` value1
   |
   b: |md
-    `[0,1]`
-
-    value2
+    `[0,1]` value2
   |
   c: |md
-    `[0,2]`
-
-    value3
+    `[0,2]` value3
   |
   d: |md
-    `[1,0]`
-
-    value4
+    `[1,0]` value4
   |
   e: |md
-    `[1,1]`
-
-    value5
+    `[1,1]` value5
   |
   f: |md
-    `[1,2]`
-
-    value6
+    `[1,2]` value6
   |
   g: |md
-    `[2,0]`
-
-    value7
+    `[2,0]` value7
   |
   h: |md
-    `[2,1]`
-
-    value8
+    `[2,1]` value8
   |
   i: |md
-    `[2,2]`
-
-    value9
+    `[2,2]` value9
   |
 }
 arr.e.style.fill: "#fde68a"
