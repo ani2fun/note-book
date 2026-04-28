@@ -59,6 +59,11 @@
     height: auto;
     margin: 0 auto;
     max-width: 100%;
+    /* Cap any single diagram at ~60% of viewport height so a tall
+       diagram never dominates the screen. height: auto keeps the
+       aspect ratio; the browser scales width proportionally when the
+       height cap binds. */
+    max-height: 60vh;
 }
 
 .d2--error {
