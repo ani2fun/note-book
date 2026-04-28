@@ -140,38 +140,19 @@ Storing data is easy. But how do you *find* it again?
 Each byte has a unique identifier based on its position — its **address**. It's just the index of the box, counting from 0.
 
 ```d2
-direction: right
-
 mem: Memory {
   grid-columns: 6
   grid-gap: 0
-  b0: |md
-    **0**<br/>8 bits
-  |
-  b1: |md
-    **1**<br/>8 bits
-  |
-  b2: |md
-    **2**<br/>8 bits
-  |
-  b3: |md
-    **3**<br/>8 bits
-  |
-  b4: |md
-    **4**<br/>8 bits
-  |
-  b5: |md
-    **5**<br/>8 bits
-  |
+  b0: "0"
+  b1: "1"
+  b2: "2"
+  b3: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b4: "4"
+  b5: "5"
 }
-
-addr: Address = 3 {
-  shape: oval
-}
-addr -> mem.b3
 ```
 
-<p align="center"><strong>Each box is 1 byte (8 bits). Its position number is its address.</strong></p>
+<p align="center"><strong>Each cell is 1 byte (8 bits); its position number is its address. Highlighted cell sits at <code>address = 3</code>.</strong></p>
 
 > **Address in memory:** The address of data is the position of the **first byte** where that data starts.
 
@@ -730,44 +711,21 @@ Array elements are accessed using indices because arrays are stored **contiguous
 Memory in RAM is logically organized as a sequence of blocks, each **1 byte (8 bits)** long. Every block has a unique identifier — its **address** — which is simply its relative position from the start (starting from 0).
 
 ```d2
-direction: right
-
 mem: Memory {
   grid-columns: 8
   grid-gap: 0
-  b0: |md
-    **0**<br/>8 bits
-  |
-  b1: |md
-    **1**<br/>8 bits
-  |
-  b2: |md
-    **2**<br/>8 bits
-  |
-  b3: |md
-    **3**<br/>8 bits
-  |
-  b4: |md
-    **4**<br/>8 bits
-  |
-  b5: |md
-    **5**<br/>8 bits
-  |
-  b6: |md
-    **6**<br/>8 bits
-  |
-  b7: |md
-    **7**<br/>8 bits
-  |
+  b0: "0"
+  b1: "1"
+  b2: "2"
+  b3: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b4: "4"
+  b5: "5"
+  b6: "6"
+  b7: "7"
 }
-
-addr: Address = 3 {
-  shape: oval
-}
-addr -> mem.b3
 ```
 
-<p align="center"><strong>Memory is logically organized as a linear sequence of blocks.</strong></p>
+<p align="center"><strong>Memory is logically organized as a linear sequence of byte-sized cells. Highlighted cell sits at <code>address = 3</code>.</strong></p>
 
 ---
 
