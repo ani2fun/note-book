@@ -40,6 +40,7 @@ config:
 ---
 flowchart TB
     subgraph S1["Shape A — h=3"]
+        direction TB
         A1((1))
         A2((2))
         A3((3))
@@ -49,6 +50,7 @@ flowchart TB
         A3 --> A4
     end
     subgraph S2["Shape B — h=3"]
+        direction TB
         B1((4))
         B2((3))
         B3((2))
@@ -58,6 +60,7 @@ flowchart TB
         B3 --> B4
     end
     subgraph S3["Shape C — h=2"]
+        direction TB
         C1((2))
         C2((1))
         C3((3))
@@ -66,6 +69,7 @@ flowchart TB
         C1 --> C3
     end
     subgraph S4["Shape D — h=2"]
+        direction TB
         D1((3))
         D2((1))
         D3((4))
@@ -74,6 +78,7 @@ flowchart TB
         D1 --> D3
     end
     subgraph S5["Shape E — h=2"]
+        direction TB
         E1((2))
         E2((1))
         E3((4))
@@ -105,6 +110,7 @@ config:
 ---
 flowchart TB
     subgraph T1["Minimum-height shape #1"]
+        direction TB
         A1((2))
         A2((1))
         A3((3))
@@ -113,6 +119,7 @@ flowchart TB
         A3 --> A4((4))
     end
     subgraph T2["Minimum-height shape #2"]
+        direction TB
         B1((3))
         B2((1))
         B3((4))
@@ -121,6 +128,7 @@ flowchart TB
         B2 --> B4((2))
     end
     subgraph T3["Minimum-height shape #3"]
+        direction TB
         C1((2))
         C2((1))
         C3((4))
@@ -186,6 +194,7 @@ config:
 ---
 flowchart TB
     subgraph T1["Tree A — h=3, avg depth ≈ 2.0"]
+        direction TB
         A1((4))
         A2((2))
         A3((6))
@@ -201,6 +210,7 @@ flowchart TB
         A3 --> A7
     end
     subgraph T2["Tree B — h=3, avg depth ≈ 2.4"]
+        direction TB
         B1((4))
         B2((2))
         B3((6))
@@ -306,6 +316,7 @@ config:
 ---
 flowchart TB
     subgraph S1["Shape A — root bf = +3"]
+        direction TB
         A1((4))
         A2((3))
         A3((2))
@@ -315,6 +326,7 @@ flowchart TB
         A3 --> A4
     end
     subgraph S3["Shape C — root bf = −1"]
+        direction TB
         C1((2))
         C2((1))
         C3((3))
@@ -323,6 +335,7 @@ flowchart TB
         C1 --> C3
     end
     subgraph S4["Shape D — root bf = 0"]
+        direction TB
         D1((3))
         D2((1))
         D3((4))
@@ -356,6 +369,7 @@ config:
 ---
 flowchart TB
     subgraph T1["Tree A — same height, abs bf = 0"]
+        direction TB
         A1(("4<br/>bf=0"))
         A2((2))
         A3((6))
@@ -371,6 +385,7 @@ flowchart TB
         A3 --> A7
     end
     subgraph T2["Tree B — same height, abs bf = 1"]
+        direction TB
         B1(("4<br/>bf=1"))
         B2((2))
         B3((6))
@@ -411,14 +426,17 @@ config:
 ---
 flowchart TB
     subgraph N1["Insert 1"]
+        direction TB
         S1((1))
     end
     subgraph N2["Insert 2"]
+        direction TB
         T1((1))
         T2((2))
         T1 --> T2
     end
     subgraph N3["Insert 3"]
+        direction TB
         U1((2))
         U2((1))
         U3((3))
@@ -426,6 +444,7 @@ flowchart TB
         U1 --> U3
     end
     subgraph N4["Insert 4"]
+        direction TB
         V1((2))
         V2((1))
         V3((3))
@@ -435,6 +454,7 @@ flowchart TB
         V3 --> V4
     end
     subgraph N5["Insert 5"]
+        direction TB
         W1((2))
         W2((1))
         W3((4))
@@ -1096,6 +1116,7 @@ config:
 ---
 flowchart TB
     subgraph Before["Complete BST"]
+        direction TB
         B1((4))
         B2((2))
         B3((6))
@@ -1109,6 +1130,7 @@ flowchart TB
         B3 --> B6
     end
     subgraph After1["After insert(7) — last level not filled left-to-right"]
+        direction TB
         I1((4))
         I2((2))
         I3((6))
@@ -1124,6 +1146,7 @@ flowchart TB
         I3 --> I7
     end
     subgraph After2["After delete(3) — gap inside the tree"]
+        direction TB
         D1((4))
         D2((2))
         D3((6))
@@ -1277,6 +1300,7 @@ config:
 ---
 flowchart TB
     subgraph T1["Height-balanced #1"]
+        direction TB
         A1((4))
         A2((2))
         A3((6))
@@ -1290,6 +1314,7 @@ flowchart TB
         A3 --> A6
     end
     subgraph T2["Height-balanced #2"]
+        direction TB
         B1((5))
         B2((2))
         B3((8))
@@ -1301,6 +1326,7 @@ flowchart TB
         B2 --> B5
     end
     subgraph T3["NOT height-balanced"]
+        direction TB
         C1((4))
         C2((2))
         C3((6))
@@ -1398,8 +1424,9 @@ config:
     secondaryColor: "#ede9fe"
     tertiaryColor: "#fef9c3"
 ---
-flowchart LR
+flowchart TB
     subgraph Before["Unbalanced after insert"]
+        direction TB
         B1((30))
         B2((20))
         B3((10))
@@ -1407,6 +1434,7 @@ flowchart LR
         B2 --> B3
     end
     subgraph After["After right rotation at 30"]
+        direction TB
         A1((20))
         A2((10))
         A3((30))

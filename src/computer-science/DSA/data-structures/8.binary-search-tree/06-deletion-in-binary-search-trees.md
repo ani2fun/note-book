@@ -44,6 +44,7 @@ config:
 ---
 flowchart TB
     subgraph Before["Before delete(20)"]
+        direction TB
         R1((50))
         A1((30))
         B1((70))
@@ -56,6 +57,7 @@ flowchart TB
         style C1 fill:#fecaca,stroke:#ef4444
     end
     subgraph After["After delete(20)"]
+        direction TB
         R2((50))
         A2((30))
         B2((70))
@@ -86,6 +88,7 @@ config:
 ---
 flowchart TB
     subgraph Before["Before delete(70)"]
+        direction TB
         R1((50))
         A1((30))
         B1((70))
@@ -100,6 +103,7 @@ flowchart TB
         style B1 fill:#fecaca,stroke:#ef4444
     end
     subgraph After["After delete(70)"]
+        direction TB
         R2((50))
         A2((30))
         C2((90))
@@ -136,6 +140,7 @@ config:
 ---
 flowchart TB
     subgraph Before["Before delete(50)"]
+        direction TB
         R1((50))
         A1((30))
         B1((70))
@@ -153,6 +158,7 @@ flowchart TB
         style E1 fill:#fde68a,stroke:#d97706
     end
     subgraph Step["Step 1: copy successor's value (60) into the doomed node"]
+        direction TB
         R2((60))
         A2((30))
         B2((70))
@@ -170,6 +176,7 @@ flowchart TB
         style E2 fill:#fecaca,stroke:#ef4444
     end
     subgraph After["Step 2: delete the original successor (now a leaf)"]
+        direction TB
         R3((60))
         A3((30))
         B3((70))
@@ -824,6 +831,7 @@ config:
 ---
 flowchart TB
     subgraph A["Sub-case 3.1 — successor IS current.right"]
+        direction TB
         C1((50))
         D1((70))
         E1((80))
@@ -835,6 +843,7 @@ flowchart TB
         style N1 fill:none,stroke:none
     end
     subgraph B["Sub-case 3.2 — successor is deeper inside right subtree"]
+        direction TB
         C2((50))
         D2((70))
         F2((60))

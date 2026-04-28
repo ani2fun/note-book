@@ -124,6 +124,7 @@ config:
 ---
 flowchart TB
     subgraph G1["Binary tree (NOT a BST)"]
+        direction TB
         A1((10))
         A2((30))
         A3((20))
@@ -135,6 +136,7 @@ flowchart TB
         A2 --> A5
     end
     subgraph G2["Binary search tree"]
+        direction TB
         B1((20))
         B2((10))
         B3((30))

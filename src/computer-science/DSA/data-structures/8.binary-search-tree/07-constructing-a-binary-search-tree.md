@@ -42,7 +42,9 @@ config:
 ---
 flowchart TB
     subgraph S["Inorder = [1, 2, 3]"]
+        direction TB
         subgraph T1["Tree A"]
+            direction TB
             A1((2))
             A2((1))
             A3((3))
@@ -50,6 +52,7 @@ flowchart TB
             A1 --> A3
         end
         subgraph T2["Tree B"]
+            direction TB
             B1((1))
             B2((3))
             B1 --> B3([" "])
@@ -61,6 +64,7 @@ flowchart TB
             style B5 fill:none,stroke:none,color:transparent
         end
         subgraph T3["Tree C"]
+            direction TB
             C1((3))
             C2((2))
             C3((1))
@@ -96,9 +100,11 @@ config:
 ---
 flowchart TB
     subgraph A1["Step 1: arr = [1,2,3,4,5,6,7], mid = index 3 (value 4) → root"]
+        direction TB
         N1((4))
     end
     subgraph A2["Step 2: left half [1,2,3], mid = 2 → root.left"]
+        direction TB
         N2((4))
         L2((2))
         N2 --> L2
@@ -106,6 +112,7 @@ flowchart TB
         style N2R fill:none,stroke:none
     end
     subgraph A3["Step 3: right half [5,6,7], mid = 6 → root.right"]
+        direction TB
         N3((4))
         L3((2))
         R3((6))
@@ -113,6 +120,7 @@ flowchart TB
         N3 --> R3
     end
     subgraph A4["Step 4: recurse on quarters → balanced tree"]
+        direction TB
         N4((4))
         L4((2))
         R4((6))
@@ -388,6 +396,7 @@ config:
 ---
 flowchart TB
     subgraph Best["Best — input [4, 2, 6, 1, 3, 5, 7]"]
+        direction TB
         B1((4))
         B2((2))
         B3((6))
@@ -404,6 +413,7 @@ flowchart TB
         style B1 fill:#bbf7d0,stroke:#16a34a
     end
     subgraph Worst["Worst — input [1, 2, 3, 4, 5, 6, 7]"]
+        direction TB
         W1((1))
         W2((2))
         W3((3))

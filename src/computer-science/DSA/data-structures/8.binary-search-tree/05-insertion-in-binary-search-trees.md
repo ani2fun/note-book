@@ -81,6 +81,7 @@ config:
 ---
 flowchart TB
     subgraph Before["Before insert(25)"]
+        direction TB
         R1((50))
         A1((30))
         B1((70))
@@ -92,6 +93,7 @@ flowchart TB
         A1 --> D1
     end
     subgraph After["After insert(25)"]
+        direction TB
         R2((50))
         A2((30))
         B2((70))
