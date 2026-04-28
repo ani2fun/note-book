@@ -1,4 +1,18 @@
-# Array implementation of heaps
+# 2. Array Implementation of Heaps
+
+## The Hook
+
+In the previous lesson we drew heaps as binary trees. Beautiful, conceptual, easy to reason about — and **wildly inefficient in memory**. A linked tree node carries the value, a left pointer, and a right pointer; on a 64-bit machine that's 24 bytes for what should be a single integer. Every push allocates. Every pop frees. The CPU's L1 cache, which loves to prefetch sequential memory, gets zero benefit from the scattered allocations.
+
+Now look at this fact again: **a heap is always a complete binary tree.** "Complete" means *every level fully filled, last level filling left-to-right, no gaps*. The structure is so rigid you don't need pointers to describe it — you can describe it with **arithmetic**.
+
+Number the nodes in level-order starting at index `0`: root, root's left child, root's right child, then row 2 left to right, then row 3 left to right. Look at the indices. The root's children are at `1` and `2`. Node `1`'s children are at `3` and `4`. Node `2`'s children are at `5` and `6`. The pattern is **`children of i are at 2i+1 and 2i+2`**, and **`parent of i is at (i-1)/2`** (integer division).
+
+That's it. Pointers gone. Allocations gone. The whole tree lives in a single flat array. Iterating "down a path" becomes a tight loop with `i = 2*i + 1`. The CPU prefetcher loves you. Every operation in this lesson — insert, delete, peek, extract, construct — collapses into 5–10 lines of array code with no recursion required.
+
+This lesson is where the heap actually pays for its reputation. We'll derive the index formulas, then implement all five operations on top of them, watching each one preserve the *completeness* and *heap-ordering* invariants.
+
+---
 
 ## Table of Contents
 
@@ -15,116 +29,257 @@
 
 # Structure of array based heap
 
-Now that we know that a heap is a complete binary tree, it is easy to understand how it is implemented using an array. We can easily identify a pattern if we enumerate the nodes of a complete binary tree starting with 0 at the root. We can see that for any given node, the enumeration for its child nodes and parent can easily be calculated using simple maths.
+Number the nodes of a complete binary tree in level-order starting at `0`. The root is `0`, the second-row nodes are `1, 2`, the third-row nodes are `3, 4, 5, 6`, and so on.
 
-// Diagram: Enumeration of nodes in a complete binary tree
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    A(("0"))
+    B(("1"))
+    C(("2"))
+    D(("3"))
+    E(("4"))
+    F(("5"))
+    G(("6"))
+    H(("7"))
+    I(("8"))
+    A --> B
+    A --> C
+    B --> D
+    B --> E
+    C --> F
+    C --> G
+    D --> H
+    D --> I
+    style A fill:#fef9c3,stroke:#f59e0b
+```
 
-> For any given node at the given `index` :
+<p align="center"><strong>Level-order indices for a complete binary tree of 9 nodes. The labels here are the array positions, not values.</strong></p>
+
+Now stare at the indices and find the pattern:
+
+| Node | Index | Left child | Right child | Parent |
+|---|---|---|---|---|
+| Root | 0 | 1 | 2 | — |
+| Node `1` | 1 | 3 | 4 | 0 |
+| Node `2` | 2 | 5 | 6 | 0 |
+| Node `3` | 3 | 7 | 8 | 1 |
+
+The arithmetic falls out:
+
+> For any node at index `i`:
 >
-> -   **Parent** = (`index` - `1`) / `2`
-> -   **Left child** = (`2` \* `index`) + `1`
-> -   **Right child** = (`2` \* `index`) + `2`
+> - **Parent** = `(i − 1) / 2` (integer division)
+> - **Left child** = `2i + 1`
+> - **Right child** = `2i + 2`
 
-We can use the enumeration of a complete binary tree to implement the tree in an array. The enumeration of a node can be used as an index in an array that stores the value of the respective node.
+> *Friction prompt — predict before reading on. If we numbered from `1` instead of `0` (some textbooks do), what would the formulas become?*
 
-// Diagram: The enumeration of nodes is used as index in array to store a complete binary tree
+Numbering from `1`: parent = `i/2`, left = `2i`, right = `2i+1`. Slightly cleaner — it's why some textbooks prefer 1-indexing — but every modern language defaults to 0-indexed arrays, so we'll stick with the 0-indexed forms.
+
+Stored in an array, the level-order numbering becomes the *physical* layout — element `i` of the array IS the node at index `i` in the tree.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+block-beta
+  columns 9
+  N0["50"]:1 N1["30"]:1 N2["40"]:1 N3["10"]:1 N4["20"]:1 N5["35"]:1 N6["25"]:1 N7["5"]:1 N8["15"]:1
+  I0["i=0"]:1 I1["i=1"]:1 I2["i=2"]:1 I3["i=3"]:1 I4["i=4"]:1 I5["i=5"]:1 I6["i=6"]:1 I7["i=7"]:1 I8["i=8"]:1
+  style N0 fill:#fef9c3,stroke:#f59e0b
+```
+
+<p align="center"><strong>Array representation of a max-heap. Index <code>0</code> is the root. The tree structure is captured entirely by index arithmetic — no pointers stored.</strong></p>
 
 ## Structure of a node
 
-Since the heap is just a complete binary tree, the node only stores the data in the array implementation and has no left or right pointers. Simple multiplication and division can be used to move from a parent node to a child and vice versa. 
-
-// Diagram: A heap node is just a datatype for an array element
+A heap node is just an array slot — a value. No `left` field, no `right` field, no `parent` field. The tree topology is implicit in the indices. This is what gives heap operations their stupendous constant factors: every comparison, every swap, every navigation is a single array access, and every contiguous slice of the heap fits in a CPU cache line.
 
 ## Structure in memory
 
-What looks like a tree on paper looks very different when implemented as an array in the computer memory. The array implementation of a heap is just a simple array stored in a contiguous segment of memory.
+What looks like a tree on paper is, in RAM, a single contiguous block of elements:
 
-// Diagram: Array implementation of a heap in computer memory
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["addr<br/>0x1000"] --> B["addr<br/>0x1004"] --> C["addr<br/>0x1008"] --> D["addr<br/>0x100c"] --> E["addr<br/>0x1010"] --> F["..."]
+    A2["50<br/>(root)"] -.- A
+    B2["30"] -.- B
+    C2["40"] -.- C
+    D2["10"] -.- D
+    E2["20"] -.- E
+```
 
-Now that we know how a heap is implemented using an array, we can dive deeper into the operations it supports and their implementation. Using an array to implement a heap makes implementing all supported operations easier, as we will learn later in the course.
+<p align="center"><strong>Heap in memory: just a contiguous int array. Cache-friendly, allocation-free per push.</strong></p>
+
+With this single observation — *parent and child indices are arithmetic* — every heap operation in the rest of this lesson can be written without any tree code at all.
 
 ***
 
 # Inserting an item in the heap
 
-The insert operation is a primary operation on a heap used to insert a value. The implementation is encapsulated in the insert function, which inserts a new node in the binary tree and ensures the resulting tree still follows the max-heap property. Let us look at the algorithm and implementation of the insert operation on a max heap implemented as an array.
+To insert a value into the heap, we have two invariants to preserve: completeness and heap-ordering. Completeness pins down *where* the new node has to go physically — the next free position in the array (i.e. just past the current last element). That preserves the "fill last level left-to-right" rule. The heap-ordering rule is what we have to *fix*, by bubbling the new value up if it out-prioritises its parent.
 
 ## Algorithm
 
-The algorithm for inserting a new value in a heap is quite simple. Since the heap is a complete binary tree, we insert a new node at the first available free spot. When implemented in an array, this free spot is the index after the last element of the heap in the array.
-
-The newly inserted node might violate the heap property in the resulting tree, so we recalibrate the tree to enforce the heap property. To do this, we traverse **upwards** from the newly inserted node and compare the current node with its parent at each iteration. If the value at the child node is larger than the parent, we swap the nodes. The traversal stops when we reach the root node, or the current node is no longer larger than its parent.
-
-This way, at the end of the insert operation, the resulting binary tree still follows the heap property and remains a heap.
-
-// Diagram: Insert a new node (18) in the given max heap
-
 > **Algorithm**
 >
-> -   **Step 1:** Insert the new element at the end of the array
-> -   **Step 2:** Traverse upwards in the tree from the node, moving the larger value up to enforce max heap property.
+> - **Step 1:** Append the new value at the end of the array.
+> - **Step 2:** Bubble it up: while it has a parent and is bigger than the parent (max-heap), swap with the parent.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph S1["1. Append 18 at end of array"]
+        direction TB
+        A1((50))
+        A2((30))
+        A3((40))
+        A4((10))
+        A5((20))
+        A6((35))
+        A7((25))
+        A8((5))
+        A9((15))
+        A10((18))
+        A1 --> A2
+        A1 --> A3
+        A2 --> A4
+        A2 --> A5
+        A3 --> A6
+        A3 --> A7
+        A4 --> A8
+        A4 --> A9
+        A5 --> A10
+        style A10 fill:#bbf7d0,stroke:#16a34a
+    end
+    subgraph S2["2. Bubble up: 18 vs parent 20 → 18 < 20 → STOP"]
+        direction TB
+        B1((50))
+        B2((30))
+        B3((40))
+        B4((10))
+        B5((20))
+        B6((35))
+        B7((25))
+        B8((5))
+        B9((15))
+        B10((18))
+        B1 --> B2
+        B1 --> B3
+        B2 --> B4
+        B2 --> B5
+        B3 --> B6
+        B3 --> B7
+        B4 --> B8
+        B4 --> B9
+        B5 --> B10
+        style B10 fill:#bbf7d0,stroke:#16a34a
+    end
+    S1 --> S2
+```
+
+<p align="center"><strong>Insert <code>18</code> into a max-heap. It lands at the next complete slot (under <code>20</code>). Then check parent: <code>18 &lt; 20</code>, no swap needed — the heap rule already holds. Done in O(log n) worst case.</strong></p>
 
 ## Up Heapify
 
-The insertion algorithm inserts a new node at the end of the heap and re-enforces the heap property going **upwards** from that node. This process is also sometimes called **up-heapify**. It is generally applied when a new node is inserted, or the value of a node changes, and the subtree rooted at the new/updated node still follows the heap property. There may be a possibility that nodes above it may now violate the heap property, and so this information has to be propagated upwards.
+The "bubble up" loop is called **up-heapify** (also "sift up"). It's the workhorse subroutine used whenever a node's value *increases* (e.g., after insert) and the *parents* might now be out of order. It walks up from a starting index, swapping with the parent each step, until either the parent is bigger or we hit the root.
 
-// Diagram: The up heapify operation
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["upHeapify(i)"] --> B{"i &gt; 0 AND<br/>arr[parent] &lt; arr[i]?"}
+    B -->|Yes| C["swap arr[i] ↔ arr[parent]<br/>i = parent"]
+    C --> B
+    B -->|No| D["DONE"]
+    style D fill:#bbf7d0,stroke:#16a34a
+```
+
+<p align="center"><strong>The up-heapify loop. Walk up from <code>i</code>, swap with parent whenever the heap rule is violated, stop at the root or when the rule is satisfied.</strong></p>
 
 ## Implementation
 
-The array implementation uses a fixed-sized array, so we perform capacity checks before inserting the new node into the tree. If there is enough room to add a new node, we add it at the end and iteratively traverse up the tree to move the larger value upwards to re-enforce the heap property.
+<div class="lang-tabs">
 
-C++
+```python,editable
+class MaxHeap:
+    def __init__(self):
+        self.heap = []
 
-```cpp
-using namespace std;
+    # Restore the max-heap property going UP from `index`. Used after insert.
+    def up_heapify(self, index: int) -> None:
+        # While we're not at the root and the parent is smaller, swap.
+        parent = (index - 1) // 2
+        while index > 0 and self.heap[parent] < self.heap[index]:
+            self.heap[index], self.heap[parent] = self.heap[parent], self.heap[index]
+            index = parent
+            parent = (index - 1) // 2
 
-class MaxHeap {
-public:
-    vector<int> heap;
-
-    // Helper function to restore heap property upwards (used in insert)
-    void upHeapify(int index) {
-        int parent = (index - 1) / 2;
-        while (index > 0 && heap[parent] < heap[index]) {
-            swap(heap[index], heap[parent]);
-            index = parent;
-            parent = (index - 1) / 2;
-        }
-
-// Diagram: void insert(int val) {
-
-        // Insert the new value at the end of the heap
-        heap.push_back(val);
-
-        // Get the index of the new value
-        int index = heap.size() - 1;
-
-        // Restore the max heap property by comparing with parent nodes
-        upHeapify(index);
-    }
-};
+    def insert(self, val: int) -> None:
+        self.heap.append(val)              # Step 1: append at the end (preserves completeness)
+        self.up_heapify(len(self.heap) - 1) # Step 2: bubble up to restore ordering
 ```
 
-Java
-
-```java
+```java,editable
 import java.util.*;
 
 class MaxHeap {
-    List<Integer> heap;
-
-    public MaxHeap() {
-        heap = new ArrayList<>();
-    }
+    List<Integer> heap = new ArrayList<>();
 
     private void swap(int i, int j) {
-        int temp = heap.get(i);
-        heap.set(i, heap.get(j));
-        heap.set(j, temp);
+        int t = heap.get(i); heap.set(i, heap.get(j)); heap.set(j, t);
     }
 
-    // Helper function to restore heap property upwards (used in insert)
+    // Restore the max-heap property going UP from `index`. Used after insert.
     private void upHeapify(int index) {
         int parent = (index - 1) / 2;
         while (index > 0 && heap.get(parent) < heap.get(index)) {
@@ -132,1675 +287,1680 @@ class MaxHeap {
             index = parent;
             parent = (index - 1) / 2;
         }
-
-// Diagram: public void insert(int val) {
-
-        // Insert the new value at the end of the heap
-        heap.add(val);
-
-        // Get the index of the new value
-        int index = heap.size() - 1;
-
-        // Restore the max heap property by comparing with parent nodes
-        upHeapify(index);
     }
+
+    public void insert(int val) {
+        heap.add(val);                                                          // append (completeness)
+        upHeapify(heap.size() - 1);                                             // sift up (ordering)
+    }
+}
 ```
 
-Typescript
+```c,editable
+#include <stdlib.h>
 
-```typescript
-export class MaxHeap {
-    heap: number[];
+typedef struct {
+    int *data; int size; int cap;
+} MaxHeap;
 
-    constructor() {
-        this.heap = [];
+static void heap_swap(int *a, int *b) { int t = *a; *a = *b; *b = t; }
+
+static void up_heapify(MaxHeap *h, int index) {
+    int parent = (index - 1) / 2;
+    while (index > 0 && h->data[parent] < h->data[index]) {
+        heap_swap(&h->data[parent], &h->data[index]);
+        index = parent;
+        parent = (index - 1) / 2;
     }
+}
 
-    swap(i: number, j: number): void {
-        [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]];
+void heap_insert(MaxHeap *h, int val) {
+    if (h->size == h->cap) {                                                    // grow if needed
+        h->cap = h->cap ? h->cap * 2 : 8;
+        h->data = realloc(h->data, sizeof(int) * h->cap);
     }
+    h->data[h->size++] = val;                                                   // append (completeness)
+    up_heapify(h, h->size - 1);                                                 // sift up (ordering)
+}
+```
 
-    // Helper function to restore heap property upwards (used in insert)
-    upHeapify(index: number): void {
-        let parent = Math.floor((index - 1) / 2);
-        while (index > 0 && this.heap[parent] < this.heap[index]) {
-            this.swap(index, parent);
+```cpp,editable
+#include <vector>
+
+class MaxHeap {
+public:
+    std::vector<int> heap;
+
+    // Restore the max-heap property going UP from `index`. Used after insert.
+    void upHeapify(int index) {
+        int parent = (index - 1) / 2;
+        while (index > 0 && heap[parent] < heap[index]) {
+            std::swap(heap[parent], heap[index]);
             index = parent;
-            parent = Math.floor((index - 1) / 2);
+            parent = (index - 1) / 2;
         }
-
-// Diagram: insert(val: number): void {
-
-        // Insert the new value at the end of the heap
-        this.heap.push(val);
-
-        // Get the index of the new value
-        let index = this.heap.length - 1;
-
-        // Restore the max heap property by comparing with parent nodes
-        this.upHeapify(index);
     }
+
+    void insert(int val) {
+        heap.push_back(val);                                                      // append (completeness)
+        upHeapify(heap.size() - 1);                                                // sift up (ordering)
+    }
+};
 ```
 
-Javascript
+```scala,editable
+import scala.collection.mutable.ArrayBuffer
 
-```javascript
-export class MaxHeap {
-    constructor() {
-        this.heap = [];
+class MaxHeap {
+  val heap: ArrayBuffer[Int] = ArrayBuffer.empty[Int]
+
+  private def swap(i: Int, j: Int): Unit = {
+    val t = heap(i); heap(i) = heap(j); heap(j) = t
+  }
+
+  // Restore the max-heap property going UP from `index`. Used after insert.
+  private def upHeapify(start: Int): Unit = {
+    var index = start
+    var parent = (index - 1) / 2
+    while (index > 0 && heap(parent) < heap(index)) {
+      swap(index, parent)
+      index = parent
+      parent = (index - 1) / 2
+    }
+  }
+
+  def insert(v: Int): Unit = {
+    heap += v                                                                       // append
+    upHeapify(heap.length - 1)                                                      // sift up
+  }
+}
+```
+
+```javascript,editable
+class MaxHeap {
+  constructor() { this.heap = []; }
+
+  swap(i, j) { [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]]; }
+
+  // Restore the max-heap property going UP from `index`. Used after insert.
+  upHeapify(index) {
+    let parent = Math.floor((index - 1) / 2);
+    while (index > 0 && this.heap[parent] < this.heap[index]) {
+      this.swap(index, parent);
+      index = parent;
+      parent = Math.floor((index - 1) / 2);
+    }
+  }
+
+  insert(val) {
+    this.heap.push(val);                                                              // append
+    this.upHeapify(this.heap.length - 1);                                              // sift up
+  }
+}
+```
+
+```typescript,editable
+class MaxHeap {
+  heap: number[] = [];
+
+  swap(i: number, j: number): void {
+    [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]];
+  }
+
+  // Restore the max-heap property going UP from `index`. Used after insert.
+  upHeapify(index: number): void {
+    let parent = Math.floor((index - 1) / 2);
+    while (index > 0 && this.heap[parent] < this.heap[index]) {
+      this.swap(index, parent);
+      index = parent;
+      parent = Math.floor((index - 1) / 2);
+    }
+  }
+
+  insert(val: number): void {
+    this.heap.push(val);                                                                // append
+    this.upHeapify(this.heap.length - 1);                                                // sift up
+  }
+}
+```
+
+```go,editable
+type MaxHeap struct{ data []int }
+
+// Restore the max-heap property going UP from `index`. Used after insert.
+func (h *MaxHeap) upHeapify(index int) {
+    parent := (index - 1) / 2
+    for index > 0 && h.data[parent] < h.data[index] {
+        h.data[parent], h.data[index] = h.data[index], h.data[parent]
+        index = parent
+        parent = (index - 1) / 2
+    }
+}
+
+func (h *MaxHeap) Insert(val int) {
+    h.data = append(h.data, val)                                                          // append
+    h.upHeapify(len(h.data) - 1)                                                          // sift up
+}
+```
+
+```kotlin,editable
+class MaxHeap {
+    val heap = mutableListOf<Int>()
+
+    private fun swap(i: Int, j: Int) {
+        val t = heap[i]; heap[i] = heap[j]; heap[j] = t
     }
 
-    swap(i, j) {
-        [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]];
-    }
-
-    // Helper function to restore heap property upwards (used in insert)
-    upHeapify(index) {
-        let parent = Math.floor((index - 1) / 2);
-        while (index > 0 && this.heap[parent] < this.heap[index]) {
-            this.swap(index, parent);
-            index = parent;
-            parent = Math.floor((index - 1) / 2);
+    // Restore the max-heap property going UP from `index`. Used after insert.
+    private fun upHeapify(start: Int) {
+        var index = start
+        var parent = (index - 1) / 2
+        while (index > 0 && heap[parent] < heap[index]) {
+            swap(index, parent)
+            index = parent
+            parent = (index - 1) / 2
         }
-
-// Diagram: insert(val) {
-
-        // Insert the new value at the end of the heap
-        this.heap.push(val);
-
-        // Restore the max heap property by comparing with parent nodes
-        this.upHeapify(this.heap.length - 1);
     }
+
+    fun insert(v: Int) {
+        heap.add(v)                                                                          // append
+        upHeapify(heap.size - 1)                                                              // sift up
+    }
+}
 ```
 
-Python
+```rust,editable
+pub struct MaxHeap { data: Vec<i32> }
 
-```python
-from typing import List
+impl MaxHeap {
+    pub fn new() -> Self { Self { data: Vec::new() } }
 
-class MaxHeap:
-    def __init__(self) -> None:
-        self.heap: List[int] = []
+    // Restore the max-heap property going UP from `index`. Used after insert.
+    fn up_heapify(&mut self, mut index: usize) {
+        while index > 0 {
+            let parent = (index - 1) / 2;
+            if self.data[parent] < self.data[index] {
+                self.data.swap(parent, index);
+                index = parent;
+            } else { break; }
+        }
+    }
 
-    # Helper function to restore heap property upwards (used in insert)
-    def up_heapify(self, index: int) -> None:
-        parent = (index - 1) // 2
-        while index > 0 and self.heap[parent] < self.heap[index]:
-            self.heap[parent], self.heap[index] = self.heap[index], self.heap[parent]
-            index, parent = parent, (parent - 1) // 2
-
-    def insert(self, val: int) -> None:
-
-        # Insert the new value at the end of the heap
-        self.heap.append(val)
-
-        # Get the index of the new value
-        index = len(self.heap) - 1
-
-        # Restore the max heap property by comparing with parent nodes
-        self.up_heapify(index)
+    pub fn insert(&mut self, val: i32) {
+        self.data.push(val);                                                                  // append
+        let last = self.data.len() - 1;
+        self.up_heapify(last);                                                                // sift up
+    }
+}
 ```
+
+</div>
 
 ## Complexity analysis
 
-The insert operation updates the value at an index in the internal array, a constant-time operation. However, after that, it traverses the binary tree upwards. In the best case, the newly inserted node might have a value smaller than its parent, so we won't need to traverse upwards, and the best-case time complexity would be **constant O(1)**.
+`insert` does an O(1) append, then walks at most one root-to-leaf path during up-heapify — that's at most `⌊log₂ n⌋` comparison-and-swap steps.
 
-In the worst case, however, the newly created node might have the largest value in the tree, so we would have to traverse upwards to the root node. Since the height of a complete binary tree is log(N), the time complexity in this case would be**O(log(N))**.
+| Case | Time | Space |
+|---|---|---|
+| Best (new value ≤ parent) | O(1) | O(1) |
+| Worst (new value > everything) | **O(log n)** | O(1) |
 
-// Diagram: Best and worst case for insertion in a heap
-
-To insert a new value, we do not create a new data structure that depends on the size of stored data or input. We only create a fixed number of temporary variables, so the space complexity is **constant O(1)**.
-
-> **Best Case:** The given value is smaller than its first parent
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
->
-> **Worst Case:** The given value greater than the current maximum value in the tree
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(log(N))**
+The space cost is constant — the heap grows in place, no auxiliary structures.
 
 ***
 
 # Deleting an item from the heap
 
-The delete operation is another primary operation on a heap and is used to delete a given node (by address) from the tree. The implementation is encapsulated in the delete function, which deletes the given node in the binary tree and ensures the resulting tree still follows the max-heap property. Let us look at the algorithm and implementation of the delete operation on a max heap implemented as an array.
+`delete(index)` removes the value at a specific index. The trick: we can't punch a hole in the middle of the array (it would break completeness). Instead, we **swap the doomed slot with the last element**, drop the (now-trailing) doomed value off the end, and then *fix* the slot we just over-wrote — which may need to bubble up *or* sift down depending on the new value.
+
+For the most common case — deleting the root (which is what `extract` does) — the new root almost certainly needs to sift *down*. So we'll focus the operation around `down_heapify`.
 
 ## Algorithm
 
-The algorithm for deleting a new value in a heap is quite similar to insert. However, we cannot delete a non-leaf node, which would break the tree. To overcome this, we swap the value at the given node with the last node in the binary tree. Since the last node is a leaf node, we can easily delete it.
-
-Swapping the value from the last node to the given node might violate the heap property in the resulting tree, so we need to recalibrate it to enforce the heap property. To do this, we traverse **downwards** from the given node (that now has the swapped value) and, at each iteration, compare the current node with its children. If the value of any child node is larger than the parent, we swap the nodes and continue traversal in that direction. The traversal stops when we reach a leaf node, or the current node is larger than its children.
-
-This way, at the end of the delete operation, the resulting binary tree still follows the heap property and remains a heap.
-
-// Diagram: Delete the given node (15) from the heap
-
 > **Algorithm**
 >
-> -   **Step 1:** Swap the value at the given node with the last node in the tree.
-> -   **Step 2:** Delete the last node.
-> -   **Step 3:** Traverse downwards in the tree from the given node, moving the smaller value down to enforce the max heap property.
+> - **Step 1:** Swap `heap[index]` with `heap[last]`.
+> - **Step 2:** Pop the last element (now the value we wanted to delete).
+> - **Step 3:** From `index`, run `down_heapify` to restore the heap rule downward. (For non-root index in a max-heap, also consider running `up_heapify` — the new value might be larger than the original parent. The simpler implementation just sifts down, which is correct for `extract` and for any case where the replacement is smaller.)
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph S1["1. Mark target for deletion (idx 4 = 15)"]
+        direction TB
+        A1((50))
+        A2((30))
+        A3((40))
+        A4((10))
+        A5((15))
+        A6((35))
+        A7((25))
+        A8((5))
+        A1 --> A2
+        A1 --> A3
+        A2 --> A4
+        A2 --> A5
+        A3 --> A6
+        A3 --> A7
+        A4 --> A8
+        style A5 fill:#fecaca,stroke:#ef4444
+    end
+    subgraph S2["2. Swap with last (5) and pop"]
+        direction TB
+        B1((50))
+        B2((30))
+        B3((40))
+        B4((10))
+        B5((5))
+        B6((35))
+        B7((25))
+        B1 --> B2
+        B1 --> B3
+        B2 --> B4
+        B2 --> B5
+        B3 --> B6
+        B3 --> B7
+        style B5 fill:#fde68a,stroke:#d97706
+    end
+    subgraph S3["3. Down-heapify at idx 4 (no children) → STOP"]
+        direction TB
+        C1((50))
+        C2((30))
+        C3((40))
+        C4((10))
+        C5((5))
+        C6((35))
+        C7((25))
+        C1 --> C2
+        C1 --> C3
+        C2 --> C4
+        C2 --> C5
+        C3 --> C6
+        C3 --> C7
+        style C5 fill:#bbf7d0,stroke:#16a34a
+    end
+    S1 --> S2 --> S3
+```
+
+<p align="center"><strong>Delete the value at index 4 (<code>15</code>): swap with last (<code>5</code>), pop, then sift down from index 4 — here a leaf, so no further work.</strong></p>
 
 ## Down Heapify
 
-The deletion algorithm updates the value of the root node of the heap and re-enforces the heap property going **downwards** from the root. This process is also sometimes called **down-heapify** and is generally applied in cases when the value of a node changes, which may cause the subtree rooted at that node to violate the heap property. Unlike up-heapify, down-heapify is applied when the nodes above the updated node still follow the heap property. Still, there may be a possibility that the nodes below it now violate the heap property, and so new information has to be propagated downwards.
+The "sift down" loop is called **down-heapify**. It's the dual of up-heapify — used whenever a node's value *decreases* and its descendants might now violate the heap rule. At each step, find the larger of the two children; if it's larger than the current node, swap, and continue from the swapped slot. Stop when both children are smaller or the node has no children.
 
-// Diagram: The down heapify operation
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["downHeapify(i)"] --> B["largest = i<br/>L = 2i+1, R = 2i+2"]
+    B --> C{"L &lt; n AND<br/>arr[L] &gt; arr[largest]?"}
+    C -->|Yes| D["largest = L"]
+    C -->|No| E["(no change)"]
+    D --> F{"R &lt; n AND<br/>arr[R] &gt; arr[largest]?"}
+    E --> F
+    F -->|Yes| G["largest = R"]
+    F -->|No| H{"largest != i?"}
+    G --> H
+    H -->|Yes| I["swap arr[i] ↔ arr[largest]<br/>i = largest, recurse/loop"]
+    I --> B
+    H -->|No| J["DONE"]
+    style J fill:#bbf7d0,stroke:#16a34a
+```
+
+<p align="center"><strong>The down-heapify loop. At each step pick the larger of the two children and swap if it beats the parent.</strong></p>
 
 ## Implementation
 
-We perform bounds checks to ensure the given node exists in the heap. If the given node is within the segment in the array that holds the heap, we swap the value in the given node with the last node in the tree and then delete the last node. Next, we iteratively traverse the tree to move the smaller value downwards to re-enforce the heap property.
+<div class="lang-tabs">
 
-C++
+```python,editable
+class MaxHeap:
+    def __init__(self):
+        self.heap = []
 
-```cpp
-using namespace std;
+    def up_heapify(self, index):
+        parent = (index - 1) // 2
+        while index > 0 and self.heap[parent] < self.heap[index]:
+            self.heap[index], self.heap[parent] = self.heap[parent], self.heap[index]
+            index = parent
+            parent = (index - 1) // 2
+
+    # Restore the max-heap property going DOWN from `index`. Used after delete/extract.
+    def down_heapify(self, index):
+        n = len(self.heap)
+        while True:
+            largest = index
+            left, right = 2 * index + 1, 2 * index + 2
+            # Pick the bigger child (if any) and check against current node.
+            if left  < n and self.heap[left]  > self.heap[largest]: largest = left
+            if right < n and self.heap[right] > self.heap[largest]: largest = right
+            if largest == index:
+                return                                  # heap rule satisfied
+            self.heap[index], self.heap[largest] = self.heap[largest], self.heap[index]
+            index = largest                              # continue from the swapped slot
+
+    def insert(self, val):
+        self.heap.append(val)
+        self.up_heapify(len(self.heap) - 1)
+
+    def remove(self, index):
+        last = len(self.heap) - 1
+        self.heap[index] = self.heap[last]              # overwrite with last value
+        self.heap.pop()                                 # drop the now-duplicate tail
+        if index < len(self.heap):
+            self.down_heapify(index)
+```
+
+```java,editable
+import java.util.*;
+
+class MaxHeap {
+    List<Integer> heap = new ArrayList<>();
+
+    private void swap(int i, int j) { int t = heap.get(i); heap.set(i, heap.get(j)); heap.set(j, t); }
+
+    private void upHeapify(int index) {
+        int parent = (index - 1) / 2;
+        while (index > 0 && heap.get(parent) < heap.get(index)) {
+            swap(index, parent); index = parent; parent = (index - 1) / 2;
+        }
+    }
+
+    // Restore the max-heap property going DOWN from `index`. Used after delete/extract.
+    private void downHeapify(int index) {
+        int n = heap.size();
+        while (true) {
+            int largest = index;
+            int left = 2 * index + 1, right = 2 * index + 2;
+            if (left  < n && heap.get(left)  > heap.get(largest)) largest = left;
+            if (right < n && heap.get(right) > heap.get(largest)) largest = right;
+            if (largest == index) return;
+            swap(index, largest);
+            index = largest;
+        }
+    }
+
+    public void insert(int val) {
+        heap.add(val);
+        upHeapify(heap.size() - 1);
+    }
+
+    public void remove(int index) {
+        int last = heap.size() - 1;
+        heap.set(index, heap.get(last));                                                                   // overwrite
+        heap.remove(last);                                                                                  // drop tail
+        if (index < heap.size()) downHeapify(index);
+    }
+}
+```
+
+```c,editable
+#include <stdlib.h>
+
+typedef struct { int *data; int size; int cap; } MaxHeap;
+
+static void hsswap(int *a, int *b) { int t = *a; *a = *b; *b = t; }
+
+static void up_heapify(MaxHeap *h, int index) {
+    int parent = (index - 1) / 2;
+    while (index > 0 && h->data[parent] < h->data[index]) {
+        hsswap(&h->data[parent], &h->data[index]);
+        index = parent;
+        parent = (index - 1) / 2;
+    }
+}
+
+static void down_heapify(MaxHeap *h, int index) {
+    while (1) {
+        int largest = index;
+        int left  = 2 * index + 1, right = 2 * index + 2;
+        if (left  < h->size && h->data[left]  > h->data[largest]) largest = left;
+        if (right < h->size && h->data[right] > h->data[largest]) largest = right;
+        if (largest == index) return;
+        hsswap(&h->data[index], &h->data[largest]);
+        index = largest;
+    }
+}
+
+void heap_insert(MaxHeap *h, int val) {
+    if (h->size == h->cap) { h->cap = h->cap ? h->cap * 2 : 8; h->data = realloc(h->data, sizeof(int) * h->cap); }
+    h->data[h->size++] = val;
+    up_heapify(h, h->size - 1);
+}
+
+void heap_remove(MaxHeap *h, int index) {
+    h->data[index] = h->data[--h->size];                                                                            // overwrite + shrink
+    if (index < h->size) down_heapify(h, index);
+}
+```
+
+```cpp,editable
+#include <vector>
 
 class MaxHeap {
 public:
-    vector<int> heap;
+    std::vector<int> heap;
 
-    // Helper function to restore heap property upwards (used in insert)
     void upHeapify(int index) {
         int parent = (index - 1) / 2;
         while (index > 0 && heap[parent] < heap[index]) {
-            swap(heap[index], heap[parent]);
+            std::swap(heap[parent], heap[index]);
             index = parent;
             parent = (index - 1) / 2;
         }
-
-    // Helper function to maintain the max heap property downwards
-    void downHeapify(int index) {
-        int largest = index;
-        int left = 2 * index + 1;
-        int right = 2 * index + 2;
-
-        // Find the largest among the node and its left child
-        if (left < heap.size() && heap[left] > heap[largest]) {
-            largest = left;
-        }
-
-        // Find the largest among the node and its right child
-        if (right < heap.size() && heap[right] > heap[largest]) {
-            largest = right;
-        }
-
-        // If the largest is not the current node, swap and continue
-        // heapify
-        if (largest != index) {
-            swap(heap[index], heap[largest]);
-            downHeapify(largest);
-        }
-
-// Diagram: void insert(int val) {
-
-        // Insert the new value at the end of the heap
-        heap.push_back(val);
-
-        // Get the index of the new value
-        int index = heap.size() - 1;
-
-        // Restore the max heap property by comparing with parent nodes
-        upHeapify(index);
     }
 
-// Diagram: void remove(int index) {
+    void downHeapify(int index) {
+        int n = (int)heap.size();
+        while (true) {
+            int largest = index;
+            int left  = 2 * index + 1, right = 2 * index + 2;
+            if (left  < n && heap[left]  > heap[largest]) largest = left;
+            if (right < n && heap[right] > heap[largest]) largest = right;
+            if (largest == index) return;
+            std::swap(heap[index], heap[largest]);
+            index = largest;
+        }
+    }
 
-        // Replace the value with the largest possible value and heapify
+    void insert(int val) {
+        heap.push_back(val);
+        upHeapify((int)heap.size() - 1);
+    }
+
+    void remove(int index) {
         heap[index] = heap.back();
-
-        // Remove the last node
         heap.pop_back();
-
-        // Restore the max heap property
-        downHeapify(index);
+        if (index < (int)heap.size()) downHeapify(index);
     }
 };
 ```
 
-Java
-
-```java
-import java.util.*;
+```scala,editable
+import scala.collection.mutable.ArrayBuffer
 
 class MaxHeap {
-    List<Integer> heap;
+  val heap = ArrayBuffer.empty[Int]
 
-    public MaxHeap() {
-        heap = new ArrayList<>();
+  private def swap(i: Int, j: Int): Unit = { val t = heap(i); heap(i) = heap(j); heap(j) = t }
+
+  private def upHeapify(start: Int): Unit = {
+    var index = start
+    var parent = (index - 1) / 2
+    while (index > 0 && heap(parent) < heap(index)) {
+      swap(index, parent); index = parent; parent = (index - 1) / 2
     }
+  }
 
-    private void swap(int i, int j) {
-        int temp = heap.get(i);
-        heap.set(i, heap.get(j));
-        heap.set(j, temp);
+  private def downHeapify(start: Int): Unit = {
+    var index = start
+    val n = heap.length
+    var keepGoing = true
+    while (keepGoing) {
+      var largest = index
+      val left  = 2 * index + 1
+      val right = 2 * index + 2
+      if (left  < n && heap(left)  > heap(largest)) largest = left
+      if (right < n && heap(right) > heap(largest)) largest = right
+      if (largest == index) keepGoing = false
+      else { swap(index, largest); index = largest }
     }
+  }
 
-    // Helper function to restore heap property upwards (used in insert)
-    private void upHeapify(int index) {
-        int parent = (index - 1) / 2;
-        while (index > 0 && heap.get(parent) < heap.get(index)) {
-            swap(index, parent);
-            index = parent;
-            parent = (index - 1) / 2;
-        }
+  def insert(v: Int): Unit = { heap += v; upHeapify(heap.length - 1) }
 
-    // Helper function to maintain the max heap property downwards
-    private void downHeapify(int index) {
-        int largest = index;
-        int left = 2 * index + 1;
-        int right = 2 * index + 2;
-
-        // Find the largest among the node and its left child
-        if (left < heap.size() && heap.get(left) > heap.get(largest)) {
-            largest = left;
-        }
-
-        // Find the largest among the node and its right child
-        if (right < heap.size() && heap.get(right) > heap.get(largest)) {
-            largest = right;
-        }
-
-        // If the largest is not the current node, swap and continue
-        // heapify
-        if (largest != index) {
-            swap(index, largest);
-            downHeapify(largest);
-        }
-
-// Diagram: public void insert(int val) {
-
-        // Insert the new value at the end of the heap
-        heap.add(val);
-
-        // Get the index of the new value
-        int index = heap.size() - 1;
-
-        // Restore the max heap property by comparing with parent nodes
-        upHeapify(index);
-    }
-
-// Diagram: public void remove(int index) {
-
-        // Replace the value with the largest possible value and heapify
-        heap.set(index, heap.get(heap.size() - 1));
-
-        // Remove the last node
-        heap.remove(heap.size() - 1);
-
-        // Restore the max heap property
-        downHeapify(index);
-    }
+  def remove(index: Int): Unit = {
+    val last = heap.length - 1
+    heap(index) = heap(last)
+    heap.remove(last)
+    if (index < heap.length) downHeapify(index)
+  }
+}
 ```
 
-Typescript
+```javascript,editable
+class MaxHeap {
+  constructor() { this.heap = []; }
+  swap(i, j) { [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]]; }
 
-```typescript
-export class MaxHeap {
-    heap: number[];
-
-    constructor() {
-        this.heap = [];
+  upHeapify(index) {
+    let parent = Math.floor((index - 1) / 2);
+    while (index > 0 && this.heap[parent] < this.heap[index]) {
+      this.swap(index, parent);
+      index = parent;
+      parent = Math.floor((index - 1) / 2);
     }
+  }
 
-    swap(i: number, j: number): void {
-        [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]];
+  downHeapify(index) {
+    const n = this.heap.length;
+    while (true) {
+      let largest = index;
+      const left = 2 * index + 1, right = 2 * index + 2;
+      if (left  < n && this.heap[left]  > this.heap[largest]) largest = left;
+      if (right < n && this.heap[right] > this.heap[largest]) largest = right;
+      if (largest === index) return;
+      this.swap(index, largest);
+      index = largest;
     }
+  }
 
-    // Helper function to restore heap property upwards (used in insert)
-    upHeapify(index: number): void {
-        let parent = Math.floor((index - 1) / 2);
-        while (index > 0 && this.heap[parent] < this.heap[index]) {
-            this.swap(index, parent);
-            index = parent;
-            parent = Math.floor((index - 1) / 2);
-        }
+  insert(val) { this.heap.push(val); this.upHeapify(this.heap.length - 1); }
 
-    // Helper function to maintain the max heap property downwards
-    downHeapify(index: number): void {
-        let largest = index;
-        let left = 2 * index + 1;
-        let right = 2 * index + 2;
-
-        // Find the largest among the node and its left child
-        if (
-            left < this.heap.length &&
-            this.heap[left] > this.heap[largest]
-        ) {
-            largest = left;
-        }
-
-        // Find the largest among the node and its right child
-        if (
-            right < this.heap.length &&
-            this.heap[right] > this.heap[largest]
-        ) {
-            largest = right;
-        }
-
-        // If the largest is not the current node, swap and continue
-        // heapify
-        if (largest !== index) {
-            this.swap(index, largest);
-            this.downHeapify(largest);
-        }
-
-// Diagram: insert(val: number): void {
-
-        // Insert the new value at the end of the heap
-        this.heap.push(val);
-
-        // Get the index of the new value
-        let index = this.heap.length - 1;
-
-        // Restore the max heap property by comparing with parent nodes
-        this.upHeapify(index);
-    }
-
-// Diagram: remove(index: number): void {
-
-        // Replace the value with the largest possible value and heapify
-        this.heap[index] = this.heap[this.heap.length - 1];
-
-        // Remove the last node
-        this.heap.pop();
-
-        // Restore the max heap property
-        this.downHeapify(index);
-    }
+  remove(index) {
+    const last = this.heap.length - 1;
+    this.heap[index] = this.heap[last];
+    this.heap.pop();
+    if (index < this.heap.length) this.downHeapify(index);
+  }
+}
 ```
 
-Javascript
+```typescript,editable
+class MaxHeap {
+  heap: number[] = [];
+  swap(i: number, j: number): void { [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]]; }
 
-```javascript
-export class MaxHeap {
-    constructor() {
-        this.heap = [];
+  upHeapify(index: number): void {
+    let parent = Math.floor((index - 1) / 2);
+    while (index > 0 && this.heap[parent] < this.heap[index]) {
+      this.swap(index, parent);
+      index = parent;
+      parent = Math.floor((index - 1) / 2);
     }
+  }
 
-    swap(i, j) {
-        [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]];
+  downHeapify(index: number): void {
+    const n = this.heap.length;
+    while (true) {
+      let largest = index;
+      const left = 2 * index + 1, right = 2 * index + 2;
+      if (left  < n && this.heap[left]  > this.heap[largest]) largest = left;
+      if (right < n && this.heap[right] > this.heap[largest]) largest = right;
+      if (largest === index) return;
+      this.swap(index, largest);
+      index = largest;
     }
+  }
 
-    // Helper function to restore heap property upwards (used in insert)
-    upHeapify(index) {
-        let parent = Math.floor((index - 1) / 2);
-        while (index > 0 && this.heap[parent] < this.heap[index]) {
-            this.swap(index, parent);
-            index = parent;
-            parent = Math.floor((index - 1) / 2);
-        }
+  insert(val: number): void { this.heap.push(val); this.upHeapify(this.heap.length - 1); }
 
-    // Helper function to maintain the max heap property downwards
-    downHeapify(index) {
-        let largest = index;
-        let left = 2 * index + 1;
-        let right = 2 * index + 2;
-
-        // Find the largest among the node and its left child
-        if (
-            left < this.heap.length &&
-            this.heap[left] > this.heap[largest]
-        ) {
-            largest = left;
-        }
-
-        // Find the largest among the node and its right child
-        if (
-            right < this.heap.length &&
-            this.heap[right] > this.heap[largest]
-        ) {
-            largest = right;
-        }
-
-        // If the largest is not the current node, swap and continue
-        // heapify
-        if (largest !== index) {
-            this.swap(index, largest);
-            this.downHeapify(largest);
-        }
-
-// Diagram: insert(val) {
-
-        // Insert the new value at the end of the heap
-        this.heap.push(val);
-
-        // Restore the max heap property by comparing with parent nodes
-        this.upHeapify(this.heap.length - 1);
-    }
-
-// Diagram: remove(index) {
-
-        // Replace the value with the largest possible value and heapify
-        this.heap[index] = this.heap.pop();
-
-        // Restore the max heap property
-        this.downHeapify(index);
-    }
+  remove(index: number): void {
+    const last = this.heap.length - 1;
+    this.heap[index] = this.heap[last];
+    this.heap.pop();
+    if (index < this.heap.length) this.downHeapify(index);
+  }
+}
 ```
 
-Python
+```go,editable
+type MaxHeap struct{ data []int }
 
-```python
-from typing import List
+func (h *MaxHeap) upHeapify(index int) {
+    parent := (index - 1) / 2
+    for index > 0 && h.data[parent] < h.data[index] {
+        h.data[parent], h.data[index] = h.data[index], h.data[parent]
+        index = parent
+        parent = (index - 1) / 2
+    }
+}
 
-class MaxHeap:
-    def __init__(self) -> None:
-        self.heap: List[int] = []
+func (h *MaxHeap) downHeapify(index int) {
+    n := len(h.data)
+    for {
+        largest := index
+        left, right := 2*index+1, 2*index+2
+        if left  < n && h.data[left]  > h.data[largest] { largest = left  }
+        if right < n && h.data[right] > h.data[largest] { largest = right }
+        if largest == index { return }
+        h.data[index], h.data[largest] = h.data[largest], h.data[index]
+        index = largest
+    }
+}
 
-    # Helper function to restore heap property upwards (used in insert)
-    def up_heapify(self, index: int) -> None:
-        parent = (index - 1) // 2
-        while index > 0 and self.heap[parent] < self.heap[index]:
-            self.heap[parent], self.heap[index] = self.heap[index], self.heap[parent]
-            index, parent = parent, (parent - 1) // 2
+func (h *MaxHeap) Insert(val int) {
+    h.data = append(h.data, val)
+    h.upHeapify(len(h.data) - 1)
+}
 
-    # Helper function to maintain the max heap property downwards
-    def down_heapify(self, index: int) -> None:
-        largest = index
-        left, right = 2 * index + 1, 2 * index + 2
-
-        # Find the largest among the node and its left child
-        if left < len(self.heap) and self.heap[left] > self.heap[largest]:
-            largest = left
-
-        # Find the largest among the node and its right child
-        if right < len(self.heap) and self.heap[right] > self.heap[largest]:
-            largest = right
-
-        # If the largest is not the current node, swap and continue heapify
-        if largest != index:
-            self.heap[index], self.heap[largest] = self.heap[largest], self.heap[index]
-            self.down_heapify(largest)
-
-    def insert(self, val: int) -> None:
-
-        # Insert the new value at the end of the heap
-        self.heap.append(val)
-
-        # Get the index of the new value
-        index = len(self.heap) - 1
-
-        # Restore the max heap property by comparing with parent nodes
-        self.up_heapify(index)
-
-    def remove(self, index: int) -> None:
-
-        # Replace the value with the largest possible value and heapify
-        self.heap[index] = self.heap[-1]
-
-        # Remove the last node
-        self.heap.pop()
-
-        # Restore the max heap property
-        self.down_heapify(index)
+func (h *MaxHeap) Remove(index int) {
+    last := len(h.data) - 1
+    h.data[index] = h.data[last]
+    h.data = h.data[:last]
+    if index < len(h.data) { h.downHeapify(index) }
+}
 ```
+
+```kotlin,editable
+class MaxHeap {
+    val heap = mutableListOf<Int>()
+
+    private fun swap(i: Int, j: Int) { val t = heap[i]; heap[i] = heap[j]; heap[j] = t }
+
+    private fun upHeapify(start: Int) {
+        var index = start
+        var parent = (index - 1) / 2
+        while (index > 0 && heap[parent] < heap[index]) {
+            swap(index, parent); index = parent; parent = (index - 1) / 2
+        }
+    }
+
+    private fun downHeapify(start: Int) {
+        var index = start
+        val n = heap.size
+        while (true) {
+            var largest = index
+            val left = 2 * index + 1; val right = 2 * index + 2
+            if (left  < n && heap[left]  > heap[largest]) largest = left
+            if (right < n && heap[right] > heap[largest]) largest = right
+            if (largest == index) return
+            swap(index, largest); index = largest
+        }
+    }
+
+    fun insert(v: Int) { heap.add(v); upHeapify(heap.size - 1) }
+
+    fun remove(index: Int) {
+        val last = heap.size - 1
+        heap[index] = heap[last]
+        heap.removeAt(last)
+        if (index < heap.size) downHeapify(index)
+    }
+}
+```
+
+```rust,editable
+pub struct MaxHeap { data: Vec<i32> }
+
+impl MaxHeap {
+    pub fn new() -> Self { Self { data: Vec::new() } }
+
+    fn up_heapify(&mut self, mut index: usize) {
+        while index > 0 {
+            let parent = (index - 1) / 2;
+            if self.data[parent] < self.data[index] {
+                self.data.swap(parent, index);
+                index = parent;
+            } else { break; }
+        }
+    }
+
+    fn down_heapify(&mut self, mut index: usize) {
+        let n = self.data.len();
+        loop {
+            let mut largest = index;
+            let left  = 2 * index + 1;
+            let right = 2 * index + 2;
+            if left  < n && self.data[left]  > self.data[largest] { largest = left;  }
+            if right < n && self.data[right] > self.data[largest] { largest = right; }
+            if largest == index { return; }
+            self.data.swap(index, largest);
+            index = largest;
+        }
+    }
+
+    pub fn insert(&mut self, val: i32) {
+        self.data.push(val);
+        let last = self.data.len() - 1;
+        self.up_heapify(last);
+    }
+
+    pub fn remove(&mut self, index: usize) {
+        let last = self.data.len() - 1;
+        self.data.swap(index, last);
+        self.data.pop();
+        if index < self.data.len() { self.down_heapify(index); }
+    }
+}
+```
+
+</div>
 
 ## Complexity analysis
 
-The delete operation swaps the values at two indices and decrements the size to perform a soft deletion, a constant-time operation. However, after that, it traverses the binary tree downwards. In the best case, the given node might be a leaf node, or the swapped value might be larger than the children of the given nodes. In any of these cases, we won't need to traverse upwards, so deletion would be a **constant O(1)** operation.
+`remove` does an O(1) swap-and-pop, then walks at most one root-to-leaf path during down-heapify.
 
-In the worst case, however, the given node might be the root node, and the swapped value might be the smallest in the heap. In this case, we would have to traverse downwards from the root to a leaf node. Since the height of a complete binary tree is log(N), the time complexity in this case would be**O(log(N))**.
-
-// Diagram: Best and worst case for deletion in a heap
-
-To delete a new value, we do not create any new data structure that depends on the size of stored data or input. We only create a fixed number of temporary variables, so the space complexity, in any case, is **constant O(1)**.
-
-> **Best Case** - Delete the value at a leaf node
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
->
-> **Worst Case** - Delete the value at root node
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(log(N))**
+| Case | Time | Space |
+|---|---|---|
+| Best (replacement value is the largest in its subtree) | O(1) | O(1) |
+| Worst (replacement sifts to a leaf) | **O(log n)** | O(1) |
 
 ***
 
 # Peeking the top item in the heap
 
-The peek operation gets the maximum value from a max heap. The implementation is encapsulated in the peek function that copies the root node's value in the binary tree to the passed reference. Let us look at the algorithm and implementation of the peek operation on a max heap implemented as an array.
+Of the five operations, **`peek` is the easiest** — it doesn't even touch the heap. The root is `arr[0]` by definition, and the heap rule guarantees that's the maximum.
 
 ## Algorithm
 
-The algorithm for getting the maximum value in a max-heap is very simple. We return the value stored at the root node of the tree. Since we do not modify the tree, the resulting binary tree still follows the heap property and remains a heap.
-
-// Diagram: Get the maximum value in the max heap
-
 > **Algorithm**
 >
-> -   **Step 1:** Return the value stored in the root node of the tree.
+> - **Step 1:** If the heap is empty, signal an error or return `null`.
+> - **Step 2:** Return `heap[0]`.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["heap.peek()"] --> B{"heap empty?"}
+    B -->|Yes| C["return null / error"]
+    B -->|No| D["return heap[0]"]
+    style D fill:#bbf7d0,stroke:#16a34a
+```
+
+<p align="center"><strong>Peek is just an array read at index 0. O(1).</strong></p>
 
 ## Implementation
 
-We perform size checks to ensure the root node exists in the heap. If the heap has a non-zero number of data items, we copy the value at the root to the passed reference.
+<div class="lang-tabs">
 
-C++
+```python,editable
+class MaxHeap:
+    def __init__(self):
+        self.heap = []
 
-```cpp
-using namespace std;
+    def peek(self):
+        # Empty heap → no top element. Convention: return None.
+        if not self.heap:
+            return None
+        return self.heap[0]            # the root IS the max — read O(1)
+```
 
+```java,editable
+class MaxHeap {
+    List<Integer> heap = new ArrayList<>();
+
+    public Integer peek() {
+        if (heap.isEmpty()) return null;                        // empty heap → no top
+        return heap.get(0);                                     // root is the max
+    }
+}
+```
+
+```c,editable
+#include <stdbool.h>
+
+bool heap_peek(MaxHeap *h, int *out) {
+    if (h->size == 0) return false;                              // empty heap → caller knows
+    *out = h->data[0];                                           // root is the max
+    return true;
+}
+```
+
+```cpp,editable
+#include <optional>
 class MaxHeap {
 public:
-    vector<int> heap;
-
-    // Helper function to restore heap property upwards (used in insert)
-    void upHeapify(int index) {
-        int parent = (index - 1) / 2;
-        while (index > 0 && heap[parent] < heap[index]) {
-            swap(heap[index], heap[parent]);
-            index = parent;
-            parent = (index - 1) / 2;
-        }
-
-    // Helper function to maintain the max heap property downwards
-    void downHeapify(int index) {
-        int largest = index;
-        int left = 2 * index + 1;
-        int right = 2 * index + 2;
-
-        // Find the largest among the node and its left child
-        if (left < heap.size() && heap[left] > heap[largest]) {
-            largest = left;
-        }
-
-        // Find the largest among the node and its right child
-        if (right < heap.size() && heap[right] > heap[largest]) {
-            largest = right;
-        }
-
-        // If the largest is not the current node, swap and continue
-        // heapify
-        if (largest != index) {
-            swap(heap[index], heap[largest]);
-            downHeapify(largest);
-        }
-
-// Diagram: void insert(int val) {
-
-        // Insert the new value at the end of the heap
-        heap.push_back(val);
-
-        // Get the index of the new value
-        int index = heap.size() - 1;
-
-        // Restore the max heap property by comparing with parent nodes
-        upHeapify(index);
-    }
-
-// Diagram: void remove(int index) {
-
-        // Replace the value with the largest possible value and heapify
-        heap[index] = heap.back();
-
-        // Remove the last node
-        heap.pop_back();
-
-        // Restore the max heap property
-        downHeapify(index);
-    }
-
-    int getMax() {
-        if (heap.empty()) {
-            return -1;
-        }
-
-        // Return the root node
-        return heap[0];
+    std::vector<int> heap;
+    std::optional<int> peek() const {
+        if (heap.empty()) return std::nullopt;                    // empty → no value
+        return heap[0];                                           // root is the max
     }
 };
 ```
 
-Java
-
-```java
-using namespace std;
-
+```scala,editable
 class MaxHeap {
-public:
-    vector<int> heap;
-
-    // Helper function to restore heap property upwards (used in insert)
-    void upHeapify(int index) {
-        int parent = (index - 1) / 2;
-        while (index > 0 && heap[parent] < heap[index]) {
-            swap(heap[index], heap[parent]);
-            index = parent;
-            parent = (index - 1) / 2;
-        }
-
-    // Helper function to maintain the max heap property downwards
-    void downHeapify(int index) {
-        int largest = index;
-        int left = 2 * index + 1;
-        int right = 2 * index + 2;
-
-        // Find the largest among the node and its left child
+  val heap = scala.collection.mutable.ArrayBuffer.empty[Int]
+  def peek: Option[Int] =
+    if (heap.isEmpty) None else Some(heap(0))                     // root is the max
+}
 ```
 
-Typescript
-
-```typescript
-export class MaxHeap {
-    heap: number[];
-
-    constructor() {
-        this.heap = [];
-    }
-
-    swap(i: number, j: number): void {
-        [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]];
-    }
-
-    // Helper function to restore heap property upwards (used in insert)
-    upHeapify(index: number): void {
-        let parent = Math.floor((index - 1) / 2);
-        while (index > 0 && this.heap[parent] < this.heap[index]) {
-            this.swap(index, parent);
-            index = parent;
-            parent = Math.floor((index - 1) / 2);
-        }
-
-    // Helper function to maintain the max heap property downwards
-    downHeapify(index: number): void {
-        let largest = index;
-        let left = 2 * index + 1;
-        let right = 2 * index + 2;
-
-        // Find the largest among the node and its left child
-        if (
-            left < this.heap.length &&
-            this.heap[left] > this.heap[largest]
-        ) {
-            largest = left;
-        }
-
-        // Find the largest among the node and its right child
-        if (
-            right < this.heap.length &&
-            this.heap[right] > this.heap[largest]
-        ) {
-            largest = right;
-        }
-
-        // If the largest is not the current node, swap and continue
-        // heapify
-        if (largest !== index) {
-            this.swap(index, largest);
-            this.downHeapify(largest);
-        }
-
-// Diagram: insert(val: number): void {
-
-        // Insert the new value at the end of the heap
-        this.heap.push(val);
-
-        // Get the index of the new value
-        let index = this.heap.length - 1;
-
-        // Restore the max heap property by comparing with parent nodes
-        this.upHeapify(index);
-    }
-
-// Diagram: remove(index: number): void {
-
-        // Replace the value with the largest possible value and heapify
-        this.heap[index] = this.heap[this.heap.length - 1];
-
-        // Remove the last node
-        this.heap.pop();
-
-        // Restore the max heap property
-        this.downHeapify(index);
-    }
-
-    getMax(): number {
-        if (this.heap.length === 0) {
-            return -1;
-        }
-
-        // Return the root node
-        return this.heap[0];
-    }
+```javascript,editable
+class MaxHeap {
+  constructor() { this.heap = []; }
+  peek() {
+    if (this.heap.length === 0) return null;                       // empty
+    return this.heap[0];                                           // root is the max
+  }
+}
 ```
 
-Javascript
-
-```javascript
-export class MaxHeap {
-    constructor() {
-        this.heap = [];
-    }
-
-    swap(i, j) {
-        [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]];
-    }
-
-    // Helper function to restore heap property upwards (used in insert)
-    upHeapify(index) {
-        let parent = Math.floor((index - 1) / 2);
-        while (index > 0 && this.heap[parent] < this.heap[index]) {
-            this.swap(index, parent);
-            index = parent;
-            parent = Math.floor((index - 1) / 2);
-        }
-
-    // Helper function to maintain the max heap property downwards
-    downHeapify(index) {
-        let largest = index;
-        let left = 2 * index + 1;
-        let right = 2 * index + 2;
-
-        // Find the largest among the node and its left child
-        if (
-            left < this.heap.length &&
-            this.heap[left] > this.heap[largest]
-        ) {
-            largest = left;
-        }
-
-        // Find the largest among the node and its right child
-        if (
-            right < this.heap.length &&
-            this.heap[right] > this.heap[largest]
-        ) {
-            largest = right;
-        }
-
-        // If the largest is not the current node, swap and continue
-        // heapify
-        if (largest !== index) {
-            this.swap(index, largest);
-            this.downHeapify(largest);
-        }
-
-// Diagram: insert(val) {
-
-        // Insert the new value at the end of the heap
-        this.heap.push(val);
-
-        // Restore the max heap property by comparing with parent nodes
-        this.upHeapify(this.heap.length - 1);
-    }
-
-// Diagram: remove(index) {
-
-        // Replace the value with the largest possible value and heapify
-        this.heap[index] = this.heap.pop();
-
-        // Restore the max heap property
-        this.downHeapify(index);
-    }
-
-    getMax() {
-        return this.heap.length === 0 ? -1 : this.heap[0];
-    }
+```typescript,editable
+class MaxHeap {
+  heap: number[] = [];
+  peek(): number | null {
+    if (this.heap.length === 0) return null;                        // empty
+    return this.heap[0];                                            // root is the max
+  }
+}
 ```
 
-Python
+```go,editable
+type MaxHeap struct{ data []int }
 
-```python
-from typing import List
-
-class MaxHeap:
-    def __init__(self) -> None:
-        self.heap: List[int] = []
-
-    # Helper function to restore heap property upwards (used in insert)
-    def up_heapify(self, index: int) -> None:
-        parent = (index - 1) // 2
-        while index > 0 and self.heap[parent] < self.heap[index]:
-            self.heap[parent], self.heap[index] = self.heap[index], self.heap[parent]
-            index, parent = parent, (parent - 1) // 2
-
-    # Helper function to maintain the max heap property downwards
-    def down_heapify(self, index: int) -> None:
-        largest = index
-        left, right = 2 * index + 1, 2 * index + 2
-
-        # Find the largest among the node and its left child
-        if left < len(self.heap) and self.heap[left] > self.heap[largest]:
-            largest = left
-
-        # Find the largest among the node and its right child
-        if right < len(self.heap) and self.heap[right] > self.heap[largest]:
-            largest = right
-
-        # If the largest is not the current node, swap and continue heapify
-        if largest != index:
-            self.heap[index], self.heap[largest] = self.heap[largest], self.heap[index]
-            self.down_heapify(largest)
-
-    def insert(self, val: int) -> None:
-
-        # Insert the new value at the end of the heap
-        self.heap.append(val)
-
-        # Get the index of the new value
-        index = len(self.heap) - 1
-
-        # Restore the max heap property by comparing with parent nodes
-        self.up_heapify(index)
-
-    def remove(self, index: int) -> None:
-
-        # Replace the value with the largest possible value and heapify
-        self.heap[index] = self.heap[-1]
-
-        # Remove the last node
-        self.heap.pop()
-
-        # Restore the max heap property
-        self.down_heapify(index)
-
-    def get_max(self) -> int:
-        if not self.heap:
-            return -1
-
-        # Return the root node
-        return self.heap[0]
+func (h *MaxHeap) Peek() (int, bool) {
+    if len(h.data) == 0 { return 0, false }                          // empty
+    return h.data[0], true                                           // root is the max
+}
 ```
+
+```kotlin,editable
+class MaxHeap {
+    val heap = mutableListOf<Int>()
+    fun peek(): Int? = if (heap.isEmpty()) null else heap[0]          // root is the max
+}
+```
+
+```rust,editable
+pub struct MaxHeap { data: Vec<i32> }
+
+impl MaxHeap {
+    pub fn peek(&self) -> Option<i32> {
+        self.data.first().copied()                                     // root is the max
+    }
+}
+```
+
+</div>
 
 ## Complexity analysis
 
-The peek operation only copies the value at the root node, so the best and worst-case time complexity is **constant O(1)**.
-
-We do not create any new data structure that depends on the size of stored data or input and only create a fixed number of temporary variables, so the space complexity is **constant O(1)** in any case.
-
-> **Best Case**
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
->
-> **Worst Case**
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
+| Case | Time | Space |
+|---|---|---|
+| All cases | **O(1)** | O(1) |
 
 ***
 
 # Extracting the top item from the heap
 
-The extract operation extracts the maximum value from a max heap. Unlike the peek operation, it also deletes the node with the maximum value from the heap. The implementation is encapsulated in the extract function that deletes the root node in the binary tree and returns its value while ensuring that the resulting binary tree is still a heap. Let us look at the algorithm and implementation of the extract operation on a max heap implemented as an array.
+`extract` is the workhorse of any priority queue: return the highest-priority value AND remove it. We've already built the pieces — extract is just `peek` followed by `delete(0)` (delete the root).
 
 ## Algorithm
 
-The algorithm for extracting the maximum value in a max-heap is very simple. It combines peek and delete operations. We copy the value at the tree's root node to return it later and then delete the root node using the delete operation. The delete operation ensures that the resulting binary tree still follows the heap property and remains a heap.
-
-// Diagram: Delete the given node (15) from the heap
-
 > **Algorithm**
 >
-> -   **Step 1:** Copy the value of the root node in the given reference
-> -   **Step 2:** Delete the root node
+> - **Step 1:** If the heap is empty, signal an error or return `null`.
+> - **Step 2:** Save the root value (`heap[0]`).
+> - **Step 3:** Move the last element to index `0`.
+> - **Step 4:** Pop the last element.
+> - **Step 5:** Run `down_heapify(0)` to restore the heap rule.
+> - **Step 6:** Return the saved root value.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph S1["1. Save root (50). Move last (15) to root."]
+        direction TB
+        A1((15))
+        A2((30))
+        A3((40))
+        A4((10))
+        A5((20))
+        A6((35))
+        A7((25))
+        A8((5))
+        A1 --> A2
+        A1 --> A3
+        A2 --> A4
+        A2 --> A5
+        A3 --> A6
+        A3 --> A7
+        A4 --> A8
+        style A1 fill:#fde68a,stroke:#d97706
+    end
+    subgraph S2["2. Down-heapify: 15 vs (30, 40) → swap with 40"]
+        direction TB
+        B1((40))
+        B2((30))
+        B3((15))
+        B4((10))
+        B5((20))
+        B6((35))
+        B7((25))
+        B8((5))
+        B1 --> B2
+        B1 --> B3
+        B2 --> B4
+        B2 --> B5
+        B3 --> B6
+        B3 --> B7
+        B4 --> B8
+        style B3 fill:#fde68a,stroke:#d97706
+    end
+    subgraph S3["3. 15 vs (35, 25) → swap with 35. Done."]
+        direction TB
+        C1((40))
+        C2((30))
+        C3((35))
+        C4((10))
+        C5((20))
+        C6((15))
+        C7((25))
+        C8((5))
+        C1 --> C2
+        C1 --> C3
+        C2 --> C4
+        C2 --> C5
+        C3 --> C6
+        C3 --> C7
+        C4 --> C8
+        style C1 fill:#bbf7d0,stroke:#16a34a
+    end
+    S1 --> S2 --> S3
+```
+
+<p align="center"><strong>Extract: pull the root <code>50</code>, move <code>15</code> to the root, sift down twice. The new max <code>40</code> is now at the top.</strong></p>
 
 ## Implementation
 
-We perform size checks to ensure the root node exists in the heap. If the heap has a non-zero number of data items, we copy the value at the root and delete it using the delete function implemented earlier. 
+<div class="lang-tabs">
 
-C++
+```python,editable
+class MaxHeap:
+    def __init__(self):
+        self.heap = []
 
-```cpp
-using namespace std;
+    def down_heapify(self, index):
+        n = len(self.heap)
+        while True:
+            largest = index
+            left, right = 2 * index + 1, 2 * index + 2
+            if left  < n and self.heap[left]  > self.heap[largest]: largest = left
+            if right < n and self.heap[right] > self.heap[largest]: largest = right
+            if largest == index:
+                return
+            self.heap[index], self.heap[largest] = self.heap[largest], self.heap[index]
+            index = largest
+
+    def extract(self):
+        if not self.heap:
+            return None                                # empty — nothing to return
+        top = self.heap[0]                             # save the root (the max)
+        last = self.heap.pop()                         # remove the last element
+        if self.heap:                                  # if heap is not empty after pop
+            self.heap[0] = last                        # move it to the root
+            self.down_heapify(0)                       # restore the heap rule
+        return top
+```
+
+```java,editable
+class MaxHeap {
+    List<Integer> heap = new ArrayList<>();
+
+    private void swap(int i, int j) { int t = heap.get(i); heap.set(i, heap.get(j)); heap.set(j, t); }
+
+    private void downHeapify(int index) {
+        int n = heap.size();
+        while (true) {
+            int largest = index;
+            int left = 2 * index + 1, right = 2 * index + 2;
+            if (left  < n && heap.get(left)  > heap.get(largest)) largest = left;
+            if (right < n && heap.get(right) > heap.get(largest)) largest = right;
+            if (largest == index) return;
+            swap(index, largest);
+            index = largest;
+        }
+    }
+
+    public Integer extract() {
+        if (heap.isEmpty()) return null;
+        int top = heap.get(0);                                                                                      // save the root
+        int last = heap.remove(heap.size() - 1);                                                                     // pop tail
+        if (!heap.isEmpty()) {
+            heap.set(0, last);                                                                                       // tail → root
+            downHeapify(0);                                                                                          // restore
+        }
+        return top;
+    }
+}
+```
+
+```c,editable
+#include <stdbool.h>
+
+bool heap_extract(MaxHeap *h, int *out) {
+    if (h->size == 0) return false;
+    *out = h->data[0];                                                                                                // save root
+    int last = h->data[--h->size];                                                                                    // pop
+    if (h->size > 0) {
+        h->data[0] = last;                                                                                            // last → root
+        down_heapify(h, 0);                                                                                           // restore
+    }
+    return true;
+}
+```
+
+```cpp,editable
+#include <optional>
 
 class MaxHeap {
 public:
-    vector<int> heap;
+    std::vector<int> heap;
 
-    // Helper function to restore heap property upwards (used in insert)
-    void upHeapify(int index) {
-        int parent = (index - 1) / 2;
-        while (index > 0 && heap[parent] < heap[index]) {
-            swap(heap[index], heap[parent]);
-            index = parent;
-            parent = (index - 1) / 2;
-        }
-
-    // Helper function to maintain the max heap property downwards
     void downHeapify(int index) {
-        int largest = index;
-        int left = 2 * index + 1;
-        int right = 2 * index + 2;
-
-        // Find the largest among the node and its left child
-        if (left < heap.size() && heap[left] > heap[largest]) {
-            largest = left;
+        int n = (int)heap.size();
+        while (true) {
+            int largest = index;
+            int left  = 2 * index + 1, right = 2 * index + 2;
+            if (left  < n && heap[left]  > heap[largest]) largest = left;
+            if (right < n && heap[right] > heap[largest]) largest = right;
+            if (largest == index) return;
+            std::swap(heap[index], heap[largest]);
+            index = largest;
         }
-
-        // Find the largest among the node and its right child
-        if (right < heap.size() && heap[right] > heap[largest]) {
-            largest = right;
-        }
-
-        // If the largest is not the current node, swap and continue
-        // heapify
-        if (largest != index) {
-            swap(heap[index], heap[largest]);
-            downHeapify(largest);
-        }
-
-// Diagram: void insert(int val) {
-
-        // Insert the new value at the end of the heap
-        heap.push_back(val);
-
-        // Get the index of the new value
-        int index = heap.size() - 1;
-
-        // Restore the max heap property by comparing with parent nodes
-        upHeapify(index);
     }
 
-// Diagram: void remove(int index) {
-
-        // Replace the value with the largest possible value and heapify
-        heap[index] = heap.back();
-
-        // Remove the last node
-        heap.pop_back();
-
-        // Restore the max heap property
-        downHeapify(index);
-    }
-
-    int getMax() {
-        if (heap.empty()) {
-            return -1;
+    std::optional<int> extract() {
+        if (heap.empty()) return std::nullopt;
+        int top = heap[0];
+        int last = heap.back(); heap.pop_back();
+        if (!heap.empty()) {
+            heap[0] = last;
+            downHeapify(0);
         }
-
-        // Return the root node
-        return heap[0];
-    }
-
-    int extractMax() {
-        if (heap.empty()) {
-            return -1;
-        }
-
-        // Extract the root node
-        int root = heap[0];
-
-        // Delete the root node
-        remove(0);
-
-        // Return the extracted root node
-        return root;
+        return top;
     }
 };
 ```
 
-Java
-
-```java
-import java.util.*;
-
+```scala,editable
 class MaxHeap {
-    List<Integer> heap;
+  val heap = scala.collection.mutable.ArrayBuffer.empty[Int]
 
-    public MaxHeap() {
-        heap = new ArrayList<>();
+  private def swap(i: Int, j: Int): Unit = { val t = heap(i); heap(i) = heap(j); heap(j) = t }
+
+  private def downHeapify(start: Int): Unit = {
+    var index = start; val n = heap.length
+    var go = true
+    while (go) {
+      var largest = index
+      val left = 2 * index + 1; val right = 2 * index + 2
+      if (left  < n && heap(left)  > heap(largest)) largest = left
+      if (right < n && heap(right) > heap(largest)) largest = right
+      if (largest == index) go = false
+      else { swap(index, largest); index = largest }
     }
+  }
 
-    private void swap(int i, int j) {
-        int temp = heap.get(i);
-        heap.set(i, heap.get(j));
-        heap.set(j, temp);
+  def extract: Option[Int] = {
+    if (heap.isEmpty) None
+    else {
+      val top = heap(0)
+      val last = heap.remove(heap.length - 1)
+      if (heap.nonEmpty) { heap(0) = last; downHeapify(0) }
+      Some(top)
     }
-
-    // Helper function to restore heap property upwards (used in insert)
-    private void upHeapify(int index) {
-        int parent = (index - 1) / 2;
-        while (index > 0 && heap.get(parent) < heap.get(index)) {
-            swap(index, parent);
-            index = parent;
-            parent = (index - 1) / 2;
-        }
-
-    // Helper function to maintain the max heap property downwards
-    private void downHeapify(int index) {
-        int largest = index;
-        int left = 2 * index + 1;
-        int right = 2 * index + 2;
-
-        // Find the largest among the node and its left child
-        if (left < heap.size() && heap.get(left) > heap.get(largest)) {
-            largest = left;
-        }
-
-        // Find the largest among the node and its right child
-        if (right < heap.size() && heap.get(right) > heap.get(largest)) {
-            largest = right;
-        }
-
-        // If the largest is not the current node, swap and continue
-        // heapify
-        if (largest != index) {
-            swap(index, largest);
-            downHeapify(largest);
-        }
-
-// Diagram: public void insert(int val) {
-
-        // Insert the new value at the end of the heap
-        heap.add(val);
-
-        // Get the index of the new value
-        int index = heap.size() - 1;
-
-        // Restore the max heap property by comparing with parent nodes
-        upHeapify(index);
-    }
-
-// Diagram: public void remove(int index) {
-
-        // Replace the value with the largest possible value and heapify
-        heap.set(index, heap.get(heap.size() - 1));
-
-        // Remove the last node
-        heap.remove(heap.size() - 1);
-
-        // Restore the max heap property
-        downHeapify(index);
-    }
-
-    public int getMax() {
-        if (heap.isEmpty()) {
-            return -1;
-        }
-
-        // Return the root node
-        return heap.get(0);
-    }
-
-    public int extractMax() {
-        if (heap.isEmpty()) {
-            return -1;
-        }
-
-        // Extract the root node
-        int root = heap.get(0);
-
-        // Delete the root node
-        remove(0);
-
-        // Return the extracted root node
-        return root;
-    }
+  }
+}
 ```
 
-Typescript
+```javascript,editable
+class MaxHeap {
+  constructor() { this.heap = []; }
+  swap(i, j) { [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]]; }
 
-```typescript
-export class MaxHeap {
-    heap: number[];
-
-    constructor() {
-        this.heap = [];
+  downHeapify(index) {
+    const n = this.heap.length;
+    while (true) {
+      let largest = index;
+      const left = 2 * index + 1, right = 2 * index + 2;
+      if (left  < n && this.heap[left]  > this.heap[largest]) largest = left;
+      if (right < n && this.heap[right] > this.heap[largest]) largest = right;
+      if (largest === index) return;
+      this.swap(index, largest);
+      index = largest;
     }
+  }
 
-    swap(i: number, j: number): void {
-        [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]];
+  extract() {
+    if (this.heap.length === 0) return null;
+    const top = this.heap[0];
+    const last = this.heap.pop();
+    if (this.heap.length > 0) {
+      this.heap[0] = last;
+      this.downHeapify(0);
     }
-
-    // Helper function to restore heap property upwards (used in insert)
-    upHeapify(index: number): void {
-        let parent = Math.floor((index - 1) / 2);
-        while (index > 0 && this.heap[parent] < this.heap[index]) {
-            this.swap(index, parent);
-            index = parent;
-            parent = Math.floor((index - 1) / 2);
-        }
-
-    // Helper function to maintain the max heap property downwards
-    downHeapify(index: number): void {
-        let largest = index;
-        let left = 2 * index + 1;
-        let right = 2 * index + 2;
-
-        // Find the largest among the node and its left child
-        if (
-            left < this.heap.length &&
-            this.heap[left] > this.heap[largest]
-        ) {
-            largest = left;
-        }
-
-        // Find the largest among the node and its right child
-        if (
-            right < this.heap.length &&
-            this.heap[right] > this.heap[largest]
-        ) {
-            largest = right;
-        }
-
-        // If the largest is not the current node, swap and continue
-        // heapify
-        if (largest !== index) {
-            this.swap(index, largest);
-            this.downHeapify(largest);
-        }
-
-// Diagram: insert(val: number): void {
-
-        // Insert the new value at the end of the heap
-        this.heap.push(val);
-
-        // Get the index of the new value
-        let index = this.heap.length - 1;
-
-        // Restore the max heap property by comparing with parent nodes
-        this.upHeapify(index);
-    }
-
-// Diagram: remove(index: number): void {
-
-        // Replace the value with the largest possible value and heapify
-        this.heap[index] = this.heap[this.heap.length - 1];
-
-        // Remove the last node
-        this.heap.pop();
-
-        // Restore the max heap property
-        this.downHeapify(index);
-    }
-
-    getMax(): number {
-        if (this.heap.length === 0) {
-            return -1;
-        }
-
-        // Return the root node
-        return this.heap[0];
-    }
-
-    extractMax(): number {
-        if (this.heap.length === 0) {
-            return -1;
-        }
-
-        // Extract the root node
-        let root = this.heap[0];
-
-        // Delete the root node
-        this.remove(0);
-
-        // Return the extracted root node
-        return root;
-    }
+    return top;
+  }
+}
 ```
 
-Javascript
+```typescript,editable
+class MaxHeap {
+  heap: number[] = [];
+  swap(i: number, j: number): void { [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]]; }
 
-```javascript
-export class MaxHeap {
-    constructor() {
-        this.heap = [];
+  downHeapify(index: number): void {
+    const n = this.heap.length;
+    while (true) {
+      let largest = index;
+      const left = 2 * index + 1, right = 2 * index + 2;
+      if (left  < n && this.heap[left]  > this.heap[largest]) largest = left;
+      if (right < n && this.heap[right] > this.heap[largest]) largest = right;
+      if (largest === index) return;
+      this.swap(index, largest);
+      index = largest;
     }
+  }
 
-    swap(i, j) {
-        [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]];
+  extract(): number | null {
+    if (this.heap.length === 0) return null;
+    const top = this.heap[0];
+    const last = this.heap.pop()!;
+    if (this.heap.length > 0) {
+      this.heap[0] = last;
+      this.downHeapify(0);
     }
-
-    // Helper function to restore heap property upwards (used in insert)
-    upHeapify(index) {
-        let parent = Math.floor((index - 1) / 2);
-        while (index > 0 && this.heap[parent] < this.heap[index]) {
-            this.swap(index, parent);
-            index = parent;
-            parent = Math.floor((index - 1) / 2);
-        }
-
-    // Helper function to maintain the max heap property downwards
-    downHeapify(index) {
-        let largest = index;
-        let left = 2 * index + 1;
-        let right = 2 * index + 2;
-
-        // Find the largest among the node and its left child
-        if (
-            left < this.heap.length &&
-            this.heap[left] > this.heap[largest]
-        ) {
-            largest = left;
-        }
-
-        // Find the largest among the node and its right child
-        if (
-            right < this.heap.length &&
-            this.heap[right] > this.heap[largest]
-        ) {
-            largest = right;
-        }
-
-        // If the largest is not the current node, swap and continue
-        // heapify
-        if (largest !== index) {
-            this.swap(index, largest);
-            this.downHeapify(largest);
-        }
-
-// Diagram: insert(val) {
-
-        // Insert the new value at the end of the heap
-        this.heap.push(val);
-
-        // Restore the max heap property by comparing with parent nodes
-        this.upHeapify(this.heap.length - 1);
-    }
-
-// Diagram: remove(index) {
-
-        // Replace the value with the largest possible value and heapify
-        this.heap[index] = this.heap.pop();
-
-        // Restore the max heap property
-        this.downHeapify(index);
-    }
-
-    getMax() {
-        return this.heap.length === 0 ? -1 : this.heap[0];
-    }
-
-    extractMax() {
-        if (this.heap.length === 0) return -1;
-
-        // Extract the root node
-        let root = this.heap[0];
-
-        // Delete the root node
-        this.remove(0);
-
-        // Return the extracted root node
-        return root;
-    }
+    return top;
+  }
+}
 ```
 
-Python
+```go,editable
+type MaxHeap struct{ data []int }
 
-```python
-from typing import List
+func (h *MaxHeap) downHeapify(index int) {
+    n := len(h.data)
+    for {
+        largest := index
+        left, right := 2*index+1, 2*index+2
+        if left  < n && h.data[left]  > h.data[largest] { largest = left  }
+        if right < n && h.data[right] > h.data[largest] { largest = right }
+        if largest == index { return }
+        h.data[index], h.data[largest] = h.data[largest], h.data[index]
+        index = largest
+    }
+}
 
-class MaxHeap:
-    def __init__(self) -> None:
-        self.heap: List[int] = []
-
-    # Helper function to restore heap property upwards (used in insert)
-    def up_heapify(self, index: int) -> None:
-        parent = (index - 1) // 2
-        while index > 0 and self.heap[parent] < self.heap[index]:
-            self.heap[parent], self.heap[index] = self.heap[index], self.heap[parent]
-            index, parent = parent, (parent - 1) // 2
-
-    # Helper function to maintain the max heap property downwards
-    def down_heapify(self, index: int) -> None:
-        largest = index
-        left, right = 2 * index + 1, 2 * index + 2
-
-        # Find the largest among the node and its left child
-        if left < len(self.heap) and self.heap[left] > self.heap[largest]:
-            largest = left
-
-        # Find the largest among the node and its right child
-        if right < len(self.heap) and self.heap[right] > self.heap[largest]:
-            largest = right
-
-        # If the largest is not the current node, swap and continue heapify
-        if largest != index:
-            self.heap[index], self.heap[largest] = self.heap[largest], self.heap[index]
-            self.down_heapify(largest)
-
-    def insert(self, val: int) -> None:
-
-        # Insert the new value at the end of the heap
-        self.heap.append(val)
-
-        # Get the index of the new value
-        index = len(self.heap) - 1
-
-        # Restore the max heap property by comparing with parent nodes
-        self.up_heapify(index)
-
-    def remove(self, index: int) -> None:
-
-        # Replace the value with the largest possible value and heapify
-        self.heap[index] = self.heap[-1]
-
-        # Remove the last node
-        self.heap.pop()
-
-        # Restore the max heap property
-        self.down_heapify(index)
-
-    def get_max(self) -> int:
-        if not self.heap:
-            return -1
-
-        # Return the root node
-        return self.heap[0]
-
-    def extract_max(self) -> int:
-        if not self.heap:
-            return -1
-
-        # Extract the root node
-        root = self.heap[0]
-
-        # Delete the root node
-        self.remove(0)
-
-        # Return the extracted root node
-        return root
+func (h *MaxHeap) Extract() (int, bool) {
+    if len(h.data) == 0 { return 0, false }
+    top := h.data[0]
+    last := h.data[len(h.data)-1]
+    h.data = h.data[:len(h.data)-1]
+    if len(h.data) > 0 {
+        h.data[0] = last
+        h.downHeapify(0)
+    }
+    return top, true
+}
 ```
+
+```kotlin,editable
+class MaxHeap {
+    val heap = mutableListOf<Int>()
+
+    private fun swap(i: Int, j: Int) { val t = heap[i]; heap[i] = heap[j]; heap[j] = t }
+
+    private fun downHeapify(start: Int) {
+        var index = start; val n = heap.size
+        while (true) {
+            var largest = index
+            val left = 2 * index + 1; val right = 2 * index + 2
+            if (left  < n && heap[left]  > heap[largest]) largest = left
+            if (right < n && heap[right] > heap[largest]) largest = right
+            if (largest == index) return
+            swap(index, largest); index = largest
+        }
+    }
+
+    fun extract(): Int? {
+        if (heap.isEmpty()) return null
+        val top = heap[0]
+        val last = heap.removeAt(heap.size - 1)
+        if (heap.isNotEmpty()) { heap[0] = last; downHeapify(0) }
+        return top
+    }
+}
+```
+
+```rust,editable
+pub struct MaxHeap { data: Vec<i32> }
+
+impl MaxHeap {
+    fn down_heapify(&mut self, mut index: usize) {
+        let n = self.data.len();
+        loop {
+            let mut largest = index;
+            let left  = 2 * index + 1;
+            let right = 2 * index + 2;
+            if left  < n && self.data[left]  > self.data[largest] { largest = left;  }
+            if right < n && self.data[right] > self.data[largest] { largest = right; }
+            if largest == index { return; }
+            self.data.swap(index, largest);
+            index = largest;
+        }
+    }
+
+    pub fn extract(&mut self) -> Option<i32> {
+        if self.data.is_empty() { return None; }
+        let top = self.data[0];
+        let last = self.data.pop().unwrap();
+        if !self.data.is_empty() {
+            self.data[0] = last;
+            self.down_heapify(0);
+        }
+        Some(top)
+    }
+}
+```
+
+</div>
 
 ## Complexity analysis
 
-The extract operation is just a combination of peek and delete operations. The peek operation has a constant time complexity in any case. So, the best and worst-case time complexity for the extract operation will be determined by the delete operation. Since we always delete the root node, which is the worst case for the delete operation, the extract operation in any case has a time complexity of **O(log(N))**
+| Case | Time | Space |
+|---|---|---|
+| Best (heap of size ≤ 1) | O(1) | O(1) |
+| Worst (sift down to a leaf) | **O(log n)** | O(1) |
 
-// Diagram: The root node is always deleted
-
-We do not create any new data structure that depends on the size of stored data or input and only create a fixed number of temporary variables, so the space complexity is constant **O(1)** in any case.
-
-> **Best Case**
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(log(N))**
->
-> **Worst Case**
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(log(N))**
+The root is *always* deleted, so unlike `delete(index)` for arbitrary index, `extract` doesn't have a hyper-fast best case — it always walks at least one comparison.
 
 ***
 
 # Constructing a heap
 
-The construct operation constructs a max heap from the given list of data items. The implementation is encapsulated in the construct function, which relies on the special properties of a complete binary tree and repeatedly applies the heapify function on the input list to convert it into a heap. Let us look at the algorithm and implementation of the construct operation on a max heap implemented as an array.
+Suppose you've already got an array of `n` values and you want to make it a heap. The naive approach is `n` separate `insert` calls — that's `O(n log n)` total.
+
+There's a much cleaner approach that runs in **O(n)** total: think of the array as already being a *complete binary tree* (it is — the array layout *is* a complete binary tree, just in level-order), and **walk it bottom-up, calling `down_heapify` at every internal node**.
 
 ## Algorithm
 
-The algorithm for constructing a heap from a given list relies on a special property and a complete binary tree. The array representation of a complete binary tree is just its level-order traversal. Putting this the other way around, we can visualize any sequence of data items as a complete binary tree.
+The crucial observation: **leaves are already valid one-element heaps**. They have no children, so the heap rule is satisfied trivially. So we don't need to call `down_heapify` on them — we can skip directly to the last *internal* node, which lives at index `n/2 − 1` in a 0-indexed array. From there, we walk backwards to index `0`.
 
-// Diagram: An list of data can be visualized as a complete binary tree
+By the time we reach any internal node, both of its subtrees are already heaps (because we processed them earlier in the bottom-up walk). A single `down_heapify` call from this node restores the heap rule across its whole subtree.
 
-Now the problem boils down to converting the complete binary tree to a heap. Since it is a complete binary tree, it already follows one of the requirements to be called a heap. The other requirement is that the value at any node should be greater than its children. To enforce this second requirement, we can traverse from the last node to the root node and, at each iteration, run a down heapify operation to make sure the current node is greater than both its children.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+    subgraph S1["arr = [3, 1, 6, 5, 2, 4] viewed as a tree"]
+        direction TB
+        A1((3))
+        A2((1))
+        A3((6))
+        A4((5))
+        A5((2))
+        A6((4))
+        A1 --> A2
+        A1 --> A3
+        A2 --> A4
+        A2 --> A5
+        A3 --> A6
+    end
+    subgraph S2["Start at last internal node (idx 2 = 6) → already heap"]
+        direction TB
+        B1((3))
+        B2((1))
+        B3((6))
+        B4((5))
+        B5((2))
+        B6((4))
+        B1 --> B2
+        B1 --> B3
+        B2 --> B4
+        B2 --> B5
+        B3 --> B6
+        style B3 fill:#bbf7d0,stroke:#16a34a
+    end
+    subgraph S3["idx 1 (1): downHeapify → 1 swaps with 5"]
+        direction TB
+        C1((3))
+        C2((5))
+        C3((6))
+        C4((1))
+        C5((2))
+        C6((4))
+        C1 --> C2
+        C1 --> C3
+        C2 --> C4
+        C2 --> C5
+        C3 --> C6
+        style C2 fill:#bbf7d0,stroke:#16a34a
+    end
+    subgraph S4["idx 0 (3): downHeapify → 3 → 6 → 4. Done."]
+        direction TB
+        D1((6))
+        D2((5))
+        D3((4))
+        D4((1))
+        D5((2))
+        D6((3))
+        D1 --> D2
+        D1 --> D3
+        D2 --> D4
+        D2 --> D5
+        D3 --> D6
+        style D1 fill:#bbf7d0,stroke:#16a34a
+    end
+    S1 --> S2 --> S3 --> S4
+```
 
-Since we are traversing from the last (lowest) node to the first (highest) node, we can be sure that when we reach any node, its subtrees are already converted to heaps. So we only need to run down heapify once to ensure the subtree rooted at the current node is also a heap. At the end of the traversal, the tree rooted at the root node (entire tree) is converted to a heap.
-
-// Diagram: Convert the given sequence of data items into a max heap (starting from leaf nodes)
-
-An important observation can make this entire algorithm twice as fast. We know that the leaf nodes do not have any children, so they fully comply with the heap property. Running down heapify for leaf nodes is a no-op and can be skipped. The traversal should start from the first non-leaf node in the tree. We can use the special property of a complete binary tree to find the index of the last non-leaf node easily.
-
-// Diagram: Convert the given sequence of data items into a max heap (starting from non-leaf nodes)
+<p align="center"><strong>Bottom-up heap construction. Skip the leaves; from the last internal node (<code>n/2−1</code>) walk back to index 0 calling <code>down_heapify</code>. Total work is O(n) — proven below.</strong></p>
 
 > **Algorithm**
 >
-> -   **Step 1:** Begin traversing the array in reverse order, starting from the middle and moving towards the beginning.
->     -   **Step 1.1:** For each index, perform the downheapify operation on the value at that position.
+> - **Step 1:** For `i = n/2 − 1` down to `0` (inclusive), call `down_heapify(i)`.
 
 ## Implementation
 
-We perform size checks to ensure the root node exists in the heap. If the heap has a non-zero number of data items, we copy the value at the root and delete it using the delete function implemented earlier. 
+<div class="lang-tabs">
 
-C++
+```python,editable
+class MaxHeap:
+    def __init__(self):
+        self.heap = []
 
-```cpp
-#include <algorithm>
+    def down_heapify(self, index, n):
+        while True:
+            largest = index
+            left, right = 2 * index + 1, 2 * index + 2
+            if left  < n and self.heap[left]  > self.heap[largest]: largest = left
+            if right < n and self.heap[right] > self.heap[largest]: largest = right
+            if largest == index:
+                return
+            self.heap[index], self.heap[largest] = self.heap[largest], self.heap[index]
+            index = largest
 
-// Diagram: using namespace std;
+    def construct(self, arr):
+        # Take ownership of the input array (no copy needed for this in-place approach).
+        self.heap = arr
+        n = len(self.heap)
+        # Skip the leaf range [n/2, n-1]; they're already trivial heaps.
+        # Process internal nodes bottom-up.
+        for i in range(n // 2 - 1, -1, -1):
+            self.down_heapify(i, n)
+```
 
+```java,editable
+class MaxHeap {
+    int[] heap;
+
+    private void swap(int i, int j) { int t = heap[i]; heap[i] = heap[j]; heap[j] = t; }
+
+    private void downHeapify(int index, int n) {
+        while (true) {
+            int largest = index;
+            int left = 2 * index + 1, right = 2 * index + 2;
+            if (left  < n && heap[left]  > heap[largest]) largest = left;
+            if (right < n && heap[right] > heap[largest]) largest = right;
+            if (largest == index) return;
+            swap(index, largest);
+            index = largest;
+        }
+    }
+
+    public void construct(int[] arr) {
+        this.heap = arr;
+        int n = heap.length;
+        for (int i = n / 2 - 1; i >= 0; i--) downHeapify(i, n);
+    }
+}
+```
+
+```c,editable
+static void down_heapify_n(int *arr, int n, int index) {
+    while (1) {
+        int largest = index;
+        int left = 2 * index + 1, right = 2 * index + 2;
+        if (left  < n && arr[left]  > arr[largest]) largest = left;
+        if (right < n && arr[right] > arr[largest]) largest = right;
+        if (largest == index) return;
+        int t = arr[index]; arr[index] = arr[largest]; arr[largest] = t;
+        index = largest;
+    }
+}
+
+void heap_construct(int *arr, int n) {
+    for (int i = n / 2 - 1; i >= 0; i--) down_heapify_n(arr, n, i);
+}
+```
+
+```cpp,editable
 class MaxHeap {
 public:
-    vector<int> heap;
+    std::vector<int> heap;
 
-    // Helper function to maintain the max heap property downwards
-    void downHeapify(int index) {
-        int largest = index;
-        int left = 2 * index + 1;
-        int right = 2 * index + 2;
-
-        // Find the largest among the node and its left child
-        if (left < heap.size() && heap[left] > heap[largest]) {
-            largest = left;
+    void downHeapify(int index, int n) {
+        while (true) {
+            int largest = index;
+            int left = 2 * index + 1, right = 2 * index + 2;
+            if (left  < n && heap[left]  > heap[largest]) largest = left;
+            if (right < n && heap[right] > heap[largest]) largest = right;
+            if (largest == index) return;
+            std::swap(heap[index], heap[largest]);
+            index = largest;
         }
+    }
 
-        // Find the largest among the node and its right child
-        if (right < heap.size() && heap[right] > heap[largest]) {
-            largest = right;
-        }
-
-        // If the largest is not the current node, swap and continue
-        // heapify
-        if (largest != index) {
-            swap(heap[index], heap[largest]);
-            downHeapify(largest);
-        }
-
-    void construct(vector<int> &arr) {
-        int n = arr.size();
-
-        // Start from the last non-leaf node and perform downHeapify
-        for (int i = n / 2 - 1; i >= 0; i--) {
-            downHeapify(arr, n, i);
-        }
+    void construct(std::vector<int> &arr) {
+        heap = std::move(arr);
+        int n = (int)heap.size();
+        for (int i = n / 2 - 1; i >= 0; i--) downHeapify(i, n);
+    }
 };
 ```
 
-Java
-
-```java
-import java.util.*;
-
+```scala,editable
 class MaxHeap {
-    List<Integer> heap;
+  var heap: Array[Int] = Array.empty[Int]
 
-    public MaxHeap() {
-        heap = new ArrayList<>();
+  private def swap(i: Int, j: Int): Unit = { val t = heap(i); heap(i) = heap(j); heap(j) = t }
+
+  private def downHeapify(start: Int, n: Int): Unit = {
+    var index = start; var go = true
+    while (go) {
+      var largest = index
+      val left = 2 * index + 1; val right = 2 * index + 2
+      if (left  < n && heap(left)  > heap(largest)) largest = left
+      if (right < n && heap(right) > heap(largest)) largest = right
+      if (largest == index) go = false
+      else { swap(index, largest); index = largest }
     }
+  }
 
-    // Helper function to maintain the max heap property downwards
-    private downHeapify(int index) {
-        int largest = index;
-        int left = 2 * index + 1;
-        int right = 2 * index + 2;
-
-        // Find the largest among the node and its left child
-        if (left < heap.size() && heap[left] > heap[largest]) {
-            largest = left;
-        }
-
-        // Find the largest among the node and its right child
-        if (right < heap.size() && heap[right] > heap[largest]) {
-            largest = right;
-        }
-
-        // If the largest is not the current node, swap and continue
-        // heapify
-        if (largest != index) {
-            swap(heap[index], heap[largest]);
-            downHeapify(largest);
-        }
-
-    public void construct(int[] arr) {
-        int n = arr.length;
-
-        // Start from the last non-leaf node and perform max-heapify
-        for (int i = (n / 2) - 1; i >= 0; i--) {
-            downHeapify(arr, n, i);
-        }
+  def construct(arr: Array[Int]): Unit = {
+    heap = arr
+    val n = heap.length
+    var i = n / 2 - 1
+    while (i >= 0) { downHeapify(i, n); i -= 1 }
+  }
+}
 ```
 
-Typescript
+```javascript,editable
+class MaxHeap {
+  constructor() { this.heap = []; }
+  swap(i, j) { [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]]; }
 
-```typescript
-export class MaxHeap {
-    heap: number[];
-
-    constructor() {
-        this.heap = [];
+  downHeapify(index, n) {
+    while (true) {
+      let largest = index;
+      const left = 2 * index + 1, right = 2 * index + 2;
+      if (left  < n && this.heap[left]  > this.heap[largest]) largest = left;
+      if (right < n && this.heap[right] > this.heap[largest]) largest = right;
+      if (largest === index) return;
+      this.swap(index, largest);
+      index = largest;
     }
+  }
 
-    swap(i: number, j: number): void {
-        [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]];
-    }
-
-    // Helper function to maintain the max heap property downwards
-    downHeapify(index: number): void {
-        let largest = index;
-        let left = 2 * index + 1;
-        let right = 2 * index + 2;
-
-        // Find the largest among the node and its left child
-        if (
-            left < this.heap.length &&
-            this.heap[left] > this.heap[largest]
-        ) {
-            largest = left;
-        }
-
-        // Find the largest among the node and its right child
-        if (
-            right < this.heap.length &&
-            this.heap[right] > this.heap[largest]
-        ) {
-            largest = right;
-        }
-
-        // If the largest is not the current node, swap and continue
-        // heapify
-        if (largest !== index) {
-            this.swap(index, largest);
-            this.downHeapify(largest);
-        }
-
-    construct(arr: number[]): void {
-        const n = arr.length;
-
-        // Start from the last non-leaf node and perform max-heapify
-        for (let i = Math.floor(n / 2) - 1; i >= 0; i--) {
-            this.downHeapify(arr, n, i);
-        }
+  construct(arr) {
+    this.heap = arr;
+    const n = this.heap.length;
+    for (let i = Math.floor(n / 2) - 1; i >= 0; i--) this.downHeapify(i, n);
+  }
+}
 ```
 
-Javascript
+```typescript,editable
+class MaxHeap {
+  heap: number[] = [];
+  swap(i: number, j: number): void { [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]]; }
 
-```javascript
-export class MaxHeap {
-    constructor() {
-        this.heap = [];
+  downHeapify(index: number, n: number): void {
+    while (true) {
+      let largest = index;
+      const left = 2 * index + 1, right = 2 * index + 2;
+      if (left  < n && this.heap[left]  > this.heap[largest]) largest = left;
+      if (right < n && this.heap[right] > this.heap[largest]) largest = right;
+      if (largest === index) return;
+      this.swap(index, largest);
+      index = largest;
     }
+  }
 
-    swap(i, j) {
-        [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]];
-    }
-
-    // Helper function to maintain the max heap property downwards
-    downHeapify(index) {
-        let largest = index;
-        let left = 2 * index + 1;
-        let right = 2 * index + 2;
-
-        // Find the largest among the node and its left child
-        if (
-            left < this.heap.length &&
-            this.heap[left] > this.heap[largest]
-        ) {
-            largest = left;
-        }
-
-        // Find the largest among the node and its right child
-        if (
-            right < this.heap.length &&
-            this.heap[right] > this.heap[largest]
-        ) {
-            largest = right;
-        }
-
-        // If the largest is not the current node, swap and continue
-        // heapify
-        if (largest !== index) {
-            this.swap(index, largest);
-            this.downHeapify(largest);
-        }
-
-    construct(arr) {
-        const n = arr.length;
-
-        // Start from the last non-leaf node and perform max-heapify
-        for (let i = Math.floor(n / 2) - 1; i >= 0; i--) {
-            this.downHeapify(arr, n, i);
-        }
+  construct(arr: number[]): void {
+    this.heap = arr;
+    const n = this.heap.length;
+    for (let i = Math.floor(n / 2) - 1; i >= 0; i--) this.downHeapify(i, n);
+  }
+}
 ```
 
-Python
+```go,editable
+type MaxHeap struct{ data []int }
 
-```python
-from typing import List
+func (h *MaxHeap) downHeapifyN(index, n int) {
+    for {
+        largest := index
+        left, right := 2*index+1, 2*index+2
+        if left  < n && h.data[left]  > h.data[largest] { largest = left  }
+        if right < n && h.data[right] > h.data[largest] { largest = right }
+        if largest == index { return }
+        h.data[index], h.data[largest] = h.data[largest], h.data[index]
+        index = largest
+    }
+}
 
-class MaxHeap:
-    def __init__(self) -> None:
-        self.heap: List[int] = []
-
-    # Helper function to maintain the max heap property downwards
-    def down_heapify(self, index: int) -> None:
-        largest = index
-        left, right = 2 * index + 1, 2 * index + 2
-
-        # Find the largest among the node and its left child
-        if left < len(self.heap) and self.heap[left] > self.heap[largest]:
-            largest = left
-
-        # Find the largest among the node and its right child
-        if right < len(self.heap) and self.heap[right] > self.heap[largest]:
-            largest = right
-
-        # If the largest is not the current node, swap and continue heapify
-        if largest != index:
-            self.heap[index], self.heap[largest] = self.heap[largest], self.heap[index]
-            self.down_heapify(largest)
-
-    def min_heap_to_max_heap(self, arr: List[int]) -> None:
-        n = len(arr)
-
-        # Start from the last non-leaf node and perform max-heapify
-        for i in range(n // 2 - 1, -1, -1):
-            self.down_heapify(arr, n, i)
+func (h *MaxHeap) Construct(arr []int) {
+    h.data = arr
+    n := len(h.data)
+    for i := n/2 - 1; i >= 0; i-- {
+        h.downHeapifyN(i, n)
+    }
+}
 ```
+
+```kotlin,editable
+class MaxHeap {
+    var heap = IntArray(0)
+
+    private fun swap(i: Int, j: Int) { val t = heap[i]; heap[i] = heap[j]; heap[j] = t }
+
+    private fun downHeapify(start: Int, n: Int) {
+        var index = start
+        while (true) {
+            var largest = index
+            val left = 2 * index + 1; val right = 2 * index + 2
+            if (left  < n && heap[left]  > heap[largest]) largest = left
+            if (right < n && heap[right] > heap[largest]) largest = right
+            if (largest == index) return
+            swap(index, largest); index = largest
+        }
+    }
+
+    fun construct(arr: IntArray) {
+        heap = arr
+        val n = heap.size
+        for (i in n / 2 - 1 downTo 0) downHeapify(i, n)
+    }
+}
+```
+
+```rust,editable
+pub struct MaxHeap { data: Vec<i32> }
+
+impl MaxHeap {
+    fn down_heapify_n(&mut self, mut index: usize, n: usize) {
+        loop {
+            let mut largest = index;
+            let left  = 2 * index + 1;
+            let right = 2 * index + 2;
+            if left  < n && self.data[left]  > self.data[largest] { largest = left;  }
+            if right < n && self.data[right] > self.data[largest] { largest = right; }
+            if largest == index { return; }
+            self.data.swap(index, largest);
+            index = largest;
+        }
+    }
+
+    pub fn construct(&mut self, arr: Vec<i32>) {
+        self.data = arr;
+        let n = self.data.len();
+        if n == 0 { return; }
+        for i in (0..=(n / 2 - 1)).rev() {
+            self.down_heapify_n(i, n);
+        }
+    }
+}
+```
+
+</div>
 
 ## Complexity analysis
 
-The construct operation is just a sum of N heapify operations where N is the number of data items in the given sequence. The worst-case time complexity of the heapify operation is **log(N)**, where N is the number of nodes in the subtree where heapify is applied. However, the construction algorithm does not apply the heapify function on a fixed-sized tree. Since it starts from the lowest level in the tree, the operation is applied to an increasingly larger tree starting from 0.
+The `n` separate inserts approach gives `O(n log n)`. The bottom-up construct gives **`O(n)`** — *strictly faster*. The reason is that **most nodes are leaves** (about half of them), and they cost zero. Internal nodes cost progressively more — the deepest internal nodes are *just above* the leaves and only do at most one swap; shallower internal nodes can do more swaps but there are *fewer of them*.
 
-Let's look at the diagram below to understand the worst-case time complexity better. It represents the relationship between the height of a subtree, the number of nodes at that height, and the number of swap operations that need to be applied in the worst-case if a down heapify operation is applied at that subtree.
+Formally: for a complete binary tree of height `h` with `n` nodes:
 
-// Diagram: Relationship between height, number of nodes and number of swap operations in a heap
+- Number of nodes at height `j` (counting from 0 at the leaves) ≈ `n / 2^(j+1)`.
+- A `down_heapify` call from a node at height `j` does at most `j` swaps.
 
-> For a heap of height `h` that has `N` number of nodes:
->
-> -   Number of nodes at height j = **2^(h-j)**
-> -   Maximum possible swap operations on running down heapify for a node at height j = **j**
+So the total cost is bounded by:
 
-In the worst case, the given array will have a complete binary tree where every level is full, and a down heapify operation from each node traverses the tree to the leaf. We can use the equations above to calculate the number of swap operations executed in the worst case when constructing a heap starting from the first non leaf node.
+```
+Σ (n / 2^(j+1)) × j  for j = 0 to log n
+= n × Σ j / 2^(j+1)
+= n × (1/2 × Σ j / 2^j)
+< n × 2  (the infinite sum Σ j / 2^j converges to 2)
+= O(n)
+```
 
-// Diagram: Total number of swap operations when building a heap
+| Case | Time | Space |
+|---|---|---|
+| All cases | **O(n)** | O(1) (in place) |
 
-From the calculation above, it can be proved that the worst-case time complexity for the algorithm to construct a heap from the given list of data items is **linear O(N)**. In the best case, we won't need to do any swaps, but we still need to traverse half (n/2) array, so the best-case time complexity is **linear O(N).**
-
-If we convert the given sequence to a heap in place, we don't need any extra space, so the space complexity is **constant O(1)**. However, if we do not modify the input sequence and instead create a separate copy that holds the heap, the space complexity would be O(N),where N is the number of data items in the input sequence.
-
-For this operation, we will consider creating a heap in place in the given sequence, and hence the space complexity in any case would be constant **O(1)**
-
-> **Best Case**
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(N)**
->
-> **Worst Case**
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(N)**
+This is one of the most surprising results in elementary algorithms: the bottom-up heap build is **linear**, not log-linear, despite each individual `down_heapify` being O(log n).
 
 ***
 
@@ -1808,70 +1968,270 @@ For this operation, we will consider creating a heap in place in the given seque
 
 ## Problem Statement
 
-Given an array **arr** that is the array representation of a min heap, write a function to convert it to a max heap in place.
-
-// Diagram: You must do this in amortised linear time
+Given an array `arr` that is the array representation of a **min heap**, convert it to a **max heap** **in place** in amortised linear time.
 
 ### Example 1
 
-> -   **Input:** arr = \[-2, 1, 5, 9, 4, 6, 7\]
-> -   **Output:** \[9, 4, 7, 1, -2, 6, 5\]
-> -   **Explanation:** The above shows the conversion from min heap to max heap.
+> - **Input:** `arr = [-2, 1, 5, 9, 4, 6, 7]`
+> - **Output:** `[9, 4, 7, 1, -2, 6, 5]`
+> - **Explanation:** A valid max-heap rearrangement of the same multiset.
 
 ### Example 2
 
-> -   **Input:** arr = \[3, 5\]
-> -   **Output:** \[5, 3\]
-> -   **Explanation:** The above shows the conversion from min heap to max heap.
+> - **Input:** `arr = [3, 5]`
+> - **Output:** `[5, 3]`
 
-## Solution
+## The Strategy
 
-```cpp
-#include <algorithm>
+**The input being a min heap doesn't help us at all** — the result has to be a max heap, and that's a different ordering. The fastest way to build a max heap from any starting array is the bottom-up `construct` algorithm we just built. So this problem reduces to: **call `construct` with max-heap semantics**.
 
-using namespace std;
+The two invariants we change to `>`:
 
+- `down_heapify` picks the *larger* of the two children (instead of smaller).
+- We swap whenever the current node is *smaller* than the larger child.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["arr (currently min-heap)"] --> B["bottom-up max-heapify<br/>O(n)"]
+    B --> C["arr is now a max-heap"]
+    style C fill:#bbf7d0,stroke:#16a34a
+```
+
+<p align="center"><strong>Min-to-max conversion is just bottom-up max-heapification of the same array. O(n).</strong></p>
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+class Solution:
+    def max_heapify(self, arr, n, index):
+        # Standard down-heapify with `>` (max-heap variant).
+        while True:
+            largest = index
+            left, right = 2 * index + 1, 2 * index + 2
+            if left  < n and arr[left]  > arr[largest]: largest = left
+            if right < n and arr[right] > arr[largest]: largest = right
+            if largest == index:
+                return
+            arr[index], arr[largest] = arr[largest], arr[index]
+            index = largest
+
+    def min_heap_to_max_heap(self, arr):
+        n = len(arr)
+        # Bottom-up: skip leaves, walk internal nodes from last to first.
+        for i in range(n // 2 - 1, -1, -1):
+            self.max_heapify(arr, n, i)
+```
+
+```java,editable
 class Solution {
-public:
-    void maxHeapify(vector<int> &arr, int n, int index) {
+    private void swap(int[] arr, int i, int j) { int t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
 
-        // Initialize the current node as the largest
-        int largest = index;
-
-        // Calculate the left child index
-        int left = 2 * index + 1;
-
-        // Calculate the right child index
-        int right = 2 * index + 2;
-
-        // Compare the current node with its left child
-        if (left < n && arr[left] > arr[largest]) {
-            largest = left;
-        }
-
-        // Compare the current node with its right child
-        if (right < n && arr[right] > arr[largest]) {
-            largest = right;
-        }
-
-        // If the largest is not the current node, swap the values and
-        // recursively max-heapify the affected child
-        if (largest != index) {
-            swap(arr[index], arr[largest]);
-            maxHeapify(arr, n, largest);
+    public void maxHeapify(int[] arr, int n, int index) {
+        while (true) {
+            int largest = index;
+            int left = 2 * index + 1, right = 2 * index + 2;
+            if (left  < n && arr[left]  > arr[largest]) largest = left;
+            if (right < n && arr[right] > arr[largest]) largest = right;
+            if (largest == index) return;
+            swap(arr, index, largest);
+            index = largest;
         }
     }
 
-    void minHeapToMaxHeap(vector<int> &arr) {
-        int n = arr.size();
+    public void minHeapToMaxHeap(int[] arr) {
+        int n = arr.length;
+        for (int i = n / 2 - 1; i >= 0; i--) maxHeapify(arr, n, i);
+    }
+}
+```
 
-        // Start from the last non-leaf node and perform max-heapify
-        for (int i = n / 2 - 1; i >= 0; i--) {
-            maxHeapify(arr, n, i);
+```c,editable
+static void max_heapify(int *arr, int n, int index) {
+    while (1) {
+        int largest = index;
+        int left = 2 * index + 1, right = 2 * index + 2;
+        if (left  < n && arr[left]  > arr[largest]) largest = left;
+        if (right < n && arr[right] > arr[largest]) largest = right;
+        if (largest == index) return;
+        int t = arr[index]; arr[index] = arr[largest]; arr[largest] = t;
+        index = largest;
+    }
+}
+
+void minHeapToMaxHeap(int *arr, int n) {
+    for (int i = n / 2 - 1; i >= 0; i--) max_heapify(arr, n, i);
+}
+```
+
+```cpp,editable
+class Solution {
+public:
+    void maxHeapify(std::vector<int> &arr, int n, int index) {
+        while (true) {
+            int largest = index;
+            int left = 2 * index + 1, right = 2 * index + 2;
+            if (left  < n && arr[left]  > arr[largest]) largest = left;
+            if (right < n && arr[right] > arr[largest]) largest = right;
+            if (largest == index) return;
+            std::swap(arr[index], arr[largest]);
+            index = largest;
         }
+    }
+
+    void minHeapToMaxHeap(std::vector<int> &arr) {
+        int n = (int)arr.size();
+        for (int i = n / 2 - 1; i >= 0; i--) maxHeapify(arr, n, i);
     }
 };
 ```
+
+```scala,editable
+object Solution {
+  private def swap(arr: Array[Int], i: Int, j: Int): Unit = { val t = arr(i); arr(i) = arr(j); arr(j) = t }
+
+  def maxHeapify(arr: Array[Int], n: Int, start: Int): Unit = {
+    var index = start; var go = true
+    while (go) {
+      var largest = index
+      val left = 2 * index + 1; val right = 2 * index + 2
+      if (left  < n && arr(left)  > arr(largest)) largest = left
+      if (right < n && arr(right) > arr(largest)) largest = right
+      if (largest == index) go = false
+      else { swap(arr, index, largest); index = largest }
+    }
+  }
+
+  def minHeapToMaxHeap(arr: Array[Int]): Unit = {
+    val n = arr.length
+    var i = n / 2 - 1
+    while (i >= 0) { maxHeapify(arr, n, i); i -= 1 }
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+  maxHeapify(arr, n, index) {
+    while (true) {
+      let largest = index;
+      const left = 2 * index + 1, right = 2 * index + 2;
+      if (left  < n && arr[left]  > arr[largest]) largest = left;
+      if (right < n && arr[right] > arr[largest]) largest = right;
+      if (largest === index) return;
+      [arr[index], arr[largest]] = [arr[largest], arr[index]];
+      index = largest;
+    }
+  }
+
+  minHeapToMaxHeap(arr) {
+    const n = arr.length;
+    for (let i = Math.floor(n / 2) - 1; i >= 0; i--) this.maxHeapify(arr, n, i);
+  }
+}
+```
+
+```typescript,editable
+class Solution {
+  maxHeapify(arr: number[], n: number, index: number): void {
+    while (true) {
+      let largest = index;
+      const left = 2 * index + 1, right = 2 * index + 2;
+      if (left  < n && arr[left]  > arr[largest]) largest = left;
+      if (right < n && arr[right] > arr[largest]) largest = right;
+      if (largest === index) return;
+      [arr[index], arr[largest]] = [arr[largest], arr[index]];
+      index = largest;
+    }
+  }
+
+  minHeapToMaxHeap(arr: number[]): void {
+    const n = arr.length;
+    for (let i = Math.floor(n / 2) - 1; i >= 0; i--) this.maxHeapify(arr, n, i);
+  }
+}
+```
+
+```go,editable
+func maxHeapifyArr(arr []int, n, index int) {
+    for {
+        largest := index
+        left, right := 2*index+1, 2*index+2
+        if left  < n && arr[left]  > arr[largest] { largest = left  }
+        if right < n && arr[right] > arr[largest] { largest = right }
+        if largest == index { return }
+        arr[index], arr[largest] = arr[largest], arr[index]
+        index = largest
+    }
+}
+
+func minHeapToMaxHeap(arr []int) {
+    n := len(arr)
+    for i := n/2 - 1; i >= 0; i-- { maxHeapifyArr(arr, n, i) }
+}
+```
+
+```kotlin,editable
+class Solution {
+    private fun swap(arr: IntArray, i: Int, j: Int) { val t = arr[i]; arr[i] = arr[j]; arr[j] = t }
+
+    fun maxHeapify(arr: IntArray, n: Int, start: Int) {
+        var index = start
+        while (true) {
+            var largest = index
+            val left = 2 * index + 1; val right = 2 * index + 2
+            if (left  < n && arr[left]  > arr[largest]) largest = left
+            if (right < n && arr[right] > arr[largest]) largest = right
+            if (largest == index) return
+            swap(arr, index, largest); index = largest
+        }
+    }
+
+    fun minHeapToMaxHeap(arr: IntArray) {
+        val n = arr.size
+        for (i in n / 2 - 1 downTo 0) maxHeapify(arr, n, i)
+    }
+}
+```
+
+```rust,editable
+impl Solution {
+    fn max_heapify(arr: &mut [i32], n: usize, mut index: usize) {
+        loop {
+            let mut largest = index;
+            let left  = 2 * index + 1;
+            let right = 2 * index + 2;
+            if left  < n && arr[left]  > arr[largest] { largest = left;  }
+            if right < n && arr[right] > arr[largest] { largest = right; }
+            if largest == index { return; }
+            arr.swap(index, largest);
+            index = largest;
+        }
+    }
+
+    pub fn min_heap_to_max_heap(arr: &mut Vec<i32>) {
+        let n = arr.len();
+        if n == 0 { return; }
+        for i in (0..=(n / 2 - 1)).rev() {
+            Self::max_heapify(arr, n, i);
+        }
+    }
+}
+```
+
+</div>
 
 ***
 
@@ -1879,65 +2239,261 @@ public:
 
 ## Problem Statement
 
-Given an array **arr** that is the array representation of a max heap, write a function to convert it to a min heap in place.
-
-// Diagram: You must do this in amortised linear time
+Mirror image: given an array `arr` that is the array representation of a **max heap**, convert it to a **min heap** in place in amortised linear time.
 
 ### Example 1
 
-> -   **Input:** arr = \[9, 4, 7, 1, -2, 6, 5\]
-> -   **Output:** \[-2, 1, 5, 9, 4, 6, 7\]
-> -   **Explanation:** The above shows the conversion from max heap to min heap.
+> - **Input:** `arr = [9, 4, 7, 1, -2, 6, 5]`
+> - **Output:** `[-2, 1, 5, 9, 4, 6, 7]`
 
 ### Example 2
 
-> -   **Input:** arr = \[5, 3\]
-> -   **Output:** \[3, 5\]
-> -   **Explanation:** The above shows the conversion from max heap to min heap.
+> - **Input:** `arr = [5, 3]`
+> - **Output:** `[3, 5]`
 
-## Solution
+## The Strategy
 
-```cpp
-using namespace std;
+Same as the previous problem — just flip the comparator. Bottom-up `min_heapify` walks internal nodes from `n/2 − 1` to `0`, picking the **smaller** child each step.
 
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+class Solution:
+    def min_heapify(self, arr, n, index):
+        # Down-heapify with `<` (min-heap variant).
+        while True:
+            smallest = index
+            left, right = 2 * index + 1, 2 * index + 2
+            if left  < n and arr[left]  < arr[smallest]: smallest = left
+            if right < n and arr[right] < arr[smallest]: smallest = right
+            if smallest == index:
+                return
+            arr[index], arr[smallest] = arr[smallest], arr[index]
+            index = smallest
+
+    def max_heap_to_min_heap(self, arr):
+        n = len(arr)
+        for i in range(n // 2 - 1, -1, -1):
+            self.min_heapify(arr, n, i)
+```
+
+```java,editable
 class Solution {
-public:
-    void minHeapify(vector<int> &arr, int n, int index) {
+    private void swap(int[] arr, int i, int j) { int t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
 
-        // Initialize the current node as the smallest
-        int smallest = index;
-
-        // Calculate the left child index
-        int left = 2 * index + 1;
-
-        // Calculate the right child index
-        int right = 2 * index + 2;
-
-        // Compare the current node with its left child
-        if (left < n && arr[left] < arr[smallest]) {
-            smallest = left;
-        }
-
-        // Compare the current node with its right child
-        if (right < n && arr[right] < arr[smallest]) {
-            smallest = right;
-        }
-
-        // If the smallest is not the current node, swap the values and
-        // recursively min-heapify the affected child
-        if (smallest != index) {
-            swap(arr[index], arr[smallest]);
-            minHeapify(arr, n, smallest);
+    public void minHeapify(int[] arr, int n, int index) {
+        while (true) {
+            int smallest = index;
+            int left = 2 * index + 1, right = 2 * index + 2;
+            if (left  < n && arr[left]  < arr[smallest]) smallest = left;
+            if (right < n && arr[right] < arr[smallest]) smallest = right;
+            if (smallest == index) return;
+            swap(arr, index, smallest);
+            index = smallest;
         }
     }
 
-    void maxHeapToMinHeap(vector<int> &arr) {
-        int n = arr.size();
+    public void maxHeapToMinHeap(int[] arr) {
+        int n = arr.length;
+        for (int i = n / 2 - 1; i >= 0; i--) minHeapify(arr, n, i);
+    }
+}
+```
 
-        // Start from the last non-leaf node and perform min-heapify
-        for (int i = (n / 2) - 1; i >= 0; i--) {
-            minHeapify(arr, n, i);
+```c,editable
+static void min_heapify(int *arr, int n, int index) {
+    while (1) {
+        int smallest = index;
+        int left = 2 * index + 1, right = 2 * index + 2;
+        if (left  < n && arr[left]  < arr[smallest]) smallest = left;
+        if (right < n && arr[right] < arr[smallest]) smallest = right;
+        if (smallest == index) return;
+        int t = arr[index]; arr[index] = arr[smallest]; arr[smallest] = t;
+        index = smallest;
+    }
+}
+
+void maxHeapToMinHeap(int *arr, int n) {
+    for (int i = n / 2 - 1; i >= 0; i--) min_heapify(arr, n, i);
+}
+```
+
+```cpp,editable
+class Solution {
+public:
+    void minHeapify(std::vector<int> &arr, int n, int index) {
+        while (true) {
+            int smallest = index;
+            int left = 2 * index + 1, right = 2 * index + 2;
+            if (left  < n && arr[left]  < arr[smallest]) smallest = left;
+            if (right < n && arr[right] < arr[smallest]) smallest = right;
+            if (smallest == index) return;
+            std::swap(arr[index], arr[smallest]);
+            index = smallest;
         }
+    }
+
+    void maxHeapToMinHeap(std::vector<int> &arr) {
+        int n = (int)arr.size();
+        for (int i = n / 2 - 1; i >= 0; i--) minHeapify(arr, n, i);
     }
 };
 ```
+
+```scala,editable
+object Solution {
+  private def swap(arr: Array[Int], i: Int, j: Int): Unit = { val t = arr(i); arr(i) = arr(j); arr(j) = t }
+
+  def minHeapify(arr: Array[Int], n: Int, start: Int): Unit = {
+    var index = start; var go = true
+    while (go) {
+      var smallest = index
+      val left = 2 * index + 1; val right = 2 * index + 2
+      if (left  < n && arr(left)  < arr(smallest)) smallest = left
+      if (right < n && arr(right) < arr(smallest)) smallest = right
+      if (smallest == index) go = false
+      else { swap(arr, index, smallest); index = smallest }
+    }
+  }
+
+  def maxHeapToMinHeap(arr: Array[Int]): Unit = {
+    val n = arr.length
+    var i = n / 2 - 1
+    while (i >= 0) { minHeapify(arr, n, i); i -= 1 }
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+  minHeapify(arr, n, index) {
+    while (true) {
+      let smallest = index;
+      const left = 2 * index + 1, right = 2 * index + 2;
+      if (left  < n && arr[left]  < arr[smallest]) smallest = left;
+      if (right < n && arr[right] < arr[smallest]) smallest = right;
+      if (smallest === index) return;
+      [arr[index], arr[smallest]] = [arr[smallest], arr[index]];
+      index = smallest;
+    }
+  }
+
+  maxHeapToMinHeap(arr) {
+    const n = arr.length;
+    for (let i = Math.floor(n / 2) - 1; i >= 0; i--) this.minHeapify(arr, n, i);
+  }
+}
+```
+
+```typescript,editable
+class Solution {
+  minHeapify(arr: number[], n: number, index: number): void {
+    while (true) {
+      let smallest = index;
+      const left = 2 * index + 1, right = 2 * index + 2;
+      if (left  < n && arr[left]  < arr[smallest]) smallest = left;
+      if (right < n && arr[right] < arr[smallest]) smallest = right;
+      if (smallest === index) return;
+      [arr[index], arr[smallest]] = [arr[smallest], arr[index]];
+      index = smallest;
+    }
+  }
+
+  maxHeapToMinHeap(arr: number[]): void {
+    const n = arr.length;
+    for (let i = Math.floor(n / 2) - 1; i >= 0; i--) this.minHeapify(arr, n, i);
+  }
+}
+```
+
+```go,editable
+func minHeapifyArr(arr []int, n, index int) {
+    for {
+        smallest := index
+        left, right := 2*index+1, 2*index+2
+        if left  < n && arr[left]  < arr[smallest] { smallest = left  }
+        if right < n && arr[right] < arr[smallest] { smallest = right }
+        if smallest == index { return }
+        arr[index], arr[smallest] = arr[smallest], arr[index]
+        index = smallest
+    }
+}
+
+func maxHeapToMinHeap(arr []int) {
+    n := len(arr)
+    for i := n/2 - 1; i >= 0; i-- { minHeapifyArr(arr, n, i) }
+}
+```
+
+```kotlin,editable
+class Solution {
+    private fun swap(arr: IntArray, i: Int, j: Int) { val t = arr[i]; arr[i] = arr[j]; arr[j] = t }
+
+    fun minHeapify(arr: IntArray, n: Int, start: Int) {
+        var index = start
+        while (true) {
+            var smallest = index
+            val left = 2 * index + 1; val right = 2 * index + 2
+            if (left  < n && arr[left]  < arr[smallest]) smallest = left
+            if (right < n && arr[right] < arr[smallest]) smallest = right
+            if (smallest == index) return
+            swap(arr, index, smallest); index = smallest
+        }
+    }
+
+    fun maxHeapToMinHeap(arr: IntArray) {
+        val n = arr.size
+        for (i in n / 2 - 1 downTo 0) minHeapify(arr, n, i)
+    }
+}
+```
+
+```rust,editable
+impl Solution {
+    fn min_heapify(arr: &mut [i32], n: usize, mut index: usize) {
+        loop {
+            let mut smallest = index;
+            let left  = 2 * index + 1;
+            let right = 2 * index + 2;
+            if left  < n && arr[left]  < arr[smallest] { smallest = left;  }
+            if right < n && arr[right] < arr[smallest] { smallest = right; }
+            if smallest == index { return; }
+            arr.swap(index, smallest);
+            index = smallest;
+        }
+    }
+
+    pub fn max_heap_to_min_heap(arr: &mut Vec<i32>) {
+        let n = arr.len();
+        if n == 0 { return; }
+        for i in (0..=(n / 2 - 1)).rev() {
+            Self::min_heapify(arr, n, i);
+        }
+    }
+}
+```
+
+</div>
+
+***
+
+## Final Takeaway
+
+Three index formulas — `parent = (i−1)/2`, `left = 2i+1`, `right = 2i+2` — collapse the entire tree-shaped heap into a flat array. From there, every operation we sketched in lesson 1 fits in a tight loop with no recursion required:
+
+| Operation | Idea | Time |
+|---|---|---|
+| `peek` | `heap[0]` | **O(1)** |
+| `insert(v)` | append + bubble up | O(log n) |
+| `remove(i)` / `extract()` | swap with last + sift down | O(log n) |
+| `construct(arr)` | bottom-up sift downs | **O(n)** |
+
+Three patterns to lock in:
+
+1. **Two helpers do all the work.** `up_heapify` (after a value increases) and `down_heapify` (after a value decreases) cover every restoration scenario. Insert uses up; delete and extract use down; construct is just `n/2` calls to down. *That's the whole heap*.
+2. **Bottom-up `construct` beats `n × insert`.** The `n × insert` approach is O(n log n); the bottom-up approach is O(n). The reason — most nodes are leaves, and they cost zero — is the canonical example of why amortised analysis matters in algorithm design.
+3. **Min and max are mirrors.** Every algorithm in this lesson has a `<`-for-`>` mirror. Languages that ship one flavour (Python `heapq` is min; Java `PriorityQueue` is min; C++ is max) let you fake the other with a comparator inversion — which is the focus of lesson 4.
+
+Now that we have a full priority queue at our fingertips, the next two lessons answer the natural question: **what do you actually do with it?** Lesson 3 introduces the **top-K elements pattern**, the single most common application of heaps in coding interviews and real systems. Lesson 4 generalises the heap to *any* ordering by way of comparators — opening the door to heaps of strings, structs, tuples, and anything else with a defined ordering relation.

@@ -1,4 +1,14 @@
-# Pattern: Comparator
+# 4. Pattern: Comparator
+
+## The Hook
+
+The previous lesson made heaps look easy: push integers, pop integers, done. But every heap problem you'll meet in the wild has the same twist — **the things you're queuing aren't integers**. They're tuples (`(distance, point)`), structs (`{frequency: int, word: string}`), tree nodes, list nodes, custom records. The heap doesn't know how to compare them. You have to teach it.
+
+That teaching is called a **comparator**: a tiny function (or a `compareTo` method, or a `__lt__`, or a `<` operator overload) that takes two objects and tells the heap which one has higher priority. Once you can do that, the heap works on *any* total-ordered domain — and the K-most-frequent words, K-closest points, K-smallest sum pairs, K-way merge problems all collapse to the same Top-K skeleton from the previous lesson, just with a non-trivial comparator inside.
+
+This lesson is short on new algorithms and dense on **idioms** — the language-specific machinery for plugging custom orderings into a heap, and five canonical problems where that machinery pays off.
+
+---
 
 ## Table of Contents
 
@@ -15,747 +25,369 @@
 
 # Understanding comparators
 
-A heap data structure is a binary tree that follows the heap property such that the parent node is either greater (max-heap) or smaller (min heap) than its children. Instances of primitive data types like integers, characters, etc, can be compared to each other using the relational operators `<` and `>` to establish the greater and smaller relationships.
+A heap of integers compares its elements with `<` and `>` — the operators are baked into the language. Push `5`, push `3`, the language knows `3 < 5` and the min-heap puts `3` on top.
 
-However, some problems require us to store more complex data structures like arrays, lists, maps and class objects in a heap. To store anything other than the primitive data types in a heap, we need to define a comparison rule that defines ordering between two items using a **comparator**.
+A heap of *anything else* needs an explicit comparison rule. There's no built-in way to know whether `Entry(x=2, y=7)` is "smaller" than `Entry(x=2, y=4)` — you have to *define* what smaller means for that type. That definition is the **comparator**.
 
-// Diagram: A comparator is used to compare user-defined types.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["Heap of Entry"] --> B["Whenever the heap<br/>needs to compare a, b<br/>it calls comparator(a, b)"]
+    B --> C["Comparator returns:<br/>negative if a &lt; b<br/>positive if a &gt; b<br/>zero if equal"]
+    style C fill:#fef9c3,stroke:#f59e0b
+```
+
+<p align="center"><strong>The comparator is the bridge between a generic heap and a custom type. The heap calls it whenever it needs to decide ordering.</strong></p>
 
 ## Working of a comparator
 
-A comparator is a custom function or an object that defines the ordering of items, particularly when there is no natural or default order or we want to override the ordering. In priority queues implemented as heaps, a comparator determines the item with the higher priority between two items.
+A comparator returns a value that says "is `a` smaller, larger, or equal to `b`?". Conventions differ slightly by language:
 
-To solve any problem that involves storing user-defined datatypes into a heap, we need to pass a comparator to order items instead of relying on `<` and `>` operators. Whenever two nodes in the heap need to be compared, they are passed as arguments to the comparator, which defines the ordering between them.
+| Language | Convention |
+|---|---|
+| Python | `__lt__(self, other) → bool` (true if `self < other`) |
+| Java | `Comparator.compare(a, b) → int` (negative/zero/positive) |
+| C++ | `bool less(a, b)` — if you return `true`, `a` has *lower* priority (counter-intuitive!) |
+| JavaScript / TypeScript | `(a, b) → number` (a − b for ascending) |
+| Go | `Less(i, j) → bool` (true means `i` should come first) |
+| Kotlin | `Comparator<T>` (same as Java) or `compareBy { ... }` |
+| Rust | `Ord::cmp(&self, other) → Ordering` |
+| Scala | `Ordering[T]` |
 
-Consider an example where we have an array of instances of the class `Entry` with values `e1, e2 ... en` such that `ei < ei+1` and we need to store them in a **max-heap**. We can create a max-heap with a comparator that defines ordering between these instances and ensures all nodes in the max-heap are greater than their child nodes.
-
-// Diagram: A comparator orders user defined types in a heap
+The semantics are the same; only the calling convention differs.
 
 ## Implementation
 
-Most library implementations of a priority queue (heap) have ways to pass a comparator as an argument when instantiating the heap. Some programming languages also provide ways to override the behaviour of the `<` and `>` operators by defining a special member function in the user-defined class.
-
-Given below are different ways to use a comparator to store instances of a class `Entry` in a priority queue in different languages.
-
-// Diagram: Loading code editor
+Below are the canonical patterns for plugging a custom ordering into a heap, expressed in every language we cover. We'll use a tiny `Entry` type with two fields `x` and `y`, where the ordering is "compare `x` first; break ties by `y`".
 
 ## Example
 
-Let's consider an example where the class `Entry` has two data members `x` and `y`.
+The `Entry` type:
 
-// Diagram: A user-defined type Entry has two data members x and y.
+```
+Entry(x, y)
+ordering: a < b  iff  a.x < b.x  OR  (a.x == b.x AND a.y < b.y)
+```
 
-An instance will be considered greater than the other if the value of the data member `x` in it is greater than the value of `x` in the other instance. If both instances have the same value of `x` the one with greater value of `y` will be considered greater. If both `x` and `y` in the instances are equal, the instances will be considered equal.
-
-// Diagram: The comparator compares the data member x before comparing the data member y.
-
-Now, let's look at different comparator implementations to use a priority queue as either a min-heap or a max-heap for the class `Entry` defined above.
+Two flavours: a min-heap (smallest `Entry` on top) and a max-heap (largest on top).
 
 ### min-heap
 
-Given below is the comparator implementation for creating min-priority queue that behaves as a min-heap, i.e. it keeps the **smallest** item at the top. 
+<div class="lang-tabs">
 
-// Diagram: Loading code editor
+```python,editable
+import heapq
+from dataclasses import dataclass, field
+
+# Python's heapq compares tuples element-by-element — easiest path is just push tuples.
+# For a typed object, define __lt__ to make heapq put smallest on top.
+@dataclass(order=False)
+class Entry:
+    x: int
+    y: int
+    def __lt__(self, other: "Entry") -> bool:
+        # min-heap: "less than" follows natural lex order (x then y)
+        if self.x != other.x:
+            return self.x < other.x
+        return self.y < other.y
+
+# Use it:
+h: list = []
+heapq.heappush(h, Entry(2, 7))
+heapq.heappush(h, Entry(1, 9))
+top = heapq.heappop(h)        # Entry(1, 9) — min-heap puts smallest on top
+```
+
+```java,editable
+import java.util.*;
+
+class Entry {
+    int x, y;
+    Entry(int x, int y) { this.x = x; this.y = y; }
+}
+
+class Demo {
+    public static void main(String[] args) {
+        // Comparator returning negative when `a < b` ⇒ min-heap.
+        PriorityQueue<Entry> minHeap = new PriorityQueue<>(
+            (a, b) -> a.x != b.x ? Integer.compare(a.x, b.x)
+                                 : Integer.compare(a.y, b.y));
+        minHeap.add(new Entry(2, 7));
+        minHeap.add(new Entry(1, 9));
+        Entry top = minHeap.poll();                                   // Entry(1, 9)
+    }
+}
+```
+
+```c,editable
+// In C, no real comparator support — use qsort-style int comparator and roll a heap by hand.
+typedef struct { int x, y; } Entry;
+
+// Returns negative if a < b (min-heap convention).
+int entry_cmp_min(const Entry *a, const Entry *b) {
+    if (a->x != b->x) return a->x - b->x;
+    return a->y - b->y;
+}
+// Reuse from earlier lesson: a generic heap parameterised by entry_cmp_min.
+```
+
+```cpp,editable
+#include <queue>
+#include <vector>
+
+struct Entry { int x, y; };
+
+// In C++ priority_queue, the comparator returning `true` means a has LOWER priority.
+// So for a min-heap, return true when a > b (so the larger gets pushed down).
+struct EntryGreater {
+    bool operator()(const Entry &a, const Entry &b) const {
+        if (a.x != b.x) return a.x > b.x;
+        return a.y > b.y;
+    }
+};
+
+void demo() {
+    std::priority_queue<Entry, std::vector<Entry>, EntryGreater> minHeap;
+    minHeap.push({2, 7});
+    minHeap.push({1, 9});
+    Entry top = minHeap.top();                                                // Entry{1, 9}
+}
+```
+
+```scala,editable
+import scala.collection.mutable.PriorityQueue
+
+case class Entry(x: Int, y: Int)
+
+object Demo {
+  // Default Ordering compares descending; reverse it for a min-heap.
+  implicit val entryOrdering: Ordering[Entry] = Ordering.by((e: Entry) => (e.x, e.y))
+  val minHeap = PriorityQueue.empty[Entry](entryOrdering.reverse)
+  def main(args: Array[String]): Unit = {
+    minHeap.enqueue(Entry(2, 7))
+    minHeap.enqueue(Entry(1, 9))
+    val top = minHeap.head                                                     // Entry(1, 9)
+  }
+}
+```
+
+```javascript,editable
+// JavaScript has no built-in priority queue. Use the MinHeap class from lesson 3,
+// generalised to take a comparator returning -1 / 0 / 1 (or a − b).
+class MinHeap {
+  constructor(cmp) { this.cmp = cmp; this.h = []; }
+  push(v) {
+    this.h.push(v);
+    let i = this.h.length - 1;
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (this.cmp(this.h[p], this.h[i]) > 0) { [this.h[p], this.h[i]] = [this.h[i], this.h[p]]; i = p; }
+      else break;
+    }
+  }
+  pop() {
+    const top = this.h[0]; const last = this.h.pop();
+    if (this.h.length) {
+      this.h[0] = last;
+      let i = 0; const n = this.h.length;
+      while (true) {
+        const l = 2*i+1, r = 2*i+2; let s = i;
+        if (l < n && this.cmp(this.h[l], this.h[s]) < 0) s = l;
+        if (r < n && this.cmp(this.h[r], this.h[s]) < 0) s = r;
+        if (s === i) break;
+        [this.h[i], this.h[s]] = [this.h[s], this.h[i]];
+        i = s;
+      }
+    }
+    return top;
+  }
+  size() { return this.h.length; }
+  peek() { return this.h[0]; }
+}
+
+const minHeap = new MinHeap((a, b) => a.x - b.x || a.y - b.y);
+minHeap.push({x: 2, y: 7});
+minHeap.push({x: 1, y: 9});
+const top = minHeap.peek();      // {x: 1, y: 9}
+```
+
+```typescript,editable
+type Entry = { x: number; y: number };
+
+class MinHeap<T> {
+  private h: T[] = [];
+  constructor(private cmp: (a: T, b: T) => number) {}
+  push(v: T): void {
+    this.h.push(v);
+    let i = this.h.length - 1;
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (this.cmp(this.h[p], this.h[i]) > 0) { [this.h[p], this.h[i]] = [this.h[i], this.h[p]]; i = p; }
+      else break;
+    }
+  }
+  pop(): T {
+    const top = this.h[0]; const last = this.h.pop()!;
+    if (this.h.length) {
+      this.h[0] = last;
+      let i = 0; const n = this.h.length;
+      while (true) {
+        const l = 2*i+1, r = 2*i+2; let s = i;
+        if (l < n && this.cmp(this.h[l], this.h[s]) < 0) s = l;
+        if (r < n && this.cmp(this.h[r], this.h[s]) < 0) s = r;
+        if (s === i) break;
+        [this.h[i], this.h[s]] = [this.h[s], this.h[i]];
+        i = s;
+      }
+    }
+    return top;
+  }
+  size(): number { return this.h.length; }
+  peek(): T { return this.h[0]; }
+}
+
+const minHeap = new MinHeap<Entry>((a, b) => a.x - b.x || a.y - b.y);
+minHeap.push({x: 2, y: 7});
+minHeap.push({x: 1, y: 9});
+const top: Entry = minHeap.peek();    // {x: 1, y: 9}
+```
+
+```go,editable
+package main
+
+import "container/heap"
+
+type Entry struct{ X, Y int }
+
+// EntryMinHeap implements heap.Interface for Entry with min-ordering on (X, Y).
+type EntryMinHeap []Entry
+
+func (h EntryMinHeap) Len() int { return len(h) }
+func (h EntryMinHeap) Less(i, j int) bool {
+    if h[i].X != h[j].X { return h[i].X < h[j].X }
+    return h[i].Y < h[j].Y
+}
+func (h EntryMinHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (h *EntryMinHeap) Push(x any)        { *h = append(*h, x.(Entry)) }
+func (h *EntryMinHeap) Pop() any          { old := *h; n := len(old); v := old[n-1]; *h = old[:n-1]; return v }
+
+func demo() {
+    h := &EntryMinHeap{}
+    heap.Init(h)
+    heap.Push(h, Entry{2, 7})
+    heap.Push(h, Entry{1, 9})
+    _ = (*h)[0]                                                                // Entry{1, 9}
+}
+```
+
+```kotlin,editable
+import java.util.PriorityQueue
+
+data class Entry(val x: Int, val y: Int)
+
+fun demo() {
+    // compareBy returns a Comparator with the natural (asc) ordering on the chosen keys.
+    val minHeap = PriorityQueue(compareBy<Entry> { it.x }.thenBy { it.y })
+    minHeap.add(Entry(2, 7))
+    minHeap.add(Entry(1, 9))
+    val top = minHeap.peek()                                                     // Entry(1, 9)
+}
+```
+
+```rust,editable
+use std::collections::BinaryHeap;
+use std::cmp::Reverse;
+
+#[derive(Eq, PartialEq, Debug)]
+struct Entry { x: i32, y: i32 }
+
+// PartialOrd / Ord define the ordering for the type.
+impl Ord for Entry {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.x.cmp(&other.x).then_with(|| self.y.cmp(&other.y))
+    }
+}
+impl PartialOrd for Entry { fn partial_cmp(&self, o: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(o)) } }
+
+fn demo() {
+    // BinaryHeap is a max-heap; wrap entries with Reverse to get min-heap.
+    let mut min_heap: BinaryHeap<Reverse<Entry>> = BinaryHeap::new();
+    min_heap.push(Reverse(Entry { x: 2, y: 7 }));
+    min_heap.push(Reverse(Entry { x: 1, y: 9 }));
+    let _top = &min_heap.peek().unwrap().0;                                       // Entry { x: 1, y: 9 }
+}
+```
+
+</div>
 
 ### max-heap
 
-Given below is the comparator implementation for creating max-priority queue that behaves as a max-heap, i.e. it keeps the **largest** item at the top. 
+A max-heap is the same setup with the comparator inverted. Most languages give you a one-line shortcut:
 
-// Diagram: Loading code editor
+| Language | Min-heap → max-heap |
+|---|---|
+| Python | Push `-value` (or wrap in a class with `__lt__` flipped) |
+| Java | `Comparator.reverseOrder()` or flip the comparator |
+| C++ | `priority_queue<T>` is max by default; for max with custom type, return `a < b` from your `operator()` |
+| JavaScript | Pass `(a, b) => b.x - a.x` |
+| Go | Flip the `Less` method |
+| Kotlin | `compareByDescending` |
+| Rust | `BinaryHeap<T>` is max by default with natural `Ord` |
+
+We'll use these forms throughout the rest of this lesson.
 
 ***
 
 # Understanding the comparator pattern
 
-A heap data structure can store primitive data types in their natural order defined by the `<` and `>` operators. However, there are some problems that require ordering user-defined datatypes. In most cases, we first need to define the new datatype and then define a comparator to be able to store this datatype in a heap.
+The **comparator pattern** is the union of two ideas you've already met:
 
-// Diagram: The comparator pattern is a classification of problems that can be solved using a heap and a custom comparator
+1. The Top-K skeleton from lesson 3 (push, evict if oversize, drain).
+2. A custom comparator on whatever type you actually want to keep.
 
-In this lesson, we will learn more about using the custom comparator technique to solve problems and how to identify a problem as a comparator pattern problem.
+The general flow:
 
-## The custom compare technique
+> **Algorithm**
+>
+> - **Step 1:** *Transform.* Apply a transformation `t` to each input value to produce the `(value, score)` records the heap will hold. (E.g., for "K most frequent words", `t = word ↦ (word, freq)`.)
+> - **Step 2:** *Choose comparator and heap polarity.* Min-heap of size K for top-K-largest by score; max-heap for top-K-smallest.
+> - **Step 3:** *Stream + cap.* Push each record; pop when the heap exceeds size K.
+> - **Step 4:** *Aggregate.* Drain the heap, applying the aggregation function `f` (or simply listing values).
 
-Consider we are given a set of values in an array, an integer `k` , a user-defined type, a transformation function `t` and a function `f`. The transformation function `t` that transforms the values in the original array to instances of the user-defined type. The goal is to find the aggregate value of `f` over the **top**`k` Items from the transformed array.
-
-For this example, consider the generic array of values given below.
-
-// Diagram: A generic array of values.
-
-For this example, we will consider a user-defined type `Entry` that has two data members `x` and `y`.  An instance of `Entry` is considered greater than the other if the value of `x` in it is greater than the other. If the value of `x` is the same in both, then the one with the greater value of `y` is considered greater.
-
-// Diagram: A user-defined type Entry.
-
-To solve the problem, the first step is to transform the input array into an array of instances of `Entry` using the function `t`. The transformation function is generally defined by the problem.
-
-For this example, consider the transformation function below that converts the array into an array of instances of `Entry` where we have generic values `xi` and `yi` of `x` and `y` such that `xi < xi+1` and `yi < yi+1` for all `1 < i < N`.
-
-// Diagram: Transform the array of values into an array of instances of user defined type using the function t.
-
-Once we have the transformed array, the problem is reduced to finding the top `k` items in an array.
-
-We can find the top `k` items using a heap as a sliding window, using a min-heap if top `k` means the `k` largest or a max-heap if the top `k` means the `k` smallest items. However, since we have a user-defined datatype`Entry`, we need to create a comparator defining the ordering logic between items in any of the two cases.
-
-// Diagram: The comparator for the user-defined type Entry.
-
-For this example, we will consider top `k` means the `k` **largest** entries. We can use the same technique for the k smallest entries.
-
-Since the top `k` means the `k` **largest**, we create a comparator to be used with a min-heap, and create a min-heap `minHeap` using it.
-
-We then iterate in the transformed array from start to end, and in each iteration, add the current item to `minHeap`. We also check if the size of `minHeap` becomes greater than `k`. If its size becomes greater than `k`, we remove the item from the top of `minHeap` which will be the smallest (as defined by the comparator) item in the heap. This way, at the end of all iterations, the heap will only have the top k items.
-
-// Diagram: Find the k largest items in the transformed array
-
-Finally, we initialize a variable `aggregate` with a default value, extract all items from the heap and add the contribution of each of them in `aggregate` using the function `f`.
-
-// Diagram: Find the aggregated value of function f over the items in minHeap
-
-## Algorithm
-
-The algorithm given below outlines the generic algorithm to transform the given array into an array of user-defined type and find the aggregated value of a function `f` over the top (**largest**) `k` Items in the transformed array.
-
-> -   **Step 1:** Transform the given array into an array of user defined type using the function `t`
-> -   **Step 2:** Create a comparator to stor user define type in a min-heap and initialize `minHeap` using it.
-> -   **Step 3:** Iterate in the transformed array and do the following:
->     -   **Step 3.1:** Add the current item to `minHeap`
->     -   **Step 3.2:** If the size of `minHeap` becomes greater than `k`, remove the item at the top
-> -   **Step 4:** Initialize a variable `aggregate` with a default value
-> -   **Step 5:** Do the following until `minHeap` is empty:
->     -   **Step 5.1:** Pop the item at the top of `minHeap`
->     -   **Step 5.2:** Add the contribution of the popped item to `aggregate` using function `f`
-> -   **Step 6:** Return `aggregate`
-
-## Implementation
-
-Given below is the generic code implementation to transform the given array into an array of user-defined type and find the aggregated value of a function `f` over the top (**largest**) `k` Items in the transformed array. We use a function `t` to transform the original array into an array of instances of Entry. It uses the library implementation of a heap for every language instead of creating one from scratch.
-
-C++
-
-```cpp
-#include <queue>
-
-// Diagram: using namespace std;
-
-// User defined type Entry
-struct Entry {
-  int x;
-  int y;
-};
-
-// Comparator to use priority queue as min-heap
-struct MinComparator {
-
-  // Return true if `a` should be placed BELOW `b` in the heap
-  bool operator()(const Entry &a, const Entry &b) {
-      if (a.x == b.x) {
-        return a.y < b.y;
-      }
-      return a.x < b.x;
-  }
-};
-
-class Solution {
-public:
-    int topKCustomCompare(vector<int> &arr, int k) {
-
-        // Transform the array into an array of Entry objects
-        // using the function t
-        vector<Entry> entries = t(arr);
-
-        // Create a min heap to store the k largest elements
-        priority_queue<Entry, vector<Entry>, MinComparator> minHeap;
-
-        // Add the elements to the min heap
-        for (auto &entry : entries) {
-          minHeap.push(entry);
-
-          // If the heap size exceeds k, remove the item at the top
-          if (minHeap.size() > k) {
-              minHeap.pop();
-          }
-
-        // Initialize an aggregate variable to a default value
-        int aggregate = 0;
-
-        // Extract all values from the heap and aggregate them over
-        // the function f
-        while (!minHeap.empty()) {
-            aggregate = f(aggregate, minHeap.top());
-            minHeap.pop();
-        }
-
-        return aggregate;
-    }
-};
-```
-
-Java
-
-```java
-import java.util.*;
-
-// User defined type Entry
-class Entry {
-    public:
-        int x;
-        int y;
-
-        Entry(int x, int y) {
-            this.x = x;
-            this.y = y;
-        }
-
-// Comparator to use priority queue as min-heap
-class MinComparator implements Comparator<Entry> {
-
-    // Return true if `a` should be placed BELOW `b` in the heap
-    @Override
-    public int compare(Entry a, Entry b) {
-        if (a.x == b.x) {
-            return a.y > b.y;
-        }
-        return a.x > b.x;
-    }
-
-// Diagram: class Solution {
-
-// Diagram: public int topKCustomCompare(List<Integer> arr, int k) {
-
-        // Transform the array into an array of Entry objects
-        // using the function t
-        List<Entry> entries = t(arr);
-
-        // Create a min heap to store the k largest elements
-        PriorityQueue<Entry> minHeap = new PriorityQueue<>(new MinComparator());
-
-        // Add the elements to the min heap
-        for (Entry entry : entries) {
-            minHeap.offer(entry);
-
-            // If the heap size exceeds k, remove the item at the top
-            if (minHeap.size() > k) {
-                minHeap.poll();
-            }
-
-        // Initialize an aggregate variable to a default value
-        int aggregate = 0;
-
-        // Extract all values from the heap and aggregate them over
-        // the function f
-        while (!minHeap.isEmpty()) {
-            aggregate = f(aggregate, minHeap.poll());
-        }
-
-        return aggregate;
-    }
-
-```
-
-Typescript
-
-```typescript
-import { PriorityQueue } from '@datastructures-js';
-
-// User defined type Entry
-type Entry = {
-  x: number;
-  y: number;
-};
-
-// Comparator to use priority queue as min-heap
-function minComparator(a: Entry, b: Entry): number {
-  if (a.x == b.x) {
-      if (a.y == b.y) {
-        return 0;
-      }
-      return a.y < b.y ? 1 : -1
-    }
-    return a.x < b.x ? 1 : -1
-}
-
-class Solution {
-  topKCustomCompare(arr: number[], k: number): number {
-    // Transform the array into an array of Entry objects
-    // using the function t
-    const entries: Entry[] = t(arr);
-
-    // Create a min heap to store the k largest elements
-    const minHeap = new PriorityQueue<Entry>(minComparator);
-
-    // Add the elements to the min heap
-    for (const entry of entries) {
-      minHeap.enqueue(entry);
-
-      // If the heap size exceeds k, remove the item at the top
-      if (minHeap.size() > k) {
-        minHeap.dequeue();
-      }
-
-    // Initialize an aggregate variable to a default value
-    let aggregate = 0;
-
-    // Extract all values from the heap and aggregate them over
-    // the function f
-    while (!minHeap.isEmpty()) {
-      const top = minHeap.dequeue();
-      aggregate = f(aggregate, top);
-    }
-    return aggregate;
-  }
-
-```
-
-Javascript
-
-```javascript
-import { PriorityQueue } from '@datastructures-js';
-
-// User defined type Entry
-class Entry {
-  // Data members here
-  x;
-  y;
-};
-
-// Comparator to use priority queue as min-heap
-function minComparator(a, b) {
-  if (a.x == b.x) {
-      if (a.y == b.y) {
-        return 0;
-      }
-      return a.y < b.y ? 1 : -1
-    }
-    return a.x < b.x ? 1 : -1
-}
-
-class Solution {
-  topKCustomCompare(arr, k) {
-    // Transform the array into an array of Entry objects
-    // using the function t
-    const entries = t(arr);
-
-    // Create a min heap to store the k largest elements
-    const minHeap = new PriorityQueue(minComparator);
-
-    // Add the elements to the min heap
-    for (const entry of entries) {
-      minHeap.enqueue(entry);
-
-      // If the heap size exceeds k, remove the item at the top
-      if (minHeap.size() > k) {
-        minHeap.dequeue();
-      }
-
-    // Initialize an aggregate variable to a default value
-    let aggregate = 0;
-
-    // Extract all values from the heap and aggregate them over
-    // the function f
-    while (!minHeap.isEmpty()) {
-      const top = minHeap.dequeue();
-      aggregate = f(aggregate, top);
-    }
-    return aggregate;
-  }
-
-```
-
-Python
-
-```python
-import heapq
-from typing import List, Tuple
-
-# User defined type Entry
-class Entry:
-    def __init__(self, x: int, y: int):
-        self.x = x
-        self.y = y
-    def __gt__(self, other):
-        if self.x == other.x:
-            return self.y > other.y
-        return self.x > other.x
-
-class Solution:
-    def topKCustomCompare(self, arr: List[int], k: int) -> int:
-
-        # Transform the array into an array of Entry objects
-        # using the function t
-        entries: List[Entry] = t(arr)
-
-        # Create a min heap to store the k largest elements
-        minHeap: List[Entry] = []
-
-        # Add the elements to the min heap
-        for entry in entries:
-            heapq.heappush(minHeap, entry)
-
-            # If the heap size exceeds k, remove the item at the top
-            if len(minHeap) > k:
-                heapq.heappop(minHeap)
-
-        # Initialize an aggregate variable to a default value
-        aggregate = 0
-
-        # Extract all values from the heap and aggregate them over
-        # the function f
-        while minHeap:
-            entry = heapq.heappop(minHeap)
-            aggregate = f(aggregate, entry)
-
-        return aggregate
-```
+This is a single-line variation on lesson 3's pattern. The novelty is *what the heap holds*: not raw integers, but typed records with an explicit ordering.
 
 ## Complexity Analysis
 
-It is quite easy to figure out the time and space complexity of the custom compare technique. We create a transformed array from the input array and add all entries into a heap using the comparator, which results in **M** insertions, where **M** is the size of the transformed array. Since we fix the size of the heap to **k**, we performed **M-k** remove operations to remove the item at the top.
+Same shape as lesson 3 — `O(N log K)` time and `O(K)` space, with the constants depending on the cost of the comparator (usually O(1)).
 
-Assuming the comparator takes constant **O(1)** time to compare two items, and the transformation function takes **O(M)** time to transform the entire input array. The time complexity in any case is **O(M) + O(Mlog(k)) + O((M-k)log(k))** ~ **O(Mlog(k))**.
-
-In the worst case, we may have to store the transformed array, which may be of size M, leading to **O(M)** extra space. We also create a heap data structure of a fixed size **k**,in any case resulting in **O(k)** extra space. And so the worst-case space complexity will be **O(M+k)**. In the best case, we may be able to iterate in the transformed array without storing by simply transforming items on demand as we iterate the original array. And so the best case complexity will be **O(k)**.
-
-> **Best Case:** The Input array is transformed on demand
->
-> -   Space Complexity - **O(k)**
-> -   Time Complexity - **O(Mlog(k))**
->
-> **Worst Case:** Transformed array stored in memory
->
-> -   Space Complexity - **O(M+k)**
-> -   Time Complexity - **O(Mlog(k))**
+| Step | Cost |
+|---|---|
+| Transform | O(N × cost-of-`t`) |
+| Heap operations | O(N log K) |
+| Aggregate | O(K log K) |
+| Total | **O(N log K)** |
 
 ***
 
 # Identifying the comparator pattern
 
-The custom compare technique can be used to solve some specific types of problems. There are generally medium or hard problems where we need to find the aggregated value of a function over the top k items in a dataset, where each item is of a user-defined type. Most problems solved using this technique require transforming a dataset where items are of primitive types to a dataset of items of a user-defined type. The transformation logic is often defined in the problem or is part of the solution. We also create a comparator to order data items in the heap that is used to find the top k items. 
+Use this pattern when:
 
-If the problem statement or its solution follows the generic template below, it can be solved by applying the k-largest-items finding technique.
+- The input is a stream of *records* (tuples, objects, custom types) and you want top-K by some derived score.
+- The natural ordering on the input doesn't match what the problem wants — words by frequency, points by distance, pairs by sum, list nodes by value.
+- The problem combines a **K-way merge** with an *external order* — merging K sorted lists, finding the smallest range across K arrays, etc.
 
-**Template:**
-
-Transform the given dataset into one with user defined types and find the aggregated value of a function `f` over the top `k` items in the transformed dataset.
-
-## Example
-
-Let's consider the following problem as an example to better understand how to identify and solve a problem using the custom compare technique.
-
-> **Problem statement:** Given an array of integers and an integer `k`, find the `k` most frequent intergers.
-
-// Diagram: Find the k most frequent values in the array
-
-## The custom compare technique
-
-To find the `k` most frequent items, we need to transform the given array into one which has all unique items from the input array, together with their frequencies. The problem description fits the generic template for the comparator pattern we learned earlier.
-
-**Template:**
-
-Transform the given dataset into one with user defined types (pair of item and frequency) and find the aggregated value of a function `f` (list) over the top (largest frequency) `k` items in the transformed dataset.
-
-We create a user-defined type `Entry` that has two data members, `value` and `frequency`. The member `value` will store the integer value of an item, and `frequency` will store its frequency in the array.
-
-// Diagram: A user-defined type Entry.
-
-We create a map `frequency` to store the frequency for every item in the array and iterate the array from start to end. In each iteration, we increment the count of the current item in the `frequency` map. At the end of all iterations,`frequency` map has the frequency of all items in the array.
-
-// Diagram: Find the frequency of all unique items in the array
-
-To find the `k` most items in the array we need to convert items in the `frequency` map to instances of `Entry` and add these instances into a min-heap. An instance is considered greater than the other if its data member `frequency` is greater than the other's. And so we create a comparator to be used with a **min-heap** (as top `k` means `k` largest) to order instances of `Entry` by looking at the data member `frequency`. We then create a min-heap `minHeap` using the comparator.
-
-// Diagram: A comparator to compare instances of Entry by looking at their frequency values.
-
-We then iterate in `frequency` map and in each iteration, create an instance of `Entry` using the current key (value from original array) and value (frequency), add it to `minHeap` and remove the top of `minHeap` if its size exceeds `k`. This way `minHeap` serves as a `k` sized sliding window as we iterate through the `frequency` map, always holding the `k` most frequent items seen so far. At the end of all iterations, `minHeap` will have entries of the `k` most frequent items in the original array.
-
-The example below shows the heap nodes with a pair of values where the first value is the frequency of an item and the second value is the value of item
-
-// Diagram: Find the k most frequent items using a min heap
-
-We create an array `result` and repeatedly pop items from the top of `minHeap` until it is empty, and add the `value` data member from every popped item to `result`. At the end of all iterations, `result` will have the `k` most frequent items from the original array.
-
-// Diagram: Add values of all items in the heap to a result array
-
-The implementation of the custom compare technique to solve the problem is given below.
-
-C++
-
-```cpp
-#include <queue>
-#include <unordered_map>
-
-// Diagram: using namespace std;
-
-// Define a struct to store the element and its frequency
-struct Entry {
-    int value;
-    int frequency;
-};
-
-// Comparator for the min heap
-struct CompareMinHeap {
-    bool operator()(const Entry &a, const Entry &b) {
-
-        // min heap based on frequency
-        return a.frequency > b.frequency;
-    }
-};
-
-class Solution {
-public:
-    vector<int> kMostFrequentElements(vector<int> &arr, int k) {
-
-        // Count the frequency of each element in arr
-        unordered_map<int, int> frequency;
-        for (int num : arr) {
-            frequency[num]++;
-        }
-
-        // Create a min heap with custom struct and comparator
-        priority_queue<Entry, vector<Entry>, CompareMinHeap> minHeap;
-
-        // Add the elements to the min heap
-        for (auto &entry : frequency) {
-            minHeap.push({entry.first, entry.second});
-
-            // If the heap size exceeds k, remove the element with the
-            // lowest frequency
-            if (minHeap.size() > k) {
-                minHeap.pop();
-            }
-
-        // Extract the elements from the heap and return as a vector
-        vector<int> result;
-        while (!minHeap.empty()) {
-            result.push_back(minHeap.top().value);
-            minHeap.pop();
-        }
-
-        // Return the result
-        return result;
-    }
-};
-```
-
-Java
-
-```java
-import java.util.*;
-
-// Define a class to store the element and its frequency
-class Entry {
-
-    int value;
-    int frequency;
-
-    Entry(int value, int frequency) {
-        this.value = value;
-        this.frequency = frequency;
-    }
-
-// Comparator for the min heap
-class CompareMinHeap implements Comparator<Entry> {
-    public int compare(Entry a, Entry b) {
-
-        // min heap based on frequency
-        return a.frequency - b.frequency;
-    }
-
-class Solution {
-    public List<Integer> kMostFrequentElements(int[] arr, int k) {
-
-        // Count the frequency of each element in arr
-        Map<Integer, Integer> frequency = new HashMap<>();
-        for (int num : arr) {
-            frequency.put(num, frequency.getOrDefault(num, 0) + 1);
-        }
-
-        // Create a min heap with custom comparator
-        PriorityQueue<Entry> minHeap = new PriorityQueue<>(
-            new CompareMinHeap()
-        );
-
-        // Add elements to the min heap, maintaining only the top k
-        frequency.forEach((key, value) -> {
-            minHeap.add(new Entry(key, value));
-
-            // If the heap size exceeds k, remove the element with the
-            // lowest frequency
-            if (minHeap.size() > k) {
-                minHeap.poll();
-            }
-        });
-
-        // Extract the elements from the heap and return as a list
-        List<Integer> result = new ArrayList<>();
-        while (!minHeap.isEmpty()) {
-            result.add(minHeap.poll().value);
-        }
-
-        // Return the result
-        return result;
-    }
-```
-
-Typescript
-
-```typescript
-import { PriorityQueue } from "datastructures-js";
-
-// Define a class to store the element and its frequency
-class Entry {
-    value: number;
-    frequency: number;
-
-    constructor(value: number, frequency: number) {
-        this.value = value;
-        this.frequency = frequency;
-    }
-
-// Diagram: function compareMinHeap(a: Entry, b: Entry): number {
-
-    // In min heap, the smallest number should come first
-    return a.frequency - b.frequency;
-}
-
-export class Solution {
-    kMostFrequentElements(arr: number[], k: number): number[] {
-
-        // Count the frequency of each element in arr
-        const frequency = new Map<number, number>();
-        for (const num of arr) {
-            frequency.set(num, (frequency.get(num) || 0) + 1);
-        }
-
-        // Create a min heap with custom comparator
-        const minHeap = new PriorityQueue<Entry>(compareMinHeap);
-
-        // Add the elements to the min heap
-        for (const [value, freq] of frequency.entries()) {
-            minHeap.enqueue(new Entry(value, freq));
-
-            // If the heap size exceeds k, remove the element with the
-            // lowest frequency
-            if (minHeap.size() > k) {
-                minHeap.dequeue();
-            }
-
-        // Extract the elements from the heap and return as an array
-        const result: number[] = [];
-        while (!minHeap.isEmpty()) {
-            result.push(minHeap.dequeue().value);
-        }
-
-        // Return the result
-        return result;
-    }
-```
-
-Javascript
-
-```javascript
-import { PriorityQueue } from "datastructures-js";
-
-// Define a class to store the element and its frequency
-class Entry {
-    constructor(value, frequency) {
-        this.value = value;
-        this.frequency = frequency;
-    }
-
-// Diagram: function compareMinHeap(a, b) {
-
-    // In min heap, the smallest number should come first
-    return a.frequency - b.frequency;
-}
-
-export class Solution {
-    kMostFrequentElements(arr, k) {
-
-        // Count the frequency of each element in arr
-        const frequency = new Map();
-        for (const num of arr) {
-            frequency.set(num, (frequency.get(num) || 0) + 1);
-        }
-
-        // Create a min heap with custom comparator
-        const minHeap = new PriorityQueue(compareMinHeap);
-
-        // Add the elements to the min heap
-        for (const [value, freq] of frequency.entries()) {
-            minHeap.enqueue(new Entry(value, freq));
-
-            // If the heap size exceeds k, remove the element with the
-            // lowest frequency
-            if (minHeap.size() > k) {
-                minHeap.dequeue();
-            }
-
-        // Extract the elements from the heap and return as an array
-        const result = [];
-        while (!minHeap.isEmpty()) {
-            result.push(minHeap.dequeue().value);
-        }
-
-        // Return the result
-        return result;
-    }
-```
-
-Python
-
-```python
-from typing import List
-import heapq
-from collections import Counter
-
-class Entry:
-    def __init__(self, value: int, frequency: int):
-        self.value = value
-        self.frequency = frequency
-
-    def __lt__(self, other):
-
-        # min heap based on frequency
-        return self.frequency < other.frequency
-
-class Solution:
-    def k_most_frequent_elements(
-        self, arr: List[int], k: int
-    ) -> List[int]:
-
-        # Count the frequency of each element in arr
-        frequency = Counter(arr)
-
-        # Create a min heap with custom objects
-        min_heap: List[Entry] = []
-
-        # Add the elements to the min heap
-        for value, freq in frequency.items():
-            heapq.heappush(min_heap, Entry(value, freq))
-
-            # If the heap size exceeds k, remove the element with the
-            # lowest frequency
-            if len(min_heap) > k:
-                heapq.heappop(min_heap)
-
-        # Extract the elements from the heap and return as a list
-        result: List[int] = []
-        while min_heap:
-            result.append(heapq.heappop(min_heap).value)
-
-        # Return the result
-        return result
-```
-
-The custome compare technique can solve this problem in **O(Nlog(k))** time by using a fixed-sized min-heap.
-
-## Example problems
-
-Most problems that fall under this category are **medium** or **hard**problems; a list of a few is given below.
-
-> -   **[K most frequent elements](https://www.codeintuition.io/courses/heap/cD-XgXSyNYSmN2IJjD6Pl)**
-> -   **[K smallest sum pairs](https://www.codeintuition.io/courses/heap/xfNz2iXJYJN7WQAcDMvTP)**
-> -   **[K closest values](https://www.codeintuition.io/courses/heap/Ka69_LQ5Or9B5pjg2uLzz)**
-> -   **[K arrays smallest range](https://www.codeintuition.io/courses/heap/nU135-Grjo9K9HC2MMuy1)**
-> -   **[K-way list merge](https://www.codeintuition.io/courses/heap/H0kGqCN1NkxZm0WG5bw3T)**
+If the heap-of-integers solution from lesson 3 *almost* works but you need a different comparison rule, this is the pattern.
 
 ***
 
@@ -763,87 +395,240 @@ Most problems that fall under this category are **medium** or **hard**problems
 
 ## Problem Statement
 
-Given an array **arr** and a positive integer **k**, write a function to find and return the k most frequent elements in this array. You can return the answer in **any order**.
-
-You must use a **heap** to solve this problem.
+Given an array `arr` and a positive integer `k`, return the K most frequent elements, in any order. Use a heap.
 
 ### Example 1
 
-> -   **Input:** arr = \[1, 2, 2, 3, 3, 3\], k = 2
-> -   **Output:** \[3, 2\]
-> -   **Explanation:** 3 and 2 are the most frequent and the second most frequent elements respectively.
+> - **Input:** `arr = [1, 2, 2, 3, 3, 3]`, `k = 2`
+> - **Output:** `[3, 2]`
 
 ### Example 2
 
-> -   **Input:** arr = \[1, 5, 6, 6\], k = 1
-> -   **Output:** \[6\]
-> -   **Explanation:** 6 is the most frequent element.
+> - **Input:** `arr = [1, 5, 6, 6]`, `k = 1`
+> - **Output:** `[6]`
 
 ### Example 3
 
-> -   **Input:** arr = \[1\], k = 1
-> -   **Output:** \[1\]
-> -   **Explanation:** 1 is the most frequent element.
+> - **Input:** `arr = [1]`, `k = 1`
+> - **Output:** `[1]`
 
-## Solution
+## The Strategy
 
-```cpp
+Two steps:
+
+1. Count frequencies into a hash map (`O(N)` time, `O(U)` space where `U` is the number of unique values).
+2. Run Top-K-largest *over the hash map's entries*, comparing by frequency. Use a min-heap of size K.
+
+The comparator is "compare by frequency, ascending" (for a min-heap of size K → top is the smallest frequency, which is exactly the threshold we evict against).
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+from collections import Counter
+import heapq
+from typing import List
+
+class Solution:
+    def k_most_frequent_elements(self, arr: List[int], k: int) -> List[int]:
+        freq = Counter(arr)
+        # Min-heap of (frequency, value). Tuple comparison naturally orders by freq.
+        heap: List[tuple] = []
+        for value, f in freq.items():
+            heapq.heappush(heap, (f, value))
+            if len(heap) > k:
+                heapq.heappop(heap)         # evict the least-frequent of the top-K-so-far
+        return [v for _, v in heap]
+```
+
+```java,editable
+import java.util.*;
+
+class Solution {
+    public List<Integer> kMostFrequentElements(int[] arr, int k) {
+        Map<Integer, Integer> freq = new HashMap<>();
+        for (int v : arr) freq.merge(v, 1, Integer::sum);
+        // Min-heap by frequency; the "least frequent in the top-K" stays on top.
+        PriorityQueue<int[]> heap = new PriorityQueue<>(
+            (a, b) -> Integer.compare(a[1], b[1]));
+        for (Map.Entry<Integer, Integer> e : freq.entrySet()) {
+            heap.add(new int[]{e.getKey(), e.getValue()});
+            if (heap.size() > k) heap.poll();                                                                                                     // evict
+        }
+        List<Integer> result = new ArrayList<>();
+        for (int[] entry : heap) result.add(entry[0]);
+        return result;
+    }
+}
+```
+
+```c,editable
+// In C, do this with a hash table and a comparator-driven heap of (value, freq) pairs.
+// For brevity, we sketch the approach: build a frequency table by sorting+grouping,
+// then run a top-K heap with a custom comparator on the (value, freq) struct.
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct { int value, freq; } Pair;
+
+static int pair_cmp_min(const void *a, const void *b) {
+    return ((Pair *)a)->freq - ((Pair *)b)->freq;
+}
+
+int *kMostFrequentElements(int *arr, int n, int k, int *out_size) {
+    // Step 1 — sort + count frequencies into Pair[]
+    int *sorted = malloc(sizeof(int) * n);
+    memcpy(sorted, arr, sizeof(int) * n);
+    qsort(sorted, n, sizeof(int), (int (*)(const void *, const void *))strcmp);   // (placeholder)
+
+    // Skipping a full implementation here for brevity — production code would
+    // use a proper hash table (e.g. uthash) for O(N) frequency counting and a
+    // min-heap of size K with the comparator above.
+    (void)pair_cmp_min; (void)sorted;
+    *out_size = 0;
+    return NULL;
+}
+```
+
+```cpp,editable
 #include <queue>
 #include <unordered_map>
-
-using namespace std;
-
-// Define a struct to store the element and its frequency
-struct Entry {
-    int value;
-    int frequency;
-};
-
-// Comparator for the min heap
-struct CompareMinHeap {
-    bool operator()(const Entry &a, const Entry &b) {
-
-        // min heap based on frequency
-        return a.frequency > b.frequency;
-    }
-};
+#include <vector>
 
 class Solution {
 public:
-    vector<int> kMostFrequentElements(vector<int> &arr, int k) {
-
-        // Count the frequency of each element in arr
-        unordered_map<int, int> frequency;
-        for (int num : arr) {
-            frequency[num]++;
+    std::vector<int> kMostFrequentElements(std::vector<int> &arr, int k) {
+        std::unordered_map<int, int> freq;
+        for (int v : arr) freq[v]++;
+        // Min-heap on .second (frequency).
+        auto cmp = [](const std::pair<int,int> &a, const std::pair<int,int> &b) {
+            return a.second > b.second;                                                                                                           // larger freq → lower priority
+        };
+        std::priority_queue<std::pair<int,int>, std::vector<std::pair<int,int>>, decltype(cmp)> heap(cmp);
+        for (auto &e : freq) {
+            heap.push({e.first, e.second});
+            if ((int)heap.size() > k) heap.pop();
         }
-
-        // Create a min heap with custom struct and comparator
-        priority_queue<Entry, vector<Entry>, CompareMinHeap> minHeap;
-
-        // Add the elements to the min heap
-        for (auto &entry : frequency) {
-            minHeap.push({entry.first, entry.second});
-
-            // If the heap size exceeds k, remove the element with the
-            // lowest frequency
-            if (minHeap.size() > k) {
-                minHeap.pop();
-            }
-        }
-
-        // Extract the elements from the heap and return as a vector
-        vector<int> result;
-        while (!minHeap.empty()) {
-            result.push_back(minHeap.top().value);
-            minHeap.pop();
-        }
-
-        // Return the result
+        std::vector<int> result;
+        while (!heap.empty()) { result.push_back(heap.top().first); heap.pop(); }
         return result;
     }
 };
 ```
+
+```scala,editable
+import scala.collection.mutable.PriorityQueue
+
+object Solution {
+  def kMostFrequentElements(arr: Array[Int], k: Int): List[Int] = {
+    val freq = arr.groupBy(identity).view.mapValues(_.length).toMap
+    // Min-heap on freq: smallest freq on top.
+    val heap = PriorityQueue.empty[(Int, Int)](Ordering.by[(Int, Int), Int](-_._2))
+    for ((value, f) <- freq) {
+      heap.enqueue((value, f))
+      if (heap.size > k) heap.dequeue()
+    }
+    heap.iterator.map(_._1).toList
+  }
+}
+```
+
+```javascript,editable
+function kMostFrequentElements(arr, k) {
+  const freq = new Map();
+  for (const v of arr) freq.set(v, (freq.get(v) || 0) + 1);
+  // Min-heap by .freq using the generic MinHeap from earlier.
+  const heap = new MinHeap((a, b) => a.freq - b.freq);
+  for (const [value, f] of freq) {
+    heap.push({ value, freq: f });
+    if (heap.size() > k) heap.pop();
+  }
+  return heap.h.map(e => e.value);
+}
+```
+
+```typescript,editable
+function kMostFrequentElements(arr: number[], k: number): number[] {
+  const freq = new Map<number, number>();
+  for (const v of arr) freq.set(v, (freq.get(v) ?? 0) + 1);
+  type FreqEntry = { value: number; freq: number };
+  const heap = new MinHeap<FreqEntry>((a, b) => a.freq - b.freq);
+  for (const [value, f] of freq) {
+    heap.push({ value, freq: f });
+    if (heap.size() > k) heap.pop();
+  }
+  // Tap the heap's internal storage for the result list.
+  return (heap as unknown as { h: FreqEntry[] }).h.map(e => e.value);
+}
+```
+
+```go,editable
+import "container/heap"
+
+type FreqEntry struct{ Value, Freq int }
+
+type FreqMinHeap []FreqEntry
+func (h FreqMinHeap) Len() int           { return len(h) }
+func (h FreqMinHeap) Less(i, j int) bool { return h[i].Freq < h[j].Freq }
+func (h FreqMinHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (h *FreqMinHeap) Push(x any)        { *h = append(*h, x.(FreqEntry)) }
+func (h *FreqMinHeap) Pop() any          { old := *h; n := len(old); v := old[n-1]; *h = old[:n-1]; return v }
+
+func kMostFrequentElements(arr []int, k int) []int {
+    freq := map[int]int{}
+    for _, v := range arr { freq[v]++ }
+    h := &FreqMinHeap{}
+    heap.Init(h)
+    for value, f := range freq {
+        heap.Push(h, FreqEntry{value, f})
+        if h.Len() > k { heap.Pop(h) }
+    }
+    out := make([]int, 0, h.Len())
+    for _, e := range *h { out = append(out, e.Value) }
+    return out
+}
+```
+
+```kotlin,editable
+import java.util.PriorityQueue
+
+class Solution {
+    fun kMostFrequentElements(arr: IntArray, k: Int): List<Int> {
+        val freq = HashMap<Int, Int>()
+        for (v in arr) freq.merge(v, 1, Int::plus)
+        // Min-heap by frequency.
+        val heap = PriorityQueue<Pair<Int, Int>>(compareBy { it.second })
+        for ((value, f) in freq) {
+            heap.add(value to f)
+            if (heap.size > k) heap.poll()
+        }
+        return heap.map { it.first }
+    }
+}
+```
+
+```rust,editable
+use std::collections::{BinaryHeap, HashMap};
+use std::cmp::Reverse;
+
+impl Solution {
+    pub fn k_most_frequent_elements(arr: Vec<i32>, k: i32) -> Vec<i32> {
+        let mut freq: HashMap<i32, i32> = HashMap::new();
+        for v in &arr { *freq.entry(*v).or_insert(0) += 1; }
+        // Min-heap by frequency: store (Reverse(freq), value).
+        let mut heap: BinaryHeap<Reverse<(i32, i32)>> = BinaryHeap::new();
+        let k = k as usize;
+        for (&value, &f) in &freq {
+            heap.push(Reverse((f, value)));
+            if heap.len() > k { heap.pop(); }
+        }
+        heap.into_iter().map(|Reverse((_, v))| v).collect()
+    }
+}
+```
+
+</div>
 
 ***
 
@@ -851,112 +636,318 @@ public:
 
 ## Problem Statement
 
-Given two arrays, **arr1** and **arr2**,that are sorted in ascending orderand a non-negative integer **k**, write a function that finds and returns k pairs from these arrays with the smallest sum. A pair must contain one element from the first array and another element from the second array.
+Given two sorted arrays `arr1` and `arr2`, and a non-negative integer `k`, return the K pairs `(a, b)` (one element from each) with the smallest sum.
 
 ### Example 1
 
-> -   **Input:** arr1 = \[1, 7, 1\], arr2 = \[2, 4, 6\], k = 3
-> -   **Output:** \[\[1, 2\], \[1, 4\], \[1, 6\]\]
-> -   **Explanation:** The first three pairs i.e. \[1, 2\], \[1, 4\], and \[1, 6\] are selected from the full sequence of possible pairs: \[1, 2\], \[1, 4\], \[1, 6\], \[7, 2\], \[7, 4\], \[7, 6\], \[1, 2\], \[1, 4\], and \[1, 6\], as they have the smallest sums.
+> - **Input:** `arr1 = [1, 7, 1]`, `arr2 = [2, 4, 6]`, `k = 3`
+> - **Output:** `[[1, 2], [1, 4], [1, 6]]`
 
 ### Example 2
 
-> -   **Input:** arr1 = \[1, 1, 2\], arr2 = \[1, 2, 3\], k = 2
-> -   **Output:** \[\[1, 1\], \[1, 1\]\]
-> -   **Explanation:** The first and fourth pairs i.e. \[1, 1\] and \[1, 1\] are selected from the full sequence of possible pairs: \[1, 1\], \[1, 2\], \[1, 3\], \[1, 1\], \[1, 2\], \[1, 3\], \[2, 1\], \[2, 2\], \[2, 3\], as they have the smallest sums.
+> - **Input:** `arr1 = [1, 1, 2]`, `arr2 = [1, 2, 3]`, `k = 2`
+> - **Output:** `[[1, 1], [1, 1]]`
 
 ### Example 3
 
-> -   **Input:** arr1 = \[1, 3, 4\], arr2 = \[4\], k = 2
-> -   **Output:** \[\[1, 4\], \[3, 4\]\]
-> -   **Explanation:** The first two pairs are returned from the sequence: \[1, 4\], \[3, 4\], \[4, 4\] as they have the smallest sums.
+> - **Input:** `arr1 = [1, 3, 4]`, `arr2 = [4]`, `k = 2`
+> - **Output:** `[[1, 4], [3, 4]]`
 
-## Solution
+## The Strategy
 
-```cpp
-#include <functional>
+There are `n × m` possible pairs — up to `n²` if both arrays are large. Generating all of them is expensive. The trick is **lazy expansion**: start with the smallest possible pair `(arr1[0], arr2[0])`, then *only* expand the neighbours of pairs we've already extracted.
+
+When we pop pair `(i, j)`, the next-smallest pair adjacent to it is either `(i+1, j)` or `(i, j+1)` — we push both into the heap, marked as visited so we don't re-add them. Then pop the next-smallest from the heap. Repeat K times.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["push (0,0) to heap"] --> B["repeat K times"]
+    B --> C["pop smallest sum (i,j)<br/>add (arr1[i], arr2[j]) to result"]
+    C --> D["push (i+1,j) and (i,j+1)<br/>if not visited"]
+    D --> B
+    style C fill:#bbf7d0,stroke:#16a34a
+```
+
+<p align="center"><strong>Lazy expansion: at most 2 new pairs added per popped pair, so the heap stays at O(K).</strong></p>
+
+The comparator is "compare by sum, ascending". The pair record carries `(sum, i, j)` so we can recover the actual values.
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+import heapq
+from typing import List
+
+class Solution:
+    def k_smallest_sum_pairs(self, arr1: List[int], arr2: List[int], k: int) -> List[List[int]]:
+        n, m = len(arr1), len(arr2)
+        if n == 0 or m == 0 or k == 0:
+            return []
+        # Min-heap of (sum, i, j). Visited set prevents pushing a pair twice.
+        heap = [(arr1[0] + arr2[0], 0, 0)]
+        visited = {(0, 0)}
+        result = []
+        while heap and len(result) < k:
+            s, i, j = heapq.heappop(heap)
+            result.append([arr1[i], arr2[j]])
+            # Lazy expansion: enqueue right- and down-neighbours.
+            if i + 1 < n and (i + 1, j) not in visited:
+                heapq.heappush(heap, (arr1[i + 1] + arr2[j], i + 1, j))
+                visited.add((i + 1, j))
+            if j + 1 < m and (i, j + 1) not in visited:
+                heapq.heappush(heap, (arr1[i] + arr2[j + 1], i, j + 1))
+                visited.add((i, j + 1))
+        return result
+```
+
+```java,editable
+import java.util.*;
+
+class Solution {
+    public List<List<Integer>> kSmallestSumPairs(int[] arr1, int[] arr2, int k) {
+        List<List<Integer>> result = new ArrayList<>();
+        int n = arr1.length, m = arr2.length;
+        if (n == 0 || m == 0 || k == 0) return result;
+        PriorityQueue<int[]> heap = new PriorityQueue<>((a, b) -> Integer.compare(a[0], b[0]));
+        Set<Long> visited = new HashSet<>();
+        heap.add(new int[]{arr1[0] + arr2[0], 0, 0});
+        visited.add(0L);
+        while (!heap.isEmpty() && result.size() < k) {
+            int[] top = heap.poll();
+            int i = top[1], j = top[2];
+            result.add(Arrays.asList(arr1[i], arr2[j]));
+            if (i + 1 < n) {
+                long key = ((long)(i + 1) << 32) | j;
+                if (visited.add(key)) heap.add(new int[]{arr1[i + 1] + arr2[j], i + 1, j});
+            }
+            if (j + 1 < m) {
+                long key = ((long)i << 32) | (j + 1);
+                if (visited.add(key)) heap.add(new int[]{arr1[i] + arr2[j + 1], i, j + 1});
+            }
+        }
+        return result;
+    }
+}
+```
+
+```c,editable
+// Sketch in C — uses the generic min-heap from earlier with a custom comparator
+// on (sum, i, j). Visited tracking via a 2D bitmap. Full implementation omitted
+// for brevity; the algorithm matches the other languages.
+```
+
+```cpp,editable
 #include <queue>
 #include <set>
+#include <vector>
 
-using namespace std;
-
-// Define a struct to store the sum and the indices of the pair
-struct PairWithSum {
-    int sum;
-    int index1;
-    int index2;
-};
-
-struct CompareMinHeap {
-    bool operator()(const PairWithSum &a, const PairWithSum &b) const {
-
-        // For the priority queue to be a min-heap
-        return a.sum > b.sum;
-    }
-};
+struct PairWithSum { int sum, i, j; };
+struct CmpPair { bool operator()(const PairWithSum &a, const PairWithSum &b) const { return a.sum > b.sum; } };
 
 class Solution {
 public:
-    vector<vector<int>> kSmallestSumPairs(
-        vector<int> &arr1,
-        vector<int> &arr2,
-        int k
-    ) {
-        int n = arr1.size();
-        int m = arr2.size();
-
-        // Result vector to store the k smallest pairs
-        vector<vector<int>> result;
-
-        // Set to keep track of visited pairs
-        set<pair<int, int>> visited;
-
-        // Create a min heap using the Compare struct to order the pairs
-        // by their sum
-        priority_queue<PairWithSum, vector<PairWithSum>, CompareMinHeap>
-            minHeap;
-
-        // Push the first pair with its sum into the min heap
-        minHeap.push({arr1[0] + arr2[0], 0, 0});
-
-        // Mark the first pair as visited
+    std::vector<std::vector<int>> kSmallestSumPairs(std::vector<int> &arr1, std::vector<int> &arr2, int k) {
+        std::vector<std::vector<int>> result;
+        int n = (int)arr1.size(), m = (int)arr2.size();
+        if (n == 0 || m == 0 || k == 0) return result;
+        std::priority_queue<PairWithSum, std::vector<PairWithSum>, CmpPair> heap;
+        std::set<std::pair<int,int>> visited;
+        heap.push({arr1[0] + arr2[0], 0, 0});
         visited.insert({0, 0});
-
-        // Process the pairs until k pairs have been found or the min
-        // heap is empty
-        while (k-- && !minHeap.empty()) {
-
-            // Get the top pair from the min heap
-            PairWithSum top = minHeap.top();
-
-            // Remove the top pair from the min heap
-            minHeap.pop();
-
-            // Retrieve the indices of the pair
-            int i = top.index1;
-            int j = top.index2;
-
-            // Add the pair to the answer vector
+        while (!heap.empty() && (int)result.size() < k) {
+            PairWithSum t = heap.top(); heap.pop();
+            int i = t.i, j = t.j;
             result.push_back({arr1[i], arr2[j]});
-
-            // Check the adjacent pairs and add them to the min heap if
-            // not visited
-            if (i + 1 < n && visited.find({i + 1, j}) == visited.end()) {
-                minHeap.push({arr1[i + 1] + arr2[j], i + 1, j});
-                visited.insert({i + 1, j});
-            }
-
-            if (j + 1 < m && visited.find({i, j + 1}) == visited.end()) {
-                minHeap.push({arr1[i] + arr2[j + 1], i, j + 1});
-                visited.insert({i, j + 1});
-            }
+            if (i + 1 < n && visited.insert({i + 1, j}).second)
+                heap.push({arr1[i + 1] + arr2[j], i + 1, j});
+            if (j + 1 < m && visited.insert({i, j + 1}).second)
+                heap.push({arr1[i] + arr2[j + 1], i, j + 1});
         }
-
-        // Return the k smallest pairs
         return result;
     }
 };
 ```
+
+```scala,editable
+import scala.collection.mutable.{PriorityQueue, Set => MSet}
+
+object Solution {
+  def kSmallestSumPairs(arr1: Array[Int], arr2: Array[Int], k: Int): List[List[Int]] = {
+    val n = arr1.length; val m = arr2.length
+    if (n == 0 || m == 0 || k == 0) return Nil
+    val heap = PriorityQueue.empty[(Int, Int, Int)](Ordering.by[(Int, Int, Int), Int](-_._1))
+    val visited = MSet[(Int, Int)]()
+    heap.enqueue((arr1(0) + arr2(0), 0, 0))
+    visited.add((0, 0))
+    val result = scala.collection.mutable.ListBuffer[List[Int]]()
+    while (heap.nonEmpty && result.length < k) {
+      val (_, i, j) = heap.dequeue()
+      result += List(arr1(i), arr2(j))
+      if (i + 1 < n && visited.add((i + 1, j))) heap.enqueue((arr1(i + 1) + arr2(j), i + 1, j))
+      if (j + 1 < m && visited.add((i, j + 1))) heap.enqueue((arr1(i) + arr2(j + 1), i, j + 1))
+    }
+    result.toList
+  }
+}
+```
+
+```javascript,editable
+function kSmallestSumPairs(arr1, arr2, k) {
+  const n = arr1.length, m = arr2.length;
+  if (n === 0 || m === 0 || k === 0) return [];
+  const heap = new MinHeap((a, b) => a.sum - b.sum);
+  const visited = new Set();
+  const key = (i, j) => i * 1e6 + j;                                                                                                                    // 32-bit pack
+  heap.push({ sum: arr1[0] + arr2[0], i: 0, j: 0 });
+  visited.add(key(0, 0));
+  const result = [];
+  while (heap.size() > 0 && result.length < k) {
+    const { i, j } = heap.pop();
+    result.push([arr1[i], arr2[j]]);
+    if (i + 1 < n && !visited.has(key(i + 1, j))) {
+      heap.push({ sum: arr1[i + 1] + arr2[j], i: i + 1, j });
+      visited.add(key(i + 1, j));
+    }
+    if (j + 1 < m && !visited.has(key(i, j + 1))) {
+      heap.push({ sum: arr1[i] + arr2[j + 1], i, j: j + 1 });
+      visited.add(key(i, j + 1));
+    }
+  }
+  return result;
+}
+```
+
+```typescript,editable
+function kSmallestSumPairs(arr1: number[], arr2: number[], k: number): number[][] {
+  const n = arr1.length, m = arr2.length;
+  if (n === 0 || m === 0 || k === 0) return [];
+  type T = { sum: number; i: number; j: number };
+  const heap = new MinHeap<T>((a, b) => a.sum - b.sum);
+  const visited = new Set<number>();
+  const key = (i: number, j: number) => i * 1e6 + j;
+  heap.push({ sum: arr1[0] + arr2[0], i: 0, j: 0 });
+  visited.add(key(0, 0));
+  const result: number[][] = [];
+  while (heap.size() > 0 && result.length < k) {
+    const { i, j } = heap.pop();
+    result.push([arr1[i], arr2[j]]);
+    if (i + 1 < n && !visited.has(key(i + 1, j))) {
+      heap.push({ sum: arr1[i + 1] + arr2[j], i: i + 1, j });
+      visited.add(key(i + 1, j));
+    }
+    if (j + 1 < m && !visited.has(key(i, j + 1))) {
+      heap.push({ sum: arr1[i] + arr2[j + 1], i, j: j + 1 });
+      visited.add(key(i, j + 1));
+    }
+  }
+  return result;
+}
+```
+
+```go,editable
+import "container/heap"
+
+type SumPair struct{ Sum, I, J int }
+type SumPairHeap []SumPair
+func (h SumPairHeap) Len() int           { return len(h) }
+func (h SumPairHeap) Less(i, j int) bool { return h[i].Sum < h[j].Sum }
+func (h SumPairHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (h *SumPairHeap) Push(x any)        { *h = append(*h, x.(SumPair)) }
+func (h *SumPairHeap) Pop() any          { old := *h; n := len(old); v := old[n-1]; *h = old[:n-1]; return v }
+
+func kSmallestSumPairs(arr1, arr2 []int, k int) [][]int {
+    n, m := len(arr1), len(arr2)
+    if n == 0 || m == 0 || k == 0 { return nil }
+    h := &SumPairHeap{}; heap.Init(h)
+    type Key struct{ I, J int }
+    visited := map[Key]bool{}
+    heap.Push(h, SumPair{arr1[0] + arr2[0], 0, 0}); visited[Key{0, 0}] = true
+    var result [][]int
+    for h.Len() > 0 && len(result) < k {
+        p := heap.Pop(h).(SumPair)
+        result = append(result, []int{arr1[p.I], arr2[p.J]})
+        if p.I + 1 < n && !visited[Key{p.I+1, p.J}] {
+            heap.Push(h, SumPair{arr1[p.I+1] + arr2[p.J], p.I + 1, p.J})
+            visited[Key{p.I+1, p.J}] = true
+        }
+        if p.J + 1 < m && !visited[Key{p.I, p.J+1}] {
+            heap.Push(h, SumPair{arr1[p.I] + arr2[p.J+1], p.I, p.J + 1})
+            visited[Key{p.I, p.J+1}] = true
+        }
+    }
+    return result
+}
+```
+
+```kotlin,editable
+import java.util.PriorityQueue
+
+class Solution {
+    fun kSmallestSumPairs(arr1: IntArray, arr2: IntArray, k: Int): List<List<Int>> {
+        val n = arr1.size; val m = arr2.size
+        if (n == 0 || m == 0 || k == 0) return emptyList()
+        // (sum, i, j)
+        val heap = PriorityQueue<IntArray>(compareBy { it[0] })
+        val visited = HashSet<Long>()
+        fun key(i: Int, j: Int) = i.toLong() shl 32 or j.toLong()
+        heap.add(intArrayOf(arr1[0] + arr2[0], 0, 0))
+        visited.add(key(0, 0))
+        val result = mutableListOf<List<Int>>()
+        while (heap.isNotEmpty() && result.size < k) {
+            val (_, i, j) = heap.poll()
+            result.add(listOf(arr1[i], arr2[j]))
+            if (i + 1 < n && visited.add(key(i + 1, j)))
+                heap.add(intArrayOf(arr1[i + 1] + arr2[j], i + 1, j))
+            if (j + 1 < m && visited.add(key(i, j + 1)))
+                heap.add(intArrayOf(arr1[i] + arr2[j + 1], i, j + 1))
+        }
+        return result
+    }
+}
+```
+
+```rust,editable
+use std::collections::{BinaryHeap, HashSet};
+use std::cmp::Reverse;
+
+impl Solution {
+    pub fn k_smallest_sum_pairs(arr1: Vec<i32>, arr2: Vec<i32>, k: i32) -> Vec<Vec<i32>> {
+        let n = arr1.len(); let m = arr2.len(); let k = k as usize;
+        if n == 0 || m == 0 || k == 0 { return Vec::new(); }
+        let mut heap: BinaryHeap<Reverse<(i32, usize, usize)>> = BinaryHeap::new();
+        let mut visited: HashSet<(usize, usize)> = HashSet::new();
+        heap.push(Reverse((arr1[0] + arr2[0], 0, 0)));
+        visited.insert((0, 0));
+        let mut result: Vec<Vec<i32>> = Vec::new();
+        while let Some(Reverse((_, i, j))) = heap.pop() {
+            result.push(vec![arr1[i], arr2[j]]);
+            if result.len() == k { break; }
+            if i + 1 < n && visited.insert((i + 1, j)) {
+                heap.push(Reverse((arr1[i + 1] + arr2[j], i + 1, j)));
+            }
+            if j + 1 < m && visited.insert((i, j + 1)) {
+                heap.push(Reverse((arr1[i] + arr2[j + 1], i, j + 1)));
+            }
+        }
+        result
+    }
+}
+```
+
+</div>
 
 ***
 
@@ -964,105 +955,252 @@ public:
 
 ## Problem Statement
 
-Given the **root** of a binary search tree, a **target** value, and a non-negative integer **k**, write a function to find and return k values in the BST that are closest to the target. You can return the answer in **any order**.
+Given the **root** of a binary search tree, a **target** value (real number), and a non-negative integer `k`, return the K values in the BST closest to `target`. Return them in any order.
 
 ### Example 1
 
-> -   **Input:** root = \[4, 2, 6, 1, null, null, 7\], target = 4.63, k = 3
-> -   **Output:** \[4, 6, 7\]
-> -   **Explanation:** The closest values in the tree to 4.63 are 4, 6, and 7, respectively.
+> - **Input:** `root = [4, 2, 6, 1, null, null, 7]`, `target = 4.63`, `k = 3`
+> - **Output:** `[4, 6, 7]`
 
 ### Example 2
 
-> -   **Input:** root = \[2, 1, 4, null, null, 3, 7\], target = 7.49, k = 2
-> -   **Output:** \[4, 7\]
-> -   **Explanation:** The closest values in the tree to 7.49 are 4 and 7.
+> - **Input:** `root = [2, 1, 4, null, null, 3, 7]`, `target = 7.49`, `k = 2`
+> - **Output:** `[4, 7]`
 
-## Solution
+## The Strategy
 
-```cpp
-#include <algorithm>
+This is **Top-K-smallest by distance**, applied to a tree traversal. We walk the BST in any order (in-order is convenient), pushing each value paired with its absolute distance to the target. We use a **max-heap** of size K, where the top is the *farthest* of our current best K — the threshold we evict against.
+
+The comparator: "compare by distance, descending" (so the farthest is on top of the max-heap).
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+import heapq
+from typing import List, Optional
+
+class Solution:
+    def k_closest_values(self, root: Optional["TreeNode"], target: float, k: int) -> List[int]:
+        # Max-heap on distance: store -distance so heapq's min-behaviour gives us max-on-top.
+        heap: List[tuple] = []
+
+        def inorder(node):
+            if node is None:
+                return
+            inorder(node.left)
+            d = abs(node.val - target)
+            heapq.heappush(heap, (-d, node.val))
+            if len(heap) > k:
+                heapq.heappop(heap)                     # evict the farthest
+            inorder(node.right)
+
+        inorder(root)
+        return [v for _, v in heap]
+```
+
+```java,editable
+import java.util.*;
+
+class Solution {
+    private PriorityQueue<double[]> heap;            // [distance, value]
+    private int kCap;
+
+    private void inorder(TreeNode node, double target) {
+        if (node == null) return;
+        inorder(node.left, target);
+        double d = Math.abs(node.val - target);
+        heap.add(new double[]{d, node.val});
+        if (heap.size() > kCap) heap.poll();
+        inorder(node.right, target);
+    }
+
+    public List<Integer> kClosestValues(TreeNode root, double target, int k) {
+        // Max-heap by distance: largest distance on top → that's what we want to evict.
+        heap = new PriorityQueue<>((a, b) -> Double.compare(b[0], a[0]));
+        kCap = k;
+        inorder(root, target);
+        List<Integer> result = new ArrayList<>();
+        for (double[] e : heap) result.add((int) e[1]);
+        return result;
+    }
+}
+```
+
+```c,editable
+// Approach: in-order DFS, push (distance, value) into a max-heap of size k.
+// Implementation parallels the C heap helpers from earlier lessons.
+// Full code omitted for brevity — see the C++ / Python versions for the algorithm.
+```
+
+```cpp,editable
 #include <cmath>
 #include <queue>
+#include <vector>
 
-/**
- * Definition for a binary tree node.
- * struct TreeNode {
- *     int val;
- *     TreeNode *left;
- *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
- *     TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
- * };
- */
-
-using namespace std;
-
-// Struct to store the value and its distance from the target
-struct ValueDiff {
-    double diff;
-    int value;
-};
-
-// Comparator to create a max heap based on the difference
-struct CompareMaxHeap {
-    bool operator()(const ValueDiff &a, const ValueDiff &b) {
-
-        // Max heap: larger diff has higher priority
-        return a.diff < b.diff;
-    }
-};
+struct ValueDiff { double diff; int value; };
+struct CompareMax { bool operator()(const ValueDiff &a, const ValueDiff &b) const { return a.diff < b.diff; } };
 
 class Solution {
 public:
-
-    // Max heap to store the closest k values
-    priority_queue<ValueDiff, vector<ValueDiff>, CompareMaxHeap> maxHeap;
+    std::priority_queue<ValueDiff, std::vector<ValueDiff>, CompareMax> heap;
 
     void inorder(TreeNode *root, double target, int k) {
-        if (!root) {
-            return;
-        }
-
+        if (!root) return;
         inorder(root->left, target, k);
-
-        // Compute the absolute difference between node value and target
-        double diff = fabs(root->val - target);
-
-        // Push the current value and its difference to the max heap
-        maxHeap.push({diff, root->val});
-
-        // Ensure the heap only contains k elements
-        if (maxHeap.size() > k) {
-
-            // Remove the farthest element
-            maxHeap.pop();
-        }
-
+        double d = std::fabs((double)root->val - target);
+        heap.push({d, root->val});
+        if ((int)heap.size() > k) heap.pop();
         inorder(root->right, target, k);
     }
 
-    vector<int> kClosestValues(TreeNode *root, double target, int k) {
-
-        vector<int> result;
-
-        // Perform inorder traversal and fill the max heap with the
-        // closest k values
+    std::vector<int> kClosestValues(TreeNode *root, double target, int k) {
         inorder(root, target, k);
-
-        // Extract k closest values from the max heap
-        while (!maxHeap.empty()) {
-            result.push_back(maxHeap.top().value);
-            maxHeap.pop();
-        }
-
-        // The result is in reverse order, so reverse it
-        reverse(result.begin(), result.end());
-
+        std::vector<int> result;
+        while (!heap.empty()) { result.push_back(heap.top().value); heap.pop(); }
         return result;
     }
 };
 ```
+
+```scala,editable
+import scala.collection.mutable.PriorityQueue
+
+object Solution {
+  def kClosestValues(root: TreeNode, target: Double, k: Int): List[Int] = {
+    // Max-heap by distance.
+    val heap = PriorityQueue.empty[(Double, Int)](Ordering.by[(Double, Int), Double](_._1))
+    def inorder(n: TreeNode): Unit = {
+      if (n == null) return
+      inorder(n.left)
+      val d = math.abs(n.value - target)
+      heap.enqueue((d, n.value))
+      if (heap.size > k) heap.dequeue()
+      inorder(n.right)
+    }
+    inorder(root)
+    heap.iterator.map(_._2).toList
+  }
+}
+```
+
+```javascript,editable
+function kClosestValues(root, target, k) {
+  // Max-heap by distance: top is the farthest of the kept values.
+  const heap = new (class extends MinHeap {
+    constructor() { super((a, b) => b.dist - a.dist); }       // invert → max-heap
+  })();
+  function inorder(node) {
+    if (node === null) return;
+    inorder(node.left);
+    heap.push({ dist: Math.abs(node.val - target), value: node.val });
+    if (heap.size() > k) heap.pop();
+    inorder(node.right);
+  }
+  inorder(root);
+  return heap.h.map(e => e.value);
+}
+```
+
+```typescript,editable
+function kClosestValues(root: TreeNode | null, target: number, k: number): number[] {
+  type Item = { dist: number; value: number };
+  const heap = new MinHeap<Item>((a, b) => b.dist - a.dist);                                                                                         // inverted → max-heap
+  function inorder(node: TreeNode | null): void {
+    if (node === null) return;
+    inorder(node.left);
+    heap.push({ dist: Math.abs(node.val - target), value: node.val });
+    if (heap.size() > k) heap.pop();
+    inorder(node.right);
+  }
+  inorder(root);
+  return (heap as unknown as { h: Item[] }).h.map(e => e.value);
+}
+```
+
+```go,editable
+import "container/heap"
+import "math"
+
+type DistVal struct { Dist float64; Value int }
+// Max-heap by Dist.
+type DistMaxHeap []DistVal
+func (h DistMaxHeap) Len() int           { return len(h) }
+func (h DistMaxHeap) Less(i, j int) bool { return h[i].Dist > h[j].Dist }
+func (h DistMaxHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (h *DistMaxHeap) Push(x any)        { *h = append(*h, x.(DistVal)) }
+func (h *DistMaxHeap) Pop() any          { old := *h; n := len(old); v := old[n-1]; *h = old[:n-1]; return v }
+
+func kClosestValues(root *TreeNode, target float64, k int) []int {
+    h := &DistMaxHeap{}; heap.Init(h)
+    var inorder func(*TreeNode)
+    inorder = func(node *TreeNode) {
+        if node == nil { return }
+        inorder(node.Left)
+        d := math.Abs(float64(node.Val) - target)
+        heap.Push(h, DistVal{d, node.Val})
+        if h.Len() > k { heap.Pop(h) }
+        inorder(node.Right)
+    }
+    inorder(root)
+    out := make([]int, 0, h.Len())
+    for _, e := range *h { out = append(out, e.Value) }
+    return out
+}
+```
+
+```kotlin,editable
+import java.util.PriorityQueue
+import kotlin.math.abs
+
+class Solution {
+    fun kClosestValues(root: TreeNode?, target: Double, k: Int): List<Int> {
+        val heap = PriorityQueue<DoubleArray>(compareByDescending { it[0] })                                                                             // max-heap by distance
+        fun inorder(node: TreeNode?) {
+            if (node == null) return
+            inorder(node.left)
+            val d = abs(node.`val` - target)
+            heap.add(doubleArrayOf(d, node.`val`.toDouble()))
+            if (heap.size > k) heap.poll()
+            inorder(node.right)
+        }
+        inorder(root)
+        return heap.map { it[1].toInt() }
+    }
+}
+```
+
+```rust,editable
+use std::collections::BinaryHeap;
+use std::cell::RefCell;
+use std::rc::Rc;
+type Tree = Option<Rc<RefCell<TreeNode>>>;
+
+impl Solution {
+    pub fn k_closest_values(root: Tree, target: f64, k: i32) -> Vec<i32> {
+        // Max-heap by distance: pair (dist, value); BinaryHeap orders descending.
+        // Use ordered_float-like trick: wrap dist as bits ordered by f64, but for simplicity
+        // multiply by a large factor and store as i64 (assuming bounded range).
+        let k = k as usize;
+        let mut heap: BinaryHeap<(i64, i32)> = BinaryHeap::new();
+        fn inorder(n: &Tree, target: f64, heap: &mut BinaryHeap<(i64, i32)>, k: usize) {
+            if let Some(nd) = n {
+                let nd = nd.borrow();
+                inorder(&nd.left, target, heap, k);
+                let dist = ((nd.val as f64 - target).abs() * 1_000_000.0) as i64;
+                heap.push((dist, nd.val));
+                if heap.len() > k { heap.pop(); }
+                inorder(&nd.right, target, heap, k);
+            }
+        }
+        inorder(&root, target, &mut heap, k);
+        heap.into_iter().map(|(_, v)| v).collect()
+    }
+}
+```
+
+</div>
 
 ***
 
@@ -1070,112 +1208,337 @@ public:
 
 ## Problem Statement
 
-Given an array of arrays **arr** that contains k sorted arrays, write a function that finds and returns the **smallest** **range** that includes at least one number from each of the k arrays.
+Given an array of `k` sorted integer arrays, return the **smallest range `[a, b]`** such that the range contains at least one number from each of the `k` arrays.
 
-// Diagram: We define the range [a, b] is smaller than range [c, d] if b - a < d - c or a < c if b - a == d - c
+> A range `[a, b]` is "smaller than" `[c, d]` if `b − a < d − c`, or if their widths are equal and `a < c`.
 
 ### Example 1
 
-> -   **Input:** arr = \[\[4, 8\], \[3, 6\], \[4, 5\]\]
-> -   **Output:** \[3, 4\]
-> -   **Explanation:** \[3, 4\] is the smallest range that contains elements from all the arrays.
+> - **Input:** `arr = [[4, 8], [3, 6], [4, 5]]`
+> - **Output:** `[3, 4]`
 
 ### Example 2
 
-> -   **Input:** arr = \[\[1, 2, 5\], \[6, 7, 9\], \[3, 4\]\]
-> -   **Output:** \[4, 6\]
-> -   **Explanation:** \[4, 6\] is the smallest range that contains elements from all the arrays.
+> - **Input:** `arr = [[1, 2, 5], [6, 7, 9], [3, 4]]`
+> - **Output:** `[4, 6]`
 
 ### Example 3
 
-> -   **Input:** arr = \[\[1, 5, 9\], \[3, 7, 12\]\]
-> -   **Output:** \[1, 3\]
-> -   **Explanation:** \[1, 3\] is the smallest range that contains elements from all the arrays.
+> - **Input:** `arr = [[1, 5, 9], [3, 7, 12]]`
+> - **Output:** `[1, 3]`
 
-## Solution
+## The Strategy
 
-```cpp
+This is a classic **K-way merge** with a twist — we don't merge into one list, we slide a window across the merge.
+
+**Key insight:** at any moment, if we have *one element from each list* in our hand, the smallest such range is `[min, max]` of the K values in hand. To shrink it, we have to advance whoever is the *minimum* — replacing them with the next element of their list (which is larger). Repeat. Stop when any list runs out.
+
+The min-heap holds one record per list — `(value, listIndex, elementIndex)`. We track the running maximum separately. Each pop gives us the current `min`; the candidate range is `[min, max]`. After popping, we push the next element of that list (larger), updating `max` accordingly.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#64748b"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+    A["Push first element<br/>of each of the K arrays<br/>into a min-heap"] --> B["Loop while heap has<br/>one item per array"]
+    B --> C["range = [heap.min, runningMax]<br/>update best if smaller"]
+    C --> D["pop the min,<br/>advance that array,<br/>push the next element<br/>(if any)"]
+    D --> B
+    D -->|"array exhausted"| E["return best range"]
+    style E fill:#bbf7d0,stroke:#16a34a
+```
+
+<p align="center"><strong>K-way merge with a sliding window. The min-heap tracks the smallest, an external <code>maxValue</code> tracks the largest, and their difference is the current candidate range.</strong></p>
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+import heapq
+from typing import List
+
+class Solution:
+    def k_arrays_smallest_range(self, arr: List[List[int]]) -> List[int]:
+        k = len(arr)
+        # Min-heap of (value, list_idx, elem_idx). Tuple comparison = compare by value first.
+        heap = []
+        max_value = float("-inf")
+        for i in range(k):
+            if arr[i]:
+                heapq.heappush(heap, (arr[i][0], i, 0))
+                max_value = max(max_value, arr[i][0])
+        best_range = [-1, -1]
+        best_width = float("inf")
+        while len(heap) == k:
+            value, i, j = heapq.heappop(heap)
+            # Current range = [heap.min, max_value seen across all "in-hand" elements].
+            if max_value - value < best_width:
+                best_width = max_value - value
+                best_range = [value, max_value]
+            # Advance this list's pointer; if it's exhausted, the loop terminates.
+            if j + 1 < len(arr[i]):
+                next_val = arr[i][j + 1]
+                heapq.heappush(heap, (next_val, i, j + 1))
+                max_value = max(max_value, next_val)
+        return best_range
+```
+
+```java,editable
+import java.util.*;
+
+class Solution {
+    public int[] kArraysSmallestRange(int[][] arr) {
+        int k = arr.length;
+        PriorityQueue<int[]> heap = new PriorityQueue<>((a, b) -> Integer.compare(a[0], b[0]));
+        int maxValue = Integer.MIN_VALUE;
+        for (int i = 0; i < k; i++) {
+            if (arr[i].length > 0) {
+                heap.add(new int[]{arr[i][0], i, 0});
+                maxValue = Math.max(maxValue, arr[i][0]);
+            }
+        }
+        int[] best = {-1, -1};
+        int bestWidth = Integer.MAX_VALUE;
+        while (heap.size() == k) {
+            int[] top = heap.poll();
+            int value = top[0], i = top[1], j = top[2];
+            if (maxValue - value < bestWidth) { bestWidth = maxValue - value; best = new int[]{value, maxValue}; }
+            if (j + 1 < arr[i].length) {
+                int nextVal = arr[i][j + 1];
+                heap.add(new int[]{nextVal, i, j + 1});
+                maxValue = Math.max(maxValue, nextVal);
+            }
+        }
+        return best;
+    }
+}
+```
+
+```c,editable
+// Algorithmically identical to the C++ / Python versions. Full implementation
+// requires a generic min-heap with a struct-based comparator over the
+// (value, listIdx, elementIdx) record. See the C++ version for the canonical structure.
+```
+
+```cpp,editable
 #include <climits>
 #include <queue>
+#include <vector>
 
-using namespace std;
-
-// Define a struct to store the value, list index, and element index
-struct Element {
-    int value;
-    int listIdx;
-    int elementIdx;
-};
-
-// Define a comparator struct to compare the elements based on their
-// value
-struct CompareMinHeap {
-    bool operator()(const Element &a, const Element &b) const {
-
-        // Min-heap based on the value
-        return a.value > b.value;
-    }
-};
+struct Element { int value, listIdx, elementIdx; };
+struct CompareMin { bool operator()(const Element &a, const Element &b) const { return a.value > b.value; } };
 
 class Solution {
 public:
-    vector<int> kArraysSmallestRange(vector<vector<int>> &arr) {
-        int k = arr.size();
-
-        // Define a min heap to store the elements from each list
-        // The key of the heap is the value of the element
-        // The value is a pair representing the list index and the
-        // element index within the list
-        priority_queue<Element, vector<Element>, CompareMinHeap> minHeap;
-
-        // Initialize the maximum value seen so far
+    std::vector<int> kArraysSmallestRange(std::vector<std::vector<int>> &arr) {
+        int k = (int)arr.size();
+        std::priority_queue<Element, std::vector<Element>, CompareMin> heap;
         int maxValue = INT_MIN;
-
-        // Initialize the heap with the first element from each list
         for (int i = 0; i < k; i++) {
             if (!arr[i].empty()) {
-                minHeap.push({arr[i][0], i, 0});
-                maxValue = max(maxValue, arr[i][0]);
+                heap.push({arr[i][0], i, 0});
+                maxValue = std::max(maxValue, arr[i][0]);
             }
         }
-
-        // Initialize variables to track the smallest range
-        int rangeStart = -1;
-        int rangeEnd = -1;
-        int rangeLength = INT_MAX;
-
-        // Process the elements in the min heap until at least one
-        // element from each list is included
-        while (minHeap.size() == k) {
-
-            // Extract the minimum element from the heap
-            Element current = minHeap.top();
-            minHeap.pop();
-
-            int value = current.value;
-            int listIdx = current.listIdx;
-            int idx = current.elementIdx;
-
-            // Update the smallest range if the current range is smaller
-            if (maxValue - value < rangeLength) {
-                rangeStart = value;
-                rangeEnd = maxValue;
-                rangeLength = rangeEnd - rangeStart;
-            }
-
-            // Move to the next element in the list and update the
-            // maximum value seen so far
-            if (idx + 1 < arr[listIdx].size()) {
-                minHeap.push({arr[listIdx][idx + 1], listIdx, idx + 1});
-                maxValue = max(maxValue, arr[listIdx][idx + 1]);
+        int rs = -1, re = -1, width = INT_MAX;
+        while ((int)heap.size() == k) {
+            Element t = heap.top(); heap.pop();
+            if (maxValue - t.value < width) { width = maxValue - t.value; rs = t.value; re = maxValue; }
+            if (t.elementIdx + 1 < (int)arr[t.listIdx].size()) {
+                int nv = arr[t.listIdx][t.elementIdx + 1];
+                heap.push({nv, t.listIdx, t.elementIdx + 1});
+                maxValue = std::max(maxValue, nv);
             }
         }
-
-        // Return the smallest range as a vector
-        return {rangeStart, rangeEnd};
+        return {rs, re};
     }
 };
 ```
+
+```scala,editable
+import scala.collection.mutable.PriorityQueue
+
+object Solution {
+  def kArraysSmallestRange(arr: Array[Array[Int]]): Array[Int] = {
+    val k = arr.length
+    val heap = PriorityQueue.empty[(Int, Int, Int)](Ordering.by[(Int, Int, Int), Int](-_._1))
+    var maxValue = Int.MinValue
+    for (i <- 0 until k if arr(i).nonEmpty) {
+      heap.enqueue((arr(i)(0), i, 0))
+      maxValue = math.max(maxValue, arr(i)(0))
+    }
+    var rs = -1; var re = -1; var width = Int.MaxValue
+    while (heap.size == k) {
+      val (value, i, j) = heap.dequeue()
+      if (maxValue - value < width) { width = maxValue - value; rs = value; re = maxValue }
+      if (j + 1 < arr(i).length) {
+        val nv = arr(i)(j + 1)
+        heap.enqueue((nv, i, j + 1))
+        maxValue = math.max(maxValue, nv)
+      }
+    }
+    Array(rs, re)
+  }
+}
+```
+
+```javascript,editable
+function kArraysSmallestRange(arr) {
+  const k = arr.length;
+  const heap = new MinHeap((a, b) => a.value - b.value);
+  let maxValue = -Infinity;
+  for (let i = 0; i < k; i++) {
+    if (arr[i].length > 0) {
+      heap.push({ value: arr[i][0], listIdx: i, elementIdx: 0 });
+      if (arr[i][0] > maxValue) maxValue = arr[i][0];
+    }
+  }
+  let best = [-1, -1], width = Infinity;
+  while (heap.size() === k) {
+    const t = heap.pop();
+    if (maxValue - t.value < width) { width = maxValue - t.value; best = [t.value, maxValue]; }
+    if (t.elementIdx + 1 < arr[t.listIdx].length) {
+      const nv = arr[t.listIdx][t.elementIdx + 1];
+      heap.push({ value: nv, listIdx: t.listIdx, elementIdx: t.elementIdx + 1 });
+      if (nv > maxValue) maxValue = nv;
+    }
+  }
+  return best;
+}
+```
+
+```typescript,editable
+function kArraysSmallestRange(arr: number[][]): number[] {
+  const k = arr.length;
+  type T = { value: number; listIdx: number; elementIdx: number };
+  const heap = new MinHeap<T>((a, b) => a.value - b.value);
+  let maxValue = -Infinity;
+  for (let i = 0; i < k; i++) {
+    if (arr[i].length > 0) {
+      heap.push({ value: arr[i][0], listIdx: i, elementIdx: 0 });
+      if (arr[i][0] > maxValue) maxValue = arr[i][0];
+    }
+  }
+  let best: number[] = [-1, -1]; let width = Infinity;
+  while (heap.size() === k) {
+    const t = heap.pop();
+    if (maxValue - t.value < width) { width = maxValue - t.value; best = [t.value, maxValue]; }
+    if (t.elementIdx + 1 < arr[t.listIdx].length) {
+      const nv = arr[t.listIdx][t.elementIdx + 1];
+      heap.push({ value: nv, listIdx: t.listIdx, elementIdx: t.elementIdx + 1 });
+      if (nv > maxValue) maxValue = nv;
+    }
+  }
+  return best;
+}
+```
+
+```go,editable
+import "container/heap"
+
+type RangeElem struct{ Value, ListIdx, ElementIdx int }
+type RangeMinHeap []RangeElem
+func (h RangeMinHeap) Len() int           { return len(h) }
+func (h RangeMinHeap) Less(i, j int) bool { return h[i].Value < h[j].Value }
+func (h RangeMinHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (h *RangeMinHeap) Push(x any)        { *h = append(*h, x.(RangeElem)) }
+func (h *RangeMinHeap) Pop() any          { old := *h; n := len(old); v := old[n-1]; *h = old[:n-1]; return v }
+
+func kArraysSmallestRange(arr [][]int) []int {
+    k := len(arr)
+    h := &RangeMinHeap{}; heap.Init(h)
+    maxValue := int(^uint(0) >> 1) * -1                                                                                                                       // INT_MIN
+    for i := 0; i < k; i++ {
+        if len(arr[i]) > 0 {
+            heap.Push(h, RangeElem{arr[i][0], i, 0})
+            if arr[i][0] > maxValue { maxValue = arr[i][0] }
+        }
+    }
+    rs, re := -1, -1
+    width := int(^uint(0) >> 1)                                                                                                                                 // INT_MAX
+    for h.Len() == k {
+        t := heap.Pop(h).(RangeElem)
+        if maxValue - t.Value < width { width = maxValue - t.Value; rs = t.Value; re = maxValue }
+        if t.ElementIdx + 1 < len(arr[t.ListIdx]) {
+            nv := arr[t.ListIdx][t.ElementIdx + 1]
+            heap.Push(h, RangeElem{nv, t.ListIdx, t.ElementIdx + 1})
+            if nv > maxValue { maxValue = nv }
+        }
+    }
+    return []int{rs, re}
+}
+```
+
+```kotlin,editable
+import java.util.PriorityQueue
+
+class Solution {
+    fun kArraysSmallestRange(arr: Array<IntArray>): IntArray {
+        val k = arr.size
+        // (value, listIdx, elementIdx)
+        val heap = PriorityQueue<IntArray>(compareBy { it[0] })
+        var maxValue = Int.MIN_VALUE
+        for (i in 0 until k) {
+            if (arr[i].isNotEmpty()) {
+                heap.add(intArrayOf(arr[i][0], i, 0))
+                maxValue = maxOf(maxValue, arr[i][0])
+            }
+        }
+        var rs = -1; var re = -1; var width = Int.MAX_VALUE
+        while (heap.size == k) {
+            val (value, i, j) = heap.poll()
+            if (maxValue - value < width) { width = maxValue - value; rs = value; re = maxValue }
+            if (j + 1 < arr[i].size) {
+                val nv = arr[i][j + 1]
+                heap.add(intArrayOf(nv, i, j + 1))
+                maxValue = maxOf(maxValue, nv)
+            }
+        }
+        return intArrayOf(rs, re)
+    }
+}
+```
+
+```rust,editable
+use std::collections::BinaryHeap;
+use std::cmp::Reverse;
+
+impl Solution {
+    pub fn k_arrays_smallest_range(arr: Vec<Vec<i32>>) -> Vec<i32> {
+        let k = arr.len();
+        let mut heap: BinaryHeap<Reverse<(i32, usize, usize)>> = BinaryHeap::new();
+        let mut max_value = i32::MIN;
+        for i in 0..k {
+            if !arr[i].is_empty() {
+                heap.push(Reverse((arr[i][0], i, 0)));
+                if arr[i][0] > max_value { max_value = arr[i][0]; }
+            }
+        }
+        let mut rs = -1; let mut re = -1; let mut width = i32::MAX;
+        while heap.len() == k {
+            let Reverse((value, i, j)) = heap.pop().unwrap();
+            if max_value - value < width { width = max_value - value; rs = value; re = max_value; }
+            if j + 1 < arr[i].len() {
+                let nv = arr[i][j + 1];
+                heap.push(Reverse((nv, i, j + 1)));
+                if nv > max_value { max_value = nv; }
+            }
+        }
+        vec![rs, re]
+    }
+}
+```
+
+</div>
 
 ***
 
@@ -1183,88 +1546,240 @@ public:
 
 ## Problem Statement
 
-You are given an array of singly linked list head nodes called **lists**, the size of this array is k where each index contains a linked list that is sorted in ascending order. Write a function to merge all these k-linked lists into one sorted list and return its head.
+Given an array of `k` linked-list head nodes, each list sorted in ascending order, merge all lists into one sorted list and return its head.
 
 ### Example 1
 
-> -   **Input:** lists = \[\[1, 4, 5\], \[1, 3, 4\], \[2, 6\]\]
-> -   **Output:** \[1, 1, 2, 3, 4, 4, 5, 6\]
-> -   **Explanation:** After merging the lists in sorted order, the resulting list will be \[1, 1, 2, 3, 4, 4, 5, 6\].
+> - **Input:** `lists = [[1, 4, 5], [1, 3, 4], [2, 6]]`
+> - **Output:** `[1, 1, 2, 3, 4, 4, 5, 6]`
 
 ### Example 2
 
-> -   **Input:** lists = \[\]
-> -   **Output:** \[\]
-> -   **Explanation:** Since the input list is empty, the output will also be an empty list.
+> - **Input:** `lists = []`
+> - **Output:** `[]`
 
-## Solution
+## The Strategy
 
-```cpp
-#include <queue>
+The textbook K-way merge: at every step, the next node of the merged list is the *globally smallest* among the heads of all unmerged lists. A min-heap of size K holds those heads. Pop the smallest, append to the output, push the *next* node of that list (if any). Done in `O(N log K)` total, where `N` is the total number of nodes.
 
-/**
- * Definition for singly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *next;
- *     ListNode() : val(0), next(nullptr) {}
- *     ListNode(int val) : val(val), next(nullptr) {}
- * };
- */
+The comparator is "compare list nodes by value, ascending".
 
-using namespace std;
+## The Solution
 
-struct CompareMinHeap {
-    bool operator()(ListNode *nodeA, ListNode *nodeB) {
+<div class="lang-tabs">
 
-        // Custom comparison function used by the priority_queue.
-        // It compares the values of the nodes and returns true if
-        // nodeA's value is greater than nodeB's value.
-        return nodeA->val > nodeB->val;
+```python,editable
+import heapq
+from typing import List, Optional
+
+class Solution:
+    def k_way_list_merge(self, lists: List[Optional["ListNode"]]) -> Optional["ListNode"]:
+        # heapq doesn't compare ListNode directly — push (value, unique_id, node).
+        heap = []
+        for i, head in enumerate(lists):
+            if head is not None:
+                # Use index `i` as a tiebreaker so heapq never has to compare ListNodes directly.
+                heapq.heappush(heap, (head.val, i, head))
+        dummy = ListNode(0)
+        tail = dummy
+        counter = len(lists)                   # increment per push, used as tiebreaker
+        while heap:
+            _, _, node = heapq.heappop(heap)
+            tail.next = node
+            tail = node
+            if node.next is not None:
+                heapq.heappush(heap, (node.next.val, counter, node.next))
+                counter += 1
+        return dummy.next
+```
+
+```java,editable
+import java.util.*;
+
+class Solution {
+    public ListNode kWayListMerge(List<ListNode> lists) {
+        PriorityQueue<ListNode> heap = new PriorityQueue<>((a, b) -> Integer.compare(a.val, b.val));
+        for (ListNode head : lists) if (head != null) heap.add(head);
+        ListNode dummy = new ListNode(0), tail = dummy;
+        while (!heap.isEmpty()) {
+            ListNode node = heap.poll();
+            tail.next = node;
+            tail = node;
+            if (node.next != null) heap.add(node.next);
+        }
+        return dummy.next;
     }
+}
+```
+
+```c,editable
+// Sketch: maintain a min-heap of ListNode* with comparator (a, b) => a->val - b->val.
+// Loop: pop, append to result, push popped->next if non-null.
+// Implementation parallels the C++ version.
+```
+
+```cpp,editable
+#include <queue>
+#include <vector>
+
+struct CompareListNode {
+    bool operator()(ListNode *a, ListNode *b) const { return a->val > b->val; }
 };
 
 class Solution {
 public:
-    ListNode *kWayListMerge(vector<ListNode *> &lists) {
-
-        // Create a priority queue with ListNode* as the type and use the
-        // CompareNodes struct as the comparison function.
-        priority_queue<ListNode *, vector<ListNode *>, CompareMinHeap>
-            minHeap;
-
-        // Push all non-null heads of the input lists into the priority
-        // queue.
-        for (ListNode *head : lists) {
-            if (head)
-                minHeap.push(head);
-        }
-
-        // Create a dummy and tail pointers for building the merged list.
-        ListNode *dummy = new ListNode(0);
-        ListNode *tail = dummy;
-
-        // Continue until the priority queue is empty.
-        while (!minHeap.empty()) {
-
-            // Get the node with the smallest value from the priority
-            // queue.
-            ListNode *node = minHeap.top();
-            minHeap.pop();
-
-            // Add the node to the merged list.
+    ListNode *kWayListMerge(std::vector<ListNode *> &lists) {
+        std::priority_queue<ListNode *, std::vector<ListNode *>, CompareListNode> heap;
+        for (ListNode *head : lists) if (head) heap.push(head);
+        ListNode *dummy = new ListNode(0), *tail = dummy;
+        while (!heap.empty()) {
+            ListNode *node = heap.top(); heap.pop();
             tail->next = node;
-            tail = tail->next;
-
-            // If the current node has a next node, push the next node
-            // into the priority queue for further processing.
-            if (node->next) {
-                minHeap.push(node->next);
-            }
+            tail = node;
+            if (node->next) heap.push(node->next);
         }
-
-        // Return the head of the merged list (excluding the dummy node).
         return dummy->next;
     }
 };
 ```
+
+```scala,editable
+import scala.collection.mutable.PriorityQueue
+
+object Solution {
+  def kWayListMerge(lists: Array[ListNode]): ListNode = {
+    val heap = PriorityQueue.empty[ListNode](Ordering.by[ListNode, Int](-_.value))
+    for (head <- lists if head != null) heap.enqueue(head)
+    val dummy = new ListNode(0); var tail = dummy
+    while (heap.nonEmpty) {
+      val node = heap.dequeue()
+      tail.next = node
+      tail = node
+      if (node.next != null) heap.enqueue(node.next)
+    }
+    dummy.next
+  }
+}
+```
+
+```javascript,editable
+function kWayListMerge(lists) {
+  const heap = new MinHeap((a, b) => a.val - b.val);
+  for (const head of lists) if (head !== null) heap.push(head);
+  const dummy = new ListNode(0); let tail = dummy;
+  while (heap.size() > 0) {
+    const node = heap.pop();
+    tail.next = node;
+    tail = node;
+    if (node.next !== null) heap.push(node.next);
+  }
+  return dummy.next;
+}
+```
+
+```typescript,editable
+function kWayListMerge(lists: Array<ListNode | null>): ListNode | null {
+  const heap = new MinHeap<ListNode>((a, b) => a.val - b.val);
+  for (const head of lists) if (head !== null) heap.push(head);
+  const dummy = new ListNode(0); let tail = dummy;
+  while (heap.size() > 0) {
+    const node = heap.pop();
+    tail.next = node;
+    tail = node;
+    if (node.next !== null) heap.push(node.next);
+  }
+  return dummy.next;
+}
+```
+
+```go,editable
+import "container/heap"
+
+type ListNodeHeap []*ListNode
+func (h ListNodeHeap) Len() int           { return len(h) }
+func (h ListNodeHeap) Less(i, j int) bool { return h[i].Val < h[j].Val }
+func (h ListNodeHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (h *ListNodeHeap) Push(x any)        { *h = append(*h, x.(*ListNode)) }
+func (h *ListNodeHeap) Pop() any          { old := *h; n := len(old); v := old[n-1]; *h = old[:n-1]; return v }
+
+func kWayListMerge(lists []*ListNode) *ListNode {
+    h := &ListNodeHeap{}; heap.Init(h)
+    for _, head := range lists { if head != nil { heap.Push(h, head) } }
+    dummy := &ListNode{}
+    tail := dummy
+    for h.Len() > 0 {
+        node := heap.Pop(h).(*ListNode)
+        tail.Next = node
+        tail = node
+        if node.Next != nil { heap.Push(h, node.Next) }
+    }
+    return dummy.Next
+}
+```
+
+```kotlin,editable
+import java.util.PriorityQueue
+
+class Solution {
+    fun kWayListMerge(lists: Array<ListNode?>): ListNode? {
+        val heap = PriorityQueue<ListNode>(compareBy { it.`val` })
+        for (head in lists) if (head != null) heap.add(head)
+        val dummy = ListNode(0); var tail = dummy
+        while (heap.isNotEmpty()) {
+            val node = heap.poll()
+            tail.next = node
+            tail = node
+            if (node.next != null) heap.add(node.next)
+        }
+        return dummy.next
+    }
+}
+```
+
+```rust,editable
+use std::collections::BinaryHeap;
+use std::cmp::Reverse;
+
+// Definition for singly-linked list.
+// #[derive(PartialEq, Eq, Clone, Debug)]
+// pub struct ListNode { pub val: i32, pub next: Option<Box<ListNode>> }
+
+impl Solution {
+    pub fn k_way_list_merge(lists: Vec<Option<Box<ListNode>>>) -> Option<Box<ListNode>> {
+        let mut heap: BinaryHeap<Reverse<(i32, usize, Box<ListNode>)>> = BinaryHeap::new();
+        let mut counter: usize = 0;                                                                                                                              // tiebreaker for non-comparable Box<ListNode>
+        for head in lists.into_iter().flatten() {
+            heap.push(Reverse((head.val, counter, head)));
+            counter += 1;
+        }
+        let mut dummy = Box::new(ListNode { val: 0, next: None });
+        let mut tail = &mut dummy;
+        while let Some(Reverse((_, _, mut node))) = heap.pop() {
+            let next = node.next.take();
+            if let Some(n) = next {
+                heap.push(Reverse((n.val, counter, n)));
+                counter += 1;
+            }
+            tail.next = Some(node);
+            tail = tail.next.as_mut().unwrap();
+        }
+        dummy.next
+    }
+}
+```
+
+</div>
+
+***
+
+## Final Takeaway
+
+A comparator is the **bridge between a generic priority queue and any custom type with a total order**. Once you can plug a comparator in, every Top-K problem from lesson 3 generalises to records, structs, tree nodes, list nodes — anything with a defined ordering.
+
+Three patterns to take with you:
+
+1. **Heap of records, ordered by score.** Word + frequency, point + distance, pair + sum, list-node + value. The heap holds *records*, the comparator orders by the *score field*.
+2. **K-way merge with a heap of size K.** When you need the global minimum across K sorted streams, a heap of size K with one head per stream gives it to you in O(log K) per pop. K-way merge, K-sorted ranges, K-way list merge — all the same skeleton.
+3. **Tiebreakers in language-specific ways.** Most heap libraries can't compare arbitrary types directly (Python tuples, Rust `Box`); inserting a unique counter or a list index as a tiebreaker is a common idiom that prevents the comparator from ever needing to look at non-comparable fields.
+
+The next and final lesson zooms back out: **design** problems that combine multiple heaps, or a heap with another data structure, to build something larger — finding the running median, tracking K-sized windowed maxima, deferred-decision priority queues. The comparator pattern is the toolbox for those designs.
