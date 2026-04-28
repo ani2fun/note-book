@@ -494,23 +494,19 @@ An array is a collection of data items stored in **contiguous memory**. This lay
 
 ```d2
 arr: array {
+  grid-rows: 2
   grid-columns: 5
   grid-gap: 0
-  v1: |md
-    value1<br/>`0`
-  |
-  v2: |md
-    value2<br/>`1`
-  |
-  v3: |md
-    value3<br/>`2`
-  |
-  v4: |md
-    value4<br/>`3`
-  |
-  v5: |md
-    value5<br/>`4`
-  |
+  v1: value1
+  v2: value2
+  v3: value3
+  v4: value4
+  v5: value5
+  i0: "[0]"
+  i1: "[1]"
+  i2: "[2]"
+  i3: "[3]"
+  i4: "[4]"
 }
 ```
 
@@ -542,23 +538,19 @@ Elements in an array can be modified in place, just like variables. To update a 
 
 ```d2
 arr: array {
+  grid-rows: 2
   grid-columns: 5
   grid-gap: 0
-  v1: |md
-    value1<br/>`0`
-  |
-  v2: |md
-    value2<br/>`1`
-  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
-  v3: |md
-    value3<br/>`2`
-  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
-  v4: |md
-    value4<br/>`3`
-  |
-  v5: |md
-    value5<br/>`4`
-  |
+  v1: value1
+  v2: value2 {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  v3: value3 {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  v4: value4
+  v5: value5
+  i0: "[0]"
+  i1: "[1]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  i2: "[2]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  i3: "[3]"
+  i4: "[4]"
 }
 ```
 
@@ -742,35 +734,29 @@ The address of the memory block where an array starts is called the array's **ba
 Here's what an array of 5 integers looks like in memory, with a base address of `2` and each `int` occupying **4 bytes**:
 
 ```d2
-direction: right
-
-arr: "array (5 ints, base address = 2)" {
+arr: array {
+  grid-rows: 3
   grid-columns: 5
   grid-gap: 0
-  e0: |md
-    **value1**<br/>`[0]`<br/>`2→5`
-  |
-  e1: |md
-    **value2**<br/>`[1]`<br/>`6→9`
-  |
-  e2: |md
-    **value3**<br/>`[2]`<br/>`10→13`
-  |
-  e3: |md
-    **value4**<br/>`[3]`<br/>`14→17`
-  |
-  e4: |md
-    **value5**<br/>`[4]`<br/>`18→21`
-  |
+  v0: value1 {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  v1: value2
+  v2: value3
+  v3: value4
+  v4: value5
+  i0: "[0]"
+  i1: "[1]"
+  i2: "[2]"
+  i3: "[3]"
+  i4: "[4]"
+  a0: "2→5"
+  a1: "6→9"
+  a2: "10→13"
+  a3: "14→17"
+  a4: "18→21"
 }
-
-base: base address = 2 {
-  shape: oval
-}
-base -> arr.e0
 ```
 
-<p align="center"><strong>Structure of an array in memory. Each element spans 4 consecutive bytes (size of int).</strong></p>
+<p align="center"><strong>Structure of an array in memory — base address = <code>2</code>, each <code>int</code> spans 4 bytes. The first element starts at the base address (highlighted).</strong></p>
 
 Key observations:
 - Elements are laid out **back to back** with no gaps
@@ -876,35 +862,29 @@ decl -> arr: logical representation
 We map the array into memory starting at **base address 2**. Because this is an integer array, we consider the size of each data item to be **4 bytes** for this example.
 
 ```d2
-direction: right
-
-arr: "array (mapped into memory)" {
+arr: array {
+  grid-rows: 3
   grid-columns: 5
   grid-gap: 0
-  e0: |md
-    **value1**<br/>`[0]`<br/>`2→5`
-  |
-  e1: |md
-    **value2**<br/>`[1]`<br/>`6→9`
-  |
-  e2: |md
-    **value3**<br/>`[2]`<br/>`10→13`
-  |
-  e3: |md
-    **value4**<br/>`[3]`<br/>`14→17`
-  |
-  e4: |md
-    **value5**<br/>`[4]`<br/>`18→21`
-  |
+  v0: value1 {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  v1: value2
+  v2: value3
+  v3: value4
+  v4: value5
+  i0: "[0]"
+  i1: "[1]"
+  i2: "[2]"
+  i3: "[3]"
+  i4: "[4]"
+  a0: "2→5"
+  a1: "6→9"
+  a2: "10→13"
+  a3: "14→17"
+  a4: "18→21"
 }
-
-base: base address = 2 {
-  shape: oval
-}
-base -> arr.e0
 ```
 
-<p align="center"><strong>An array of 5 integers mapped into continuous memory starting at address 2.</strong></p>
+<p align="center"><strong>An array of 5 integers mapped into continuous memory starting at address <code>2</code> (highlighted = base).</strong></p>
 
 Each element occupies exactly 4 consecutive bytes. The elements are laid out back to back with no gaps — that's what "contiguous" means.
 
@@ -928,27 +908,23 @@ c3: |md
 | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
 
 arr: array {
+  grid-rows: 2
   grid-columns: 5
   grid-gap: 0
-  e0: |md
-    value1<br/>`2`
-  |
-  e1: |md
-    value2<br/>`6`
-  |
-  e2: |md
-    value3<br/>`10`
-  | {style.fill: "#fef9c3"; style.stroke: "#d97706"}
-  e3: |md
-    value4<br/>`14`
-  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
-  e4: |md
-    value5<br/>`18`
-  |
+  v0: value1
+  v1: value2
+  v2: value3 {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+  v3: value4 {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  v4: value5
+  a0: "addr 2"
+  a1: "addr 6"
+  a2: "addr 10" {style.fill: "#fef9c3"; style.stroke: "#d97706"}
+  a3: "addr 14" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  a4: "addr 18"
 }
 
-c2 -> arr.e2
-c3 -> arr.e3
+c2 -> arr.v2
+c3 -> arr.v3
 ```
 
 <p align="center"><strong>Calculating the address for <code>array[2]</code> and <code>array[3]</code> using the subscript operator.</strong></p>
