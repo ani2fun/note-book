@@ -146,34 +146,22 @@ mem: Memory {
   grid-columns: 6
   grid-gap: 0
   b0: |md
-    **0**
-
-    8 bits
+    **0** · 8 bits
   |
   b1: |md
-    **1**
-
-    8 bits
+    **1** · 8 bits
   |
   b2: |md
-    **2**
-
-    8 bits
+    **2** · 8 bits
   |
   b3: |md
-    **3**
-
-    8 bits
+    **3** · 8 bits
   |
   b4: |md
-    **4**
-
-    8 bits
+    **4** · 8 bits
   |
   b5: |md
-    **5**
-
-    8 bits
+    **5** · 8 bits
   |
 }
 
@@ -218,7 +206,7 @@ config:
     tertiaryColor: "#fef9c3"
 ---
 flowchart LR
-    CPU["CPU\nALU + Registers"]
+    CPU["CPU<br/>ALU + Registers"]
 
     subgraph MEM["Memory"]
         direction TB
@@ -251,6 +239,8 @@ This memory model is the foundation for understanding arrays — and nearly ever
 - The CPU can jump to any element instantly because it knows the exact address
 
 Once you have this mental picture — memory as a numbered line of bytes, each accessible by address — arrays become completely intuitive.
+
+But there's still a question we haven't answered: when you write `array[3]`, what *exactly* happens between that source line and the value coming back? We'll trace it byte by byte before this lesson ends.
 
 ---
 
@@ -317,6 +307,10 @@ vars: {
 <p align="center"><strong>Using variables to store ages of 108 students.</strong></p>
 
 While this technically works, storing and managing hundreds of values across hundreds of individually named variables is **error-prone and not scalable**.
+
+> *Before reading on — picture the code that prints every student's age. With 108 separately-named variables, what would the loop body even look like? You'd need 108 hard-coded `print()` lines. There's no `i` to loop over.*
+
+That last observation is the hidden cost — variables don't just multiply names, they kill loops.
 
 ---
 
@@ -522,29 +516,19 @@ arr: array {
   grid-columns: 5
   grid-gap: 0
   v1: |md
-    value1
-
-    `0`
+    value1 `0`
   |
   v2: |md
-    value2
-
-    `1`
+    value2 `1`
   |
   v3: |md
-    value3
-
-    `2`
+    value3 `2`
   |
   v4: |md
-    value4
-
-    `3`
+    value4 `3`
   |
   v5: |md
-    value5
-
-    `4`
+    value5 `4`
   |
 }
 ```
@@ -580,29 +564,19 @@ arr: array {
   grid-columns: 5
   grid-gap: 0
   v1: |md
-    value1
-
-    `0`
+    value1 `0`
   |
   v2: |md
-    value2
-
-    `1`
+    value2 `1`
   | {style.fill: "#fde68a"; style.stroke: "#d97706"}
   v3: |md
-    value3
-
-    `2`
+    value3 `2`
   | {style.fill: "#fde68a"; style.stroke: "#d97706"}
   v4: |md
-    value4
-
-    `3`
+    value4 `3`
   |
   v5: |md
-    value5
-
-    `4`
+    value5 `4`
   |
 }
 ```
@@ -762,44 +736,28 @@ mem: Memory {
   grid-columns: 8
   grid-gap: 0
   b0: |md
-    **0**
-
-    8 bits
+    **0** · 8 bits
   |
   b1: |md
-    **1**
-
-    8 bits
+    **1** · 8 bits
   |
   b2: |md
-    **2**
-
-    8 bits
+    **2** · 8 bits
   |
   b3: |md
-    **3**
-
-    8 bits
+    **3** · 8 bits
   |
   b4: |md
-    **4**
-
-    8 bits
+    **4** · 8 bits
   |
   b5: |md
-    **5**
-
-    8 bits
+    **5** · 8 bits
   |
   b6: |md
-    **6**
-
-    8 bits
+    **6** · 8 bits
   |
   b7: |md
-    **7**
-
-    8 bits
+    **7** · 8 bits
   |
 }
 
@@ -832,39 +790,19 @@ arr: "array (5 ints, base address = 2)" {
   grid-columns: 5
   grid-gap: 0
   e0: |md
-    **value1**
-
-    index: `0`
-
-    addr: `2 → 5`
+    **value1** · `[0]` · `2→5`
   |
   e1: |md
-    **value2**
-
-    index: `1`
-
-    addr: `6 → 9`
+    **value2** · `[1]` · `6→9`
   |
   e2: |md
-    **value3**
-
-    index: `2`
-
-    addr: `10 → 13`
+    **value3** · `[2]` · `10→13`
   |
   e3: |md
-    **value4**
-
-    index: `3`
-
-    addr: `14 → 17`
+    **value4** · `[3]` · `14→17`
   |
   e4: |md
-    **value5**
-
-    index: `4`
-
-    addr: `18 → 21`
+    **value5** · `[4]` · `18→21`
   |
 }
 
@@ -889,6 +827,8 @@ Now that we know how an array maps into continuous memory, we can derive a simpl
 - the **base address** (where the array starts)
 - the **size of the datatype** (bytes per element)
 - the **index** (which element we want)
+
+> *Before reading on — try writing the formula yourself. Given base `2`, int size `4`, and index `3`, where does element 3 live? What arithmetic gets you there from base?*
 
 > $$\text{address}(index) = base\_address + (size\_of\_datatype \times index)$$
 
@@ -984,39 +924,19 @@ arr: "array (mapped into memory)" {
   grid-columns: 5
   grid-gap: 0
   e0: |md
-    **value1**
-
-    index: `0`
-
-    addr: `2 → 5`
+    **value1** · `[0]` · `2→5`
   |
   e1: |md
-    **value2**
-
-    index: `1`
-
-    addr: `6 → 9`
+    **value2** · `[1]` · `6→9`
   |
   e2: |md
-    **value3**
-
-    index: `2`
-
-    addr: `10 → 13`
+    **value3** · `[2]` · `10→13`
   |
   e3: |md
-    **value4**
-
-    index: `3`
-
-    addr: `14 → 17`
+    **value4** · `[3]` · `14→17`
   |
   e4: |md
-    **value5**
-
-    index: `4`
-
-    addr: `18 → 21`
+    **value5** · `[4]` · `18→21`
   |
 }
 
@@ -1042,44 +962,30 @@ The program already knows the base address and the size of the data type — thi
 
 ```d2
 c2: |md
-  **array[2]**
-
-  `2 + (2 × 4) = 10`
+  **array[2]** · `2 + (2 × 4) = 10`
 | {style.fill: "#fef9c3"; style.stroke: "#d97706"}
 
 c3: |md
-  **array[3]**
-
-  `2 + (3 × 4) = 14`
+  **array[3]** · `2 + (3 × 4) = 14`
 | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
 
 arr: array {
   grid-columns: 5
   grid-gap: 0
   e0: |md
-    value1
-
-    addr: `2`
+    value1 · `2`
   |
   e1: |md
-    value2
-
-    addr: `6`
+    value2 · `6`
   |
   e2: |md
-    value3
-
-    addr: `10`
+    value3 · `10`
   | {style.fill: "#fef9c3"; style.stroke: "#d97706"}
   e3: |md
-    value4
-
-    addr: `14`
+    value4 · `14`
   | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
   e4: |md
-    value5
-
-    addr: `18`
+    value5 · `18`
   |
 }
 
