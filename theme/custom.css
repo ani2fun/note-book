@@ -79,6 +79,80 @@
     white-space: pre-wrap;
 }
 
+/* Step-through slideshow widget — see theme/d2-slides.js */
+.d2-slides {
+    margin: 1.5rem 0;
+    padding: 0.5rem 0.5rem 0;
+    border: 1px solid var(--quote-bg, #e5e7eb);
+    border-radius: 8px;
+    outline: none;
+}
+
+.d2-slides .d2 {
+    margin: 0;
+    display: none;
+}
+
+.d2-slides .d2-slides__frame--active {
+    display: block;
+}
+
+.d2-slides__controls {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-top: 1px solid var(--quote-bg, #e5e7eb);
+    margin-top: 0.5rem;
+}
+
+.d2-slides__btn {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font-size: 0.875rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.d2-slides__btn:hover:not(:disabled) {
+    background: var(--quote-bg);
+}
+
+.d2-slides__btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+/* The first button is Prev (◀); the third is Next which uses the same
+   ▶ glyph as Play. Mirror it so the two are visually distinct. */
+.d2-slides__controls .d2-slides__btn:nth-child(1) {
+    /* Prev — already pointing left, no transform needed. */
+}
+
+.d2-slides__counter {
+    position: absolute;
+    right: 0.75rem;
+    font-size: 0.875rem;
+    opacity: 0.75;
+}
+
+.d2-slides__caption {
+    text-align: center;
+    font-size: 0.875rem;
+    margin: 0.5rem 0;
+    opacity: 0.85;
+}
+
 .python-playground .buttons {
     display: flex;
     gap: 0.25rem;

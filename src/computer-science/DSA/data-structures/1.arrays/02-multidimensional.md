@@ -821,6 +821,237 @@ Different languages implement the syntax differently, but the result is the same
 
 To traverse a multidimensional array, we need **nested loops** — one loop for each dimension. The logic is a direct extension of single-dimensional traversal: each loop iterates over the indices of one dimension.
 
+<div class="d2-slides" data-caption="Step through nested-loop traversal of a 2 × 3 array — use ◀ ▶ to advance frame-by-frame.">
+
+```d2
+arr: "Ready to traverse the 2 × 3 array" {
+  grid-columns: 3
+  grid-gap: 0
+  a: |md
+    `[0,0]` value1
+  |
+  b: |md
+    `[0,1]` value2
+  |
+  c: |md
+    `[0,2]` value3
+  |
+  d: |md
+    `[1,0]` value4
+  |
+  e: |md
+    `[1,1]` value5
+  |
+  f: |md
+    `[1,2]` value6
+  |
+}
+```
+
+```d2
+direction: right
+
+state: |md
+  **row** = 0
+
+  **column** = 0
+|
+
+arr: "Visit arr[0][0]" {
+  grid-columns: 3
+  grid-gap: 0
+  a: |md
+    `[0,0]` value1
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b: |md
+    `[0,1]` value2
+  |
+  c: |md
+    `[0,2]` value3
+  |
+  d: |md
+    `[1,0]` value4
+  |
+  e: |md
+    `[1,1]` value5
+  |
+  f: |md
+    `[1,2]` value6
+  |
+}
+```
+
+```d2
+direction: right
+
+state: |md
+  **row** = 0
+
+  **column** = 1
+|
+
+arr: "Visit arr[0][1]" {
+  grid-columns: 3
+  grid-gap: 0
+  a: |md
+    `[0,0]` value1
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b: |md
+    `[0,1]` value2
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  c: |md
+    `[0,2]` value3
+  |
+  d: |md
+    `[1,0]` value4
+  |
+  e: |md
+    `[1,1]` value5
+  |
+  f: |md
+    `[1,2]` value6
+  |
+}
+```
+
+```d2
+direction: right
+
+state: |md
+  **row** = 0
+
+  **column** = 2
+|
+
+arr: "Visit arr[0][2]" {
+  grid-columns: 3
+  grid-gap: 0
+  a: |md
+    `[0,0]` value1
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b: |md
+    `[0,1]` value2
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  c: |md
+    `[0,2]` value3
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  d: |md
+    `[1,0]` value4
+  |
+  e: |md
+    `[1,1]` value5
+  |
+  f: |md
+    `[1,2]` value6
+  |
+}
+```
+
+```d2
+direction: right
+
+state: |md
+  **row** = 1
+
+  **column** = 0
+
+  inner loop reset
+|
+
+arr: "Visit arr[1][0]" {
+  grid-columns: 3
+  grid-gap: 0
+  a: |md
+    `[0,0]` value1
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b: |md
+    `[0,1]` value2
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  c: |md
+    `[0,2]` value3
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  d: |md
+    `[1,0]` value4
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  e: |md
+    `[1,1]` value5
+  |
+  f: |md
+    `[1,2]` value6
+  |
+}
+```
+
+```d2
+direction: right
+
+state: |md
+  **row** = 1
+
+  **column** = 1
+|
+
+arr: "Visit arr[1][1]" {
+  grid-columns: 3
+  grid-gap: 0
+  a: |md
+    `[0,0]` value1
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b: |md
+    `[0,1]` value2
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  c: |md
+    `[0,2]` value3
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  d: |md
+    `[1,0]` value4
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  e: |md
+    `[1,1]` value5
+  | {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  f: |md
+    `[1,2]` value6
+  |
+}
+```
+
+```d2
+direction: right
+
+state: |md
+  **row** = 1
+
+  **column** = 2
+
+  ✓ done
+|
+
+arr: "Traversal complete — visited all 6 cells" {
+  grid-columns: 3
+  grid-gap: 0
+  a: |md
+    `[0,0]` value1
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b: |md
+    `[0,1]` value2
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  c: |md
+    `[0,2]` value3
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  d: |md
+    `[1,0]` value4
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  e: |md
+    `[1,1]` value5
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  f: |md
+    `[1,2]` value6
+  | {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+}
+```
+
+</div>
+
 ```mermaid
 ---
 config:
