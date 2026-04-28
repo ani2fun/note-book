@@ -454,6 +454,8 @@ Let's consider the following problem as an example to better understand how to i
 > **Problem statement:** Given a singly linked list, reorder its nodes so all nodes at even indices come after the nodes at odd indices. The indices start with 1.
 
 ```d2
+direction: right
+
 before: "Before — indices 0, 1, 2, 3, 4, 5" {
   direction: right
   a0: "1 [0]"

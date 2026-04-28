@@ -51,6 +51,8 @@ cls: "Stack (array-backed)" {
 - **Full** stack ⇒ `topIndex = capacity - 1`.
 
 ```d2
+direction: right
+
 arr: "capacity-4 array" {
   grid-columns: 4
   grid-gap: 0
@@ -1644,6 +1646,8 @@ The naïve approach is to split the array down the middle: stack 1 owns indices 
 The clever approach: let stack 1 grow **rightward from index 0** (top1 starts at −1) and stack 2 grow **leftward from index capacity−1** (top2 starts at `capacity`). They meet in the middle, but only when the *combined* size hits the array's length. Either stack can use up to N − 1 of the slots, as long as the other stays small.
 
 ```d2
+direction: right
+
 arr: "two stacks in one array (capacity 5)" {
   grid-columns: 5
   grid-gap: 0

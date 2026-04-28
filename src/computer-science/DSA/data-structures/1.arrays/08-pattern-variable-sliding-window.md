@@ -150,6 +150,8 @@ s3: "Starting at index 3" {
 However, for some problems we may only need to find results for **some** subarrays and can safely skip the remaining ones. These problems can be solved by the variable-sized sliding window technique, which contracts or expands the window in each iteration as it slides through the array. It is a powerful technique that solves many problems in a single pass that would otherwise need nested loops.
 
 ```d2
+direction: right
+
 arr: "Variable-sized window: arr[start..end]" {
   grid-columns: 6
   grid-gap: 0
@@ -190,7 +192,9 @@ The variable-sized sliding window uses `start` and `end` for boundaries and `agg
 We update `aggregate` by adding the contribution of `arr[end]` to it so that `aggregate` always reflects the function `f` computed over all elements in the current window, including the one at `end`.
 
 ```d2
-before: "Before: window = arr[1..2], aggregate = 6" {
+direction: right
+
+before: "Before: arr[1..2], aggregate = 6" {
   grid-columns: 6
   grid-gap: 0
   a0: "2"
@@ -247,7 +251,9 @@ flowchart LR
 If we can skip all remaining subarrays starting at `start` — specifically the ones that would end beyond `end` — we increment `start` by 1, which contracts the window from the left. We also update `aggregate` to remove the contribution of `arr[start]` (the item being removed from the window).
 
 ```d2
-before: "Before: window = arr[1..3], invariant violated" {
+direction: right
+
+before: "Before: arr[1..3], invariant violated" {
   grid-columns: 6
   grid-gap: 0
   a0: "2"
@@ -263,12 +269,10 @@ op: |md
 
   `start += 1`
 
-  All subarrays starting at old start
-
-  and ending beyond end are now ignored
+  Subarrays starting at old `start` are skipped.
 |
 
-after: "After: window = arr[2..3], invariant restored" {
+after: "After: arr[2..3], invariant restored" {
   grid-columns: 6
   grid-gap: 0
   b0: "2"
@@ -297,7 +301,9 @@ Critical: one contraction isn't always enough. Many problems require a **while l
 If we want to consider the next subarray starting at `start` — that is, the subarray from `start` to `end+1` — in the next iteration, we increment `end` by 1, which expands the window to the right. We do **not** add the contribution of the newly added item to `aggregate` yet — that will be done in the next iteration's Operation 1.
 
 ```d2
-before: "Current window: arr[1..3]" {
+direction: right
+
+before: "Current: arr[1..3]" {
   grid-columns: 6
   grid-gap: 0
   a0: "2"
@@ -311,12 +317,10 @@ before: "Current window: arr[1..3]" {
 op: |md
   `end += 1`
 
-  `arr[end] = 7` will be added to
-
-  aggregate in the next iteration
+  `arr[end] = 7` is added in the next iteration.
 |
 
-after: "After: window will grow to arr[1..4] next iteration" {
+after: "After: arr[1..4] next iteration" {
   grid-columns: 6
   grid-gap: 0
   b0: "2"
@@ -752,6 +756,8 @@ invariant -> note: "" {style.stroke-dash: 3}
 Now consider that adding the item at index `end` turns the sum negative — that is, `sum(start, end)` is negative:
 
 ```d2
+direction: right
+
 brk: "sum(start, end) < 0 — invariant broken" {
   grid-columns: 5
   grid-gap: 0

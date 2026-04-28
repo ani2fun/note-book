@@ -792,6 +792,8 @@ Three steps, all O(1):
 The order of those three steps matters: if you set `head = newNode` *before* setting `newNode.next = head`, you'll set `newNode.next` to itself, creating a cycle of length 1. Always rewire the new node's `next` *first*, then update `head`.
 
 ```d2
+direction: right
+
 before: "before push(9)" {
   direction: right
   h1: head
@@ -1070,6 +1072,8 @@ Three steps:
 The "save old head before moving" sequence matters in languages with manual memory management — if you advance `head` first and *then* try to delete the old head, you've already lost the pointer to it.
 
 ```d2
+direction: right
+
 before: "before pop()" {
   direction: right
   h1: head

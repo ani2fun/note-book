@@ -62,6 +62,8 @@ You couldn't. The whole power of the sweep depends on visiting events in a deter
 Sorting is the price of admission. Intervals are usually sorted **by start coordinate ascending**, and ties broken by end coordinate ascending. The sorted order makes traversal of the array equivalent to walking left-to-right on the x-axis.
 
 ```d2
+direction: right
+
 unsorted: "Unsorted: arbitrary positions on the axis" {
   grid-columns: 4
   grid-gap: 16
@@ -114,6 +116,8 @@ tiebreak -> note: "" {style.stroke-dash: 3}
 With the array sorted, traversing it from left to right *is* the sweep. As you visit each interval, you maintain some piece of state — a counter, a "currently active" set, the last interval you kept. That state encodes the answer-so-far. As the sweep crosses each event, you update the state in O(1) and continue.
 
 ```d2
+direction: right
+
 axis: "Sorted intervals on the x-axis" {
   grid-columns: 4
   grid-gap: 0
@@ -181,6 +185,8 @@ This is the **interval merging pattern** — the most common application of the 
 Picture every interval as a colored stripe drawn on a long sheet of paper. Some stripes overlap, some sit alone. Your job: produce one cleaned-up sheet where overlapping stripes have been **fused** into single, longer stripes, and isolated stripes are left alone.
 
 ```d2
+direction: right
+
 before: "Before: 5 raw intervals (some overlap)" {
   grid-columns: 5
   grid-gap: 16
@@ -215,6 +221,8 @@ That mental model *is* the algorithm.
 Sorting comes first, as always for a sweep.
 
 ```d2
+direction: right
+
 in_arr: "arr (unsorted)" {
   grid-columns: 5
   grid-gap: 16
@@ -717,6 +725,8 @@ If the rephrased problem requires *not* merging — for example, "count the maxi
 > **Problem statement:** A delivery service expects a sequence of deliveries throughout the day, each described by a `[start, end]` time window. Find the **minimum number of non-overlapping time intervals** during which at least one delivery is expected at every moment.
 
 ```d2
+direction: right
+
 input_arr: "Raw delivery windows" {
   grid-columns: 5
   grid-gap: 16
@@ -1756,6 +1766,8 @@ Output: [[3, 4]]
 A moment is "everyone free" iff it is **not inside any employee's busy interval**. So if you take the union of all busy intervals across all employees, the gaps between consecutive merged intervals are exactly the moments when nobody is busy.
 
 ```d2
+direction: right
+
 step1: "Step 1: Flatten everyone's busy times into one array" {
   grid-columns: 5
   grid-gap: 16
@@ -2261,6 +2273,8 @@ The single linear pass partitions the existing intervals into **three groups** r
 3. **Strictly after** `newInterval` — keep them as-is.
 
 ```d2
+direction: right
+
 input_arr: "intervals = [[1,2], [3,5], [6,7], [8,10], [12,16]],  newInterval = [4, 8]" {
   grid-columns: 5
   grid-gap: 16

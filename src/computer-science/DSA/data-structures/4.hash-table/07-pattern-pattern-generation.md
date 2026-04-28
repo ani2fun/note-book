@@ -31,6 +31,8 @@ A **key** (or "pattern" or "signature" or "fingerprint") is a transformation tha
 direction: right
 
 inp: raw inputs {
+  grid-columns: 3
+  grid-gap: 8
   a: add
   b: qpp
   c: dad
@@ -1217,6 +1219,8 @@ Single-character strings have an empty gap sequence and all cluster together —
 direction: right
 
 inputs: input strings {
+  grid-columns: 4
+  grid-gap: 8
   s1: abc
   s2: ghi
   s3: xyz

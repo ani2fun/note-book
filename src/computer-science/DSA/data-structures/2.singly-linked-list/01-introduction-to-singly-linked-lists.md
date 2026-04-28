@@ -57,6 +57,8 @@ arr: array {
 This is an easy way to store data, but what if a new student joins the class? In this case, we will have to increase the size of the array by one, which is **not** possible. Well, we can solve this problem by creating a new array of a larger size, copying all the data from the previous array, and then adding the new student to it. However, this will be quite inefficient in terms of space and time complexity.
 
 ```d2
+direction: right
+
 before: "Original array (size = 4)" {
   grid-columns: 4
   grid-gap: 0
@@ -84,6 +86,8 @@ before -> after: "allocate new array,\ncopy 4 elements,\nadd Eve"
 Now, let's consider another scenario. What if a student leaves the class? We can use the same process again. This time, we create a new array of smaller size and copy all the data items except the one we want to delete.
 
 ```d2
+direction: right
+
 before: "Original array (size = 4)" {
   grid-columns: 4
   grid-gap: 0
@@ -118,6 +122,8 @@ Even though we can solve the problem using an array, it is inefficient if we hav
 An array has other fundamental problems that make it a bad choice for problems like these. For example, we cannot insert or delete data items **in place** in an array.
 
 ```d2
+direction: right
+
 mem: "Contiguous memory — each cell is fixed in place" {
   grid-columns: 4
   grid-gap: 0
@@ -246,6 +252,8 @@ delete: "Delete head — O(1)" {
 Let us look at an example of insertion in a singly linked list to understand this better.
 
 ```d2
+direction: right
+
 before: "Before insertion" {
   direction: right
   a1: Alice

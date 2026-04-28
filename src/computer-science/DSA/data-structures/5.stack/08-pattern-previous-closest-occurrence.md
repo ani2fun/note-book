@@ -34,6 +34,8 @@ This is **monotonic-stack** territory, and once you internalise the *"the stack 
 The pattern: for each index `i`, find the *closest preceding* index `j < i` whose value satisfies some predicate (`> arr[i]`, `< arr[i]`, etc.). The naive nested loop is O(N²). The monotonic-stack solution is O(N).
 
 ```d2
+direction: right
+
 arr: arr {
   grid-columns: 6
   grid-gap: 0

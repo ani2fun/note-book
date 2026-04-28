@@ -140,6 +140,8 @@ Storing data is easy. But how do you *find* it again?
 Each byte has a unique identifier based on its position — its **address**. It's just the index of the box, counting from 0.
 
 ```d2
+direction: right
+
 mem: Memory {
   grid-columns: 6
   grid-gap: 0
@@ -375,6 +377,8 @@ Let's break that definition down:
 Visually, an array looks like a row of labelled boxes, all the same size, sitting side by side:
 
 ```d2
+direction: right
+
 arr: array {
   grid-columns: 7
   grid-gap: 0
@@ -752,6 +756,8 @@ Array elements are accessed using indices because arrays are stored **contiguous
 Memory in RAM is logically organized as a sequence of blocks, each **1 byte (8 bits)** long. Every block has a unique identifier — its **address** — which is simply its relative position from the start (starting from 0).
 
 ```d2
+direction: right
+
 mem: Memory {
   grid-columns: 8
   grid-gap: 0
@@ -820,6 +826,8 @@ The address of the memory block where an array starts is called the array's **ba
 Here's what an array of 5 integers looks like in memory, with a base address of `2` and each `int` occupying **4 bytes**:
 
 ```d2
+direction: right
+
 arr: "array (5 ints, base address = 2)" {
   grid-columns: 5
   grid-gap: 0
@@ -942,6 +950,8 @@ Now that we know how an array is stored in memory, let's walk through a **comple
 Given below is the logical representation of an integer array with 5 data items:
 
 ```d2
+direction: right
+
 decl: "array[5]" {
   shape: oval
 }
@@ -968,6 +978,8 @@ decl -> arr: logical representation
 We map the array into memory starting at **base address 2**. Because this is an integer array, we consider the size of each data item to be **4 bytes** for this example.
 
 ```d2
+direction: right
+
 arr: "array (mapped into memory)" {
   grid-columns: 5
   grid-gap: 0

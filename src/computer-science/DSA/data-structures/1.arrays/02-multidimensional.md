@@ -354,6 +354,8 @@ Here's what each looks like logically:
 **Single-dimension array** — a flat row of values, accessed with one index:
 
 ```d2
+direction: right
+
 arr: array {
   grid-columns: 4
   grid-gap: 0
@@ -401,6 +403,8 @@ grid: {
 **Three-dimensional array** — a stack of 2D grids (layers), accessed with three indices `[layer][row][col]`:
 
 ```d2
+direction: right
+
 L0: "Layer 0  (a full size2 × size1 grid)" {
   grid-columns: 4
   grid-gap: 0
@@ -458,6 +462,8 @@ To understand how multidimensional arrays are useful and what a dimension repres
 Instead of storing each student's age in a separate variable, we can use a regular (one-dimensional) array to store all this data under a single variable. The size of the array is equal to the number of students in the class (`size1`).
 
 ```d2
+direction: right
+
 age: age {
   grid-columns: 7
   grid-gap: 0
@@ -491,6 +497,8 @@ The idea: create an array of arrays where
 - the **outer array** is a collection of those inner arrays, one per class (size `size2`)
 
 ```d2
+direction: right
+
 age: age {
   grid-rows: 6
   grid-gap: 6
@@ -540,6 +548,8 @@ Instead of creating multiple 2D arrays (one per school), we create a single **th
 - Each item inside that is a 1D array of size `size1` (students per class)
 
 ```d2
+direction: right
+
 s0: "School 0  (one 2D array of size size2 × size1)" {
   grid-rows: 3
   grid-gap: 6
@@ -949,6 +959,8 @@ Let us revisit our memory model before diving deeper into how multidimensional a
 Memory is logically organized in RAM as a **linear/single-dimensional** sequence of blocks. Every block has a unique identifier that serves as its address and can be used to locate it in memory. Data in memory can only be accessed if its address is known.
 
 ```d2
+direction: right
+
 mem: "Linear memory" {
   grid-columns: 8
   grid-gap: 0
@@ -1007,6 +1019,8 @@ addr -> mem.b3
 Remember, computer memory is organized as a one-dimensional, linear sequence of blocks, so multidimensional arrays cannot be stored directly. To represent an N-dimensional array in memory, we must map it onto a one-dimensional array.
 
 ```d2
+direction: right
+
 logical: "Logical N-dimensional space" {
   grid-rows: 4
   grid-gap: 6

@@ -35,6 +35,8 @@ Think of two conveyor belts running side by side. Each belt carries items in ord
 Neither belt ever rewinds. You just decide, at each step, which hand moves forward.
 
 ```d2
+direction: right
+
 arr1: "arr1  (size N)" {
   grid-columns: 5
   grid-gap: 0
@@ -238,6 +240,8 @@ s = "aec",   t = "abcde"  →  False  (e appears before c in t, not after)
 ```
 
 ```d2
+direction: right
+
 tt: "t = a b c d e" {
   grid-columns: 5
   grid-gap: 0
@@ -741,6 +745,8 @@ Your first instinct is to merge from the front: compare `arr1[0]` and `arr2[0]`,
 `arr1` is the destination *and* a source. The moment you write into `arr1[0]`, you destroy the element that was already there. You'd have to shift everything one position to the right to make room first — and that's O(N) work per insert, O(N²) total.
 
 ```d2
+direction: right
+
 bad: "Front-to-back: destroys arr1[0] before reading it" {
   grid-columns: 5
   grid-gap: 0

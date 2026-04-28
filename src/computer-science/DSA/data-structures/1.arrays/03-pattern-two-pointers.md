@@ -254,6 +254,8 @@ Output: arr is modified to [5, 4, 3, 2, 1]
 ```
 
 ```d2
+direction: right
+
 before: "Original" {
   grid-columns: 5
   grid-gap: 0
@@ -289,6 +291,8 @@ The naive approach copies elements in reverse into a temporary array, then copie
 2. Walk `temp` forwards and copy back into `arr`
 
 ```d2
+direction: right
+
 ORIG: "Original arr" {
   grid-columns: 5
   grid-gap: 0
@@ -1220,6 +1224,8 @@ You already know how to reverse a contiguous block of characters with two pointe
 The key insight: **spaces act as word boundaries**. Walk through the array character by character. When you find the start of a word, scan forward to find its end (the next space or the array boundary). Now you have a `[word_start, word_end]` range — apply the two-pointer reversal to that range. Then continue scanning for the next word.
 
 ```d2
+direction: right
+
 INPUT: "Input:  't h e   s k y'" {
   grid-columns: 7
   grid-gap: 0
@@ -1438,6 +1444,8 @@ You already have the exact tool for this: the two-pointer reversal from "Flip Ch
 For multiple segments, simply apply the two-pointer reversal once per segment. Each reversal is independent — the segments don't overlap, so the order you process them in doesn't matter.
 
 ```d2
+direction: right
+
 ORIG: "Original:  [1, 2, 3, 4, 5, 6, 7, 8]" {
   grid-columns: 8
   grid-gap: 0

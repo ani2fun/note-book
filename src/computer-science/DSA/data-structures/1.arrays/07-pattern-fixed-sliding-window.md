@@ -32,6 +32,8 @@ What if you could slide the window forward in one subtraction and one addition?
 Picture a train car moving along a track. The car has a fixed number of seats — say, four. As the train inches forward, one new passenger boards at the front door and one passenger exits at the back door. The total passenger count shifts by exactly those two people — you never need to recount every seat.
 
 ```d2
+direction: right
+
 arr: "Before slide" {
   grid-columns: 6
   grid-gap: 0
@@ -53,6 +55,8 @@ e -> arr.a3
 <p align="center"><strong>Window [2, 5, 1, 3] — <code>start=0</code>, <code>end=3</code>, sum = 11.</strong></p>
 
 ```d2
+direction: right
+
 arr: "After one slide" {
   grid-columns: 6
   grid-gap: 0
@@ -376,6 +380,8 @@ Answer: 12.75
 ```
 
 ```d2
+direction: right
+
 w1: "Window 1: [1, 12, -5, -6]  avg = 0.50" {
   grid-columns: 6
   grid-gap: 0
@@ -872,6 +878,8 @@ Each element is either a `1` or a `0`. The aggregate we care about is the **coun
 This is the fixed sliding window template with a count aggregate instead of a sum aggregate. The mechanics are identical — only the add and remove operations differ.
 
 ```d2
+direction: right
+
 w1: "Window [1,0,1,1]: ones=3" {
   grid-columns: 8
   grid-gap: 0
@@ -1090,6 +1098,8 @@ The aggregate here is the **count of negative numbers** in the current window. W
 Unlike Maximum Ones (which tracked the best count) or Subarray Size Equals K (which tracked a match count), this problem records the count for **every** window position. The result is an array, not a single number.
 
 ```d2
+direction: right
+
 w1: "Window [-1, 2, -3]: neg_count=2" {
   grid-columns: 5
   grid-gap: 0

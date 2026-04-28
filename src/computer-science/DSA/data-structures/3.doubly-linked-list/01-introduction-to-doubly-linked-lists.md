@@ -599,6 +599,8 @@ When represented logically in a diagram, these nodes might look sequential (left
 
 ```d2
 mem: "Physical memory — nodes live at arbitrary addresses" {
+  grid-columns: 4
+  grid-gap: 16
   n1: |md
     addr 0x1A4
 

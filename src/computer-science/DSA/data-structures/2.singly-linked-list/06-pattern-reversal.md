@@ -26,6 +26,8 @@ Many linked list problems require us to reverse the entire list or a part of it.
 The reversal pattern is a classification of linked list problems that can be solved using the linked list reversal algorithm.
 
 ```d2
+direction: right
+
 before: "Before — segment [start, end]" {
   direction: right
   p: "·"
@@ -64,13 +66,15 @@ In this course, we will learn more about the linked list reversal algorithm and 
 Reversing the entire linked list is a special case of the generic reversal algorithm to reverse a segment between `start` and `end`. We first look at this special case as it has a much simpler implementation and is used in most linked list problems that require a reversal. Consider we are given a linked list denoted by `head` and need to reverse it completely.
 
 ```d2
+direction: right
+
 before: Before {
   direction: right
   h: head {shape: oval}
-  n1: {value: 5; next}
-  n2: {value: 7; next}
-  n3: {value: 3; next}
-  n4: {value: 10; next: "null"}
+  n1: {grid-columns: 2; grid-gap: 0; value: 5; next}
+  n2: {grid-columns: 2; grid-gap: 0; value: 7; next}
+  n3: {grid-columns: 2; grid-gap: 0; value: 3; next}
+  n4: {grid-columns: 2; grid-gap: 0; value: 10; next: "null"}
   h -> n1.value
   n1.next -> n2.value
   n2.next -> n3.value
@@ -80,10 +84,10 @@ before: Before {
 after: After {
   direction: right
   h: head {shape: oval}
-  n1: {value: 10; next}
-  n2: {value: 3; next}
-  n3: {value: 7; next}
-  n4: {value: 5; next: "null"}
+  n1: {grid-columns: 2; grid-gap: 0; value: 10; next}
+  n2: {grid-columns: 2; grid-gap: 0; value: 3; next}
+  n3: {grid-columns: 2; grid-gap: 0; value: 7; next}
+  n4: {grid-columns: 2; grid-gap: 0; value: 5; next: "null"}
   h -> n1.value
   n1.next -> n2.value
   n2.next -> n3.value
@@ -329,6 +333,8 @@ Reversing a segment between two nodes is the generic case of the reversal algori
 For this example, the two references can never be `null` and will always point to some node in the list such that `start` comes before `end` when traversing the list in the forward direction from `head`.
 
 ```d2
+direction: right
+
 before: "Before — reverse segment [start, end] inclusive" {
   direction: right
   h: head {shape: oval}
@@ -684,12 +690,14 @@ To better understand the problems that can be solved by directly applying the li
 > **Problem statement:** Given a singly linked list, reverse it in place
 
 ```d2
+direction: right
+
 before: Input {
   direction: right
-  n1: {value: 5; next}
-  n2: {value: 7; next}
-  n3: {value: 3; next}
-  n4: {value: 10; next: "null"}
+  n1: {grid-columns: 2; grid-gap: 0; value: 5; next}
+  n2: {grid-columns: 2; grid-gap: 0; value: 7; next}
+  n3: {grid-columns: 2; grid-gap: 0; value: 3; next}
+  n4: {grid-columns: 2; grid-gap: 0; value: 10; next: "null"}
   n1.next -> n2.value
   n2.next -> n3.value
   n3.next -> n4.value
@@ -697,10 +705,10 @@ before: Input {
 
 after: "Output (in-place reversal)" {
   direction: right
-  n1: {value: 10; next}
-  n2: {value: 3; next}
-  n3: {value: 7; next}
-  n4: {value: 5; next: "null"}
+  n1: {grid-columns: 2; grid-gap: 0; value: 10; next}
+  n2: {grid-columns: 2; grid-gap: 0; value: 3; next}
+  n3: {grid-columns: 2; grid-gap: 0; value: 7; next}
+  n4: {grid-columns: 2; grid-gap: 0; value: 5; next: "null"}
   n1.next -> n2.value
   n2.next -> n3.value
   n3.next -> n4.value

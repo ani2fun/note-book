@@ -28,6 +28,8 @@ This is the last hash-table pattern in the section, and it's the one that finish
 The **prefix sum** of an array `arr` at index `i` is the sum of all elements from `arr[0]` through `arr[i]`, inclusive. Define `P[0] = 0` and `P[i] = arr[0] + arr[1] + ... + arr[i-1]` for `i ≥ 1`. With this convention, the sum of any subarray `arr[l..r]` equals **`P[r+1] − P[l]`** — a single subtraction once the prefix sums are computed.
 
 ```d2
+direction: right
+
 arr: arr {
   grid-columns: 6
   grid-gap: 0
@@ -347,6 +349,8 @@ If the problem can be rephrased as "two prefix values that differ by D" (or "two
 The encoding trick: **treat 0 as −1 and 1 as +1**. Now "equal counts" becomes "subarray sum = 0", which becomes "two prefix sums are equal" — and the same-value-search flavour kicks in.
 
 ```d2
+direction: right
+
 arr: arr {
   grid-columns: 7
   grid-gap: 0

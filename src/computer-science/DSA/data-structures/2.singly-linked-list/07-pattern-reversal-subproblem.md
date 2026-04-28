@@ -39,15 +39,17 @@ Let's consider an example problem and see how to break it down into smaller subp
 Consider the following example with`k = 3`for a linked list of size 7.
 
 ```d2
+direction: right
+
 before: "Before — list = [1, 2, 3, 4, 5, 6, 7], k = 3" {
   direction: right
-  n1: {value: 1; next}
-  n2: {value: 2; next}
-  n3: {value: 3; next}
-  n4: {value: 4; next}
-  n5: {value: 5; next}
-  n6: {value: 6; next}
-  n7: {value: 7; next: "null"}
+  n1: {grid-columns: 2; grid-gap: 0; value: 1; next}
+  n2: {grid-columns: 2; grid-gap: 0; value: 2; next}
+  n3: {grid-columns: 2; grid-gap: 0; value: 3; next}
+  n4: {grid-columns: 2; grid-gap: 0; value: 4; next}
+  n5: {grid-columns: 2; grid-gap: 0; value: 5; next}
+  n6: {grid-columns: 2; grid-gap: 0; value: 6; next}
+  n7: {grid-columns: 2; grid-gap: 0; value: 7; next: "null"}
   n1.next -> n2.value
   n2.next -> n3.value
   n3.next -> n4.value
@@ -58,13 +60,13 @@ before: "Before — list = [1, 2, 3, 4, 5, 6, 7], k = 3" {
 
 after: "After — each group of 3 reversed in place (the trailing '7' stays put)" {
   direction: right
-  n3: {value: 3; next}
-  n2: {value: 2; next}
-  n1: {value: 1; next}
-  n6: {value: 6; next}
-  n5: {value: 5; next}
-  n4: {value: 4; next}
-  n7: {value: 7; next: "null"}
+  n3: {grid-columns: 2; grid-gap: 0; value: 3; next}
+  n2: {grid-columns: 2; grid-gap: 0; value: 2; next}
+  n1: {grid-columns: 2; grid-gap: 0; value: 1; next}
+  n6: {grid-columns: 2; grid-gap: 0; value: 6; next}
+  n5: {grid-columns: 2; grid-gap: 0; value: 5; next}
+  n4: {grid-columns: 2; grid-gap: 0; value: 4; next}
+  n7: {grid-columns: 2; grid-gap: 0; value: 7; next: "null"}
   n3.next -> n2.value
   n2.next -> n1.value
   n1.next -> n6.value
@@ -150,6 +152,8 @@ n6 -> n7
 After reversing the first k-group, we need to update the `head` of the list, as the previous `end` node will be the new head of the list.
 
 ```d2
+direction: right
+
 before: "Before first reversal" {
   direction: right
   h: head {shape: oval}

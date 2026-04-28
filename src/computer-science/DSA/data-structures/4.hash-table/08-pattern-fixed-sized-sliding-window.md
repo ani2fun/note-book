@@ -30,6 +30,8 @@ Some problems hand you a sequence and ask a question about *every contiguous win
 The sliding-window technique cuts this to **O(N)** by exploiting a beautiful observation: when the window moves one step right, *almost everything inside it stays the same*. Only **two** elements change: the one being added on the right, and the one falling off on the left. If we keep a running summary of the window in a hash map, we can update it in O(1) per shift instead of recomputing from scratch.
 
 ```d2
+direction: right
+
 arr: input array {
   grid-columns: 7
   grid-gap: 0

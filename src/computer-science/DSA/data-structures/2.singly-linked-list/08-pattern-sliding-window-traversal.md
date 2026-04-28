@@ -410,6 +410,8 @@ Let's consider the following problem as an example to better understand how to i
 > **Problem statement:** Given a list and a value `k` remove the kth node from the end.
 
 ```d2
+direction: right
+
 before: "Before — remove the 3rd node from the end" {
   direction: right
   n1: "1"

@@ -73,6 +73,8 @@ Because overlap is a **local** phenomenon. At any instant, overlap is determined
 Walk the interval array once and emit two point records per interval.
 
 ```d2
+direction: right
+
 intervals: "arr (intervals)" {
   grid-columns: 3
   grid-gap: 16
@@ -106,6 +108,8 @@ The split doubles memory cost to `O(N)` — but it gives us a **flat, homogeneou
 Sort the combined array in **non-decreasing order of coordinate value**. When two points share a coordinate, most problems break ties by putting **`'end'` before `'start'`** — we'll see why in the next section. For now, notice a beautiful coincidence: in ASCII, `'e' < 's'`, so sorting tuples `(coord, tag)` naturally produces the right order at no extra cost.
 
 ```d2
+direction: right
+
 before: "Unsorted points" {
   grid-columns: 6
   grid-gap: 8
@@ -142,6 +146,8 @@ After this step, the `points` array is just the x-axis laid flat. Each index is 
 Walk the sorted array from left to right. At each point, update a **state variable** that captures the answer-so-far. The sweep line is no longer a real line — it's the **loop counter**. Each iteration is equivalent to having the imaginary line cross one more event on the axis.
 
 ```d2
+direction: right
+
 axis: "sorted points on the x-axis" {
   grid-columns: 6
   grid-gap: 0
@@ -206,6 +212,8 @@ Imagine a tiny integer floating just above the x-axis, labelled `overlap`. As th
 At every instant, `overlap` tells you **exactly how many intervals are active right now**. And because the counter only changes at event points (never between them), you don't need to check every instant — just every point. The maximum value `overlap` ever reaches is the answer we're after.
 
 ```d2
+direction: right
+
 timeline: "Three intervals on the axis" {
   grid-columns: 3
   grid-gap: 16
@@ -270,6 +278,8 @@ That's the whole idea. Everything else in this lesson is bookkeeping around that
 Start exactly the same way as the previous section: split every interval into two labelled points.
 
 ```d2
+direction: right
+
 in_arr: "arr (intervals)" {
   grid-columns: 3
   grid-gap: 16
@@ -320,6 +330,8 @@ This is the one place you can get subtly wrong. Consider two intervals `[1, 3]` 
 **Convention:** two intervals overlap iff one is still active *strictly before* the other begins. Touching intervals like these are treated as **non-overlapping** — the first closes **at the exact instant** the second opens. To make the sweep honour that convention, we must process the `end` event at `x = 3` **before** the `start` event at the same coordinate. Otherwise the counter briefly reads `overlap = 2` at `x = 3` and misreports a false overlap.
 
 ```d2
+direction: right
+
 wrong: "'s' before 'e' on ties (WRONG for touching = non-overlapping)" {
   grid-columns: 4
   grid-gap: 0
@@ -843,6 +855,8 @@ flowchart TB
 > **Problem statement:** Given an array of meeting times `meetings` where each `meetings[i] = [start_i, end_i]`, find the **minimum number of meeting rooms** required so that every meeting can happen without being interrupted.
 
 ```d2
+direction: right
+
 meetings: "4 meeting windows" {
   grid-columns: 4
   grid-gap: 16
@@ -1229,6 +1243,8 @@ Explanation: No meetings means no rooms needed.
 The minimum number of rooms is exactly the maximum number of meetings running at any single instant. Not "most meetings in a day" (that could be hundreds spread over time) — the **peak concurrency**. Think of rooms as a pool: a room is in use while its meeting runs and is returned the moment the meeting ends. The question is: during the busiest instant of the day, how deep does the pool have to be?
 
 ```d2
+direction: right
+
 day: "Day with 4 meetings" {
   grid-columns: 4
   grid-gap: 16
@@ -1712,6 +1728,8 @@ Explanation: All four active at t=4 → peak 4. Remove two to bring peak down to
 Think of `k` as a **capacity** — the number of lanes on a highway, parallel servers, concurrent calls a receptionist can handle. Whenever more than `k` intervals are active simultaneously, the excess must go — someone gets turned away. The question: what is the smallest number of intervals we can drop so the peak concurrency never exceeds `k`?
 
 ```d2
+direction: right
+
 before: "Before: peak overlap = 3" {
   grid-columns: 4
   grid-gap: 16
@@ -2379,6 +2397,8 @@ Explanation: Peak = 1 (no actual overlap). Earliest active window is [1,2).
 Not a single *instant* — a continuous **time range** during which concurrency stays at its peak. Between events, concurrency is constant (nothing changes until the next start or end). So the busiest interval is always bounded by **two consecutive event coordinates**: it begins at the moment concurrency hits its peak and ends at the next event that changes the count.
 
 ```d2
+direction: right
+
 timeline: "Three intervals" {
   grid-columns: 3
   grid-gap: 16
@@ -2966,6 +2986,8 @@ Explanation: A single task with load 100 → peak is 100.
 Instead of counting **how many** intervals are active (each contributing +1 to the counter), we sum **how much** they contribute — each interval adds its own `load` at its start and removes the same `load` at its end. The sweep is identical; the delta is weighted.
 
 ```d2
+direction: right
+
 loads: "Three tasks with loads" {
   grid-columns: 3
   grid-gap: 16

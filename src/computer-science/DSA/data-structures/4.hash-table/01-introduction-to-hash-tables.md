@@ -416,6 +416,8 @@ The classic example is the **modulo function**, `f(x) = x mod m`. If your keys a
 direction: right
 
 keys: Domain (12 keys) {
+  grid-columns: 4
+  grid-gap: 8
   k1: k1
   k2: k2
   k3: k3

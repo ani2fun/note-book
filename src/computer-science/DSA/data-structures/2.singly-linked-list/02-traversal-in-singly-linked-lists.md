@@ -26,6 +26,8 @@ Arrays and singly linked lists are both linear data structures. To better unders
 In arrays, we have indexes to access the individual items of the array, e.g. `0`, `1`, `2`, etc, and for traversal, we just loop on the size of the array and traverse it with the loop control variable as our array index.
 
 ```d2
+direction: right
+
 arr: "Array in memory — contiguous, index-addressable" {
   grid-columns: 4
   grid-gap: 0

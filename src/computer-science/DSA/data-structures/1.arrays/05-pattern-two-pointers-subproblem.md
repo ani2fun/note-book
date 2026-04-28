@@ -45,6 +45,8 @@ Output: arr = [5, 6, 7, 8, 1, 2, 3, 4]
 ```
 
 ```d2
+direction: right
+
 before: "Before  (k=4)" {
   grid-columns: 8
   grid-gap: 0
@@ -83,6 +85,8 @@ before -> after: "rotate left by k=4"
 Copy elements at k-shifted indices into a temp array, then copy back:
 
 ```d2
+direction: right
+
 orig: "Original arr" {
   grid-columns: 8
   grid-gap: 0
@@ -234,6 +238,8 @@ So the full chain of reasoning is:
 3. Reverse the entire array: `arr[0..n-1]`
 
 ```d2
+direction: right
+
 s0: "Original:  [1, 2, 3, 4 | 5, 6, 7, 8]" {
   grid-columns: 8
   grid-gap: 0
@@ -480,6 +486,8 @@ Reversing a segment `[start..end]` is the canonical two-pointer direct applicati
 ## The Three-Reversal Strategy (Visualised)
 
 ```d2
+direction: right
+
 s0: "Original:  [1, 2 | 3, 4, 5]  (HEAD=2, TAIL=3)" {
   grid-columns: 5
   grid-gap: 0

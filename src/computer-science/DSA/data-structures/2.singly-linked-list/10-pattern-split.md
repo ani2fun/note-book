@@ -47,6 +47,8 @@ flowchart LR
 <p align="center"><strong>The split pattern — every node is routed to one of <code>k</code> output lists by a classifier function <code>f</code>. Nothing is copied; the original nodes are re-linked into their destination list.</strong></p>
 
 ```d2
+direction: right
+
 before: Original list {
   direction: right
   a1: "1"

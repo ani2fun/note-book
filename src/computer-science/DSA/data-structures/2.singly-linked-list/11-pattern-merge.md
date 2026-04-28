@@ -382,6 +382,8 @@ Let's consider the following problem as an example to better understand how to i
 > **Problem statement:** Given two singly linked lists, merge them by splicing alternate nodes from both lists together. The merged list should start with the first node of the first list.
 
 ```d2
+direction: right
+
 before: Two input lists {
   a: List A {
     direction: right

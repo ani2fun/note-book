@@ -34,6 +34,8 @@ Inserting at the beginning of a linked list is a fundamental and commonly used o
 In this scenario, if the linked list is empty, the **head** would be `null`. We need to initialize the **head** node of the linked list and ensure that the pointer of this newly created **head** node is `null`, as this new node will also be the last node of the list.
 
 ```d2
+direction: right
+
 before: "Before — empty list" {
   h1: "head = null" {shape: oval}
 }
@@ -66,6 +68,8 @@ before -> after: "create new node,\nhead = newNode"
 In this scenario, we already have some data in the linked list, so the **head** is not `null`. Therefore, to insert a new node at the beginning of the list, we need to update the pointer of the newly created node to store the reference of the existing **head** node.
 
 ```d2
+direction: right
+
 before: "Before — list = [5, 7, 3]" {
   direction: right
   h: head {shape: oval}
@@ -579,6 +583,8 @@ Inserting at the end of a list is a common operation used to extend the list. Un
 If the linked list is empty, the **head** is `null`. We create a new node and make it the head — it is also the tail since it's the only node.
 
 ```d2
+direction: right
+
 before: "Before — empty list" {
   h1: "head = null" {shape: oval}
 }
@@ -611,6 +617,8 @@ before -> after: "create new node,\nhead = newNode"
 We traverse to the last node (whose `next` is `null`) and link the new node after it.
 
 ```d2
+direction: right
+
 before: "Before — list = [5, 7, 3]" {
   direction: right
   b1: "val: 5"
@@ -1774,6 +1782,8 @@ h -> r
 This is similar to **inserting at the beginning**, which we learned earlier. To determine if the given node is the first node, we compare it to the **head** node. If both are the same object, the given node is the head.
 
 ```d2
+direction: right
+
 before: "Before — node == head" {
   direction: right
   h: head {shape: oval}
@@ -1859,6 +1869,8 @@ problem: "Problem — no predecessor reference" {
 We create a `previous` pointer initialised to `null`. As we traverse, we update both `current` and `previous` together at each step. When `current` reaches the given node, `previous` holds its predecessor. The problem then reduces to **inserting after the previous node** — which we already know how to do.
 
 ```d2
+direction: right
+
 before: "Before — list = [5, 7, 3, 10], insert 6 before node(3)" {
   direction: right
   b1: "val: 5"
@@ -2826,6 +2838,8 @@ n1 -> n2 -> n3
 Traverse the list while keeping a counter starting at 0. Increment the counter on each step. Stop when `counter == X - 1` — this lands us at the node just **before** where we want to insert. The problem then reduces to **inserting after that node**, which we already know.
 
 ```d2
+direction: right
+
 before: "Before — list = [5, 7, 3, 10], X = 2" {
   direction: right
   b1: |md

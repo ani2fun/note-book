@@ -46,6 +46,8 @@ If sorting unlocks Q3 (traversal from both ends becomes meaningful), you almost 
 Let's use `arr = [3, 5, 2, 8, 7, 1, 9, 4]`, target = 13.
 
 ```d2
+direction: right
+
 arr: "arr = [3, 5, 2, 8, 7, 1, 9, 4],  target = 13" {
   grid-columns: 8
   grid-gap: 0
@@ -249,6 +251,8 @@ The critical observation: sorting establishes a special relationship between ite
 ## Two-Pointer Solution
 
 ```d2
+direction: right
+
 arr: "Sorted: [1, 2, 3, 4, 5, 7, 8, 9],  target = 13" {
   grid-columns: 8
   grid-gap: 0
@@ -332,6 +336,8 @@ This is the crucial part. Why is it safe to discard elements?
 `arr[right]` is the maximum value available. If even the maximum can't make `arr[left]` reach `target`, no other element can either. Every pair containing `arr[left]` has already been virtually checked — all have sum < target.
 
 ```d2
+direction: right
+
 arr: "[1, 2, 3, 4, 5, 7, 8, 9],  target = 13" {
   grid-columns: 8
   grid-gap: 0
@@ -365,6 +371,8 @@ arr.a0 -> note: "all pairs < 13" {style.stroke-dash: 3}
 <p align="center"><strong>All pairs containing <code>arr[left]</code> have sum &lt; target — discard <code>arr[left]</code> by incrementing <code>left</code>.</strong></p>
 
 ```d2
+direction: right
+
 arr: "After left++:  [✗, 2, 3, 4, 5, 7, 8, 9]" {
   grid-columns: 8
   grid-gap: 0
@@ -392,6 +400,8 @@ R -> arr.a7
 `arr[left]` is the minimum of all remaining elements. If even the minimum makes `arr[right]` exceed `target`, no other element will do better. Every pair containing `arr[right]` exceeds `target`.
 
 ```d2
+direction: right
+
 arr: "Remaining: [2, 3, 4, 5, 7, 8, 9],  target = 13" {
   grid-columns: 7
   grid-gap: 0

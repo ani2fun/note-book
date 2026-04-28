@@ -47,6 +47,8 @@ When the list is empty, any attempt to delete a node is unnecessary because ther
 Update **head** to hold the reference of the next node (the second node), effectively unlinking the first node. In GC languages (Java, Python, JS), the old head is automatically collected. In C/C++, we explicitly free/delete it.
 
 ```d2
+direction: right
+
 before: "Before — list = [5, 7, 3, 10]" {
   direction: right
   h: head {shape: oval}
@@ -745,6 +747,8 @@ Deleting the last node is the same as deleting the first node when only one node
 In this scenario, we need to update the pointer of the second last node in the list to hold `null` and then delete the last node. We need access to the list's last and second last nodes to accomplish this. We will traverse the list from the beginning while keeping track of the **current** and  nodes. This way, when we reach the last node, we will have access to the second last node. Thereafter, we can update the pointer of the second last node to `null`, or more intuitively, to the next of the last node, which should already be `null`, and then delete the last node.
 
 ```d2
+direction: right
+
 before: "Before — walk with current + previous" {
   direction: right
   h: head {shape: oval}
@@ -1644,6 +1648,8 @@ When the list is empty, meaning it contains no elements, any attempt to delete a
 If the data matches the first node, this case becomes the same as **deleting the first node**. We update the **head** to store the reference to the second node and delete the old head.
 
 ```d2
+direction: right
+
 before: "Before — target is the head" {
   direction: right
   h: head {shape: oval}
@@ -1698,6 +1704,8 @@ before -> after: "head = head.next"
 To delete a node that is not the first node of the linked list, we need access to the node 1 step before the one to be deleted. We will traverse the list from the beginning while keeping track of the **current** and nodes. This way, when we reach the node with the given data, we will have access to its previous node, which we need to update.Deleting the given node involves a three-step process.
 
 ```d2
+direction: right
+
 before: "Before — walk with prev + current" {
   direction: right
   h: head {shape: oval}
@@ -3352,6 +3360,8 @@ n3.value -> result: "no successor to delete" {style.stroke-dash: 3}
 To delete a node after a given node, we can update the pointer of the given node to skip over the node that needs to be deleted. Then, we can remove the node that we want to delete.
 
 ```d2
+direction: right
+
 before: "Before — delete the node after 'given'" {
   direction: right
   h: head {shape: oval}
@@ -3774,6 +3784,8 @@ n1.value -> result: "no predecessor to delete" {style.stroke-dash: 3}
 This is a unique situation because removing the node before the second node essentially means deleting the linked list's head node. As learned earlier, this scenario is identical to **deleting the first node**. We need to update the head to store the reference to the second node and then delete the old head.
 
 ```d2
+direction: right
+
 before: "Before — 'given' is the second node" {
   direction: right
   h: head {shape: oval}
@@ -3828,6 +3840,8 @@ before -> after: "head = head.next"
 To delete the node before a given node, we need to access the node two steps before the given node. We traverse the linked list while keeping track of the **current**,  and **previousToPrevious** nodes. As soon as we reach the given node, we update the pointer of the **previousToPrevious** node to hold the reference to the current node and then delete the node.
 
 ```d2
+direction: right
+
 before: "Before — walk with prev + current" {
   direction: right
   h: head {shape: oval}
@@ -4479,6 +4493,8 @@ If the list is empty and contains no elements, we cannot find the given node bec
 If the given node matches the first node, this case becomes the same as **deleting the first node**. We update the **head** to store the reference to the second node and delete the old head.
 
 ```d2
+direction: right
+
 before: "Before — target is the head" {
   direction: right
   h: head {shape: oval}
@@ -4533,6 +4549,8 @@ before -> after: "head = head.next"
 To delete a node that is not the first node of the linked list, we need access to the node 1 step before the one to be deleted. We will traverse the list from the beginning while keeping track of the **current** and nodes. This way, when we reach the given node, we will have access to its previous node, which we need to update. Deleting the given node involves a three step process.
 
 ```d2
+direction: right
+
 before: "Before — walk with prev + current" {
   direction: right
   h: head {shape: oval}
@@ -5181,6 +5199,8 @@ X = 0
 When we need to delete a specific node from a list, we should traverse the list until we reach the node just before the one we want to delete. Keep track of the current node and traverse `X-1` steps instead of `X`. At the end of the loop, we will reach the node one step before the node that needs to be deleted. Then, the problem becomes **deleting a node after a given node**, where the given node is the node one step before the node that has to be deleted. Update the reference in the given node's pointer to point to the node after the one that has to be deleted. Once the connections have been updated, safely delete the next node.
 
 ```d2
+direction: right
+
 before: "X = 2 within a list of size 5" {
   direction: right
   h: head {shape: oval}

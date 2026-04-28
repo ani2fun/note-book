@@ -64,6 +64,8 @@ The two requirements pull in opposite directions:
 The classic answer: **doubly-linked list + hash map**. The list stores the entries in MRU-to-LRU order: front of list = most recently used, back of list = least recently used. The hash map stores `key → pointer to that key's node`. Both structures hold the *same* nodes (the list owns them; the map references them).
 
 ```d2
+direction: right
+
 map: hash map {
   m1: "1 -> *"
   m2: "3 -> *"
@@ -595,6 +597,8 @@ The composite trick: **dynamic array + hash map**, where the array stores the va
 That swap-with-last is what avoids the O(N) shift. The only constraint: ordering inside the array doesn't matter — perfect for a *set* (which is order-agnostic by definition).
 
 ```d2
+direction: right
+
 before: "before remove(2)" {
   a1: "arr: [2, 4, 6]"
   m1: "map: {2->0, 4->1, 6->2}"
