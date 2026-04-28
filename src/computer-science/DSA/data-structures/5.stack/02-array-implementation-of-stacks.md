@@ -156,13 +156,8 @@ We'll build the class incrementally — first the skeleton (constructor + stub m
 
 ```d2
 cls: "Stack class" {
-  priv: "private internals" {
-    grid-rows: 3
-    grid-gap: 0
-    a: "arr"
-    t: "topIndex"
-    c: "capacity"
-  }
+  grid-columns: 2
+  grid-gap: 24
   pub: "public API" {
     grid-rows: 5
     grid-gap: 0
@@ -172,7 +167,13 @@ cls: "Stack class" {
     psh: "push(val) → bool"
     pop: "pop() → val"
   }
-  pub -> priv: "" {style.stroke-dash: 3}
+  priv: "private internals" {
+    grid-rows: 3
+    grid-gap: 0
+    a: "arr"
+    t: "topIndex"
+    c: "capacity"
+  }
 }
 ```
 

@@ -369,8 +369,12 @@ fn render_via_d2_cli(source: &str, bin: &str) -> Result<String, String> {
     // d2 reads from stdin and writes to stdout when both paths are "-".
     // Disable colour codes in stderr to keep error messages readable when
     // surfaced through mdbook.
+    //
+    // `--pad 30` tightens d2's default 100-px canvas padding so individual
+    // diagrams don't dominate the viewport on otherwise-tall pages. The
+    // value is small enough to keep arrowheads and labels from clipping.
     let mut child = Command::new(bin)
-        .args(["-", "-"])
+        .args(["--pad", "30", "-", "-"])
         .env("NO_COLOR", "1")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())

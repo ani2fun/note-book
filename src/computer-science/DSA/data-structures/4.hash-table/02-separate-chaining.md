@@ -1033,6 +1033,8 @@ fn main() {
 The hash function is O(1). The total cost of search is therefore the cost of the chain walk at the resulting index. That walk is what determines best, average, and worst case.
 
 ```d2
+direction: right
+
 best: Best case — chain length 1 {
   direction: right
   b0: "[0]"
@@ -1569,6 +1571,8 @@ fn main() {
 Insert pays the same chain-walk cost as search (we have to confirm whether the key is already present), plus an O(1) update or append. The complexity envelope is therefore the same as search.
 
 ```d2
+direction: right
+
 best: "Best — chain empty, append immediately" {
   direction: right
   b0: "[0]"
@@ -2070,6 +2074,8 @@ fn main() {
 Like search and insert, delete walks a single chain. The only extra work — unlinking a node from a doubly linked list, or splicing it out of an array bucket — is O(1) once the node is found.
 
 ```d2
+direction: right
+
 best: "Best — chain empty or first node matches" {
   direction: right
   b0: "[0]"

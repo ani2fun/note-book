@@ -125,6 +125,8 @@ For this lesson we take the **cached-size, no-tail** design — it matches what 
 ## The Operation Map (Visualised)
 
 ```d2
+direction: right
+
 fast: "O(1) operations" {
   style.fill: "#dcfce7"
   style.stroke: "#16a34a"

@@ -143,8 +143,6 @@ Think of a **dimension** as an axis of organisation.
 The moment you add a second axis, you get a grid — and a grid is exactly the right structure for data that has a natural "rows and columns" shape: classes and students, pixels on a screen, cells in a spreadsheet, entries in a matrix.
 
 ```d2
-direction: right
-
 one: "1D Array — 1 axis" {
   arr: {
     grid-columns: 5

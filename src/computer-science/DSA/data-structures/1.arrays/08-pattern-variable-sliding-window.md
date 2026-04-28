@@ -116,6 +116,8 @@ The window always starts with `start = 0` and `end = 0`, representing a zero-siz
 Some problems require computing the output of an aggregate function over **all** subarrays of an array and then aggregating those results into a single value. To solve these naively, you would need to run fixed-sized sliding windows of every size from 1 to N through the array — one pass per size. That is O(N²) total work.
 
 ```d2
+direction: right
+
 s0: "Starting at index 0" {
   grid-columns: 4
   grid-gap: 16
@@ -474,6 +476,8 @@ Let's walk through the complete identification, solution, and proof process on a
 **Problem statement:** Given an integer array `arr`, find the subarray with the largest sum and return the sum.
 
 ```d2
+direction: right
+
 array: "arr = [-2, 1, -3, 4, -1, 2, 1, -5, 4]" {
   grid-columns: 9
   grid-gap: 0
@@ -519,6 +523,8 @@ Three boxes check immediately. The fourth — provable skipping — is the hard 
 The brute-force solution is to use nested loops to find the sum of all possible subarrays. If the sum of any subarray is greater than the maximum seen so far, we update the maximum sum value. Below is an execution of the brute force solution on the array.
 
 ```d2
+direction: right
+
 i0: "Outer loop i=0: all subarrays starting at index 0" {
   grid-columns: 4
   grid-gap: 16

@@ -146,8 +146,6 @@ A quadratic-probing hash table has the same three components as linear probing â
 Identical to linear probing: each slot stores a key, a value, and a state (`EMPTY` / `DELETED` / `OCCUPIED`). The state field plays exactly the same role â€” `EMPTY` short-circuits searches, `DELETED` keeps probe chains alive after deletions.
 
 ```d2
-direction: right
-
 rec: A single Record {
   s: |md
     **state**

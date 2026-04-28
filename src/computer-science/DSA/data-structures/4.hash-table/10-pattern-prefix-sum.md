@@ -72,6 +72,8 @@ Two flavours of the technique come up over and over:
 - **Same-value search** — given a property "subarray X is balanced" (zero-sum, equal 0s and 1s, etc.), encode the property so that "balanced" means *the same prefix value appears twice*. Iterate maintaining `P` and `{prefixSum → first-index}`; whenever `P_current` reappears, the slice between the two indices is balanced.
 
 ```d2
+direction: right
+
 diff: "Difference search — subarray sum = K" {
   d1: "maintain P_current"
   d2: "look up P_current - K in map"
@@ -638,6 +640,8 @@ This is the prefix-sum trick generalised to **prefix products**. Build two array
 Then `product[i] = prefix[i] * suffix[i]`. Two passes (one left-to-right, one right-to-left), no division, O(N) time and O(N) space (which can be optimised to O(1) extra by computing one direction in-place).
 
 ```d2
+direction: right
+
 arr: "arr" {
   grid-columns: 4
   grid-gap: 0

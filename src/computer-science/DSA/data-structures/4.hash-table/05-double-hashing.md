@@ -148,8 +148,6 @@ A double-hashing hash table has the same three components as quadratic probing �
 Same three-state record as the other open-addressing schemes — `state ∈ {EMPTY, DELETED, OCCUPIED}` plus the `(key, value)` pair. The state machine is identical; the only thing that's different is which slots get visited during a probe.
 
 ```d2
-direction: right
-
 rec: A single Record {
   s: |md
     **state**
