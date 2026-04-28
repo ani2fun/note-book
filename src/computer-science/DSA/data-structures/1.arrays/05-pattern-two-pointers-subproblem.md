@@ -132,25 +132,189 @@ temp -> copy: "pass 2: copy back"
 
 <p align="center"><strong>Brute-force rotation using a temporary array — two passes, O(n) extra space.</strong></p>
 
+<div class="lang-tabs">
+
 ```python,editable
+from typing import List
+
 def k_rotate(arr: List[int], k: int) -> None:
     n = len(arr)
-
-    # Normalize k to avoid unnecessary rotations
-    k = k % n
-
-    # Create a temporary array of the same size
+    k = k % n                              # k > n is just (k mod n) rotations.
     temp = [0] * n
-
-    # Copy items into the temp array starting from index k
     for i in range(n):
-        # Rotate if we go out of bounds
-        temp[i] = arr[(i + k) % n]
-
-    # Copy items from the temp array back to the original array
+        temp[i] = arr[(i + k) % n]         # source index wraps with % n.
     for i in range(n):
         arr[i] = temp[i]
+
+
+arr = [1, 2, 3, 4, 5, 6, 7, 8]
+k_rotate(arr, 4)
+print(arr)   # [5, 6, 7, 8, 1, 2, 3, 4]
 ```
+
+```java,editable
+import java.util.Arrays;
+
+public class Main {
+    static void kRotate(int[] arr, int k) {
+        int n = arr.length;
+        k = k % n;
+        int[] temp = new int[n];
+        for (int i = 0; i < n; i++) temp[i] = arr[(i + k) % n];
+        for (int i = 0; i < n; i++) arr[i] = temp[i];
+    }
+
+    public static void main(String[] args) {
+        int[] arr = {1, 2, 3, 4, 5, 6, 7, 8};
+        kRotate(arr, 4);
+        System.out.println(Arrays.toString(arr));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+
+void k_rotate(int* arr, int n, int k) {
+    k = k % n;
+    int* temp = (int*)malloc(n * sizeof(int));
+    for (int i = 0; i < n; i++) temp[i] = arr[(i + k) % n];
+    for (int i = 0; i < n; i++) arr[i]  = temp[i];
+    free(temp);
+}
+
+int main() {
+    int arr[] = {1, 2, 3, 4, 5, 6, 7, 8};
+    int n = 8;
+    k_rotate(arr, n, 4);
+    for (int i = 0; i < n; i++) printf("%d ", arr[i]);
+    printf("\n");
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+void kRotate(std::vector<int>& arr, int k) {
+    int n = (int)arr.size();
+    k = k % n;
+    std::vector<int> temp(n);
+    for (int i = 0; i < n; i++) temp[i] = arr[(i + k) % n];
+    for (int i = 0; i < n; i++) arr[i]  = temp[i];
+}
+
+int main() {
+    std::vector<int> arr = {1, 2, 3, 4, 5, 6, 7, 8};
+    kRotate(arr, 4);
+    for (int v : arr) std::cout << v << " ";
+    std::cout << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  def kRotate(arr: Array[Int], k0: Int): Unit = {
+    val n = arr.length
+    val k = k0 % n
+    val temp = new Array[Int](n)
+    for (i <- 0 until n) temp(i) = arr((i + k) % n)
+    for (i <- 0 until n) arr(i)  = temp(i)
+  }
+
+  val arr = Array(1, 2, 3, 4, 5, 6, 7, 8)
+  kRotate(arr, 4)
+  println(arr.mkString(", "))
+}
+```
+
+```javascript,editable
+function kRotate(arr, k) {
+    const n = arr.length;
+    k = k % n;
+    const temp = new Array(n);
+    for (let i = 0; i < n; i++) temp[i] = arr[(i + k) % n];
+    for (let i = 0; i < n; i++) arr[i]  = temp[i];
+}
+
+const arr = [1, 2, 3, 4, 5, 6, 7, 8];
+kRotate(arr, 4);
+console.log(arr);
+```
+
+```typescript,editable
+function kRotate(arr: number[], k: number): void {
+    const n = arr.length;
+    k = k % n;
+    const temp: number[] = new Array(n);
+    for (let i = 0; i < n; i++) temp[i] = arr[(i + k) % n];
+    for (let i = 0; i < n; i++) arr[i]  = temp[i];
+}
+
+const arr: number[] = [1, 2, 3, 4, 5, 6, 7, 8];
+kRotate(arr, 4);
+console.log(arr);
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func kRotate(arr []int, k int) {
+    n := len(arr)
+    k = k % n
+    temp := make([]int, n)
+    for i := 0; i < n; i++ {
+        temp[i] = arr[(i+k)%n]
+    }
+    for i := 0; i < n; i++ {
+        arr[i] = temp[i]
+    }
+}
+
+func main() {
+    arr := []int{1, 2, 3, 4, 5, 6, 7, 8}
+    kRotate(arr, 4)
+    fmt.Println(arr)
+}
+```
+
+```kotlin,editable
+fun kRotate(arr: IntArray, k0: Int) {
+    val n = arr.size
+    val k = k0 % n
+    val temp = IntArray(n)
+    for (i in 0 until n) temp[i] = arr[(i + k) % n]
+    for (i in 0 until n) arr[i]  = temp[i]
+}
+
+fun main() {
+    val arr = intArrayOf(1, 2, 3, 4, 5, 6, 7, 8)
+    kRotate(arr, 4)
+    println(arr.toList())
+}
+```
+
+```rust,editable
+fn k_rotate(arr: &mut [i32], k: usize) {
+    let n = arr.len();
+    let k = k % n;
+    let mut temp = vec![0i32; n];
+    for i in 0..n { temp[i] = arr[(i + k) % n]; }
+    for i in 0..n { arr[i]  = temp[i]; }
+}
+
+fn main() {
+    let mut arr = [1, 2, 3, 4, 5, 6, 7, 8];
+    k_rotate(&mut arr, 4);
+    println!("{:?}", arr);
+}
+```
+
+</div>
 
 <details>
 <summary><strong>Trace — arr = [1, 2, 3, 4, 5, 6, 7, 8],  k = 4  (brute force)</strong></summary>
@@ -305,37 +469,291 @@ Each reversal is a direct two-pointer application (`left++`, `right--`, swap unt
 
 ## Two-Pointer Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
     def reverse(self, arr: List[int], start: int, end: int) -> None:
-        # Two-pointer in-place reversal:
-        # 'start' moves right, 'end' moves left — they swap and converge
+        # Two-pointer in-place reversal of arr[start..end].
         while start < end:
-            arr[start], arr[end] = arr[end], arr[start]  # Swap the two elements
-            start += 1  # Shrink window from the left
-            end   -= 1  # Shrink window from the right
-        # When start >= end, every pair has been swapped — segment is reversed
+            arr[start], arr[end] = arr[end], arr[start]
+            start += 1
+            end   -= 1
 
     def k_rotations(self, arr: List[int], k: int) -> None:
         n = len(arr)
+        k %= n                          # k > n is just (k mod n) rotations.
 
-        # Normalize k: rotating n times returns the array unchanged,
-        # so k=9 on a length-8 array is the same as k=1
-        k %= n
-
-        # Decompose rotation into 3 targeted reversals (the subproblem strategy):
-        self.reverse(arr, 0, k - 1)   # Step 1: Reverse the LEFT segment  [0 .. k-1]
-        self.reverse(arr, k, n - 1)   # Step 2: Reverse the RIGHT segment  [k .. n-1]
-        self.reverse(arr, 0, n - 1)   # Step 3: Reverse entire array — un-reverses both halves
-                                      #          and places RIGHT before LEFT, achieving the rotation
+        # Three reversals: left half, right half, then the whole thing.
+        # This swaps the order of the two halves with zero extra space.
+        self.reverse(arr, 0, k - 1)
+        self.reverse(arr, k, n - 1)
+        self.reverse(arr, 0, n - 1)
 
 
 arr = [1, 2, 3, 4, 5, 6, 7, 8]
 Solution().k_rotations(arr, 4)
-print(arr)   # Expected: [5, 6, 7, 8, 1, 2, 3, 4]
+print(arr)   # [5, 6, 7, 8, 1, 2, 3, 4]
 ```
+
+```java,editable
+import java.util.Arrays;
+
+public class Main {
+    static class Solution {
+        void reverse(int[] arr, int start, int end) {
+            while (start < end) {
+                int tmp = arr[start];
+                arr[start] = arr[end];
+                arr[end]   = tmp;
+                start++;
+                end--;
+            }
+        }
+
+        void kRotations(int[] arr, int k) {
+            int n = arr.length;
+            k %= n;
+            reverse(arr, 0, k - 1);
+            reverse(arr, k, n - 1);
+            reverse(arr, 0, n - 1);
+        }
+    }
+
+    public static void main(String[] args) {
+        int[] arr = {1, 2, 3, 4, 5, 6, 7, 8};
+        new Solution().kRotations(arr, 4);
+        System.out.println(Arrays.toString(arr));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+void reverse_seg(int* arr, int start, int end) {
+    while (start < end) {
+        int tmp = arr[start];
+        arr[start] = arr[end];
+        arr[end]   = tmp;
+        start++;
+        end--;
+    }
+}
+
+void k_rotations(int* arr, int n, int k) {
+    k %= n;
+    reverse_seg(arr, 0, k - 1);
+    reverse_seg(arr, k, n - 1);
+    reverse_seg(arr, 0, n - 1);
+}
+
+int main() {
+    int arr[] = {1, 2, 3, 4, 5, 6, 7, 8};
+    k_rotations(arr, 8, 4);
+    for (int i = 0; i < 8; i++) printf("%d ", arr[i]);
+    printf("\n");
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+class Solution {
+public:
+    void reverse(std::vector<int>& arr, int start, int end) {
+        while (start < end) {
+            std::swap(arr[start], arr[end]);
+            start++;
+            end--;
+        }
+    }
+    void kRotations(std::vector<int>& arr, int k) {
+        int n = (int)arr.size();
+        k %= n;
+        reverse(arr, 0, k - 1);
+        reverse(arr, k, n - 1);
+        reverse(arr, 0, n - 1);
+    }
+};
+
+int main() {
+    std::vector<int> arr = {1, 2, 3, 4, 5, 6, 7, 8};
+    Solution().kRotations(arr, 4);
+    for (int v : arr) std::cout << v << " ";
+    std::cout << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def reverse(arr: Array[Int], s0: Int, e0: Int): Unit = {
+      var start = s0
+      var end = e0
+      while (start < end) {
+        val tmp = arr(start)
+        arr(start) = arr(end)
+        arr(end)   = tmp
+        start += 1
+        end   -= 1
+      }
+    }
+
+    def kRotations(arr: Array[Int], k0: Int): Unit = {
+      val n = arr.length
+      val k = k0 % n
+      reverse(arr, 0, k - 1)
+      reverse(arr, k, n - 1)
+      reverse(arr, 0, n - 1)
+    }
+  }
+
+  val arr = Array(1, 2, 3, 4, 5, 6, 7, 8)
+  new Solution().kRotations(arr, 4)
+  println(arr.mkString(", "))
+}
+```
+
+```javascript,editable
+class Solution {
+    reverse(arr, start, end) {
+        while (start < end) {
+            [arr[start], arr[end]] = [arr[end], arr[start]];
+            start++;
+            end--;
+        }
+    }
+    kRotations(arr, k) {
+        const n = arr.length;
+        k %= n;
+        this.reverse(arr, 0, k - 1);
+        this.reverse(arr, k, n - 1);
+        this.reverse(arr, 0, n - 1);
+    }
+}
+
+const arr = [1, 2, 3, 4, 5, 6, 7, 8];
+new Solution().kRotations(arr, 4);
+console.log(arr);
+```
+
+```typescript,editable
+class Solution {
+    reverse(arr: number[], start: number, end: number): void {
+        while (start < end) {
+            [arr[start], arr[end]] = [arr[end], arr[start]];
+            start++;
+            end--;
+        }
+    }
+    kRotations(arr: number[], k: number): void {
+        const n = arr.length;
+        k %= n;
+        this.reverse(arr, 0, k - 1);
+        this.reverse(arr, k, n - 1);
+        this.reverse(arr, 0, n - 1);
+    }
+}
+
+const arr: number[] = [1, 2, 3, 4, 5, 6, 7, 8];
+new Solution().kRotations(arr, 4);
+console.log(arr);
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func reverseSeg(arr []int, start, end int) {
+    for start < end {
+        arr[start], arr[end] = arr[end], arr[start]
+        start++
+        end--
+    }
+}
+
+func kRotations(arr []int, k int) {
+    n := len(arr)
+    k %= n
+    reverseSeg(arr, 0, k-1)
+    reverseSeg(arr, k, n-1)
+    reverseSeg(arr, 0, n-1)
+}
+
+func main() {
+    arr := []int{1, 2, 3, 4, 5, 6, 7, 8}
+    kRotations(arr, 4)
+    fmt.Println(arr)
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun reverse(arr: IntArray, s0: Int, e0: Int) {
+        var start = s0
+        var end = e0
+        while (start < end) {
+            val tmp = arr[start]
+            arr[start] = arr[end]
+            arr[end]   = tmp
+            start++
+            end--
+        }
+    }
+
+    fun kRotations(arr: IntArray, k0: Int) {
+        val n = arr.size
+        val k = k0 % n
+        reverse(arr, 0, k - 1)
+        reverse(arr, k, n - 1)
+        reverse(arr, 0, n - 1)
+    }
+}
+
+fun main() {
+    val arr = intArrayOf(1, 2, 3, 4, 5, 6, 7, 8)
+    Solution().kRotations(arr, 4)
+    println(arr.toList())
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn reverse(&self, arr: &mut [i32], start: usize, end: usize) {
+        let mut s = start;
+        let mut e = end;
+        while s < e {
+            arr.swap(s, e);
+            s += 1;
+            e -= 1;
+        }
+    }
+
+    fn k_rotations(&self, arr: &mut [i32], k: usize) {
+        let n = arr.len();
+        let k = k % n;
+        if k > 0 { self.reverse(arr, 0, k - 1); }
+        self.reverse(arr, k, n - 1);
+        self.reverse(arr, 0, n - 1);
+    }
+}
+
+fn main() {
+    let mut arr = [1, 2, 3, 4, 5, 6, 7, 8];
+    Solution.k_rotations(&mut arr, 4);
+    println!("{:?}", arr);
+}
+```
+
+</div>
 
 <details>
 <summary><strong>Trace — arr = [1, 2, 3, 4, 5, 6, 7, 8],  k = 4  (two-pointer, 3 reversals)</strong></summary>
@@ -539,35 +957,303 @@ s2 -> s3: "reverse arr[0..4]"
 
 ## The Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
     def reverse(self, arr: List[int], start: int, end: int) -> None:
         while start < end:
-            arr[start], arr[end] = arr[end], arr[start]  # Swap the outermost unseen pair
-            start += 1  # Shrink window from the left
-            end   -= 1  # Shrink window from the right
-        # When start >= end, every pair has been swapped — segment is fully reversed
+            arr[start], arr[end] = arr[end], arr[start]
+            start += 1
+            end   -= 1
 
     def rotate_right(self, arr: List[int], k: int) -> None:
         n = len(arr)
-        k %= n  # Rotating n times is a no-op; reduce k to its effective range [0, n-1]
-
+        k %= n
         if k == 0:
-            return  # Nothing to do — handles k=0 and k=n cleanly
+            return
 
-        # Split: HEAD = arr[0..n-k-1], TAIL = arr[n-k..n-1]
-        # Goal:  [TAIL | HEAD]
-        self.reverse(arr, n - k, n - 1)   # Step 1: Reverse TAIL  →  scramble it for the final flip
-        self.reverse(arr, 0, n - k - 1)   # Step 2: Reverse HEAD  →  scramble it for the final flip
-        self.reverse(arr, 0, n - 1)        # Step 3: Reverse all   →  un-scrambles both halves in swapped positions
+        # HEAD = arr[0..n-k-1], TAIL = arr[n-k..n-1]. We want [TAIL | HEAD].
+        # Reverse each half, then reverse the whole thing — same identity as left-rotate.
+        self.reverse(arr, n - k, n - 1)
+        self.reverse(arr, 0, n - k - 1)
+        self.reverse(arr, 0, n - 1)
 
 
 arr = [1, 2, 3, 4, 5]
 Solution().rotate_right(arr, 3)
-print(arr)  # Expected: [3, 4, 5, 1, 2]
+print(arr)   # [3, 4, 5, 1, 2]
 ```
+
+```java,editable
+import java.util.Arrays;
+
+public class Main {
+    static class Solution {
+        void reverse(int[] arr, int start, int end) {
+            while (start < end) {
+                int tmp = arr[start];
+                arr[start] = arr[end];
+                arr[end]   = tmp;
+                start++;
+                end--;
+            }
+        }
+
+        void rotateRight(int[] arr, int k) {
+            int n = arr.length;
+            k %= n;
+            if (k == 0) return;
+            reverse(arr, n - k, n - 1);
+            reverse(arr, 0, n - k - 1);
+            reverse(arr, 0, n - 1);
+        }
+    }
+
+    public static void main(String[] args) {
+        int[] arr = {1, 2, 3, 4, 5};
+        new Solution().rotateRight(arr, 3);
+        System.out.println(Arrays.toString(arr));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+void reverse_seg(int* arr, int start, int end) {
+    while (start < end) {
+        int tmp = arr[start];
+        arr[start] = arr[end];
+        arr[end]   = tmp;
+        start++;
+        end--;
+    }
+}
+
+void rotate_right(int* arr, int n, int k) {
+    k %= n;
+    if (k == 0) return;
+    reverse_seg(arr, n - k, n - 1);
+    reverse_seg(arr, 0, n - k - 1);
+    reverse_seg(arr, 0, n - 1);
+}
+
+int main() {
+    int arr[] = {1, 2, 3, 4, 5};
+    rotate_right(arr, 5, 3);
+    for (int i = 0; i < 5; i++) printf("%d ", arr[i]);
+    printf("\n");
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+class Solution {
+public:
+    void reverse(std::vector<int>& arr, int start, int end) {
+        while (start < end) {
+            std::swap(arr[start], arr[end]);
+            start++;
+            end--;
+        }
+    }
+    void rotateRight(std::vector<int>& arr, int k) {
+        int n = (int)arr.size();
+        k %= n;
+        if (k == 0) return;
+        reverse(arr, n - k, n - 1);
+        reverse(arr, 0, n - k - 1);
+        reverse(arr, 0, n - 1);
+    }
+};
+
+int main() {
+    std::vector<int> arr = {1, 2, 3, 4, 5};
+    Solution().rotateRight(arr, 3);
+    for (int v : arr) std::cout << v << " ";
+    std::cout << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def reverse(arr: Array[Int], s0: Int, e0: Int): Unit = {
+      var start = s0
+      var end = e0
+      while (start < end) {
+        val tmp = arr(start)
+        arr(start) = arr(end)
+        arr(end)   = tmp
+        start += 1
+        end   -= 1
+      }
+    }
+
+    def rotateRight(arr: Array[Int], k0: Int): Unit = {
+      val n = arr.length
+      val k = k0 % n
+      if (k == 0) return
+      reverse(arr, n - k, n - 1)
+      reverse(arr, 0, n - k - 1)
+      reverse(arr, 0, n - 1)
+    }
+  }
+
+  val arr = Array(1, 2, 3, 4, 5)
+  new Solution().rotateRight(arr, 3)
+  println(arr.mkString(", "))
+}
+```
+
+```javascript,editable
+class Solution {
+    reverse(arr, start, end) {
+        while (start < end) {
+            [arr[start], arr[end]] = [arr[end], arr[start]];
+            start++;
+            end--;
+        }
+    }
+    rotateRight(arr, k) {
+        const n = arr.length;
+        k %= n;
+        if (k === 0) return;
+        this.reverse(arr, n - k, n - 1);
+        this.reverse(arr, 0, n - k - 1);
+        this.reverse(arr, 0, n - 1);
+    }
+}
+
+const arr = [1, 2, 3, 4, 5];
+new Solution().rotateRight(arr, 3);
+console.log(arr);
+```
+
+```typescript,editable
+class Solution {
+    reverse(arr: number[], start: number, end: number): void {
+        while (start < end) {
+            [arr[start], arr[end]] = [arr[end], arr[start]];
+            start++;
+            end--;
+        }
+    }
+    rotateRight(arr: number[], k: number): void {
+        const n = arr.length;
+        k %= n;
+        if (k === 0) return;
+        this.reverse(arr, n - k, n - 1);
+        this.reverse(arr, 0, n - k - 1);
+        this.reverse(arr, 0, n - 1);
+    }
+}
+
+const arr: number[] = [1, 2, 3, 4, 5];
+new Solution().rotateRight(arr, 3);
+console.log(arr);
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func reverseSeg(arr []int, start, end int) {
+    for start < end {
+        arr[start], arr[end] = arr[end], arr[start]
+        start++
+        end--
+    }
+}
+
+func rotateRight(arr []int, k int) {
+    n := len(arr)
+    k %= n
+    if k == 0 {
+        return
+    }
+    reverseSeg(arr, n-k, n-1)
+    reverseSeg(arr, 0, n-k-1)
+    reverseSeg(arr, 0, n-1)
+}
+
+func main() {
+    arr := []int{1, 2, 3, 4, 5}
+    rotateRight(arr, 3)
+    fmt.Println(arr)
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun reverse(arr: IntArray, s0: Int, e0: Int) {
+        var start = s0
+        var end = e0
+        while (start < end) {
+            val tmp = arr[start]
+            arr[start] = arr[end]
+            arr[end]   = tmp
+            start++
+            end--
+        }
+    }
+
+    fun rotateRight(arr: IntArray, k0: Int) {
+        val n = arr.size
+        val k = k0 % n
+        if (k == 0) return
+        reverse(arr, n - k, n - 1)
+        reverse(arr, 0, n - k - 1)
+        reverse(arr, 0, n - 1)
+    }
+}
+
+fun main() {
+    val arr = intArrayOf(1, 2, 3, 4, 5)
+    Solution().rotateRight(arr, 3)
+    println(arr.toList())
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn reverse(&self, arr: &mut [i32], start: usize, end: usize) {
+        let mut s = start;
+        let mut e = end;
+        while s < e {
+            arr.swap(s, e);
+            s += 1;
+            e -= 1;
+        }
+    }
+
+    fn rotate_right(&self, arr: &mut [i32], k: usize) {
+        let n = arr.len();
+        let k = k % n;
+        if k == 0 { return; }
+        self.reverse(arr, n - k, n - 1);
+        self.reverse(arr, 0, n - k - 1);
+        self.reverse(arr, 0, n - 1);
+    }
+}
+
+fn main() {
+    let mut arr = [1, 2, 3, 4, 5];
+    Solution.rotate_right(&mut arr, 3);
+    println!("{:?}", arr);
+}
+```
+
+</div>
 
 <details>
 <summary><strong>Trace — arr = [1, 2, 3, 4, 5], k = 3</strong></summary>
@@ -780,64 +1466,443 @@ Since the array is sorted, if `arr[i] > 0`, then `arr[left] ≥ arr[i] > 0` and 
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
     def three_sum(self, arr: List[int]) -> List[List[int]]:
-        # Sort the array to enable the two-pointer subproblem approach
         arr.sort()
-        n      = len(arr)
+        n = len(arr)
         result = []
 
         for i in range(n - 2):
-            # Early exit: if arr[i] > 0, all elements from i onward are positive — no triplet sums to 0
             if arr[i] > 0:
-                break
-
-            # Skip duplicate values for the fixed element to avoid duplicate triplets
+                break                              # All remaining are positive → impossible.
             if i > 0 and arr[i] == arr[i - 1]:
-                continue
+                continue                           # Skip duplicate fixed elements.
 
-            # Set up the two-pointer subproblem: find pairs in arr[i+1..n-1] summing to -arr[i]
             left, right = i + 1, n - 1
             target = -arr[i]
 
-            # Run the two-pointer pass on the remaining subarray
             while left < right:
                 total = arr[left] + arr[right]
-
                 if total == target:
                     result.append([arr[i], arr[left], arr[right]])
-
-                    # Skip consecutive left duplicates to avoid duplicate triplets
-                    while left < right and arr[left] == arr[left + 1]:
-                        left += 1
-                    # Skip consecutive right duplicates to avoid duplicate triplets
-                    while left < right and arr[right] == arr[right - 1]:
-                        right -= 1
-
-                    # Move both pointers inward after recording the match
+                    while left < right and arr[left]  == arr[left + 1]:  left  += 1
+                    while left < right and arr[right] == arr[right - 1]: right -= 1
                     left  += 1
                     right -= 1
-
                 elif total < target:
-                    # Sum too small — move left pointer to a larger value
                     left += 1
                 else:
-                    # Sum too large — move right pointer to a smaller value
                     right -= 1
-
         return result
 
 
-# --- Test ---
 sol = Solution()
-print(sol.three_sum([-1, 0, 1, 2, -1, -4]))  # [[-1,-1,2],[-1,0,1]]
-print(sol.three_sum([0, 0, 0, 0]))            # [[0,0,0]]
-print(sol.three_sum([1, 2, 3]))               # []
-print(sol.three_sum([-2, 0, 0, 2, 2]))        # [[-2,0,2]]
+print(sol.three_sum([-1, 0, 1, 2, -1, -4]))   # [[-1,-1,2],[-1,0,1]]
+print(sol.three_sum([0, 0, 0, 0]))             # [[0,0,0]]
+print(sol.three_sum([1, 2, 3]))                # []
+print(sol.three_sum([-2, 0, 0, 2, 2]))         # [[-2,0,2]]
 ```
+
+```java,editable
+import java.util.*;
+
+public class Main {
+    static class Solution {
+        List<List<Integer>> threeSum(int[] arr) {
+            Arrays.sort(arr);
+            int n = arr.length;
+            List<List<Integer>> result = new ArrayList<>();
+
+            for (int i = 0; i < n - 2; i++) {
+                if (arr[i] > 0) break;
+                if (i > 0 && arr[i] == arr[i - 1]) continue;
+                int left = i + 1, right = n - 1, target = -arr[i];
+                while (left < right) {
+                    int total = arr[left] + arr[right];
+                    if (total == target) {
+                        result.add(Arrays.asList(arr[i], arr[left], arr[right]));
+                        while (left < right && arr[left]  == arr[left + 1])  left++;
+                        while (left < right && arr[right] == arr[right - 1]) right--;
+                        left++;
+                        right--;
+                    } else if (total < target) {
+                        left++;
+                    } else {
+                        right--;
+                    }
+                }
+            }
+            return result;
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution s = new Solution();
+        System.out.println(s.threeSum(new int[]{-1, 0, 1, 2, -1, -4}));
+        System.out.println(s.threeSum(new int[]{0, 0, 0, 0}));
+        System.out.println(s.threeSum(new int[]{1, 2, 3}));
+        System.out.println(s.threeSum(new int[]{-2, 0, 0, 2, 2}));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+
+int cmp(const void* a, const void* b) { return (*(int*)a) - (*(int*)b); }
+
+void three_sum(int* arr, int n) {
+    qsort(arr, n, sizeof(int), cmp);
+    printf("[");
+    int first = 1;
+    for (int i = 0; i < n - 2; i++) {
+        if (arr[i] > 0) break;
+        if (i > 0 && arr[i] == arr[i - 1]) continue;
+        int left = i + 1, right = n - 1, target = -arr[i];
+        while (left < right) {
+            int total = arr[left] + arr[right];
+            if (total == target) {
+                if (!first) printf(", ");
+                printf("[%d, %d, %d]", arr[i], arr[left], arr[right]);
+                first = 0;
+                while (left < right && arr[left]  == arr[left + 1])  left++;
+                while (left < right && arr[right] == arr[right - 1]) right--;
+                left++;
+                right--;
+            } else if (total < target) left++;
+            else                       right--;
+        }
+    }
+    printf("]\n");
+}
+
+int main() {
+    int a1[] = {-1, 0, 1, 2, -1, -4}; three_sum(a1, 6);
+    int a2[] = {0, 0, 0, 0};          three_sum(a2, 4);
+    int a3[] = {1, 2, 3};             three_sum(a3, 3);
+    int a4[] = {-2, 0, 0, 2, 2};      three_sum(a4, 5);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+class Solution {
+public:
+    std::vector<std::vector<int>> threeSum(std::vector<int> arr) {
+        std::sort(arr.begin(), arr.end());
+        int n = (int)arr.size();
+        std::vector<std::vector<int>> result;
+
+        for (int i = 0; i < n - 2; i++) {
+            if (arr[i] > 0) break;
+            if (i > 0 && arr[i] == arr[i - 1]) continue;
+            int left = i + 1, right = n - 1, target = -arr[i];
+            while (left < right) {
+                int total = arr[left] + arr[right];
+                if (total == target) {
+                    result.push_back({arr[i], arr[left], arr[right]});
+                    while (left < right && arr[left]  == arr[left + 1])  left++;
+                    while (left < right && arr[right] == arr[right - 1]) right--;
+                    left++;
+                    right--;
+                } else if (total < target) left++;
+                else                       right--;
+            }
+        }
+        return result;
+    }
+};
+
+void print(const std::vector<std::vector<int>>& v) {
+    std::cout << "[";
+    for (size_t i = 0; i < v.size(); i++) {
+        std::cout << "[" << v[i][0] << "," << v[i][1] << "," << v[i][2] << "]";
+        if (i + 1 < v.size()) std::cout << ", ";
+    }
+    std::cout << "]\n";
+}
+
+int main() {
+    Solution s;
+    print(s.threeSum({-1, 0, 1, 2, -1, -4}));
+    print(s.threeSum({0, 0, 0, 0}));
+    print(s.threeSum({1, 2, 3}));
+    print(s.threeSum({-2, 0, 0, 2, 2}));
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def threeSum(arr: Array[Int]): List[List[Int]] = {
+      val sorted = arr.sorted
+      val n = sorted.length
+      val result = scala.collection.mutable.ListBuffer.empty[List[Int]]
+
+      var i = 0
+      while (i < n - 2) {
+        if (sorted(i) > 0) {
+          i = n
+        } else if (i > 0 && sorted(i) == sorted(i - 1)) {
+          i += 1
+        } else {
+          var left = i + 1
+          var right = n - 1
+          val target = -sorted(i)
+          while (left < right) {
+            val total = sorted(left) + sorted(right)
+            if (total == target) {
+              result += List(sorted(i), sorted(left), sorted(right))
+              while (left < right && sorted(left)  == sorted(left + 1))  left  += 1
+              while (left < right && sorted(right) == sorted(right - 1)) right -= 1
+              left  += 1
+              right -= 1
+            } else if (total < target) left  += 1
+            else                       right -= 1
+          }
+          i += 1
+        }
+      }
+      result.toList
+    }
+  }
+
+  val sol = new Solution
+  println(sol.threeSum(Array(-1, 0, 1, 2, -1, -4)))
+  println(sol.threeSum(Array(0, 0, 0, 0)))
+  println(sol.threeSum(Array(1, 2, 3)))
+  println(sol.threeSum(Array(-2, 0, 0, 2, 2)))
+}
+```
+
+```javascript,editable
+class Solution {
+    threeSum(arr) {
+        arr.sort((a, b) => a - b);
+        const n = arr.length;
+        const result = [];
+
+        for (let i = 0; i < n - 2; i++) {
+            if (arr[i] > 0) break;
+            if (i > 0 && arr[i] === arr[i - 1]) continue;
+            let left = i + 1, right = n - 1;
+            const target = -arr[i];
+            while (left < right) {
+                const total = arr[left] + arr[right];
+                if (total === target) {
+                    result.push([arr[i], arr[left], arr[right]]);
+                    while (left < right && arr[left]  === arr[left + 1])  left++;
+                    while (left < right && arr[right] === arr[right - 1]) right--;
+                    left++;
+                    right--;
+                } else if (total < target) {
+                    left++;
+                } else {
+                    right--;
+                }
+            }
+        }
+        return result;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.threeSum([-1, 0, 1, 2, -1, -4]));
+console.log(sol.threeSum([0, 0, 0, 0]));
+console.log(sol.threeSum([1, 2, 3]));
+console.log(sol.threeSum([-2, 0, 0, 2, 2]));
+```
+
+```typescript,editable
+class Solution {
+    threeSum(arr: number[]): number[][] {
+        arr.sort((a, b) => a - b);
+        const n = arr.length;
+        const result: number[][] = [];
+
+        for (let i = 0; i < n - 2; i++) {
+            if (arr[i] > 0) break;
+            if (i > 0 && arr[i] === arr[i - 1]) continue;
+            let left = i + 1, right = n - 1;
+            const target = -arr[i];
+            while (left < right) {
+                const total = arr[left] + arr[right];
+                if (total === target) {
+                    result.push([arr[i], arr[left], arr[right]]);
+                    while (left < right && arr[left]  === arr[left + 1])  left++;
+                    while (left < right && arr[right] === arr[right - 1]) right--;
+                    left++;
+                    right--;
+                } else if (total < target) {
+                    left++;
+                } else {
+                    right--;
+                }
+            }
+        }
+        return result;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.threeSum([-1, 0, 1, 2, -1, -4]));
+console.log(sol.threeSum([0, 0, 0, 0]));
+console.log(sol.threeSum([1, 2, 3]));
+console.log(sol.threeSum([-2, 0, 0, 2, 2]));
+```
+
+```go,editable
+package main
+
+import (
+    "fmt"
+    "sort"
+)
+
+func threeSum(arr []int) [][]int {
+    sort.Ints(arr)
+    n := len(arr)
+    var result [][]int
+
+    for i := 0; i < n-2; i++ {
+        if arr[i] > 0 {
+            break
+        }
+        if i > 0 && arr[i] == arr[i-1] {
+            continue
+        }
+        left, right, target := i+1, n-1, -arr[i]
+        for left < right {
+            total := arr[left] + arr[right]
+            switch {
+            case total == target:
+                result = append(result, []int{arr[i], arr[left], arr[right]})
+                for left < right && arr[left] == arr[left+1] {
+                    left++
+                }
+                for left < right && arr[right] == arr[right-1] {
+                    right--
+                }
+                left++
+                right--
+            case total < target:
+                left++
+            default:
+                right--
+            }
+        }
+    }
+    return result
+}
+
+func main() {
+    fmt.Println(threeSum([]int{-1, 0, 1, 2, -1, -4}))
+    fmt.Println(threeSum([]int{0, 0, 0, 0}))
+    fmt.Println(threeSum([]int{1, 2, 3}))
+    fmt.Println(threeSum([]int{-2, 0, 0, 2, 2}))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun threeSum(arr: IntArray): List<List<Int>> {
+        arr.sort()
+        val n = arr.size
+        val result = mutableListOf<List<Int>>()
+
+        for (i in 0 until n - 2) {
+            if (arr[i] > 0) break
+            if (i > 0 && arr[i] == arr[i - 1]) continue
+            var left = i + 1
+            var right = n - 1
+            val target = -arr[i]
+            while (left < right) {
+                val total = arr[left] + arr[right]
+                when {
+                    total == target -> {
+                        result.add(listOf(arr[i], arr[left], arr[right]))
+                        while (left < right && arr[left]  == arr[left + 1])  left++
+                        while (left < right && arr[right] == arr[right - 1]) right--
+                        left++
+                        right--
+                    }
+                    total < target -> left++
+                    else           -> right--
+                }
+            }
+        }
+        return result
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    println(sol.threeSum(intArrayOf(-1, 0, 1, 2, -1, -4)))
+    println(sol.threeSum(intArrayOf(0, 0, 0, 0)))
+    println(sol.threeSum(intArrayOf(1, 2, 3)))
+    println(sol.threeSum(intArrayOf(-2, 0, 0, 2, 2)))
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn three_sum(&self, arr: &mut [i32]) -> Vec<Vec<i32>> {
+        arr.sort();
+        let n = arr.len() as i32;
+        let mut result: Vec<Vec<i32>> = Vec::new();
+
+        let mut i: i32 = 0;
+        while i < n - 2 {
+            if arr[i as usize] > 0 { break; }
+            if i > 0 && arr[i as usize] == arr[(i - 1) as usize] {
+                i += 1;
+                continue;
+            }
+            let mut left = i + 1;
+            let mut right = n - 1;
+            let target = -arr[i as usize];
+            while left < right {
+                let total = arr[left as usize] + arr[right as usize];
+                if total == target {
+                    result.push(vec![arr[i as usize], arr[left as usize], arr[right as usize]]);
+                    while left < right && arr[left  as usize] == arr[(left  + 1) as usize] { left  += 1; }
+                    while left < right && arr[right as usize] == arr[(right - 1) as usize] { right -= 1; }
+                    left  += 1;
+                    right -= 1;
+                } else if total < target {
+                    left += 1;
+                } else {
+                    right -= 1;
+                }
+            }
+            i += 1;
+        }
+        result
+    }
+}
+
+fn main() {
+    let s = Solution;
+    let mut a1 = [-1, 0, 1, 2, -1, -4]; println!("{:?}", s.three_sum(&mut a1));
+    let mut a2 = [0, 0, 0, 0];          println!("{:?}", s.three_sum(&mut a2));
+    let mut a3 = [1, 2, 3];             println!("{:?}", s.three_sum(&mut a3));
+    let mut a4 = [-2, 0, 0, 2, 2];      println!("{:?}", s.three_sum(&mut a4));
+}
+```
+
+</div>
 
 ---
 
@@ -1034,42 +2099,334 @@ At every step we moved purposefully toward a larger sum because the current tota
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
     def three_sum_closest(self, arr: List[int], target: int) -> int:
-        arr.sort()  # Sorting enables the decisive-direction property for two pointers
-        n       = len(arr)
-        closest = arr[0] + arr[1] + arr[2]  # Initialise with the first valid triplet
+        arr.sort()
+        n = len(arr)
+        closest = arr[0] + arr[1] + arr[2]      # Seed with any valid triplet.
 
-        for i in range(n - 2):  # Fix one element; need at least 2 more for a triplet
+        for i in range(n - 2):
             left, right = i + 1, n - 1
-
             while left < right:
                 total = arr[i] + arr[left] + arr[right]
-
-                # Update closest if this triplet is strictly nearer to target
                 if abs(total - target) < abs(closest - target):
                     closest = total
-
                 if total == target:
-                    return total  # Distance is 0 — impossible to improve, exit immediately
-
+                    return total                # Distance 0 — can't beat that.
                 elif total < target:
-                    left  += 1  # Sum too small; move left to a larger value to close the gap
+                    left += 1
                 else:
-                    right -= 1  # Sum too large; move right to a smaller value to close the gap
-
+                    right -= 1
         return closest
 
 
-# --- Test ---
 sol = Solution()
 print(sol.three_sum_closest([2, 7, 11, 15], 3))   # 20
 print(sol.three_sum_closest([-1, 2, 1, -4], 1))   # 2
 print(sol.three_sum_closest([0, 0, 0], 1))         # 0
 ```
+
+```java,editable
+import java.util.Arrays;
+
+public class Main {
+    static class Solution {
+        int threeSumClosest(int[] arr, int target) {
+            Arrays.sort(arr);
+            int n = arr.length;
+            int closest = arr[0] + arr[1] + arr[2];
+
+            for (int i = 0; i < n - 2; i++) {
+                int left = i + 1, right = n - 1;
+                while (left < right) {
+                    int total = arr[i] + arr[left] + arr[right];
+                    if (Math.abs(total - target) < Math.abs(closest - target)) closest = total;
+                    if (total == target) return total;
+                    else if (total < target) left++;
+                    else                     right--;
+                }
+            }
+            return closest;
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution s = new Solution();
+        System.out.println(s.threeSumClosest(new int[]{2, 7, 11, 15}, 3));
+        System.out.println(s.threeSumClosest(new int[]{-1, 2, 1, -4}, 1));
+        System.out.println(s.threeSumClosest(new int[]{0, 0, 0}, 1));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+
+int cmp(const void* a, const void* b) { return (*(int*)a) - (*(int*)b); }
+
+int abs_int(int x) { return x < 0 ? -x : x; }
+
+int three_sum_closest(int* arr, int n, int target) {
+    qsort(arr, n, sizeof(int), cmp);
+    int closest = arr[0] + arr[1] + arr[2];
+    for (int i = 0; i < n - 2; i++) {
+        int left = i + 1, right = n - 1;
+        while (left < right) {
+            int total = arr[i] + arr[left] + arr[right];
+            if (abs_int(total - target) < abs_int(closest - target)) closest = total;
+            if (total == target) return total;
+            if (total <  target) left++;
+            else                 right--;
+        }
+    }
+    return closest;
+}
+
+int main() {
+    int a1[] = {2, 7, 11, 15};   printf("%d\n", three_sum_closest(a1, 4, 3));
+    int a2[] = {-1, 2, 1, -4};   printf("%d\n", three_sum_closest(a2, 4, 1));
+    int a3[] = {0, 0, 0};        printf("%d\n", three_sum_closest(a3, 3, 1));
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cmath>
+
+class Solution {
+public:
+    int threeSumClosest(std::vector<int> arr, int target) {
+        std::sort(arr.begin(), arr.end());
+        int n = (int)arr.size();
+        int closest = arr[0] + arr[1] + arr[2];
+
+        for (int i = 0; i < n - 2; i++) {
+            int left = i + 1, right = n - 1;
+            while (left < right) {
+                int total = arr[i] + arr[left] + arr[right];
+                if (std::abs(total - target) < std::abs(closest - target)) closest = total;
+                if (total == target) return total;
+                else if (total < target) left++;
+                else                     right--;
+            }
+        }
+        return closest;
+    }
+};
+
+int main() {
+    Solution s;
+    std::cout << s.threeSumClosest({2, 7, 11, 15}, 3) << "\n";
+    std::cout << s.threeSumClosest({-1, 2, 1, -4}, 1) << "\n";
+    std::cout << s.threeSumClosest({0, 0, 0}, 1)      << "\n";
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def threeSumClosest(arr: Array[Int], target: Int): Int = {
+      val sorted = arr.sorted
+      val n = sorted.length
+      var closest = sorted(0) + sorted(1) + sorted(2)
+
+      for (i <- 0 until n - 2) {
+        var left = i + 1
+        var right = n - 1
+        var done = false
+        while (left < right && !done) {
+          val total = sorted(i) + sorted(left) + sorted(right)
+          if (math.abs(total - target) < math.abs(closest - target)) closest = total
+          if (total == target) done = true
+          else if (total < target) left  += 1
+          else                     right -= 1
+        }
+      }
+      closest
+    }
+  }
+
+  val sol = new Solution
+  println(sol.threeSumClosest(Array(2, 7, 11, 15), 3))
+  println(sol.threeSumClosest(Array(-1, 2, 1, -4), 1))
+  println(sol.threeSumClosest(Array(0, 0, 0), 1))
+}
+```
+
+```javascript,editable
+class Solution {
+    threeSumClosest(arr, target) {
+        arr.sort((a, b) => a - b);
+        const n = arr.length;
+        let closest = arr[0] + arr[1] + arr[2];
+
+        for (let i = 0; i < n - 2; i++) {
+            let left = i + 1, right = n - 1;
+            while (left < right) {
+                const total = arr[i] + arr[left] + arr[right];
+                if (Math.abs(total - target) < Math.abs(closest - target)) closest = total;
+                if (total === target) return total;
+                else if (total < target) left++;
+                else                     right--;
+            }
+        }
+        return closest;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.threeSumClosest([2, 7, 11, 15], 3));
+console.log(sol.threeSumClosest([-1, 2, 1, -4], 1));
+console.log(sol.threeSumClosest([0, 0, 0], 1));
+```
+
+```typescript,editable
+class Solution {
+    threeSumClosest(arr: number[], target: number): number {
+        arr.sort((a, b) => a - b);
+        const n = arr.length;
+        let closest = arr[0] + arr[1] + arr[2];
+
+        for (let i = 0; i < n - 2; i++) {
+            let left = i + 1, right = n - 1;
+            while (left < right) {
+                const total = arr[i] + arr[left] + arr[right];
+                if (Math.abs(total - target) < Math.abs(closest - target)) closest = total;
+                if (total === target) return total;
+                else if (total < target) left++;
+                else                     right--;
+            }
+        }
+        return closest;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.threeSumClosest([2, 7, 11, 15], 3));
+console.log(sol.threeSumClosest([-1, 2, 1, -4], 1));
+console.log(sol.threeSumClosest([0, 0, 0], 1));
+```
+
+```go,editable
+package main
+
+import (
+    "fmt"
+    "sort"
+)
+
+func absInt(x int) int { if x < 0 { return -x }; return x }
+
+func threeSumClosest(arr []int, target int) int {
+    sort.Ints(arr)
+    n := len(arr)
+    closest := arr[0] + arr[1] + arr[2]
+
+    for i := 0; i < n-2; i++ {
+        left, right := i+1, n-1
+        for left < right {
+            total := arr[i] + arr[left] + arr[right]
+            if absInt(total-target) < absInt(closest-target) {
+                closest = total
+            }
+            switch {
+            case total == target:
+                return total
+            case total < target:
+                left++
+            default:
+                right--
+            }
+        }
+    }
+    return closest
+}
+
+func main() {
+    fmt.Println(threeSumClosest([]int{2, 7, 11, 15}, 3))
+    fmt.Println(threeSumClosest([]int{-1, 2, 1, -4}, 1))
+    fmt.Println(threeSumClosest([]int{0, 0, 0}, 1))
+}
+```
+
+```kotlin,editable
+import kotlin.math.abs
+
+class Solution {
+    fun threeSumClosest(arr: IntArray, target: Int): Int {
+        arr.sort()
+        val n = arr.size
+        var closest = arr[0] + arr[1] + arr[2]
+
+        for (i in 0 until n - 2) {
+            var left = i + 1
+            var right = n - 1
+            while (left < right) {
+                val total = arr[i] + arr[left] + arr[right]
+                if (abs(total - target) < abs(closest - target)) closest = total
+                when {
+                    total == target -> return total
+                    total < target  -> left++
+                    else            -> right--
+                }
+            }
+        }
+        return closest
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    println(sol.threeSumClosest(intArrayOf(2, 7, 11, 15), 3))
+    println(sol.threeSumClosest(intArrayOf(-1, 2, 1, -4), 1))
+    println(sol.threeSumClosest(intArrayOf(0, 0, 0), 1))
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn three_sum_closest(&self, arr: &mut [i32], target: i32) -> i32 {
+        arr.sort();
+        let n = arr.len();
+        let mut closest = arr[0] + arr[1] + arr[2];
+
+        for i in 0..(n - 2) {
+            let mut left = i + 1;
+            let mut right = n - 1;
+            while left < right {
+                let total = arr[i] + arr[left] + arr[right];
+                if (total - target).abs() < (closest - target).abs() {
+                    closest = total;
+                }
+                if total == target { return total; }
+                else if total < target { left  += 1; }
+                else                   { right -= 1; }
+            }
+        }
+        closest
+    }
+}
+
+fn main() {
+    let s = Solution;
+    let mut a1 = [2, 7, 11, 15];   println!("{}", s.three_sum_closest(&mut a1, 3));
+    let mut a2 = [-1, 2, 1, -4];   println!("{}", s.three_sum_closest(&mut a2, 1));
+    let mut a3 = [0, 0, 0];        println!("{}", s.three_sum_closest(&mut a3, 1));
+}
+```
+
+</div>
 
 ---
 
@@ -1320,66 +2677,475 @@ The `j > i+1` guard for the inner skip is important — without it, `j = i+1` wo
 
 ## Solution
 
+<div class="lang-tabs">
+
 ```python,editable
 from typing import List
 
 class Solution:
     def four_sum(self, arr: List[int], target: int) -> List[List[int]]:
-        # Sort the array to enable the two-pointer subproblem approach
         arr.sort()
-        n      = len(arr)
+        n = len(arr)
         result = []
 
         for i in range(n - 3):
-            # Skip duplicate values for the first fixed element
             if i > 0 and arr[i] == arr[i - 1]:
                 continue
-
             for j in range(i + 1, n - 2):
-                # Skip duplicate values for the second fixed element
-                # Guard j > i+1 prevents comparing against arr[i] (a different fixed element)
+                # j > i+1 guard avoids comparing arr[j] against the *outer* fixed element.
                 if j > i + 1 and arr[j] == arr[j - 1]:
                     continue
 
-                # Set up the two-pointer subproblem: find pairs summing to the remaining need
                 left, right = j + 1, n - 1
                 need = target - arr[i] - arr[j]
-
-                # Run the two-pointer pass on the remaining subarray
                 while left < right:
                     total = arr[left] + arr[right]
-
                     if total == need:
                         result.append([arr[i], arr[j], arr[left], arr[right]])
-
-                        # Skip consecutive left duplicates to avoid duplicate quadruplets
-                        while left < right and arr[left] == arr[left + 1]:
-                            left += 1
-                        # Skip consecutive right duplicates to avoid duplicate quadruplets
-                        while left < right and arr[right] == arr[right - 1]:
-                            right -= 1
-
-                        # Move both pointers inward after recording the match
+                        while left < right and arr[left]  == arr[left + 1]:  left  += 1
+                        while left < right and arr[right] == arr[right - 1]: right -= 1
                         left  += 1
                         right -= 1
-
                     elif total < need:
-                        # Sum too small — move left pointer to a larger value
                         left += 1
                     else:
-                        # Sum too large — move right pointer to a smaller value
                         right -= 1
-
         return result
 
 
-# --- Test ---
 sol = Solution()
 print(sol.four_sum([1, 0, -1, 0, -2, 2], 0))    # [[-2,-1,1,2],[-2,0,0,2],[-1,0,0,1]]
 print(sol.four_sum([2, 2, 2, 2, 2], 8))          # [[2,2,2,2]]
 print(sol.four_sum([1, 2, 3, 4], 100))            # []
 print(sol.four_sum([0, 0, 0, 0], 0))             # [[0,0,0,0]]
 ```
+
+```java,editable
+import java.util.*;
+
+public class Main {
+    static class Solution {
+        List<List<Integer>> fourSum(int[] arr, int target) {
+            Arrays.sort(arr);
+            int n = arr.length;
+            List<List<Integer>> result = new ArrayList<>();
+
+            for (int i = 0; i < n - 3; i++) {
+                if (i > 0 && arr[i] == arr[i - 1]) continue;
+                for (int j = i + 1; j < n - 2; j++) {
+                    if (j > i + 1 && arr[j] == arr[j - 1]) continue;
+                    int left = j + 1, right = n - 1;
+                    int need = target - arr[i] - arr[j];
+                    while (left < right) {
+                        int total = arr[left] + arr[right];
+                        if (total == need) {
+                            result.add(Arrays.asList(arr[i], arr[j], arr[left], arr[right]));
+                            while (left < right && arr[left]  == arr[left + 1])  left++;
+                            while (left < right && arr[right] == arr[right - 1]) right--;
+                            left++;
+                            right--;
+                        } else if (total < need) {
+                            left++;
+                        } else {
+                            right--;
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+    }
+
+    public static void main(String[] args) {
+        Solution s = new Solution();
+        System.out.println(s.fourSum(new int[]{1, 0, -1, 0, -2, 2}, 0));
+        System.out.println(s.fourSum(new int[]{2, 2, 2, 2, 2}, 8));
+        System.out.println(s.fourSum(new int[]{1, 2, 3, 4}, 100));
+        System.out.println(s.fourSum(new int[]{0, 0, 0, 0}, 0));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+
+int cmp(const void* a, const void* b) { return (*(int*)a) - (*(int*)b); }
+
+void four_sum(int* arr, int n, int target) {
+    qsort(arr, n, sizeof(int), cmp);
+    printf("[");
+    int first = 1;
+    for (int i = 0; i < n - 3; i++) {
+        if (i > 0 && arr[i] == arr[i - 1]) continue;
+        for (int j = i + 1; j < n - 2; j++) {
+            if (j > i + 1 && arr[j] == arr[j - 1]) continue;
+            int left = j + 1, right = n - 1, need = target - arr[i] - arr[j];
+            while (left < right) {
+                int total = arr[left] + arr[right];
+                if (total == need) {
+                    if (!first) printf(", ");
+                    printf("[%d, %d, %d, %d]", arr[i], arr[j], arr[left], arr[right]);
+                    first = 0;
+                    while (left < right && arr[left]  == arr[left + 1])  left++;
+                    while (left < right && arr[right] == arr[right - 1]) right--;
+                    left++;
+                    right--;
+                } else if (total < need) left++;
+                else                     right--;
+            }
+        }
+    }
+    printf("]\n");
+}
+
+int main() {
+    int a1[] = {1, 0, -1, 0, -2, 2}; four_sum(a1, 6, 0);
+    int a2[] = {2, 2, 2, 2, 2};      four_sum(a2, 5, 8);
+    int a3[] = {1, 2, 3, 4};         four_sum(a3, 4, 100);
+    int a4[] = {0, 0, 0, 0};         four_sum(a4, 4, 0);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+class Solution {
+public:
+    std::vector<std::vector<int>> fourSum(std::vector<int> arr, int target) {
+        std::sort(arr.begin(), arr.end());
+        int n = (int)arr.size();
+        std::vector<std::vector<int>> result;
+
+        for (int i = 0; i < n - 3; i++) {
+            if (i > 0 && arr[i] == arr[i - 1]) continue;
+            for (int j = i + 1; j < n - 2; j++) {
+                if (j > i + 1 && arr[j] == arr[j - 1]) continue;
+                int left = j + 1, right = n - 1;
+                int need = target - arr[i] - arr[j];
+                while (left < right) {
+                    int total = arr[left] + arr[right];
+                    if (total == need) {
+                        result.push_back({arr[i], arr[j], arr[left], arr[right]});
+                        while (left < right && arr[left]  == arr[left + 1])  left++;
+                        while (left < right && arr[right] == arr[right - 1]) right--;
+                        left++;
+                        right--;
+                    } else if (total < need) left++;
+                    else                     right--;
+                }
+            }
+        }
+        return result;
+    }
+};
+
+void print(const std::vector<std::vector<int>>& v) {
+    std::cout << "[";
+    for (size_t i = 0; i < v.size(); i++) {
+        std::cout << "[" << v[i][0] << "," << v[i][1] << "," << v[i][2] << "," << v[i][3] << "]";
+        if (i + 1 < v.size()) std::cout << ", ";
+    }
+    std::cout << "]\n";
+}
+
+int main() {
+    Solution s;
+    print(s.fourSum({1, 0, -1, 0, -2, 2}, 0));
+    print(s.fourSum({2, 2, 2, 2, 2}, 8));
+    print(s.fourSum({1, 2, 3, 4}, 100));
+    print(s.fourSum({0, 0, 0, 0}, 0));
+}
+```
+
+```scala,editable
+object Main extends App {
+  class Solution {
+    def fourSum(arr: Array[Int], target: Int): List[List[Int]] = {
+      val sorted = arr.sorted
+      val n = sorted.length
+      val result = scala.collection.mutable.ListBuffer.empty[List[Int]]
+
+      var i = 0
+      while (i < n - 3) {
+        if (i > 0 && sorted(i) == sorted(i - 1)) {
+          i += 1
+        } else {
+          var j = i + 1
+          while (j < n - 2) {
+            if (j > i + 1 && sorted(j) == sorted(j - 1)) {
+              j += 1
+            } else {
+              var left = j + 1
+              var right = n - 1
+              val need = target - sorted(i) - sorted(j)
+              while (left < right) {
+                val total = sorted(left) + sorted(right)
+                if (total == need) {
+                  result += List(sorted(i), sorted(j), sorted(left), sorted(right))
+                  while (left < right && sorted(left)  == sorted(left + 1))  left  += 1
+                  while (left < right && sorted(right) == sorted(right - 1)) right -= 1
+                  left  += 1
+                  right -= 1
+                } else if (total < need) left  += 1
+                else                     right -= 1
+              }
+              j += 1
+            }
+          }
+          i += 1
+        }
+      }
+      result.toList
+    }
+  }
+
+  val sol = new Solution
+  println(sol.fourSum(Array(1, 0, -1, 0, -2, 2), 0))
+  println(sol.fourSum(Array(2, 2, 2, 2, 2), 8))
+  println(sol.fourSum(Array(1, 2, 3, 4), 100))
+  println(sol.fourSum(Array(0, 0, 0, 0), 0))
+}
+```
+
+```javascript,editable
+class Solution {
+    fourSum(arr, target) {
+        arr.sort((a, b) => a - b);
+        const n = arr.length;
+        const result = [];
+
+        for (let i = 0; i < n - 3; i++) {
+            if (i > 0 && arr[i] === arr[i - 1]) continue;
+            for (let j = i + 1; j < n - 2; j++) {
+                if (j > i + 1 && arr[j] === arr[j - 1]) continue;
+                let left = j + 1, right = n - 1;
+                const need = target - arr[i] - arr[j];
+                while (left < right) {
+                    const total = arr[left] + arr[right];
+                    if (total === need) {
+                        result.push([arr[i], arr[j], arr[left], arr[right]]);
+                        while (left < right && arr[left]  === arr[left + 1])  left++;
+                        while (left < right && arr[right] === arr[right - 1]) right--;
+                        left++;
+                        right--;
+                    } else if (total < need) {
+                        left++;
+                    } else {
+                        right--;
+                    }
+                }
+            }
+        }
+        return result;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.fourSum([1, 0, -1, 0, -2, 2], 0));
+console.log(sol.fourSum([2, 2, 2, 2, 2], 8));
+console.log(sol.fourSum([1, 2, 3, 4], 100));
+console.log(sol.fourSum([0, 0, 0, 0], 0));
+```
+
+```typescript,editable
+class Solution {
+    fourSum(arr: number[], target: number): number[][] {
+        arr.sort((a, b) => a - b);
+        const n = arr.length;
+        const result: number[][] = [];
+
+        for (let i = 0; i < n - 3; i++) {
+            if (i > 0 && arr[i] === arr[i - 1]) continue;
+            for (let j = i + 1; j < n - 2; j++) {
+                if (j > i + 1 && arr[j] === arr[j - 1]) continue;
+                let left = j + 1, right = n - 1;
+                const need = target - arr[i] - arr[j];
+                while (left < right) {
+                    const total = arr[left] + arr[right];
+                    if (total === need) {
+                        result.push([arr[i], arr[j], arr[left], arr[right]]);
+                        while (left < right && arr[left]  === arr[left + 1])  left++;
+                        while (left < right && arr[right] === arr[right - 1]) right--;
+                        left++;
+                        right--;
+                    } else if (total < need) {
+                        left++;
+                    } else {
+                        right--;
+                    }
+                }
+            }
+        }
+        return result;
+    }
+}
+
+const sol = new Solution();
+console.log(sol.fourSum([1, 0, -1, 0, -2, 2], 0));
+console.log(sol.fourSum([2, 2, 2, 2, 2], 8));
+console.log(sol.fourSum([1, 2, 3, 4], 100));
+console.log(sol.fourSum([0, 0, 0, 0], 0));
+```
+
+```go,editable
+package main
+
+import (
+    "fmt"
+    "sort"
+)
+
+func fourSum(arr []int, target int) [][]int {
+    sort.Ints(arr)
+    n := len(arr)
+    var result [][]int
+
+    for i := 0; i < n-3; i++ {
+        if i > 0 && arr[i] == arr[i-1] {
+            continue
+        }
+        for j := i + 1; j < n-2; j++ {
+            if j > i+1 && arr[j] == arr[j-1] {
+                continue
+            }
+            left, right := j+1, n-1
+            need := target - arr[i] - arr[j]
+            for left < right {
+                total := arr[left] + arr[right]
+                switch {
+                case total == need:
+                    result = append(result, []int{arr[i], arr[j], arr[left], arr[right]})
+                    for left < right && arr[left] == arr[left+1] {
+                        left++
+                    }
+                    for left < right && arr[right] == arr[right-1] {
+                        right--
+                    }
+                    left++
+                    right--
+                case total < need:
+                    left++
+                default:
+                    right--
+                }
+            }
+        }
+    }
+    return result
+}
+
+func main() {
+    fmt.Println(fourSum([]int{1, 0, -1, 0, -2, 2}, 0))
+    fmt.Println(fourSum([]int{2, 2, 2, 2, 2}, 8))
+    fmt.Println(fourSum([]int{1, 2, 3, 4}, 100))
+    fmt.Println(fourSum([]int{0, 0, 0, 0}, 0))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun fourSum(arr: IntArray, target: Int): List<List<Int>> {
+        arr.sort()
+        val n = arr.size
+        val result = mutableListOf<List<Int>>()
+
+        for (i in 0 until n - 3) {
+            if (i > 0 && arr[i] == arr[i - 1]) continue
+            for (j in (i + 1) until (n - 2)) {
+                if (j > i + 1 && arr[j] == arr[j - 1]) continue
+                var left = j + 1
+                var right = n - 1
+                val need = target - arr[i] - arr[j]
+                while (left < right) {
+                    val total = arr[left] + arr[right]
+                    when {
+                        total == need -> {
+                            result.add(listOf(arr[i], arr[j], arr[left], arr[right]))
+                            while (left < right && arr[left]  == arr[left + 1])  left++
+                            while (left < right && arr[right] == arr[right - 1]) right--
+                            left++
+                            right--
+                        }
+                        total < need -> left++
+                        else         -> right--
+                    }
+                }
+            }
+        }
+        return result
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    println(sol.fourSum(intArrayOf(1, 0, -1, 0, -2, 2), 0))
+    println(sol.fourSum(intArrayOf(2, 2, 2, 2, 2), 8))
+    println(sol.fourSum(intArrayOf(1, 2, 3, 4), 100))
+    println(sol.fourSum(intArrayOf(0, 0, 0, 0), 0))
+}
+```
+
+```rust,editable
+struct Solution;
+
+impl Solution {
+    fn four_sum(&self, arr: &mut [i32], target: i32) -> Vec<Vec<i32>> {
+        arr.sort();
+        let n = arr.len() as i32;
+        let mut result: Vec<Vec<i32>> = Vec::new();
+
+        let mut i: i32 = 0;
+        while i < n - 3 {
+            if i > 0 && arr[i as usize] == arr[(i - 1) as usize] {
+                i += 1;
+                continue;
+            }
+            let mut j: i32 = i + 1;
+            while j < n - 2 {
+                if j > i + 1 && arr[j as usize] == arr[(j - 1) as usize] {
+                    j += 1;
+                    continue;
+                }
+                let mut left = j + 1;
+                let mut right = n - 1;
+                let need = target - arr[i as usize] - arr[j as usize];
+                while left < right {
+                    let total = arr[left as usize] + arr[right as usize];
+                    if total == need {
+                        result.push(vec![arr[i as usize], arr[j as usize],
+                                         arr[left as usize], arr[right as usize]]);
+                        while left < right && arr[left  as usize] == arr[(left  + 1) as usize] { left  += 1; }
+                        while left < right && arr[right as usize] == arr[(right - 1) as usize] { right -= 1; }
+                        left  += 1;
+                        right -= 1;
+                    } else if total < need {
+                        left += 1;
+                    } else {
+                        right -= 1;
+                    }
+                }
+                j += 1;
+            }
+            i += 1;
+        }
+        result
+    }
+}
+
+fn main() {
+    let s = Solution;
+    let mut a1 = [1, 0, -1, 0, -2, 2]; println!("{:?}", s.four_sum(&mut a1, 0));
+    let mut a2 = [2, 2, 2, 2, 2];      println!("{:?}", s.four_sum(&mut a2, 8));
+    let mut a3 = [1, 2, 3, 4];         println!("{:?}", s.four_sum(&mut a3, 100));
+    let mut a4 = [0, 0, 0, 0];         println!("{:?}", s.four_sum(&mut a4, 0));
+}
+```
+
+</div>
 
 ---
 
