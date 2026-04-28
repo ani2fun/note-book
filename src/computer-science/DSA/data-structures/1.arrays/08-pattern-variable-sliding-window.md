@@ -34,10 +34,10 @@ There has to be a better way. And there is — but it demands a harder question:
 Forget the train car with fixed seats. Picture a **rubber band** stretched across the array. The left end is pinned at index `start`. The right end is held at index `end`. As you move through the array, the band can **stretch** (moving `end` forward to include more elements) or **compress** (moving `start` forward to shrink from the left).
 
 ```d2
-expand: "Stretch right → end moves forward" {
+stretch_before: "Before: window = arr[1..2]" {
   grid-columns: 6
   grid-gap: 0
-  a0: "2" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a0: "2"
   a1: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
   a2: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
   a3: "3"
@@ -45,23 +45,62 @@ expand: "Stretch right → end moves forward" {
   a5: "4"
 }
 
-ex_note: "end slides: C → D → E → F"
+stretch_op: |md
+  `end += 1`
 
-contract: "Compress → start moves forward" {
+  Right edge advances from index 2 → 3.
+
+  Window grows by one cell on the right.
+|
+
+stretch_after: "After: window = arr[1..3]" {
+  grid-columns: 6
+  grid-gap: 0
+  b0: "2"
+  b1: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b2: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  b3: "3" {style.fill: "#dcfce7"; style.stroke: "#16a34a"}
+  b4: "7"
+  b5: "4"
+}
+
+stretch_before -> stretch_op
+stretch_op -> stretch_after
+```
+
+```d2
+compress_before: "Before: window = arr[1..3]" {
+  grid-columns: 6
+  grid-gap: 0
+  a0: "2"
+  a1: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a2: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a3: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a4: "7"
+  a5: "4"
+}
+
+compress_op: |md
+  `start += 1`
+
+  Left edge advances from index 1 → 2.
+
+  Window shrinks by one cell on the left.
+|
+
+compress_after: "After: window = arr[2..3]" {
   grid-columns: 6
   grid-gap: 0
   b0: "2"
   b1: "5"
-  b2: "1"
+  b2: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
   b3: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}
   b4: "7"
   b5: "4"
 }
 
-co_note: "start slides: A → B → C"
-
-expand -> ex_note: "" {style.stroke-dash: 3}
-contract -> co_note: "" {style.stroke-dash: 3}
+compress_before -> compress_op
+compress_op -> compress_after
 ```
 
 <p align="center"><strong>The variable-sized window breathes — <code>end</code> stretches it right, <code>start</code> compresses it from the left. At any moment the window covers exactly <code>arr[start..end]</code>.</strong></p>
