@@ -1,1250 +1,2311 @@
-# Understanding the unconditional enumeration pattern
+# 2. Pattern: Unconditional Enumeration
 
-Many real-world problems may have multiple solutions, and to solve them, we may need to find and collect all the solutions. Backtracking is the ultimate brute-force technique to solve any problem that starts from an initial state, explores the entire problem space, and builds a solution incrementally. Unconditional enumeration is the most fundamental backtracking technique, which starts from an initial problem state, explores the entire problem space by making a independent set of choices from every state and collects the solution states and backtracks to make different choices.
+You're staring at a problem where the question is *list all the X*. All subsets of an array. All sequences of length `n` from a digit set. All case-toggle variations of a string. Every "all the X" problem has the same structure: there's a *finite* set of candidates; the algorithm has to *visit every one*; nothing about a partial guess can be ruled out before it's complete.
 
-It is important to note that any choice we make at a step is **independent** of any earlier choices; hence, we call this process **unconditional** enumeration.
+This is **unconditional enumeration** — the simplest of the three backtracking patterns. Every leaf of the state space tree is a valid solution. There's no pruning. No bounding function. The algorithm walks the tree, collects every leaf, returns the lot. The only design decisions you make are *what's a "choice" at each level* and *how do you assemble a leaf into the output*.
 
-The unconditional enumeration pattern is the classification of problems that can be solved using the unconditional enumeration backtracking technique.
+By the end of this lesson you'll know the diagnostic checks for unconditional enumeration, the three-line recipe that produces it, and four worked problems that drill the pattern.
 
-The state space tree for unconditional enumeration is given below.
+## Table of contents
 
-// Diagram: The state space tree for unconditional enumeration.
+1. [Understanding unconditional enumeration](#understanding-unconditional-enumeration)
+2. [Identifying unconditional enumeration](#identifying-unconditional-enumeration)
+3. [Unique subsets](#unique-subsets)
+4. [Case transformations](#case-transformations)
+5. [Number sequence](#number-sequence)
+6. [Phone combinations](#phone-combinations)
 
-In this course, we will learn more about the unconditional-enumeration technique and how to identify a problem as an unconditional-enumeration pattern problem.
+***
 
-## Unconditional enumeration
+# Understanding Unconditional Enumeration
 
-In unconditional enumeration, we begin with an initial problem state defined by some state variables. At every step, we can make one of many **independent** choices to reduce the size of the problem and move to another state. This process of making choices at every step is repeated recursively until we reach a solution state. As we make these choices and move from one state to another, we incrementally build the solution in some state variable.
+> **Course:** DSA › Algorithms › Backtracking › Unconditional Enumeration
 
-Consider the state space tree below, where we have an initial problem state and `k` choices that we can make at each step. The depth of the problem space is denoted by `n`, which is the number of choices we must make to reach a solution state. At every step, making a different choice may lead to completely different solution states in the end. We recursively make a series of choices until we reach a solution state, then backtrack to update our choices. In this way, we visit every solution state exactly once.
+A backtracking solution exhibits **unconditional enumeration** when **every leaf of the state space tree is a valid solution**. There's no validation function that filters leaves; there's no bounding rule that prunes internal nodes. The algorithm enumerates every candidate the tree can produce, and *all of them count*.
 
-// Diagram: The state space tree for unconditional enumeration of depth n where we can make k choices at every step.
+This is exactly the pattern from the introductory phone-password problem. Every 4-digit binary string is a candidate; every leaf gets recorded; the algorithm doesn't say "no" to any leaf. The only difference between problems in this category is the structure of the *choices*: subsets choose include-or-exclude per element, sequences choose a value in `1..k` per slot, phone combinations choose a letter per digit.
 
-We maintain a shared container as we explore the problem space, and add a solution state to it when we reach it. This way, when the entire problem space is explored, the container contains an enumeration of all solution states.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+  ROOT["start"]
+  ROOT --> A["choice 1"]
+  ROOT --> B["choice 2"]
+  ROOT --> C["choice k"]
+  A --> A1["...continue..."]
+  B --> B1["...continue..."]
+  C --> C1["...continue..."]
+  A1 --> AL["leaf: solution"]
+  B1 --> BL["leaf: solution"]
+  C1 --> CL["leaf: solution"]
+```
 
-// Diagram: A series of independent choices starting from a problem state, leading to a solution state.
+<p align="center"><strong>Unconditional enumeration's tree shape: every leaf is recorded; every internal node fans out into <em>all</em> its children. No pruning, no rejection.</strong></p>
 
-We create a state variable `state` to record the outcome of choices we make to reach a solution state, starting from the initial state, using some function `f`. At each step, we check if the current step is a solution state. If it is a solution, we add it to an`enumerations`container.
+The runtime is therefore the *full* tree size. There's no "average case faster than worst case" — every problem in this category does exactly the same work: visit every leaf, record it. The complexity comes entirely from *how many leaves there are* and *how expensive each candidate is to assemble*.
 
-The goal of the unconditional enumeration problem is to find**all** the solution states that can be reached by making any valid set of choices from the initial state. As we will see later, we also usually have functions `fInverse` and`gInverse`to remove the contribution of the **last** choice made from `state` and `control` respectively. We use them to undo previous choices and make new, different choices when we have no further choices left to move on from a step.
+---
 
-In this example, we enumerate the outcomes of a series of choices that lead from the problem state to a solution state using the function `f`; we could similarly enumerate and store all solution states instead.
+## What Unconditional Enumeration Looks Like in Code
 
-Start from the initial problem state and add all the solution states to the enumerations list.
+The general shape:
 
-### The unconditional enumeration problem
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+  ENUM["enumerate(state)"]
+  ENUM -->|"if state is complete"| RECORD["record(state); return"]
+  ENUM -->|"otherwise"| CHOICES["for each choice c in available_choices(state):<br/>extend state with c<br/>enumerate(state)<br/>undo c"]
+```
 
-Consider an example where the problem space is represented by an integer `n` , and we start from the initial problem state with some default values of the `state` variable. We can make multiple choices, denoted by an integer `choice` at every step, to reduce the problem space, and we update the `state` variable with those choices as we make them. The goal is to find **all** solution states and the sequence of choices that lead to them, starting from the initial problem state.
+<p align="center"><strong>The unconditional-enumeration recipe: when a leaf is reached, record. Otherwise, iterate over choices, extend, recurse, undo.</strong></p>
 
-We have the following functions that we can use.
+The pseudocode:
 
--   `getChoices ( n )` - Takes as an input the current problem space `n` and returns a list of choices we can make.
--   `makeChoice (state, choice)` - Takes as input the state variable `state` and a `choice` from the list of available choices and adds the contribution of `choice` to `state`.
--   `revertLastChoiceFromState (state)` - Takes as input the variable `state` and reverts the contribution of the last choice that was made from it.
--   `getReducedProblemSpace (n, choice)` - Takes as input the current problem space `n` and the `choice` we decide to make, and returns a value denoting the reduced problem space.
--   `isSolutionState (n)` - Takes as input the current problem space `n` and returns true if it is a solution.
+```
+function enumerate(state):
+    if state is complete:
+        record(state)             ← every leaf is a solution
+        return
 
-Note how the `getChoices` function only depends on the current problem space and is independent of any previously made choices.
+    for choice in available_choices(state):
+        extend(state, choice)     ← make a choice
+        enumerate(state)          ← recurse
+        undo(state)               ← backtrack
+```
 
-Note that this is the generic unconditional enumeration problem. Most of these functions and their definitions are very problem-specific.
+That `undo(state)` line is the structural backtrack — it puts the state back the way it was before this iteration's `extend()`, so the next iteration's choice starts from the same baseline. In some languages (Python's strings, immutable values) the "undo" is automatic because each recursion level holds its own copy. In others (C++, Rust mutating a vector) you must explicitly `pop_back()` what you just pushed.
 
-We will only learn about the generic unconditional enumeration problem and its solution in this lesson. All the more specific cases of this problem can be solved using slightly modified, easier implementations of the generic solution.
+> *Predict before reading on — for a problem with `n` slots and `k` choices per slot, how many leaves does the state space tree have? How deep is the recursion?*
 
-### The unconditional enumeration technique
+`k^n` leaves; recursion depth `n`. The depth grows linearly with `n`; the leaf count grows *exponentially* with `n`. This means: deepening the recursion by 1 doubles (or more) the work — a fact you'll feel viscerally as `n` grows.
 
-To solve this problem, we create a recursive function `unconditionalEnumeration` that takes as input the integer `n` denoting the problem space, a reference to the state variable `state` ,and a reference to a list `enumerations` to store all the solution states.
+---
 
-We initialize `state` to a default value and `enumerations` to an empty list in the calling function and pass them as reference arguments to the function `unconditionalEnumeration` along with the input `n`.
+## Passing Data Down
 
-As we enter the function, we check if the current state is a solution state case using `isSolutionState`. If the current state is a solution state, we add the current value of  `state` to the list `enumerations` and return to the caller.
+Two flavours, depending on the language and the size of the partial state:
 
-If the current state is not a solution state, we use the function `getReducedInput` to get the next input for the reduced problem space in a variable `reducedInput`. Next, we use the function `getChoices` to get a list of all the choices we can make to reduce the problem space. We then iterate through the list of all choices and in each iteration, simulate making that choice by adding its contribution to `state` using `makeChoice`. We then recursively call the same function with `reducedInput` and the updated `state`. The same process is repeated recursively after the function call until it reaches a solution state.
+**By value (immutable per frame):** copy the partial state into the recursive call. Simple, no `undo` step needed — when the function returns, the caller's state is unchanged automatically. The cost is the per-call copy: `O(n)` per call × `O(k^n)` calls = `O(n · k^n)` total work just on copying. For small `n` this is fine.
 
-When the recursive call ends, we revert the last choice made using `revertLastChoice` on `state` and continue the iteration to make the next choice.
+**By reference (mutated in place):** pass a pointer/reference to a shared partial state. Each frame appends its choice; on return, the next iteration of the for-loop pops it before extending with the next choice. This avoids the `O(n · k^n)` copy overhead but requires explicit `undo`.
 
-Since we call `revertLastChoice` after returning from **every** recursive call, it is guaranteed that the choice made before making the same recursive call is the one that is reverted.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+  CALLER["caller's state"] -->|"by value"| COPY1["frame: own copy"] -->|"by value"| COPY2["frame: own copy"]
+  CALLER -->|"by reference"| SHARED["one shared state<br/>every frame mutates + undoes"]
+```
 
-This way, we simulate making a choice at every step until we reach a solution state, aggregate the consequences of all those choices in `state`, and add the final value of `state` (outcome) to the `enumerations`. We also undo the choices in the same order as they are made, as we backtrack to make different choices the next time in the same way.
+<p align="center"><strong>By-value: cleaner, no undo, but O(n) copy per call. By-reference: faster, but requires explicit undo to keep the shared state correct.</strong></p>
 
-When all the recursive calls end, control is passed back to the caller of `unconditionalEnumeration`, the `enumerations` list has the list of all outcomes from all choices, and the variable `state` is reverted to the default value with which it was initialized.
+Most production backtracking code uses the by-reference style for performance. Most teaching code uses by-value (or per-frame slices) for clarity. We'll use the by-reference style in the four worked problems below, since it makes the explicit `undo` visible.
 
-Consider the example below, where we start from an initial problem state and enumerate all solutions using recursive function calls.
+---
 
-Enumerate all solutions starting from an initial problem state.
+## Passing Data Up
+
+The collected solutions are typically built into a single output container (the **subsets** vector, the **transformations** list, the **sequences** array). Both styles work:
+
+- **Output container shared via reference:** every frame appends complete leaves directly to the same container. Memory-efficient.
+- **Output as return value:** each call returns its leaves, parent merges. Cleaner but allocates lots of intermediate lists.
+
+For the same reason as data-down, we use the shared-output-by-reference style throughout.
+
+---
 
 ## Algorithm
 
-The algorithm given below outlines the generic unconditional-enumeration technique, making use of the functions `getReducedInput`, `getChoices`, `makeChoice`, `revertLastChoice`, and `isSolutionState`. All these functions and their implementations are problem-dependent.
+> **enumerate(state, output)**
+>
+> 1. **Leaf check** — if `state` is a complete candidate, append a *copy* of it to `output` and return. (Copy because the caller may continue mutating `state` for sibling branches.)
+> 2. **Branch** — for each choice in the next-level options:
+>    - **Extend** `state` with the choice.
+>    - **Recurse** on the extended `state`.
+>    - **Undo** the extension (restore `state` to its pre-extension value).
 
-We also create a calling function that initializes the state variables `state` and `enumerations` and passes them by reference to the top-level recursive call.
+That's the entire recipe. Every problem in this section is a different way of filling in *complete*, *available choices*, *extend*, and *undo*.
 
-> **unconditionalEnumeration(n, \[ref\] state, \[ref\] enumerations)**
->
-> -   **Step 1:** Call `isSolutionState(n, state)` to check if it is a solution state.
->     -   **Step 1.1:** If true, add `state` to `enumerations`
->     -   **Step 1.2:** Return to the caller
-> -   **Step 2:** Set `choices` = Call `getChoices(n)` to get all choices available at this step.
-> -   **Step 3:** Iterate over `choices` using a variable `choice` and do the following:
->     -   **Step 3.1:** Call `makeChoice(state, choice)` to add the contribution of `choice` to the `state` variable
->     -   **Step 3.2:** Set `reducedProblemSpace` = Call `getReducedProblemSpace(n, choice)` to obtain the reduced problem space for the next recursive call
->     -   **Step 3.3:** Call `unconditionalEnumeration(reducedProblemSpace, state, enumerations)`
->     -   **Step 3.4:** Call `revertLastChoiceFromState(state)` to revert the contribution of the last choice from the state variable
-> -   **Step 4:** Return to the caller
->
-> **callingFunction(n)**
->
-> -   **Step 1:** Create a variable `state` and initialize it to a default value
-> -   **Step 3:** Create an empty list `enumerations`
-> -   **Step 4:** Call `unconditionalEnumeration(n, state, enumerations)`
-> -   **Step 5:** Return `enumerations`
+---
 
 ## Implementation
 
-To implement the unconditional enumeration technique, we create a calling function that initialises the state variables `state` and `enumerations` and makes the top-level recursive calls. For languages that do not support passing values by recursion, we can create the state variables in the enclosing scope to share them across recursive calls.
+A clean, language-agnostic implementation of the generic enumeration template — generates all length-`n` sequences over alphabet of size `k`.
 
-Given below is a generic implementation of unconditional enumeration, with the functions `isSolutionState`, `getChoices` and `getReducedProblemSpace` having some stub implementation.
+<div class="lang-tabs">
 
-C++
-
-```cpp
-#include <vector>
-using namespace std;
-
-class Solution
-{
-public:
-  void unconditionalEnumeration(
-      int n,
-      vector<int> &state,
-      vector<vector<int>> &enumerations)
-  {
-    // Check if the current size of the problem space along with the state variable
-    // represents a solution state
-    if (isSolutionState(n, state))
-    {
-      // The state contains the aggregation of all choices made so far
-      // and therefore represents a complete solution
-      enumerations.push_back(state);
-      return;
-    }
-
-    // Get all possible choices that can be made for the current input n
-    vector<int> choices = getChoices(n);
-
-    // Iterate through each available choice
-    for (int choice : choices)
-    {
-      // Update the state variable by applying the current choice
-      makeChoice(state, choice);
-
-      // Reduce the problem space based on the current choice
-      int reducedProblemSpace = getReducedProblemSpace(n, choice);
-
-      // Recur on the reduced problem space
-      unconditionalEnumeration(reducedProblemSpace, state, enumerations);
-
-      // Revert the contribution of the last choice from state (backtracking)
-      revertLastChoiceFromState(state);
-    }
-
-private:
-  // Returns true if the current size of the problem space corresponds
-  // to a solution state
-  bool isSolutionState(int n, const vector<int> &state)
-  {
-    // Simple stub:
-    // either the problem space is exhausted
-    // or the state reached a fixed size
-    return n == 0 || state.size() == 3;
-  }
-
-  // Generates all possible choices that can be made for the current input n
-  vector<int> getChoices(int n)
-  {
-    int maxChoice = n;
-
-    // Simple stub choices that clearly depend on n
-    vector<int> choices;
-    if (n >= 1)
-      choices.push_back(1);
-    if (n >= 2)
-      choices.push_back(2);
-
-    return choices;
-  }
-
-  // Updates the state variable by adding the contribution of the given choice
-  void makeChoice(vector<int> &state, int choice)
-  {
-    state.push_back(choice);
-  }
-
-  // Reverts the contribution of the most recent choice from the state variable
-  void revertLastChoiceFromState(vector<int> &state)
-  {
-    if (!state.empty())
-      state.pop_back();
-  }
-
-  // Returns the reduced problem space for the next recursive call
-  // based on the current input n and the choice
-  int getReducedProblemSpace(int n, const int choice)
-  {
-    return n - choice;
-  }
-};
-```
-
-Java
-
-```java
-import java.util.ArrayList;
-import java.util.List;
-
-// Diagram: class Solution {
-
-    public void unconditionalEnumeration(
-            int n,
-            List<Integer> state,
-            List<List<Integer>> enumerations
-    ) {
-        // Check if the current size of the problem space along with the state variable
-        // represents a solution state
-        if (isSolutionState(n, state)) {
-            // The state contains the aggregation of all choices made so far
-            // and therefore represents a complete solution
-            enumerations.add(new ArrayList<>(state));
-            return;
-        }
-
-        // Get all possible choices that can be made for the current input n
-        List<Integer> choices = getChoices(n);
-
-        // Iterate through each available choice
-        for (int choice : choices) {
-            // Update the state variable by applying the current choice
-            makeChoice(state, choice);
-
-            // Reduce the problem space based on the current choice
-            int reducedProblemSpace = getReducedProblemSpace(n, choice);
-
-            // Recur on the reduced problem space
-            unconditionalEnumeration(reducedProblemSpace, state, enumerations);
-
-            // Revert the contribution of the last choice from state (backtracking)
-            revertLastChoiceFromState(state);
-        }
-
-    // Returns true if the current size of the problem space corresponds
-    // to a solution state
-    private boolean isSolutionState(int n, List<Integer> state) {
-        // Simple stub:
-        // either the problem space is exhausted
-        // or the state reached a fixed size
-        return n == 0 || state.size() == 3;
-    }
-
-    // Generates all possible choices that can be made for the current input n
-    private List<Integer> getChoices(int n) {
-        // Simple stub choices that clearly depend on n
-        List<Integer> choices = new ArrayList<>();
-        if (n >= 1) choices.add(1);
-        if (n >= 2) choices.add(2);
-        return choices;
-    }
-
-    // Updates the state variable by adding the contribution of the given choice
-    private void makeChoice(List<Integer> state, int choice) {
-        state.add(choice);
-    }
-
-    // Reverts the contribution of the most recent choice from the state variable
-    private void revertLastChoiceFromState(List<Integer> state) {
-        if (!state.isEmpty()) {
-            state.remove(state.size() - 1);
-        }
-
-    // Returns the reduced problem space for the next recursive call
-    // based on the current input n and the choice
-    private int getReducedProblemSpace(int n, int choice) {
-        return n - choice;
-    }
-
-```
-
-Typescript
-
-```typescript
-class Solution {
-  unconditionalEnumeration(
-    n: number,
-    state: number[],
-    enumerations: number[][]
-  ): void {
-    // Check if the current size of the problem space along with the state variable
-    // represents a solution state
-    if (this.isSolutionState(n, state)) {
-      // The state contains the aggregation of all choices made so far
-      // and therefore represents a complete solution
-      enumerations.push([...state]);
-      return;
-    }
-
-    // Get all possible choices that can be made for the current input n
-    const choices: number[] = this.getChoices(n);
-
-    // Iterate through each available choice
-    for (const choice of choices) {
-      // Update the state variable by applying the current choice
-      this.makeChoice(state, choice);
-
-      // Reduce the problem space based on the current choice
-      const reducedProblemSpace = this.getReducedProblemSpace(n, choice);
-
-      // Recur on the reduced problem space
-      this.unconditionalEnumeration(reducedProblemSpace, state, enumerations);
-
-      // Revert the contribution of the last choice from state (backtracking)
-      this.revertLastChoiceFromState(state);
-    }
-
-  // Returns true if the current size of the problem space corresponds
-  // to a solution state
-  private isSolutionState(n: number, state: number[]): boolean {
-    // Simple stub:
-    // either the problem space is exhausted
-    // or the state reached a fixed size
-    return n === 0 || state.length === 3;
-  }
-
-  // Generates all possible choices that can be made for the current input n
-  private getChoices(n: number): number[] {
-    const choices: number[] = [];
-
-    // Simple stub choices that clearly depend on n
-    if (n >= 1) choices.push(1);
-    if (n >= 2) choices.push(2);
-
-    return choices;
-  }
-
-  // Updates the state variable by adding the contribution of the given choice
-  private makeChoice(state: number[], choice: number): void {
-    state.push(choice);
-  }
-
-  // Reverts the contribution of the most recent choice from the state variable
-  private revertLastChoiceFromState(state: number[]): void {
-    if (state.length > 0) state.pop();
-  }
-
-  // Returns the reduced problem space for the next recursive call
-  // based on the current input n and the choice
-  private getReducedProblemSpace(n: number, choice: number): number {
-    return n - choice;
-  }
-```
-
-Javascript
-
-```javascript
-class Solution {
-  unconditionalEnumeration(
-    n,
-    state,
-    enumerations
-  ) {
-    // Check if the current size of the problem space along with the state variable
-    // represents a solution state
-    if (this.isSolutionState(n, state)) {
-      // The state contains the aggregation of all choices made so far
-      // and therefore represents a complete solution
-      enumerations.push([...state]);
-      return;
-    }
-
-    // Get all possible choices that can be made for the current input n
-    const choices = this.getChoices(n);
-
-    // Iterate through each available choice
-    for (const choice of choices) {
-      // Update the state variable by applying the current choice
-      this.makeChoice(state, choice);
-
-      // Reduce the problem space based on the current choice
-      const reducedProblemSpace = this.getReducedProblemSpace(n, choice);
-
-      // Recur on the reduced problem space
-      this.unconditionalEnumeration(reducedProblemSpace, state, enumerations);
-
-      // Revert the contribution of the last choice from state (backtracking)
-      this.revertLastChoiceFromState(state);
-    }
-
-  // Returns true if the current size of the problem space corresponds
-  // to a solution state
-  isSolutionState(n, state) {
-    // Simple stub:
-    // either the problem space is exhausted
-    // or the state reached a fixed size
-    return n === 0 || state.length === 3;
-  }
-
-  // Generates all possible choices that can be made for the current input n
-  getChoices(n) {
-    const choices = [];
-
-    // Simple stub choices that clearly depend on n
-    if (n >= 1) choices.push(1);
-    if (n >= 2) choices.push(2);
-
-    return choices;
-  }
-
-  // Updates the state variable by adding the contribution of the given choice
-  makeChoice(state, choice) {
-    state.push(choice);
-  }
-
-  // Reverts the contribution of the most recent choice from the state variable
-  revertLastChoiceFromState(state) {
-    if (state.length > 0) {
-      state.pop();
-    }
-
-  // Returns the reduced problem space for the next recursive call
-  // based on the current input n and the choice
-  getReducedProblemSpace(n, choice) {
-    return n - choice;
-  }
-```
-
-Python
-
-```python
+```python,editable
 from typing import List
 
 class Solution:
-    def unconditional_enumeration(
-        self,
-        n: int,
-        state: List[int],
-        enumerations: List[List[int]]
-    ) -> None:
-        # Check if the current size of the problem space along with the state variable
-        # represents a solution state
-        if self.is_solution_state(n, state):
-            # The state contains the aggregation of all choices made so far
-            # and therefore represents a complete solution
-            enumerations.append(state.copy())
+    def enumerate_all(self, n: int, k: int) -> List[List[int]]:
+        results: List[List[int]] = []
+        state: List[int] = []
+        self._helper(n, k, state, results)
+        return results
+
+    def _helper(self, n: int, k: int, state: List[int], results: List[List[int]]) -> None:
+        # Leaf check — every complete state is a solution
+        if len(state) == n:
+            results.append(state.copy())   # copy: caller will keep mutating `state`
             return
 
-        # Get all possible choices that can be made for the current input n
-        choices: List[int] = self.get_choices(n)
+        # Branch over every available choice for this slot
+        for choice in range(1, k + 1):
+            state.append(choice)            # extend
+            self._helper(n, k, state, results)   # recurse
+            state.pop()                     # undo
 
-        # Iterate through each available choice
-        for choice in choices:
-            # Update the state variable by applying the current choice
-            self.make_choice(state, choice)
 
-            # Reduce the problem space based on the current choice
-            reduced_problem_space: int = self.get_reduced_problem_space(n, choice)
-
-            # Recur on the reduced problem space
-            self.unconditional_enumeration(reduced_problem_space, state, enumerations)
-
-            # Revert the contribution of the last choice from state (backtracking)
-            self.revert_last_choice_from_state(state)
-
-    # Returns true if the current size of the problem space corresponds
-    # to a solution state
-    def is_solution_state(self, n: int, state: List[int]) -> bool:
-        # Simple stub:
-        # either the problem space is exhausted
-        # or the state reached a fixed size
-        return n == 0 or len(state) == 3
-
-    # Generates all possible choices that can be made for the current input n
-    def get_choices(self, n: int) -> List[int]:
-        max_choice = n
-
-        # Simple stub choices that clearly depend on n
-        choices: List[int] = []
-        if n >= 1:
-            choices.append(1)
-        if n >= 2:
-            choices.append(2)
-
-// Diagram: return choices
-
-    # Updates the state variable by adding the contribution of the given choice
-    def make_choice(self, state: List[int], choice: int) -> None:
-        state.append(choice)
-
-    # Reverts the contribution of the most recent choice from the state variable
-    def revert_last_choice_from_state(self, state: List[int]) -> None:
-        if state:
-            state.pop()
-
-    # Returns the reduced problem space for the next recursive call
-    # based on the current input n and the choice
-    def get_reduced_problem_space(self, n: int, choice: int) -> int:
-        return n - choice
+if __name__ == "__main__":
+    print(Solution().enumerate_all(2, 2))   # [[1,1], [1,2], [2,1], [2,2]]
 ```
+
+```java,editable
+import java.util.ArrayList;
+import java.util.List;
+
+public class Solution {
+    public List<List<Integer>> enumerateAll(int n, int k) {
+        List<List<Integer>> results = new ArrayList<>();
+        List<Integer> state = new ArrayList<>();
+        helper(n, k, state, results);
+        return results;
+    }
+
+    private void helper(int n, int k, List<Integer> state, List<List<Integer>> results) {
+        if (state.size() == n) {
+            results.add(new ArrayList<>(state));   // copy
+            return;
+        }
+        for (int choice = 1; choice <= k; choice++) {
+            state.add(choice);                     // extend
+            helper(n, k, state, results);          // recurse
+            state.remove(state.size() - 1);        // undo
+        }
+    }
+
+    public static void main(String[] args) {
+        System.out.println(new Solution().enumerateAll(2, 2));   // [[1,1],[1,2],[2,1],[2,2]]
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static void helper(int n, int k, int *state, int depth, int **results, int *count) {
+    if (depth == n) {
+        results[*count] = (int *) malloc(sizeof(int) * n);
+        memcpy(results[*count], state, sizeof(int) * n);
+        (*count)++;
+        return;
+    }
+    for (int choice = 1; choice <= k; choice++) {
+        state[depth] = choice;                /* extend */
+        helper(n, k, state, depth + 1, results, count);
+        /* implicit undo — next iteration overwrites state[depth] */
+    }
+}
+
+int main(void) {
+    int n = 2, k = 2;
+    int total = 1; for (int i = 0; i < n; i++) total *= k;     /* k^n */
+    int **results = (int **) malloc(sizeof(int *) * total);
+    int *state = (int *) malloc(sizeof(int) * n);
+    int count = 0;
+    helper(n, k, state, 0, results, &count);
+    for (int i = 0; i < count; i++) {
+        printf("[");
+        for (int j = 0; j < n; j++) printf("%d%s", results[i][j], j + 1 < n ? "," : "");
+        printf("]\n");
+        free(results[i]);
+    }
+    free(state); free(results);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+class Solution {
+public:
+    void helper(int n, int k, std::vector<int>& state, std::vector<std::vector<int>>& results) {
+        if ((int) state.size() == n) {
+            results.push_back(state);                      // copy
+            return;
+        }
+        for (int choice = 1; choice <= k; choice++) {
+            state.push_back(choice);                       // extend
+            helper(n, k, state, results);                  // recurse
+            state.pop_back();                              // undo
+        }
+    }
+
+    std::vector<std::vector<int>> enumerateAll(int n, int k) {
+        std::vector<std::vector<int>> results;
+        std::vector<int> state;
+        helper(n, k, state, results);
+        return results;
+    }
+};
+
+int main() {
+    auto r = Solution{}.enumerateAll(2, 2);
+    for (auto& v : r) { for (int x : v) std::cout << x << ' '; std::cout << '\n'; }
+}
+```
+
+```scala,editable
+import scala.collection.mutable.ArrayBuffer
+
+class Solution {
+  def enumerateAll(n: Int, k: Int): List[List[Int]] = {
+    val results = ArrayBuffer[List[Int]]()
+    val state = ArrayBuffer[Int]()
+    helper(n, k, state, results)
+    results.toList
+  }
+
+  private def helper(n: Int, k: Int, state: ArrayBuffer[Int], results: ArrayBuffer[List[Int]]): Unit = {
+    if (state.length == n) {
+      results += state.toList                              // copy
+      return
+    }
+    for (choice <- 1 to k) {
+      state += choice                                       // extend
+      helper(n, k, state, results)                          // recurse
+      state.remove(state.length - 1)                        // undo
+    }
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = println(new Solution().enumerateAll(2, 2))
+}
+```
+
+```javascript,editable
+class Solution {
+    enumerateAll(n, k) {
+        const results = [];
+        const state = [];
+        this._helper(n, k, state, results);
+        return results;
+    }
+
+    _helper(n, k, state, results) {
+        if (state.length === n) {
+            results.push([...state]);                       // copy
+            return;
+        }
+        for (let choice = 1; choice <= k; choice++) {
+            state.push(choice);                             // extend
+            this._helper(n, k, state, results);             // recurse
+            state.pop();                                    // undo
+        }
+    }
+}
+
+console.log(new Solution().enumerateAll(2, 2));
+```
+
+```typescript,editable
+class Solution {
+    enumerateAll(n: number, k: number): number[][] {
+        const results: number[][] = [];
+        const state: number[] = [];
+        this._helper(n, k, state, results);
+        return results;
+    }
+
+    private _helper(n: number, k: number, state: number[], results: number[][]): void {
+        if (state.length === n) {
+            results.push([...state]);
+            return;
+        }
+        for (let choice = 1; choice <= k; choice++) {
+            state.push(choice);
+            this._helper(n, k, state, results);
+            state.pop();
+        }
+    }
+}
+
+console.log(new Solution().enumerateAll(2, 2));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func helper(n, k int, state *[]int, results *[][]int) {
+    if len(*state) == n {
+        cpy := make([]int, len(*state))
+        copy(cpy, *state)
+        *results = append(*results, cpy)                   // copy
+        return
+    }
+    for choice := 1; choice <= k; choice++ {
+        *state = append(*state, choice)                    // extend
+        helper(n, k, state, results)                       // recurse
+        *state = (*state)[:len(*state)-1]                  // undo
+    }
+}
+
+func enumerateAll(n, k int) [][]int {
+    results := [][]int{}
+    state := []int{}
+    helper(n, k, &state, &results)
+    return results
+}
+
+func main() {
+    fmt.Println(enumerateAll(2, 2))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun enumerateAll(n: Int, k: Int): List<List<Int>> {
+        val results = mutableListOf<List<Int>>()
+        val state = mutableListOf<Int>()
+        helper(n, k, state, results)
+        return results
+    }
+
+    private fun helper(n: Int, k: Int, state: MutableList<Int>, results: MutableList<List<Int>>) {
+        if (state.size == n) {
+            results.add(state.toList())                    // copy
+            return
+        }
+        for (choice in 1..k) {
+            state.add(choice)                              // extend
+            helper(n, k, state, results)                   // recurse
+            state.removeAt(state.size - 1)                 // undo
+        }
+    }
+}
+
+fun main() {
+    println(Solution().enumerateAll(2, 2))
+}
+```
+
+```rust,editable
+fn helper(n: usize, k: i32, state: &mut Vec<i32>, results: &mut Vec<Vec<i32>>) {
+    if state.len() == n {
+        results.push(state.clone());                       // copy
+        return;
+    }
+    for choice in 1..=k {
+        state.push(choice);                                // extend
+        helper(n, k, state, results);                      // recurse
+        state.pop();                                       // undo
+    }
+}
+
+fn enumerate_all(n: usize, k: i32) -> Vec<Vec<i32>> {
+    let mut results: Vec<Vec<i32>> = Vec::new();
+    let mut state: Vec<i32> = Vec::new();
+    helper(n, k, &mut state, &mut results);
+    results
+}
+
+fn main() {
+    println!("{:?}", enumerate_all(2, 2));
+}
+```
+
+</div>
+
+---
 
 ## Complexity Analysis
 
-The unconditional enumeration technique uses multiple recursion at every step as it simulates making all available choices. Hence, it has an exponential time complexity that depends on the depth of recursion and the branching factor.
+| Resource | Cost | Why |
+|---|---|---|
+| **Time** | `O(n · k^n)` | `k^n` leaves × `O(n)` to copy each leaf into the output. |
+| **Space (output)** | `O(n · k^n)` | The same `k^n` results, each of size `n`. |
+| **Space (stack)** | `O(n)` | Recursion depth = number of slots. |
 
-If we assume that the functions functions `isSolutionState`, `getReducedProblemSpace`, `getChoices`, `makeChoice`, `updatecontrol`, `revertLastChoiceFromState`, and `revertLastChoiceFromControl` all take constant **O(1)** time, and the input **N** is reduced linearly in every step, the depth of recursion will also be linear **O(N)**.
+The output dominates. Your algorithm can never be faster than the size of the output it produces — and unconditional enumeration always produces the full tree's leaves. **The pattern is "as fast as it can possibly be" for the problem of "list every X."**
 
-// Diagram: If the input is reduced linearly at each step, the depth of recursion is the same as the size of the input N.
-
-For unconditional enumeration, the number of choices at every step is generally dynamic and dependent on the previously made choices. If we assume that there are total of `k` choices to choose from at every step, and every solution state is at a depth **N**, the overall time complexity in the worst case would be **O(N^k)**.
-
-Since we need to explore the entire problem space to find all the solution states, the time complexity would be **O(N^k)** in any case.
-
-// Diagram: If we can make k choices at every step, it leads to an exponential complexity when searching for all solution states.
-
-Assuming that the variable `state` takes constant **O(1)** space at all times, since we add it to the `enumerations` list when a series of choices leads us to a solution state, the final size of the list will be equal to the number of ways we can reach a solution state. If no solution state exists, the list will always be empty, but recursive calls to depth **N** will take **O(N)** space for all local variables.
-
-In the worst case, all terminal states can be solution states, and so the size of the `enumeration` list will be **O(N^k)**. Since we only create constant **O(1)** sized local variables in every recursive call and the depth of recursion is **O(N)**, the space complexity in the worst case would be **O(N + N^k) ~ O(N^k)**.
-
-> **Best Case:** No solution state exists
+> **Best Case** — Time `O(n · k^n)`, Space `O(n)` (stack)
 >
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N^k)**
->
-> **Worst Case:** All terminal states are solution states
->
-> -   Space Complexity - **O(N^k)**
-> -   Time Complexity - **O(N^k)**
+> **Worst Case** — Same as best — input doesn't change tree size
+
+---
+
+## Key Takeaway
+
+Unconditional enumeration is the simplest backtracking pattern: walk the full state space tree, record every leaf, no pruning. The only knobs you turn are *what's a choice at each level* and *how do you copy a leaf into the output*. Now we'll learn how to spot one.
 
 ***
 
-# Identifying the unconditional enumeration pattern
+# Identifying Unconditional Enumeration
 
-Unconditional enumeration is a fundamental backtracking technique used to generate all solution states to a problem. Most problems that can be solved using this technique are easy or medium problems, where we are given an initial problem state and we recursively make choices to reduce the problem space, ultimately leading to solution states. By systematically exploring these states, unconditional enumeration ensures that all valid solutions are considered. Most problems where we can make a fixed set of choices that are independent of any previously made choice can be solved using the unconditional enumeration technique.
+> **Course:** DSA › Algorithms › Backtracking › Unconditional Enumeration
 
-If the problem statement or its solution follows the generic template below, it can be solved using unconditional enumeration.
+Three diagnostic questions decide whether unconditional enumeration fits.
 
-**Template:**Given an initial problem state, enumerate all the solution states that can be reached from it by making a fixed set of independent choices at each step.
+| # | Question | If "yes," unconditional enumeration fits because... |
+|---|---|---|
+| **Q1** | Is **every** complete candidate a valid solution? | No filter at the leaf — record everything. |
+| **Q2** | Is the candidate built by making **one decision per slot**? | Each level of the tree is one slot's decision. |
+| **Q3** | Is there a **fixed number of choices per slot** (or one bounded by the input)? | The branching factor of the tree is well-defined. |
 
-## Example
+If all three are "yes," you can write the algorithm in three lines: leaf-check, for-loop over choices, recurse with undo.
 
-Let's consider the following problem as an example to better understand how to identify and solve a problem using unconditional enumeration.
+### Q1 — Why "every leaf is a solution"?
 
-> **Problem statement:** Given an integer array `arr` containing unique elements, write a function that returns all possible subsets (the power set) of the elements in arr. The solution set must not contain duplicate subsets. You can return the subsets in any order.
+**Mental model.** If *some* leaves are valid and others aren't, you'd need a validation function to filter — that's conditional enumeration (the Conditional Enumeration lesson), not unconditional. Unconditional means "every leaf the tree can produce is correct by construction."
 
-// Diagram: Find all unique subsets of the items in the array.
+**Concrete check.** Subsets of `[1, 2, 3]`: every subset is a valid output. ✓
 
-## The unconditional enumeration solution
+**What breaks otherwise.** "Generate balanced parentheses of length 6" — many leaves of the naive tree (like `)))(((`) aren't balanced. You'd need to filter at the leaf or prune internally. That's conditional enumeration, not unconditional.
 
-By closely observing the problem, we can identify a brute-force approach to building all subsets. We start with an empty set (the initial problem state) and iterate over the array. In each iteration, we have two choices: either select the number at that index and add it to our set, or ignore it and proceed to the next index.
+### Q2 — Why "one decision per slot"?
 
-// Diagram: For every item in the array, we can either choose it to add to the subset or not choose it.
+**Mental model.** The state space tree's depth equals the number of slots. Each level is one slot, each child is one choice. If a single slot involved multiple decisions glued together, the tree wouldn't be uniform and the recipe would need to bend.
 
-It is clear from the above what the initial problem state (empty set) is, and the choices we have to reduce the problem space incrementally build the solution. The solution to the problem fits the template description for the unconditional enumeration pattern we learned earlier.
+**Concrete check.** Phone combinations: each digit is one slot, each letter for that digit is one choice. ✓
 
-**Template:**Given an initial problem state (empty set), enumerate all the solution states (all subsets) that can be reached from it by making a fixed set of independent choices (add a number to the set or ignore it) at each step.
+**What breaks otherwise.** Problems where the *number* of slots itself depends on a path-specific decision require more elaborate recursion (often the search pattern, the Backtracking Search lesson).
 
-We create a recursive function `findSubsets` that takes as input the array `arr`, the current index we are at in the array `index`, reference to a list `currentSet` that holds current set that is made from our choices, and reference to a 2D list `subsets` that will hold all the subsets (solution states). The recursive function `findSubsets` recursively explores the entire problem space, starting from the given `index` in the array `arr`, and adds all the subsets to the `subsets` list.
+### Q3 — Why "fixed branching factor"?
 
-It is important to note that the variables `index` and `currentSet` collectively define the state in the state space tree that we explore.
+**Mental model.** If every slot has `k` choices, the tree is `k`-ary and uniform. If different slots have wildly different choice counts (sometimes 2, sometimes 26), the tree is irregular but still tractable — the algorithm doesn't change. The bound is what matters: a finite, computable number of choices per slot.
 
-We initialize the `currentSet` and `subsets` lists in the calling function as empty lists and pass them by reference to the `findSubsets` function along with the input array `arr` and starting with `index` 0 that makes up the initial problem state.
+**Concrete check.** Case transformations: each character has 1 choice (non-alphabetic) or 2 choices (alphabetic). The branching factor varies but is bounded. ✓
 
-As we enter the findSubsets function, we check if we have finished making choices for all the items in the array by checking if `index == size` of `arr`. If yes, it means no more choices can be made, and we are at a solution state where `currentSet` is the subset built based on our choices. We add `currentSet` to `subsets` and return to the caller.
+**What breaks otherwise.** Problems where the choice space at a slot is "all subsets of unconsumed inputs" or similar combinatorial explosion typically don't fit unconditional enumeration cleanly — you'd want a permutation-aware structure.
 
-If we are not at a solution state, we have two choices to make. We can either ignore the item and `arr[index]` or add it to `currentSet`. We make the first choice by recursively calling findSubsets on `index+1` without modifying `currentSet`. When this recursive call ends, we make the second choice by adding `arr[index]` to `currentSet` and again calling `findSubsets` recursively. When this recursive call ends, we revert our choice by popping the last item from the `currentSet` list and returning to the caller.
+---
 
-This way, at every step, make two choices and update and revert the `currentSet` list accordingly and adding `currentSet` to the `subsets` list when we have made a series of choices for all items in the array (solution state). At the end of all recursive calls, the `subsets` list will have all power set (all subsets) of the array in the calling function.
+## A Worked Example — Length-2 Binary Sequences
 
-Consider the example execution below for an array of only two items.
+> *Pause and predict — list all length-2 sequences of 0s and 1s. How many? What does the state space tree look like?*
 
-Find all unique subsets of the items in the array.
+Four sequences: `[0,0]`, `[0,1]`, `[1,0]`, `[1,1]`. The tree:
 
-The implementation of the unconditional enumeration solution to solve the problem is given below.
-
-C++
-
-```cpp
-using namespace std;
-
-class Solution {
-public:
-    void findSubsets(
-        vector<int> &arr,
-        int index,
-        vector<int> &currentSet,
-        vector<vector<int>> &subsets
-    ) {
-
-        if(index == arr.size()) {
-            // Add the current subset to the subsets
-            subsets.push_back(currentSet);
-            return;
-        }
-
-            // Choice 1. Ignore the current element from the subset
-            // Recur with the next element
-            findSubsets(arr, index + 1, currentSet, subsets);
-
-// Diagram: // Backrtack for the next choice
-
-            // Choice 2. Include the current element in the subset
-            currentSet.push_back(arr[index]);
-            // Recur with the next element
-            findSubsets(arr, index + 1, currentSet, subsets);
-
-            // Undo the previous choice before moving to next element
-            currentSet.pop_back();
-    }
-
-// Diagram: vector<vector<int>> uniqueSubsets(vector<int> &arr) {
-
-        // Vector to store the subsets
-        vector<vector<int>> subsets;
-
-        // Temporary vector to store the current subset
-        vector<int> currentSet;
-
-        // Start the recursive search from index 0
-        findSubsets(arr, 0, currentSet, subsets);
-
-        // Return the vector containing all subsets
-        return subsets;
-    }
-};
+```
+                 [ ]                  (root)
+              /        \
+           append 0   append 1
+              |          |
+            [0]         [1]
+           /   \        /  \
+         [0,0] [0,1] [1,0] [1,1]      (leaves)
 ```
 
-Java
+Depth 2, 4 leaves, 7 nodes total. The algorithm walks this depth-first. We'll generalise to length `n` with `k` choices per slot in **Problem 3** below.
 
-```java
-import java.util.ArrayList;
-import java.util.List;
+---
 
-// Diagram: class Solution {
+## Key Takeaway
 
-    void findSubsets(
-        List<Integer> arr,
-        int index,
-        List<Integer> currentSet,
-        List<List<Integer>> subsets
-    ) {
+Three checks — every leaf is a solution, one decision per slot, fixed branching factor — gate every unconditional-enumeration problem. Pass all three and the algorithm slides into the three-line template. Four worked problems coming up. The first is the canonical subsets problem; the second introduces a "skip or transform" choice per slot; the third generalises the slot count and branching factor; the fourth maps each slot to a different choice set.
 
-        if (index == arr.size()) {
-            // Add the current subset to the subsets
-            subsets.add(new ArrayList<>(currentSet));
-            return;
-        }
+***
 
-        // Choice 1. Ignore the current element from the subset
-        // Recur with the next element
-        findSubsets(arr, index + 1, currentSet, subsets);
+# Unique Subsets
 
-// Diagram: // findSubsets for the next choice
+> **Course:** DSA › Algorithms › Backtracking › Unconditional Enumeration
 
-        // Choice 2. Include the current element in the subset
-        currentSet.add(arr.get(index));
-        // Recur with the next element
-        findSubsets(arr, index + 1, currentSet, subsets);
+The textbook subsets problem. Each element of the input array becomes one slot in the state space tree; each slot has exactly two choices: include or exclude.
 
-        // Undo the previous choice before moving to next element
-        currentSet.remove(currentSet.size() - 1);
-    }
+---
 
-// Diagram: List<List<Integer>> uniqueSubsets(List<Integer> arr) {
+## The Problem
 
-        // Vector to store the subsets
-        List<List<Integer>> subsets = new ArrayList<>();
+Given an integer array `arr` containing **unique** elements, return all possible subsets (the power set). The result must not contain duplicates. Subsets can be returned in any order.
 
-        // Temporary vector to store the current subset
-        List<Integer> currentSet = new ArrayList<>();
+```
+Input:  arr = [1, 2, 3]
+Output: [[], [1], [2], [1,2], [3], [1,3], [2,3], [1,2,3]]
 
-        // Start the recursive search from index 0
-        findSubsets(arr, 0, currentSet, subsets);
+Input:  arr = [1]
+Output: [[], [1]]
 
-        // Return the vector containing all subsets
-        return subsets;
-    }
+Input:  arr = []
+Output: [[]]
 ```
 
-Typescript
+---
 
-```typescript
-class Solution {
-  findSubsets(
-    arr: number[],
-    index: number,
-    currentSet: number[],
-    subsets: number[][]
-  ): void {
+## What Does "Power Set" Mean Recursively?
 
-    if (index === arr.length) {
-      // Add the current subset to the subsets
-      subsets.push([...currentSet]);
-      return;
-    }
+For each element of `arr`, you have two choices: **include it in the current subset, or exclude it.** Make this decision once per element, and you've fully specified one subset. There are `n` decisions and `2^n` outcomes — the power set.
 
-    // Choice 1. Ignore the current element from the subset
-    // Recur with the next element
-    this.findSubsets(arr, index + 1, currentSet, subsets);
-
-// Diagram: // Backrtack for the next choice
-
-    // Choice 2. Include the current element in the subset
-    currentSet.push(arr[index]);
-    // Recur with the next element
-    this.findSubsets(arr, index + 1, currentSet, subsets);
-
-    // Undo the previous choice before moving to next element
-    currentSet.pop();
-  }
-
-  uniqueSubsets(arr: number[]): number[][] {
-    // Vector to store the subsets
-    const subsets: number[][] = [];
-
-    // Temporary vector to store the current subset
-    const currentSet: number[] = [];
-
-    // Start the recursive search from index 0
-    this.findSubsets(arr, 0, currentSet, subsets);
-
-    // Return the vector containing all subsets
-    return subsets;
-  }
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+  R["[ ]"] --> S1["skip 1<br/>state=[]"]
+  R --> T1["take 1<br/>state=[1]"]
+  S1 --> S1S2["skip 2<br/>state=[]"]
+  S1 --> S1T2["take 2<br/>state=[2]"]
+  T1 --> T1S2["skip 2<br/>state=[1]"]
+  T1 --> T1T2["take 2<br/>state=[1,2]"]
+  S1S2 --> L1["leaf<br/>state=[]"]
+  S1S2 --> L2["leaf<br/>state=[3]"]
+  S1T2 --> L3["leaf<br/>state=[2]"]
+  S1T2 --> L4["leaf<br/>state=[2,3]"]
+  T1S2 --> L5["leaf<br/>state=[1]"]
+  T1S2 --> L6["leaf<br/>state=[1,3]"]
+  T1T2 --> L7["leaf<br/>state=[1,2]"]
+  T1T2 --> L8["leaf<br/>state=[1,2,3]"]
 ```
 
-Javascript
+<p align="center"><strong>State space tree for subsets of <code>[1, 2, 3]</code>. Depth = 3, leaves = 8 = 2³, every leaf is a valid subset.</strong></p>
 
-```javascript
-class Solution {
-  findSubsets(
-    arr,
-    index,
-    currentSet,
-    subsets
-  ) {
+---
 
-    if (index === arr.length) {
-      // Add the current subset to the subsets
-      subsets.push([...currentSet]);
-      return;
-    }
+## Applying the Diagnostic Questions
 
-    // Choice 1. Ignore the current element from the subset
-    // Recur with the next element
-    this.findSubsets(arr, index + 1, currentSet, subsets);
+| # | Check | Answer |
+|---|---|---|
+| **Q1** | Every leaf a solution? | **Yes** — every subset (including empty) is a valid output. |
+| **Q2** | One decision per slot? | **Yes** — one decision per element: include or exclude. |
+| **Q3** | Fixed branching factor? | **Yes** — `k = 2` per slot. |
 
-// Diagram: // Backrtack for the next choice
+### Q1 — Why "every subset is valid"?
 
-    // Choice 2. Include the current element in the subset
-    currentSet.push(arr[index]);
-    // Recur with the next element
-    this.findSubsets(arr, index + 1, currentSet, subsets);
+The power set is *defined* as the set of all subsets, including `{}` and the full input. There's no rule that disqualifies any one of them. ✓
 
-    // Undo the previous choice before moving to next element
-    currentSet.pop();
-  }
+### Q2 — Why "one decision per element"?
 
-// Diagram: uniqueSubsets(arr) {
+The recipe for a subset is a sequence of `n` independent yes/no decisions, one per element. The state space tree's depth equals `n`. ✓
 
-    // Vector to store the subsets
-    const subsets = [];
+### Q3 — Why "branching factor 2"?
 
-    // Temporary vector to store the current subset
-    const currentSet = [];
+Every element has exactly two choices: include or exclude. The tree is binary. ✓
 
-    // Start the recursive search from index 0
-    this.findSubsets(arr, 0, currentSet, subsets);
+---
 
-    // Return the vector containing all subsets
-    return subsets;
-  }
+## The Include-or-Exclude Strategy (Visualised)
+
+We process elements left-to-right. At each element, the state space splits into two branches. The current "partial subset" lives in a shared mutable list; we push when including, pop when undoing.
+
+<div class="d2-slides" data-caption="Each frame either includes the current element (extend, recurse, then pop to undo) or skips it (just recurse).">
+
+```d2
+state: "Start at index 0, current = []" {
+  arr: "arr = [1, 2, 3]"
+  cur: "current = []" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+}
 ```
 
-Python
+```d2
+state: "Include 1 — current = [1], recurse on index 1" {
+  cur: "current = [1]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
+```
 
-```python
+```d2
+state: "Include 2 — current = [1, 2], recurse on index 2" {
+  cur: "current = [1, 2]" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+}
+```
+
+```d2
+state: "Include 3 — current = [1, 2, 3] = LEAF, record and return" {
+  cur: "current = [1, 2, 3]" {style.fill: "#ede9fe"; style.stroke: "#7c3aed"}
+}
+```
+
+```d2
+state: "Backtrack: pop 3 → current = [1, 2], skip 3, leaf [1, 2]" {
+  cur: "current = [1, 2]" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+}
+```
+
+```d2
+state: "...backtrack further, eventually visit all 8 leaves" {
+  result: "subsets = [[], [3], [2], [2,3], [1], [1,3], [1,2], [1,2,3]]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
+```
+
+</div>
+
+---
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
 from typing import List
 
 class Solution:
-    def find_subsets(
-        self,
-        arr: List[int],
-        index: int,
-        current_set: List[int],
-        subsets: List[List[int]]
-    ) -> None:
+    def unique_subsets(self, arr: List[int]) -> List[List[int]]:
+        results: List[List[int]] = []
+        current: List[int] = []
+        self._helper(arr, 0, current, results)
+        return results
 
+    def _helper(self, arr: List[int], index: int, current: List[int], results: List[List[int]]) -> None:
+        # Leaf: every subset is valid; record a copy
         if index == len(arr):
-            # Add the current subset to the subsets
-            subsets.append(current_set.copy())
+            results.append(current.copy())
             return
 
-        # Choice 1. Ignore the current element from the subset
-        # Recur with the next element
-        self.find_subsets(arr, index + 1, current_set, subsets)
+        # Choice 1 — include arr[index]
+        current.append(arr[index])             # extend
+        self._helper(arr, index + 1, current, results)
+        current.pop()                           # undo
 
-        # find_subsets for the next choice
+        # Choice 2 — skip arr[index]
+        self._helper(arr, index + 1, current, results)
 
-        # Choice 2. Include the current element in the subset
-        current_set.append(arr[index])
-        # Recur with the next element
-        self.find_subsets(arr, index + 1, current_set, subsets)
 
-        # Undo the previous choice before moving to next element
-        current_set.pop()
-
-    def unique_subsets(self, arr: List[int]) -> List[List[int]]:
-        # Vector to store the subsets
-        subsets: List[List[int]] = []
-
-        # Temporary vector to store the current subset
-        current_set: List[int] = []
-
-        # Start the recursive search from index 0
-        self.find_subsets(arr, 0, current_set, subsets)
-
-        # Return the vector containing all subsets
-        return subsets
+if __name__ == "__main__":
+    print(Solution().unique_subsets([1, 2, 3]))
 ```
 
-.
+```java,editable
+import java.util.ArrayList;
+import java.util.List;
 
-## Example problems
+public class Solution {
+    public List<List<Integer>> uniqueSubsets(int[] arr) {
+        List<List<Integer>> results = new ArrayList<>();
+        List<Integer> current = new ArrayList<>();
+        helper(arr, 0, current, results);
+        return results;
+    }
 
-Most problems that fall under this category are**easy**or**medium**problems; a list of a few is given below.
-
-> -   **[Unique subsets](https://www.codeintuition.io/courses/backtracking/Ay1v4Se4C70fEpzrhyxOx)**
-> -   **[Number sequence](https://www.codeintuition.io/courses/backtracking/b6KNxc-nHELQzUrZ1t_gT)**
-> -   **[Phone combinations](https://www.codeintuition.io/courses/backtracking/6CnDCrcxNm3TktPwVWrvN)**
-> -   **[Case transformations](https://www.codeintuition.io/courses/backtracking/JkLgJH7l765_QdNMGqfIY)**
-
-We will now solve these problems to gain a deeper understanding of the unconditional enumeration pattern.
-
-***
-
-# Unique subsets
-
-## Problem Statement
-
-Given an integer array **arr** containing unique elements, write a function that returns all possible subsets (the power set) of the elements in arr. The solution set must not contain duplicate subsets. You can return the subsets in **any order**.
-
-### Example 1
-
-> -   **Input:** arr = \[1, 2, 3\]
-> -   **Output:** \[\[\], \[1\], \[2\], \[1, 2\], \[3\], \[1, 3\], \[2, 3\], \[1, 2, 3\]\]
-> -   **Explanation:** Above is the list of all the subsets for \[1, 2, 3\].
-
-### Example 2
-
-> -   **Input:** arr = \[1\]
-> -   **Output:** \[\[\], \[1\]\]
-> -   **Explanation:** Above is the list of all the subsets for \[1\].
-
-### Example 3
-
-> -   **Input:** arr = \[\]
-> -   **Output:** \[\[\]\]
-> -   **Explanation:** Above is the list of all the subsets for \[\].
-
-## Solution
-
-```cpp
-using namespace std;
-
-class Solution {
-public:
-    void generateSubsets(
-        vector<int> &arr,
-        int index,
-        vector<int> &currentSubset,
-        vector<vector<int>> &subsets
-    ) {
-
-        // If all elements have been considered (solution state)
-        if (index == arr.size()) {
-
-            // Every state is a valid subset -> add directly
-            subsets.push_back(currentSubset);
-
-            // Return to explore other possibilities
+    private void helper(int[] arr, int index, List<Integer> current, List<List<Integer>> results) {
+        if (index == arr.length) {
+            results.add(new ArrayList<>(current));
             return;
         }
-
-        // Choices for each element:
-        // 1. true -> Include the current element in subset
-        // 2. false -> Do not include the current element in subset
-        for (bool includeCurrent : {true, false}) {
-
-            // Include the current element in the subset
-            if (includeCurrent) {
-
-                // Include the current element in the subset (make a
-                // choice)
-                currentSubset.push_back(arr[index]);
-
-                // Recur for the next index in the array including the
-                // current element
-                generateSubsets(arr, index + 1, currentSubset, subsets);
-
-                // Backtrack by removing the last element (revert the
-                // choice)
-                currentSubset.pop_back();
-
-            }
-
-            // Do not include the current element in the subset
-            else {
-
-                // Recur for the next index in the array without
-                // including the current element
-                generateSubsets(arr, index + 1, currentSubset, subsets);
-            }
-        }
+        // Include
+        current.add(arr[index]);
+        helper(arr, index + 1, current, results);
+        current.remove(current.size() - 1);
+        // Skip
+        helper(arr, index + 1, current, results);
     }
 
-    vector<vector<int>> uniqueSubsets(vector<int> &arr) {
-
-        // Vector to store the subsets
-        vector<vector<int>> subsets;
-
-        // Temporary vector to store the current subset
-        vector<int> currentSubset;
-
-        // Start backtracking from index 0
-        generateSubsets(arr, 0, currentSubset, subsets);
-
-        // Return the vector containing all subsets
-        return subsets;
+    public static void main(String[] args) {
+        System.out.println(new Solution().uniqueSubsets(new int[]{1, 2, 3}));
     }
-};
+}
 ```
 
-***
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-# Case transformations
+static void helper(int *arr, int n, int index, int *current, int curLen, int **results, int *resCount, int *resLens) {
+    if (index == n) {
+        results[*resCount] = (int *) malloc(sizeof(int) * curLen);
+        memcpy(results[*resCount], current, sizeof(int) * curLen);
+        resLens[*resCount] = curLen;
+        (*resCount)++;
+        return;
+    }
+    /* Include */
+    current[curLen] = arr[index];
+    helper(arr, n, index + 1, current, curLen + 1, results, resCount, resLens);
+    /* Skip — implicit undo: curLen returns to original on next call */
+    helper(arr, n, index + 1, current, curLen, results, resCount, resLens);
+}
 
-## Problem Statement
+int main(void) {
+    int arr[] = {1, 2, 3};
+    int n = 3, total = 1 << n;
+    int **results = (int **) malloc(sizeof(int *) * total);
+    int *current = (int *) malloc(sizeof(int) * n);
+    int *resLens = (int *) calloc(total, sizeof(int));
+    int resCount = 0;
+    helper(arr, n, 0, current, 0, results, &resCount, resLens);
+    for (int i = 0; i < resCount; i++) {
+        printf("[");
+        for (int j = 0; j < resLens[i]; j++) printf("%d%s", results[i][j], j+1 < resLens[i] ? "," : "");
+        printf("]\n");
+        free(results[i]);
+    }
+    free(current); free(results); free(resLens);
+    return 0;
+}
+```
 
-Given a string **s**, write a function that returns a list of all possible strings that can be created by transforming each letter in s individually to be either lowercase or uppercase. The output may be returned in **any order**.
-
-### Example 1
-
-> -   **Input:** s = a1b2
-> -   **Output:** \[a1b2, a1B2, A1b2, A1B2\]
-> -   **Explanation:** Above is the list with all possible strings.
-
-### Example 2
-
-> -   **Input:** s = 3z4
-> -   **Output:** \[3Z4, 3z4\]
-> -   **Explanation:** Above is the list with all possible strings.
-
-### Example 3
-
-> -   **Input:** s = a
-> -   **Output:** \[a, A\]
-> -   **Explanation:** Above is the list with all possible strings.
-
-## Solution
-
-```cpp
-using namespace std;
+```cpp,editable
+#include <iostream>
+#include <vector>
 
 class Solution {
 public:
-    char toggleCase(char c) {
-
-        // If the character is in lowercase, return the uppercase version
-        if (islower(c)) {
-            return toupper(c);
+    void helper(std::vector<int>& arr, int index, std::vector<int>& current, std::vector<std::vector<int>>& results) {
+        if (index == (int) arr.size()) {
+            results.push_back(current);
+            return;
         }
-
-        // Otherwise, if the character is in uppercase, return the
-        // lowercase version
-        else {
-            return tolower(c);
-        }
+        current.push_back(arr[index]);                 // include
+        helper(arr, index + 1, current, results);
+        current.pop_back();                            // undo
+        helper(arr, index + 1, current, results);     // skip
     }
 
-    void generateTransformations(
-        const string &s,
-        int index,
-        string &currentTransformation,
-        vector<string> &transformations
-    ) {
+    std::vector<std::vector<int>> uniqueSubsets(std::vector<int>& arr) {
+        std::vector<std::vector<int>> results;
+        std::vector<int> current;
+        helper(arr, 0, current, results);
+        return results;
+    }
+};
 
-        // If index reaches the end of the string, store the current
-        // transformation (solution state)
+int main() {
+    std::vector<int> arr = {1, 2, 3};
+    auto r = Solution{}.uniqueSubsets(arr);
+    for (auto& s : r) { std::cout << "["; for (int x : s) std::cout << x << ' '; std::cout << "]\n"; }
+}
+```
+
+```scala,editable
+import scala.collection.mutable.ArrayBuffer
+
+class Solution {
+  def uniqueSubsets(arr: Array[Int]): List[List[Int]] = {
+    val results = ArrayBuffer[List[Int]]()
+    val current = ArrayBuffer[Int]()
+    helper(arr, 0, current, results)
+    results.toList
+  }
+
+  private def helper(arr: Array[Int], index: Int, current: ArrayBuffer[Int], results: ArrayBuffer[List[Int]]): Unit = {
+    if (index == arr.length) {
+      results += current.toList
+      return
+    }
+    current += arr(index)
+    helper(arr, index + 1, current, results)
+    current.remove(current.length - 1)
+    helper(arr, index + 1, current, results)
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = println(new Solution().uniqueSubsets(Array(1, 2, 3)))
+}
+```
+
+```javascript,editable
+class Solution {
+    uniqueSubsets(arr) {
+        const results = [];
+        const current = [];
+        this._helper(arr, 0, current, results);
+        return results;
+    }
+
+    _helper(arr, index, current, results) {
+        if (index === arr.length) {
+            results.push([...current]);
+            return;
+        }
+        current.push(arr[index]);
+        this._helper(arr, index + 1, current, results);
+        current.pop();
+        this._helper(arr, index + 1, current, results);
+    }
+}
+
+console.log(new Solution().uniqueSubsets([1, 2, 3]));
+```
+
+```typescript,editable
+class Solution {
+    uniqueSubsets(arr: number[]): number[][] {
+        const results: number[][] = [];
+        const current: number[] = [];
+        this._helper(arr, 0, current, results);
+        return results;
+    }
+
+    private _helper(arr: number[], index: number, current: number[], results: number[][]): void {
+        if (index === arr.length) {
+            results.push([...current]);
+            return;
+        }
+        current.push(arr[index]);
+        this._helper(arr, index + 1, current, results);
+        current.pop();
+        this._helper(arr, index + 1, current, results);
+    }
+}
+
+console.log(new Solution().uniqueSubsets([1, 2, 3]));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func helper(arr []int, index int, current *[]int, results *[][]int) {
+    if index == len(arr) {
+        cpy := make([]int, len(*current))
+        copy(cpy, *current)
+        *results = append(*results, cpy)
+        return
+    }
+    *current = append(*current, arr[index])
+    helper(arr, index+1, current, results)
+    *current = (*current)[:len(*current)-1]
+    helper(arr, index+1, current, results)
+}
+
+func uniqueSubsets(arr []int) [][]int {
+    results := [][]int{}
+    current := []int{}
+    helper(arr, 0, &current, &results)
+    return results
+}
+
+func main() {
+    fmt.Println(uniqueSubsets([]int{1, 2, 3}))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun uniqueSubsets(arr: IntArray): List<List<Int>> {
+        val results = mutableListOf<List<Int>>()
+        val current = mutableListOf<Int>()
+        helper(arr, 0, current, results)
+        return results
+    }
+
+    private fun helper(arr: IntArray, index: Int, current: MutableList<Int>, results: MutableList<List<Int>>) {
+        if (index == arr.size) {
+            results.add(current.toList())
+            return
+        }
+        current.add(arr[index])
+        helper(arr, index + 1, current, results)
+        current.removeAt(current.size - 1)
+        helper(arr, index + 1, current, results)
+    }
+}
+
+fun main() {
+    println(Solution().uniqueSubsets(intArrayOf(1, 2, 3)))
+}
+```
+
+```rust,editable
+fn helper(arr: &[i32], index: usize, current: &mut Vec<i32>, results: &mut Vec<Vec<i32>>) {
+    if index == arr.len() {
+        results.push(current.clone());
+        return;
+    }
+    current.push(arr[index]);
+    helper(arr, index + 1, current, results);
+    current.pop();
+    helper(arr, index + 1, current, results);
+}
+
+fn unique_subsets(arr: &[i32]) -> Vec<Vec<i32>> {
+    let mut results: Vec<Vec<i32>> = Vec::new();
+    let mut current: Vec<i32> = Vec::new();
+    helper(arr, 0, &mut current, &mut results);
+    results
+}
+
+fn main() {
+    println!("{:?}", unique_subsets(&[1, 2, 3]));
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — arr = [1, 2, 3]</strong></summary>
+
+```
+helper(0, [])
+├─ include 1 → helper(1, [1])
+│  ├─ include 2 → helper(2, [1,2])
+│  │  ├─ include 3 → helper(3, [1,2,3]) → leaf → results = [[1,2,3]]
+│  │  ├─ undo (pop 3)
+│  │  └─ skip 3 → helper(3, [1,2]) → leaf → results = [[1,2,3], [1,2]]
+│  ├─ undo (pop 2)
+│  └─ skip 2 → helper(2, [1])
+│     ├─ include 3 → helper(3, [1,3]) → leaf → results = [..., [1,3]]
+│     ├─ undo (pop 3)
+│     └─ skip 3 → helper(3, [1]) → leaf → results = [..., [1]]
+├─ undo (pop 1)
+└─ skip 1 → helper(1, [])
+   ├─ include 2 → ... (mirror of above without the 1)
+   └─ ...
+
+Final results: [[1,2,3], [1,2], [1,3], [1], [2,3], [2], [3], []]
+(8 leaves, in DFS order)
+```
+
+</details>
+
+---
+
+## Complexity Analysis
+
+| Resource | Cost | Why |
+|---|---|---|
+| **Time** | `O(n · 2^n)` | `2^n` subsets × `O(n)` to copy each into the output. |
+| **Space (output)** | `O(n · 2^n)` | Total size of all subsets summed. |
+| **Space (stack)** | `O(n)` | Recursion depth equals input length. |
+
+The output dominates; you can never be faster than this.
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected | Reasoning |
+|---|---|---|---|
+| Empty input | `arr = []` | `[[]]` | Only the empty subset; tree has just the root. |
+| Single element | `arr = [5]` | `[[], [5]]` | Two leaves. |
+| Duplicates in input | `arr = [1, 1]` (problem says unique, but…) | algorithm produces `[[], [1], [1], [1,1]]` — has dupes | The problem statement guarantees unique elements; if not, we'd need to dedupe (a different problem variant). |
+| Larger input | `arr = [1..20]` | 2²⁰ ≈ 1M subsets | Output size is the bottleneck. |
+
+---
+
+## Final Takeaway
+
+Unique Subsets is the canonical 2-choice unconditional enumeration: include-or-exclude, depth equals input length, every leaf valid. The next problem applies the same shape but with a *conditional* choice: only some slots have two choices; others are forced.
+
+***
+
+# Case Transformations
+
+> **Course:** DSA › Algorithms › Backtracking › Unconditional Enumeration
+
+The branching factor varies per slot. Letters have 2 choices (toggle or keep); non-letters have 1 choice (keep). Same recipe; different choice generation.
+
+---
+
+## The Problem
+
+Given a string `s`, return every possible string formed by transforming each *letter* (alphabetic character) to either lowercase or uppercase. Non-letters stay as-is. Output may be in any order.
+
+```
+Input:  s = "a1b2"
+Output: ["a1b2", "a1B2", "A1b2", "A1B2"]
+
+Input:  s = "3z4"
+Output: ["3Z4", "3z4"]
+
+Input:  s = "a"
+Output: ["a", "A"]
+```
+
+---
+
+## What's Different About This Problem?
+
+The branching factor depends on the slot. For a letter, you have two choices: leave it as-is or toggle the case. For a non-letter (digit, symbol), you have one choice: leave it as-is. The state space tree is *non-uniform* but the recipe is identical:
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+  R["index 0: 'a' (letter, 2 choices)"]
+  R --> A["state='a'"]
+  R --> B["state='A'"]
+  A --> A1["index 1: '1' (non-letter, 1 choice)"]
+  B --> B1["index 1: '1' (non-letter, 1 choice)"]
+  A1 --> A2["state='a1'"]
+  B1 --> B2["state='A1'"]
+  A2 --> A3["index 2: 'b' (letter, 2 choices)"]
+  B2 --> B3["index 2: 'b' (letter, 2 choices)"]
+  A3 --> AA["'a1b'"]
+  A3 --> AB["'a1B'"]
+  B3 --> BA["'A1b'"]
+  B3 --> BB["'A1B'"]
+```
+
+<p align="center"><strong>Tree for <code>s = "a1b2"</code> (showing only first 3 chars). Letter slots branch 2-way; digit slots branch 1-way. The non-uniform tree still produces a clean enumeration.</strong></p>
+
+---
+
+## Applying the Diagnostic Questions
+
+| # | Check | Answer |
+|---|---|---|
+| **Q1** | Every leaf a solution? | **Yes** — every case-toggle combination is a valid output. |
+| **Q2** | One decision per slot? | **Yes** — one decision per character. |
+| **Q3** | Fixed (or bounded) branching factor? | **Yes** — 1 for non-letters, 2 for letters; bounded. |
+
+### Q1 — Why "every leaf valid"?
+
+The output is defined as "every possible case combination" — none are excluded. ✓
+
+### Q2 — Why "one decision per character"?
+
+Each character is processed independently. ✓
+
+### Q3 — Why "branching bounded"?
+
+Per-slot branching is either 1 or 2 — bounded by 2. The tree is finite and walkable. ✓
+
+---
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+from typing import List
+
+class Solution:
+    def case_transformations(self, s: str) -> List[str]:
+        results: List[str] = []
+        current: List[str] = []
+        self._helper(s, 0, current, results)
+        return results
+
+    def _helper(self, s: str, index: int, current: List[str], results: List[str]) -> None:
+        if index == len(s):
+            results.append("".join(current))
+            return
+
+        ch = s[index]
+        # Always: keep original
+        current.append(ch)
+        self._helper(s, index + 1, current, results)
+        current.pop()
+
+        # Letter only: also try toggled
+        if ch.isalpha():
+            current.append(ch.swapcase())
+            self._helper(s, index + 1, current, results)
+            current.pop()
+
+
+if __name__ == "__main__":
+    print(Solution().case_transformations("a1b2"))   # ['a1b2', 'a1B2', 'A1b2', 'A1B2']
+```
+
+```java,editable
+import java.util.ArrayList;
+import java.util.List;
+
+public class Solution {
+    public List<String> caseTransformations(String s) {
+        List<String> results = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        helper(s, 0, current, results);
+        return results;
+    }
+
+    private void helper(String s, int index, StringBuilder current, List<String> results) {
         if (index == s.length()) {
-
-            // Add the current transformation to the result
-            transformations.push_back(currentTransformation);
-
-            // Return to continue exploring other possibilities
+            results.add(current.toString());
             return;
         }
+        char ch = s.charAt(index);
 
-        // Choices for each element:
-        // 1. true -> Toggle the case of the current character
-        // 2. false -> Do not toggle the case of the current character
-        for (bool toggleCurrent : {true, false}) {
+        current.append(ch);
+        helper(s, index + 1, current, results);
+        current.deleteCharAt(current.length() - 1);
 
-            // Toggle the case of the current character if it is an
-            // alphabet
-            if (toggleCurrent && isalpha(s[index])) {
-
-                // Make choice: toggle the case and append to
-                // currentTransformation
-                currentTransformation.push_back(toggleCase(s[index]));
-
-                // Recur with next index
-                generateTransformations(
-                    s, index + 1, currentTransformation, transformations
-                );
-
-                // Unmake choice: remove the last character
-                currentTransformation.pop_back();
-
-            } else if (!toggleCurrent) {
-
-                // Make choice: keep original character
-                currentTransformation.push_back(s[index]);
-
-                // Recur with next index
-                generateTransformations(
-                    s, index + 1, currentTransformation, transformations
-                );
-
-                // Unmake choice: remove the last character
-                currentTransformation.pop_back();
-            }
+        if (Character.isLetter(ch)) {
+            char toggled = Character.isLowerCase(ch) ? Character.toUpperCase(ch) : Character.toLowerCase(ch);
+            current.append(toggled);
+            helper(s, index + 1, current, results);
+            current.deleteCharAt(current.length() - 1);
         }
     }
 
-    vector<string> caseTransformations(const string &s) {
-
-        // Vector to store the transformations
-        vector<string> transformations;
-
-        // Working string for backtracking
-        string currentTransformation;
-
-        // Start the unconditional enumeration process from index 0
-        generateTransformations(
-            s, 0, currentTransformation, transformations
-        );
-
-        // Return the vector containing all transformations
-        return transformations;
+    public static void main(String[] args) {
+        System.out.println(new Solution().caseTransformations("a1b2"));
     }
-};
+}
 ```
 
-***
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
-# Number sequence
+static char toggle_case(char c) {
+    if (islower((unsigned char) c)) return toupper((unsigned char) c);
+    return tolower((unsigned char) c);
+}
 
-## Problem Statement
+static void helper(const char *s, int n, int index, char *current, int curLen, char **results, int *count) {
+    if (index == n) {
+        current[curLen] = '\0';
+        results[*count] = strdup(current);
+        (*count)++;
+        return;
+    }
+    char ch = s[index];
+    current[curLen] = ch;
+    helper(s, n, index + 1, current, curLen + 1, results, count);
+    if (isalpha((unsigned char) ch)) {
+        current[curLen] = toggle_case(ch);
+        helper(s, n, index + 1, current, curLen + 1, results, count);
+    }
+}
 
-Given two non-negative integers **n** and **k**, write a function that returns all possible sequences of length n, where each element is an integer in the range `[1, k]`. You can return the sequences in **any order**.
+int main(void) {
+    const char *s = "a1b2";
+    int n = 4;
+    char **results = (char **) malloc(sizeof(char *) * 100);
+    char *current = (char *) malloc(n + 1);
+    int count = 0;
+    helper(s, n, 0, current, 0, results, &count);
+    for (int i = 0; i < count; i++) { printf("%s\n", results[i]); free(results[i]); }
+    free(current); free(results);
+    return 0;
+}
+```
 
-### Example 1
-
-> -   **Input:** n = 2, k = 2
-> -   **Output:** \[\[1, 1\], \[1, 2\], \[2, 1\], \[2, 2\]\]
-> -   **Explanation:** Above are all the sequences when n = 2 and k = 2.
-
-### Example 2
-
-> -   **Input:** n = 3, k = 1
-> -   **Output:** \[\[1, 1, 1\]\]
-> -   **Explanation:** Above are all the sequences when n = 3 and k = 1.
-
-### Example 3
-
-> -   **Input:** n = 1, k = 4
-> -   **Output:** \[\[1\], \[2\], \[3\], \[4\]\]
-> -   **Explanation:** Above are all the sequences when n = 1 and k = 4.
-
-## Solution
-
-```cpp
-using namespace std;
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <string>
+#include <cctype>
 
 class Solution {
 public:
-    void generateSequence(
-        int n,
-        int k,
-        int index,
-        vector<int> &currentSequence,
-        vector<vector<int>> &sequences
-    ) {
-
-        // If the current sequence has reached length n (solution state)
-        if (index == n) {
-
-            // Add the complete sequence to the result
-            sequences.push_back(currentSequence);
-
-            // Return to continue exploring other possibilities
+    void helper(const std::string& s, int index, std::string& current, std::vector<std::string>& results) {
+        if (index == (int) s.length()) {
+            results.push_back(current);
             return;
         }
+        char ch = s[index];
+        current.push_back(ch);
+        helper(s, index + 1, current, results);
+        current.pop_back();
 
-        // Get all possible choices for the current position
-        // (numbers 1..k)
+        if (std::isalpha((unsigned char) ch)) {
+            char toggled = std::islower((unsigned char) ch) ? std::toupper((unsigned char) ch) : std::tolower((unsigned char) ch);
+            current.push_back(toggled);
+            helper(s, index + 1, current, results);
+            current.pop_back();
+        }
+    }
+
+    std::vector<std::string> caseTransformations(const std::string& s) {
+        std::vector<std::string> results;
+        std::string current;
+        helper(s, 0, current, results);
+        return results;
+    }
+};
+
+int main() {
+    auto r = Solution{}.caseTransformations("a1b2");
+    for (auto& x : r) std::cout << x << '\n';
+}
+```
+
+```scala,editable
+import scala.collection.mutable.ArrayBuffer
+
+class Solution {
+  def caseTransformations(s: String): List[String] = {
+    val results = ArrayBuffer[String]()
+    val current = new StringBuilder
+    helper(s, 0, current, results)
+    results.toList
+  }
+
+  private def helper(s: String, index: Int, current: StringBuilder, results: ArrayBuffer[String]): Unit = {
+    if (index == s.length) {
+      results += current.toString()
+      return
+    }
+    val ch = s.charAt(index)
+    current.append(ch)
+    helper(s, index + 1, current, results)
+    current.deleteCharAt(current.length - 1)
+
+    if (ch.isLetter) {
+      val toggled = if (ch.isLower) ch.toUpper else ch.toLower
+      current.append(toggled)
+      helper(s, index + 1, current, results)
+      current.deleteCharAt(current.length - 1)
+    }
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = println(new Solution().caseTransformations("a1b2"))
+}
+```
+
+```javascript,editable
+class Solution {
+    caseTransformations(s) {
+        const results = [];
+        const current = [];
+        this._helper(s, 0, current, results);
+        return results;
+    }
+
+    _helper(s, index, current, results) {
+        if (index === s.length) {
+            results.push(current.join(""));
+            return;
+        }
+        const ch = s[index];
+        current.push(ch);
+        this._helper(s, index + 1, current, results);
+        current.pop();
+
+        if (/[a-zA-Z]/.test(ch)) {
+            const toggled = ch === ch.toLowerCase() ? ch.toUpperCase() : ch.toLowerCase();
+            current.push(toggled);
+            this._helper(s, index + 1, current, results);
+            current.pop();
+        }
+    }
+}
+
+console.log(new Solution().caseTransformations("a1b2"));
+```
+
+```typescript,editable
+class Solution {
+    caseTransformations(s: string): string[] {
+        const results: string[] = [];
+        const current: string[] = [];
+        this._helper(s, 0, current, results);
+        return results;
+    }
+
+    private _helper(s: string, index: number, current: string[], results: string[]): void {
+        if (index === s.length) {
+            results.push(current.join(""));
+            return;
+        }
+        const ch = s[index];
+        current.push(ch);
+        this._helper(s, index + 1, current, results);
+        current.pop();
+
+        if (/[a-zA-Z]/.test(ch)) {
+            const toggled = ch === ch.toLowerCase() ? ch.toUpperCase() : ch.toLowerCase();
+            current.push(toggled);
+            this._helper(s, index + 1, current, results);
+            current.pop();
+        }
+    }
+}
+
+console.log(new Solution().caseTransformations("a1b2"));
+```
+
+```go,editable
+package main
+
+import (
+    "fmt"
+    "unicode"
+)
+
+func helper(s string, index int, current []byte, results *[]string) {
+    if index == len(s) {
+        *results = append(*results, string(current))
+        return
+    }
+    ch := s[index]
+    current = append(current, ch)
+    helper(s, index+1, current, results)
+    current = current[:len(current)-1]
+    if unicode.IsLetter(rune(ch)) {
+        var toggled byte
+        if unicode.IsLower(rune(ch)) {
+            toggled = byte(unicode.ToUpper(rune(ch)))
+        } else {
+            toggled = byte(unicode.ToLower(rune(ch)))
+        }
+        current = append(current, toggled)
+        helper(s, index+1, current, results)
+        current = current[:len(current)-1]
+    }
+}
+
+func caseTransformations(s string) []string {
+    results := []string{}
+    helper(s, 0, []byte{}, &results)
+    return results
+}
+
+func main() {
+    fmt.Println(caseTransformations("a1b2"))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun caseTransformations(s: String): List<String> {
+        val results = mutableListOf<String>()
+        val current = StringBuilder()
+        helper(s, 0, current, results)
+        return results
+    }
+
+    private fun helper(s: String, index: Int, current: StringBuilder, results: MutableList<String>) {
+        if (index == s.length) {
+            results.add(current.toString())
+            return
+        }
+        val ch = s[index]
+        current.append(ch)
+        helper(s, index + 1, current, results)
+        current.deleteCharAt(current.length - 1)
+
+        if (ch.isLetter()) {
+            val toggled = if (ch.isLowerCase()) ch.uppercaseChar() else ch.lowercaseChar()
+            current.append(toggled)
+            helper(s, index + 1, current, results)
+            current.deleteCharAt(current.length - 1)
+        }
+    }
+}
+
+fun main() {
+    println(Solution().caseTransformations("a1b2"))
+}
+```
+
+```rust,editable
+fn helper(s: &[u8], index: usize, current: &mut Vec<u8>, results: &mut Vec<String>) {
+    if index == s.len() {
+        results.push(String::from_utf8(current.clone()).unwrap());
+        return;
+    }
+    let ch = s[index];
+    current.push(ch);
+    helper(s, index + 1, current, results);
+    current.pop();
+
+    if (ch as char).is_alphabetic() {
+        let toggled = if (ch as char).is_lowercase() { (ch as char).to_ascii_uppercase() as u8 } else { (ch as char).to_ascii_lowercase() as u8 };
+        current.push(toggled);
+        helper(s, index + 1, current, results);
+        current.pop();
+    }
+}
+
+fn case_transformations(s: &str) -> Vec<String> {
+    let mut results: Vec<String> = Vec::new();
+    let mut current: Vec<u8> = Vec::new();
+    helper(s.as_bytes(), 0, &mut current, &mut results);
+    results
+}
+
+fn main() {
+    println!("{:?}", case_transformations("a1b2"));
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — s = "a1b"</strong></summary>
+
+```
+helper(0, [])
+├─ append 'a' → helper(1, ['a'])
+│  ├─ append '1' → helper(2, ['a','1'])
+│  │  ├─ append 'b' → helper(3, [...,'b']) → leaf → "a1b"
+│  │  ├─ pop, append 'B' → helper(3, [...,'B']) → leaf → "a1B"
+│  │  └─ pop
+│  └─ pop '1'  (only one choice for digit, no second branch)
+├─ pop 'a', append 'A' → helper(1, ['A'])
+│  └─ ... (mirror)
+
+Final: ['a1b', 'a1B', 'A1b', 'A1B']
+```
+
+</details>
+
+---
+
+## Complexity Analysis
+
+| Resource | Cost | Why |
+|---|---|---|
+| **Time** | `O(n · 2^L)` where `L` = number of letters | `2^L` results × `O(n)` per copy. |
+| **Space (output)** | `O(n · 2^L)` | Same reasoning. |
+| **Space (stack)** | `O(n)` | Depth = input length. |
+
+Notice: the exponent is the *letter count*, not the string length. Strings with no letters have a single output (`"123" → ["123"]`).
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected |
+|---|---|---|
+| All letters | `"abc"` | 8 outputs (`2³`). |
+| No letters | `"123"` | 1 output (`["123"]`). |
+| Empty | `""` | `[""]` — single empty result. |
+| Mixed | `"a1b"` | 4 outputs. |
+| Already mixed-case | `"aA"` | 4 outputs (each letter toggled independently). |
+
+---
+
+## Final Takeaway
+
+Case Transformations shows unconditional enumeration with a *variable* branching factor per slot. The recipe doesn't change; only the inner `for` loop's range adapts to the current slot. Next, we generalise the slot count and choice set with a numerical sequence problem.
+
+***
+
+# Number Sequence
+
+> **Course:** DSA › Algorithms › Backtracking › Unconditional Enumeration
+
+Both slot count and branching factor become parameters. This is the most general unconditional-enumeration shape in this section.
+
+---
+
+## The Problem
+
+Given non-negative integers `n` and `k`, return all sequences of length `n` whose elements are integers in `[1, k]`. Sequences may repeat values; order may be any.
+
+```
+Input:  n = 2, k = 2
+Output: [[1,1], [1,2], [2,1], [2,2]]
+
+Input:  n = 3, k = 1
+Output: [[1,1,1]]
+
+Input:  n = 1, k = 4
+Output: [[1], [2], [3], [4]]
+```
+
+---
+
+## What Does the State Space Tree Look Like?
+
+Depth `n`, branching factor `k`, every leaf valid. `k^n` total leaves — exactly the generic enumeration template.
+
+---
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+from typing import List
+
+class Solution:
+    def number_sequence(self, n: int, k: int) -> List[List[int]]:
+        results: List[List[int]] = []
+        current: List[int] = []
+        self._helper(n, k, current, results)
+        return results
+
+    def _helper(self, n: int, k: int, current: List[int], results: List[List[int]]) -> None:
+        if len(current) == n:
+            results.append(current.copy())
+            return
+        for choice in range(1, k + 1):
+            current.append(choice)
+            self._helper(n, k, current, results)
+            current.pop()
+
+
+if __name__ == "__main__":
+    print(Solution().number_sequence(2, 2))
+```
+
+```java,editable
+import java.util.ArrayList;
+import java.util.List;
+
+public class Solution {
+    public List<List<Integer>> numberSequence(int n, int k) {
+        List<List<Integer>> results = new ArrayList<>();
+        List<Integer> current = new ArrayList<>();
+        helper(n, k, current, results);
+        return results;
+    }
+
+    private void helper(int n, int k, List<Integer> current, List<List<Integer>> results) {
+        if (current.size() == n) {
+            results.add(new ArrayList<>(current));
+            return;
+        }
         for (int choice = 1; choice <= k; choice++) {
-
-            // Add current number to the current sequence (make choice)
-            currentSequence.push_back(choice);
-
-            // Recurse to fill the next position in the sequence
-            generateSequence(
-                n, k, index + 1, currentSequence, sequences
-            );
-
-            // Backtrack by removing the last added number (revert
-            // choice)
-            currentSequence.pop_back();
+            current.add(choice);
+            helper(n, k, current, results);
+            current.remove(current.size() - 1);
         }
     }
 
-    vector<vector<int>> numberSequence(int n, int k) {
-
-        // Stores all generated sequences (solution states)
-        vector<vector<int>> sequences;
-
-        // Stores the current sequence being built (state)
-        vector<int> currentSequence;
-
-        // Generate all sequences using backtracking
-        generateSequence(n, k, 0, currentSequence, sequences);
-
-        // Return the vector containing all sequences
-        return sequences;
+    public static void main(String[] args) {
+        System.out.println(new Solution().numberSequence(2, 2));
     }
-};
+}
 ```
 
-***
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-# Phone combinations
+static void helper(int n, int k, int *current, int curLen, int **results, int *count) {
+    if (curLen == n) {
+        results[*count] = (int *) malloc(sizeof(int) * n);
+        memcpy(results[*count], current, sizeof(int) * n);
+        (*count)++;
+        return;
+    }
+    for (int choice = 1; choice <= k; choice++) {
+        current[curLen] = choice;
+        helper(n, k, current, curLen + 1, results, count);
+    }
+}
 
-## Problem Statement
+int main(void) {
+    int n = 2, k = 2;
+    int total = 1; for (int i = 0; i < n; i++) total *= k;
+    int **results = (int **) malloc(sizeof(int *) * total);
+    int *current = (int *) malloc(sizeof(int) * n);
+    int count = 0;
+    helper(n, k, current, 0, results, &count);
+    for (int i = 0; i < count; i++) {
+        printf("[");
+        for (int j = 0; j < n; j++) printf("%d%s", results[i][j], j+1<n ? "," : "");
+        printf("]\n");
+        free(results[i]);
+    }
+    free(current); free(results);
+    return 0;
+}
+```
 
-Given a string **digits** consisting of numbers from `2` to `9`, write a function to generate and return a list of all possible letter combinations that the numbers could represent. The mapping of each number to its corresponding letters (just like on the telephone buttons) is provided below. You can return the answer in **any order**.
-
-// Diagram: Note - the digit 1 does not map to any letter
-
-// Diagram: Number to letter mapping
-
-### Example 1
-
-> -   **Input:** digits = 46
-> -   **Output:** \[gm, gn, go, hm, hn, ho, im, in, io\]
-> -   **Explanation:** Above is the list of letter combinations that could be generated with 46.
-
-### Example 2
-
-> -   **Input:** digits = 28
-> -   **Output:** \[at, au, av, bt, bu, bv, ct, cu, cv\]
-> -   **Explanation:** Above is the list of letter combinations that could be generated with 28.
-
-### Example 3
-
-> -   **Input:** digits = 2
-> -   **Output:** \[a, b, c\]
-> -   **Explanation:** Above is the list of letter combinations that could be generated with 2.
-
-## Solution
-
-```cpp
-using namespace std;
+```cpp,editable
+#include <iostream>
+#include <vector>
 
 class Solution {
 public:
-
-    // Mapping of digits to their corresponding letters (telephone button
-    // mapping)
-    vector<string> phoneMapping = {
-        "",
-        "",
-        "abc",
-        "def",
-        "ghi",
-        "jkl",
-        "mno",
-        "pqrs",
-        "tuv",
-        "wxyz"
-    };
-
-    void generateCombinations(
-        const string &digits,
-        int index,
-        string &currentCombination,
-        vector<string> &combinations
-    ) {
-
-        // If the current combination has reached the length of digits,
-        // add it to combinations (solution state)
-        if (index == digits.length()) {
-
-            // Add the current combination to the result
-            combinations.push_back(currentCombination);
-
-            // Return to continue exploring other possibilities
+    void helper(int n, int k, std::vector<int>& current, std::vector<std::vector<int>>& results) {
+        if ((int) current.size() == n) {
+            results.push_back(current);
             return;
         }
-
-        // Get the current digit to process
-        char digit = digits[index];
-
-        // Get the corresponding string of letters for the current digit
-        string letters = phoneMapping[digit - '0'];
-
-        // Try every letter corresponding to the current digit (all
-        // choices)
-        for (char letter : letters) {
-
-            // Add the letter to the current combination (make choice)
-            currentCombination.push_back(letter);
-
-            // Recur with the next digit (reduced input -> index + 1)
-            generateCombinations(
-                digits, index + 1, currentCombination, combinations
-            );
-
-            // Remove the last letter to backtrack (revert choice)
-            currentCombination.pop_back();
+        for (int choice = 1; choice <= k; choice++) {
+            current.push_back(choice);
+            helper(n, k, current, results);
+            current.pop_back();
         }
     }
 
-    vector<string> phoneCombinations(string digits) {
-
-        // If the input digits are empty, return an empty result
-        if (digits.empty()) {
-            return {};
-        }
-
-        // Vector to store the combinations
-        vector<string> combinations;
-
-        // Temporary string to store the current combination (state)
-        string currentCombination;
-
-        // Start the unconditional enumeration process from index 0
-        generateCombinations(
-            digits, 0, currentCombination, combinations
-        );
-
-        // Return the vector containing all combinations
-        return combinations;
+    std::vector<std::vector<int>> numberSequence(int n, int k) {
+        std::vector<std::vector<int>> results;
+        std::vector<int> current;
+        helper(n, k, current, results);
+        return results;
     }
 };
+
+int main() {
+    auto r = Solution{}.numberSequence(2, 2);
+    for (auto& s : r) { for (int x : s) std::cout << x << ' '; std::cout << '\n'; }
+}
 ```
+
+```scala,editable
+import scala.collection.mutable.ArrayBuffer
+
+class Solution {
+  def numberSequence(n: Int, k: Int): List[List[Int]] = {
+    val results = ArrayBuffer[List[Int]]()
+    val current = ArrayBuffer[Int]()
+    helper(n, k, current, results)
+    results.toList
+  }
+
+  private def helper(n: Int, k: Int, current: ArrayBuffer[Int], results: ArrayBuffer[List[Int]]): Unit = {
+    if (current.length == n) {
+      results += current.toList
+      return
+    }
+    for (choice <- 1 to k) {
+      current += choice
+      helper(n, k, current, results)
+      current.remove(current.length - 1)
+    }
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = println(new Solution().numberSequence(2, 2))
+}
+```
+
+```javascript,editable
+class Solution {
+    numberSequence(n, k) {
+        const results = [];
+        const current = [];
+        this._helper(n, k, current, results);
+        return results;
+    }
+
+    _helper(n, k, current, results) {
+        if (current.length === n) {
+            results.push([...current]);
+            return;
+        }
+        for (let choice = 1; choice <= k; choice++) {
+            current.push(choice);
+            this._helper(n, k, current, results);
+            current.pop();
+        }
+    }
+}
+
+console.log(new Solution().numberSequence(2, 2));
+```
+
+```typescript,editable
+class Solution {
+    numberSequence(n: number, k: number): number[][] {
+        const results: number[][] = [];
+        const current: number[] = [];
+        this._helper(n, k, current, results);
+        return results;
+    }
+
+    private _helper(n: number, k: number, current: number[], results: number[][]): void {
+        if (current.length === n) {
+            results.push([...current]);
+            return;
+        }
+        for (let choice = 1; choice <= k; choice++) {
+            current.push(choice);
+            this._helper(n, k, current, results);
+            current.pop();
+        }
+    }
+}
+
+console.log(new Solution().numberSequence(2, 2));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func helper(n, k int, current *[]int, results *[][]int) {
+    if len(*current) == n {
+        cpy := make([]int, len(*current))
+        copy(cpy, *current)
+        *results = append(*results, cpy)
+        return
+    }
+    for choice := 1; choice <= k; choice++ {
+        *current = append(*current, choice)
+        helper(n, k, current, results)
+        *current = (*current)[:len(*current)-1]
+    }
+}
+
+func numberSequence(n, k int) [][]int {
+    results := [][]int{}
+    current := []int{}
+    helper(n, k, &current, &results)
+    return results
+}
+
+func main() {
+    fmt.Println(numberSequence(2, 2))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun numberSequence(n: Int, k: Int): List<List<Int>> {
+        val results = mutableListOf<List<Int>>()
+        val current = mutableListOf<Int>()
+        helper(n, k, current, results)
+        return results
+    }
+
+    private fun helper(n: Int, k: Int, current: MutableList<Int>, results: MutableList<List<Int>>) {
+        if (current.size == n) {
+            results.add(current.toList())
+            return
+        }
+        for (choice in 1..k) {
+            current.add(choice)
+            helper(n, k, current, results)
+            current.removeAt(current.size - 1)
+        }
+    }
+}
+
+fun main() {
+    println(Solution().numberSequence(2, 2))
+}
+```
+
+```rust,editable
+fn helper(n: usize, k: i32, current: &mut Vec<i32>, results: &mut Vec<Vec<i32>>) {
+    if current.len() == n {
+        results.push(current.clone());
+        return;
+    }
+    for choice in 1..=k {
+        current.push(choice);
+        helper(n, k, current, results);
+        current.pop();
+    }
+}
+
+fn number_sequence(n: usize, k: i32) -> Vec<Vec<i32>> {
+    let mut results: Vec<Vec<i32>> = Vec::new();
+    let mut current: Vec<i32> = Vec::new();
+    helper(n, k, &mut current, &mut results);
+    results
+}
+
+fn main() {
+    println!("{:?}", number_sequence(2, 2));
+}
+```
+
+</div>
+
+---
+
+## Complexity Analysis
+
+| Resource | Cost |
+|---|---|
+| **Time** | `O(n · k^n)` |
+| **Space (output)** | `O(n · k^n)` |
+| **Space (stack)** | `O(n)` |
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected |
+|---|---|---|
+| `n = 0` | `n = 0, k = 5` | `[[]]` |
+| `k = 0` | `n = 2, k = 0` | `[]` (no choices, no leaves) |
+| `n = 1` | `n = 1, k = 4` | `[[1], [2], [3], [4]]` |
+| Largish | `n = 6, k = 4` | 4096 sequences |
+
+---
+
+## Final Takeaway
+
+Number Sequence is the cleanest demonstration of unconditional enumeration's general shape: depth-`n`, `k`-ary tree, every leaf valid. The next problem maps each slot to a *different* choice set instead of a uniform `[1, k]`.
+
+***
+
+# Phone Combinations
+
+> **Course:** DSA › Algorithms › Backtracking › Unconditional Enumeration
+
+The classic phone-keypad problem. Each digit's set of letters is different — branching factor varies per slot — but every leaf is still a valid output.
+
+---
+
+## The Problem
+
+Given a string `digits` consisting of digits `2`–`9`, return all letter combinations the digits could represent on a phone keypad. Mapping:
+
+| Digit | Letters |
+|---|---|
+| 2 | abc |
+| 3 | def |
+| 4 | ghi |
+| 5 | jkl |
+| 6 | mno |
+| 7 | pqrs |
+| 8 | tuv |
+| 9 | wxyz |
+
+```
+Input:  digits = "46"
+Output: ["gm", "gn", "go", "hm", "hn", "ho", "im", "in", "io"]
+
+Input:  digits = "28"
+Output: ["at", "au", "av", "bt", "bu", "bv", "ct", "cu", "cv"]
+
+Input:  digits = "2"
+Output: ["a", "b", "c"]
+```
+
+---
+
+## State Space Tree
+
+For `digits = "46"`:
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+  R["digit '4' → choose g, h, or i"]
+  R --> G["state='g'"]
+  R --> H["state='h'"]
+  R --> I["state='i'"]
+  G --> Gm["gm"]
+  G --> Gn["gn"]
+  G --> Go["go"]
+  H --> Hm["hm"]
+  H --> Hn["hn"]
+  H --> Ho["ho"]
+  I --> Im["im"]
+  I --> In["in"]
+  I --> Io["io"]
+```
+
+<p align="center"><strong>Tree for <code>digits = "46"</code>. Digit 4's branching factor is 3 (g/h/i); digit 6's branching factor is 3 (m/n/o). Total leaves = 9 = 3 × 3.</strong></p>
+
+---
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+from typing import List
+
+PHONE_MAP = ["", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"]
+
+class Solution:
+    def phone_combinations(self, digits: str) -> List[str]:
+        if not digits:
+            return []
+        results: List[str] = []
+        current: List[str] = []
+        self._helper(digits, 0, current, results)
+        return results
+
+    def _helper(self, digits: str, index: int, current: List[str], results: List[str]) -> None:
+        if index == len(digits):
+            results.append("".join(current))
+            return
+        for letter in PHONE_MAP[int(digits[index])]:
+            current.append(letter)
+            self._helper(digits, index + 1, current, results)
+            current.pop()
+
+
+if __name__ == "__main__":
+    print(Solution().phone_combinations("46"))
+```
+
+```java,editable
+import java.util.ArrayList;
+import java.util.List;
+
+public class Solution {
+    private static final String[] PHONE_MAP = {"", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"};
+
+    public List<String> phoneCombinations(String digits) {
+        if (digits.isEmpty()) return new ArrayList<>();
+        List<String> results = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        helper(digits, 0, current, results);
+        return results;
+    }
+
+    private void helper(String digits, int index, StringBuilder current, List<String> results) {
+        if (index == digits.length()) {
+            results.add(current.toString());
+            return;
+        }
+        String letters = PHONE_MAP[digits.charAt(index) - '0'];
+        for (char letter : letters.toCharArray()) {
+            current.append(letter);
+            helper(digits, index + 1, current, results);
+            current.deleteCharAt(current.length() - 1);
+        }
+    }
+
+    public static void main(String[] args) {
+        System.out.println(new Solution().phoneCombinations("46"));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static const char *PHONE_MAP[] = {"", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"};
+
+static void helper(const char *digits, int n, int index, char *current, int curLen, char **results, int *count) {
+    if (index == n) {
+        current[curLen] = '\0';
+        results[*count] = strdup(current);
+        (*count)++;
+        return;
+    }
+    const char *letters = PHONE_MAP[digits[index] - '0'];
+    for (int i = 0; letters[i]; i++) {
+        current[curLen] = letters[i];
+        helper(digits, n, index + 1, current, curLen + 1, results, count);
+    }
+}
+
+int main(void) {
+    const char *digits = "46";
+    int n = 2;
+    char **results = (char **) malloc(sizeof(char *) * 100);
+    char *current = (char *) malloc(n + 1);
+    int count = 0;
+    helper(digits, n, 0, current, 0, results, &count);
+    for (int i = 0; i < count; i++) { printf("%s\n", results[i]); free(results[i]); }
+    free(current); free(results);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <string>
+
+class Solution {
+public:
+    const std::vector<std::string> phoneMap = {"", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"};
+
+    void helper(const std::string& digits, int index, std::string& current, std::vector<std::string>& results) {
+        if (index == (int) digits.length()) {
+            results.push_back(current);
+            return;
+        }
+        const std::string& letters = phoneMap[digits[index] - '0'];
+        for (char letter : letters) {
+            current.push_back(letter);
+            helper(digits, index + 1, current, results);
+            current.pop_back();
+        }
+    }
+
+    std::vector<std::string> phoneCombinations(const std::string& digits) {
+        if (digits.empty()) return {};
+        std::vector<std::string> results;
+        std::string current;
+        helper(digits, 0, current, results);
+        return results;
+    }
+};
+
+int main() {
+    auto r = Solution{}.phoneCombinations("46");
+    for (auto& x : r) std::cout << x << '\n';
+}
+```
+
+```scala,editable
+import scala.collection.mutable.ArrayBuffer
+
+class Solution {
+  private val phoneMap = Vector("", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz")
+
+  def phoneCombinations(digits: String): List[String] = {
+    if (digits.isEmpty) return List.empty
+    val results = ArrayBuffer[String]()
+    val current = new StringBuilder
+    helper(digits, 0, current, results)
+    results.toList
+  }
+
+  private def helper(digits: String, index: Int, current: StringBuilder, results: ArrayBuffer[String]): Unit = {
+    if (index == digits.length) {
+      results += current.toString()
+      return
+    }
+    for (letter <- phoneMap(digits.charAt(index) - '0')) {
+      current.append(letter)
+      helper(digits, index + 1, current, results)
+      current.deleteCharAt(current.length - 1)
+    }
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = println(new Solution().phoneCombinations("46"))
+}
+```
+
+```javascript,editable
+const PHONE_MAP = ["", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"];
+
+class Solution {
+    phoneCombinations(digits) {
+        if (!digits) return [];
+        const results = [];
+        const current = [];
+        this._helper(digits, 0, current, results);
+        return results;
+    }
+
+    _helper(digits, index, current, results) {
+        if (index === digits.length) {
+            results.push(current.join(""));
+            return;
+        }
+        for (const letter of PHONE_MAP[+digits[index]]) {
+            current.push(letter);
+            this._helper(digits, index + 1, current, results);
+            current.pop();
+        }
+    }
+}
+
+console.log(new Solution().phoneCombinations("46"));
+```
+
+```typescript,editable
+const PHONE_MAP: string[] = ["", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"];
+
+class Solution {
+    phoneCombinations(digits: string): string[] {
+        if (!digits) return [];
+        const results: string[] = [];
+        const current: string[] = [];
+        this._helper(digits, 0, current, results);
+        return results;
+    }
+
+    private _helper(digits: string, index: number, current: string[], results: string[]): void {
+        if (index === digits.length) {
+            results.push(current.join(""));
+            return;
+        }
+        for (const letter of PHONE_MAP[+digits[index]]) {
+            current.push(letter);
+            this._helper(digits, index + 1, current, results);
+            current.pop();
+        }
+    }
+}
+
+console.log(new Solution().phoneCombinations("46"));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+var phoneMap = []string{"", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"}
+
+func helper(digits string, index int, current []byte, results *[]string) {
+    if index == len(digits) {
+        *results = append(*results, string(current))
+        return
+    }
+    letters := phoneMap[int(digits[index]-'0')]
+    for i := 0; i < len(letters); i++ {
+        current = append(current, letters[i])
+        helper(digits, index+1, current, results)
+        current = current[:len(current)-1]
+    }
+}
+
+func phoneCombinations(digits string) []string {
+    if digits == "" {
+        return []string{}
+    }
+    results := []string{}
+    helper(digits, 0, []byte{}, &results)
+    return results
+}
+
+func main() {
+    fmt.Println(phoneCombinations("46"))
+}
+```
+
+```kotlin,editable
+val PHONE_MAP = listOf("", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz")
+
+class Solution {
+    fun phoneCombinations(digits: String): List<String> {
+        if (digits.isEmpty()) return emptyList()
+        val results = mutableListOf<String>()
+        val current = StringBuilder()
+        helper(digits, 0, current, results)
+        return results
+    }
+
+    private fun helper(digits: String, index: Int, current: StringBuilder, results: MutableList<String>) {
+        if (index == digits.length) {
+            results.add(current.toString())
+            return
+        }
+        for (letter in PHONE_MAP[digits[index] - '0']) {
+            current.append(letter)
+            helper(digits, index + 1, current, results)
+            current.deleteCharAt(current.length - 1)
+        }
+    }
+}
+
+fun main() {
+    println(Solution().phoneCombinations("46"))
+}
+```
+
+```rust,editable
+const PHONE_MAP: [&str; 10] = ["", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"];
+
+fn helper(digits: &[u8], index: usize, current: &mut Vec<u8>, results: &mut Vec<String>) {
+    if index == digits.len() {
+        results.push(String::from_utf8(current.clone()).unwrap());
+        return;
+    }
+    let letters = PHONE_MAP[(digits[index] - b'0') as usize];
+    for &letter in letters.as_bytes() {
+        current.push(letter);
+        helper(digits, index + 1, current, results);
+        current.pop();
+    }
+}
+
+fn phone_combinations(digits: &str) -> Vec<String> {
+    if digits.is_empty() { return Vec::new(); }
+    let mut results: Vec<String> = Vec::new();
+    let mut current: Vec<u8> = Vec::new();
+    helper(digits.as_bytes(), 0, &mut current, &mut results);
+    results
+}
+
+fn main() {
+    println!("{:?}", phone_combinations("46"));
+}
+```
+
+</div>
+
+---
+
+## Complexity Analysis
+
+| Resource | Cost |
+|---|---|
+| **Time** | `O(n · 4^n)` worst case (digits 7 and 9 have 4 letters) |
+| **Space (output)** | `O(n · 4^n)` |
+| **Space (stack)** | `O(n)` |
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected |
+|---|---|---|
+| Empty | `""` | `[]` |
+| Single digit | `"3"` | `["d", "e", "f"]` |
+| All max-branch | `"77"` | 16 outputs (`4²`). |
+| Mixed branching | `"23"` | 9 outputs (`3 × 3`). |
+
+---
+
+## Final Takeaway
+
+Phone Combinations is unconditional enumeration with a *slot-specific* choice set. The recipe still applies — only the inner loop reads its choices from a per-slot table. With these four problems, you've now seen unconditional enumeration's full vocabulary: fixed branching, variable branching, parameterised branching, and table-driven branching. The next lesson lifts the central restriction: not every leaf is a solution any more, and we have to *check* on the way.
+
+You came in suspecting backtracking was a single algorithm. You're leaving with the simplest of three patterns named, plus four worked examples that fit the same three-line template. Next we add validation — and with it, the pruning that makes backtracking practical for real-world problems.
+
+**Transfer challenge — try before the Conditional Enumeration lesson:** Generate all permutations of `[1, 2, 3]`. Sketch the state space tree. **Hint:** unlike subsets, each level's choice set is "the elements not yet used." Is this still unconditional enumeration?
+
+<details>
+<summary><strong>Answer — open after you've sketched it</strong></summary>
+
+The state space tree for permutations of `[1, 2, 3]` has `3! = 6` leaves. Each level represents a position in the permutation; each child is a choice of "which unused element goes here":
+
+```
+                        []                        (root)
+              /          |          \
+            [1]         [2]         [3]           (level 1)
+           /   \       /   \       /   \
+        [1,2] [1,3] [2,1] [2,3] [3,1] [3,2]       (level 2)
+          |     |     |     |     |     |
+       [1,2,3][1,3,2][2,1,3][2,3,1][3,1,2][3,2,1] (level 3 = leaves)
+```
+
+This *is* still unconditional enumeration — every leaf is a valid permutation. But notice the **branching factor shrinks** with depth: 3 → 2 → 1, because each used element is removed from the choice pool. The tree is non-uniform but every leaf is valid; the recipe is the same.
+
+**You just sketched a problem that bridges into the Conditional Enumeration lesson.** Permutation-with-constraints (e.g., "permutations whose first element isn't `1`") would be conditional enumeration; constraint-free permutations are unconditional. The structural form of "remove from choice pool, recurse, restore" generalises everywhere.
+
+</details>

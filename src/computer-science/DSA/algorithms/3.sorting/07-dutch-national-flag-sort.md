@@ -1,494 +1,622 @@
-# Introduction to dutch national flag sort
+# 7. Dutch National Flag Sort
 
-The Dutch National Flag problem, also known as the Dutch National Flag Sort or the 3-way partitioning problem, is a classic computer science problem that tries to solve a rather general problem. Given a list of items that can have at most three distinct values, it sorts them in linear time and constant space.
+You're sorting balls into three colour groups: red, white, blue. Or characters into three categories: lowercase, digit, uppercase. Or array elements into three buckets: smaller-than-pivot, equal-to-pivot, larger-than-pivot. Whatever the *meaning*, the *structure* of the problem is the same — three categories, one array, one pass. Counting sort would work here in `O(n + k) = O(n + 3) = O(n)` time, but it needs `O(k)` extra memory and a second array. Quicksort would work too in `O(n log n)`, but that's overkill for three categories.
 
-**Why is this sort called the Dutch national flag sort?**
+The **Dutch National Flag** algorithm does this in `O(n)` time and `O(1)` space, in place, in a single pass. It maintains three pointers — `left`, `mid`, `right` — that grow three regions: smallest at the front, middle in the middle, largest at the back. Each scan step looks at one element, decides which region it belongs to, and swaps it into place. After one pass, all three regions are correctly sized and the array is sorted.
 
-It is because it is named after the Dutch flag, which consists of three horizontal stripes of red, white, and blue.
+This algorithm matters more than its specific use case. It's the technique that **fixes quicksort's duplicate-element problem** (the Quicksort lesson's transfer challenge): three-way partitioning instead of two-way. The next lesson, Three-Way Quicksort, will marry this idea to quicksort's recursive driver, producing the algorithm that sorts arrays with many duplicates in linear time. The Dutch flag is the building block.
 
-When faced with sorting a list of three distinct values, such as `0`, `1`, and `2`, one might consider using well-known sorting algorithms, such as counting sort or quicksort. While these algorithms are effective in general, they are not always the most efficient choice for this specific problem.
+By the end of this lesson you'll know the algorithm, the invariants that the three pointers maintain, why the loop termination is `mid > right` (not `mid > n - 1`), and the subtle reason the `mid` pointer doesn't increment when swapping with `right`.
 
-### Counting sort
+## Table of contents
 
-Counting sort works by counting the occurrences of each distinct element and then reconstructing the sorted array based on these counts. For three distinct values, counting sort has a time complexity of **O(N + k)**, where **N** is the number of elements in the list, and **k** is the range of values (in this case, 3). It also requires **O(k)** extra space to store the counts.
-
-While counting sort is linear-time, its additional memory usage may not be ideal for memory-constrained environments, especially when the array is large.
-
-// Diagram: Counting sort requires O(k) space
-
-### Quicksort
-
-Quicksort is a general-purpose comparison-based sorting algorithm. In its best-case scenario, it has a time complexity of **O(N\*logN)** and requires O(logN) space for recursive calls.
-
-Although quicksort is very efficient for large datasets, it is overkill for sorting a list with only three distinct elements. The extra recursive calls and comparisons make it less optimal than algorithms tailored to this problem.
-
-// Diagram: Best case, average case and worst case for quicksort
-
-### Dutch national flag sort
-
-The Dutch National Flag algorithm guarantees that a list containing three distinct elements can be sorted in a single pass, achieving a time complexity of **O(N)**, where **N** is the number of elements.
-
-Unlike many other sorting algorithms, it requires no additional memory, making it an in-place, highly efficient solution. By maintaining three pointers to partition the array into sections for low, middle, and high values, the algorithm ensures that each element is inspected and moved at most once, providing both speed and minimal memory usage.
-
-// Diagram: Dutch national flag sort requires constant space
-
-## Advantages
-
-The Dutch national flag algorithm is particularly well-suited for sorting problems with three distinct categories. Some key advantages include:
-
-> -   **Efficiency:** The Dutch National Flag algorithm has a time complexity of **O(N)**, making it the most efficient algorithm for a list of objects that can take at most 3 distinct values.
-> -   **Stable:** The Dutch national flag sort is stable, i.e., it does not change the list's relative order of equal values.
-> -   **In-place:** The Dutch national flag sort can sort the input list without allocating new memory for the algorithm.
-
-## Limitations
-
-Despite its efficiency, the Dutch national flag algorithm has some limitations:
-
-> -   **Limited to three values:** The Dutch National Flag algorithm is limited to sorting a list of objects that can take on one of three values. This makes it less versatile than other sorting algorithms that can sort lists of objects with a larger number of distinct values.
-> -   **Complexity:** While the Dutch National Flag algorithm is quite efficient, it can be more complex to implement than other sorting algorithms.
+1. [Understanding Dutch National Flag](#understanding-dutch-national-flag)
+2. [The four-region invariant](#the-four-region-invariant)
+3. [Implementation](#implementation)
+4. [Complexity analysis](#complexity-analysis)
+5. [Dutch National Flag problem](#dutch-national-flag-problem)
 
 ***
 
-# Understanding dutch national flag sort algorithm
+# Understanding Dutch National Flag
 
-Now that we have explored the significance, advantages, and limitations of the Dutch National Flag sort, we can turn our attention to understanding the algorithm behind it. In the following section, we will examine how the algorithm works step by step and see how it efficiently organizes elements into their respective partitions.
+> **Course:** DSA › Algorithms › Sorting › Dutch National Flag
 
-## Algorithm
+The Dutch National Flag (DNF) algorithm sorts an array with **at most 3 distinct values** in a single pass. The values are conventionally `0`, `1`, `2` — but the algorithm generalises to any three categories you can order (e.g., `< pivot`, `== pivot`, `> pivot` for quicksort).
 
-The Dutch National Flag algorithm is designed to sort an array containing only three distinct values (commonly `0`, `1`, and `2`) by partitioning the array into three sections and expanding them as the algorithm progresses. The algorithm uses three pointers to keep track of the boundaries between the sections.
+The algorithm runs three pointers along the array:
 
-> -   The `left` pointer is set to `0` and marks the boundary of the section containing elements equal to `0`.
-> -   The `mid` pointer is set to `0` and is used to traverse the array.
-> -   The `right` pointer is set to `n - 1` and marks the boundary of the section containing the elements equal to `2`.
+- `left` — boundary of the "0s region" (everything before `left` is `0`).
+- `mid` — current element under inspection.
+- `right` — boundary of the "2s region" (everything after `right` is `2`).
 
-// Diagram: Set the left, mid and right pointers
+The loop runs while `mid ≤ right`. On each iteration, look at `arr[mid]`:
 
-At any point during execution, the array maintains the following structure:
+- If `arr[mid] == 0`: swap with `arr[left]`, advance both `left` and `mid`.
+- If `arr[mid] == 1`: just advance `mid` — the element is already in the middle region.
+- If `arr[mid] == 2`: swap with `arr[right]`, decrement `right` — *don't* advance `mid` yet.
 
-> -   Elements from index `0` to `left - 1` are all `0s` (sorted smallest section).
-> -   Elements from index `left` to `mid - 1` are all `1s` (sorted middle section).
-> -   Elements from index `mid` to `right` are unsorted.
-> -   Elements from index `right + 1` to `n - 1` are all `2s` (sorted largest section).
+When `mid > right`, the array is fully sorted.
 
-// Diagram: The smallest, middle, unsorted and largest sections in the array
+```d2
+direction: down
 
-The algorithm continues to run while `mid <= right`. This condition ensures that there are still elements in the unsorted section that need to be examined.
-
-**Why do we iterate while `mid <= right`?**
-
-When `mid` becomes greater than `right`, all elements have been processed and placed into their correct sections. At this point, the unsorted section is empty, and the array is fully sorted.
-
-In each iteration, the algorithm examines `arr[mid]`and then makes one of three decisions based on the result.
-
-### 1\. arr\[mid\] == 0
-
-When the element at `mid` index is `0`, it needs to be moved to the front section of the array. This is done by swapping it with the element at the `left` pointer, which marks the boundary of the already sorted smallest section. 
-
-> Take the following steps:
->
-> -   Swap `arr\[mid\]` with `arr\[left\]` to place the smallest value into its correct section.
-> -   The `mid` pointer is incremented to continue scanning the next element.
-> -   The `left` pointer is also incremented by one, expanding the sorted section of smallest elements
-
-This ensures that the `0` is placed in its correct region while preserving the sorted structure of previously processed elements.
-
-// Diagram: The element is in the smallest category
-
-### 2\. arr\[mid\] == 1
-
-When the element at `mid` index is `1`, it belongs to the middle section. It is already in its correct section relative to the `left` and `right` pointers. Therefore, no swap is needed.
-
-> Take the following steps:
->
-> -   The `mid` pointer is incremented to continue scanning the next element.
-
-This step makes the Dutch National Flag algorithm more efficient: middle elements do not require unnecessary swaps, keeping it fast and simple.
-
-// Diagram: The element is in the middle category
-
-### 3\. arr\[mid\] == 2
-
-When the element at `mid` index is `2`,  it belongs to the largest section. It must be moved to the end section of the array. This is achieved by swapping it with the element at the `right` pointer, which marks the boundary of the already sorted largest section. 
-
-> Take the following steps:
->
-> -   Swap `arr\[mid\]` with the element at the `arr\[right\]` to move the largest value toward its correct section.
-> -   The `right` pointer is decremented by one, shrinking the unsorted section from the end.
-
-**Why do we not increment `mid` in this case?**
-
-After swapping, the element brought into position `mid` from the `right` side has not yet been evaluated. Incrementing `mid` immediately could cause the algorithm to skip processing this element. Therefore, `mid` remains unchanged so that the swapped element can be examined in the next iteration.
-
-// Diagram: The element is in the largest category
-
-This process continues until the `mid` pointer surpasses the `right` pointer, at which point all elements are in their correct sections and the array is fully sorted.
-
-// Diagram: Sorting an array in ascending order using dutch national flag sort
-
-> **Algorithm**
->
-> -   **Step 1:** Initialize the three pointers `left = 0`, `mid = 0`, and `right = n - 1`.
-> -   **Step 2:** Iterate while `mid <= right`:
->     -   **Step 2.1:** If `arr\[mid\] == 0`.
->         -   **Step 2.1.2:** Swap `arr\[mid\]` with `arr\[left\]`
->         -   **Step 2.1.3:** Increment `mid` to evaluate the next element
->         -   **Step 2.1.4:** Increment `left` to extend the sorted smallest region
->     -   **Step 2.2:** If `arr\[mid\] == 1`.
->         -   **Step 2.2.1:** Increment `mid` to evaluate the next element
->     -   **Step 2.3:** If `arr\[mid\] == 2`.
->         -   **Step 2.3.1:** Swap `arr\[mid\]` with `arr\[right\]`
->         -   **Step 2.3.2:** Decrement `right` to shrink the sorted largest region
-
-## Implementation
-
-For this implementation, we will take an integer array as input consisting of values `0`, `1`, and `2` and apply the Dutch national flag algorithm to sort it in ascending order.
-
-C++
-
-```cpp
-using namespace std;
-
-class Solution {
-public:
-    void dutchNationalFlagSort(vector<int> &arr) {
-
-        // Pointer for the boundary where smallest values should be placed
-        int left = 0;
-
-        // Pointer for the current element being evaluated
-        int mid = 0;
-
-        // Pointer for the boundary where largest values should be placed
-        int right = arr.size() - 1;
-
-// Diagram: while (mid <= right) {
-
-            // If the current element belongs to the smallest category
-            if (arr[mid] == 0) {
-
-                // Swap it with the element at the left boundary
-                swap(arr[mid], arr[left]);
-
-                // Expand mid forward
-                mid++;
-
-                // Expand left forward
-                left++;
-            }
-
-            // If the current element belongs to the middle category
-            else if (arr[mid] == 1) {
-
-                // No swap needed — just move mid forward
-                mid++;
-            }
-
-            // If the current element belongs to the largest category
-            else {
-
-                // Swap it with the element at the right boundary
-                swap(arr[mid], arr[right]);
-
-                // Shrink the right boundary — do NOT move mid yet
-                right--;
-            }
-};
+phase: "Three regions during the scan" {
+  grid-rows: 1
+  grid-columns: 4
+  grid-gap: 0
+  zeros: "0s region\n[0..left-1]" {style.fill: "#fecaca"; style.stroke: "#dc2626"}
+  ones: "1s region\n[left..mid-1]" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  unknown: "Unknown\n[mid..right]" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  twos: "2s region\n[right+1..n-1]" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+}
 ```
 
-Java
+<p align="center"><strong>The four regions during the scan. Three are growing (0s, 1s, 2s), one is shrinking (unknown). The algorithm terminates when the unknown region is empty.</strong></p>
 
-```java
-class Solution {
-    public void dutchNationalFlagSort(int[] arr) {
+The algorithm name comes from the Dutch flag's three horizontal stripes — red, white, blue — which match the conceptual three-region layout the algorithm produces.
 
-        // Pointer for the boundary where smallest values should be placed
-        int left = 0;
+---
 
-        // Pointer for the current element being evaluated
-        int mid = 0;
+## The Three Cases in Detail
 
-        // Pointer for the boundary where largest values should be placed
-        int right = arr.length - 1;
+### Case 1 — `arr[mid] == 0`
 
-// Diagram: while (mid <= right) {
+The element belongs in the 0s region. Swap it with whatever's at `arr[left]` (which is the first element of the 1s region, since the 0s region ends at `left - 1`). After the swap, `arr[left]` holds a `0` and `arr[mid]` holds a `1` (which we already knew was in the 1s region). Advance both `left` and `mid` by 1.
 
-            // If the current element belongs to the smallest category
-            if (arr[mid] == 0) {
+Why advance `mid`? Because the new `arr[mid]` (after the swap) is a `1`, which we already classified — we know it goes in the 1s region. No need to re-inspect.
 
-                // Swap it with the element at the left boundary
-                int temp = arr[mid];
-                arr[mid] = arr[left];
-                arr[left] = temp;
+### Case 2 — `arr[mid] == 1`
 
-                // Expand mid forward
-                mid++;
+The element is already in the right region (the 1s extend from `left` to `mid - 1`, and now `arr[mid] == 1` extends them to `mid`). Just advance `mid`. No swap needed.
 
-                // Expand left forward
-                left++;
-            }
+### Case 3 — `arr[mid] == 2`
 
-            // If the current element belongs to the middle category
-            else if (arr[mid] == 1) {
+The element belongs in the 2s region. Swap it with `arr[right]` (which is the last unclassified element). After the swap, `arr[right]` holds a `2` and `arr[mid]` holds the previous `arr[right]` value — *which we haven't inspected yet*. Decrement `right`. **Don't advance `mid`.**
 
-                // No swap needed — just move mid forward
-                mid++;
-            }
+Why don't we advance `mid`? Because the value now at `arr[mid]` came from the unknown region — we don't know if it's a `0`, `1`, or `2` yet. We need to inspect it on the next iteration.
 
-            // If the current element belongs to the largest category
-            else {
+This asymmetry between cases 1 and 3 is the most error-prone part of the algorithm. We advance `mid` in case 1 because we *do* know what's at `arr[mid]` after the swap (a `1`); we don't advance `mid` in case 3 because we *don't* know what's at `arr[mid]` after the swap.
 
-                // Swap it with the element at the right boundary
-                int temp = arr[mid];
-                arr[mid] = arr[right];
-                arr[right] = temp;
+---
 
-                // Shrink the right boundary — do NOT move mid yet
-                right--;
-            }
+## A Walkthrough
+
+`arr = [2, 0, 1, 0, 2, 1, 0]` (n = 7).
+
+Initial: `left = 0, mid = 0, right = 6`.
+
+```
+[2, 0, 1, 0, 2, 1, 0]   left=0, mid=0, right=6
+ ^
+
+arr[mid]=2 → swap mid↔right, right--
+[0, 0, 1, 0, 2, 1, 2]   left=0, mid=0, right=5
+ ^
+
+arr[mid]=0 → swap mid↔left, left++, mid++
+[0, 0, 1, 0, 2, 1, 2]   left=1, mid=1, right=5
+    ^
+
+arr[mid]=0 → swap mid↔left, left++, mid++
+[0, 0, 1, 0, 2, 1, 2]   left=2, mid=2, right=5
+       ^
+
+arr[mid]=1 → mid++
+[0, 0, 1, 0, 2, 1, 2]   left=2, mid=3, right=5
+          ^
+
+arr[mid]=0 → swap mid↔left, left++, mid++
+[0, 0, 0, 1, 2, 1, 2]   left=3, mid=4, right=5
+             ^
+
+arr[mid]=2 → swap mid↔right, right--
+[0, 0, 0, 1, 1, 2, 2]   left=3, mid=4, right=4
+             ^
+
+arr[mid]=1 → mid++
+[0, 0, 0, 1, 1, 2, 2]   left=3, mid=5, right=4
+
+mid (5) > right (4) → loop exits
+Result: [0, 0, 0, 1, 1, 2, 2] ✓
 ```
 
-Typescript
+Single pass, exactly `n` element inspections (some with swaps). `O(n)` time, `O(1)` space.
 
-```typescript
-export class Solution {
-    dutchNationalFlagSort(arr: number[]): void {
+---
 
-        // Pointer for the boundary where smallest values should be placed
-        let left = 0;
+## Why Counting Sort and Quicksort Don't Beat This
 
-        // Pointer for the current element being evaluated
-        let mid = 0;
+| Algorithm | Time | Space | Pass count | Stable |
+|---|---|---|---|---|
+| **DNF** | `O(n)` | `O(1)` | 1 | No (technically, but for 0/1/2 sorts it doesn't matter) |
+| Counting sort | `O(n + k)` | `O(n + k)` | 2 (count + place) | Yes |
+| Quicksort | `O(n log n)` avg | `O(log n)` stack | log n levels | No |
 
-        // Pointer for the boundary where largest values should be placed
-        let right = arr.length - 1;
+DNF's strength is simultaneously: linear time + constant space + single pass. Counting sort matches the time but uses extra memory. Quicksort uses extra stack but has worse big-O. **For 3-category sorting, DNF wins on every axis except stability — and even there, equal elements within a category aren't distinguishable, so stability is moot.**
 
-// Diagram: while (mid <= right) {
+---
 
-            // If the current element belongs to the smallest category
-            if (arr[mid] === 0) {
+## Strengths and Limitations
 
-                // Swap it with the element at the left boundary
-                [arr[mid], arr[left]] = [arr[left], arr[mid]];
+| Strength | Detail |
+|---|---|
+| **`O(n)` time** | Single pass; each element inspected once. |
+| **`O(1)` space** | Three integer pointers; no auxiliary array. |
+| **In-place** | Mutates the input directly. |
+| **Single pass** | One sweep through the array; very cache-friendly. |
 
-                // Expand mid forward
-                mid++;
+| Limitation | Detail |
+|---|---|
+| **Limited to 3 categories** | Generalising to k categories requires a different algorithm (k-way partitioning, used in the Three-Way Quicksort lesson). |
+| **Not stable** | Long-distance swaps with `right` can flip the relative order of equal elements (though this is invisible for 0/1/2 inputs since duplicates are indistinguishable). |
 
-                // Expand left forward
-                left++;
-            }
+---
 
-            // If the current element belongs to the middle category
-            else if (arr[mid] === 1) {
+## Key Takeaway
 
-                // No swap needed — just move mid forward
-                mid++;
-            }
+DNF: three pointers, three cases, one pass. Linear time, constant space. The technique generalises to "partition the array around any three-way classification" — the foundation of three-way quicksort. Now we'll formalise the invariants.
 
-            // If the current element belongs to the largest category
-            else {
+***
 
-                // Swap it with the element at the right boundary
-                [arr[mid], arr[right]] = [arr[right], arr[mid]];
+# The Four-Region Invariant
 
-                // Shrink the right boundary — do NOT move mid yet
-                right--;
-            }
+> **Course:** DSA › Algorithms › Sorting › Dutch National Flag
+
+The DNF algorithm maintains a **loop invariant** that's the easiest way to convince yourself it's correct. At the start of every iteration:
+
+- `arr[0..left-1]` contains only `0`s.
+- `arr[left..mid-1]` contains only `1`s.
+- `arr[mid..right]` is unclassified (could be `0`, `1`, or `2`).
+- `arr[right+1..n-1]` contains only `2`s.
+
+Each iteration preserves the invariant by extending one of the three "known" regions and shrinking the unknown region.
+
+```d2
+direction: down
+
+before: "Before iteration" {
+  grid-rows: 1
+  grid-columns: 7
+  grid-gap: 0
+  i0: "0" {style.fill: "#fecaca"; style.stroke: "#dc2626"}
+  i1: "0" {style.fill: "#fecaca"; style.stroke: "#dc2626"}
+  i2: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  i3: "?" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  i4: "?" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+  i5: "2" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+  i6: "2" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+}
+
+label: "left=2, mid=3, right=4 → unknown range is [3..4]"
 ```
 
-Javascript
+<p align="center"><strong>The invariant in pictures. Three "settled" regions (red, yellow, green) and one "unknown" region (blue). Each iteration shrinks the unknown by 1 by swapping its first element into the right region.</strong></p>
 
-```javascript
-export class Solution {
-    dutchNationalFlagSort(arr) {
+When the loop terminates (`mid > right`), the unknown region is empty, and the four-region invariant collapses to three sorted regions: 0s, 1s, 2s.
 
-        // Pointer for the boundary where smallest values should be placed
-        let left = 0;
+---
 
-        // Pointer for the current element being evaluated
-        let mid = 0;
+## Why the Loop Condition Is `mid ≤ right`
 
-        // Pointer for the boundary where largest values should be placed
-        let right = arr.length - 1;
+The unknown region is `[mid..right]`. It's non-empty iff `mid ≤ right`. The loop runs as long as there's at least one element to inspect.
 
-// Diagram: while (mid <= right) {
+When `mid > right`, every element has been classified and placed. The array is sorted; the loop exits. **This is the correct termination — `mid > right`, not `mid >= n` or `mid == right`.** The invariant guarantees that as long as `mid ≤ right`, there's still work to do.
 
-            // If the current element belongs to the smallest category
-            if (arr[mid] === 0) {
+> *Predict before reading on — if the loop condition were <code>mid &lt; n</code> instead of <code>mid ≤ right</code>, would the algorithm still be correct? Why or why not?*
 
-                // Swap it with the element at the left boundary
-                [arr[mid], arr[left]] = [arr[left], arr[mid]];
+It would still be correct (every element gets inspected), but **it would do unnecessary work**. After `right` decrements past `mid`, the elements at `[mid..n-1]` are already classified as `2`s. Continuing to inspect them doesn't change the result, but it costs `O(n)` extra inspections. The tighter `mid ≤ right` bound terminates as soon as the unknown region is empty.
 
-                // Expand mid forward
-                mid++;
+---
 
-                // Expand left forward
-                left++;
-            }
+## Why `mid` Doesn't Advance in Case 3
 
-            // If the current element belongs to the middle category
-            else if (arr[mid] === 1) {
+This is the algorithm's most subtle detail. When we swap `arr[mid]` with `arr[right]` (because `arr[mid] == 2`), the element that *was* at `arr[right]` moves to `arr[mid]`. We've inspected the original `arr[mid]` (it was a `2`), but we haven't inspected what was at `arr[right]`. So `mid` stays put — we'll re-inspect that position on the next iteration.
 
-                // No swap needed — just move mid forward
-                mid++;
-            }
+In contrast, when `arr[mid] == 0`, we swap with `arr[left]`. The element that *was* at `arr[left]` is necessarily a `1` (because the 1s region is `[left..mid-1]`, and `left` is the first index of that region). So we *do* know what `arr[mid]` becomes after the swap — a `1` — and we can safely advance `mid` past it.
 
-            // If the current element belongs to the largest category
-            else {
+```d2
+direction: right
 
-                // Swap it with the element at the right boundary
-                [arr[mid], arr[right]] = [arr[right], arr[mid]];
-
-                // Shrink the right boundary — do NOT move mid yet
-                right--;
-            }
+case1: "Case 1 (==0): swap with left\nwhat moves to mid: a 1 (already classified)\n→ advance mid" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+case3: "Case 3 (==2): swap with right\nwhat moves to mid: unknown\n→ DO NOT advance mid" {style.fill: "#fecaca"; style.stroke: "#dc2626"}
 ```
 
-Python
+<p align="center"><strong>The asymmetry. Case 1's swap brings in a known value; case 3's swap brings in an unknown value. The advance-or-not decision follows from "do I know what just landed at <code>arr[mid]</code>?"</strong></p>
 
-```python
+---
+
+## Key Takeaway
+
+The four-region invariant gives the algorithm its correctness proof. The loop condition `mid ≤ right` terminates exactly when the unknown region is empty. The asymmetric handling of cases 1 and 3 (advance mid vs not) is the consequence of which side of the array is shrinking. Now the implementation.
+
+***
+
+# Implementation
+
+> **Course:** DSA › Algorithms › Sorting › Dutch National Flag
+
+<div class="lang-tabs">
+
+```python,editable
 from typing import List
 
 class Solution:
     def dutch_national_flag_sort(self, arr: List[int]) -> None:
-
-        # Pointer for the boundary where smallest values should be placed
-        left: int = 0
-
-        # Pointer for the current element being evaluated
-        mid: int = 0
-
-        # Pointer for the boundary where largest values should be placed
-        right: int = len(arr) - 1
-
+        left, mid, right = 0, 0, len(arr) - 1
         while mid <= right:
-
-            # If the current element belongs to the smallest category
             if arr[mid] == 0:
-
-                # Swap it with the element at the left boundary
-                arr[mid], arr[left] = arr[left], arr[mid]
-
-                # Expand mid forward
-                mid += 1
-
-                # Expand left forward
+                arr[left], arr[mid] = arr[mid], arr[left]
                 left += 1
-
-            # If the current element belongs to the middle category
-            elif arr[mid] == 1:
-
-                # No swap needed — just move mid forward
                 mid += 1
-
-            # If the current element belongs to the largest category
-            else:
-
-                # Swap it with the element at the right boundary
+            elif arr[mid] == 1:
+                mid += 1
+            else:                                       # arr[mid] == 2
                 arr[mid], arr[right] = arr[right], arr[mid]
-
-                # Shrink the right boundary — do NOT move mid yet
                 right -= 1
+
+
+if __name__ == "__main__":
+    arr = [2, 0, 1, 0, 2, 1, 0]
+    Solution().dutch_national_flag_sort(arr)
+    print(arr)   # [0, 0, 0, 1, 1, 2, 2]
 ```
 
-## Complexity analysis
+```java,editable
+public class Solution {
+    public void dutchNationalFlagSort(int[] arr) {
+        int left = 0, mid = 0, right = arr.length - 1;
+        while (mid <= right) {
+            if (arr[mid] == 0) {
+                int t = arr[left]; arr[left] = arr[mid]; arr[mid] = t;
+                left++; mid++;
+            } else if (arr[mid] == 1) {
+                mid++;
+            } else {
+                int t = arr[mid]; arr[mid] = arr[right]; arr[right] = t;
+                right--;
+            }
+        }
+    }
 
-The Dutch national flag algorithm is a single-pass algorithm that swaps the values of the list as and when needed so the time complexity is always **linear**, i.e., **O(N),** where **N** is the size of the input list.
+    public static void main(String[] args) {
+        int[] arr = {2, 0, 1, 0, 2, 1, 0};
+        new Solution().dutchNationalFlagSort(arr);
+        for (int x : arr) System.out.print(x + " ");
+        System.out.println();
+    }
+}
+```
 
-The algorithm does not need additional space and only creates three-pointers to swap the data, so the space complexity is always **constant**, i.e., **O(1)**.
+```c,editable
+#include <stdio.h>
 
-> **Best case**
->
-> -   Space complexity - **O(1)**
-> -   Time complexity - **O(N)**
->
-> **Average case**
->
-> -   Space complexity - **O(1)**
-> -   Time complexity - **O(N)**
->
-> **Worst case**
->
-> -   Space complexity - **O(1)**
-> -   Time complexity - **O(N)**
+void dutch_national_flag_sort(int *arr, int n) {
+    int left = 0, mid = 0, right = n - 1;
+    while (mid <= right) {
+        if (arr[mid] == 0) {
+            int t = arr[left]; arr[left] = arr[mid]; arr[mid] = t;
+            left++; mid++;
+        } else if (arr[mid] == 1) {
+            mid++;
+        } else {
+            int t = arr[mid]; arr[mid] = arr[right]; arr[right] = t;
+            right--;
+        }
+    }
+}
 
-***
+int main(void) {
+    int arr[] = {2, 0, 1, 0, 2, 1, 0};
+    int n = 7;
+    dutch_national_flag_sort(arr, n);
+    for (int i = 0; i < n; i++) printf("%d ", arr[i]);
+    printf("\n");
+    return 0;
+}
+```
 
-# Dutch national flag sort
-
-## Problem Statement
-
-You are given an integer array **arr** that contains balls of three colors, red, white, or blue, denoted by `0`, `1`, and `2`, respectively. Write a function to sort the balls so that all the red balls come first, followed by all the white and blue balls, respectively. You must do it **in place**.
-
-You must use the **dutch national flag algorithm** to solve this problem.
-
-### Example 1
-
-> -   **Input:** arr = \[0, 1, 1, 2, 0\]
-> -   **Output:** \[0, 0, 1, 1, 2\]
-> -   **Explanation:** Above is the sorted order of balls.
-
-### Example 2
-
-> -   **Input:** arr = \[2, 1, 1, 0\]
-> -   **Output:** \[0, 1, 1, 2\]
-> -   **Explanation:** Above is the sorted order of balls.
-
-### Example 3
-
-> -   **Input:** arr = \[0, 0, 1, 1, 1, 2, 2\]
-> -   **Output:** \[0, 0, 1, 1, 1, 2, 2\]
-> -   **Explanation:** The balls are already sorted in the correct order.
-
-## Solution
-
-```cpp
-using namespace std;
+```cpp,editable
+#include <iostream>
+#include <vector>
 
 class Solution {
 public:
-    void dutchNationalFlagSort(vector<int> &arr) {
-
-        // Pointer for the boundary where smallest values should be placed
-        int left = 0;
-
-        // Pointer for the current element being evaluated
-        int mid = 0;
-
-        // Pointer for the boundary where largest values should be placed
-        int right = arr.size() - 1;
-
+    void dutchNationalFlagSort(std::vector<int>& arr) {
+        int left = 0, mid = 0, right = (int) arr.size() - 1;
         while (mid <= right) {
-
-            // If the current element belongs to the smallest category
             if (arr[mid] == 0) {
-
-                // Swap it with the element at the left boundary
-                swap(arr[mid], arr[left]);
-
-                // Expand mid forward
+                std::swap(arr[left], arr[mid]);
+                left++; mid++;
+            } else if (arr[mid] == 1) {
                 mid++;
-
-                // Expand left forward
-                left++;
-            }
-            
-            // If the current element belongs to the middle category
-            else if (arr[mid] == 1) {
-
-                // No swap needed — just move mid forward
-                mid++;
-            }
-            
-            // If the current element belongs to the largest category
-            else {
-
-                // Swap it with the element at the right boundary
-                swap(arr[mid], arr[right]);
-
-                // Shrink the right boundary — do NOT move mid yet
+            } else {
+                std::swap(arr[mid], arr[right]);
                 right--;
             }
         }
     }
 };
+
+int main() {
+    std::vector<int> arr = {2, 0, 1, 0, 2, 1, 0};
+    Solution{}.dutchNationalFlagSort(arr);
+    for (int x : arr) std::cout << x << ' ';
+    std::cout << '\n';
+}
 ```
+
+```scala,editable
+class Solution {
+  def dutchNationalFlagSort(arr: Array[Int]): Unit = {
+    var left = 0; var mid = 0; var right = arr.length - 1
+    while (mid <= right) {
+      if (arr(mid) == 0) {
+        val t = arr(left); arr(left) = arr(mid); arr(mid) = t
+        left += 1; mid += 1
+      } else if (arr(mid) == 1) {
+        mid += 1
+      } else {
+        val t = arr(mid); arr(mid) = arr(right); arr(right) = t
+        right -= 1
+      }
+    }
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    val arr = Array(2, 0, 1, 0, 2, 1, 0)
+    new Solution().dutchNationalFlagSort(arr)
+    println(arr.mkString(" "))
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    dutchNationalFlagSort(arr) {
+        let left = 0, mid = 0, right = arr.length - 1;
+        while (mid <= right) {
+            if (arr[mid] === 0) {
+                [arr[left], arr[mid]] = [arr[mid], arr[left]];
+                left++; mid++;
+            } else if (arr[mid] === 1) {
+                mid++;
+            } else {
+                [arr[mid], arr[right]] = [arr[right], arr[mid]];
+                right--;
+            }
+        }
+    }
+}
+
+const arr = [2, 0, 1, 0, 2, 1, 0];
+new Solution().dutchNationalFlagSort(arr);
+console.log(arr);
+```
+
+```typescript,editable
+class Solution {
+    dutchNationalFlagSort(arr: number[]): void {
+        let left = 0, mid = 0, right = arr.length - 1;
+        while (mid <= right) {
+            if (arr[mid] === 0) {
+                [arr[left], arr[mid]] = [arr[mid], arr[left]];
+                left++; mid++;
+            } else if (arr[mid] === 1) {
+                mid++;
+            } else {
+                [arr[mid], arr[right]] = [arr[right], arr[mid]];
+                right--;
+            }
+        }
+    }
+}
+
+const arr: number[] = [2, 0, 1, 0, 2, 1, 0];
+new Solution().dutchNationalFlagSort(arr);
+console.log(arr);
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func dutchNationalFlagSort(arr []int) {
+    left, mid, right := 0, 0, len(arr)-1
+    for mid <= right {
+        switch arr[mid] {
+        case 0:
+            arr[left], arr[mid] = arr[mid], arr[left]
+            left++
+            mid++
+        case 1:
+            mid++
+        default:
+            arr[mid], arr[right] = arr[right], arr[mid]
+            right--
+        }
+    }
+}
+
+func main() {
+    arr := []int{2, 0, 1, 0, 2, 1, 0}
+    dutchNationalFlagSort(arr)
+    fmt.Println(arr)
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun dutchNationalFlagSort(arr: IntArray) {
+        var left = 0; var mid = 0; var right = arr.size - 1
+        while (mid <= right) {
+            when (arr[mid]) {
+                0 -> {
+                    val t = arr[left]; arr[left] = arr[mid]; arr[mid] = t
+                    left++; mid++
+                }
+                1 -> mid++
+                else -> {
+                    val t = arr[mid]; arr[mid] = arr[right]; arr[right] = t
+                    right--
+                }
+            }
+        }
+    }
+}
+
+fun main() {
+    val arr = intArrayOf(2, 0, 1, 0, 2, 1, 0)
+    Solution().dutchNationalFlagSort(arr)
+    println(arr.toList())
+}
+```
+
+```rust,editable
+fn dutch_national_flag_sort(arr: &mut Vec<i32>) {
+    let mut left: i64 = 0;
+    let mut mid: i64 = 0;
+    let mut right: i64 = arr.len() as i64 - 1;
+    while mid <= right {
+        match arr[mid as usize] {
+            0 => {
+                arr.swap(left as usize, mid as usize);
+                left += 1;
+                mid += 1;
+            }
+            1 => mid += 1,
+            _ => {
+                arr.swap(mid as usize, right as usize);
+                right -= 1;
+            }
+        }
+    }
+}
+
+fn main() {
+    let mut arr: Vec<i32> = vec![2, 0, 1, 0, 2, 1, 0];
+    dutch_national_flag_sort(&mut arr);
+    println!("{:?}", arr);
+}
+```
+
+</div>
+
+***
+
+# Complexity Analysis
+
+> **Course:** DSA › Algorithms › Sorting › Dutch National Flag
+
+| Resource | Best | Average | Worst |
+|---|---|---|---|
+| **Time** | `O(n)` | `O(n)` | `O(n)` |
+| **Space** | `O(1)` | `O(1)` | `O(1)` |
+
+A single pass; each element inspected at most once (the `mid` pointer increments or the `right` pointer decrements on every iteration, so the unknown region shrinks by 1 each step). `n` iterations total, regardless of input.
+
+The algorithm doesn't have a "best/worst" distinction the way comparison sorts do — it's deterministic on size, not on input.
+
+---
+
+## Generalising Beyond {0, 1, 2}
+
+The values `0`, `1`, `2` are conventional. The algorithm works for any 3-way partition:
+- **Lowercase / digit / uppercase** characters in a string.
+- **Negative / zero / positive** numbers in an array.
+- **Less than pivot / equal to pivot / greater than pivot** — this generalisation is the foundation of **three-way quicksort** (the Three-Way Quicksort lesson).
+
+Replace the `== 0`, `== 1`, `== 2` comparisons with the appropriate three-way classification function. Everything else stays the same.
+
+---
+
+## Key Takeaway
+
+DNF is `O(n)` time, `O(1)` space, single pass. The three-way partition technique generalises beyond the strict `{0, 1, 2}` setting and becomes the heart of three-way quicksort. Now the canonical exercise.
+
+***
+
+# Dutch National Flag Problem
+
+> **Course:** DSA › Algorithms › Sorting › Dutch National Flag
+
+---
+
+## The Problem
+
+Given an integer array `arr` containing only `0`s, `1`s, and `2`s (representing red, white, and blue balls), sort it in place so that all `0`s come first, then all `1`s, then all `2`s. **You must use the Dutch National Flag algorithm.**
+
+```
+Input:  arr = [0, 1, 1, 2, 0]
+Output: [0, 0, 1, 1, 2]
+
+Input:  arr = [2, 1, 1, 0]
+Output: [0, 1, 1, 2]
+
+Input:  arr = [0, 0, 1, 1, 1, 2, 2]
+Output: [0, 0, 1, 1, 1, 2, 2]   (already sorted)
+```
+
+---
+
+## The Solution
+
+The implementation matches the version above. See the [Implementation](#implementation) section for all 10 languages.
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected |
+|---|---|---|
+| Empty | `[]` | `[]` (loop doesn't enter). |
+| Single element | `[0]` | `[0]`. |
+| All zeros | `[0, 0, 0]` | `[0, 0, 0]` (case 1 fires for each; left and mid both advance). |
+| All twos | `[2, 2, 2]` | `[2, 2, 2]` (case 3 fires for each; right decrements; mid stays). |
+| Already sorted | `[0, 0, 1, 1, 2, 2]` | unchanged. |
+| Reverse sorted | `[2, 2, 1, 1, 0, 0]` | `[0, 0, 1, 1, 2, 2]`. |
+| Just twos and zeros | `[2, 0, 2, 0]` | `[0, 0, 2, 2]`. |
+
+---
+
+## Final Takeaway
+
+Dutch National Flag is the simplest non-trivial three-way partition: three pointers, three cases, one pass. `O(n)` time, `O(1)` space. The technique generalises to "any three-way classification" and is the missing piece that fixes quicksort's duplicate-element problem.
+
+The next algorithm — **three-way quicksort** — bolts the Dutch flag's three-way partition onto quicksort's recursive driver. The result: a sort that handles arrays with many duplicates in linear time *while* preserving quicksort's `O(n log n)` average for unique elements. The two algorithms compose perfectly.
+
+**Transfer challenge — try before the Three-Way Quicksort lesson:** Generalise the DNF algorithm to handle a comparison against an arbitrary pivot value `p`. Instead of `== 0`, `== 1`, `== 2`, classify each element as `< p`, `== p`, or `> p`. The algorithm structure stays identical. What's the time complexity? What problem does this solve?
+
+<details>
+<summary><strong>Answer — open after you've thought about it</strong></summary>
+
+```python,editable
+class Solution:
+    def three_way_partition(self, arr, pivot):
+        left, mid, right = 0, 0, len(arr) - 1
+        while mid <= right:
+            if arr[mid] < pivot:
+                arr[left], arr[mid] = arr[mid], arr[left]
+                left += 1
+                mid += 1
+            elif arr[mid] == pivot:
+                mid += 1
+            else:                                  # arr[mid] > pivot
+                arr[mid], arr[right] = arr[right], arr[mid]
+                right -= 1
+        return left, right                          # boundaries of the equal region
+
+
+arr = [3, 5, 1, 5, 4, 5, 2, 5]
+l, r = Solution().three_way_partition(arr, 5)
+print(arr, l, r)   # [3, 1, 4, 2, 5, 5, 5, 5] (or similar) with l=4, r=7
+```
+
+Time: `O(n)`, single pass. Space: `O(1)`.
+
+This is **the partition step of three-way quicksort** (the Three-Way Quicksort lesson). It collapses all equal-to-pivot elements into one contiguous middle region — those elements are *already in their final sorted positions*, so the recursive sort never has to revisit them. Compared with two-way (Lomuto) partition, this avoids the `O(n²)` blow-up on arrays with many duplicates. **You just rediscovered the partition that makes three-way quicksort linear-time on duplicate-heavy inputs.**
+
+</details>

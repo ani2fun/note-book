@@ -1,439 +1,458 @@
-# Understanding the problem
+# 1. Binary Search
 
-Before we explore any advanced searching techniques, it is important to clearly understand the search problem itself. Searching is the process of locating a specific item within a collection. It could be finding a contact in your phone, locating a book on a shelf, or identifying a file on your computer. In every case, you begin with a target, something you want to find, and you examine the available data to locate it.
+A teacher wants to find which of her ten students scored 85 marks. The list is sorted by score. She *could* scan top-to-bottom, but with ten names that's no big deal. Now imagine the same task at a university — 50,000 students, sorted alphabetically and by score. Linear scan? Half a million ops on average. There's a much faster way.
 
-## Example
+**Look at the middle student.** Did they score 85? Done. If they scored less than 85, the answer is in the upper half — discard the lower half. If they scored more, the answer is in the lower half. Repeat on whichever half remains. Each step *halves* the search space. After ~16 steps you've narrowed 50,000 candidates to one.
 
-Imagine you are a school teacher with 10 students, and you have a sorted list of their exam scores. You want to find the student who scored `85` marks.
+That's binary search. It's the foundation of every other algorithm in this section. By the end of this lesson you'll know the algorithm, the off-by-one traps that turn correct-looking code into infinite loops, why the middle-index calculation uses `low + (high - low) / 2` instead of `(low + high) / 2`, and the precise complexity guarantees.
 
-// Diagram: Sorted scores of 10 students
+## Table of contents
 
-One approach is to start at the top of the list and check each score one by one. You examine the first student’s score, and it is not `85`. You move to the second, but it is still not `85`. You continue down the list, checking each score individually, until you eventually find a student with `85`, but only after going through many others.
-
-// Diagram: Linear search to find the student with a score of 85
-
-Now imagine the same situation at a university level, where the student list isn’t just ten names, it’s thousands.
-
-// Diagram: University with thousands of students
-
-The task becomes slower, more effortful, and noticeably inefficient. As the list grows, the time it takes to find what you need increases as well.
-
-## Limitations of linear search
-
-With linear search, as the number of items grows, the time required grows equally. The search is guaranteed to succeed, but may take far too long when the data becomes large. Linear search does not use any helpful structure or shortcuts, making it slow and inefficient at large scale.
-
-The challenge isn't finding the answer, it's finding it quickly when the data is large.
-
-// Diagram: Searching becomes difficult at large scale
-
-It does not take advantage of the fact that the list of scores is already sorted, which could make the search much faster and more efficient. This inefficiency is where the real problem of searching lies, and it sets the stage for exploring better, faster ways to search.
+1. [Why linear search loses at scale](#why-linear-search-loses-at-scale)
+2. [Understanding binary search](#understanding-binary-search)
+3. [Implementation](#implementation)
+4. [Complexity analysis](#complexity-analysis)
+5. [Binary search problem](#binary-search-problem)
 
 ***
 
-# Exploring a possible solution
+# Why Linear Search Loses at Scale
 
-Now that we understand the limitations of linear search on a sorted dataset, a more intelligent approach is needed. Checking each item individually becomes inefficient as the collection grows. Let’s explore how a more efficient search method, called binary search, solves this problem at scale. 
+> **Course:** DSA › Algorithms › Searching › Binary Search
 
-## Binary search
+Linear search examines elements one at a time. For an array of size `n`, the worst case is `n` comparisons (the target is at the end, or absent). For `n = 10`, that's negligible. For `n = 1,000,000`, that's a million comparisons per query — repeated millions of times a day in a real database, that's hours of CPU.
 
-Binary search is one of computer science's most widely used search algorithms and is used to find the position of a target value in a sorted array by leveraging the array's sorted order. Instead of a linear search, it uses an intelligent strategy by partitioning the search space into two halves and discarding the half where the target cannot be present. 
+The deeper problem: linear search **doesn't use the structure of the input**. Even if the array is sorted, linear search ignores the order. The sortedness is wasted information.
 
-Looking at the problem of finding a student who scored `85` marks in a sorted list of results containing thousands of students. Instead of checking each student's score individually, you begin by examining the score of the student at the middle of the list. 
+> *Pause and predict — for a sorted array of <code>1,000,000</code> elements, how many comparisons does linear search need in the worst case? How few comparisons would binary search need?*
 
-// Diagram: Examine the score of the student at the middle of the list
+Linear: `1,000,000` worst case. Binary: at most `log₂(1,000,000) ≈ 20` comparisons. **A million-fold improvement,** unlocked entirely by exploiting the sort order.
 
-If the **middle** score is **less** than `85`, the target **must be in the second half**, so you discard everything in the first half, including the middle score.
+---
 
-// Diagram: Discard the first half of the list (including the middle score)
+## The One Requirement
 
-Similarly, if the **middle** student scored **greater** than `85`, then the student you’re looking for **must be in the first half**, so you can discard the entire second half.
+Binary search has one absolute prerequisite: **the input must be sorted**. The algorithm cannot work on unsorted data — there's no way to know which half to discard if the elements aren't in order. If the input isn't sorted, you'd have to sort it first (`O(n log n)`) — and at that point, linear search through the unsorted version is faster (`O(n)`) for a single query.
 
-// Diagram: Discard the second half of the list (including the middle score)
+Binary search shines when:
+1. The data is **already sorted** (databases, file indexes, lookup tables).
+2. You'll do **many queries** on the same sorted data (sorting cost amortises across many `O(log n)` lookups).
+3. The data is **immutable or rarely changing** (re-sorting after every change defeats the purpose).
 
-You repeat this process, halving the remaining list each time, until the score `85` appears as the midpoint of the narrowed range.
+If your data is unsorted and queried once, use linear search. If it's sorted (or queried often enough to be worth sorting), use binary search.
 
-// Diagram: Target found when only one element remains in the search space
+---
 
-By using the fact that the scores are already sorted, this method eliminates large chunks of data at every step, requiring far fewer comparisons and making the search significantly faster than checking each student sequentially.
+## Key Takeaway
 
-> -   **Step 1**: Start with the full list of student scores included in the search.
-> -   **Step 2**: Check the score at the midpoint of the list.
->     -   **Step 2.1**: If the middle score is `85`, you’ve found the student, stop the search.
->     -   **Step 2.2**: If the middle score is less than `85`, for example, `78`, eliminate the middle position and all scores below it, then repeat Step 2 with the second half.
->     -   **Step 2.3**: If the middle score is greater than `85`, for example, `92`, eliminate the middle position and all scores above it, then repeat Step 2 with the first half.
-> -   **Step 3**: If the search space reduces to zero and `85` is never found, no student on the list has that score.
-
-## Advantages
-
-Binary search is highly efficient for finding items in large, sorted datasets. By repeatedly halving the search space, it drastically reduces the number of comparisons needed compared to linear search. The key advantages of binary search are outlined below:
-
-> -   **Efficiency:** Binary search has a time complexity of **O(logN)**, which makes it significantly faster than linear search for large arrays.
-> -   **Versatility:** Binary search can be used to find a target value in a sorted array and to find approximations, closest elements, peaks and valleys, intersection points of curves, and more.
-> -   **Simplicity:** Binary search is a relatively simple algorithm to implement, making it accessible to programmers of all skill levels.
-
-## Limitations
-
-Despite its efficiency, binary search has certain constraints. It requires the dataset to be sorted and is less flexible with data that changes frequently. It also involves more complex logic than simple linear search. The main limitations of binary search are summarized below:
-
-> -   **Requires sorted array:** Binary search's biggest limitation is that it only works on sorted arrays. If the array is not sorted, the algorithm will not work.
-> -   **Limited to arrays:** Binary search is limited to searching arrays. It cannot be used to search linked lists or other data structures.
+Linear search is `O(n)`; binary search is `O(log n)`. The trade-off: binary needs sorted input. For sorted data, the speedup is exponential — a million-element search drops from one million comparisons to twenty. Now we'll formalise the algorithm.
 
 ***
 
-# Understanding binary search algorithm
+# Understanding Binary Search
 
-The strategy from the earlier example could be used to create an algorithm. To explain this algorithm, we will use an array sorted in ascending order and search for a target number.
+> **Course:** DSA › Algorithms › Searching › Binary Search
 
-## Algorithm
+The algorithm maintains a **search range** `[low, high]` representing positions where the target might be. Each iteration looks at the middle of the range, compares with the target, and either:
+- **Equals**: found! return `mid`.
+- **Middle < target**: discard the left half. Set `low = mid + 1`.
+- **Middle > target**: discard the right half. Set `high = mid - 1`.
 
-The binary search algorithm searches for a target value in a sorted array by repeatedly dividing the search space in half. It works by comparing the target value with the middle element of the current search range. The algorithm begins by initialising two indices that define the current search range in which the target value may exist.
+When `low > high`, the search range is empty — target is absent, return `-1`.
 
-> -   `low` is set to the first index of the array i.e `0`.
-> -   `high` is set to the last index of the array i.e `arr.size() - 1`.
+```d2
+direction: down
 
-// Diagram: Initialize the low and high indices
+s0: "Initial: arr = [1, 3, 5, 7, 9, 11, 13], target = 9\nlow=0, high=6, mid=3 → arr[3]=7 < 9 → discard left half" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+s1: "low=4, high=6, mid=5 → arr[5]=11 > 9 → discard right half" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+s2: "low=4, high=4, mid=4 → arr[4]=9 == target → return 4" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
 
-The algorithm enters a loop that continues as long as `low <= high`. This condition ensures that there are still elements remaining in the search range that could potentially match the target value.
-
-**Why** **do we continue while `low <= high`?**
-
-When `low` becomes greater than `high`, it means the search range is empty, and all possible positions have already been checked. At this point, the target value cannot be present in the array.
-
-// Diagram: The loop terminates when the low index exceeds the high index
-
-Inside the loop, the algorithm calculates the middle index using:
-
-> -   `mid = low + (high - low ) / 2`
-
-**Why is the middle index calculated as** `mid = low + (high - low) / 2` **instead of** mid = (low + high) / 2 ?
-
-When calculating the middle of a range, `mid = low + (high - low) / 2` is preferred over `mid = (low + high) / 2` because directly adding `low` and `high` can overflow the integer range when they are large, while computing the difference first keeps the value safe and then adds it back to low without overflow
-
-// Diagram: Compute the middle index using the formula
-
-Based on the value of `arr[mid]`, the algorithm makes one of three possible decisions.
-
-### 1\. arr\[mid\] == target
-
-The search is complete when the middle element is **equal** to the target value, indicating that the list has been narrowed down to the exact position of the element. In this case, `mid` is returned as the index at which the target appears.
-
-// Diagram: The target is found at the middle index of the array
-
-### 2\. arr\[mid\] < target
-
-If the value at the middle index is **less** than the target, the target cannot be in the left half of the array or at the middle position. As a result, the algorithm discards this entire portion and continues the search in the right half by updating `low = mid + 1`.
-
-// Diagram: Discard the first half of the array, including the middle element
-
-### 3\. arr\[mid\] > target
-
-Similarly, if the value at the middle index is **greater** than the target, the target cannot be in the right half of the array or at the middle position. Therefore, the algorithm discards this portion and continues the search in the left half by updating `high = mid - 1`.
-
-// Diagram: Discard the second half of the array, including the middle element
-
-The algorithm repeatedly compares values and narrows the search space until the target element is found or the search range is exhausted. If the loop terminates without locating the target, it confirms that the element does not exist in the array, and the algorithm returns `-1` to indicate an unsuccessful search.
-
-// Diagram: Find an element in an array using binary search
-
-> **Algorithm**
->
-> -   **Step 1:** Initialize search boundaries, set `low = 0`, `high = arr.size() - 1`
-> -   **Step 2:** Iterate while `low <= high`
->     -   **Step 2.1:** Calculate middle index `mid = low + (high - low) / 2`
->     -   **Step 2.2:** If `arr\[mid\] == target`:
->         -   **Step 2.2.1:** Return `mid`
->     -   **Step 2.3:** Else if `arr\[mid\] < target`
->         -   **Step 2.3.1:** Set `low = mid + 1`
->     -   **Step 2.4:** Else if `arr\[mid\] > target`
->         -   **Step 2.4.1:** Set `high = mid - 1`
-> -   **Step 3:** If the loop ends without returning, the target is not in the array, return `-1`
-
-## Implementation
-
-Binary search can be implemented efficiently using a simple loop or recursion. By repeatedly checking the middle element and narrowing the search space based on comparisons, the algorithm quickly zeroes in on the target.
-
-C++
-
-```cpp
-class Solution {
-    public int binarySearch(int[] arr, int target) {
-
-        // Starting index of the search range
-        int low = 0;
-
-        // Ending index of the search range
-        int high = arr.length - 1;
-
-// Diagram: while (low <= high) {
-
-            // Calculate the middle index
-            int mid = low + (high - low) / 2;
-
-            // Found the target, return the index
-            if (arr[mid] == target) {
-                return mid;
-            }
-
-            // If the arr[mid] is less than the target, adjust the search
-            // range to the right half
-            else if (arr[mid] < target) {
-                low = mid + 1;
-            }
-
-            // Else if the arr[mid] is greater than the target, adjust
-            // the search range to the left half
-            else {
-                high = mid - 1;
-            }
-
-        // Target not found in the array
-        return -1;
-    }
+s0 -> s1 -> s2
 ```
 
-Java
+<p align="center"><strong>Each iteration halves the range. For an array of 7 elements, ≤ 3 iterations are enough (because <code>log₂(7) ≈ 3</code>).</strong></p>
 
-```java
-class Solution {
-    public int binarySearch(int[] arr, int target) {
+---
 
-        // Starting index of the search range
-        int low = 0;
+## Why `mid = low + (high - low) / 2` Instead of `(low + high) / 2`?
 
-        // Ending index of the search range
-        int high = arr.length - 1;
+Both compute the same value mathematically. The second can **overflow integers** for large `low + high` — in Java, `int` overflows around 2 billion, so `low + high` can wrap to a negative number when both are around 1 billion. The first form keeps the intermediate value `(high - low)` small (at most the array size) and avoids the overflow.
 
-// Diagram: while (low <= high) {
+Most of the time it doesn't matter — small arrays are nowhere near overflow. But it's a famous bug (Joshua Bloch documented it in `java.util.Arrays.binarySearch` in 2006), so the safer form is now standard.
 
-            // Calculate the middle index
-            int mid = (low + high) / 2;
+---
 
-            // Found the target, return the index
-            if (arr[mid] == target) {
-                return mid;
-            }
+## Why `<=` and Not `<` in the Loop Condition?
 
-            // If the target is greater than the element at mid
-            // Adjust the search range to the right half
-            else if (arr[mid] < target) {
-                low = mid + 1;
-            }
+The loop runs while `low <= high`. If we used `low < high`, we'd skip the case where `low == high` — a search range with exactly one element. That single element could be the target. **Stopping the loop one iteration early is the most common binary-search bug.**
 
-            // Else if the target is smaller than the element at mid
-            // Adjust the search range to the left half
-            else {
-                high = mid - 1;
-            }
+The off-by-one trap: most binary-search variants we'll see in the next several lessons (Lower Bound, Upper Bound, 2D Binary Search, Staircase Search, Sorted Rotated Array) use a *different* loop condition (sometimes `low < high`, sometimes `low + 1 < high`) depending on what they're searching for. Each variant has its own correct condition; mixing them up produces subtle bugs.
 
-        // Target not found in the array
-        return -1;
-    }
-```
+> *Predict before reading on — what happens if we accidentally write <code>low &lt; high</code> instead of <code>low &lt;= high</code> for an array of length 1?*
 
-Typescript
+`low = 0, high = 0`. The condition `low < high` is `0 < 0` → false. Loop never executes. Return `-1` — but the single element might *be* the target. Wrong answer for inputs of size 1. **The off-by-one matters.**
 
-```typescript
-export class Solution {
-    binarySearch(arr: number[], target: number): number {
+---
 
-        // Starting index of the search range
-        let low: number = 0;
+## Strengths and Limitations
 
-        // Ending index of the search range
-        let high: number = arr.length - 1;
+| Strength | Detail |
+|---|---|
+| **`O(log n)` time** | Halving the search space each step gives logarithmic complexity. |
+| **`O(1)` space** | Iterative version uses only a few index variables. |
+| **Versatile** | Generalises to lower bound, upper bound, predicate search, 2D, rotated arrays, and many more variants (covered in the rest of this section). |
+| **Predictable** | Best, average, worst case all `O(log n)`. |
 
-// Diagram: while (low <= high) {
+| Limitation | Detail |
+|---|---|
+| **Requires sorted input** | One-time `O(n log n)` sort is acceptable only if many queries follow. |
+| **Random-access only** | Doesn't work on linked lists (computing `arr[mid]` is `O(n)` on a linked list, breaking the speedup). |
+| **Off-by-one prone** | Easy to write incorrectly; many variants have subtly different loop conditions. |
 
-            // Calculate the middle index
-            const mid: number = low + Math.floor((high - low) / 2);
+---
 
-            // Found the target, return the index
-            if (arr[mid] === target) {
-                return mid;
-            }
+## Key Takeaway
 
-            // If the arr[mid] is less than the target, adjust the search
-            // range to the right half
-            else if (arr[mid] < target) {
-                low = mid + 1;
-            }
+Binary search halves the search range until the target is found or the range is empty. Three correct primitives: `<= high` for the loop, `low + (high - low) / 2` for mid, return early on equality. Now the implementation.
 
-            // Else if the arr[mid] is greater than the target, adjust
-            // the search range to the left half
-            else {
-                high = mid - 1;
-            }
+***
 
-        // Target not found in the array
-        return -1;
-    }
-```
+# Implementation
 
-Javascript
+> **Course:** DSA › Algorithms › Searching › Binary Search
 
-```javascript
-export class Solution {
-    binarySearch(arr, target) {
+<div class="lang-tabs">
 
-        // Starting index of the search range
-        let low = 0;
-
-        // Ending index of the search range
-        let high = arr.length - 1;
-
-// Diagram: while (low <= high) {
-
-            // Calculate the middle index
-            const mid = low + Math.floor((high - low) / 2);
-
-            // Found the target, return the index
-            if (arr[mid] === target) {
-                return mid;
-            }
-
-            // If the arr[mid] is less than the target, adjust the search
-            // range to the right half
-            else if (arr[mid] < target) {
-                low = mid + 1;
-            }
-
-            // Else if the arr[mid] is greater than the target, adjust
-            // the search range to the left half
-            else {
-                high = mid - 1;
-            }
-
-        // Target not found in the array
-        return -1;
-    }
-```
-
-Python
-
-```python
+```python,editable
 from typing import List
 
 class Solution:
     def binary_search(self, arr: List[int], target: int) -> int:
-
-        # Starting index of the search range
-        low: int = 0
-
-        # Ending index of the search range
-        high: int = len(arr) - 1
-
-        while low <= high:
-
-            # Calculate the middle index
-            mid: int = low + (high - low) // 2
-
-            # Found the target, return the index
+        low, high = 0, len(arr) - 1
+        while low <= high:                              # search range is non-empty
+            mid = low + (high - low) // 2               # avoids overflow on large ranges
             if arr[mid] == target:
                 return mid
-
-            # If the arr[mid] is less than the target, adjust the search
-            # range to the right half
             if arr[mid] < target:
-                low = mid + 1
-
-            # Else if the arr[mid] is greater than the target, adjust
-            # the search range to the left half
+                low = mid + 1                           # target is in the right half
             else:
-                high = mid - 1
+                high = mid - 1                          # target is in the left half
+        return -1                                       # range is empty, target absent
 
-        # Target not found in the array
-        return -1
+
+if __name__ == "__main__":
+    print(Solution().binary_search([1, 3, 5, 7, 9, 11, 13], 9))    # 4
+    print(Solution().binary_search([1, 3, 5, 7, 9, 11, 13], 10))   # -1
 ```
 
-## Complexity analysis
+```java,editable
+public class Solution {
+    public int binarySearch(int[] arr, int target) {
+        int low = 0, high = arr.length - 1;
+        while (low <= high) {
+            int mid = low + (high - low) / 2;
+            if (arr[mid] == target) return mid;
+            if (arr[mid] < target) low = mid + 1;
+            else high = mid - 1;
+        }
+        return -1;
+    }
 
-The time complexity of binary search is **O(logN)** for all cases, where **N** is the number of elements in the array. The time complexity is **O(logN)** because binary search repeatedly divides the search space in half at each step.
+    public static void main(String[] args) {
+        System.out.println(new Solution().binarySearch(new int[]{1, 3, 5, 7, 9, 11, 13}, 9));
+    }
+}
+```
 
-Since the algorithm does not allocate any new memory during the search, the space complexity is constant, i.e., **O(1)**.
+```c,editable
+#include <stdio.h>
 
-> **Best case**
->
-> -   Space complexity - **O(1)**
-> -   Time complexity - **O(logN)**
->
-> **Average case**
->
-> -   Space complexity - **O(1)**
-> -   Time complexity - **O(logN)**
->
-> **Worst case**
->
-> -   Space complexity - **O(1)**
-> -   Time complexity - **O(logN)**
+int binary_search(int *arr, int n, int target) {
+    int low = 0, high = n - 1;
+    while (low <= high) {
+        int mid = low + (high - low) / 2;
+        if (arr[mid] == target) return mid;
+        if (arr[mid] < target) low = mid + 1;
+        else high = mid - 1;
+    }
+    return -1;
+}
 
-***
+int main(void) {
+    int arr[] = {1, 3, 5, 7, 9, 11, 13};
+    printf("%d\n", binary_search(arr, 7, 9));
+    return 0;
+}
+```
 
-# Binary search
-
-## Problem Statement
-
-Given an integer array **arr** that is sorted in ascending order and an integer **target**, write a function to search for the target in the array. If the target exists, return its index otherwise, return `-1`.
-
-You must do this in a time complexity of `O(logN)`.
-
-### Example 1
-
-> -   **Input:** arr = \[1, 2, 3, 4, 5, 6\], target = 3
-> -   **Output:** 2
-> -   **Explanation:** The integer 3 is at index 2 in the array.
-
-### Example 2
-
-> -   **Input:** arr = \[1, 2, 3, 4, 5, 6\], target = 6
-> -   **Output:** 5
-> -   **Explanation:** The integer 6 is at index 5 in the array.
-
-### Example 3
-
-> -   **Input:** arr = \[1, 2, 3, 4, 5, 6\], target = 10
-> -   **Output:** -1
-> -   **Explanation:** The integer 10 does not exist in the array.
-
-## Solution
-
-```cpp
-using namespace std;
+```cpp,editable
+#include <iostream>
+#include <vector>
 
 class Solution {
 public:
-    int binarySearch(vector<int> &arr, int target) {
-
-        // Starting index of the search range
-        int low = 0;
-
-        // Ending index of the search range
-        int high = arr.size() - 1;
-
+    int binarySearch(const std::vector<int>& arr, int target) {
+        int low = 0, high = (int) arr.size() - 1;
         while (low <= high) {
-
-            // Calculate the middle index
             int mid = low + (high - low) / 2;
-
-            // Found the target, return the index
-            if (arr[mid] == target) {
-                return mid;
-            }
-
-            // If the arr[mid] is less than the target, adjust the search
-            // range to the right half
-            else if (arr[mid] < target) {
-                low = mid + 1;
-            }
-
-            // Else if the arr[mid] is greater than the target, adjust
-            // the search range to the left half
-            else {
-                high = mid - 1;
-            }
+            if (arr[mid] == target) return mid;
+            if (arr[mid] < target) low = mid + 1;
+            else high = mid - 1;
         }
-
-        // Target not found in the array
         return -1;
     }
 };
+
+int main() {
+    std::cout << Solution{}.binarySearch({1, 3, 5, 7, 9, 11, 13}, 9) << '\n';
+}
 ```
+
+```scala,editable
+class Solution {
+  def binarySearch(arr: Array[Int], target: Int): Int = {
+    var low = 0; var high = arr.length - 1
+    while (low <= high) {
+      val mid = low + (high - low) / 2
+      if (arr(mid) == target) return mid
+      if (arr(mid) < target) low = mid + 1 else high = mid - 1
+    }
+    -1
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    println(new Solution().binarySearch(Array(1, 3, 5, 7, 9, 11, 13), 9))
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    binarySearch(arr, target) {
+        let low = 0, high = arr.length - 1;
+        while (low <= high) {
+            const mid = low + ((high - low) >> 1);
+            if (arr[mid] === target) return mid;
+            if (arr[mid] < target) low = mid + 1;
+            else high = mid - 1;
+        }
+        return -1;
+    }
+}
+
+console.log(new Solution().binarySearch([1, 3, 5, 7, 9, 11, 13], 9));
+```
+
+```typescript,editable
+class Solution {
+    binarySearch(arr: number[], target: number): number {
+        let low = 0, high = arr.length - 1;
+        while (low <= high) {
+            const mid = low + ((high - low) >> 1);
+            if (arr[mid] === target) return mid;
+            if (arr[mid] < target) low = mid + 1;
+            else high = mid - 1;
+        }
+        return -1;
+    }
+}
+
+console.log(new Solution().binarySearch([1, 3, 5, 7, 9, 11, 13], 9));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func binarySearch(arr []int, target int) int {
+    low, high := 0, len(arr)-1
+    for low <= high {
+        mid := low + (high-low)/2
+        if arr[mid] == target {
+            return mid
+        }
+        if arr[mid] < target {
+            low = mid + 1
+        } else {
+            high = mid - 1
+        }
+    }
+    return -1
+}
+
+func main() {
+    fmt.Println(binarySearch([]int{1, 3, 5, 7, 9, 11, 13}, 9))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun binarySearch(arr: IntArray, target: Int): Int {
+        var low = 0; var high = arr.size - 1
+        while (low <= high) {
+            val mid = low + (high - low) / 2
+            if (arr[mid] == target) return mid
+            if (arr[mid] < target) low = mid + 1 else high = mid - 1
+        }
+        return -1
+    }
+}
+
+fun main() {
+    println(Solution().binarySearch(intArrayOf(1, 3, 5, 7, 9, 11, 13), 9))
+}
+```
+
+```rust,editable
+fn binary_search(arr: &[i32], target: i32) -> i32 {
+    let mut low: i64 = 0;
+    let mut high: i64 = arr.len() as i64 - 1;
+    while low <= high {
+        let mid = low + (high - low) / 2;
+        if arr[mid as usize] == target { return mid as i32; }
+        if arr[mid as usize] < target { low = mid + 1; } else { high = mid - 1; }
+    }
+    -1
+}
+
+fn main() {
+    println!("{}", binary_search(&[1, 3, 5, 7, 9, 11, 13], 9));
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — arr = [1, 3, 5, 7, 9, 11, 13], target = 9</strong></summary>
+
+```
+Iter 1: low=0, high=6, mid=3, arr[3]=7. 7 < 9 → low = 4
+Iter 2: low=4, high=6, mid=5, arr[5]=11. 11 > 9 → high = 4
+Iter 3: low=4, high=4, mid=4, arr[4]=9. 9 == 9 → return 4
+
+3 iterations to find an element in a 7-element array (log₂(7) ≈ 3).
+```
+
+</details>
+
+***
+
+# Complexity Analysis
+
+> **Course:** DSA › Algorithms › Searching › Binary Search
+
+| Resource | Best | Average | Worst |
+|---|---|---|---|
+| **Time** | `O(1)` | `O(log n)` | `O(log n)` |
+| **Space** | `O(1)` | `O(1)` | `O(1)` |
+
+**Best case** — target is at the middle of the array; found in one iteration.
+
+**Average / worst case** — target is anywhere else (or absent); each iteration halves the range. After `k` iterations, `n / 2^k` elements remain. Setting this to 1 gives `k = log₂(n)`.
+
+The space complexity is `O(1)` for the iterative version. A recursive version uses `O(log n)` stack — each recursive call replaces the loop iteration. Either version works; the iterative one is preferred to avoid stack overhead.
+
+---
+
+## Why Binary Search Is the Universal Search Tool
+
+For a sorted array of size `n`, binary search beats every alternative:
+
+| Algorithm | Time |
+|---|---|
+| Linear search | `O(n)` |
+| Linear search with sentinel | `O(n)` (smaller constant) |
+| Binary search | `O(log n)` |
+| Interpolation search (uniform data) | `O(log log n)` average, `O(n)` worst |
+
+For most use cases, binary search wins. Interpolation search is faster on uniformly-distributed data but has worst-case `O(n)` and is rarely used outside specialized contexts.
+
+The variants we'll see in the rest of this section — lower bound, upper bound, predicate search, 2D search, rotated array — are all binary search with one of the three branches modified. The core skeleton is unchanged.
+
+---
+
+## Key Takeaway
+
+Binary search: `O(log n)` time, `O(1)` space, on any sorted array. The skeleton — `low / high / mid`, three branches, `<=` loop condition — is the foundation for every algorithm in this section. Now the canonical exercise.
+
+***
+
+# Binary Search Problem
+
+> **Course:** DSA › Algorithms › Searching › Binary Search
+
+---
+
+## The Problem
+
+Given a sorted integer array `arr` and an integer `target`, return the index of `target` in `arr`, or `-1` if it's absent. **Must run in `O(log n)`.**
+
+```
+Input:  arr = [1, 2, 3, 4, 5, 6], target = 3
+Output: 2
+
+Input:  arr = [1, 2, 3, 4, 5, 6], target = 6
+Output: 5
+
+Input:  arr = [1, 2, 3, 4, 5, 6], target = 10
+Output: -1
+```
+
+---
+
+## The Solution
+
+The implementation matches the version above. See [Implementation](#implementation) for all 10 languages.
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected |
+|---|---|---|
+| Empty | `[], target = 5` | `-1` |
+| Single match | `[5], target = 5` | `0` |
+| Single miss | `[5], target = 7` | `-1` |
+| Target at start | `[1, 2, 3], target = 1` | `0` |
+| Target at end | `[1, 2, 3], target = 3` | `2` |
+| Duplicates | `[1, 2, 2, 2, 3], target = 2` | `2` (any of 1, 2, 3 — algorithm's choice) |
+
+---
+
+## Final Takeaway
+
+Binary search is the foundation. The next two lessons — **lower bound** (the Lower Bound lesson) and **upper bound** (the Upper Bound lesson) — modify the algorithm to handle duplicates. When `target` appears multiple times, plain binary search returns *some* index, but you might want the *first* or *last* occurrence specifically. Lower/upper bound variants give you exactly that, with the same `O(log n)` complexity.
+
+After that, **2D binary search** (the 2D Binary Search lesson) extends the technique to sorted matrices, **staircase search** (the Staircase Search lesson) shows a different attack on partially-sorted matrices, **sorted-rotated-array** (the Sorted Rotated Array lesson) handles arrays where the sort order is broken by a rotation, and the five pattern lessons (Binary Search, Lower Bound, Upper Bound, Minimum Predicate Search, Maximum Predicate Search) generalise binary search to predicate-based searches across continuous ranges.
+
+**Transfer challenge — try before the Lower Bound lesson:** For an array `[1, 2, 2, 2, 3]` and `target = 2`, plain binary search might return any of indices 1, 2, or 3 depending on where it lands. Modify the binary search to *guarantee* it returns the leftmost (smallest) index where `target` appears. (Hint: when `arr[mid] == target`, don't return — keep searching the left half.)
+
+<details>
+<summary><strong>Answer — open after you've thought about it</strong></summary>
+
+```python,editable
+class Solution:
+    def leftmost_index(self, arr, target):
+        low, high = 0, len(arr) - 1
+        result = -1
+        while low <= high:
+            mid = low + (high - low) // 2
+            if arr[mid] == target:
+                result = mid                            # remember match
+                high = mid - 1                          # but keep searching left
+            elif arr[mid] < target:
+                low = mid + 1
+            else:
+                high = mid - 1
+        return result
+
+
+print(Solution().leftmost_index([1, 2, 2, 2, 3], 2))   # 1
+```
+
+The trick: don't `return` on equality — record the index and continue the search to the left. The final `result` is the leftmost match. This is essentially **lower bound**, the subject of the Lower Bound lesson. **You just rediscovered the next algorithm.**
+
+</details>

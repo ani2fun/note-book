@@ -1,770 +1,832 @@
-# Introduction to three way quicksort
+# 8. Three-Way Quicksort
 
-Three-way quicksort is an enhanced version of the traditional quicksort algorithm, designed specifically to handle datasets containing many duplicate values.
+You ended the Quicksort lesson with a haunting demonstration: quicksort on `[5, 5, 5, 5, ..., 5]` runs in `O(n²)` time. Lomuto's two-way partition can't handle duplicates — the comparison `arr[i] < pivot` is never true for equal elements, so the partition becomes maximally unbalanced.
 
-In the classic quicksort algorithm, the list is partitioned into two parts: one with elements less than the pivot and the other with elements greater than the pivot. However, if the list contains many duplicates, this approach can be inefficient because it may lead to unbalanced partitions. Three-way quicksort addresses this issue by partitioning the list into three parts:
+You ended the Dutch National Flag Sort lesson with the antidote: a three-way partition that classifies each element as `< pivot`, `== pivot`, or `> pivot`, putting equal-to-pivot elements in a contiguous middle region that's already in its final sorted position.
 
-> -   Elements **less than** the pivot
-> -   Elements **equal to** the pivot
-> -   Elements **greater than** the pivot
+**This file marries the two.** Three-way quicksort uses Dutch National Flag's partition as quicksort's partition step. The result: an algorithm that handles arrays with many duplicates in *linear* time while preserving quicksort's `O(n log n)` average for unique-element inputs.
 
-It only applies the algorithm to the first and last parts, ignoring the middle part. This allows the algorithm to handle lists with many duplicate elements more efficiently.
+By the end of this lesson you'll know how to compose the two algorithms, why the recursion only needs to descend into the outer two regions (`<` and `>`), why the middle region is "free" sorting, and the precise conditions under which three-way quicksort dramatically beats two-way quicksort.
 
-## Example
+## Table of contents
 
-A practical example of this idea is sorting currency coins by denomination. Imagine you have thousands of coins and 5–10 different values.
-
-// Diagram: Large number of coins with only a few denominations
-
-If you use traditional quicksort, you may repeatedly compare the same denominations, which wastes time, especially when many coins share the same value.
-
-// Diagram: Traditional quicksort repeatedly recompares duplicate values
-
-With the three-way quicksort approach, you select a pivot element and divide the coins into three groups instead:
-
-> -   Coins with denominations **less than** the pivot value
-> -   Coins with denominations **equal to** the pivot value
-> -   Coins with denominations **greater than** the pivot value
-
-// Diagram: Three way partition: Less, Equal, and Greater than the pivot
-
-Once partitioned, you only sort the first and third groups further, while the middle group is already in the correct position relative to the pivot and does not require additional work.
-
-This strategy drastically reduces the number of comparisons required as the dataset shrinks more efficiently at each step, making it far more scalable when duplicates are common.
-
-// Diagram: Repeat the process on the first and last partitions
-
-By continuing this way, all the coins will eventually be sorted in the correct order.
-
-// Diagram: All coins are now sorted
-
-> -   **Step 1:** Choose a random denomination from the leftover coins and make it the pivot.
-> -   **Step 2:** Create three partitions: first for notes with denominations less than the pivot, second for coins with denominations equal to the pivot, and third for coins with denominations greater than the pivot.
-> -   **Step 3:** Apply steps 1 and 2 to the first and third partitions.
-
-// Diagram: Sort coins in ascending using three-way quicksort
-
-## Advantages
-
-Three-way quicksort is highly efficient when the dataset contains many duplicates. By grouping elements into less-than, equal-to, and greater-than comparisons with the pivot, it reduces unnecessary comparisons and improves performance compared to traditional quicksort.
-
-> -   **Efficient for input with many duplicates:** Compared to the traditional quicksort, the three-way quicksort is particularly efficient for lists with many duplicate elements.
-> -   **Stable:** Unlike the traditional quicksort, the three-wat quicksort is stable, i.e., it does not change the relative order of equal values in the list.
-> -   **In-place:** Three-way quicksort can sort the input list itself without needing to allocate new memory for the algorithm.
-
-## Limitations
-
-While Three way quicksort has many advantages, it comes with certain limiations as well:
-
-> -   **Inefficient:** Three-way quicksort is not as efficient for small datasets, as the partitioning step's overhead can outweigh the algorithm's efficiency benefits.
+1. [Why two-way quicksort fails on duplicates](#why-two-way-quicksort-fails-on-duplicates)
+2. [Understanding three-way quicksort](#understanding-three-way-quicksort)
+3. [The partition returns two boundaries](#the-partition-returns-two-boundaries)
+4. [Implementation](#implementation)
+5. [Complexity analysis](#complexity-analysis)
+6. [Three-way quicksort problem](#three-way-quicksort-problem)
 
 ***
 
-# Understanding three way quicksort algorithm
-
-Now that we understand the importance of the three-way quicksort and its advantages and limitations, let's delve into the algorithm used to implement it.
-
-**Why is this algorithm also called the Dutch national flag quicksort?**The algorithm is called Dutch national flag quicksort because its partitioning step is similar to the Dutch National Flag Sort. Elements less than the pivot are tracked by the left pointer, elements equal to the pivot by the mid pointer, and elements greater than the pivot by the right pointer. This three-way division mirrors how the Dutch National Flag sort separates values into small, mid, and large regions.
-
-## Algorithm
-
-The three-way quicksort algorithm operates on an input array containing at least two elements, similar to the standard quicksort. The process begins by selecting a pivot element from the array, which serves as a reference for partitioning the other elements.
-
-// Diagram: Select a random element as the pivot
-
-During the partitioning step, three-way quicksort divides the array into three consecutive segments rather than two. It returns three indices: the **first segment** contains elements **smaller than the pivot**, the **middle segment** contains elements **equal to the pivot**, and the **last segment** contains elements **greater than the pivot**. The middle segment can be ignored in further recursive calls since these elements are already in their correct positions.
-
-// Diagram: Smaller elements go left, equal element to the mid, larger elements go right
-
-After partitioning, the algorithm recursively applies the same procedure only to the subarrays containing elements smaller than and greater than the pivot. This process continues until all subarrays contain either a single element or are empty.
-
-// Diagram: Repeat the process on the first and last partitions with new pivots
-
-Once all recursive calls are complete, the array becomes fully sorted.
-
-// Diagram: The array is now sorted
-
-Following the approach described above, the algorithm sorts the array using a divide-and-conquer strategy, optimized to handle arrays with many duplicate elements. The sorting process divides the array into three regions: elements smaller than the pivot, elements equal to the pivot, and elements greater than the pivot. The algorithm has three components
-
-### Entry point
-
-The `threeWayQuickSort` function serves as the entry point for the three-way quicksort algorithm. It initiates the sorting process by calling the recursive procedure `quicksort(arr, 0, arr.size() - 1)`, where `0` corresponds to the index of the first element and `arr.size() - 1` corresponds to the index of the last element in the array. These values are passed to the `left` and `right` variables of the recursive procedure, establishing the initial boundaries of the array to be sorted.
-
-// Diagram: Left and right boundaries of the array
-
-### Recursive procedure
-
-The recursive procedure receives the array along with its start and end boundaries, specified by the variables `left` and `right`, respectively. It begins by checking whether `left < right` to ensure that the subarray contains at least two elements. If not, the subarray is already sorted and the function returns.
-
-If `left < right`, the procedure calls `partition(arr, left, right, i, j)`, which rearranges the elements around a pivot into three regions and returns two indices, `i` and `j`. These indices mark the starting and ending boundaries of the pivot element, such that all elements between `i` and `j` are equal to the pivot. More formally:
-
-> -   Elements from `left` to `i` are **smaller than** the pivot.
-> -   Elements from `i + 1` to `j - 1` are **equal** to the pivot.
-> -   Elements from `j` to `right` are **greater than** the pivot.
-
-// Diagram: The smaller, middle, unsorted and largest sections in the array
-
-After partitioning, the algorithm recursively sorts the subarrays to the left and right of the pivot.
-
-> -   `quicksort(arr, left, i)` - sort elements smaller than the pivot
-> -   `quicksort(arr, j, right)` - sort elements greater than the pivot
-
-**Why are the recursive calls split around the pivot region?**
-
-The partitioning ensures that all elements equal to the `pivot` are already in their correct positions. By recursively sorting only the regions smaller and larger than the pivot, the algorithm avoids unnecessary comparisons and swaps for duplicate values, improving efficiency, especially when the array contains many repeated elements.
-
-// Diagram: Recursively apply the algorithm to the subarrays on each side of the pivot
-
-As the recursive calls continue and reach their base cases, all subarrays are sorted. Once the initial recursive call completes, the entire array is sorted in ascending order.
-
-### Partition procedure with dutch national flag sort 
-
-The partition function is responsible for reorganizing the subarray into three sections: less than, equal to, and greater than the `pivot`. This procedure is **directly inspired by the Dutch National Flag (DNF) algorithm**, which also maintains three sections using three pointers.
-
-The algorithm begins by handling small subarrays with `0` or `1` element. For larger subarrays, it initializes `mid = left` and selects the `pivot` as the last element `arr[right]`. The three pointers have the same roles as in DNF:
-
-> -   `left` - Marks the end of the smaller-than-pivot section.
-> -   `mid` - Traverses the array to evaluate elements.
-> -   `right` - Marks the beginning of the greater-than-pivot section.
-
-// Diagram: The smaller, equal, unsorted and larger sections in the array
-
-Similar to the **DNF sort**, the main loop runs while `mid <= right`, and depending on the value of `arr[mid]`, it makes one of three decisions.
-
-### 1\. arr\[mid\] < pivot
-
-When the element at `mid` index is less then the pivot element, it needs to be moved to the front section of the array. This is done by swapping it with the element at the `left` pointer, which marks the boundary of the already sorted smallest section. 
-
-> Take the following steps:
->
-> -   Swap `arr\[mid\]` with `arr\[left\]` to place the smallest value into its correct section.
-> -   The `mid` pointer is incremented to continue scanning the next element.
-> -   The `left` pointer is also incremented by one, expanding the sorted section of smallest elements
-
-Corresponds to the **0-region** handling in **DNF**, expanding the smaller section.
-
-// Diagram: The element is in the smallest category (less than the pivot)
-
-### 2\. arr\[mid\] == pivot
-
-When the element at `mid` index is equal to the pivot element, it belongs to the middle section. It is already in its correct section relative to the `left` and `right` pointers. Therefore, no swap is needed.
-
-> Take the following steps:
->
-> -   The `mid` pointer is incremented to continue scanning the next element.
-
-Corresponds to the **1-region** handling in **DNF**, leaving the equal section in place.
-
-**Why do we handle elements equal to the pivot differently?**
-
-Elements equal to the pivot do not need to be moved, just like in DNF, which keeps the middle region intact. This reduces unnecessary swaps and preserves stability within the pivot region.
-
-// Diagram: The element is in the middle category (equal to the pivot)
-
-### 3\. arr\[mid\] > pivot
-
-When the element at `mid` index is greater than the pivot,  it belongs to the largest section. It must be moved to the end section of the array. This is achieved by swapping it with the element at the `right` pointer, which marks the boundary of the already sorted largest section. 
-
-> Take the following steps:
->
-> -   Swap `arr\[mid\]` with the element at the `arr\[right\]` to move the largest value toward its correct section.
-> -   The `right` pointer is decremented by one, shrinking the unsorted section from the end.
-
-Corresponds to the **2-region** handling in **DNF**, expanding the larger section.
-
-// Diagram: The element is in the largest category (larger than the pivot)
-
-After the loop, the indices `i = left - 1` (last element smaller than the pivot) and `j = mid` (first element greater than the pivot) are set. These indices define the boundaries of the pivot region for the recursive calls.
-
-// Diagram: Sorting an array in ascending order using three-way quicksort
-
-> **Algorithm**
->
-> **partition(\[ref\] arr, left, right, \[ref\] i, \[ref\] j)**
->
-> -   **Step 1:** If the subarray has 0 or 1 element, optionally swap the two elements if out of order
-> -   **Step 2:** Initialise `mid = left`
-> -   **Step 3:** Choose the last element `arr\[right\]` as the pivot
-> -   **Step 4:** While `mid <= right`, do the following:
->     -   **Step 4.1:** If `arr\[mid\] < pivot`
->         -   **Step 4.1.1:** Swap `arr\[mid\]` with `arr\[left\]`
->         -   **Step 4.1.2:** Increment `mid` to move to the next element
->         -   **Step 4.1.3:** Increment `left` to move to the next element
->     -   **Step 4.2:** If `arr\[mid\] == pivot`
->         -   **Step 4.2.1:** Increment `mid` to move to the next element
->     -   **Step 4.3:** If `arr\[mid\] > pivot`
->         -   **Step 4.3.1:** Swap `arr\[mid\]` with `arr\[right\]`
->         -   **Step 4.3.2:** Decrement `right` to move to the previous element
-> -   **Step 5:** Set `i = left - 1` (last element smaller than pivot)
-> -   **Step 6:** Set `j = mid` (first element greater than pivot)
->
-> **quicksort(\[ref\] arr, left, right)**
->
-> -   **Step 1:** If `left < right`, do the following
->     -   **Step 1.1:** Call `partition(arr, left, right, i, j)` to partition the array
->     -   **Step 1.2:** Recursively call `quicksort(arr, left, i)` on the left subarray
->     -   **Step 1.3:** Recursively call `quicksort(arr, j, right)` on the right subarray
->
-> **threeWayQuickSort(\[ref\] arr)**
->
-> -   **Step 1:** Call `quicksort(arr, 0, arr.size() - 1)` to sort the entire array
-
-## Implementation
-
-The three-way quicksort algorithm is similar to quicksort, with only a subtle difference. During the partitioning step, the three-way quicksort returns not only the index of the pivot element but also two other indices: `i` and `j`. 
-
-C++
-
-```cpp
-using namespace std;
-
-class Solution {
-public:
-    void partition(
-        vector<int> &arr,
-        int left,
-        int right,
-        int &i,
-        int &j
-    ) {
-
-        // If the subarray has 0 or 1 element, no need to partition
-        if (right - left <= 1) {
-
-            // If the last element is smaller than the first element,
-            // swap them
-            if (arr[right] < arr[left]) {
-                swap(arr[right], arr[left]);
-            }
-
-            i = left;
-            j = right;
-            return;
-        }
-
-// Diagram: int mid = left;
-
-        // Choosing the last element as the pivot
-        int pivot = arr[right];
-        while (mid <= right) {
-
-            // If the current element is smaller than the pivot, move
-            // elements smaller than pivot to the left side
-            if (arr[mid] < pivot) {
-                swap(arr[left], arr[mid]);
-
-                // Move mid to the next element
-                mid++;
-
-                // Move left to the next element
-                left++;
-            }
-
-            // If the current element is equal to the pivot, move to the
-            // next element
-            else if (arr[mid] == pivot) {
-                mid++;
-            }
-
-            // If the current element is greater than the pivot, move
-            // elements greater than pivot to the right side
-            else if (arr[mid] > pivot) {
-                swap(arr[mid], arr[right]);
-
-                // Move right to the previous element
-                right--;
-            }
-
-        // Index of the last element smaller than pivot
-        i = left - 1;
-
-        // Index of the first element greater than pivot
-        j = mid;
-    }
-
-    void quicksort(vector<int> &arr, int left, int right) {
-        if (left >= right) {
-            return;
-        }
-
-        int i, j;
-        partition(arr, left, right, i, j);
-
-        // Recursively sort the subarrays
-        quicksort(arr, left, i);
-        quicksort(arr, j, right);
-    }
-
-    void threeWayQuickSort(vector<int> &arr) {
-        int n = arr.size();
-        quicksort(arr, 0, n - 1);
-    }
-};
+# Why Two-Way Quicksort Fails on Duplicates
+
+> **Course:** DSA › Algorithms › Sorting › Three-Way Quicksort
+
+Recall Lomuto's partition from the Quicksort lesson:
+
+```
+boundary = left
+for i in [left, right):
+    if arr[i] < pivot_val:        # ← strict less-than
+        swap(arr[boundary], arr[i])
+        boundary++
+swap(arr[boundary], arr[right])    # park pivot
+return boundary
 ```
 
-Java
+The condition `arr[i] < pivot_val` is *strictly* less than. Equal elements skip the swap — they stay in the right region. After the partition, the `boundary` index ends up at `left`, the partition is `[empty | pivot | rest]`, and the recursive call sorts a problem of size `n - 1`.
 
-```java
-class Solution {
-    private void partition(
-        int[] arr,
-        int left,
-        int right,
-        int[] i,
-        int[] j
-    ) {
+Now imagine an array of `n` identical elements. Every partition reduces the problem by exactly one element. **Recursion depth: `n`. Time complexity: `O(n²)`.** Stack overflow on large inputs.
 
-        // If the subarray has 0 or 1 element, no need to partition
-        if (right - left <= 1) {
+```d2
+direction: down
 
-            // If the last element is smaller than the first element,
-            // swap them
-            if (arr[right] < arr[left]) {
-                int temp = arr[right];
-                arr[right] = arr[left];
-                arr[left] = temp;
-            }
+input: "Input: [5, 5, 5, 5, 5, 5]" {style.fill: "#fecaca"; style.stroke: "#dc2626"}
+p1: "Lomuto pivot=5: partition → [empty | 5 | 5, 5, 5, 5, 5]"
+p2: "Recurse on [5, 5, 5, 5, 5] → [empty | 5 | 5, 5, 5, 5]"
+p3: "Recurse on [5, 5, 5, 5] → ..."
+end: "...n levels of recursion → O(n²) time, O(n) stack" {style.fill: "#fecaca"; style.stroke: "#dc2626"}
 
-            i[0] = left;
-            j[0] = right;
-            return;
-        }
-
-// Diagram: int mid = left;
-
-        // Choosing the last element as the pivot
-        int pivot = arr[right];
-        while (mid <= right) {
-
-            // If the current element is smaller than the pivot, move
-            // elements smaller than pivot to the left side
-            if (arr[mid] < pivot) {
-                int temp = arr[mid];
-                arr[mid] = arr[left];
-                arr[left] = temp;
-
-                // Move mid to the next element
-                mid++;
-
-                // Move left to the next element
-                left++;
-            }
-
-            // If the current element is equal to the pivot, move to the
-            // next element
-            else if (arr[mid] == pivot) {
-                mid++;
-            }
-
-            // If the current element is greater than the pivot, move
-            // elements greater than pivot to the right side
-            else if (arr[mid] > pivot) {
-                int temp = arr[mid];
-                arr[mid] = arr[right];
-                arr[right--] = temp;
-
-                // Move right to the previous element
-                right--;
-            }
-
-        // Index of the last element smaller than pivot
-        i[0] = left - 1;
-
-        // Index of the first element greater than pivot
-        j[0] = mid;
-    }
-
-    private void quicksort(int[] arr, int left, int right) {
-        if (left >= right) {
-            return;
-        }
-
-        int[] i = new int[1];
-        int[] j = new int[1];
-        partition(arr, left, right, i, j);
-
-        // Recursively sort the subarrays
-        quicksort(arr, left, i[0]);
-        quicksort(arr, j[0], right);
-    }
-
-    public void threeWayQuickSort(int[] arr) {
-        int n = arr.length;
-        quicksort(arr, 0, n - 1);
-    }
+input -> p1 -> p2 -> p3 -> end
 ```
 
-Typescript
+<p align="center"><strong>Two-way quicksort's pathology on all-duplicates input. Each partition reduces by 1; recursion goes <code>n</code> levels deep.</strong></p>
 
-```typescript
-export class Solution {
-    partition(
-        arr: number[],
-        left: number,
-        right: number
-    ): [number, number] {
+This isn't a contrived edge case. Any real-world dataset with even moderate duplication suffers — sorting an array of categorical data (1000 unique categories among 1,000,000 records), sorting strings with common prefixes, sorting a column of mostly-zero values. Two-way quicksort doesn't *fail* on these inputs (it produces the correct answer), but its performance collapses.
 
-        // If the subarray has 0 or 1 element, no need to partition
-        if (right - left <= 1) {
+---
 
-            // If the last element is smaller than the first element,
-            // swap them
-            if (arr[right] < arr[left]) {
-                [arr[right], arr[left]] = [arr[left], arr[right]];
-            }
-            return [left, right];
-        }
+## The Fix in One Sentence
 
-// Diagram: let mid: number = left;
+**Use a three-way partition (Dutch flag) instead of a two-way partition.** The middle region (equal-to-pivot elements) is already in its final sorted position; recurse only on the outer two regions.
 
-        // Choosing the last element as the pivot
-        const pivot: number = arr[right];
-        while (mid <= right) {
+For all-duplicates input: the entire array goes into the middle region in *one* partition. No recursion needed. `O(n)` total.
 
-            // If the current element is smaller than the pivot, move
-            // elements smaller than pivot to the left side
-            if (arr[mid] < pivot) {
-                [arr[mid], arr[left]] = [arr[left], arr[mid]];
+For mixed input with some duplicates: the middle region absorbs the duplicates; recursion only sees unique-or-different elements. Performance improves proportionally to how many duplicates exist.
 
-                // Move mid to the next element
-                mid++;
+For unique-element input: the middle region has exactly one element (the pivot); behaviour is identical to two-way quicksort.
 
-                // Move left to the next element
-                left++;
-            }
+---
 
-            // If the current element is equal to the pivot, move to the
-            // next element
-            else if (arr[mid] === pivot) {
-                mid++;
-            }
+## Key Takeaway
 
-            // If the current element is greater than the pivot, move
-            // elements greater than pivot to the right side
-            else if (arr[mid] > pivot) {
-                [arr[mid], arr[right]] = [arr[right], arr[mid]];
+Two-way quicksort wastes work on duplicate-heavy input because equal-to-pivot elements end up in one of the recursive calls. Three-way quicksort fixes this by making the equal region its own non-recursive group. Now we'll see exactly how it works.
 
-                // Move right to the previous element
-                right--;
-            }
+***
 
-        // Index of the last element smaller than pivot
-        const i: number = left - 1;
+# Understanding Three-Way Quicksort
 
-        // Index of the first element greater than pivot
-        const j: number = mid;
-        return [i, j];
-    }
+> **Course:** DSA › Algorithms › Sorting › Three-Way Quicksort
 
-    quicksort(arr: number[], left: number, right: number): void {
-        if (left >= right) {
-            return;
-        }
+Three-way quicksort is two-way quicksort with one change: the partition step splits into *three* regions instead of two.
 
-// Diagram: const [i, j] = this.partition(arr, left, right);
+After the partition, the array looks like:
 
-        // Recursively sort the subarrays
-        this.quicksort(arr, left, i);
-        this.quicksort(arr, j, right);
-    }
-
-    threeWayQuickSort(arr: number[]): void {
-        const n: number = arr.length;
-        this.quicksort(arr, 0, n - 1);
-    }
+```
+[ < pivot | == pivot | > pivot ]
+   left      mid        right
 ```
 
-Javascript
+The `< pivot` region needs further sorting. The `> pivot` region needs further sorting. The `== pivot` region is already sorted (all elements are equal; their order doesn't matter). Recurse only on the outer two.
 
-```javascript
-export class Solution {
-    partition(arr, left, right) {
+```d2
+direction: down
 
-        // If the subarray has 0 or 1 element, no need to partition
-        if (right - left <= 1) {
+before: "Before partition" {
+  grid-rows: 1
+  grid-columns: 8
+  grid-gap: 0
+  a0: "7"
+  a1: "5"
+  a2: "5"
+  a3: "1"
+  a4: "5"
+  a5: "8"
+  a6: "5"
+  a7: "3"
+}
 
-            // If the last element is smaller than the first element,
-            // swap them
-            if (arr[right] < arr[left]) {
-                [arr[right], arr[left]] = [arr[left], arr[right]];
-            }
+after: "After 3-way partition (pivot=5)" {
+  grid-rows: 1
+  grid-columns: 8
+  grid-gap: 0
+  a0: "1" {style.fill: "#fecaca"; style.stroke: "#dc2626"}
+  a1: "3" {style.fill: "#fecaca"; style.stroke: "#dc2626"}
+  a2: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a3: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a4: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a5: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a6: "7" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+  a7: "8" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+}
 
-            return [left, right];
-        }
-        let mid = left;
-
-        // Choosing the last element as the pivot
-        const pivot = arr[right];
-        while (mid <= right) {
-
-            // If the current element is smaller than the pivot, move
-            // elements smaller than pivot to the left side
-            if (arr[mid] < pivot) {
-                [arr[mid], arr[left]] = [arr[left], arr[mid]];
-
-                // Move mid to the next element
-                mid++;
-
-                // Move left to the next element
-                left++;
-            }
-
-            // If the current element is equal to the pivot, move to the
-            // next element
-            else if (arr[mid] === pivot) {
-                mid++;
-            }
-
-            // If the current element is greater than the pivot, move
-            // elements greater than pivot to the right side
-            else if (arr[mid] > pivot) {
-                [arr[mid], arr[right]] = [arr[right], arr[mid]];
-
-                // Move right to the previous element
-                right--;
-            }
-
-        // Index of the last element smaller than pivot
-        const i = left - 1;
-
-        // Index of the first element greater than pivot
-        const j = mid;
-        return [i, j];
-    }
-    quicksort(arr, left, right) {
-        if (left >= right) {
-            return;
-        }
-        const [i, j] = this.partition(arr, left, right);
-
-        // Recursively sort the subarrays
-        this.quicksort(arr, left, i);
-        this.quicksort(arr, j, right);
-    }
-    threeWayQuickSort(arr) {
-        const n = arr.length;
-        this.quicksort(arr, 0, n - 1);
-    }
+before -> after: 3-way partition
+recurse: "Recurse on [<] and [>]; skip [==]"
+after -> recurse
 ```
 
-Python
+<p align="center"><strong>Three-way partition lays out the array in three regions. The middle region is already sorted (all equal). Recursion descends into the outer two only.</strong></p>
 
-```python
+---
+
+## The Recursive Driver
+
+```
+function quicksort(arr, left, right):
+    if left >= right:
+        return                                 # base case: 0 or 1 element
+
+    i, j = three_way_partition(arr, left, right)   # i = end of <, j = start of >
+
+    quicksort(arr, left, i)                    # sort the < region
+    quicksort(arr, j, right)                   # sort the > region
+    # the == region [i+1..j-1] needs no further work
+```
+
+The partition returns *two* boundaries — `i` and `j` — defining the three regions. The middle region `[i+1..j-1]` is skipped by the recursion.
+
+---
+
+## What Changes vs Two-Way Quicksort?
+
+Three changes:
+1. **Partition is three-way** (Dutch flag style) instead of two-way (Lomuto).
+2. **Partition returns two indices** instead of one.
+3. **Recursion has two calls** but neither one descends into the equal region.
+
+Everything else — random pivot selection, base case, in-place mutation — is identical to two-way quicksort. The complexity changes are explained below.
+
+> *Predict before reading on — for an array of <code>n</code> identical elements, what's three-way quicksort's time complexity?*
+
+`O(n)`. The first partition puts every element in the middle region; both recursive calls hit the base case (`left >= right`) immediately. One pass of the partition, total work `O(n)`. Compared to two-way's `O(n²)` on the same input — a quadratic-to-linear speedup.
+
+---
+
+## Strengths and Limitations
+
+| Strength | Detail |
+|---|---|
+| **Linear on duplicate-heavy input** | `O(n)` when many elements equal the pivot. |
+| **Same average as two-way quicksort** | `O(n log n)` on unique-element input. |
+| **In-place** | `O(log n)` recursion stack only. |
+| **Robust pivot handling** | Works correctly on all-equal arrays, mostly-equal arrays, etc. |
+
+| Limitation | Detail |
+|---|---|
+| **Not stable** | Long-distance swaps in the partition flip equal elements' order — though equal elements are indistinguishable, so this rarely matters. |
+| **`O(n²)` worst case still possible** | If the pivot is always the smallest or largest element on truly unique input. Random pivot selection mitigates this. |
+| **More complex than two-way** | Slightly larger constant factor on inputs with no duplicates. |
+
+In practice, three-way quicksort is what most modern libraries actually implement (often called "dual-pivot" quicksort, which is a refinement of three-way). Java's `Arrays.sort(int[])` is dual-pivot quicksort. Rust's `slice::sort_unstable` is PDQsort, which uses three-way partitioning when duplicates are detected.
+
+---
+
+## Key Takeaway
+
+Three-way quicksort: same recursive driver as two-way, but with a three-way partition. Linear time on duplicate-heavy input; same `O(n log n)` average for unique inputs. The standard production sort. Now we'll formalise the partition.
+
+***
+
+# The Partition Returns Two Boundaries
+
+> **Course:** DSA › Algorithms › Sorting › Three-Way Quicksort
+
+The partition step is structurally identical to Dutch National Flag (the Dutch National Flag Sort lesson), with one twist: instead of comparing against the constants `0`, `1`, `2`, we compare against the *pivot value*. Let's walk through it.
+
+---
+
+## The Partition Algorithm
+
+Pick a pivot (typically the rightmost element, `arr[right]`). Maintain three pointers:
+- `left` — boundary of the `< pivot` region (everything before `left` is `< pivot`).
+- `mid` — current element under inspection.
+- `right` — boundary of the `> pivot` region (everything after `right` is `> pivot`).
+
+Run the loop while `mid <= right`. For each `arr[mid]`:
+- If `arr[mid] < pivot`: swap with `arr[left]`, advance both `left` and `mid`.
+- If `arr[mid] == pivot`: just advance `mid`.
+- If `arr[mid] > pivot`: swap with `arr[right]`, decrement `right` (don't advance `mid`).
+
+When the loop terminates, the array's three regions are laid out:
+- `[start..left-1]` contains `< pivot`.
+- `[left..mid-1]` contains `== pivot`.
+- `[mid..end]` contains `> pivot`.
+
+The partition returns two boundaries: `i = left - 1` (last index of `<`) and `j = mid` (first index of `>`).
+
+---
+
+## A Walkthrough
+
+`arr = [7, 5, 5, 1, 5, 8, 5, 3]` (n = 8). Pivot is `arr[right] = 3` (last element). Let's trace.
+
+Wait — using `arr[right]` directly as the pivot complicates things because the rightmost element gets swapped during partitioning. The cleaner approach is to **read the pivot value first**, then partition.
+
+Let's choose `pivot = 5` (a randomly-selected pivot, just for demonstration).
+
+```
+Initial: arr = [7, 5, 5, 1, 5, 8, 5, 3]
+left = 0, mid = 0, right = 7
+
+mid=0, arr[0]=7. 7 > 5 → swap with arr[7], right--
+  arr = [3, 5, 5, 1, 5, 8, 5, 7]
+  left = 0, mid = 0, right = 6
+
+mid=0, arr[0]=3. 3 < 5 → swap with arr[0] (self), left++, mid++
+  arr = [3, 5, 5, 1, 5, 8, 5, 7]
+  left = 1, mid = 1, right = 6
+
+mid=1, arr[1]=5. == 5 → mid++
+  left = 1, mid = 2, right = 6
+
+mid=2, arr[2]=5. == 5 → mid++
+  left = 1, mid = 3, right = 6
+
+mid=3, arr[3]=1. 1 < 5 → swap with arr[1], left++, mid++
+  arr = [3, 1, 5, 5, 5, 8, 5, 7]
+  left = 2, mid = 4, right = 6
+
+mid=4, arr[4]=5. == 5 → mid++
+  left = 2, mid = 5, right = 6
+
+mid=5, arr[5]=8. 8 > 5 → swap with arr[6], right--
+  arr = [3, 1, 5, 5, 5, 5, 8, 7]
+  left = 2, mid = 5, right = 5
+
+mid=5, arr[5]=5. == 5 → mid++
+  left = 2, mid = 6, right = 5
+
+mid (6) > right (5) → loop exits
+```
+
+Final: `arr = [3, 1, 5, 5, 5, 5, 8, 7]`. Regions: `[3, 1]` < 5 | `[5, 5, 5, 5]` == 5 | `[8, 7]` > 5. The middle region is sorted (all duplicates collapsed). Recursion descends only into `[3, 1]` and `[8, 7]`.
+
+```d2
+direction: down
+
+result: "Result of three-way partition" {
+  grid-rows: 1
+  grid-columns: 8
+  grid-gap: 0
+  a0: "3" {style.fill: "#fecaca"; style.stroke: "#dc2626"}
+  a1: "1" {style.fill: "#fecaca"; style.stroke: "#dc2626"}
+  a2: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a3: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a4: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a5: "5" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  a6: "8" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+  a7: "7" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+}
+
+label: "Recurse on [3, 1] (red, indices 0-1) and [8, 7] (green, indices 6-7).\nSkip [5, 5, 5, 5] (yellow, already sorted)."
+```
+
+<p align="center"><strong>The partition's output. Four duplicate <code>5</code>s collapse into one un-recursed region; the recursive driver only descends into the smaller red and green parts.</strong></p>
+
+---
+
+## Key Takeaway
+
+Three-way partition is Dutch National Flag with `pivot` instead of `1` as the middle category. It returns two boundaries; the recursion descends into the outer two regions and skips the middle. Now the implementation.
+
+***
+
+# Implementation
+
+> **Course:** DSA › Algorithms › Sorting › Three-Way Quicksort
+
+We implement two functions: `partition` (three-way, returning two boundary indices) and `quicksort` (the recursive driver).
+
+<div class="lang-tabs">
+
+```python,editable
+import random
 from typing import List, Tuple
 
 class Solution:
-    def partition(
-        self, arr: List[int], left: int, right: int
-    ) -> Tuple[int, int]:
+    def three_way_quick_sort(self, arr: List[int]) -> None:
+        self._sort(arr, 0, len(arr) - 1)
 
-        # If the subarray has 0 or 1 element, no need to partition
-        if right - left <= 1:
-
-            # If the last element is smaller than the first element, swap
-            # them
-            if arr[right] < arr[left]:
-                arr[right], arr[left] = arr[left], arr[right]
-            return left, right
-
-// Diagram: mid: int = left
-
-        # Choosing the last element as the pivot
-        pivot: int = arr[right]
-        while mid <= right:
-
-            # If the current element is smaller than the pivot, move
-            # elements smaller than pivot to the left side
-            if arr[mid] < pivot:
-                arr[mid], arr[left] = arr[left], arr[mid]
-
-                # Move mid to the next element
-                mid += 1
-
-                # Move left to the next element
-                left += 1
-
-            # If the current element is equal to the pivot, move to the
-            # next element
-            elif arr[mid] == pivot:
-                mid += 1
-
-            # If the current element is greater than the pivot, move
-            # elements greater than pivot to the right side
-            elif arr[mid] > pivot:
-                arr[mid], arr[right] = arr[right], arr[mid]
-
-                # Move right to the previous element
-                right -= 1
-
-        # Index of the last element smaller than pivot
-        i: int = left - 1
-
-        # Index of the first element greater than pivot
-        j: int = mid
-        return i, j
-
-    def quicksort(self, arr: List[int], left: int, right: int) -> None:
+    def _sort(self, arr: List[int], left: int, right: int) -> None:
         if left >= right:
             return
+        i, j = self._partition(arr, left, right)
+        self._sort(arr, left, i)
+        self._sort(arr, j, right)
 
-// Diagram: i, j = self.partition(arr, left, right)
+    def _partition(self, arr: List[int], left: int, right: int) -> Tuple[int, int]:
+        pivot_idx = random.randint(left, right)
+        pivot = arr[pivot_idx]
+        l, mid, r = left, left, right                # work-pointers
+        while mid <= r:
+            if arr[mid] < pivot:
+                arr[l], arr[mid] = arr[mid], arr[l]
+                l += 1
+                mid += 1
+            elif arr[mid] == pivot:
+                mid += 1
+            else:                                    # arr[mid] > pivot
+                arr[mid], arr[r] = arr[r], arr[mid]
+                r -= 1
+        return l - 1, mid                            # last index of <, first index of >
 
-        # Recursively sort the subarrays
-        self.quicksort(arr, left, i)
-        self.quicksort(arr, j, right)
 
-    def three_way_quick_sort(self, arr: List[int]) -> None:
-        n: int = len(arr)
-        self.quicksort(arr, 0, n - 1)
+if __name__ == "__main__":
+    arr = [7, 5, 5, 1, 5, 8, 5, 3]
+    Solution().three_way_quick_sort(arr)
+    print(arr)   # [1, 3, 5, 5, 5, 5, 7, 8]
 ```
 
-## Complexity analysis
+```java,editable
+import java.util.Random;
 
-The three-way quicksort algorithm generally shares the same runtime characteristics as classic quicksort, but it performs more efficiently when the input contains many duplicate values. By grouping elements equal to the pivot into a middle section and skipping them in further recursion, it reduces unnecessary comparisons.
+public class Solution {
+    private final Random rand = new Random();
 
-In the best case, the pivot divides the array into nearly equal-sized subarrays, and a large number of elements are equal to the pivot. Three-way partitioning groups these equal elements together in a single step, significantly reducing the number of recursive calls. As a result, the recursion remains balanced, and the time complexity is **O(N\*****log N)**.
+    public void threeWayQuickSort(int[] arr) {
+        sort(arr, 0, arr.length - 1);
+    }
 
-// Diagram: Best case: Many elements equal the pivot, with the rest evenly split
+    private void sort(int[] arr, int left, int right) {
+        if (left >= right) return;
+        int[] bounds = partition(arr, left, right);
+        sort(arr, left, bounds[0]);
+        sort(arr, bounds[1], right);
+    }
 
-In the average case, when the pivot is chosen randomly, three-way quick sort typically produces fairly balanced partitions while efficiently handling duplicate elements by placing them in the middle partition. This reduces unnecessary comparisons and recursive calls, leading to an average time complexity close to **O(N\*log N)**.
+    private int[] partition(int[] arr, int left, int right) {
+        int pivotIdx = left + rand.nextInt(right - left + 1);
+        int pivot = arr[pivotIdx];
+        int l = left, mid = left, r = right;
+        while (mid <= r) {
+            if (arr[mid] < pivot) {
+                swap(arr, l, mid);
+                l++; mid++;
+            } else if (arr[mid] == pivot) {
+                mid++;
+            } else {
+                swap(arr, mid, r);
+                r--;
+            }
+        }
+        return new int[]{l - 1, mid};
+    }
 
-// Diagram: Average case: The pivot splits the array into fairly balanced parts
+    private void swap(int[] arr, int i, int j) {
+        int t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
 
-In the worst case, if the pivot is consistently chosen poorly and most elements are either smaller or larger than the pivot (with very few or no duplicates), the partitions become highly unbalanced. In this scenario, three-way quick sort behaves similarly to standard quick sort, and the time complexity can degrade to **O(N^2)**.
+    public static void main(String[] args) {
+        int[] arr = {7, 5, 5, 1, 5, 8, 5, 3};
+        new Solution().threeWayQuickSort(arr);
+        for (int x : arr) System.out.print(x + " ");
+        System.out.println();
+    }
+}
+```
 
-// Diagram: Worst case: The pivot creates highly unbalanced partitions
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
 
-The space complexity of three-way quicksort is **O(logN)** due to the recursive calls on the sublists. Each recursive call requires a constant amount of space for the function call stack, and the depth of the call stack is **O(logN)** in the average and worst cases.
+void swap(int *a, int *b) { int t = *a; *a = *b; *b = t; }
 
-> **Best case** - The list is always partitioned into nearly equal-sized sublists.
->
-> -   Space complexity - **O(logN)**
-> -   Time complexity - **O(N\*logN)**
->
-> **Average case** - The pivot is randomly chosen, which often partitions the input list into nearly equal-sized sublists.
->
-> -   Space complexity - **O(logN)**
-> -   Time complexity - **O(N\*logN)**
->
-> **Worst case** - The input list is completely or nearly sorted in the reverse order.
->
-> -   Space complexity - **O(logN)**
-> -   Time complexity - **O(N^2)**
+void partition3(int *arr, int left, int right, int *outI, int *outJ) {
+    int pivot = arr[left + rand() % (right - left + 1)];
+    int l = left, mid = left, r = right;
+    while (mid <= r) {
+        if (arr[mid] < pivot) {
+            swap(&arr[l], &arr[mid]); l++; mid++;
+        } else if (arr[mid] == pivot) {
+            mid++;
+        } else {
+            swap(&arr[mid], &arr[r]); r--;
+        }
+    }
+    *outI = l - 1;
+    *outJ = mid;
+}
 
-***
+void sort3(int *arr, int left, int right) {
+    if (left >= right) return;
+    int i, j;
+    partition3(arr, left, right, &i, &j);
+    sort3(arr, left, i);
+    sort3(arr, j, right);
+}
 
-# Three way quicksort
+void three_way_quick_sort(int *arr, int n) {
+    sort3(arr, 0, n - 1);
+}
 
-## Problem Statement
+int main(void) {
+    int arr[] = {7, 5, 5, 1, 5, 8, 5, 3};
+    int n = 8;
+    three_way_quick_sort(arr, n);
+    for (int i = 0; i < n; i++) printf("%d ", arr[i]);
+    printf("\n");
+    return 0;
+}
+```
 
-Given an integer array **arr**, write a function that sorts the given array in non-decreasing order. You must do it **in place**.
-
-You must use **three way** **quicksort algorithm** to sort this array.
-
-### Example 1
-
-> -   **Input:** arr = \[2, 3, 2, 1, 5, 6\]
-> -   **Output:** \[1, 2, 2, 3, 5, 6\]
-> -   **Explanation:** Above is the sorted array.
-
-### Example 2
-
-> -   **Input:** arr = \[6, 5, 4, 4, 4, 3, 2, 1\]
-> -   **Output:** \[1, 2, 3, 4, 4, 4, 5, 6\]
-> -   **Explanation:** Above is the sorted array.
-
-### Example 3
-
-> -   **Input:** arr = \[1, 2, 3, 4, 5, 6\]
-> -   **Output:** \[1, 2, 3, 4, 5, 6\]
-> -   **Explanation:** The array is already sorted.
-
-## Solution
-
-```cpp
-using namespace std;
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <cstdlib>
 
 class Solution {
 public:
-    void partition(
-        vector<int> &arr,
-        int left,
-        int right,
-        int &i,
-        int &j
-    ) {
+    void threeWayQuickSort(std::vector<int>& arr) {
+        sort(arr, 0, (int) arr.size() - 1);
+    }
 
-        // If the subarray has 0 or 1 element, no need to partition
-        if (right - left <= 1) {
+    void sort(std::vector<int>& arr, int left, int right) {
+        if (left >= right) return;
+        auto [i, j] = partition3(arr, left, right);
+        sort(arr, left, i);
+        sort(arr, j, right);
+    }
 
-            // If the last element is smaller than the first element,
-            // swap them
-            if (arr[right] < arr[left]) {
-                swap(arr[right], arr[left]);
-            }
-
-            i = left;
-            j = right;
-            return;
-        }
-
-        int mid = left;
-
-        // Choosing the last element as the pivot
-        int pivot = arr[right];
-        while (mid <= right) {
-
-            // If the current element is smaller than the pivot, move
-            // elements smaller than pivot to the left side
+    std::pair<int, int> partition3(std::vector<int>& arr, int left, int right) {
+        int pivot = arr[left + rand() % (right - left + 1)];
+        int l = left, mid = left, r = right;
+        while (mid <= r) {
             if (arr[mid] < pivot) {
-                swap(arr[left], arr[mid]);
-
-                // Move mid to the next element
+                std::swap(arr[l], arr[mid]); l++; mid++;
+            } else if (arr[mid] == pivot) {
                 mid++;
-
-                // Move left to the next element
-                left++;
-            }
-
-            // If the current element is equal to the pivot, move to the
-            // next element
-            else if (arr[mid] == pivot) {
-                mid++;
-            }
-
-            // If the current element is greater than the pivot, move
-            // elements greater than pivot to the right side
-            else if (arr[mid] > pivot) {
-                swap(arr[mid], arr[right]);
-
-                // Move right to the previous element
-                right--;
+            } else {
+                std::swap(arr[mid], arr[r]); r--;
             }
         }
-
-        // Index of the last element smaller than pivot
-        i = left - 1;
-
-        // Index of the first element greater than pivot
-        j = mid;
-    }
-
-    void quicksort(vector<int> &arr, int left, int right) {
-        if (left >= right) {
-            return;
-        }
-
-        int i, j;
-        partition(arr, left, right, i, j);
-
-        // Recursively sort the subarrays
-        quicksort(arr, left, i);
-        quicksort(arr, j, right);
-    }
-
-    void threeWayQuickSort(vector<int> &arr) {
-        int n = arr.size();
-        quicksort(arr, 0, n - 1);
+        return {l - 1, mid};
     }
 };
+
+int main() {
+    std::vector<int> arr = {7, 5, 5, 1, 5, 8, 5, 3};
+    Solution{}.threeWayQuickSort(arr);
+    for (int x : arr) std::cout << x << ' ';
+    std::cout << '\n';
+}
 ```
+
+```scala,editable
+import scala.util.Random
+
+class Solution {
+  def threeWayQuickSort(arr: Array[Int]): Unit = {
+    sort(arr, 0, arr.length - 1)
+  }
+
+  private def sort(arr: Array[Int], left: Int, right: Int): Unit = {
+    if (left >= right) return
+    val (i, j) = partition3(arr, left, right)
+    sort(arr, left, i)
+    sort(arr, j, right)
+  }
+
+  private def partition3(arr: Array[Int], left: Int, right: Int): (Int, Int) = {
+    val pivot = arr(left + Random.nextInt(right - left + 1))
+    var l = left; var mid = left; var r = right
+    while (mid <= r) {
+      if (arr(mid) < pivot) {
+        val t = arr(l); arr(l) = arr(mid); arr(mid) = t
+        l += 1; mid += 1
+      } else if (arr(mid) == pivot) {
+        mid += 1
+      } else {
+        val t = arr(mid); arr(mid) = arr(r); arr(r) = t
+        r -= 1
+      }
+    }
+    (l - 1, mid)
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    val arr = Array(7, 5, 5, 1, 5, 8, 5, 3)
+    new Solution().threeWayQuickSort(arr)
+    println(arr.mkString(" "))
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    threeWayQuickSort(arr) {
+        this._sort(arr, 0, arr.length - 1);
+    }
+
+    _sort(arr, left, right) {
+        if (left >= right) return;
+        const [i, j] = this._partition(arr, left, right);
+        this._sort(arr, left, i);
+        this._sort(arr, j, right);
+    }
+
+    _partition(arr, left, right) {
+        const pivotIdx = left + Math.floor(Math.random() * (right - left + 1));
+        const pivot = arr[pivotIdx];
+        let l = left, mid = left, r = right;
+        while (mid <= r) {
+            if (arr[mid] < pivot) {
+                [arr[l], arr[mid]] = [arr[mid], arr[l]]; l++; mid++;
+            } else if (arr[mid] === pivot) {
+                mid++;
+            } else {
+                [arr[mid], arr[r]] = [arr[r], arr[mid]]; r--;
+            }
+        }
+        return [l - 1, mid];
+    }
+}
+
+const arr = [7, 5, 5, 1, 5, 8, 5, 3];
+new Solution().threeWayQuickSort(arr);
+console.log(arr);
+```
+
+```typescript,editable
+class Solution {
+    threeWayQuickSort(arr: number[]): void {
+        this._sort(arr, 0, arr.length - 1);
+    }
+
+    private _sort(arr: number[], left: number, right: number): void {
+        if (left >= right) return;
+        const [i, j] = this._partition(arr, left, right);
+        this._sort(arr, left, i);
+        this._sort(arr, j, right);
+    }
+
+    private _partition(arr: number[], left: number, right: number): [number, number] {
+        const pivotIdx = left + Math.floor(Math.random() * (right - left + 1));
+        const pivot = arr[pivotIdx];
+        let l = left, mid = left, r = right;
+        while (mid <= r) {
+            if (arr[mid] < pivot) {
+                [arr[l], arr[mid]] = [arr[mid], arr[l]]; l++; mid++;
+            } else if (arr[mid] === pivot) {
+                mid++;
+            } else {
+                [arr[mid], arr[r]] = [arr[r], arr[mid]]; r--;
+            }
+        }
+        return [l - 1, mid];
+    }
+}
+
+const arr: number[] = [7, 5, 5, 1, 5, 8, 5, 3];
+new Solution().threeWayQuickSort(arr);
+console.log(arr);
+```
+
+```go,editable
+package main
+
+import (
+    "fmt"
+    "math/rand"
+)
+
+func partition3(arr []int, left, right int) (int, int) {
+    pivot := arr[left+rand.Intn(right-left+1)]
+    l, mid, r := left, left, right
+    for mid <= r {
+        switch {
+        case arr[mid] < pivot:
+            arr[l], arr[mid] = arr[mid], arr[l]
+            l++
+            mid++
+        case arr[mid] == pivot:
+            mid++
+        default:
+            arr[mid], arr[r] = arr[r], arr[mid]
+            r--
+        }
+    }
+    return l - 1, mid
+}
+
+func sort3(arr []int, left, right int) {
+    if left >= right {
+        return
+    }
+    i, j := partition3(arr, left, right)
+    sort3(arr, left, i)
+    sort3(arr, j, right)
+}
+
+func threeWayQuickSort(arr []int) {
+    sort3(arr, 0, len(arr)-1)
+}
+
+func main() {
+    arr := []int{7, 5, 5, 1, 5, 8, 5, 3}
+    threeWayQuickSort(arr)
+    fmt.Println(arr)
+}
+```
+
+```kotlin,editable
+import kotlin.random.Random
+
+class Solution {
+    fun threeWayQuickSort(arr: IntArray) {
+        sort(arr, 0, arr.size - 1)
+    }
+
+    private fun sort(arr: IntArray, left: Int, right: Int) {
+        if (left >= right) return
+        val (i, j) = partition3(arr, left, right)
+        sort(arr, left, i)
+        sort(arr, j, right)
+    }
+
+    private fun partition3(arr: IntArray, left: Int, right: Int): Pair<Int, Int> {
+        val pivot = arr[left + Random.nextInt(right - left + 1)]
+        var l = left; var mid = left; var r = right
+        while (mid <= r) {
+            when {
+                arr[mid] < pivot -> {
+                    val t = arr[l]; arr[l] = arr[mid]; arr[mid] = t
+                    l++; mid++
+                }
+                arr[mid] == pivot -> mid++
+                else -> {
+                    val t = arr[mid]; arr[mid] = arr[r]; arr[r] = t
+                    r--
+                }
+            }
+        }
+        return Pair(l - 1, mid)
+    }
+}
+
+fun main() {
+    val arr = intArrayOf(7, 5, 5, 1, 5, 8, 5, 3)
+    Solution().threeWayQuickSort(arr)
+    println(arr.toList())
+}
+```
+
+```rust,editable
+use rand::Rng;
+
+fn partition3(arr: &mut Vec<i32>, left: i64, right: i64) -> (i64, i64) {
+    let pivot = arr[(left + rand::thread_rng().gen_range(0..=(right - left))) as usize];
+    let mut l = left; let mut mid = left; let mut r = right;
+    while mid <= r {
+        if arr[mid as usize] < pivot {
+            arr.swap(l as usize, mid as usize);
+            l += 1; mid += 1;
+        } else if arr[mid as usize] == pivot {
+            mid += 1;
+        } else {
+            arr.swap(mid as usize, r as usize);
+            r -= 1;
+        }
+    }
+    (l - 1, mid)
+}
+
+fn sort3(arr: &mut Vec<i32>, left: i64, right: i64) {
+    if left >= right { return; }
+    let (i, j) = partition3(arr, left, right);
+    sort3(arr, left, i);
+    sort3(arr, j, right);
+}
+
+fn three_way_quick_sort(arr: &mut Vec<i32>) {
+    let n = arr.len() as i64;
+    if n > 1 { sort3(arr, 0, n - 1); }
+}
+
+fn main() {
+    let mut arr: Vec<i32> = vec![7, 5, 5, 1, 5, 8, 5, 3];
+    three_way_quick_sort(&mut arr);
+    println!("{:?}", arr);
+}
+```
+
+</div>
+
+***
+
+# Complexity Analysis
+
+> **Course:** DSA › Algorithms › Sorting › Three-Way Quicksort
+
+| Resource | Best (many duplicates) | Average | Worst |
+|---|---|---|---|
+| **Time** | `O(n)` | `O(n log n)` | `O(n²)` |
+| **Space (stack)** | `O(log n)` | `O(log n)` | `O(n)` |
+| **Stability** | ✗ | ✗ | ✗ |
+| **In-place** | ✓ | ✓ | ✓ |
+
+---
+
+## When Each Case Hits
+
+**Best case (`O(n)`)** — All elements equal. The first partition puts everything in the middle region; both recursive calls hit the base case. One pass, linear time.
+
+**Best case (`O(n log n)`)** — Mixed input with many duplicates and balanced partitions. The duplicates collapse into the middle; recursion handles the unique elements in `O(log n)` levels.
+
+**Average case (`O(n log n)`)** — Random input with random pivots. Same as two-way quicksort.
+
+**Worst case (`O(n²)`)** — Pivot is always smallest or largest on truly unique input. Random pivot selection makes this practically unreachable.
+
+---
+
+## When Three-Way Beats Two-Way
+
+| Input shape | Two-way | Three-way |
+|---|---|---|
+| All unique | `O(n log n)` | `O(n log n)` (slight overhead from extra comparisons) |
+| ~50% duplicates | `O(n log n)` | `O(n log n)` but with smaller constant |
+| ~90% duplicates | `O(n log n)` (weakly) | `O(n)` |
+| All duplicates | `O(n²)` ⚠️ | `O(n)` ✓ |
+
+The crossover point depends on duplicate density. Three-way wins when the input has *many* repeats; two-way wins when the input is all-unique (because three-way pays for the extra comparison `== pivot` even when it never triggers).
+
+This is why production sorts (Java's dual-pivot quicksort, Rust's PDQsort) use three-way partitioning *adaptively* — they detect duplicates and switch to three-way only when it pays off. For small or random inputs, they use two-way.
+
+---
+
+## Why the Stack Stays `O(log n)` on Average
+
+Each partition splits the array into three regions. Even though the recursion descends into two of them (and skips the middle), the depth is bounded by `log n` on average — same as two-way quicksort. Random pivot selection keeps the partitions balanced.
+
+In the worst case (smallest/largest pivot on unique input), depth is `O(n)` — same as two-way. Tail-call elimination and depth-limit fallbacks (used in production sorts) guarantee `O(log n)` worst-case stack.
+
+---
+
+## Key Takeaway
+
+Three-way quicksort: linear time on duplicate-heavy input, same `O(n log n)` average for unique inputs, `O(log n)` stack on average. The technique is what makes modern hybrid sorts robust on real-world data. Now the canonical exercise.
+
+***
+
+# Three-Way Quicksort Problem
+
+> **Course:** DSA › Algorithms › Sorting › Three-Way Quicksort
+
+---
+
+## The Problem
+
+Given an integer array `arr`, sort it in non-decreasing order **in place** using three-way quicksort.
+
+```
+Input:  arr = [2, 3, 2, 1, 5, 6]
+Output: [1, 2, 2, 3, 5, 6]
+
+Input:  arr = [6, 5, 4, 4, 4, 3, 2, 1]
+Output: [1, 2, 3, 4, 4, 4, 5, 6]   (the three 4s collapse into one partition)
+
+Input:  arr = [1, 2, 3, 4, 5, 6]
+Output: [1, 2, 3, 4, 5, 6]   (no duplicates; behaves like two-way quicksort)
+```
+
+---
+
+## The Solution
+
+The implementation matches the version above. See the [Implementation](#implementation) section for all 10 languages.
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected |
+|---|---|---|
+| Empty | `[]` | `[]` (recursion doesn't enter). |
+| Single element | `[7]` | `[7]`. |
+| All equal | `[3, 3, 3, 3, 3]` | `[3, 3, 3, 3, 3]` — `O(n)` time! |
+| Already sorted | `[1, 2, 3, 4]` | `[1, 2, 3, 4]`. |
+| Reverse sorted | `[4, 3, 2, 1]` | `[1, 2, 3, 4]`. |
+| Two distinct values | `[1, 2, 1, 2, 1]` | `[1, 1, 1, 2, 2]` — middle region absorbs the majority value efficiently. |
+
+---
+
+## Final Takeaway
+
+Three-way quicksort marries quicksort's recursive divide-and-conquer with Dutch National Flag's three-way partition. The result: linear time on duplicate-heavy input, `O(n log n)` average on unique inputs, in-place, with `O(log n)` stack. This is the algorithm production sorts actually use.
+
+The next algorithm — **merge sort** — takes a fundamentally different approach. Instead of partitioning around a pivot, it splits the array in *half* by index, recursively sorts each half, and *merges* the two sorted halves. The result: a stable `O(n log n)` worst-case sort that's the algorithm of choice when stability matters and when sorting linked lists or external (disk-based) data.
+
+**Transfer challenge — try before the Merge Sort lesson:** Three-way quicksort uses *one* pivot. **Dual-pivot quicksort** (Java's default) uses *two* pivots, splitting the array into four regions: `< p1`, `[p1, p2]`, `> p2`, and `== p1 or p2`. What's the recurrence and what's the speed-up over single-pivot? Don't write the code — just sketch the partition shape on paper.
+
+<details>
+<summary><strong>Answer — open after you've sketched it</strong></summary>
+
+Dual-pivot quicksort (Yaroslavskiy's algorithm, used in Java since 7) picks two pivots `p1 < p2` and partitions into three regions: `< p1`, `p1 <= x <= p2`, `> p2`. Recurses on all three. The middle region is *not* skipped (unlike three-way's equal-region) but is on average smaller than either of two-way's halves, giving better balance.
+
+Empirically, dual-pivot is ~10–15% faster than single-pivot quicksort on random inputs. The reason: fewer comparisons per partition, better cache behaviour, and slightly better balance on average. The recurrence is `T(n) = T(a) + T(b) + T(c) + O(n)` where `a + b + c = n - 2` (the two pivots are placed); on average all three are `~n/3`.
+
+**You just understood why Java uses dual-pivot by default.** The natural next question is: would *triple*-pivot help? Empirical research says no — the per-partition cost grows faster than the balance benefit. Two pivots is the sweet spot, and the trick generalises only to the Dutch-flag-style three-way partition we've seen here.
+
+</details>

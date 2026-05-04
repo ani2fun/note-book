@@ -1,463 +1,463 @@
-# Understanding the problem
+# 2. Lower Bound
 
-Even after learning about binary search, there are situations where simply finding a target value is not enough. Sometimes, we need to locate a specific position, for example, the first occurrence of a value in a sorted list, which binary search alone does not directly provide. To see why this can be a problem, let’s look at an example.
+Plain binary search returns *any* index where the target appears. For an array `[1, 2, 2, 2, 3]` with `target = 2`, it might return index 1, 2, or 3 — whichever happens to be where it lands. That's fine if you just want to know *whether* the target exists. But often you want to know **where the target *first* appears** — for inserting a new value while keeping the array sorted, for finding the start of a run of duplicates, for "first record on or after this date" queries.
 
-## Example
+Worse, what if the target *isn't* in the array? Plain binary search returns `-1` — but you might want **the position where the target *would* go** if inserted. For `[1, 5, 10, 15]` and `target = 7`, plain binary search returns `-1`; lower bound returns `2` (the index where `7` would slot in to keep the array sorted).
 
-Imagine you are a school teacher with a sorted list of thousands of students. Several students scored `85` marks, and you want to identify the student who appears **first in the list** with that score.
+This is **lower bound** — the index of the *first element `≥ target`*, or `n` if no such element exists. It's binary search with two surgical changes: a different loop condition and a different "found it" branch. Same `O(log n)` time, same `O(1)` space. By the end of this lesson you'll know the modifications and exactly why they work.
 
-// Diagram: Find the first occurrence of score 85
+## Table of contents
 
-Using a standard binary search, you can quickly locate a student with `85` marks, but there is no guarantee it will be the first. Binary search stops when it finds the target value. You could land somewhere in the middle of all the `85s`, missing the student at the beginning of that range.
-
-## Limitations of binary search
-
-While binary search is highly efficient at finding a target value, it does not guarantee that the returned position is the first occurrence in a sorted list. In our student scores example, using binary search might quickly find a student with a score of 85, but that student could be anywhere in the group of students with the same score. If you need to identify the first student for ranking, reporting, or awarding purposes, standard binary search alone is insufficient.
-
-// Diagram: Binary search may return any 85, not necessarily the first
-
-To address these situations, we need an approach that efficiently locates the boundaries of a target value in a sorted dataset. This is where the lower bound comes into play. This technique extends binary search to find the first occurrence of a target value, making it an essential tool for handling repeated values in sorted collections.
+1. [Understanding lower bound](#understanding-lower-bound)
+2. [Why the loop bounds change](#why-the-loop-bounds-change)
+3. [Implementation](#implementation)
+4. [Complexity analysis](#complexity-analysis)
+5. [Lower bound problem](#lower-bound-problem)
 
 ***
 
-# Exploring a possible solution
+# Understanding Lower Bound
 
-Now that we understand the limitations of standard binary search for locating the first occurrence of a value, we need a slightly refined approach. Simply finding any student with a score of `85` is not enough. We need to identify the first student with that score in the sorted list.
+> **Course:** DSA › Algorithms › Searching › Lower Bound
 
-## Lower bound
+The **lower bound** of a target `t` in a sorted array is the **smallest index `i` such that `arr[i] >= t`**. If no such index exists (i.e., every element is less than `t`), the lower bound is `n` — one past the last index, which is exactly where `t` would be inserted to keep the array sorted.
 
-The lower-bound algorithm is a popular variant of binary search. It aims to find the index of the first element in a sorted array **greater than or equal** to the **target**.
+Three cases:
 
-> -   If multiple values equal the target, it returns the index of the first occurrence
-> -   If the target is not present, it returns the index of the smallest element greater than the target
-> -   If no such element exists, it returns the size of the array.
+```
+arr = [1, 5, 10, 15, 20, 25]
 
-Looking at the problem of finding the first student who scored `85` marks in a sorted list of results containing thousands of students. You begin by examining the middle score in the list.
+target = 10  →  lower_bound = 2  (arr[2] = 10, the first element ≥ 10)
+target = 17  →  lower_bound = 4  (arr[4] = 20, the first element ≥ 17)
+target = 22  →  lower_bound = 5  (arr[5] = 25, the first element ≥ 22)
+target = 30  →  lower_bound = 6  (no element ≥ 30; n = 6 is the insertion point)
+target = 0   →  lower_bound = 0  (arr[0] = 1, the first element ≥ 0)
+```
 
-// Diagram: Examine the score of the student at the middle of the list
+Two equivalent ways to think about it:
+- **Search-flavour**: "find the first index whose value is ≥ target."
+- **Insertion-flavour**: "find the index where you'd insert target to keep the array sorted, putting target *before* any existing equal values."
 
-If the middle score is **less** than `85`, the first `85` must be in the second half, so you discard the first half, including the middle score.
+Both views agree. We'll use the search-flavour for the algorithm and the insertion-flavour for sanity-checking edge cases.
 
-// Diagram: Discard the first half of the list (including the middle score)
+---
 
-If the middle score is **greater than or equal** to `85`, this position could be the first occurrence, but there may still be an earlier `85` in the list. To ensure we find the earliest position, we continue searching in the first half, keeping the middle position included in the search space, since it could be the first occurrence.
+## How It Differs from Binary Search
 
-// Diagram: Discard the second half of the list (excluding the middle score)
+| Feature | Plain binary search | Lower bound |
+|---|---|---|
+| Returns | Any index where `arr[i] == target`, or `-1` | Smallest index where `arr[i] >= target`, or `n` |
+| Equality | "Found it" — return immediately | "Maybe found it" — record and keep searching left |
+| Absent target | `-1` | The insertion position |
 
-This process is repeated, halving the remaining search range each time, until the search space cannot be divided further. At that point, the left boundary of the search range points to the first occurrence of `85` in the list.
+The behaviour difference comes from two small changes in the algorithm:
 
-// Diagram: Left boundary points to the first occurrence of the target score
+1. **Loop condition**: `low < high` instead of `low <= high`.
+2. **Equality branch**: when `arr[mid] >= target`, set `high = mid` (not `high = mid - 1` and not `return mid`).
+3. **`high` initial value**: `n` instead of `n - 1`.
 
-By systematically narrowing the search while considering the possibility of earlier occurrences, this method finds the first `85` efficiently, even in a list of thousands of scores. It combines the speed of binary search with the precision needed to locate the lower bound of the target value.
+These three changes work together. Changing only one breaks the algorithm; changing all three gives lower bound. Let's see why.
 
-> -   **Step 1**: Start with the full list of student scores included in the search.
-> -   **Step 2**: Check the score at the midpoint of the list.
->     -   **Step 2.1**: If the middle score is less than `85`, for example, `78`, eliminate the middle position and all scores below it, then repeat Step 2 with the second half.
->     -   **Step 2.2**: If the middle score is greater than or equal to `85`, for example, `85` or `92`, keep the middle position in the search space and continue searching in the first half, since the first occurrence could be earlier in the list.
-> -   **Step 3**: Repeat Step 2 until the search space cannot be divided further. The left boundary at this point points to the first element greater than or equal to `85`, which is the lower bound.
+---
 
-## Advantages
+## A Walkthrough
 
-The lower bound algorithm builds on binary search to efficiently locate the first occurrence of a target value in a sorted array. Its advantages include:
+`arr = [1, 5, 10, 15, 20, 25]`, `target = 17`.
 
-> -   **Efficiency:** By halving the search space at each step, lower bound finds the first occurrence in **O(log N)** time, making it far faster than linear search for large datasets.
-> -   **Precision:** Unlike standard binary search, lower bound guarantees the earliest position of the target, which is useful when multiple elements have the same value.
-> -   **Versatility:** Lower bound can be used to identify insertion points, ranges of repeated elements, or boundaries in sorted arrays.
+```
+Initial: low = 0, high = 6     (n = 6, not n - 1)
+Iter 1: mid = 3, arr[3] = 15. 15 < 17? yes → low = mid + 1 = 4
+Iter 2: low = 4, high = 6, mid = 5, arr[5] = 25. 25 < 17? no → high = mid = 5
+Iter 3: low = 4, high = 5, mid = 4, arr[4] = 20. 20 < 17? no → high = mid = 4
+Loop exits: low = 4, high = 4 → low < high false
 
-## Limitations
+Return low = 4. arr[4] = 20, the first element ≥ 17. ✓
+```
 
-While powerful, the lower bound algorithm has some constraints:
+Three iterations on a 6-element array. The algorithm narrows the range to a single position — the lower bound — and returns it.
 
-> -   **Requires sorted array:** Lower bound only works correctly on arrays that are sorted in ascending order.
-> -   **Limited to arrays:** It is designed for random-access structures like arrays and cannot be directly applied to linked lists or other non-contiguous data structures.
-> -   **Single purpose:** Lower bound specifically finds the first occurrence or insertion point, so it does not directly identify the last occurrence or elements strictly greater than the target (for that, upper bound is needed).
+---
+
+## Strengths and Limitations
+
+| Strength | Detail |
+|---|---|
+| **`O(log n)`** | Same complexity as binary search. |
+| **Always returns** | Never returns `-1`. The result is always a valid insertion index in `[0, n]`. |
+| **Handles duplicates** | Returns the *first* occurrence when duplicates exist. |
+| **Foundation for `bisect`-style libraries** | Python's `bisect.bisect_left`, C++'s `std::lower_bound`, Rust's `partition_point` are all this algorithm. |
+
+| Limitation | Detail |
+|---|---|
+| **Subtle off-by-one** | The three modifications must be consistent; mixing with binary search's conventions produces bugs. |
+| **Returns `n` for "not found"** | Caller must check whether `result == n` or `arr[result] != target` to distinguish "found exactly" from "would be inserted here." |
+
+---
+
+## Key Takeaway
+
+Lower bound = "first index where the value is at least target." Three changes from plain binary search: `high = n` initial, `low < high` loop, equality goes to the left half. Now we'll see why each change is necessary.
 
 ***
 
-# Understanding lower bound algorithm
+# Why the Loop Bounds Change
 
-The strategy from the earlier example could be used to create an algorithm. To explain this algorithm, we will take an array sorted in ascending order and try to find the lower bound for a target number.
+> **Course:** DSA › Algorithms › Searching › Lower Bound
 
-## Algorithm
+The three changes look minor but each is load-bearing. Get any one wrong and the algorithm misbehaves on edge cases.
 
-The lower-bound algorithm finds the first position in a sorted array where a given target value can be inserted without violating the sorted order. In other words, it returns the index of the first element that is greater than or equal to the target value. The algorithm begins by initialising two indices that define the current search range in which the lower-bound may exist.
+---
 
-> -   `low` is set to the first index of the array i.e `0`.
-> -   `high` is set to the last index of the array i.e `arr.size()` (one position past the last valid index).
+## Change 1 — `high = n` (Not `n - 1`)
 
-These indices define a **half-open** search range `[low, high)`, where `low` is inclusive and `high` is exclusive.
+In binary search, the answer is always an index in `[0, n - 1]`. We never need to consider position `n` — it's outside the array.
 
-**Why is `high` initialized to the array size?**
+In lower bound, the answer might be **`n`** — meaning "all elements are less than target; the insertion point is one past the end." If we initialise `high = n - 1`, we exclude this possibility, and the algorithm returns the wrong answer for `target` larger than every element.
 
-Using `high = arr.size()` allows the algorithm to naturally handle cases where the target value is larger than all elements in the array. In such cases, the lower bound is the end of the array, which is a valid insertion position.
+**Fix:** initialise `high = n` (one past the end). The valid answer space is now `[0, n]`.
 
-// Diagram: Initialize the low and high indices
+---
 
-The algorithm enters a loop that continues as long as `low < high`. This condition ensures that there is still at least one possible position where the lower bound could exist.
+## Change 2 — Loop Condition `low < high`
 
-**Why** **do we continue while `low < high` and not** `low <= high` **?**
+In binary search, we stop when the range is empty (`low > high`). In lower bound, we stop when the range *converges to a single index* — that single index is the answer.
 
-In lower bound, we use `low < high` because the search range is treated as a half-open interval `[low, high)`. The loop continues narrowing the range until `low == high`, which directly gives the correct insertion index for the target. Using `low <= high` could overrun the array since `high` can initially be `arr.size()`. In contrast, standard binary search uses `low <= high` because it needs to examine every element to find an exact match.
+If we used `low <= high`:
+- When `low == high`, we'd run one more iteration. `mid = low`. If `arr[mid] >= target`, we'd set `high = mid = low`. Now `low == high == mid`, condition still true, infinite loop.
 
-// Diagram: The loop terminates when the low index equals the high index
+**Fix:** stop when `low == high`. Condition: `low < high`.
 
-Inside the loop, the middle index is calculated as:
+---
 
-> -   `mid = low + (high - low ) / 2`
+## Change 3 — Equality Goes Left
 
-**Why is the middle index calculated as** `mid = low + (high - low) / 2` **instead of** mid = (low + high) / 2 ?
+In binary search, `arr[mid] == target` returns `mid`. In lower bound, `arr[mid] == target` doesn't immediately return — there might be an earlier occurrence. We narrow the search to the left half *including `mid`* (since `mid` itself is a valid candidate).
 
-When calculating the middle of a range, `mid = low + (high - low) / 2` is preferred over `mid = (low + high) / 2` because directly adding `low` and `high` can overflow the integer range when they are large, while computing the difference first keeps the value safe and then adds it back to low without overflow
-
-// Diagram: Compute the middle index using the formula
-
-Based on the value of `arr[mid]`, the algorithm makes one of three possible decisions.
-
-### 1\. arr\[mid\] < target
-
-If the middle element is **less** than the target, all elements up to and including `mid` are smaller than the target and can be skipped. The algorithm therefore narrows the search to the right half of the array by updating `low = mid + 1`, efficiently eliminating elements that cannot contain the target.
-
-// Diagram: Discard the first half of the array, including the middle element
-
-### 2\. arr\[mid\] >= target
-
-If the middle element is **greater than or equal** to the target, `mid` could be a valid lower bound, but there may be an earlier occurrence of the target. To ensure no potential candidate is skipped, the algorithm narrows the search to the left half by updating `high = mid`, keeping mid in the search range.
-
-// Diagram: Discard the second half of the array, excluding the middle element
-
-The algorithm repeatedly narrows the search space until it identifies the lower bound. The loop terminates when `low == high`, at which point the search range has been reduced to a single position, representing the lower bound. 
-
-## Possbile results of lower bound
-
-The lower bound search returns the first position in a sorted array where the target could be inserted without violating the order. Depending on the array and the target, there are three main types of outcomes:
-
-### 1\. First occurance of target
-
-If the target is present in the array, the lower bound points to the first occurrence of that element. This ensures that even if multiple elements in the array have the same value, the algorithm identifies the earliest position where the target appears
-
-// Diagram: The low index points to the first occurrence of the target element
-
-### 2\. First element larger than target
-
-If the target is not present in the array but is smaller than some of the existing elements, the lower bound will point to the first element that is greater than the target. This provides the position where the target could be inserted while maintaining the array’s sorted order.
-
-// Diagram: The low index points to the first element greater than the target
-
-### 3\. End of the array
-
-If the target is larger than all existing elements in the array, the lower bound will point to the end of the array, which corresponds to an index equal to the array’s size. This indicates that the target would be inserted at the very end to maintain the sorted order.
-
-// Diagram: The low index points to the end of the array
-
-> **Algorithm**
->
-> -   **Step 1:** Initialize search boundaries, set `low = 0`, `high = arr.size() `
-> -   **Step 2:** Iterate while `low < high`
->     -   **Step 2.1:** Calculate middle index `mid = low + (high - low) / 2`
->     -   **Step 2.2:** If `arr\[mid\] < target`:
->         -   **Step 2.2.1:** Set `low = mid + 1`
->     -   **Step 2.3:** Else:
->         -   **Step 2.3.1:** Set `high = mid`
-> -   **Step 3:** Return `low`
-
-## Implementation
-
-The lower bound can be implemented by slightly modifying the standard binary search algorithm. By adjusting how the search space is updated, keeping the middle element when it is greater than or equal to the target and moving left or right accordingly, we can efficiently locate the first occurrence of a target value or the position where it could be inserted.
-
-C++
-
-```cpp
-using namespace std;
-
-class Solution {
-public:
-    int lowerBound(vector<int> &arr, int target) {
-
-        // Initialise starting index to 0
-        int low = 0;
-
-        // Initialise ending index to arr.size() instead of arr.size() -
-        // 1 to cover the entire array as if all elements in the array
-        // are less than target, the lower bound index would be equal to
-        // arr.size()
-        int high = arr.size();
-
-        // 'high' is exclusive (can be arr.size()), so we use 'low <
-        // high' instead of 'low <= high'. This loop finds the first
-        // index where the element is
-        // >= the target without going out of bounds.
-        while (low < high) {
-
-            // Find the middle index
-            int mid = low + (high - low) / 2;
-
-            // If arr[mid] is less than arr[target], then find in
-            // right subarray
-            if (arr[mid] < target) {
-                low = mid + 1;
-            }
-
-            // If arr[mid] is greater than or equal to target, then it
-            // may be the answer. So, instead of high = mid - 1, we do
-            // high = mid to include mid in the next search space
-            else {
-                high = mid;
-            }
-
-        // Return the lower bound index, it could be equal to arr.size()
-        // if all elements are less than target
-        return low;
-    }
-};
+```
+if arr[mid] >= target:
+    high = mid          # mid stays in the search range — could still be the answer
+else:
+    low = mid + 1       # arr[mid] is < target, definitely not the answer
 ```
 
-Java
+The crucial detail: `high = mid`, not `high = mid - 1`. We want to *keep* `mid` as a candidate. The exclusive upper bound (we never look at index `high` directly) makes this work.
 
-```java
-class Solution {
-    public int lowerBound(int[] arr, int target) {
+---
 
-        // Initialise starting index to 0
-        int low = 0;
+## Why The Three Changes Are Coupled
 
-        // Initialise ending index to arr.length instead of arr.length -
-        // 1 to cover the entire array as if all elements in the array
-        // are less than target, the lower bound index would be equal to
-        // arr.length
-        int high = arr.length;
+Each change relies on the others:
 
-        // 'high' is exclusive (can be arr.length), so we use 'low <
-        // high' instead of 'low <= high'. This loop finds the first
-        // index where the element is
-        // >= the target without going out of bounds.
-        while (low < high) {
+- **`high = n` exclusive bound** allows the answer to be `n`.
+- **`low < high` loop** stops cleanly when range converges (no off-by-one when `high = n`).
+- **`high = mid` in equality branch** narrows by including the current candidate as a possibility.
 
-            // Find the middle index
-            int mid = low + (high - low) / 2;
+If you mix this with binary search's conventions (e.g., `high = n - 1` with `high = mid` in the equality branch), the search range becomes `(low, high]` semi-open in a way the loop condition can't handle, and the algorithm either skips the answer or loops infinitely on edge cases.
 
-            // If arr[mid] is less than arr[target], then find in
-            // right subarray
-            if (arr[mid] < target) {
-                low = mid + 1;
-            }
+```d2
+direction: down
 
-            // If arr[mid] is greater than or equal to target, then it
-            // may be the answer. So, instead of high = mid - 1, we do
-            // high = mid to include mid in the next search space
-            else {
-                high = mid;
-            }
-
-        // Return the lower bound index, it could be equal to arr.length
-        // if all elements are less than target
-        return low;
-    }
+bsearch: "Binary search\nlow <= high\nhigh = n - 1\nhigh = mid - 1 on equality" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+lbound: "Lower bound\nlow < high\nhigh = n\nhigh = mid on >= target" {style.fill: "#fde68a"; style.stroke: "#d97706"}
 ```
 
-Typescript
+<p align="center"><strong>Two consistent algorithm conventions. Don't mix them.</strong></p>
 
-```typescript
-export class Solution {
-    lowerBound(arr: number[], target: number): number {
+---
 
-        // Initialise starting index to 0
-        let low = 0;
+## Key Takeaway
 
-        // Initialise ending index to arr.length instead of arr.length -
-        // 1 to cover the entire array as if all elements in the array
-        // are less than target, the lower bound index would be equal to
-        // arr.length
-        let high = arr.length;
+Three changes — `high = n`, `low < high`, `high = mid` on equality — convert binary search into lower bound. They're a package; mix them with binary search's conventions and you get bugs. Now the implementation.
 
-        // 'high' is exclusive (can be arr.length), so we use 'low <
-        // high' instead of 'low <= high'. This loop finds the first
-        // index where the element is
-        // >= the target without going out of bounds.
-        while (low < high) {
+***
 
-            // Find the middle index
-            const mid: number = low + Math.floor((high - low) / 2);
+# Implementation
 
-            // If arr[mid] is less than arr[target], then find in
-            // right subarray
-            if (arr[mid] < target) {
-                low = mid + 1;
-            }
+> **Course:** DSA › Algorithms › Searching › Lower Bound
 
-            // If arr[mid] is greater than or equal to target, then it
-            // may be the answer. So, instead of high = mid - 1, we do
-            // high = mid to include mid in the next search space
-            else {
-                high = mid;
-            }
+<div class="lang-tabs">
 
-        // Return the lower bound index, it could be equal to arr.length
-        // if all elements are less than target
-        return low;
-    }
-```
-
-Javascript
-
-```javascript
-export class Solution {
-    lowerBound(arr, target) {
-
-        // Initialise starting index to 0
-        let low = 0;
-
-        // Initialise ending index to arr.length instead of arr.length -
-        // 1 to cover the entire array as if all elements in the array
-        // are less than target, the lower bound index would be equal to
-        // arr.length
-        let high = arr.length;
-
-        // 'high' is exclusive (can be arr.length), so we use 'low <
-        // high' instead of 'low <= high'. This loop finds the first
-        // index where the element is
-        // >= the target without going out of bounds.
-        while (low < high) {
-
-            // Find the middle index
-            const mid = low + Math.floor((high - low) / 2);
-
-            // If arr[mid] is less than arr[target], then find in
-            // right subarray
-```
-
-Python
-
-```python
+```python,editable
 from typing import List
 
 class Solution:
     def lower_bound(self, arr: List[int], target: int) -> int:
-
-        # Initialise starting index to 0
-        low: int = 0
-
-        # Initialise ending index to len(arr) instead of len(arr) - 1
-        # to cover the entire array as if all elements in the array are less
-        # than target, the lower bound index would be equal to len(arr)
-        high: int = len(arr)
-
-        # 'high' is exclusive (can be len(arr)), so we use 'low < high' instead
-        # of 'low <= high'. This loop finds the first index where the element is
-        # >= the target without going out of bounds.
-        while low < high:
-
-            # Find the middle index
-            mid: int = low + (high - low) // 2
-
-            # If arr[mid] is less than arr[target], then find in
-            # right subarray
+        low, high = 0, len(arr)                         # high = n (exclusive)
+        while low < high:                               # converges when low == high
+            mid = low + (high - low) // 2
             if arr[mid] < target:
-                low = mid + 1
+                low = mid + 1                           # mid not a candidate
+            else:                                       # arr[mid] >= target
+                high = mid                              # mid stays as candidate
+        return low                                      # the lower bound index
 
-            # If arr[mid] is greater than or equal to target, then it may
-            # be the answer. So, instead of high = mid - 1, we do high = mid
-            # to include mid in the next search space
-            else:
-                high = mid
 
-        # Return the lower bound index, it could be equal to len(arr)
-        # if all elements are less than target
-        return low
+if __name__ == "__main__":
+    print(Solution().lower_bound([1, 5, 10, 15, 20, 25], 10))   # 2
+    print(Solution().lower_bound([1, 5, 10, 15, 20, 25], 17))   # 4
+    print(Solution().lower_bound([1, 5, 10, 15, 20, 25], 30))   # 6 (insertion at end)
 ```
 
-## Complexity analysis
+```java,editable
+public class Solution {
+    public int lowerBound(int[] arr, int target) {
+        int low = 0, high = arr.length;
+        while (low < high) {
+            int mid = low + (high - low) / 2;
+            if (arr[mid] < target) low = mid + 1;
+            else high = mid;
+        }
+        return low;
+    }
 
-The lower bound's time complexity is the same as binary search: **O(logN)**, where **N** is the number of elements in the array. This time complexity arises because the lower-bound algorithm, like binary search, divides the search interval in half at each step.
+    public static void main(String[] args) {
+        System.out.println(new Solution().lowerBound(new int[]{1, 5, 10, 15, 20, 25}, 17));
+    }
+}
+```
 
-Since the algorithm does not allocate any new memory during the search, the space complexity is constant, i.e., **O(1)**.
+```c,editable
+#include <stdio.h>
 
-> **Best case**
->
-> -   Space complexity - **O(1)**
-> -   Time complexity - **O(logN)**
->
-> **Average case**
->
-> -   Space complexity - **O(1)**
-> -   Time complexity - **O(logN)**
->
-> **Worst case -**
->
-> -   Space complexity - **O(1)**
-> -   Time complexity: **O(logN)**
+int lower_bound(int *arr, int n, int target) {
+    int low = 0, high = n;
+    while (low < high) {
+        int mid = low + (high - low) / 2;
+        if (arr[mid] < target) low = mid + 1;
+        else high = mid;
+    }
+    return low;
+}
 
-***
+int main(void) {
+    int arr[] = {1, 5, 10, 15, 20, 25};
+    printf("%d\n", lower_bound(arr, 6, 17));
+    return 0;
+}
+```
 
-# Lower bound
-
-## Problem Statement
-
-Given an integer array **arr** that is sorted in ascending order and an integer **target**, write a function to search and return the index of the **lower bound** of the target in the array. 
-
-[Lower bound](https://cplusplus.com/reference/algorithm/lower_bound/) returns the index of the first element **≥** target. If multiple values are equal to the target, the lower bound returns the index of the first such value. You must do this in a time complexity of `O(logN)`.
-
-### Example 1
-
-> -   **Input:** arr = \[1, 5, 10, 15, 20, 25\], target = 10
-> -   **Output:** 2
-> -   **Explanation:** The integer 10 is at index 2 in the array and is the lower bound.
-
-### Example 2
-
-> -   **Input:** arr = \[1, 5, 10, 15, 20, 25\], target = 17
-> -   **Output:** 4
-> -   **Explanation:** The integer 20 at index 4 is the lower bound for 17 in the array.
-
-### Example 3
-
-> -   **Input:** arr = \[1, 5, 10, 15, 20, 25\], target = 22
-> -   **Output:** 5
-> -   **Explanation:** The integer 25 at index 5 is the lower bound for 22 in the array.
-
-## Solution
-
-```cpp
-using namespace std;
+```cpp,editable
+#include <iostream>
+#include <vector>
 
 class Solution {
 public:
-    int lowerBound(vector<int> &arr, int target) {
-
-        // Initialise starting index to 0
-        int low = 0;
-
-        // Initialise ending index to arr.size() instead of arr.size() -
-        // 1 to cover the entire array as if all elements in the array
-        // are less than target, the lower bound index would be equal to
-        // arr.size()
-        int high = arr.size();
-
-        // 'high' is exclusive (can be arr.size()), so we use 'low <
-        // high' instead of 'low <= high'. This loop finds the first
-        // index where the element is
-        // >= the target without going out of bounds.
+    int lowerBound(const std::vector<int>& arr, int target) {
+        int low = 0, high = (int) arr.size();
         while (low < high) {
-
-            // Find the middle index
             int mid = low + (high - low) / 2;
-
-            // If arr[mid] is less than arr[target], then find in
-            // right subarray
-            if (arr[mid] < target) {
-                low = mid + 1;
-            }
-
-            // If arr[mid] is greater than or equal to target, then it
-            // may be the answer. So, instead of high = mid - 1, we do
-            // high = mid to include mid in the next search space
-            else {
-                high = mid;
-            }
+            if (arr[mid] < target) low = mid + 1;
+            else high = mid;
         }
-
-        // Return the lower bound index, it could be equal to arr.size()
-        // if all elements are less than target
         return low;
     }
 };
+
+int main() {
+    std::cout << Solution{}.lowerBound({1, 5, 10, 15, 20, 25}, 17) << '\n';
+}
 ```
+
+```scala,editable
+class Solution {
+  def lowerBound(arr: Array[Int], target: Int): Int = {
+    var low = 0; var high = arr.length
+    while (low < high) {
+      val mid = low + (high - low) / 2
+      if (arr(mid) < target) low = mid + 1 else high = mid
+    }
+    low
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    println(new Solution().lowerBound(Array(1, 5, 10, 15, 20, 25), 17))
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    lowerBound(arr, target) {
+        let low = 0, high = arr.length;
+        while (low < high) {
+            const mid = low + ((high - low) >> 1);
+            if (arr[mid] < target) low = mid + 1;
+            else high = mid;
+        }
+        return low;
+    }
+}
+
+console.log(new Solution().lowerBound([1, 5, 10, 15, 20, 25], 17));
+```
+
+```typescript,editable
+class Solution {
+    lowerBound(arr: number[], target: number): number {
+        let low = 0, high = arr.length;
+        while (low < high) {
+            const mid = low + ((high - low) >> 1);
+            if (arr[mid] < target) low = mid + 1;
+            else high = mid;
+        }
+        return low;
+    }
+}
+
+console.log(new Solution().lowerBound([1, 5, 10, 15, 20, 25], 17));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func lowerBound(arr []int, target int) int {
+    low, high := 0, len(arr)
+    for low < high {
+        mid := low + (high-low)/2
+        if arr[mid] < target {
+            low = mid + 1
+        } else {
+            high = mid
+        }
+    }
+    return low
+}
+
+func main() {
+    fmt.Println(lowerBound([]int{1, 5, 10, 15, 20, 25}, 17))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun lowerBound(arr: IntArray, target: Int): Int {
+        var low = 0; var high = arr.size
+        while (low < high) {
+            val mid = low + (high - low) / 2
+            if (arr[mid] < target) low = mid + 1 else high = mid
+        }
+        return low
+    }
+}
+
+fun main() {
+    println(Solution().lowerBound(intArrayOf(1, 5, 10, 15, 20, 25), 17))
+}
+```
+
+```rust,editable
+fn lower_bound(arr: &[i32], target: i32) -> usize {
+    let mut low = 0; let mut high = arr.len();
+    while low < high {
+        let mid = low + (high - low) / 2;
+        if arr[mid] < target { low = mid + 1; } else { high = mid; }
+    }
+    low
+}
+
+fn main() {
+    println!("{}", lower_bound(&[1, 5, 10, 15, 20, 25], 17));
+}
+```
+
+</div>
+
+***
+
+# Complexity Analysis
+
+| Resource | Cost |
+|---|---|
+| **Time** | `O(log n)` |
+| **Space** | `O(1)` |
+
+Same as binary search — each iteration halves the range.
+
+---
+
+## Key Takeaway
+
+Lower bound is `O(log n)` time, `O(1)` space, and never returns "not found." It returns either a valid match or the insertion position. Now the canonical exercise.
+
+***
+
+# Lower Bound Problem
+
+> **Course:** DSA › Algorithms › Searching › Lower Bound
+
+---
+
+## The Problem
+
+Given a sorted array `arr` and `target`, return the index of the first element `>= target`.
+
+```
+Input:  arr = [1, 5, 10, 15, 20, 25], target = 10
+Output: 2
+
+Input:  arr = [1, 5, 10, 15, 20, 25], target = 17
+Output: 4
+
+Input:  arr = [1, 5, 10, 15, 20, 25], target = 22
+Output: 5
+```
+
+---
+
+## The Solution
+
+The implementation matches the version above. See [Implementation](#implementation) for all 10 languages.
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected |
+|---|---|---|
+| Empty | `[], target = 5` | `0` |
+| Smaller than all | `[10, 20], target = 5` | `0` |
+| Larger than all | `[10, 20], target = 25` | `2` (= n) |
+| Exact match at start | `[10, 20], target = 10` | `0` |
+| Duplicates | `[1, 2, 2, 2, 3], target = 2` | `1` (first occurrence) |
+
+---
+
+## Final Takeaway
+
+Lower bound = first index ≥ target. Three changes from binary search; same `O(log n)` complexity. Foundation of `bisect.bisect_left`, `std::lower_bound`, and the "where would I insert this?" primitive that powers ordered-set implementations.
+
+The next lesson flips the comparison: **upper bound** returns the first index *strictly greater than* target. Same algorithm, one operator changed.
+
+**Transfer challenge — try before the Upper Bound lesson:** Use lower bound to *count* the number of occurrences of a target in a sorted array. Hint: the count is the difference between two well-chosen lower-bound queries.
+
+<details>
+<summary><strong>Answer — open after you've thought about it</strong></summary>
+
+```python,editable
+class Solution:
+    def count_occurrences(self, arr, target):
+        first = self.lower_bound(arr, target)
+        last_plus_one = self.lower_bound(arr, target + 1)
+        return last_plus_one - first
+
+    def lower_bound(self, arr, target):
+        low, high = 0, len(arr)
+        while low < high:
+            mid = low + (high - low) // 2
+            if arr[mid] < target: low = mid + 1
+            else: high = mid
+        return low
+
+
+print(Solution().count_occurrences([1, 2, 2, 2, 3, 4], 2))   # 3
+```
+
+`lower_bound(target)` finds the first occurrence; `lower_bound(target + 1)` finds the first position strictly greater than target — equivalently, one past the last occurrence. The difference is the count.
+
+This is the same trick as **upper bound minus lower bound** that we'll formalise in the next lesson. **You just rediscovered range-count via two binary searches.**
+
+</details>

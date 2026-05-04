@@ -1,870 +1,1765 @@
-# Understanding multidimensional recursion
+# 7. Pattern: Multidimensional Recursion
 
-Multidimensional recursion is a special case of recursion where the recursive function operates on an input that is defined by multiple dimensions, rather than just a single dimension. Unlike simple recursion, where the problem is reduced linearly with each recursive call, multidimensional recursion often explores an n-dimensional space simultaneously, reducing the input in one or more dimensions simultaneously.
+The recursion patterns so far have one input parameter — `n`, an integer or list-length that shrinks toward the base case along a single axis. Most real algorithmic problems aren't that tidy. They have *two or more* parameters, and the recurrence reduces along *multiple axes* at once.
 
-The multidimensional recursion pattern is the classification of problems that can be solved using multidimensional recursion
+Computing the binomial coefficient `C(n, k)`. Counting paths through a 2D grid. Comparing two strings. Editing one sequence into another. Dropping eggs from a building with `e` eggs and `f` floors. All of these have a recursive relation that reduces along *more than one* dimension. The subproblem space isn't a line; it's a grid.
 
-// Diagram: Multidimensional recursion is when there is a multidimensional input to every recursive call.
+This is multidimensional recursion. It's the bridge into 2D dynamic programming — the engine behind edit distance, longest common subsequence, knapsack, and the entire DP chapter that comes later in the algorithms section. By the end of this lesson you'll know how to recognise a multidimensional recurrence, how to identify all the base cases (more than one — and getting them wrong is the most common bug), and four worked problems that anchor the pattern.
 
-## Multidimensional recursion
+## Table of contents
 
-A multidimensional recursion can be seen as a more generalised form of recursion that starts from a starting state and explores multiple other states. A state is a complete description of the current situation in the recursive process that allows the function to continue solving the problem without any additional information.
+1. [Understanding multidimensional recursion](#understanding-multidimensional-recursion)
+2. [Identifying multidimensional recursion](#identifying-multidimensional-recursion)
+3. [Binomial coefficient](#binomial-coefficient)
+4. [Lattice paths](#lattice-paths)
+5. [Ackermann function](#ackermann-function)
+6. [Egg dropping](#egg-dropping)
 
-A state is defined by a set of unique values that are unrelated to each other. The number of values required to define the state uniquely is called the dimension of the state. A state is often visualised as a circle with the values of each dimension inside it as given below.
+***
 
-// Diagram: The visualisation of a state with n dimensions.
+# Understanding Multidimensional Recursion
 
-For example, in a two-dimensional space, the combination of coordinates `x` and `y` defines a unique point. The point can be considered a state, and the variables `x` and `y` are its dimensions. Similarly, a three-dimensional space has three dimensions `x`, `y` and `z` that define a unique state in it.
+> **Course:** DSA › Algorithms › Recursion › Multidimensional Recursion
 
-// Diagram: Examples of two-dimensional and three-dimensional states.
+A recursion is **multidimensional** when its input is described by **two or more parameters**, each of which can be reduced independently. The recursive call doesn't just shrink one number — it might shrink one parameter, the other parameter, or both at once.
 
-In multidimensional recursion, we are often given a start state defined by some fixed values of all dimensions, and we explore all the states accessible from the starting state that reduce the problem spaces under some constraints until we hit a base condition. Unlike regular single-dimensional recursion, there can be multiple base cases in multidimensional recursion.
+The simplest example is the binomial coefficient `C(n, k)`:
 
-In most multidimensional recursive problems, no aggregate data is passed down, as is the case with the general multi-recursive and tail-recursive functions, and so we will not take it into consideration when looking at the general form of a multidimensional recursive equation.
+```
+C(n, k) = C(n-1, k-1) + C(n-1, k)
+```
 
-Consider we have a recursive function `f` that takes a `n` dimensional input `d1, d2, d3 . . . , dn`  and where a set `E(d1, d2, d3 . . ., dn)` contains **multiple** lists of the form `s1, s2, s3, . . , sn` defining the shifts in each dimension allowed from that step. We also have a function `G` that aggregates the results from all recursive calls made from a step and does some processing to compute the final results for a step.
+Two recursive calls. Both reduce `n` by 1; one of them also reduces `k` by 1. The state being navigated is the pair `(n, k)` — a *2D state space*, not a 1D list of integers.
 
-It is important to note that most multidimensional recursive equations have multiple recursive calls in each step.
+```d2
+direction: down
 
-This makes the general recursive equation for multidimensional recursion of the following form:
+table: "Subproblem space for C(n, k)" {
+  grid-rows: 5
+  grid-columns: 5
+  grid-gap: 0
+  h0:  ""        ; h1:  "k=0"  ; h2:  "k=1"  ; h3:  "k=2"  ; h4:  "k=3"
+  r0n: "n=0"     ; c00: "1"    ; c01: "—"    ; c02: "—"    ; c03: "—"
+  r1n: "n=1"     ; c10: "1"    ; c11: "1"    ; c12: "—"    ; c13: "—"
+  r2n: "n=2"     ; c20: "1"    ; c21: "2"    ; c22: "1"    ; c23: "—"
+  r3n: "n=3"     ; c30: "1"    ; c31: "3"    ; c32: "3"    ; c33: "1"
+}
+```
 
-// Diagram: The general recursive equation for multidimensional recursion.
+<p align="center"><strong>The 2D subproblem space for binomial coefficient. Each cell <code>C(n, k)</code> depends on two cells in the row above: <code>C(n-1, k-1)</code> and <code>C(n-1, k)</code>. The recursion navigates this grid, not a line.</strong></p>
 
-The pseudocode for the general recursive equation above looks like the following. At each step in the recursive process, we initialize a `solution` variable with a default value and iterate over the list of allowed shifts in `S ( d1 , d2 , . . . , dn )` . In each iteration, we add the shifts `s1 , s2 , . . . , sn` to the inputs `d1 , d2 , d3 , . . . , dn` to get the inputs for the next state to explore. A recursive call is then made using the computed input values for each dimension.
+The state is no longer "the integer `n`." It's the pair `(n, k)`. When we ask *how many distinct subproblems can the recursion visit?*, the answer is *the number of cells in the grid*, not *the depth of the recursion*. That distinction is what makes multidimensional recursion the natural launchpad for dynamic programming.
 
-// Diagram: The pseudocode for the general equation for multidimensional recursion.
+---
 
-Since multidimensional recursion can potentially make multiple recursive calls in each step, its recursive path also traces a recursion tree where the root node is the starting state and all the other nodes are either intermediate states or base case states. It 
+## What Multidimensional Recursion Looks Like in Code
 
-It is important to note that the recursion tree may not be perfect or symmetric, as, depending on the starting value of each dimension, some paths may reach the base case earlier than the others.
+The general shape:
 
-// Diagram: recursive call
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+  EQ["f(x, y) = g(f(h₁(x, y)), f(h₂(x, y)), ..., x, y)"]
+  EQ --> H1["h₁(x, y)<br/>reduce along axis 1"]
+  EQ --> H2["h₂(x, y)<br/>reduce along axis 2"]
+  EQ --> G["g<br/>combine smaller answers"]
+  EQ -.->|"anchored by"| BASE["multiple base cases<br/>(one per axis usually)"]
+```
 
-Also, sometimes different paths may lead to the same state, leading to the same problem being solved multiple times through different paths in the recursion tree. This forms the basis of a dynamic programming technique called **memoisation** which is out of the scope of this course.
+<p align="center"><strong>Multidimensional recursion's general shape. <code>h_i</code> reduces along different axes; the combine <code>g</code> folds the smaller-state answers into the answer for <code>(x, y)</code>.</strong></p>
 
-// Diagram: Multidimensional recursion can revisit the same states from different paths and solve the same subproblem multiple times.
+Pseudocode:
 
-Upon reaching the base case, a known solution is passed back to the calling function, and the stack unwinds. The calling function receives data from multiple recursive calls and aggregates them in `solution` using the function `G`. This aggregated result is then passed back to the caller, which does the same for all its recursive calls. This process is repeated until the top-level recursive call unwinds and passes the final result to its calling function.
+```
+function multi_recursion(x, y):
+    if (x, y) is a base case:
+        return base_answer(x, y)        ← potentially several base cases
+                                          covering different axis edges
 
-It is important to note that for multidimensional recursion there can be many base cases depending on the problem.
+    smaller_1 = multi_recursion(h_1(x, y))   ← reduce along axis 1 (or both)
+    smaller_2 = multi_recursion(h_2(x, y))   ← reduce along axis 2 (or both)
+    ...
 
-// Diagram: Results from all recursive calls are aggregated and processed before sending the result to the caller at each step.
+    answer = g(smaller_1, smaller_2, ..., x, y)
+    return answer
+```
 
-The data can be passed down from the caller to the called function and back up in many different ways, the choice of which depends on the problem, programming language and ease of implementation.
+The structural similarity to multiple recursion (the Multiple Recursion lesson) is real — both make multiple recursive calls and combine. The crucial difference: in multiple recursion, the calls all navigate a 1D state space. In multidimensional recursion, the calls navigate a 2D (or higher) grid. **Same fan-out, different geometry.**
 
-## Passing data down
+---
 
-For multidimensional recursion, the input is the values of all the dimensions that are passed as function arguments. These arguments are almost always primitive data types like integers or characters. Also, the input values for every step are computed at the step before it in the recursive process.
+## Identifying Base Cases
 
-For both low-level and high-level programming languages, primitive data types are always passed by copy. And so, locally computed inputs for the next recursive call are copied when passed as arguments to the recursive function. Since all data copied is of primitive types, the copy overhead is not significant enough to consider.
+This is the trickiest part of multidimensional recursion. The base cases live on the *boundaries* of the state space. For a 2D grid, that's typically:
 
-// Diagram: In most programming languages, primitive data types passed as arguments are passed as a copy.
+- The "left edge" (one axis at its smallest value)
+- The "top edge" (the other axis at its smallest value)
+- Possibly the diagonal or other geometric features
 
-## Passing data up
+Miss any one boundary and some recursion paths will run forever.
 
-The data can be passed up from the called function to the calling function either by returning a copy of its local variable, a reference to its local variable or by updating a reference passed down by the caller. All these ways have their pros and cons, and the choice depends on the problem, programming language and the ease of implementation.
+```d2
+direction: down
 
-For multidimensional recursion, data is usually always passed back as a return value. For low-level programming languages like C++, values are always returned by copy, which incurs a copy overhead every time a recursive function ends and can be less performant when passing container-type data structures like arrays, lists, trees, etc.
+table: "Base cases live on the grid's boundary" {
+  grid-rows: 5
+  grid-columns: 5
+  grid-gap: 0
+  h0:  ""        ; h1:  "k=0"  ; h2:  "k=1"  ; h3:  "k=2"  ; h4:  "k=3"
+  r0n: "n=0"     ; c00: "BASE" {style.fill: "#fde68a"; style.stroke: "#d97706"} ; c01: "•"  ; c02: "•"  ; c03: "•"
+  r1n: "n=1"     ; c10: "BASE" {style.fill: "#fde68a"; style.stroke: "#d97706"} ; c11: "BASE" {style.fill: "#fde68a"; style.stroke: "#d97706"} ; c12: "•"  ; c13: "•"
+  r2n: "n=2"     ; c20: "BASE" {style.fill: "#fde68a"; style.stroke: "#d97706"} ; c21: "•"  ; c22: "BASE" {style.fill: "#fde68a"; style.stroke: "#d97706"} ; c23: "•"
+  r3n: "n=3"     ; c30: "BASE" {style.fill: "#fde68a"; style.stroke: "#d97706"} ; c31: "•"  ; c32: "•"  ; c33: "BASE" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
+```
 
-// Diagram: The data is returned as a copy in low-level programming languages.
+<p align="center"><strong>For binomial coefficient, base cases live on two boundaries: the left edge (<code>k = 0</code>) and the diagonal (<code>k = n</code>). Together they catch every reduction path.</strong></p>
 
-For high-level programming languages like Java, JavaScript and Python, all local data is also created on the heap memory and only references to it are local. And so, when a non-primitive type value is returned, the calling function stores the reference to the same data in its local variable.
+> *Before reading on — for `C(5, 2)`, draw the grid above and trace which cells the recursion visits. Which base case does each leaf hit?*
 
-// Diagram: The data is returned as a reference for high-level programming languages.
+`C(5, 2)` recurses into `C(4, 1)` and `C(4, 2)`. `C(4, 1)` recurses into `C(3, 0)` (left-edge base, returns 1) and `C(3, 1)`. The recursion fans out, every leaf landing on either the left edge (`k = 0`) or the diagonal (`k = n`). Without **both** boundary cases, some leaves wouldn't terminate. The most common bug in multidimensional recursion is forgetting one boundary — the program runs fine for some inputs and crashes on others.
 
-To avoid unnecessary copy operations in low-level programming languages when non-primitive datatypes are involved, we can create a single copy of the data of the return type `solution` in the caller of the top-level recursive function and pass it down as a reference. Then, the recursive function doesn't need to return a value; it can update the data held in the reference when a solution is found (generally in the base case).
+---
 
-This method is usually used when the caller does not need to aggregate results generated by its recursive calls.
+## Passing Data Down
 
-Since the same copy of `solution` is shared across all function calls, the caller can access the updates made by its recursive calls. This way, there is always a single copy of  `solution`, which can be updated by any node in the recursive tree when a solution is found.
+Both axes of state must be passed in every recursive call. The data flow is otherwise the same as multiple recursion: by-value (or by-reference for shared containers) for the input parameters, return value for the answer.
 
-In high-level programming languages like Java, JavaScript and Python, arguments are usually always passed by reference, and so, this is the default behaviour if `solution` is created in the caller of the top-level recursive function.
+The state often grows as the input grows. For binomial coefficient, both `n` and `k` are scalar integers — passing by value is trivial. For lattice paths, `(rows, cols)` is also a pair of integers. For edit distance (later in the DP chapter), the state is `(i, j)` with two strings — and passing the strings by value would be wasteful, so we pass them by reference and move the pair of indices instead.
 
-// Diagram: A single copy of data can be shared between all function calls to pass back data to the caller.
+---
 
-There is no one right or wrong way to pass data up and down in multiple recursions, and the choice depends on the problem and the programming language used. The performance of these operations varies across different programming languages, depending on the number of copies made of the arguments and returned data.
+## Passing Data Up
 
-In most cases of multidimensional recursion, arguments to the function are passed down by copy, and the solution is usually passed back up as a return value. So, we will only look at this pattern in the algorithm and implementation section.
+Each recursive call returns its answer; the combine step folds them. Same as multiple recursion. Multidimensional recursion's *output* is one value; only its *input* is multidimensional.
 
-## Identifying base cases
-
-Identifying a base case in single-variable recursive equations is quite simple. It might not always be very obvious for multidimensional recursive equations, but it is almost always guaranteed to have **multiple base cases**. The diagram below shows the most common base cases for single and two-dimensional recursive equations.
-
-The base case for a recursive equation depends on the problem. The diagram below is just the most **common** base cases and is not guaranteed to be true for all problems
-
-// Diagram: Most common of base cases for one dimensional and two dimensional recursive relations
+---
 
 ## Algorithm
 
-The steps given below summarise the implementation for the generic multidimensional recursive function with `n` dimensions, where the `solution` is passed back up to the calling function as a return value. The shift values in every step are dependent on the problem. To demonstrate its use, we use a function `S` that takes the current inputs and returns a list of shift values for a step.
-
-> **multiDimensionalRecursion(d1, d2, . . ., dn)**
+> **multidimensionalRecursion(x, y)**
 >
-> -   **Step 1:** If `d1, d2, . . ., dn` is the base case, return known solution
-> -   **Step 2:** Initialize `solution` to a default value
-> -   **Step 3:** `shifts` = Call `S(d1, d2, . . ., dn)`
-> -   **Step 4:** Iterate in the list `shifts` using a variable `i` and do the following:
->     -   **Step 4.1:** `result` = Call `multipleRecursion(d1 + shifts\[i\]\[0\], d2 + shifts\[i\]\[1\], . . . , dn + shifts\[i\]\[n-1\])`
->     -   **Step 4.2:** Add the contribution of `result` in `solution` using the function `G`
-> -   **Step 4:** Return `solution`
+> 1. **Stop** — if `(x, y)` is on a base-case boundary, return the known answer for that boundary.
+> 2. **For each axis-reduction:**
+>    - Compute the reduced state `(x_i, y_i) = h_i(x, y)`.
+>    - Make the recursive call `result_i = multi_recursion(x_i, y_i)`.
+> 3. **Combine** — `g(result_1, result_2, ..., x, y)`.
+> 4. **Return** the combined result.
+
+The crucial difference from multiple recursion is step 1's *boundary* check (multiple base cases on different axis edges) and step 2's *axis-aware* reductions.
+
+---
 
 ## Implementation
 
-Given below is the implementation for the generic multidimensional recursive equation with three dimensions. We use a function `S` to get the list of shift values for each state that we then use to make recursive calls. If we reach a base case, we use the function `B` to get the solution for that base case. The function `G` adds the contribution of the returned `result` to the `solution`, which is finally returned to the caller when the function ends. For this example, we will define a base case as one where the value of any dimension is less than or equal to zero.
+A clean, language-agnostic implementation of the generic 2D template.
 
-C++
+<div class="lang-tabs">
 
-```cpp
-class Solution
-{
-public:
-  int multidimensionalRecursion(int d1, int d2, int d3)
-  {
-    // If any of the inputs are less than or equal to 0,
-    // we have reached the base case
-    if (d1 <= 0 || d2 <= 0 || d3 <= 0)
-    {
-      // Return the base case solution for these values
-      return B(d1, d2, d3);
-    }
-
-// Diagram: int solution = 0; // Initialize solutio to a default value
-
-    // Get the list of shift values for the current inputs
-    vector<vector<int>> shifts = S(d1, d2, d3);
-
-    for (const auto &shift : shifts)
-    {
-      // Compute new inputs by applying the shift and
-      // recursively call the function with with new inputs
-      int result = multidimensionalRecursion(d1 + shift[0], d2 + shift[1], d3 + shift[2]);
-
-      // Combine the result with the current solution
-      int solution = G(d1, d2, d3, solution, result);
-    }
-    return solution; // Return the final solution
-  }
-
-private:
-  // Placeholder for B - to return the base case solution
-  // for the given inputs
-  int B(int d1, int d2, int d3)
-  {
-    // Implement your logic here
-    return 0;
-  }
-  // Placeholder for E - to return the list of shift values
-  //  for every dimension given the input
-  vector<vector<int>> S(int d1, int d2, int d3)
-  {
-    // Implement your logic here
-    return {{1, 0, 1}, {-1, 0, 1}}
-  }
-
-  // Placeholder for G - use the inputs, existing solution,
-  //  and result from the recursive call to compute the new solution
-  int G(int d1, int d2, int d3, int solution, int result)
-  {
-    // Implement your logic here
-    return 0;
-  }
-};
-```
-
-Java
-
-```java
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-// Diagram: class Solution {
-
-    public int multidimensionalRecursion(int d1, int d2, int d3) {
-        // If any of the inputs are less than or equal to 0,
-        // we have reached the base case
-        if (d1 <= 0 || d2 <= 0 || d3 <= 0) {
-            // Return the base case solution for these values
-            return B(d1, d2, d3);
-        }
-
-// Diagram: int solution = 0; // Initialize solution to a default value
-
-        // Get the list of shift values for the current inputs
-        List<List<Integer>> shifts = S(d1, d2, d3);
-
-        for (List<Integer> shift : shifts) {
-            // Compute new inputs by applying the shift and
-            // recursively call the function with new inputs
-            int result = multidimensionalRecursion(
-                d1 + shift.get(0),
-                d2 + shift.get(1),
-                d3 + shift.get(2)
-            );
-
-            // Combine the result with the current solution
-            solution = G(d1, d2, d3, solution, result);
-        }
-
-        return solution; // Return the final solution
-    }
-
-    // Placeholder for B - to return the base case solution
-    // for the given inputs
-    private int B(int d1, int d2, int d3) {
-        // Implement your logic here
-        return 0;
-    }
-
-    // Placeholder for S - to return the list of shift values
-    // for every dimension given the input
-    private List<List<Integer>> S(int d1, int d2, int d3) {
-        // Example implementation
-        return Arrays.asList(
-            Arrays.asList(1, 0, 1),
-            Arrays.asList(-1, 0, 1)
-        );
-    }
-
-    // Placeholder for G - use the inputs, existing solution,
-    // and result from the recursive call to compute the new solution
-    private int G(int d1, int d2, int d3, int solution, int result) {
-        // Implement your logic here
-        return 0;
-    }
-```
-
-Typescript
-
-```typescript
-class Solution {
-  multidimensionalRecursion(d1: number, d2: number, d3: number): number {
-    // If any of the inputs are less than or equal to 0,
-    // we have reached the base case
-    if (d1 <= 0 || d2 <= 0 || d3 <= 0) {
-      // Return the base case solution for these values
-      return this.B(d1, d2, d3);
-    }
-
-// Diagram: let solution = 0; // Initialize solution to a default value
-
-    // Get the list of shift values for the current inputs
-    const shifts: number[][] = this.S(d1, d2, d3);
-
-    for (const shift of shifts) {
-      // Compute new inputs by applying the shift and
-      // recursively call the function with new inputs
-      const result = this.multidimensionalRecursion(
-        d1 + shift[0],
-        d2 + shift[1],
-        d3 + shift[2]
-      );
-
-      // Combine the result with the current solution
-      solution = this.G(d1, d2, d3, solution, result);
-    }
-
-    return solution; // Return the final solution
-  }
-
-  // Placeholder for B - to return the base case solution
-  // for the given inputs
-  private B(d1: number, d2: number, d3: number): number {
-    // Implement your logic here
-    return 0;
-  }
-
-  // Placeholder for S - to return the list of shift values
-  // for every dimension given the input
-  private S(d1: number, d2: number, d3: number): number[][] {
-    // Implement your logic here
-    return [
-      [1, 0, 1],
-      [-1, 0, 1],
-    ];
-  }
-
-  // Placeholder for G - use the inputs, existing solution,
-  // and result from the recursive call to compute the new solution
-  private G(
-    d1: number,
-    d2: number,
-    d3: number,
-    solution: number,
-    result: number
-  ): number {
-    // Implement your logic here
-    return 0;
-  }
-```
-
-Javascript
-
-```javascript
-class Solution {
-  multidimensionalRecursion(d1, d2, d3) {
-    // If any of the inputs are less than or equal to 0,
-    // we have reached the base case
-    if (d1 <= 0 || d2 <= 0 || d3 <= 0) {
-      // Return the base case solution for these values
-      return this.B(d1, d2, d3);
-    }
-
-// Diagram: let solution = 0; // Initialize solution to a default value
-
-    // Get the list of shift values for the current inputs
-    const shifts = this.S(d1, d2, d3);
-
-    for (const shift of shifts) {
-      // Compute new inputs by applying the shift and
-      // recursively call the function with new inputs
-      const result = this.multidimensionalRecursion(
-        d1 + shift[0],
-        d2 + shift[1],
-        d3 + shift[2]
-      );
-
-      // Combine the result with the current solution
-      solution = this.G(d1, d2, d3, solution, result);
-    }
-
-    return solution; // Return the final solution
-  }
-
-  // Placeholder for B - to return the base case solution
-  // for the given inputs
-  B(d1, d2, d3) {
-    // Implement your logic here
-    return 0;
-  }
-
-  // Placeholder for S - to return the list of shift values
-  // for every dimension given the input
-  S(d1, d2, d3) {
-    // Implement your logic here
-    return [
-      [1, 0, 1],
-      [-1, 0, 1],
-    ];
-  }
-
-  // Placeholder for G - use the inputs, existing solution,
-  // and result from the recursive call to compute the new solution
-  G(d1, d2, d3, solution, result) {
-    // Implement your logic here
-    return 0;
-  }
-```
-
-Python
-
-```python
-from typing import List
-
+```python,editable
 class Solution:
-    def multidimensionalRecursion(self, d1: int, d2: int, d3: int) -> int:
-        # If any of the inputs are less than or equal to 0,
-        # we have reached the base case
-        if d1 <= 0 or d2 <= 0 or d3 <= 0:
-            # Return the base case solution for these values
-            return self.B(d1, d2, d3)
+    def multi_recursion(self, x: int, y: int) -> int:
+        # Multiple base cases on different boundaries
+        if x == 0:
+            return 1                       # Left-edge base
+        if y == 0:
+            return 1                       # Top-edge base
 
-// Diagram: solution = 0 # Initialize solution to a default value
+        # Two recursive calls reducing along different axes
+        smaller_1 = self.multi_recursion(x - 1, y)        # Reduce x
+        smaller_2 = self.multi_recursion(x, y - 1)        # Reduce y
 
-        # Get the list of shift values for the current inputs
-        shifts: List[List[int]] = self.S(d1, d2, d3)
+        # Combine — example: addition
+        return smaller_1 + smaller_2
 
-        for shift in shifts:
-            # Compute new inputs by applying the shift and
-            # recursively call the function with new inputs
-            result = self.multidimensionalRecursion(
-                d1 + shift[0],
-                d2 + shift[1],
-                d3 + shift[2]
-            )
 
-            # Combine the result with the current solution
-            solution = self.G(d1, d2, d3, solution, result)
-
-// Diagram: return solution # Return the final solution
-
-    # Placeholder for B - to return the base case solution
-    # for the given inputs
-    def B(self, d1: int, d2: int, d3: int) -> int:
-        # Implement your logic here
-        return 0
-
-    # Placeholder for S - to return the list of shift values
-    # for every dimension given the input
-    def S(self, d1: int, d2: int, d3: int) -> List[List[int]]:
-        # Implement your logic here
-        return [[1, 0, 1], [-1, 0, 1]]
-
-    # Placeholder for G - use the inputs, existing solution,
-    # and result from the recursive call to compute the new solution
-    def G(self, d1: int, d2: int, d3: int, solution: int, result: int) -> int:
-        # Implement your logic here
-        return 0
+if __name__ == "__main__":
+    print(Solution().multi_recursion(3, 3))   # Lattice-paths shape → 20
 ```
+
+```java,editable
+public class Solution {
+    public int multiRecursion(int x, int y) {
+        if (x == 0) return 1;          // Left-edge base
+        if (y == 0) return 1;          // Top-edge base
+        return multiRecursion(x - 1, y) + multiRecursion(x, y - 1);
+    }
+
+    public static void main(String[] args) {
+        System.out.println(new Solution().multiRecursion(3, 3));   // 20
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int multi_recursion(int x, int y) {
+    if (x == 0) return 1;
+    if (y == 0) return 1;
+    return multi_recursion(x - 1, y) + multi_recursion(x, y - 1);
+}
+
+int main(void) {
+    printf("%d\n", multi_recursion(3, 3));   /* 20 */
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+
+class Solution {
+public:
+    int multiRecursion(int x, int y) {
+        if (x == 0) return 1;
+        if (y == 0) return 1;
+        return multiRecursion(x - 1, y) + multiRecursion(x, y - 1);
+    }
+};
+
+int main() {
+    std::cout << Solution{}.multiRecursion(3, 3) << '\n';
+}
+```
+
+```scala,editable
+class Solution {
+  def multiRecursion(x: Int, y: Int): Int = {
+    if (x == 0) return 1
+    if (y == 0) return 1
+    multiRecursion(x - 1, y) + multiRecursion(x, y - 1)
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    println(new Solution().multiRecursion(3, 3))   // 20
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    multiRecursion(x, y) {
+        if (x === 0) return 1;
+        if (y === 0) return 1;
+        return this.multiRecursion(x - 1, y) + this.multiRecursion(x, y - 1);
+    }
+}
+
+console.log(new Solution().multiRecursion(3, 3));   // 20
+```
+
+```typescript,editable
+class Solution {
+    multiRecursion(x: number, y: number): number {
+        if (x === 0) return 1;
+        if (y === 0) return 1;
+        return this.multiRecursion(x - 1, y) + this.multiRecursion(x, y - 1);
+    }
+}
+
+console.log(new Solution().multiRecursion(3, 3));   // 20
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func multiRecursion(x, y int) int {
+    if x == 0 {
+        return 1
+    }
+    if y == 0 {
+        return 1
+    }
+    return multiRecursion(x-1, y) + multiRecursion(x, y-1)
+}
+
+func main() {
+    fmt.Println(multiRecursion(3, 3))   // 20
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun multiRecursion(x: Int, y: Int): Int {
+        if (x == 0) return 1
+        if (y == 0) return 1
+        return multiRecursion(x - 1, y) + multiRecursion(x, y - 1)
+    }
+}
+
+fun main() {
+    println(Solution().multiRecursion(3, 3))   // 20
+}
+```
+
+```rust,editable
+fn multi_recursion(x: i32, y: i32) -> i32 {
+    if x == 0 { return 1; }
+    if y == 0 { return 1; }
+    multi_recursion(x - 1, y) + multi_recursion(x, y - 1)
+}
+
+fn main() {
+    println!("{}", multi_recursion(3, 3));   // 20
+}
+```
+
+</div>
+
+---
 
 ## Complexity Analysis
 
-The time complexity for a multidimensional recursive algorithm depends on many things. It depends on the recursive equation, the number of dimensions `n`, the range of values along each dimension of the problem space, the function `G` and the branching factor at every step.
+For a 2D recursion with two recursive calls per frame:
 
-Note that most problems that can be solved by multidimensional recursion can be optimised with dynamic programming. In this course, we only focus on the brute-force multidimensional technique.
+| Resource | Cost (without memoisation) | Cost (with memoisation) | Why |
+|---|---|---|---|
+| **Time** | `O(2^(x + y))` | `O(x · y)` | Without memo, each frame branches twice; tree has `~2^(x+y)` leaves. With memo, each `(x, y)` cell is computed once. |
+| **Space (stack)** | `O(x + y)` | `O(x + y)` | Deepest path reduces `x` and `y` to 0, total depth `x + y`. |
+| **Space (memo)** | n/a | `O(x · y)` | Cache holds one entry per cell. |
 
-For the worst case, we assume that every dimension has **N** possible values in the problem space. In that case, the recursion starts with the maximum values for all **n** dimensions, and every recursive call linearly decreases **only one** dimension of the input, finally converging at a base case where all dimensions have their minimum values. We also assume that every step in the recursion makes **exactly** `k` recursive calls, passing data up and down takes constant **O(1)** timeand the function `G` takes constant **O(1)** time.
+Memoisation collapses time from exponential to polynomial — a massive win. This is exactly the leverage that makes 2D dynamic programming powerful: the state space is `O(x · y)` cells, and each cell is computed in `O(1)` work, giving `O(x · y)` total. Without the cache, you re-derive the same cell exponentially many times.
 
-In this case, the maximum depth of the recursion tree would be **O (n\*N)**.
-
-// Diagram: The maximum depth of recursion is n N.
-
-Since we assumed a branching factor of `k` at every step, the worst-case time complexity would be exponential **O(k ^ (n\*N))**.
-
-// Diagram: The maximum recursion depth is nN and the total number of recursive calls is k^(nN)
-
-For low-level languages like C++, if container-type data structures like arrays, trees, etc, are passed up or down as copies, it adds linear time complexity **O(M)** where **M** is the size of the container. This results in a worst-case time complexity of **O(M\*k^(n\*N))**.
-
-Since the function call stack goes up to a depth of **n\*N**, and every instance of the function call makes only a constant number of local variables, the space complexity is also linear **O(n\*N)**, in any case.
-
-The best case for a multidimensional function is very problem-dependent and hard to compute generically. And so, we will not go into the details of the best-case time and space complexity for this generic multidimensional recursive equation.
-
-> **Worst Case**
+> **Best Case (without memo)** — Time `O(2^(x+y))`, Space `O(x + y)`
 >
-> -   Space Complexity - **O(n\*N)**
-> -   Time Complexity - **O(k^(n\*N))**
+> **Worst Case (without memo)** — Same — input doesn't change tree shape
+
+---
+
+## Key Takeaway
+
+Multidimensional recursion = multiple recursion with a multi-axis state space. Each axis can be reduced independently; base cases live on the grid's boundaries; the subproblem space is a grid, not a line. This is the structural setup that makes 2D dynamic programming work. Now we'll learn how to spot a multidimensional candidate.
 
 ***
 
-# Identifying multidimensional recursion
+# Identifying Multidimensional Recursion
 
-Multiple recursion is the most generic form of recursion that explores an n-dimensional problem space and can solve a wide variety of problems. Most problems that are solved by multidimensional recursion are medium or hard problems that have multiple independent variables defining a problem state. The recursive equation reduces the problem space, ultimately leading to a base case with a known solution. Most multidimensional recursive problems build the solution during the stack unwinding phases in a bottom-to-top order.
+> **Course:** DSA › Algorithms › Recursion › Multidimensional Recursion
 
-Most recursive problems where the solution depends on exploring and combining results across multiple dimensions or states can be solved using multidimensional recursion.
+Three diagnostic questions:
 
-It is important to note that most problems that can be solved using dultidimensional recursion can be optimized with dynamic programming.
+| # | Question | If "yes," multidimensional recursion fits because... |
+|---|---|---|
+| **Q1** | Does the input have **two or more parameters** that can each shrink? | The state is genuinely multidimensional, not a 1D parameter pair. |
+| **Q2** | Does the recurrence reduce along **different axes** in different recursive calls? | The recursion is navigating a grid, not just a line. |
+| **Q3** | Are there base cases on **multiple boundaries** of the state space? | Single-edge base cases miss reduction paths. |
 
-If the recursive equation for a problem fits in the template of the generic multidimensional recursive equation, it can be solved using multidimensional recursion.
+### Q1 — Why "two or more shrinkable parameters"?
 
-// Diagram: The general recursive equation for multidimensional recursion.
+**Mental model.** "Shrinkable" means the recurrence reduces the parameter toward a base case. If the second parameter is a constant or a passed-through reference (like an unchanging array), the recursion is still effectively 1D — only one parameter is doing real work.
 
-## Example
+**Concrete check.** Binomial coefficient: both `n` and `k` reduce. `C(5, 3)` calls `C(4, 2)` (reducing both) and `C(4, 3)` (reducing only `n`). Both parameters genuinely shrink at some point. ✓
 
-Let's consider the following problem as an example to better understand how to identify and solve a problem using multidimensional recursion.
+**What breaks otherwise.** A function `walk_array(arr, i)` that walks an array recursively isn't multidimensional — only `i` shrinks; `arr` is a passed-through reference. That's still 1D recursion (head-recursive in this case).
 
-> **Problem statement:** Given `N` and `K`, recursively find the value of **N choose K**
->
-> In mathematics, the binomial coefficient of `N` from `K` is the number of ways of selecting `K` elements out of a set of `N` elements, which is also called **N choose K**.
+### Q2 — Why "different reductions in different calls"?
 
-// Diagram: Find the value of N choose K for N = 5 and K = 3.
+**Mental model.** If every recursive call reduces `(x, y)` to `(x-1, y-1)` — both axes always reduced together — the effective state is one-dimensional (`x = y` at every step, so just one parameter is doing work). For genuinely multidimensional recursion, at least *some* of the calls must reduce only one axis at a time, exploring different paths through the grid.
 
-## Multidimensional recursion
+**Concrete check.** Lattice paths: `paths(r, c) = paths(r-1, c) + paths(r, c-1)`. The first call reduces only `r`; the second reduces only `c`. The grid is genuinely explored two-dimensionally. ✓
 
-It can be proven mathematically that **N choose K** can be calculated recursively using the following formula. The proof of this recursive equation is out of the scope of this course and so will not be discussed
+**What breaks otherwise.** A function `f(a, b)` that always recurses to `f(a-1, b-1)` is just `f(min(a, b))` in disguise — collapsible to 1D. The multidimensional structure is illusory.
 
-// Diagram: Mathematical equation to calculate N choose K
+### Q3 — Why "base cases on multiple boundaries"?
 
-It is important to note that the problem has **more than one base case**. This is because there is only one way to choose **N** items from **N** and only one way to choose zero items from **N** items.
+**Mental model.** Each axis can independently reach its smallest value. Each "edge" of the grid is a separate base-case boundary. Forget any one and recursion paths that travel along that edge will run forever.
 
-// Diagram: Recursive relation for binomial coefficients
+**Concrete check.** Lattice paths: `paths(0, c) = 1` (one row, one path: all-right) and `paths(r, 0) = 1` (one column, one path: all-down). Both boundaries are essential — drop the `r = 0` base and `paths(0, 5)` recurses to `paths(-1, 5)` and never terminates. ✓
 
-This leads to the following recursive equation for the problem.
+**What breaks otherwise.** Subtle bugs that depend on input. Some reduction paths catch the surviving base; others don't.
 
-// Diagram: The recursive equation from the problem.
+---
 
-The recursive equation fits the template for a generic multidimensional recursive equation, and thus, it can be solved using multidimensional recursion. 
+## A Worked Example — Lattice Paths
 
-// Diagram: The recursive equation for the problem fits the template for multidimensional recursion.
+> *Pause and predict — for a 2×2 grid, how many distinct paths from top-left to bottom-right exist if you can only move right or down? List them.*
 
-We create a recursive function that takes as input`N`and `K`. In each function, we check if we hit a base case and return the base value (1) if it is true. Otherwise, we make two recursive calls with the inputs `( N - 1 , K - 1 )` and `( N - 1 , K )` respectively, and add the results.
+The 6 paths in a 2×2 grid (with corners labelled):
+1. RRDD (right, right, down, down)
+2. RDRD
+3. RDDR
+4. DRRD
+5. DRDR
+6. DDRR
 
-The two recursive calls create a recursion tree where every call reduces the input in one or both dimensions until it reaches a base case. On hitting a base case, a known value is returned, and the solution is built from bottom to top as the recursion stack unwinds.
+Six paths, not four. The recursive insight: the first move is either *right* (subproblem: paths through a (rows, cols-1) grid) or *down* (subproblem: paths through a (rows-1, cols) grid). Sum the two.
 
-Consider the following example of the recursive execution where `N = 5` and `K = 3`.
+`paths(rows, cols) = paths(rows-1, cols) + paths(rows, cols-1)`. Bases: `paths(0, c) = 1` and `paths(r, 0) = 1` (a row or column of cells has exactly one all-rightward or all-downward path).
 
-// Diagram: Processing of recursive relation for 5 choose 3
+We make this concrete in **Problem 2** below.
 
-Given below is the recursion tree for the same example where `N = 5` and `K = 3`.
+---
 
-// Diagram: Recursion tree for 5 choose 3
+## Key Takeaway
 
-The implementation of the multidimensional recursive solution to solve the problem is given below.
+Three checks — multiple shrinkable parameters, axis-aware reductions, and base cases on every boundary — gate every multidimensional-recursion problem. Pass all three and you're navigating a grid. Four worked problems coming up. The first sets up Pascal's triangle; the last is the famous "this is why DP exists" problem.
 
-C++
+***
 
-```cpp
-using namespace std;
+# Binomial Coefficient
 
-class Solution {
-public:
-    int binomialCoefficient(int N, int K) {
+> **Course:** DSA › Algorithms › Recursion › Multidimensional Recursion
 
-        // Base cases: If N equals K or K is 0, then C(N, K) is 1.
-        if (N == K || K == 0) {
-            return 1;
-        }
+Pascal's triangle, recursion-style. The recurrence `C(n, k) = C(n-1, k-1) + C(n-1, k)` is one of the cleanest 2D recurrences in mathematics.
 
-        // Recursive step:
-        // C(N, K) = C(N - 1, K - 1) + C(N - 1, K)
-        // Recursively calculate C(N - 1, K - 1) for choosing K elements
-        // from N-1 elements, and C(N - 1, K) for choosing K elements
-        // from N-1 elements.
-        return binomialCoefficient(N - 1, K - 1) +
-               binomialCoefficient(N - 1, K);
-    }
-};
+---
+
+## The Problem
+
+Given non-negative integers `n` and `k` with `0 ≤ k ≤ n`, return the binomial coefficient `C(n, k)` — the number of ways to choose `k` elements from a set of `n`.
+
+```
+Input:  n = 5, k = 3
+Output: 10
+Explanation: C(5, 3) = 5! / (3! × 2!) = 10
+
+Input:  n = 10, k = 4
+Output: 210
+
+Input:  n = 0, k = 0
+Output: 1
 ```
 
-Java
+---
 
-```java
-class Solution {
-    public int binomialCoefficient(int N, int K) {
+## What Does the Recurrence Mean?
 
-        // Base cases: If N equals K or K is 0, then C(N, K) is 1.
-        if (N == K || K == 0) {
-            return 1;
-        }
+Pick any one element of the set of `n`. Either you include it in your subset of `k`, or you don't:
+- **Include it.** You now need `k - 1` more elements from the remaining `n - 1`. That's `C(n-1, k-1)`.
+- **Exclude it.** You still need `k` elements from the remaining `n - 1`. That's `C(n-1, k)`.
 
-        // Recursive step:
-        // C(N, K) = C(N - 1, K - 1) + C(N - 1, K)
-        // Recursively calculate C(N - 1, K - 1) for choosing K elements
-        // from N-1 elements, and C(N - 1, K) for choosing K elements
-        // from N-1 elements.
-        return (
-            binomialCoefficient(N - 1, K - 1) +
-            binomialCoefficient(N - 1, K)
-        );
-    }
+These two cases are disjoint and cover every subset, so:
+
+```
+C(n, k) = C(n-1, k-1) + C(n-1, k)
 ```
 
-Typescript
+The base cases:
+- `C(n, 0) = 1` — exactly one way to choose 0 elements (the empty subset).
+- `C(n, n) = 1` — exactly one way to choose all `n` elements.
 
-```typescript
-export class Solution {
-    binomialCoefficient(N: number, K: number): number {
-
-        // Base cases: If N equals K or K is 0, then C(N, K) is 1.
-        if (N === K || K === 0) {
-            return 1;
-        }
-
-        // Recursive step:
-        // C(N, K) = C(N - 1, K - 1) + C(N - 1, K)
-        // Recursively calculate C(N - 1, K - 1) for choosing K elements
-        // from N-1 elements, and C(N - 1, K) for choosing K elements
-        // from N-1 elements.
-        return (
-            this.binomialCoefficient(N - 1, K - 1) +
-            this.binomialCoefficient(N - 1, K)
-        );
-    }
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+  REC["C(n, k) = C(n−1, k−1) + C(n−1, k)"]
+  B0["C(n, 0) = 1"]
+  B1["C(n, n) = 1"]
+  REC -.->|"anchored by"| B0
+  REC -.->|"and"| B1
 ```
 
-Javascript
+<p align="center"><strong>Pascal's triangle's recurrence with both boundary base cases. Drop either boundary and some inputs run forever.</strong></p>
 
-```javascript
-export class Solution {
-    binomialCoefficient(N, K) {
+---
 
-        // Base cases: If N equals K or K is 0, then C(N, K) is 1.
-        if (N === K || K === 0) {
-            return 1;
-        }
+## Applying the Diagnostic Questions
 
-        // Recursive step:
-        // C(N, K) = C(N - 1, K - 1) + C(N - 1, K)
-        // Recursively calculate C(N - 1, K - 1) for choosing K elements
-        // from N-1 elements, and C(N - 1, K) for choosing K elements
-        // from N-1 elements.
-        return (
-            this.binomialCoefficient(N - 1, K - 1) +
-            this.binomialCoefficient(N - 1, K)
-        );
-    }
+| # | Check | Answer |
+|---|---|---|
+| **Q1** | Two shrinkable parameters? | **Yes** — `n` and `k` both shrink. |
+| **Q2** | Axis-aware reductions? | **Yes** — first call reduces both, second reduces only `n`. |
+| **Q3** | Base cases on multiple boundaries? | **Yes** — left edge `k = 0` and diagonal `k = n`. |
+
+### Q1 — Why "n and k both shrink"?
+
+The recurrence `C(n, k) = C(n-1, k-1) + C(n-1, k)` reduces `n` by 1 in both calls and reduces `k` by 1 in the first call. Both parameters move toward their respective boundaries. ✓
+
+### Q2 — Why "axis-aware"?
+
+The first recursive call reduces both `n` and `k` (descending the diagonal). The second reduces only `n` (descending vertically). The recursion explores the grid two-dimensionally. ✓
+
+### Q3 — Why two boundary base cases?
+
+`C(n, 0) = 1` catches the left edge. `C(n, n) = 1` catches the diagonal. Together they cover every reduction path: any descent eventually hits either the left edge (when `k` reaches 0) or the diagonal (when `k = n`). Drop either and some calls recurse into negative `k` and never terminate. ✓
+
+---
+
+## The 2D State Space (Visualised)
+
+The recursion descends the grid one row at a time, reducing `n` per call. The two children of `C(n, k)` are the cell directly above (`C(n-1, k)`) and the cell diagonally above-left (`C(n-1, k-1)`).
+
+```d2
+direction: down
+
+table: "C(n, k) recursion grid (Pascal's triangle)" {
+  grid-rows: 5
+  grid-columns: 5
+  grid-gap: 0
+  h0:  ""        ; h1:  "k=0"  ; h2:  "k=1"  ; h3:  "k=2"  ; h4:  "k=3"
+  r0n: "n=0"     ; c00: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}; c01: "—"; c02: "—"; c03: "—"
+  r1n: "n=1"     ; c10: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}; c11: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}; c12: "—"; c13: "—"
+  r2n: "n=2"     ; c20: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}; c21: "2"; c22: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}; c23: "—"
+  r3n: "n=3"     ; c30: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}; c31: "3"; c32: "3"; c33: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
 ```
 
-Python
+<p align="center"><strong>The 2D state space for binomial coefficient. Yellow = base cases on the boundaries. Each interior cell is the sum of the cell directly above and diagonally above-left.</strong></p>
 
-```python
+---
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
 class Solution:
     def binomial_coefficient(self, n: int, k: int) -> int:
-
-        # Base cases: If n equals k or k is 0, then C(n, k) is 1.
+        # Boundary base cases — both required
         if n == k or k == 0:
             return 1
+        # Two recursive calls reducing along different axes
+        return (self.binomial_coefficient(n - 1, k - 1)
+                + self.binomial_coefficient(n - 1, k))
 
-        # Recursive step:
-        # C(n, k) = C(n - 1, k - 1) + C(n - 1, k)
-        # Recursively calculate C(n - 1, k - 1) for choosing k elements
-        # from n-1 elements, and C(n - 1, k) for choosing k elements from
-        # n-1 elements.
-        return self.binomial_coefficient(
-            n - 1, k - 1
-        ) + self.binomial_coefficient(n - 1, k)
+
+if __name__ == "__main__":
+    print(Solution().binomial_coefficient(5, 3))   # 10
+    print(Solution().binomial_coefficient(10, 4))  # 210
 ```
 
-Multidimensional recursion can solve this problem using a concise recursive implementation.
+```java,editable
+public class Solution {
+    public int binomialCoefficient(int n, int k) {
+        if (n == k || k == 0) return 1;
+        return binomialCoefficient(n - 1, k - 1) + binomialCoefficient(n - 1, k);
+    }
 
-## Example problems
+    public static void main(String[] args) {
+        System.out.println(new Solution().binomialCoefficient(5, 3));   // 10
+    }
+}
+```
 
-Most problems that fall under this category are **medium**problems; a list of a few is given below.
+```c,editable
+#include <stdio.h>
 
-> -   **[Binomial coefficient](https://www.codeintuition.io/courses/recursion/z24pNska2eWOHK1M6kSBa)**
-> -   **[Lattice paths](https://www.codeintuition.io/courses/recursion/lhYFpqwcwrarVFfw7wfZg)**
-> -   **[Ackerman function](https://www.codeintuition.io/courses/recursion/JYJielMoq4_ttu0pf9jsH)**
-> -   **[Egg dropping](https://www.codeintuition.io/courses/recursion/qEXs1iRdxBpFFtTsiScz4)**
+int binomial_coefficient(int n, int k) {
+    if (n == k || k == 0) return 1;
+    return binomial_coefficient(n - 1, k - 1) + binomial_coefficient(n - 1, k);
+}
 
-We will now solve these problems to gain a better understanding of multidimensional recursion.
+int main(void) {
+    printf("%d\n", binomial_coefficient(5, 3));   /* 10 */
+    return 0;
+}
+```
 
-***
-
-# Binomial coefficient
-
-## Problem Statement
-
-Given two positive integers **N** and **K**, write a function to find and return the binomial coefficient of N from K.
-
-In mathematics, the binomial coefficient of **N** from **K** is the number of ways to select K elements from a set of N elements.
-
-// Diagram: Formula to calculate binomial coefficient
-
-You must do this **recursively**.
-
-### Example 1
-
-> -   **Input:** N = 5, K = 3
-> -   **Output:** 10
-> -   **Explanation:** 5! / 3! \* (5 - 3)! = 10.
-
-### Example 2
-
-> -   **Input:** N = 10, K = 4
-> -   **Output:** 210
-> -   **Explanation:** 10! / 4! \* (10 - 4)! = 210.
-
-### Example 3
-
-> -   **Input:** N = 0, K = 0
-> -   **Output:** 1
-> -   **Explanation:** 0! / 0! \* (0 - 0)! = 1.
-
-## Solution
-
-```cpp
-using namespace std;
+```cpp,editable
+#include <iostream>
 
 class Solution {
 public:
-    int binomialCoefficient(int N, int K) {
-
-        // Base cases: If N equals K or K is 0, then C(N, K) is 1.
-        if (N == K || K == 0) {
-            return 1;
-        }
-
-        // Recursive step:
-        // C(N, K) = C(N - 1, K - 1) + C(N - 1, K)
-        // Recursively calculate C(N - 1, K - 1) for choosing K elements
-        // from N-1 elements, and C(N - 1, K) for choosing K elements
-        // from N-1 elements.
-        return binomialCoefficient(N - 1, K - 1) +
-               binomialCoefficient(N - 1, K);
+    int binomialCoefficient(int n, int k) {
+        if (n == k || k == 0) return 1;
+        return binomialCoefficient(n - 1, k - 1) + binomialCoefficient(n - 1, k);
     }
 };
+
+int main() {
+    std::cout << Solution{}.binomialCoefficient(5, 3) << '\n';
+}
 ```
+
+```scala,editable
+class Solution {
+  def binomialCoefficient(n: Int, k: Int): Int = {
+    if (n == k || k == 0) 1
+    else binomialCoefficient(n - 1, k - 1) + binomialCoefficient(n - 1, k)
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    println(new Solution().binomialCoefficient(5, 3))   // 10
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    binomialCoefficient(n, k) {
+        if (n === k || k === 0) return 1;
+        return this.binomialCoefficient(n - 1, k - 1) + this.binomialCoefficient(n - 1, k);
+    }
+}
+
+console.log(new Solution().binomialCoefficient(5, 3));   // 10
+```
+
+```typescript,editable
+class Solution {
+    binomialCoefficient(n: number, k: number): number {
+        if (n === k || k === 0) return 1;
+        return this.binomialCoefficient(n - 1, k - 1) + this.binomialCoefficient(n - 1, k);
+    }
+}
+
+console.log(new Solution().binomialCoefficient(5, 3));   // 10
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func binomialCoefficient(n, k int) int {
+    if n == k || k == 0 {
+        return 1
+    }
+    return binomialCoefficient(n-1, k-1) + binomialCoefficient(n-1, k)
+}
+
+func main() {
+    fmt.Println(binomialCoefficient(5, 3))   // 10
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun binomialCoefficient(n: Int, k: Int): Int {
+        if (n == k || k == 0) return 1
+        return binomialCoefficient(n - 1, k - 1) + binomialCoefficient(n - 1, k)
+    }
+}
+
+fun main() {
+    println(Solution().binomialCoefficient(5, 3))   // 10
+}
+```
+
+```rust,editable
+fn binomial_coefficient(n: i32, k: i32) -> i64 {
+    if n == k || k == 0 { return 1; }
+    binomial_coefficient(n - 1, k - 1) + binomial_coefficient(n - 1, k)
+}
+
+fn main() {
+    println!("{}", binomial_coefficient(5, 3));   // 10
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — n = 4, k = 2</strong></summary>
+
+```
+C(4, 2) = C(3, 1) + C(3, 2)
+
+C(3, 1) = C(2, 0) + C(2, 1)
+        = 1 + (C(1, 0) + C(1, 1))
+        = 1 + (1 + 1)
+        = 3
+
+C(3, 2) = C(2, 1) + C(2, 2)
+        = (C(1, 0) + C(1, 1)) + 1
+        = (1 + 1) + 1
+        = 3
+
+C(4, 2) = 3 + 3 = 6 ✓
+```
+
+</details>
+
+---
+
+## Complexity Analysis
+
+| Resource | Cost | Why |
+|---|---|---|
+| **Time** | `O(2^n)` worst case | Without memoisation, each cell is recomputed many times. |
+| **Space (stack)** | `O(n)` | Deepest descent reduces `n` to 0. |
+| **Space (with memo)** | `O(n · k)` | Cache one entry per `(n, k)` cell. |
+| **Time (with memo)** | `O(n · k)` | Each cell computed once. |
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected | Reasoning |
+|---|---|---|---|
+| `k = 0` | `C(n, 0)` | `1` | Boundary base — empty subset. |
+| `k = n` | `C(n, n)` | `1` | Diagonal base — full subset. |
+| `n = 0, k = 0` | `C(0, 0)` | `1` | Both bases trigger; identical answer. |
+| `k > n` | `C(3, 5)` | undefined | Caller should guard; recursion would overshoot. |
+| Symmetry | `C(10, 4)` vs `C(10, 6)` | both `210` | `C(n, k) = C(n, n-k)` (mathematical property). |
+| Large | `C(50, 25)` | `1.26 × 10¹⁴` | Naive recursion infeasible without memoisation. |
+
+---
+
+## Final Takeaway
+
+Binomial coefficient is the canonical 2D recurrence — clean, symmetric, with two boundary base cases. The recursion navigates Pascal's triangle one cell at a time, branching into two cells per level. Memoisation collapses the exponential blow-up; the next problem has the same shape but a different physical interpretation.
 
 ***
 
-# Lattice paths
+# Lattice Paths
 
-## Problem Statement
+> **Course:** DSA › Algorithms › Recursion › Multidimensional Recursion
 
-Given two positive integers **rows** and **cols** of a grid, write a function to return the total number of ways you can reach the bottom-right corner of the grid starting from the top-left corner.
+The same recurrence as binomial coefficient, dressed up as grid navigation. Useful for both intuition (it's the same math) and contrast (the *interpretation* matters).
 
-You can only move either **right** or **down** at any step.
+---
 
-You must do this **recursively**.
+## The Problem
 
-### Example 1
+Given two positive integers `rows` and `cols` (the dimensions of a grid), return the number of distinct paths from the top-left corner to the bottom-right corner if you can only move **right** or **down** at any step. You **must** solve this recursively.
 
-> -   **Input:** rows = 2, cols = 2
-> -   **Output:** 6
-> -   **Explanation:** There are 6 ways to reach the bottom right grid.
+```
+Input:  rows = 2, cols = 2
+Output: 6
+Explanation: 6 distinct paths through a 2×2 grid
 
-### Example 2
+Input:  rows = 3, cols = 3
+Output: 20
 
-> -   **Input:** rows = 3, cols = 3
-> -   **Output:** 20
-> -   **Explanation:** There are 20 ways to reach the bottom right grid.
+Input:  rows = 0, cols = 0
+Output: 1
+Explanation: already at the bottom-right corner — exactly one "do-nothing" path
+```
 
-### Example 3
+---
 
-> -   **Input:** rows = 0, cols = 0
-> -   **Output:** 1
-> -   **Explanation:** We are already at the bottom right corner of the grid.
+## What Does "Only Right or Down" Mean Recursively?
 
-## Solution
+The first move from the top-left corner is either **right** or **down**:
+- **Right.** You're now in a `(rows, cols-1)` subgrid; count its paths.
+- **Down.** You're now in a `(rows-1, cols)` subgrid; count its paths.
 
-```cpp
-using namespace std;
+These two cases are disjoint, so:
+
+```
+paths(rows, cols) = paths(rows-1, cols) + paths(rows, cols-1)
+```
+
+Base cases:
+- `paths(0, c) = 1` for any `c` (a row of cells has only the all-right path).
+- `paths(r, 0) = 1` for any `r` (a column has only the all-down path).
+
+This is *the same recurrence* as binomial coefficient. In fact `paths(r, c) = C(r + c, r)` — one of the most elegant identities in combinatorics. Use it to sanity-check answers.
+
+---
+
+## Applying the Diagnostic Questions
+
+| # | Check | Answer |
+|---|---|---|
+| **Q1** | Two shrinkable parameters? | **Yes** — `rows` and `cols`. |
+| **Q2** | Axis-aware reductions? | **Yes** — one call reduces `rows`, the other reduces `cols`. |
+| **Q3** | Base cases on boundaries? | **Yes** — top edge and left edge. |
+
+### Q1 — Why "rows and cols both shrink"?
+
+Each call moves one step right or one step down, shrinking the corresponding dimension. The 2D state space is genuinely 2D — both axes participate. ✓
+
+### Q2 — Why "axis-aware"?
+
+The two recursive calls reduce different axes. `paths(r, c-1)` reduces only `cols`. `paths(r-1, c)` reduces only `rows`. Together they explore the grid two-dimensionally. ✓
+
+### Q3 — Why both boundaries?
+
+A path that goes all-right hits the right edge of the grid and must then go all-down, ending in `(rows, 0)`. A path that goes all-down does the opposite. Both edges must be base cases or those paths never terminate. ✓
+
+---
+
+## The Grid Navigation Strategy (Visualised)
+
+```d2
+direction: down
+
+table: "Cells of paths(r, c) — number of paths from (0,0) to (r,c)" {
+  grid-rows: 4
+  grid-columns: 4
+  grid-gap: 0
+  h0:  ""        ; h1:  "c=0"  ; h2:  "c=1"  ; h3:  "c=2"
+  r0n: "r=0"     ; c00: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}; c01: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}; c02: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  r1n: "r=1"     ; c10: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}; c11: "2"; c12: "3"
+  r2n: "r=2"     ; c20: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}; c21: "3"; c22: "6"
+}
+```
+
+<p align="center"><strong>Path counts for the bottom-right corner of a 2×2 grid: <code>paths(2, 2) = 6</code>. Yellow cells are the boundary base cases; interior cells = sum of cell above + cell to the left.</strong></p>
+
+---
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+class Solution:
+    def lattice_paths(self, rows: int, cols: int) -> int:
+        # Boundary bases — top row or leftmost column
+        if rows == 0 or cols == 0:
+            return 1
+        # Two recursive calls
+        return (self.lattice_paths(rows - 1, cols)
+                + self.lattice_paths(rows, cols - 1))
+
+
+if __name__ == "__main__":
+    print(Solution().lattice_paths(2, 2))   # 6
+    print(Solution().lattice_paths(3, 3))   # 20
+```
+
+```java,editable
+public class Solution {
+    public int latticePaths(int rows, int cols) {
+        if (rows == 0 || cols == 0) return 1;
+        return latticePaths(rows - 1, cols) + latticePaths(rows, cols - 1);
+    }
+
+    public static void main(String[] args) {
+        System.out.println(new Solution().latticePaths(2, 2));   // 6
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int lattice_paths(int rows, int cols) {
+    if (rows == 0 || cols == 0) return 1;
+    return lattice_paths(rows - 1, cols) + lattice_paths(rows, cols - 1);
+}
+
+int main(void) {
+    printf("%d\n", lattice_paths(2, 2));   /* 6 */
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
 
 class Solution {
 public:
     int latticePaths(int rows, int cols) {
-
-        // Base case: If either rows or cols is 0, there is only
-        // one unique path (all the way down or all the way right)
-        if (rows == 0 || cols == 0) {
-            return 1;
-        }
-
-        // Recursive case: The number of unique paths to the bottom-right
-        // corner is the sum of the unique paths from the cell directly
-        // above and the cell directly to the left
-        return latticePaths(rows - 1, cols) +
-               latticePaths(rows, cols - 1);
+        if (rows == 0 || cols == 0) return 1;
+        return latticePaths(rows - 1, cols) + latticePaths(rows, cols - 1);
     }
 };
+
+int main() {
+    std::cout << Solution{}.latticePaths(2, 2) << '\n';   // 6
+}
 ```
+
+```scala,editable
+class Solution {
+  def latticePaths(rows: Int, cols: Int): Int = {
+    if (rows == 0 || cols == 0) 1
+    else latticePaths(rows - 1, cols) + latticePaths(rows, cols - 1)
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    println(new Solution().latticePaths(2, 2))   // 6
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    latticePaths(rows, cols) {
+        if (rows === 0 || cols === 0) return 1;
+        return this.latticePaths(rows - 1, cols) + this.latticePaths(rows, cols - 1);
+    }
+}
+
+console.log(new Solution().latticePaths(2, 2));   // 6
+```
+
+```typescript,editable
+class Solution {
+    latticePaths(rows: number, cols: number): number {
+        if (rows === 0 || cols === 0) return 1;
+        return this.latticePaths(rows - 1, cols) + this.latticePaths(rows, cols - 1);
+    }
+}
+
+console.log(new Solution().latticePaths(2, 2));   // 6
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func latticePaths(rows, cols int) int {
+    if rows == 0 || cols == 0 {
+        return 1
+    }
+    return latticePaths(rows-1, cols) + latticePaths(rows, cols-1)
+}
+
+func main() {
+    fmt.Println(latticePaths(2, 2))   // 6
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun latticePaths(rows: Int, cols: Int): Int {
+        if (rows == 0 || cols == 0) return 1
+        return latticePaths(rows - 1, cols) + latticePaths(rows, cols - 1)
+    }
+}
+
+fun main() {
+    println(Solution().latticePaths(2, 2))   // 6
+}
+```
+
+```rust,editable
+fn lattice_paths(rows: i32, cols: i32) -> i64 {
+    if rows == 0 || cols == 0 { return 1; }
+    lattice_paths(rows - 1, cols) + lattice_paths(rows, cols - 1)
+}
+
+fn main() {
+    println!("{}", lattice_paths(2, 2));   // 6
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — rows = 2, cols = 2</strong></summary>
+
+```
+paths(2, 2) = paths(1, 2) + paths(2, 1)
+
+paths(1, 2) = paths(0, 2) + paths(1, 1)
+            = 1 + (paths(0, 1) + paths(1, 0))
+            = 1 + (1 + 1)
+            = 3
+
+paths(2, 1) = paths(1, 1) + paths(2, 0)
+            = (paths(0, 1) + paths(1, 0)) + 1
+            = (1 + 1) + 1
+            = 3
+
+paths(2, 2) = 3 + 3 = 6 ✓
+```
+
+Same shape as binomial coefficient — different surface meaning, identical math.
+
+</details>
+
+---
+
+## Complexity Analysis
+
+| Resource | Cost | Why |
+|---|---|---|
+| **Time (no memo)** | `O(2^(r+c))` | Each frame branches twice; depth is `r + c`. |
+| **Time (with memo)** | `O(r · c)` | Each cell computed once. |
+| **Space (stack)** | `O(r + c)` | Deepest path reduces both axes to 0. |
+| **Space (memo)** | `O(r · c)` | One cache entry per cell. |
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected | Reasoning |
+|---|---|---|---|
+| Both zero | `rows = 0, cols = 0` | `1` | Both boundaries trigger; the "do-nothing" path. |
+| One row | `rows = 0, cols = 5` | `1` | Only one path: all right. |
+| One column | `rows = 5, cols = 0` | `1` | Only one path: all down. |
+| Symmetric | `rows = 3, cols = 3` | `20` | `C(6, 3) = 20`. |
+| Asymmetric | `rows = 2, cols = 4` | `15` | `C(6, 2) = 15`. |
+| Large | `rows = 20, cols = 20` | `137846528820` | Memo essential. |
+
+---
+
+## Final Takeaway
+
+Lattice paths is binomial coefficient with a geometric interpretation: every path through the grid corresponds to a way of choosing which moves go right (and the rest go down). The same recurrence appears in dozens of grid-based problems — minimum-cost path, count of obstacle-free paths, etc. The next problem is the most extreme multidimensional recursion in this lesson — a function with such a wild branching structure it isn't even primitive recursive.
 
 ***
 
-# Ackerman function
+# Ackermann Function
 
-## Problem Statement
+> **Course:** DSA › Algorithms › Recursion › Multidimensional Recursion
 
-Given two non-negative integers **M** and **N**, write a function to find and return the Ackermann value using this.
+The Ackermann function is famous in computability theory as an example of a function that *is* computable but *isn't* primitive recursive — meaning it can't be implemented with bounded `for` loops. Its recursion is so wild that even small inputs produce astronomical numbers.
 
-You must do this **recursively**.
+---
 
-// Diagram: Formula for ackerman function
+## The Problem
 
-### Example 1
+Compute `A(m, n)` defined as:
 
-> -   **Input:** M = 2, N = 2
-> -   **Output:** 7
-> -   **Explanation:** The output using the above relation would be 7.
+- `A(0, n) = n + 1`
+- `A(m, 0) = A(m - 1, 1)` for `m > 0`
+- `A(m, n) = A(m - 1, A(m, n - 1))` for `m > 0, n > 0`
 
-### Example 2
+You **must** solve this recursively.
 
-> -   **Input:** M = 1, N = 1
-> -   **Output:** 3
-> -   **Explanation:** The output using the above relation would be 3.
+```
+Input:  m = 2, n = 2
+Output: 7
 
-### Example 3
+Input:  m = 1, n = 1
+Output: 3
 
-> -   **Input:** M = 0, N = 0
-> -   **Output:** 1
-> -   **Explanation:** The output using the above relation would be 1.
+Input:  m = 0, n = 0
+Output: 1
+```
 
-## Solution
+> **Warning:** `A(4, 2)` already has more digits than there are atoms in the observable universe. Don't try `m ≥ 4`. Even `A(3, 10)` will hang.
 
-```cpp
-using namespace std;
+---
+
+## What Makes Ackermann Wild
+
+Look at the recurrence's third case: `A(m, n) = A(m - 1, A(m, n - 1))`. The inner `A(m, n - 1)` is itself a recursive call whose result is the *second argument* of the outer call. The function recurses twice — but the second recursion's input depends on the first recursion's output. The state space isn't a tidy 2D grid; it's a wild spiral of dependencies.
+
+Despite the chaos, the recurrence is genuinely multidimensional — it has two parameters that both shrink, just in unusual ways.
+
+---
+
+## Applying the Diagnostic Questions
+
+| # | Check | Answer |
+|---|---|---|
+| **Q1** | Two shrinkable parameters? | **Yes** — `m` and `n` both reduce. |
+| **Q2** | Axis-aware reductions? | **Yes** — different cases reduce `m` only, or both, or `n` only. |
+| **Q3** | Base cases on multiple boundaries? | **Yes** — `m = 0` is the primary base case. |
+
+### Q1 — Why "both parameters shrink"?
+
+Case 1 reduces `n` (when `m = 0`, return `n + 1` — base case). Case 2 reduces `m` (when `n = 0`, recurse on `(m-1, 1)`). Case 3 reduces both, with the inner recursion reducing `n`. The total state shrinks toward `(0, _)` over time. ✓
+
+### Q2 — Why "axis-aware"?
+
+The three cases handle different parts of the state space:
+- `m = 0`: pure base, no recursion.
+- `m > 0, n = 0`: recurse on `(m-1, 1)` — pure `m`-axis reduction.
+- `m > 0, n > 0`: complex two-call structure that ultimately reduces both axes.
+
+Each case targets a different region of the grid. ✓
+
+### Q3 — Why "m = 0 is the primary boundary"?
+
+Eventually every recursion path reaches a frame with `m = 0`, where the base case fires and returns `n + 1`. The other case (`n = 0` with `m > 0`) is a *recursive* case that bridges to the `m = 0` base. So strictly there's one base case, but the `n = 0` case is special enough to merit a separate code branch. ✓
+
+---
+
+## The Spiral State Space (Visualised)
+
+There's no clean 2D grid for Ackermann — the state explodes nonlinearly. But we can visualise the small values:
+
+```d2
+direction: down
+
+table: "Ackermann's small values — A(m, n)" {
+  grid-rows: 5
+  grid-columns: 5
+  grid-gap: 0
+  h0:  ""        ; h1:  "n=0"  ; h2:  "n=1"  ; h3:  "n=2"  ; h4:  "n=3"
+  r0n: "m=0"     ; c00: "1" {style.fill: "#fde68a"; style.stroke: "#d97706"}; c01: "2" {style.fill: "#fde68a"; style.stroke: "#d97706"}; c02: "3" {style.fill: "#fde68a"; style.stroke: "#d97706"}; c03: "4" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  r1n: "m=1"     ; c10: "2"; c11: "3"; c12: "4"; c13: "5"
+  r2n: "m=2"     ; c20: "3"; c21: "5"; c22: "7"; c23: "9"
+  r3n: "m=3"     ; c30: "5"; c31: "13"; c32: "29"; c33: "61"
+}
+```
+
+<p align="center"><strong>Small Ackermann values. Yellow row = base cases (<code>m = 0</code> ⇒ <code>n + 1</code>). Notice how <code>m = 3</code> already grows non-trivially. <code>m = 4</code>'s first value is <code>2^65536 − 3</code>.</strong></p>
+
+---
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+class Solution:
+    def ackermann(self, m: int, n: int) -> int:
+        # Base case: m == 0
+        if m == 0:
+            return n + 1
+        # Recursive case: m > 0, n == 0
+        if n == 0:
+            return self.ackermann(m - 1, 1)
+        # Recursive case: m > 0, n > 0 — TWO nested recursive calls
+        return self.ackermann(m - 1, self.ackermann(m, n - 1))
+
+
+if __name__ == "__main__":
+    print(Solution().ackermann(2, 2))   # 7
+    print(Solution().ackermann(1, 1))   # 3
+    # Don't try (3, 5+) or (4, _) — too slow
+```
+
+```java,editable
+public class Solution {
+    public int ackerman(int m, int n) {
+        if (m == 0) return n + 1;
+        if (n == 0) return ackerman(m - 1, 1);
+        return ackerman(m - 1, ackerman(m, n - 1));
+    }
+
+    public static void main(String[] args) {
+        System.out.println(new Solution().ackerman(2, 2));   // 7
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int ackermann(int m, int n) {
+    if (m == 0) return n + 1;
+    if (n == 0) return ackermann(m - 1, 1);
+    return ackermann(m - 1, ackermann(m, n - 1));
+}
+
+int main(void) {
+    printf("%d\n", ackermann(2, 2));   /* 7 */
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
 
 class Solution {
 public:
-    int ackerman(int M, int N) {
-
-        // Base case: If M is 0, return N + 1
-        if (M == 0) {
-            return N + 1;
-        }
-
-        // If M is greater than 0 and N is 0, make a recursive call
-        // with M - 1 and 1 as arguments
-        if (M > 0 && N == 0) {
-            return ackerman(M - 1, 1);
-        }
-
-        // If both M and N are greater than 0, make a recursive call
-        // with M - 1 and the result of ackerman(M, N - 1) as arguments
-        if (M > 0 && N > 0) {
-            return ackerman(M - 1, ackerman(M, N - 1));
-        }
-
-        // If none of the above conditions are met, return 0
-        return 0;
+    int ackerman(int m, int n) {
+        if (m == 0) return n + 1;
+        if (n == 0) return ackerman(m - 1, 1);
+        return ackerman(m - 1, ackerman(m, n - 1));
     }
 };
+
+int main() {
+    std::cout << Solution{}.ackerman(2, 2) << '\n';   // 7
+}
 ```
+
+```scala,editable
+class Solution {
+  def ackermann(m: Int, n: Int): Int = {
+    if (m == 0) n + 1
+    else if (n == 0) ackermann(m - 1, 1)
+    else ackermann(m - 1, ackermann(m, n - 1))
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    println(new Solution().ackermann(2, 2))   // 7
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    ackermann(m, n) {
+        if (m === 0) return n + 1;
+        if (n === 0) return this.ackermann(m - 1, 1);
+        return this.ackermann(m - 1, this.ackermann(m, n - 1));
+    }
+}
+
+console.log(new Solution().ackermann(2, 2));   // 7
+```
+
+```typescript,editable
+class Solution {
+    ackermann(m: number, n: number): number {
+        if (m === 0) return n + 1;
+        if (n === 0) return this.ackermann(m - 1, 1);
+        return this.ackermann(m - 1, this.ackermann(m, n - 1));
+    }
+}
+
+console.log(new Solution().ackermann(2, 2));   // 7
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func ackermann(m, n int) int {
+    if m == 0 {
+        return n + 1
+    }
+    if n == 0 {
+        return ackermann(m-1, 1)
+    }
+    return ackermann(m-1, ackermann(m, n-1))
+}
+
+func main() {
+    fmt.Println(ackermann(2, 2))   // 7
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun ackermann(m: Int, n: Int): Int = when {
+        m == 0 -> n + 1
+        n == 0 -> ackermann(m - 1, 1)
+        else -> ackermann(m - 1, ackermann(m, n - 1))
+    }
+}
+
+fun main() {
+    println(Solution().ackermann(2, 2))   // 7
+}
+```
+
+```rust,editable
+fn ackermann(m: i64, n: i64) -> i64 {
+    if m == 0 { return n + 1; }
+    if n == 0 { return ackermann(m - 1, 1); }
+    ackermann(m - 1, ackermann(m, n - 1))
+}
+
+fn main() {
+    println!("{}", ackermann(2, 2));   // 7
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — A(2, 2)</strong></summary>
+
+```
+A(2, 2)
+  = A(1, A(2, 1))
+  A(2, 1) = A(1, A(2, 0))
+    A(2, 0) = A(1, 1)
+      A(1, 1) = A(0, A(1, 0))
+        A(1, 0) = A(0, 1) = 2
+        A(0, 2) = 3
+      A(1, 1) = 3
+    A(2, 0) = 3
+    A(1, 3) = A(0, A(1, 2))
+      A(1, 2) = A(0, A(1, 1)) = A(0, 3) = 4
+      A(0, 4) = 5
+    A(1, 3) = 5
+  A(2, 1) = 5
+  A(1, 5) = A(0, A(1, 4))
+    A(1, 4) = A(0, A(1, 3)) = A(0, 5) = 6
+    A(0, 6) = 7
+  A(1, 5) = 7
+A(2, 2) = 7 ✓
+```
+
+The trace shows how nested calls compose — each `A(m, n - 1)`'s result becomes the *second* argument of the outer call. This is what makes Ackermann special and exhausting.
+
+</details>
+
+---
+
+## Complexity Analysis
+
+| Resource | Cost | Why |
+|---|---|---|
+| **Time** | beyond exponential — *non-elementary* | Cannot be bounded by any tower of exponentials in `(m, n)`. |
+| **Space (stack)** | beyond linear | The call stack grows at the same wild rate as the result. |
+
+Memoisation helps only modestly here — the values themselves grow so fast that storing them isn't enough to make `m ≥ 4` tractable. Ackermann is a counterexample to "you can always speed up a recursion with memoisation."
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected | Reasoning |
+|---|---|---|---|
+| `m = 0` | `A(0, n)` | `n + 1` | Pure base case. |
+| `n = 0` | `A(m, 0)` | `A(m - 1, 1)` | Bridges to base. |
+| Small | `A(2, 3)` | `9` | Tractable. |
+| Edge | `A(3, 5)` | `253` | Slow but possible. |
+| Pathological | `A(4, 1)` | `65533` | Calls explode; will likely overflow stack on most systems. |
+| Insane | `A(4, 2)` | `2^65536 − 3` | Larger than any number ever counted. |
+
+---
+
+## Final Takeaway
+
+Ackermann is multidimensional recursion's wildest example. Its existence proves that not every recursion can be tamed into a `for` loop or made tractable by memoisation. It's also a nice contrast to the previous three problems, which *can* be tamed by 2D dynamic programming. The next problem brings us back to a memoisable, optimisation-flavoured 2D recursion — and is the canonical "this is why DP exists" lesson.
 
 ***
 
-# Egg dropping
+# Egg Dropping
 
-## Problem Statement
+> **Course:** DSA › Algorithms › Recursion › Multidimensional Recursion
 
-Given two non-negative integer **eggs** and **floors**, write a function to find and return the minimum number of attempts required in the worst case to find the highest floor from which an egg can be dropped without breaking.
+The classic interview problem. Two parameters (eggs, floors), a recursive optimisation, multiple base cases, and a recursion structure that screams "memoise me."
 
-You must do this **recursively**.
+---
 
-### Example 1
+## The Problem
 
-> -   **Input:** eggs = 4, floor = 2
-> -   **Output:** 2
-> -   **Explanation:** With 4 eggs and 2 floors, the worst-case scenario requires 2 drops: you drop first from floor 1, and if the egg doesn't break, drop from floor 2. This guarantees finding the highest safe floor in at most 2 drops.
+You have `eggs` identical eggs and a building with `floors` floors. You want to find the **highest floor from which an egg can be dropped without breaking** (the "threshold floor"). An egg either breaks on impact or survives unscathed (and can be reused).
 
-### Example 2
+You want a strategy that minimises the **worst-case number of drops** across all possible threshold floors. Return the minimum number of drops needed in the worst case.
 
-> -   **Input:** eggs = 2, floor = 1
-> -   **Output:** 1
-> -   **Explanation:** There is only one floor, so you need at most 1 drop to determine whether the egg breaks or not.
+```
+Input:  eggs = 4, floors = 2
+Output: 2
 
-### Example 3
+Input:  eggs = 2, floors = 1
+Output: 1
 
-> -   **Input:** eggs = 1, floor = 1
-> -   **Output:** 1
-> -   **Explanation:** There is only one floor, so you need at most 1 drop to determine whether the egg breaks or not.
+Input:  eggs = 1, floors = 1
+Output: 1
+```
 
-## Solution
+---
 
-```cpp
+## What Does the Recurrence Mean?
+
+Imagine you have `eggs` eggs and `floors` floors. You decide to drop an egg from some floor `f`. Two things can happen:
+
+1. **The egg breaks.** You now have `eggs - 1` eggs and need to test the `f - 1` floors *below* `f` (the threshold is somewhere in `[1, f - 1]`).
+2. **The egg survives.** You still have `eggs` eggs and need to test the `floors - f` floors *above* `f` (the threshold is somewhere in `[f + 1, floors]`).
+
+In the worst case, you take whichever branch is more expensive. To find the optimal strategy, **try every floor `f` from 1 to `floors`** and pick the one that minimises the worst-case cost:
+
+```
+eggDrop(eggs, floors) = 1 + min over f in [1, floors] of
+                            max(eggDrop(eggs - 1, f - 1),
+                                eggDrop(eggs,     floors - f))
+```
+
+The `+1` counts the current drop; the `max` is the worst case for this drop choice; the `min` over `f` picks the best drop choice.
+
+Base cases:
+- `eggDrop(_, 0) = 0` — no floors, no drops.
+- `eggDrop(_, 1) = 1` — one floor, one drop tells you everything.
+- `eggDrop(1, floors) = floors` — with one egg, you must scan linearly from floor 1 (any other strategy risks breaking your only egg too high).
+
+---
+
+## Applying the Diagnostic Questions
+
+| # | Check | Answer |
+|---|---|---|
+| **Q1** | Two shrinkable parameters? | **Yes** — `eggs` and `floors`. |
+| **Q2** | Axis-aware reductions? | **Yes** — break-case reduces both; survive-case reduces only `floors`. |
+| **Q3** | Base cases on multiple boundaries? | **Yes** — three: `floors = 0`, `floors = 1`, `eggs = 1`. |
+
+### Q1 — Why "two shrinkable parameters"?
+
+`eggs` shrinks when the egg breaks. `floors` shrinks always (we test fewer floors after each drop). Both axes participate. ✓
+
+### Q2 — Why "axis-aware"?
+
+The break-case `eggDrop(eggs - 1, f - 1)` reduces both axes. The survive-case `eggDrop(eggs, floors - f)` reduces only `floors`. The recursion explores the grid two-dimensionally with branching choices. ✓
+
+### Q3 — Why three base cases?
+
+- `floors = 0`: trivial — no floors to test.
+- `floors = 1`: trivial — one drop decides.
+- `eggs = 1`: forced linear scan — special case to avoid wasting your only egg.
+
+Drop any one and the recursion either runs forever or gives wrong answers for some inputs. ✓
+
+---
+
+## The Optimisation Tree (Visualised)
+
+For each cell `(e, f)`, the recursion tries every floor `1..f` and picks the minimum worst-case. That's an `O(f)` inner loop, plus two recursive calls per inner-loop iteration. Without memoisation, the work is enormous.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+  E["eggDrop(2, 3)<br/>try f = 1, 2, 3"] -->|"f=1 break"| B1["eggDrop(1, 0)"]
+  E -->|"f=1 survive"| S1["eggDrop(2, 2)"]
+  E -->|"f=2 break"| B2["eggDrop(1, 1)"]
+  E -->|"f=2 survive"| S2["eggDrop(2, 1)"]
+  E -->|"f=3 break"| B3["eggDrop(1, 2)"]
+  E -->|"f=3 survive"| S3["eggDrop(2, 0)"]
+```
+
+<p align="center"><strong>For <code>eggDrop(2, 3)</code> the recursion tries each of three floors. Each floor yields two sub-calls (break, survive). The minimum-of-maxima search is what makes this an *optimisation* recursion, not just a counting one.</strong></p>
+
+---
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+class Solution:
+    def egg_drop(self, eggs: int, floors: int) -> int:
+        # Base cases
+        if floors == 0:
+            return 0
+        if floors == 1:
+            return 1
+        if eggs == 1:
+            return floors        # Linear scan is forced
+
+        # Try every floor; pick the strategy minimising the worst case
+        min_drops = float('inf')
+        for floor in range(1, floors + 1):
+            broke    = self.egg_drop(eggs - 1, floor - 1)        # Egg breaks
+            survived = self.egg_drop(eggs,     floors - floor)   # Egg survives
+            worst    = max(broke, survived)                       # Worst of the two
+            min_drops = min(min_drops, worst + 1)                 # Plus this drop
+
+        return int(min_drops)
+
+
+if __name__ == "__main__":
+    print(Solution().egg_drop(4, 2))   # 2
+    print(Solution().egg_drop(2, 10))  # 4 — classic answer
+```
+
+```java,editable
+public class Solution {
+    public int eggDrop(int eggs, int floors) {
+        if (floors == 0) return 0;
+        if (floors == 1) return 1;
+        if (eggs == 1) return floors;
+
+        int minDrops = Integer.MAX_VALUE;
+        for (int f = 1; f <= floors; f++) {
+            int broke = eggDrop(eggs - 1, f - 1);
+            int survived = eggDrop(eggs, floors - f);
+            int worst = Math.max(broke, survived);
+            minDrops = Math.min(minDrops, worst + 1);
+        }
+        return minDrops;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(new Solution().eggDrop(2, 10));   // 4
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <limits.h>
+
+int max(int a, int b) { return a > b ? a : b; }
+int min(int a, int b) { return a < b ? a : b; }
+
+int egg_drop(int eggs, int floors) {
+    if (floors == 0) return 0;
+    if (floors == 1) return 1;
+    if (eggs == 1) return floors;
+
+    int min_drops = INT_MAX;
+    for (int f = 1; f <= floors; f++) {
+        int broke = egg_drop(eggs - 1, f - 1);
+        int survived = egg_drop(eggs, floors - f);
+        int worst = max(broke, survived);
+        min_drops = min(min_drops, worst + 1);
+    }
+    return min_drops;
+}
+
+int main(void) {
+    printf("%d\n", egg_drop(2, 10));   /* 4 */
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
 #include <climits>
-
-using namespace std;
+#include <algorithm>
 
 class Solution {
 public:
     int eggDrop(int eggs, int floors) {
+        if (floors == 0) return 0;
+        if (floors == 1) return 1;
+        if (eggs == 1) return floors;
 
-        // Base case: If there are no floors, no trials are needed.
-        if (floors == 0) {
-            return 0;
-        }
-
-        // Base case: If there is one floor, one trial is needed.
-        if (floors == 1) {
-            return 1;
-        }
-
-        // Base case: If there is only one egg, we have to do a linear
-        // search
-        if (eggs == 1) {
-            return floors;
-        }
-
-        // Initialize minimum number of drops to a large value
         int minDrops = INT_MAX;
-
-        // Try dropping from each floor
-        for (int floor = 1; floor <= floors; floor++) {
-
-            // if the egg breaks
-            int eggBreaks = eggDrop(eggs - 1, floor - 1);
-
-            // if the egg survives
-            int eggSurvives = eggDrop(eggs, floors - floor);
-
-            // The worst-case scenario is the maximum of the two cases
-            int worstCase = max(eggBreaks, eggSurvives);
-
-            // Update the minimum number of drops needed
-            minDrops = min(minDrops, worstCase + 1);
+        for (int f = 1; f <= floors; f++) {
+            int broke = eggDrop(eggs - 1, f - 1);
+            int survived = eggDrop(eggs, floors - f);
+            int worst = std::max(broke, survived);
+            minDrops = std::min(minDrops, worst + 1);
         }
-
         return minDrops;
     }
 };
+
+int main() {
+    std::cout << Solution{}.eggDrop(2, 10) << '\n';   // 4
+}
 ```
+
+```scala,editable
+class Solution {
+  def eggDrop(eggs: Int, floors: Int): Int = {
+    if (floors == 0) return 0
+    if (floors == 1) return 1
+    if (eggs == 1) return floors
+
+    var minDrops = Int.MaxValue
+    for (f <- 1 to floors) {
+      val broke = eggDrop(eggs - 1, f - 1)
+      val survived = eggDrop(eggs, floors - f)
+      val worst = math.max(broke, survived)
+      minDrops = math.min(minDrops, worst + 1)
+    }
+    minDrops
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    println(new Solution().eggDrop(2, 10))   // 4
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    eggDrop(eggs, floors) {
+        if (floors === 0) return 0;
+        if (floors === 1) return 1;
+        if (eggs === 1) return floors;
+
+        let minDrops = Infinity;
+        for (let f = 1; f <= floors; f++) {
+            const broke = this.eggDrop(eggs - 1, f - 1);
+            const survived = this.eggDrop(eggs, floors - f);
+            const worst = Math.max(broke, survived);
+            minDrops = Math.min(minDrops, worst + 1);
+        }
+        return minDrops;
+    }
+}
+
+console.log(new Solution().eggDrop(2, 10));   // 4
+```
+
+```typescript,editable
+class Solution {
+    eggDrop(eggs: number, floors: number): number {
+        if (floors === 0) return 0;
+        if (floors === 1) return 1;
+        if (eggs === 1) return floors;
+
+        let minDrops = Infinity;
+        for (let f = 1; f <= floors; f++) {
+            const broke = this.eggDrop(eggs - 1, f - 1);
+            const survived = this.eggDrop(eggs, floors - f);
+            const worst = Math.max(broke, survived);
+            minDrops = Math.min(minDrops, worst + 1);
+        }
+        return minDrops;
+    }
+}
+
+console.log(new Solution().eggDrop(2, 10));   // 4
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func max(a, b int) int { if a > b { return a }; return b }
+func min(a, b int) int { if a < b { return a }; return b }
+
+func eggDrop(eggs, floors int) int {
+    if floors == 0 {
+        return 0
+    }
+    if floors == 1 {
+        return 1
+    }
+    if eggs == 1 {
+        return floors
+    }
+    minDrops := 1 << 30
+    for f := 1; f <= floors; f++ {
+        broke := eggDrop(eggs-1, f-1)
+        survived := eggDrop(eggs, floors-f)
+        worst := max(broke, survived)
+        minDrops = min(minDrops, worst+1)
+    }
+    return minDrops
+}
+
+func main() {
+    fmt.Println(eggDrop(2, 10))   // 4
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun eggDrop(eggs: Int, floors: Int): Int {
+        if (floors == 0) return 0
+        if (floors == 1) return 1
+        if (eggs == 1) return floors
+
+        var minDrops = Int.MAX_VALUE
+        for (f in 1..floors) {
+            val broke = eggDrop(eggs - 1, f - 1)
+            val survived = eggDrop(eggs, floors - f)
+            val worst = maxOf(broke, survived)
+            minDrops = minOf(minDrops, worst + 1)
+        }
+        return minDrops
+    }
+}
+
+fun main() {
+    println(Solution().eggDrop(2, 10))   // 4
+}
+```
+
+```rust,editable
+fn egg_drop(eggs: i32, floors: i32) -> i32 {
+    if floors == 0 { return 0; }
+    if floors == 1 { return 1; }
+    if eggs == 1 { return floors; }
+
+    let mut min_drops = i32::MAX;
+    for f in 1..=floors {
+        let broke = egg_drop(eggs - 1, f - 1);
+        let survived = egg_drop(eggs, floors - f);
+        let worst = broke.max(survived);
+        min_drops = min_drops.min(worst + 1);
+    }
+    min_drops
+}
+
+fn main() {
+    println!("{}", egg_drop(2, 10));   // 4
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — eggs = 2, floors = 3</strong></summary>
+
+```
+eggDrop(2, 3) tries f = 1, 2, 3:
+
+f = 1:
+  broke    = eggDrop(1, 0) = 0
+  survived = eggDrop(2, 2) = ?
+    eggDrop(2, 2) tries f = 1, 2:
+      f=1: max(eggDrop(1, 0), eggDrop(2, 1)) + 1 = max(0, 1) + 1 = 2
+      f=2: max(eggDrop(1, 1), eggDrop(2, 0)) + 1 = max(1, 0) + 1 = 2
+      eggDrop(2, 2) = min(2, 2) = 2
+  worst = max(0, 2) = 2
+  drops = 2 + 1 = 3
+
+f = 2:
+  broke    = eggDrop(1, 1) = 1
+  survived = eggDrop(2, 1) = 1
+  worst = max(1, 1) = 1
+  drops = 1 + 1 = 2
+
+f = 3:
+  broke    = eggDrop(1, 2) = 2
+  survived = eggDrop(2, 0) = 0
+  worst = max(2, 0) = 2
+  drops = 2 + 1 = 3
+
+eggDrop(2, 3) = min(3, 2, 3) = 2 ✓
+```
+
+The optimal strategy is to drop from floor 2 first.
+
+</details>
+
+---
+
+## Complexity Analysis
+
+| Resource | Cost (no memo) | Cost (with memo) | Why |
+|---|---|---|---|
+| **Time** | exponential, at least `O(2^floors)` | `O(eggs · floors²)` | Naive recursion is catastrophic; memoising over `(eggs, floors)` is `O(eggs · floors)` cells × `O(floors)` inner loop. |
+| **Space (stack)** | `O(floors)` | `O(floors)` | Linear depth. |
+| **Space (memo)** | n/a | `O(eggs · floors)` | Cache one entry per `(e, f)`. |
+
+**With binary-search optimisation on the `f` loop**, time drops further to `O(eggs · floors · log floors)`. Both improvements are part of the dynamic programming chapter.
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected | Reasoning |
+|---|---|---|---|
+| `floors = 0` | `eggDrop(_, 0)` | `0` | Trivial. |
+| `floors = 1` | `eggDrop(_, 1)` | `1` | One drop suffices. |
+| `eggs = 1` | `eggDrop(1, n)` | `n` | Forced linear scan. |
+| Two eggs, 100 floors | `eggDrop(2, 100)` | `14` | Famous classroom answer. |
+| Many eggs | `eggDrop(100, 100)` | `7` | With ≥ `log₂(floors)` eggs, you can effectively binary-search. |
+
+---
+
+## Final Takeaway
+
+Egg dropping is multidimensional recursion's textbook optimisation problem. Two axes (`eggs`, `floors`), three base cases, an inner loop choosing the optimal floor, and an exponential blow-up that screams for memoisation. **This is the canonical "this is why DP exists" lesson** — a problem where the recurrence is intuitive and correct, but only memoisation makes it tractable.
+
+You came in with the suspicion that "more parameters means more recursion." You're leaving with a feel for *2D state space* navigation, the discipline of finding all the boundary base cases, and a recurrence (egg drop) that perfectly sets up the dynamic-programming chapter. Every problem in that chapter — knapsack, edit distance, longest common subsequence, matrix chain multiplication — is multidimensional recursion plus memoisation. You've now seen the recursion half. The memoisation half is just one step away.
+
+**Transfer challenge — close out the recursion section:** You have **3 eggs and 100 floors**. Without solving the full optimisation, just *sketch* the 2D recurrence on paper. What are the parameters? What are the base cases? Which axes do the recursive calls reduce? Don't compute — just identify the structure.
+
+<details>
+<summary><strong>Answer — open after you've sketched it</strong></summary>
+
+- **Parameters:** `eggs` (3 → 0), `floors` (100 → 0). Two-dimensional state space.
+- **Base cases:** `floors = 0` → 0 drops. `floors = 1` → 1 drop. `eggs = 1` → linear scan, returns `floors`.
+- **Recursion:** for each candidate first-drop floor `f`:
+  - Break case: `eggDrop(eggs - 1, f - 1)` — both axes reduced.
+  - Survive case: `eggDrop(eggs, floors - f)` — only `floors` reduced.
+  - Worst case = `max` of the two.
+- **Combine:** `min over f of max(...)` plus 1 for the current drop.
+
+The exact answer for `(eggs=3, floors=100)` is **9 drops** in the worst case. With memoisation, the algorithm computes this in milliseconds. Without it, you're waiting for hours. **You've now seen all the components of dynamic programming except the cache itself.**
+
+That cache is the entire content of the dynamic-programming chapter coming up next. Every DP problem you'll meet — knapsack, edit distance, palindrome partitioning, matrix chain multiplication — is a multidimensional recursion you've already learned to recognise, with a memo table added.
+
+You came into this section thinking recursion was a niche trick. You're leaving with a complete map of the four patterns (head, tail, multiple, multidimensional), seven lessons of internalised material, four files of worked problems, the diagnostic questions to recognise each pattern on sight, and the keys to the dynamic programming chapter that comes next. **Recursion is no longer dark magic. It's a tool you reach for.**
+
+</details>

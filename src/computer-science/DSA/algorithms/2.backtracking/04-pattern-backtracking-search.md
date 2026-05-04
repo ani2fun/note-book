@@ -1,1234 +1,2637 @@
-# Understanding the search pattern
+# 4. Pattern: Backtracking Search
 
-Backtracking is the ultimate brute-force search technique for exploring the entire problem space and finding solution states. In some cases, there may be many solution states, but we only need to find one. We start from an initial problem state and, at each step, choose from a set of available choices to move to another state, eventually exploring the entire problem space. Every time we move to a new state, we determine its validity and if it is a solution state by validating it against some constraints. As soon as we reach a solution state, we halt further exploration and return it as the solution to the problem.
+The first two backtracking patterns *enumerate*. They walk every leaf of the state space tree, collecting outputs as they go. **Backtracking search** is different: instead of collecting outputs into a list, the algorithm searches for a *configuration of the world* that satisfies a set of constraints — a path through a maze, a placement of queens that don't attack, a filled sudoku grid. The "answer" isn't a leaf of the tree; the answer **is the state itself** at the moment all constraints are satisfied.
 
-It is essential to note that any choice we make at a step may be either independent or dependent on the choices we made earlier.
+This shift changes three things:
+1. **State is mutated in place**, not built up by appending.
+2. **Recursion returns success/failure**, not a leaf to record.
+3. **Early termination** on first success — for many search problems, finding *one* solution ends the algorithm.
 
-The search pattern is the classification of problems that can be solved using backtracking to search for solution states in a problem space.
+By the end of this lesson you'll know what makes a problem a search rather than enumeration, the explicit-undo recipe, and four worked problems that drill it: maze pathfinding, word search on a grid, the n-queens classic, and sudoku.
 
-// Diagram: The state-space tree for the backtracking search problem.
+## Table of contents
 
-In this course, we will learn more about the backtracking search technique and how to identify a problem as a backtracking search pattern problem.
+1. [Understanding backtracking search](#understanding-backtracking-search)
+2. [Identifying backtracking search](#identifying-backtracking-search)
+3. [Rat in a maze](#rat-in-a-maze)
+4. [Word quest](#word-quest)
+5. [Solve n queens](#solve-n-queens)
+6. [Solve sudoku](#solve-sudoku)
 
-## Searching using backtracking
+***
 
-Consider the state space tree below, where we have an initial problem state and `k` dependent choices that we can make at each step. The depth of the problem space is denoted by `n`, which is the maximum number of choices we must make to reach a solution state.
+# Understanding Backtracking Search
 
-At every step, making a different choice may lead to completely different solution states in the end. We recursively make a series of choices until we reach a solution state. Once we reach a solution state, we terminate the search and return it as the solution, and so, we don't need to explore the entire problem space.
+> **Course:** DSA › Algorithms › Backtracking › Search
 
-Note that each step may have a different number of choices, and those choices may be independent or dependent on previously made choices. We only show `k` choices in the state space tree below to make it simpler and easier to understand.
+Backtracking search is the pattern where the *state* itself is the candidate solution. The state is typically a 2D grid (maze, sudoku, chessboard) or some other structured world that the algorithm mutates as it walks the recursion. Each frame:
 
-// Diagram: Initial state
+1. **Records its choice** by mutating the state (place a queen, mark a maze cell as visited, write a digit).
+2. **Recurses**, asking "does this state extend to a solution?"
+3. On the recursion's return:
+   - If success — propagate success up; the state already holds the answer.
+   - If failure — **undo the mutation** so the next sibling choice can be tried in a clean state.
 
-We create a state variable `state` to record the outcome of choices we make to reach a solution state, starting from the initial state, using some function `f`. At each step, we check if the current step is a solution state. If it is a solution state, we store the `state` variable in a `solution` container and terminate further search.
+The "undo" step is the heart of search. In unconditional enumeration, the undo was implicit (pop the last element off `current`). In search, the undo is explicit and structural — the same cell of the maze gets toggled visited/unvisited; the same chess square gets a queen placed and removed; the same sudoku cell gets a digit written and erased. **The world is the state; the world is shared; the world has to be exactly restored before the parent's loop tries the next choice.**
 
-We also create another variable `control` that captures the effect of the previously made choices on subsequent choices using some function `g`. It is used at every step to determine the available choices to move to the next step. This way, each step accounts for the choices made in previous steps when computing the set of choices it can make to proceed.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+  ENTRY["enter recursion(state)"]
+  ENTRY --> GOAL["is state a solution?"]
+  GOAL -->|"yes"| WIN["return true (state IS the answer)"]
+  GOAL -->|"no"| LOOP["for each choice"]
+  LOOP --> APPLY["apply choice (mutate state)"]
+  APPLY --> RECUR["recurse(state)"]
+  RECUR -->|"returned true"| BUBBLE["return true — solution propagates up"]
+  RECUR -->|"returned false"| UNDO["undo (restore state)"]
+  UNDO --> LOOP
+  LOOP -->|"all exhausted"| FAIL["return false"]
+```
 
-Search for a solution state starting from a problem state.
+<p align="center"><strong>The search recipe. Every choice is applied to the world, recursed on, and either succeeds (propagate true upward) or fails (undo and try next). The world is mutated and restored throughout the search.</strong></p>
 
-The goal of the search problem is to find **any** solution state that can be reached by making any valid set of choices from the initial state. In the above example, we did not have to backtrack as we reached the solution state 
+---
 
-As we will see later, we also usually have functions `fInverse` and `gInverse` to remove the contribution of the **last** choice made from `state` and `control` respectively. We use them to undo previous choices and make new, different choices when we have no further choices left to move on from a step.
+## Search vs Enumeration — When the Difference Matters
 
-In this example, we collect the series of choices that lead from the problem state to a solution state using the function `f`; we could similarly collect and store the solution state instead.
+Both the Unconditional Enumeration lesson and the Conditional Enumeration lesson are *enumeration* patterns: build up a partial output, record at the leaves, return all valid outputs. The search pattern in this lesson is different in three structural ways:
 
-We backtrack and undo previously made choices using fInverse and gInverse if we reach a dead end.
+| Aspect | Enumeration (Unconditional and Conditional lessons) | Search (this lesson) |
+|---|---|---|
+| What's the "candidate"? | A partial sequence/string we're building | The world's current state (grid, board, etc.) |
+| How is it stored? | Appended to a `current` list | Mutated directly in the world |
+| What does the recursion return? | Usually `void` — leaves get appended via shared output | Usually `bool` — was this branch successful? |
+| What does success do? | Record the leaf, continue exploring siblings | Often: return `true` immediately; siblings unnecessary |
+| What does the undo restore? | The `current` list (pop the last element) | The world's state (uncolor cell, remove queen, etc.) |
 
-It is important to note that some series of choices may reach a solution state earlier than others, and so the order of making the choices matters in most cases. The goal of the search problem is to find any solution state, and so we terminate further exploration when we find a solution state.
+> *Predict before reading on — for "find any path through a 4×4 maze," would early termination help? What about "find ALL paths through the maze"?*
 
-// Diagram: The order of making choices matters at all levels, as some series of choices may reach a solution state earlier than others.
+For "any path," early termination saves a huge amount of work — once a path is found, the algorithm can stop. For "all paths," the algorithm must explore every successful branch *and* every failed sibling, but the undo machinery is identical. The difference is in what the recursion returns from a successful leaf — `true + propagate` for "any," `void + record + continue` for "all."
 
-### The search problem
+---
 
-Consider an example where the problem space is represented by an integer `n` , and we start from the initial problem state with some default values of the `state` and `control` variables. We can make multiple choices, denoted by an integer `choice` at every step, to reduce the problem space, and we update the `state` variable with those choices as we make them. The goal is to find **any** solution state and the sequence of choices that lead to it, starting from the initial problem state.
+## What Backtracking Search Looks Like in Code
 
-We have the following functions that we can use.
+```
+function search(state):
+    if state is a solution:
+        return true                    ← state already holds the answer
 
--   `getChoices ( control, n )` - Takes as an input the `control` variable and the current problem space `n` and returns a list of choices we can make.
--   `makeChoice (state, choice)` - Takes as input the state variable `state` and a `choice` from the list of available choices and adds the contribution of `choice` to `state`.
--   `updateControl (control, choice)` - Takes as input the current problem space `n`, reference to the variable `control` and the `choice` we decide to make and adds the contribution of `choice` to `control`.
--   `revertLastChoiceFromState (state)` - Takes as input the variable `state` and reverts the contribution of the last choice that was made from it.
--   `revertLastChoiceFromControl (control)` - Takes as input the variable `control` and reverts the contribution of the last choice that was made from it.
--   `getReducedProblemSpace (n, choice)` - Takes as input the current problem space `n` and the `choice` we decide to make, and returns a value denoting the reduced problem space.
--   `isSolutionState (n)` - Takes as input the current problem space `n` and returns true if it is a solution.
+    for each viable choice:
+        apply(state, choice)            ← mutate the world
+        if search(state):
+            return true                 ← solution found, bubble up
+        undo(state, choice)             ← explicit undo on failure
 
-Note how the `getChoices` function depend not only on the current problem space, but also on the `control` variable that accounts for the previously made choices.
+    return false                        ← all choices exhausted
+```
 
-Note that this is the generic search problem. Most of these functions and their definitions are very problem-specific. For example, in some problems, the `control` variable may be a primitive type and need not be shared across recursive calls; we can use local copies. In that case, the `updateControl` function would return a new copy of the updated control variable instead of updating the shared copy, and there would be no `revertLastChoiceFromControl` function.
+The structure is identical to conditional enumeration — except for what we do with the state and what we return. The mutation-and-undo dance is what makes the recursion's call stack double as both control flow and the *world's state at any moment in time*.
 
-We will only learn about the generic search problem and its solution in this lesson. All the more specific cases of this problem can be solved using slightly modified, easier implementations of the generic solution.
-
-### The search technique
-
-To solve this problem, we create a recursive function `search` that takes as input the integer `n` denoting the problem space, a reference to the state variable `state`, a `control` variable accounting for the previously made choices, and a reference to a variable `solution` to the solution state. We initialize `state` and `control` to default values and `solution` to a sentinel value in the calling function and pass them as reference arguments to the function `search` along with the input `n`.
-
-As we enter the function, we check if the current step is a solution state using `isSolutionState`. If the current step is a solution state, we set the value of `solution` to `state` and return to the caller.
-
-If the current state is not a solution state, we use the function `getChoices` passing it the variables `n` and `control` to get a list of all the choices we can make to reduce the problem space. We then iterate through the list of all choices, using a variable `choice`, and in each iteration, simulate making that choice by adding its contribution to `state` using `makeChoice` and updating the `control` variable using the `updateControl` function that accounts for this choice. We then use the function `getReducedProblemSpace` passing it `n` and the `choice` to get the reduced problem space in a variable `reducedProblemSpace`. 
-
-We then recursively call the `search` function with `reducedProblemSpace`, the updated `state` and the updated `control`. The same process is repeated recursively until it reaches a solution state, where we set the current value of `state` to `solution`. When a recursive call ends and control goes back to the caller, we revert the last choice made using `revertLastChoiceFromState` and `revertLastChoiceFromControl` on `state` and `control` variables respectively. We then check if the `solution` still has the sentinel value it was initialised with. 
-
-If yes, it means we have not found the solution, and so, we continue the iteration to make the next choice in exactly the same way. On the other hand, if `solution` does not have the sentinel value, it means a solution state was found, and we should terminate further search. In this case, we return to the caller.
-
-Since we call `revertLastChoiceFromState` and `revertLstChoiceFromControl` after returning from **every** recursive call, it is guaranteed that the choice made before making a recursive call is the one that is reverted after returning from it.
-
-This way, we simulate making a choice at every step until we reach a solution state, aggregate the consequences of all those choices in `state`, and add the final value of `state` (outcome) to `solution`. We also undo the choices in the same order they were made, so that backtracking to make different choices next time works the same way.
-
-When all the recursive calls end, control is passed back to the caller of `search`, the solution variable holds the solution to the problem if it exists; otherwise, it holds the sentinel value it was initialized with.
-
-Consider the example below, where we start from an initial problem state and search for a solution state using recursive function calls.
-
-// Diagram: Search for a solution state starting from an initial state
+---
 
 ## Algorithm
 
-The algorithm given below outlines the generic search technique, making use of the functions `reduceInput`, `getChoices`, `makeChoice`, `updateControl`, `revertLastChoiceFromState`, `revertLastChoiceFromControl` and `isSolutionState`. All these functions and their implementations are problem-dependent.
-
-All these functions and their implementations are highly problem-dependent, but the overall structure of the algorithm remains the same.
-
-We also create a calling function that initializes the variables `state`, `control`, `choices`, and `solution` with default and sentinel values, and makes the top-level recursive call.
-
-> **search(n, \[ref\] control, \[ref\] state, \[ref\] solution)**
+> **search(state)**
 >
-> -   **Step 1:** Call `isSolutionState(n, state)` to check if it is a solution state.
->     -   **Step 1.1:** If true, set `solution` = `state`
->     -   **Step 1.2:** Return to the caller
-> -   **Step 2:** Set `choices` = Call `getChoices(n, control)` to get all choices available at this step.
-> -   **Step 3:** Iterate over `choices` using a variable `choice` and do the following:
->     -   **Step 3.1:** Call `makeChoice(state, choice)` to add the contribution of `choice` to the `state` variable
->     -   **Step 3.2:** Call `updateControl(n, control, choice)` to update the control variable based on the current choice and input `n`
->     -   **Step 3.3:** Set `reducedProblemSpace` = Call `getReducedProblemSpace(n, choice)` to obtain the reduced problem space for the next recursive call
->     -   **Step 3.4:** Call `search(reducedProblemSpace, control, state, solution)`
->     -   **Step 3.5:** Call `revertLastChoiceFromControl(control)` to revert the contribution of the last choice from the control variable
->     -   **Step 3.6:** Call `revertLastChoiceFromState(state)` to revert the contribution of the last choice from the state variable
->     -   **Step 3.7:** If `solution` does not have the sentinel value, return to the caller, otherwise go to the next steps
-> -   **Step 4:** Return to the caller
->
-> **callingFunction(n)**
->
-> -   **Step 1:** Create a variable `state` and initialize it to a default value
-> -   **Step 2:** Create a variable `control` and initialize it to a default value
-> -   **Step 3:** Create a variable `solution` and initialize it with some sentinel value
-> -   **Step 4:** Call `search(n, control, state, solution)`
-> -   **Step 5:** Return `solution`
+> 1. **Goal check** — is `state` a complete solution? If yes, return `true`.
+> 2. **Generate viable choices** — what extensions of `state` are still candidates?
+> 3. **For each choice:**
+>    - **Apply** — mutate `state` to reflect this choice.
+>    - **Recurse** — `search(state)`.
+>    - If recursion returned `true`: **return true** (success bubbles up).
+>    - If recursion returned `false`: **undo** the mutation; try the next choice.
+> 4. **All choices exhausted** — return `false`.
+
+This template handles "find one" search. For "find all," replace step 3's "if true: return true" with "if true: record state; continue (don't return)." Both flavours appear in the four worked problems.
+
+---
 
 ## Implementation
 
-To implement the search technique using backtracking, we create a calling function that initialises the variables `state`, `control`, `choices`, and `solution` and makes the top-level recursive calls. For languages that do not support passing values by reference, we can create the state variables in the enclosing scope to share them across recursive calls.
+A clean, language-agnostic skeleton illustrating the search recipe with explicit undo. The scenario is a generic maze-style "can I reach the goal?" search.
 
-Given below is a generic implementation of the backtracking search technique, with the functions `isSolutionState`, `getChoices` and `getReducedProblemSpace` having some stub implementation.
+<div class="lang-tabs">
 
-// Diagram: Loading code editor
+```python,editable
+from typing import List
+
+class Solution:
+    def find_path(self, maze: List[List[int]]) -> bool:
+        if not maze or not maze[0]:
+            return False
+        return self._search(maze, 0, 0)
+
+    def _search(self, maze: List[List[int]], row: int, col: int) -> bool:
+        rows, cols = len(maze), len(maze[0])
+        # Boundary / obstacle / already-visited
+        if not (0 <= row < rows and 0 <= col < cols) or maze[row][col] != 0:
+            return False
+        # Goal check
+        if row == rows - 1 and col == cols - 1:
+            return True
+        # Apply: mark this cell as visited (mutate the world)
+        maze[row][col] = -1
+        # Try all four neighbours
+        for dr, dc in ((1, 0), (0, 1), (-1, 0), (0, -1)):
+            if self._search(maze, row + dr, col + dc):
+                # Success: state is committed; we *could* leave the trail in place,
+                # but cleanly restoring is the safe default.
+                maze[row][col] = 0
+                return True
+        # Undo on failure — restore the cell so siblings can revisit
+        maze[row][col] = 0
+        return False
+
+
+if __name__ == "__main__":
+    maze = [[0, 1, 0], [0, 0, 0], [1, 0, 0]]
+    print(Solution().find_path(maze))   # True
+```
+
+```java,editable
+public class Solution {
+    public boolean findPath(int[][] maze) {
+        if (maze.length == 0 || maze[0].length == 0) return false;
+        return search(maze, 0, 0);
+    }
+
+    private boolean search(int[][] maze, int row, int col) {
+        int rows = maze.length, cols = maze[0].length;
+        if (row < 0 || row >= rows || col < 0 || col >= cols || maze[row][col] != 0) return false;
+        if (row == rows - 1 && col == cols - 1) return true;
+        maze[row][col] = -1;                         // apply
+        int[][] dirs = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
+        for (int[] d : dirs) {
+            if (search(maze, row + d[0], col + d[1])) {
+                maze[row][col] = 0;
+                return true;
+            }
+        }
+        maze[row][col] = 0;                           // undo on failure
+        return false;
+    }
+
+    public static void main(String[] args) {
+        int[][] maze = {{0, 1, 0}, {0, 0, 0}, {1, 0, 0}};
+        System.out.println(new Solution().findPath(maze));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdbool.h>
+
+#define R 3
+#define C 3
+
+static const int dirs[4][2] = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
+
+bool search(int maze[R][C], int row, int col) {
+    if (row < 0 || row >= R || col < 0 || col >= C || maze[row][col] != 0) return false;
+    if (row == R - 1 && col == C - 1) return true;
+    maze[row][col] = -1;                         /* apply */
+    for (int i = 0; i < 4; i++) {
+        if (search(maze, row + dirs[i][0], col + dirs[i][1])) {
+            maze[row][col] = 0;
+            return true;
+        }
+    }
+    maze[row][col] = 0;                           /* undo */
+    return false;
+}
+
+int main(void) {
+    int maze[R][C] = {{0, 1, 0}, {0, 0, 0}, {1, 0, 0}};
+    printf("%s\n", search(maze, 0, 0) ? "true" : "false");
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+class Solution {
+public:
+    bool search(std::vector<std::vector<int>>& maze, int row, int col) {
+        int rows = (int) maze.size(), cols = (int) maze[0].size();
+        if (row < 0 || row >= rows || col < 0 || col >= cols || maze[row][col] != 0) return false;
+        if (row == rows - 1 && col == cols - 1) return true;
+        maze[row][col] = -1;
+        const int dirs[4][2] = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
+        for (auto& d : dirs) {
+            if (search(maze, row + d[0], col + d[1])) {
+                maze[row][col] = 0;
+                return true;
+            }
+        }
+        maze[row][col] = 0;
+        return false;
+    }
+
+    bool findPath(std::vector<std::vector<int>>& maze) {
+        if (maze.empty() || maze[0].empty()) return false;
+        return search(maze, 0, 0);
+    }
+};
+
+int main() {
+    std::vector<std::vector<int>> maze = {{0, 1, 0}, {0, 0, 0}, {1, 0, 0}};
+    std::cout << std::boolalpha << Solution{}.findPath(maze) << '\n';
+}
+```
+
+```scala,editable
+class Solution {
+  private val dirs = Array(Array(1, 0), Array(0, 1), Array(-1, 0), Array(0, -1))
+
+  def findPath(maze: Array[Array[Int]]): Boolean = {
+    if (maze.isEmpty || maze(0).isEmpty) false
+    else search(maze, 0, 0)
+  }
+
+  private def search(maze: Array[Array[Int]], row: Int, col: Int): Boolean = {
+    val rows = maze.length
+    val cols = maze(0).length
+    if (row < 0 || row >= rows || col < 0 || col >= cols || maze(row)(col) != 0) return false
+    if (row == rows - 1 && col == cols - 1) return true
+    maze(row)(col) = -1
+    for (d <- dirs) {
+      if (search(maze, row + d(0), col + d(1))) {
+        maze(row)(col) = 0
+        return true
+      }
+    }
+    maze(row)(col) = 0
+    false
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    val maze = Array(Array(0, 1, 0), Array(0, 0, 0), Array(1, 0, 0))
+    println(new Solution().findPath(maze))
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    findPath(maze) {
+        if (!maze.length || !maze[0].length) return false;
+        return this._search(maze, 0, 0);
+    }
+    _search(maze, row, col) {
+        const rows = maze.length, cols = maze[0].length;
+        if (row < 0 || row >= rows || col < 0 || col >= cols || maze[row][col] !== 0) return false;
+        if (row === rows - 1 && col === cols - 1) return true;
+        maze[row][col] = -1;
+        for (const [dr, dc] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
+            if (this._search(maze, row + dr, col + dc)) {
+                maze[row][col] = 0;
+                return true;
+            }
+        }
+        maze[row][col] = 0;
+        return false;
+    }
+}
+
+console.log(new Solution().findPath([[0, 1, 0], [0, 0, 0], [1, 0, 0]]));
+```
+
+```typescript,editable
+class Solution {
+    findPath(maze: number[][]): boolean {
+        if (!maze.length || !maze[0].length) return false;
+        return this._search(maze, 0, 0);
+    }
+    private _search(maze: number[][], row: number, col: number): boolean {
+        const rows = maze.length, cols = maze[0].length;
+        if (row < 0 || row >= rows || col < 0 || col >= cols || maze[row][col] !== 0) return false;
+        if (row === rows - 1 && col === cols - 1) return true;
+        maze[row][col] = -1;
+        const dirs: [number, number][] = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+        for (const [dr, dc] of dirs) {
+            if (this._search(maze, row + dr, col + dc)) {
+                maze[row][col] = 0;
+                return true;
+            }
+        }
+        maze[row][col] = 0;
+        return false;
+    }
+}
+
+console.log(new Solution().findPath([[0, 1, 0], [0, 0, 0], [1, 0, 0]]));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func search(maze [][]int, row, col int) bool {
+    rows, cols := len(maze), len(maze[0])
+    if row < 0 || row >= rows || col < 0 || col >= cols || maze[row][col] != 0 {
+        return false
+    }
+    if row == rows-1 && col == cols-1 {
+        return true
+    }
+    maze[row][col] = -1
+    dirs := [][2]int{{1, 0}, {0, 1}, {-1, 0}, {0, -1}}
+    for _, d := range dirs {
+        if search(maze, row+d[0], col+d[1]) {
+            maze[row][col] = 0
+            return true
+        }
+    }
+    maze[row][col] = 0
+    return false
+}
+
+func findPath(maze [][]int) bool {
+    if len(maze) == 0 || len(maze[0]) == 0 {
+        return false
+    }
+    return search(maze, 0, 0)
+}
+
+func main() {
+    fmt.Println(findPath([][]int{{0, 1, 0}, {0, 0, 0}, {1, 0, 0}}))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun findPath(maze: Array<IntArray>): Boolean {
+        if (maze.isEmpty() || maze[0].isEmpty()) return false
+        return search(maze, 0, 0)
+    }
+
+    private fun search(maze: Array<IntArray>, row: Int, col: Int): Boolean {
+        val rows = maze.size
+        val cols = maze[0].size
+        if (row < 0 || row >= rows || col < 0 || col >= cols || maze[row][col] != 0) return false
+        if (row == rows - 1 && col == cols - 1) return true
+        maze[row][col] = -1
+        val dirs = arrayOf(intArrayOf(1, 0), intArrayOf(0, 1), intArrayOf(-1, 0), intArrayOf(0, -1))
+        for (d in dirs) {
+            if (search(maze, row + d[0], col + d[1])) {
+                maze[row][col] = 0
+                return true
+            }
+        }
+        maze[row][col] = 0
+        return false
+    }
+}
+
+fun main() {
+    val maze = arrayOf(intArrayOf(0, 1, 0), intArrayOf(0, 0, 0), intArrayOf(1, 0, 0))
+    println(Solution().findPath(maze))
+}
+```
+
+```rust,editable
+fn search(maze: &mut Vec<Vec<i32>>, row: i32, col: i32) -> bool {
+    let rows = maze.len() as i32;
+    let cols = maze[0].len() as i32;
+    if row < 0 || row >= rows || col < 0 || col >= cols || maze[row as usize][col as usize] != 0 {
+        return false;
+    }
+    if row == rows - 1 && col == cols - 1 { return true; }
+    maze[row as usize][col as usize] = -1;
+    for (dr, dc) in [(1i32, 0i32), (0, 1), (-1, 0), (0, -1)].iter() {
+        if search(maze, row + dr, col + dc) {
+            maze[row as usize][col as usize] = 0;
+            return true;
+        }
+    }
+    maze[row as usize][col as usize] = 0;
+    false
+}
+
+fn find_path(maze: &mut Vec<Vec<i32>>) -> bool {
+    if maze.is_empty() || maze[0].is_empty() { return false; }
+    search(maze, 0, 0)
+}
+
+fn main() {
+    let mut maze = vec![vec![0, 1, 0], vec![0, 0, 0], vec![1, 0, 0]];
+    println!("{}", find_path(&mut maze));
+}
+```
+
+</div>
+
+---
 
 ## Complexity Analysis
 
-The search technique using backtracking uses multiple recursion at every step as it simulates making all available choices. Hence, it has an exponential time complexity that depends on the depth of recursion and the branching factor.
+| Resource | Cost | Why |
+|---|---|---|
+| **Time** | `O(branching^depth)` worst case, `O(depth)` best case (early hit) | Each cell can branch into the choices not yet visited; depth is bounded by the state size. |
+| **Space (stack)** | `O(depth)` | Recursion depth = path length. |
+| **Space (auxiliary)** | `O(1)` if mutating the world, `O(state size)` if cloning per call | The mutation-and-undo trick avoids cloning. |
 
-If we assume that the functions functions `isSolutionState`, `getReducedProblemSpace`, `getChoices`, `makeChoice`, `updatecontrol`, `revertLastChoiceFromState`, and `revertLastChoiceFromControl` all take constant **O(1)** time, and the input **N** is reduced linearly in every step, the depth of recursion will also be linear **O(N)**.
+The fact that we're mutating the world means we're not paying for state copies on each call — a major speed-up over naive backtracking. The cost is having to write the explicit undo correctly. If you forget to undo, your search will give wrong answers because subsequent branches see a polluted world.
 
-// Diagram: If the input is reduced linearly at each step, the depth of recursion is the same as the size of the input N.
-
-In the worst case, however, there may be no solution states. In that case, the entire state space tree will be traversed, making all possible choices starting from the problem state and all intermediary states. For the generic search problem, the number of choices at every step is generally dynamic and dependent on the previously made choices. If we assume that there are total of `k` choices to choose from at every step, and every solution state is at a depth **N**, the overall time complexity would be **O(N^k)**.
-
-// Diagram: Depth of recursion
-
-Since we only need to find a single solution state for the problem and not enumerate all the solution states, the algorithm terminates further search once it reaches a solution state. Also, since solution states can exist at different depths in the state space tree, in the best case, the first choice from the initial state may lead to a solution state. And so, the best-case time complexity is **O(1)**.
-
-// Diagram: In the best cases, a solution state may be found by making the first choice.
-
-Assuming that the variable `state` takes constant **O(1)** space at all times, since we only create constant **O(1)** sized local variables in every recursive call. In the best case, if we find the solution state as the first choice from the initial state, the total space needed will be constant **O(1)**. However, in the worst case, if no solution state exists, the depth of recursion will be **O(N)**, leading to a space complexity of **O(N)**.
-
-> **Best Case:** We reach a solution state by making the first choice.
+> **Best Case** — Time `O(depth)` (find solution on first descent), Space `O(depth)`
 >
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(1)**
->
-> **Worst Case:** No solution state exists.
->
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N^k)**
+> **Worst Case** — Time `O(branching^depth)` (must explore the full tree)
+
+---
+
+## Key Takeaway
+
+Backtracking search is enumeration's mirror image: instead of building an output by appending, we mutate the world; instead of recording leaves, we propagate `true` upward when the world is in a goal state; instead of implicit undos via `pop()`, we explicitly restore each mutation when a branch fails. The recursion's call stack is the world's history. Now we'll learn how to spot search problems vs enumeration ones.
 
 ***
 
-# Identifying the backtracking search pattern
+# Identifying Backtracking Search
 
-Backtracking is a powerful technique that emulates brute-force solutions to solve a wide range of problems. Most problems that can be solved using the backtracking search technique are medium or hard problems for which no other optimised solutions exist. We define an initial problem state and make a set of choices to explore the entire problem space and search for a solution. We terminate the search and return the solution state along with the path from the initial problem state as soon as a solution is found.
+> **Course:** DSA › Algorithms › Backtracking › Search
 
-If the problem statement or its solution follows the generic template below, it can be solved using backtracking search.
+Three diagnostic questions decide whether backtracking search fits.
 
-**Template:**Given an initial problem state, find **any** solution state that can be reached from it by making a set of choices at each step. Optionally, find the sequence of choices that leads to the solution state from the initial problem state.
+| # | Question | If "yes," backtracking search fits because... |
+|---|---|---|
+| **Q1** | Is the **state itself** the candidate solution? | Mutating the state tracks the search; "the answer" is wherever the state ends up. |
+| **Q2** | Does success/failure naturally **propagate upward** as a boolean (or stop the search)? | Recursion's `bool` return propagates without explicit data. |
+| **Q3** | Is **explicit undo** of mutations needed to restore correctness? | The world's state must be exactly restored before a sibling tries. |
 
-## Example
+If all three are "yes," backtracking search fits.
 
-Let's consider the following problem as an example to better understand how to identify and solve a problem using backtracking search.
+### Q1 — Why "state IS the answer"?
 
-> **Problem statement:** Given a 2D integer maze of size `N \* M` with walkable space denoted by `0` and obstacles denoted by `1`. Find if a rat can reach the cell (N-1, M-1) if it is placed at `(0, 0)`. The rat can move in four directions
->
-> 1.  Up - U
-> 2.  Down - D
-> 3.  Left - L
-> 4.  Right - R
->
-> If the rat can reach `(N-1, M-1)`, also return a string denoting the path it must take.
+**Mental model.** In enumeration, we built up an output string/list separate from the input. In search, the *world* (maze, board, grid) is what we're modifying *and* what holds the final answer. There's no separate output object.
 
-// Diagram: Find the path from (0,0) to (2, 2).
+**Concrete check.** Sudoku: when the algorithm finishes, the input grid *is* the solution. ✓
 
-## The backtracking search solution
+**What breaks otherwise.** If the answer is a list-of-things-collected, you're closer to enumeration's recipe (the Unconditional or Conditional Enumeration lessons).
 
-Closely observing the problem, we can identify the brute force way to find a path from `(0, 0)` to `(N-1, M-1)` . We start from `(0, 0)` and depending on the `maze` and the placement of 0s and 1s, we have two choices: either to move down `D` or right `R`.
+### Q2 — Why "boolean propagation"?
 
-Every time we move to a new cell, depending on our current location, the placement of 0s and 1s in the `maze` and the path we traced from (0, 0), we may have multiple choices:
+**Mental model.** When a sub-search succeeds, that information has to flow back to the caller without any other communication. A boolean return value does this perfectly: `if search(...) return true;`. The state's mutation is the data; the boolean is the signal.
 
--   We can go up `U`
--   We can go down `D`
--   We can go right `R`
--   We can go left `L`
+**Concrete check.** Maze: `search(row, col)` returns `true` if there's a path to the goal from this cell. The caller uses that boolean to decide whether to stop (return `true` further up) or try the next direction. ✓
 
-// Diagram: We can make 4 choices at each step.
+**What breaks otherwise.** If we need to record *all* solutions, we replace the boolean with a "record into shared output" step but keep everything else. The pattern still applies — just collecting more answers.
 
-This process is repeated recursively until we have no more choices left, which is when we backtrack and update our choices. If during exploration we ever reach `(N-1, M-1)` ,we terminate further execution as we found a solution.
+### Q3 — Why "explicit undo"?
 
-Throughout the traversal, we can keep track of the choices (directions we move) we make in a string that serves as the path to the solution when we reach the solution state.
+**Mental model.** Because the state is shared and mutated, every choice we tried but didn't keep must be reversed. Otherwise, the next sibling sees a polluted world and produces wrong results.
 
-It is important to note that choices at every step depend on the previously made choices (we cannot go back in the direction we came from)
+**Concrete check.** N-Queens: after placing a queen at `(row, col)` and finding no solution from there, we *must* remove that queen before trying `(row, col+1)`. Forgetting the undo means subsequent placements see a queen that shouldn't be there. ✓
 
-// Diagram: Recursively make all available choices at each step to find a solution state.
+**What breaks otherwise.** If you skip the undo, your algorithm's results are wrong — and the bug is hard to find because it manifests as "wrong answers" rather than crashes.
 
-It is clear from the above what the initial problem state (rat at `(0, 0)`) is, and the choices we can make to reduce the problem space and find a solution state. We also need to keep track of the choices we make at each step to get the path from the initial problem state `(0, 0)` to the solution state `(N-1, M-1)`. The problem description and the solution fit the template description for the backtracking search pattern we learned earlier.
+---
 
-**Template:**Given an initial problem state (rat at `(0, 0)`), find any solution state (rat at `(N-1, M-1)`) that can be reached from it by making a set of choices (`U`, `D`, `L`, `R`) at each step. Optionally, also find the path from the initial problem state to the solution state.
+## A Worked Example — Find a Path in a 3×3 Maze
 
-We create a recursive function `search` that takes as input the `maze`, the current coordinates of the rat `row` and `col` and a reference to a string `currentPath` that keeps track of the choices we make from the initial problem state `(0, 0)` to reach the current state `(row, col)`. The function `search` recursively makes all the possible choices and explores all paths, starting from `(0, 0)` and searches for a path to `(N-1, M-1)`.
+> *Pause and predict — for the maze below, what's the path from `(0,0)` to `(2,2)`? How would you sketch the recursion's call stack at the moment we're at `(2,1)`?*
 
-In the calling function, we initialize two strings `currentPath` and `solution` to empty strings that will hold the path as we make choices, starting from the initial problem state and the path leading to the solution state when it is found, respectively. We then pass the `maze`, `currentPath` and `solution` result as references to the `search` function along with the starting coordinates (0, 0) as `row` and `column`. This makes up the initial problem state.
-
-As we enter the `search` function, we check if a solution has already been found by checking the `solution` string. If it is not an empty string, it means a solution has been found, and we terminate further execution by returning to the caller.
-
-If a solution has not been found yet, we check if the current state is a solution state by checking if `(row, column)` is `(N-1, M-1)`. We can get the values of `M` and `N` from the 2D array `maze`. If we are at a solution state, we set `solution` to `currentPath` and terminate further execution by returning to the caller.
-
-If a solution has not been found and the current state is not a solution state, we can move ahead in four directions, `U`, `D`, `L` and `R`, if the corresponding cell in the respective direction is within the bounds of the `maze` and has a value of 0. However, before making any choice, we set the current cell in the `maze` to a sentinel value (-1) to mark it as visited, to ensure we don't revisit it in circles. 
-
-Setting a sentinel value of -1 in the current cell in `maze` before making any choice prevents us from moving to this cell again from any other subsequent cell in the path by marking the current cell invalid (non 0). This is how the variable `maze` not only keeps track of the current state of the problem space in the state space tree but also acts as a `control` variable that determines choices at each step, accounting for the previously made choices.
-
-We then loop over these four choices and, in each iteration, validate the cell in each direction. If it is a valid cell, we simulate moving in that direction by appending that direction to `currentPath` and making a recursive call to `search` with updated `(row, column)` values. When the recursive call ends, we pop the last character from `currentPath` to revert the last choice. We then check if the `solution` is empty. If yes, it means no solution has been found, and we continue iterating to make the next choices. Otherwise, we break out of the loop as a solution has been found, and we can terminate further search. This way, we choose to move in one direction at each step, then backtrack and update those choices to eventually move in all directions from every step.
-
-At the end of all recursive calls, in the calling function, we check if the `solution` is empty. If it is empty, no solution state was found, so no solution exists. Otherwise, the result string represents the path from `(0, 0)` to `(N-1, M-1)`, which is the solution to the problem.
-
-Find the path to (2, 2).
-
-The implementation of the backtracking search solution to solve the problem is given below.
-
-C++
-
-```cpp
-using namespace std;
-
-class Solution {
-public:
-
-    // Direction list: (direction char, row change, col change)
-    vector<tuple<char, int, int>> choices = {
-        {'D',  1,  0},
-        {'R',  0,  1},
-        {'U', -1,  0},
-        {'L',  0, -1}
-    };
-
-    void search(
-        vector<vector<int>> &maze,
-        int rows,
-        int cols,
-        int row,
-        int col,
-        string& currentPath,
-        string& solution
-    ) {
-
-        // If we reached the destination (bottom-right corner of the
-        // maze), update the solution with the current path and return
-        if (row == rows - 1 && col == cols - 1) {
-            solution = currentPath;
-            return;
-        }
-
-        // Store the value of the current cell to mark it as visited
-        int cellValue = maze[row][col];
-
-        // Update the control variable by marking
-        // the current cell as visited, to avoid revisiting it.
-        // Since the update is same for all choices, we do it before making
-        // any choice
-        maze[row][col] = -1;
-
-        // Explore all possible choices
-        for (const auto& [dir, dx, dy] : choices) {
-            int newRow = row + dx;
-            int newCol = col + dy;
-
-            if (newRow >= 0 && newRow < rows &&
-                newCol >= 0 && newCol < cols &&
-                maze[newRow][newCol] == 0) {
-
-                // Add the direction to path to make the choice
-                currentPath += dir;
-
-                // Recursively find a solution in the reduced problem space
-                search(
-                    maze,
-                    rows,
-                    cols,
-                    newRow,
-                    newCol,
-                    currentPath,
-                    solution
-                );
-
-                // Undo previously made choices
-                currentPath.pop_back();
-
-                // Terminate further search if a solution has been found
-                if (!solution.empty()) {
-                    maze[row][col] = cellValue;
-                    break;
-                }
-
-        // Mark the current cell as unvisited to allow other paths to
-        // explore it
-        maze[row][col] = cellValue;
-
-        // Return to explore other paths from previous recursive calls
-        return;
-    }
-
-    string ratInAMaze(vector<vector<int>> &maze) {
-        if (maze.empty() || maze[0].empty() || maze[0][0] == 1) {
-            return "";
-        }
-        int rows = maze.size();
-        int cols = maze[0].size();
-
-        string currentPath = "";
-        string solution = "";
-        // Call the search function with initial position (0, 0) and
-        // an empty path
-        backtrack(maze, rows, cols, 0, 0, currentPath, solution);
-
-        // Return the final path found, if any
-        return solution;
-    }
-};
+```
+maze =
+  0 0 1
+  1 0 0
+  0 0 0   (0 = walkable, 1 = obstacle, start (0,0), goal (2,2))
 ```
 
-Java
+The path is `(0,0) → (0,1) → (1,1) → (2,1) → (2,2)` (down-right-down-right). At the moment we're standing on `(2,1)`, the stack holds frames for `(0,0)`, `(0,1)`, `(1,1)`, `(2,1)`. The cells visited so far have been mutated in the maze (set to `-1` to mark "in-progress visit"). When we extend to `(2,2)` and the goal is reached, success bubbles up; each frame, on the way up, sees `true` and either keeps the visit mark or undoes it depending on the algorithm's needs (commonly: undo to leave the maze unchanged for the caller).
 
-```java
-import java.util.ArrayList;
-import java.util.List;
+We make this concrete in **Problem 1** below.
 
-// Diagram: class Solution {
+---
 
-    // Create the shared variables in class scope
-    String solution = "";
-    StringBuilder currentPath = new StringBuilder();
+## Key Takeaway
 
-    // Direction list: (direction char, row change, col change)
-    // Each entry is: {direction, dx, dy}
-    int[][] choices = {
-            {'D',  1,  0},
-            {'R',  0,  1},
-            {'U', -1,  0},
-            {'L',  0, -1}
-    };
+Three checks — state-IS-the-answer, boolean propagation, explicit undo — gate every backtracking-search problem. Pass all three and the recipe slides in. Four worked problems coming up. The first finds *one* path; the second finds *one* word; the third finds *all* configurations of N queens; the fourth solves an entire sudoku puzzle.
 
-    void search(
-            List<List<Integer>> maze,
-            int rows,
-            int cols,
-            int row,
-            int col
-    ) {
+***
 
-        // If we reached the destination (bottom-right corner of the
-        // maze), update the solution with the current path and return
-        if (row == rows - 1 && col == cols - 1) {
-            solution = currentPath.toString();
-            return;
-        }
+# Rat in a Maze
 
-        // Store the value of the current cell to mark it as visited
-        int cellValue = maze.get(row).get(col);
+> **Course:** DSA › Algorithms › Backtracking › Search
 
-        // Update the control variable by marking
-        // the current cell as visited, to avoid revisiting it.
-        // Since the update is same for all choices, we do it before making
-        // any choice
-        maze.get(row).set(col, -1);
+The canonical backtracking-search problem. Walk a 2D grid; pick directions; mark visited cells to prevent cycles; reach the goal or fail.
 
-        // Explore all possible choices
-        for (int[] choice : choices) {
-            char dir = (char) choice[0];
-            int dx = choice[1];
-            int dy = choice[2];
+---
 
-            int newRow = row + dx;
-            int newCol = col + dy;
+## The Problem
 
-            if (newRow >= 0 && newRow < rows &&
-                newCol >= 0 && newCol < cols &&
-                maze.get(newRow).get(newCol) == 0) {
+Given an `N × M` maze where `0` is walkable and `1` is an obstacle, the rat starts at `(0, 0)` and must reach `(N-1, M-1)`. Return the path as a string of moves: `U` (up), `D` (down), `L` (left), `R` (right). If no path exists, return an empty string.
 
-                // Add the direction to path to make the choice
-                currentPath.append(dir);
-
-                // Recursively find a solution in the reduced problem space
-                search(
-                        maze,
-                        rows,
-                        cols,
-                        newRow,
-                        newCol
-                );
-
-                // Undo previously made choices
-                currentPath.deleteCharAt(currentPath.length() - 1);
-
-                // Terminate further search if a solution has been found
-                if (!solution.isEmpty()) {
-                    maze.get(row).set(col, cellValue);
-                    break;
-                }
-
-        // Mark the current cell as unvisited to allow other paths to
-        // explore it
-        maze.get(row).set(col, cellValue);
-
-        // Return to explore other paths from previous recursive calls
-        return;
-    }
-
-    String ratInAMaze(List<List<Integer>> maze) {
-        if (maze.isEmpty() || maze.get(0).isEmpty() || maze.get(0).get(0) == 1) {
-            return "";
-        }
-
-        int rows = maze.size();
-        int cols = maze.get(0).size();
-
-        // Call the search function with initial position (0, 0) and
-        // an empty path
-        search(maze, rows, cols, 0, 0);
-
-        // Return the final path found, if any
-        return solution;
-    }
+```
+Input:  maze = [[0,1,1,1],
+                [0,0,1,0],
+                [0,0,1,1],
+                [1,0,0,0]]
+Output: "DDRDRR"   (or "DRDDRR" — any valid path)
 ```
 
-Typescript
+---
 
-```typescript
-class Solution {
+## What Makes This a Search Problem?
 
-  // Create the shared variables in class scope
-  solution: string = "";
-  currentPath: string = "";
+Three signs:
+1. The world (the maze grid) is the state we're navigating.
+2. We need *one* path, not all of them — early termination is a win.
+3. We must mark cells as visited during the descent to avoid cycling, and unmark on backtrack to allow other paths to use them.
 
-  // Direction list: (direction char, row change, col change)
-  choices: Array<[string, number, number]> = [
-    ['D',  1,  0],
-    ['R',  0,  1],
-    ['U', -1,  0],
-    ['L',  0, -1]
-  ];
-
-  search(
-    maze: number[][],
-    rows: number,
-    cols: number,
-    row: number,
-    col: number
-  ): void {
-
-    // If we reached the destination (bottom-right corner of the
-    // maze), update the solution with the current path and return
-    if (row === rows - 1 && col === cols - 1) {
-      this.solution = this.currentPath;
-      return;
-    }
-
-    // Store the value of the current cell to mark it as visited
-    const cellValue = maze[row][col];
-
-    // Update the control variable by marking
-    // the current cell as visited, to avoid revisiting it.
-    // Since the update is same for all choices, we do it before making
-    // any choice
-    maze[row][col] = -1;
-
-    // Explore all possible choices
-    for (const [dir, dx, dy] of this.choices) {
-      const newRow = row + dx;
-      const newCol = col + dy;
-
-      if (
-        newRow >= 0 && newRow < rows &&
-        newCol >= 0 && newCol < cols &&
-        maze[newRow][newCol] === 0
-      ) {
-
-        // Add the direction to path to make the choice
-        this.currentPath += dir;
-
-        // Recursively find a solution in the reduced problem space
-        this.search(
-          maze,
-          rows,
-          cols,
-          newRow,
-          newCol
-        );
-
-        // Undo previously made choices
-        this.currentPath = this.currentPath.slice(0, -1);
-
-        // Terminate further search if a solution has been found
-        if (this.solution.length > 0) {
-          maze[row][col] = cellValue;
-          break;
-        }
-
-    // Mark the current cell as unvisited to allow other paths to
-    // explore it
-    maze[row][col] = cellValue;
-
-    // Return to explore other paths from previous recursive calls
-    return;
-  }
-
-  ratInAMaze(maze: number[][]): string {
-    if (maze.length === 0 || maze[0].length === 0 || maze[0][0] === 1) {
-      return "";
-    }
-
-    const rows = maze.length;
-    const cols = maze[0].length;
-
-    // Call the search function with initial position (0, 0) and
-    // an empty path
-    this.search(maze, rows, cols, 0, 0);
-
-    // Return the final path found, if any
-    return this.solution;
-  }
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+  S["start (0,0)<br/>mark visited"]
+  S -->|"D"| Down["(1,0)<br/>mark visited"]
+  S -->|"R"| Right["(0,1) — obstacle, fail"]
+  Down -->|"R"| DR["(1,1)<br/>mark"]
+  DR -->|"D"| DRD["(2,1)..."]
 ```
 
-Javascript
+<p align="center"><strong>Search descends through the grid, marking visited cells. On a dead end, the recursion returns false, the cell is unmarked, and the parent tries another direction.</strong></p>
 
-```javascript
-class Solution {
+---
 
-  // Create the shared variables in class scope
-  solution = "";
-  currentPath = "";
+## Applying the Diagnostic Questions
 
-  // Direction list: (direction char, row change, col change)
-  choices = [
-    ['D',  1,  0],
-    ['R',  0,  1],
-    ['U', -1,  0],
-    ['L',  0, -1]
-  ];
+| # | Check | Answer |
+|---|---|---|
+| **Q1** | State IS the answer? | **Yes** — the path string + the visited grid is the search state. |
+| **Q2** | Boolean propagation? | **Yes** — `search(row, col)` returns `true` if a path exists from here. |
+| **Q3** | Explicit undo? | **Yes** — unmark the cell on failure to allow other paths to traverse it. |
 
-  search(
-    maze,
-    rows,
-    cols,
-    row,
-    col
-  ) {
+### Q1 — Why "state IS the answer"?
 
-    // If we reached the destination (bottom-right corner of the
-    // maze), update the solution with the current path and return
-    if (row === rows - 1 && col === cols - 1) {
-      this.solution = this.currentPath;
-      return;
-    }
+The path string we're building and the maze's visited markings together form the candidate. When we reach the goal, the path string is the answer. The state is the candidate. ✓
 
-    // Store the value of the current cell to mark it as visited
-    const cellValue = maze[row][col];
+### Q2 — Why "boolean propagation"?
 
-    // Update the control variable by marking
-    // the current cell as visited, to avoid revisiting it.
-    // Since the update is same for all choices, we do it before making
-    // any choice
-    maze[row][col] = -1;
+Each recursion asks "from this cell, can I reach the goal?" The answer is yes or no — a boolean. When yes propagates up, the caller knows it doesn't need to try other directions. ✓
 
-    // Explore all possible choices
-    for (const [dir, dx, dy] of this.choices) {
-      const newRow = row + dx;
-      const newCol = col + dy;
+### Q3 — Why "explicit undo"?
 
-      if (
-        newRow >= 0 && newRow < rows &&
-        newCol >= 0 && newCol < cols &&
-        maze[newRow][newCol] === 0
-      ) {
+If we don't unmark a cell after a failed exploration from it, subsequent sibling branches can't traverse that cell — even though they could legitimately. The unmark restores the maze for siblings. ✓
 
-        // Add the direction to path to make the choice
-        this.currentPath += dir;
+---
 
-        // Recursively find a solution in the reduced problem space
-        this.search(
-          maze,
-          rows,
-          cols,
-          newRow,
-          newCol
-        );
+## The Visit-Mark-Recurse-Unmark Strategy (Visualised)
 
-        // Undo previously made choices
-        this.currentPath = this.currentPath.slice(0, -1);
+<div class="d2-slides" data-caption="The maze gets mutated as we descend; on failure, mutations are undone before sibling branches run.">
 
-        // Terminate further search if a solution has been found
-        if (this.solution.length > 0) {
-          maze[row][col] = cellValue;
-          break;
-        }
-
-    // Mark the current cell as unvisited to allow other paths to
-    // explore it
-    maze[row][col] = cellValue;
-
-    // Return to explore other paths from previous recursive calls
-    return;
-  }
-
-  ratInAMaze(maze) {
-    if (!maze.length || !maze[0].length || maze[0][0] === 1) {
-      return "";
-    }
-
-    const rows = maze.length;
-    const cols = maze[0].length;
-
-    // Call the search function with initial position (0, 0) and
-    // an empty path
-    this.search(maze, rows, cols, 0, 0);
-
-    // Return the final path found, if any
-    return this.solution;
-  }
+```d2
+state: "Start at (0,0)" {
+  grid: "maze\n[0,1,1,1]\n[0,0,1,0]\n[0,0,1,1]\n[1,0,0,0]" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+}
 ```
 
-Python
+```d2
+state: "Marked (0,0) = -1, descending Down to (1,0)" {
+  grid: "maze\n[-1,1,1,1]\n[0,0,1,0]\n[0,0,1,1]\n[1,0,0,0]\npath = 'D'" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
+```
 
-```python
-from typing import List, Tuple
+```d2
+state: "(1,0) marked, descend to (2,0) = D" {
+  grid: "maze\n[-1,1,1,1]\n[-1,0,1,0]\n[0,0,1,1]\n[1,0,0,0]\npath = 'DD'" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+}
+```
+
+```d2
+state: "(2,0) marked, R to (2,1)" {
+  grid: "path = 'DDR'" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+}
+```
+
+```d2
+state: "Continue exploring; eventual success → 'DDRDRR'" {
+  grid: "path = 'DDRDRR' — goal reached!" {style.fill: "#ede9fe"; style.stroke: "#7c3aed"}
+}
+```
+
+</div>
+
+---
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+from typing import List
 
 class Solution:
-    def __init__(self) -> None:
-        # Create shared variables as instance variables
-        # to share them across recursive calls
-        self.solution: str = ""
-        self.current_path: str = ""
-
-        # Direction list: (direction char, row change, col change)
-        self.choices: List[Tuple[str, int, int]] = [
-            ('D',  1,  0),
-            ('R',  0,  1),
-            ('U', -1,  0),
-            ('L',  0, -1)
-        ]
-
-    def search(
-        self,
-        maze: List[List[int]],
-        rows: int,
-        cols: int,
-        row: int,
-        col: int
-    ) -> None:
-
-        # If we reached the destination (bottom-right corner of the
-        # maze), update the solution with the current path and return
-        if row == rows - 1 and col == cols - 1:
-            self.solution = self.current_path
-            return
-
-        # Store the value of the current cell to mark it as visited
-        cell_value = maze[row][col]
-
-        # Update the control variable by marking
-        # the current cell as visited, to avoid revisiting it.
-        # Since the update is same for all choices, we do it before making
-        # any choice
-        maze[row][col] = -1
-
-        # Explore all possible choices
-        for direction, dx, dy in self.choices:
-            new_row = row + dx
-            new_col = col + dy
-
-            if (
-                new_row >= 0 and new_row < rows and
-                new_col >= 0 and new_col < cols and
-                maze[new_row][new_col] == 0
-            ):
-
-                # Add the direction to path to make the choice
-                self.current_path += direction
-
-                # Recursively find a solution in the reduced problem space
-                self.search(
-                    maze,
-                    rows,
-                    cols,
-                    new_row,
-                    new_col
-                )
-
-                # Undo previously made choices
-                self.current_path = self.current_path[:-1]
-
-                # Terminate further search if a solution has been found
-                if self.solution:
-                    maze[row][col] = cell_value
-                    break
-
-        # Mark the current cell as unvisited to allow other paths to
-        # explore it
-        maze[row][col] = cell_value
-
-        # Return to explore other paths from previous recursive calls
-        return
+    DIRS = [('D', 1, 0), ('R', 0, 1), ('U', -1, 0), ('L', 0, -1)]
 
     def rat_in_a_maze(self, maze: List[List[int]]) -> str:
-        if not maze or not maze[0] or maze[0][0] == 1:
+        if not maze or not maze[0] or maze[0][0] != 0:
             return ""
+        path: List[str] = []
+        if self._search(maze, 0, 0, path):
+            return "".join(path)
+        return ""
 
-        rows = len(maze)
-        cols = len(maze[0])
+    def _search(self, maze: List[List[int]], row: int, col: int, path: List[str]) -> bool:
+        rows, cols = len(maze), len(maze[0])
+        if row == rows - 1 and col == cols - 1:
+            return True                      # goal reached; path holds the answer
+        original = maze[row][col]
+        maze[row][col] = -1                  # mark visited (apply)
+        for dir_char, dr, dc in self.DIRS:
+            nr, nc = row + dr, col + dc
+            if 0 <= nr < rows and 0 <= nc < cols and maze[nr][nc] == 0:
+                path.append(dir_char)
+                if self._search(maze, nr, nc, path):
+                    maze[row][col] = original
+                    return True               # propagate success
+                path.pop()                    # undo the path step
+        maze[row][col] = original             # undo the visit mark
+        return False
 
-        # Call the search function with initial position (0, 0) and
-        # an empty path
-        self.search(maze, rows, cols, 0, 0)
 
-        # Return the final path found, if any
-        return self.solution
+if __name__ == "__main__":
+    maze = [[0, 1, 1, 1], [0, 0, 1, 0], [0, 0, 1, 1], [1, 0, 0, 0]]
+    print(Solution().rat_in_a_maze(maze))
 ```
 
-.
+```java,editable
+public class Solution {
+    private static final int[][] DIRS = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
+    private static final char[] DIR_CHAR = {'D', 'R', 'U', 'L'};
 
-## Example problems
+    public String ratInAMaze(int[][] maze) {
+        if (maze.length == 0 || maze[0].length == 0 || maze[0][0] != 0) return "";
+        StringBuilder path = new StringBuilder();
+        return search(maze, 0, 0, path) ? path.toString() : "";
+    }
 
-Most problems that fall under this category are**medium**or **hard**problems; a list of a few is given below.
+    private boolean search(int[][] maze, int row, int col, StringBuilder path) {
+        int rows = maze.length, cols = maze[0].length;
+        if (row == rows - 1 && col == cols - 1) return true;
+        int orig = maze[row][col];
+        maze[row][col] = -1;
+        for (int i = 0; i < 4; i++) {
+            int nr = row + DIRS[i][0], nc = col + DIRS[i][1];
+            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && maze[nr][nc] == 0) {
+                path.append(DIR_CHAR[i]);
+                if (search(maze, nr, nc, path)) {
+                    maze[row][col] = orig;
+                    return true;
+                }
+                path.deleteCharAt(path.length() - 1);
+            }
+        }
+        maze[row][col] = orig;
+        return false;
+    }
 
-> -   **[Rat in a maze](https://www.codeintuition.io/courses/backtracking/G6WH8mkrcEVLpChdh2UZX)**
-> -   **[Word quest](https://www.codeintuition.io/courses/backtracking/Jx2geD7obrIkWRMpKvooM)**
-> -   **[Solve N queens](https://www.codeintuition.io/courses/backtracking/aOHZJV039vJZ88YrHpFmq)**
-> -   **[Solve sudoku](https://www.codeintuition.io/courses/backtracking/x1cupNE3e76txSET4y8Iy)**
+    public static void main(String[] args) {
+        int[][] maze = {{0, 1, 1, 1}, {0, 0, 1, 0}, {0, 0, 1, 1}, {1, 0, 0, 0}};
+        System.out.println(new Solution().ratInAMaze(maze));
+    }
+}
+```
 
-We will now solve these problems to gain a deeper understanding of the backtracking search pattern.
+```c,editable
+#include <stdio.h>
+#include <string.h>
+#include <stdbool.h>
 
-***
+#define R 4
+#define C 4
 
-# Rat in a maze
+static const int dirs[4][2] = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
+static const char DC[4] = {'D', 'R', 'U', 'L'};
 
-## Problem Statement
+bool search(int maze[R][C], int row, int col, char *path, int *pl) {
+    if (row == R - 1 && col == C - 1) return true;
+    int orig = maze[row][col];
+    maze[row][col] = -1;
+    for (int i = 0; i < 4; i++) {
+        int nr = row + dirs[i][0], nc = col + dirs[i][1];
+        if (nr >= 0 && nr < R && nc >= 0 && nc < C && maze[nr][nc] == 0) {
+            path[(*pl)++] = DC[i];
+            if (search(maze, nr, nc, path, pl)) {
+                maze[row][col] = orig;
+                return true;
+            }
+            (*pl)--;
+        }
+    }
+    maze[row][col] = orig;
+    return false;
+}
 
-Given a 2D integer **maze** of size **N** \* **M**with walkable space denoted by `0` and obstacles denoted by `1`. A rat is placed at index `(0, 0)`, and a function is written to find and return a string containing the path the rat can take to reach the destination at coordinates `(N - 1, M - 1)`. As multiple correct answers can exist, the judge will output `true` if your function returns one of the correct paths. Otherwise, it will output `false`.
+int main(void) {
+    int maze[R][C] = {{0, 1, 1, 1}, {0, 0, 1, 0}, {0, 0, 1, 1}, {1, 0, 0, 0}};
+    char path[100] = "";
+    int pl = 0;
+    if (search(maze, 0, 0, path, &pl)) {
+        path[pl] = '\0';
+        printf("%s\n", path);
+    } else {
+        printf("(no path)\n");
+    }
+    return 0;
+}
+```
 
-The rat can move in the four directions given below. If there is no such path, return an empty string.
-
-> -   U (up)
-> -   D (down)
-> -   L (left)
-> -   R (right)
-
-## Example
-
-> -   **Input:** maze = \[\[0, 1, 1, 1\], \[0, 0, 1, 0\], \[0, 0, 1, 1\], \[1, 0, 0, 0\]\]
-> -   **Output:** true
-> -   **Explanation:** You can follow the path DDRDRR to reach the destination. There is also another path, DRDDRR, which is a valid answer.
-
-## Solution
-
-```cpp
-#include <tuple>
-
-using namespace std;
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <string>
 
 class Solution {
 public:
-
-    // Direction list: (direction char, row change, col change)
-    vector<tuple<char, int, int>> choices = {
-        {'D',  1,  0},
-        {'R',  0,  1},
-        {'U', -1,  0},
-        {'L',  0, -1}
-    };
-
-    // Check if a cell is valid for movement
-    bool isValid(
-        vector<vector<int>> &maze,
-        int rows,
-        int cols,
-        int row,
-        int col
-    ) {
-        return row >= 0 && row < rows && col >= 0 && col < cols &&
-               maze[row][col] == 0;
-    }
-
-    bool search(
-        vector<vector<int>> &maze,
-        int rows,
-        int cols,
-        int row,
-        int col,
-        string &path
-    ) {
-
-        // If we reached the destination (bottom-right corner of the
-        // maze),
-        if (row == rows - 1 && col == cols - 1) {
-
-            // Valid path is now already stored in path
-            return true;
-        }
-
-        // Store the value of the current cell to mark it as visited
-        int cellValue = maze[row][col];
-
-        // Mark the current cell as visited to avoid revisiting it
+    bool search(std::vector<std::vector<int>>& maze, int row, int col, std::string& path) {
+        int rows = (int) maze.size(), cols = (int) maze[0].size();
+        if (row == rows - 1 && col == cols - 1) return true;
+        int orig = maze[row][col];
         maze[row][col] = -1;
-
-        // Loop through all possible choices (directions)
-        for (const auto &choice : choices) {
-            char dir;
-            int dx, dy;
-            tie(dir, dx, dy) = choice;
-
-            int newRow = row + dx;
-            int newCol = col + dy;
-
-            // Check if the new position can be visited
-            if (isValid(maze, rows, cols, newRow, newCol)) {
-
-                // Make choice: append direction to current path
-                path.push_back(dir);
-
-                // Recurse to explore further from the new cell
-                if (search(maze, rows, cols, newRow, newCol, path)) {
-
-                    // Unmake choice: mark the current cell as unvisited
-                    maze[row][col] = cellValue;
-
-                    // If a valid path is found, return true
+        const int dirs[4][2] = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
+        const char dc[4] = {'D', 'R', 'U', 'L'};
+        for (int i = 0; i < 4; i++) {
+            int nr = row + dirs[i][0], nc = col + dirs[i][1];
+            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && maze[nr][nc] == 0) {
+                path.push_back(dc[i]);
+                if (search(maze, nr, nc, path)) {
+                    maze[row][col] = orig;
                     return true;
                 }
-
-                // Unmake choice: remove the last added direction
                 path.pop_back();
             }
         }
-
-        // Unmake choice: mark the current cell as unvisited
-        maze[row][col] = cellValue;
-
-        // No path found from this cell, return false
+        maze[row][col] = orig;
         return false;
     }
 
-    string ratInAMaze(vector<vector<int>> &maze) {
-        if (maze.empty() || maze[0].empty() || maze[0][0] != 0) {
-            return "";
-        }
-
-        int rows = maze.size();
-        int cols = maze[0].size();
-
-        // Current path (state)
-        string path = "";
-
-        // Start backtracking from the top-left corner (0,0)
-        search(maze, rows, cols, 0, 0, path);
-
-        // Return the found path
-        return path;
+    std::string ratInAMaze(std::vector<std::vector<int>>& maze) {
+        if (maze.empty() || maze[0].empty() || maze[0][0] != 0) return "";
+        std::string path;
+        return search(maze, 0, 0, path) ? path : "";
     }
 };
+
+int main() {
+    std::vector<std::vector<int>> maze = {{0, 1, 1, 1}, {0, 0, 1, 0}, {0, 0, 1, 1}, {1, 0, 0, 0}};
+    std::cout << Solution{}.ratInAMaze(maze) << '\n';
+}
 ```
+
+```scala,editable
+class Solution {
+  private val dirs = Array((1, 0, 'D'), (0, 1, 'R'), (-1, 0, 'U'), (0, -1, 'L'))
+
+  def ratInAMaze(maze: Array[Array[Int]]): String = {
+    if (maze.isEmpty || maze(0).isEmpty || maze(0)(0) != 0) return ""
+    val path = new StringBuilder
+    if (search(maze, 0, 0, path)) path.toString() else ""
+  }
+
+  private def search(maze: Array[Array[Int]], row: Int, col: Int, path: StringBuilder): Boolean = {
+    val rows = maze.length
+    val cols = maze(0).length
+    if (row == rows - 1 && col == cols - 1) return true
+    val orig = maze(row)(col)
+    maze(row)(col) = -1
+    for ((dr, dc, ch) <- dirs) {
+      val nr = row + dr; val nc = col + dc
+      if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && maze(nr)(nc) == 0) {
+        path.append(ch)
+        if (search(maze, nr, nc, path)) {
+          maze(row)(col) = orig
+          return true
+        }
+        path.deleteCharAt(path.length - 1)
+      }
+    }
+    maze(row)(col) = orig
+    false
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    val maze = Array(Array(0,1,1,1), Array(0,0,1,0), Array(0,0,1,1), Array(1,0,0,0))
+    println(new Solution().ratInAMaze(maze))
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    constructor() {
+        this.DIRS = [[1, 0, 'D'], [0, 1, 'R'], [-1, 0, 'U'], [0, -1, 'L']];
+    }
+
+    ratInAMaze(maze) {
+        if (!maze.length || !maze[0].length || maze[0][0] !== 0) return "";
+        const path = [];
+        return this._search(maze, 0, 0, path) ? path.join("") : "";
+    }
+
+    _search(maze, row, col, path) {
+        const rows = maze.length, cols = maze[0].length;
+        if (row === rows - 1 && col === cols - 1) return true;
+        const orig = maze[row][col];
+        maze[row][col] = -1;
+        for (const [dr, dc, ch] of this.DIRS) {
+            const nr = row + dr, nc = col + dc;
+            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && maze[nr][nc] === 0) {
+                path.push(ch);
+                if (this._search(maze, nr, nc, path)) {
+                    maze[row][col] = orig;
+                    return true;
+                }
+                path.pop();
+            }
+        }
+        maze[row][col] = orig;
+        return false;
+    }
+}
+
+console.log(new Solution().ratInAMaze([[0,1,1,1],[0,0,1,0],[0,0,1,1],[1,0,0,0]]));
+```
+
+```typescript,editable
+class Solution {
+    private DIRS: [number, number, string][] = [[1, 0, 'D'], [0, 1, 'R'], [-1, 0, 'U'], [0, -1, 'L']];
+
+    ratInAMaze(maze: number[][]): string {
+        if (!maze.length || !maze[0].length || maze[0][0] !== 0) return "";
+        const path: string[] = [];
+        return this._search(maze, 0, 0, path) ? path.join("") : "";
+    }
+
+    private _search(maze: number[][], row: number, col: number, path: string[]): boolean {
+        const rows = maze.length, cols = maze[0].length;
+        if (row === rows - 1 && col === cols - 1) return true;
+        const orig = maze[row][col];
+        maze[row][col] = -1;
+        for (const [dr, dc, ch] of this.DIRS) {
+            const nr = row + dr, nc = col + dc;
+            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && maze[nr][nc] === 0) {
+                path.push(ch);
+                if (this._search(maze, nr, nc, path)) {
+                    maze[row][col] = orig;
+                    return true;
+                }
+                path.pop();
+            }
+        }
+        maze[row][col] = orig;
+        return false;
+    }
+}
+
+console.log(new Solution().ratInAMaze([[0,1,1,1],[0,0,1,0],[0,0,1,1],[1,0,0,0]]));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+var dirs = [4][3]int{{1, 0, 'D'}, {0, 1, 'R'}, {-1, 0, 'U'}, {0, -1, 'L'}}
+
+func search(maze [][]int, row, col int, path *[]byte) bool {
+    rows, cols := len(maze), len(maze[0])
+    if row == rows-1 && col == cols-1 {
+        return true
+    }
+    orig := maze[row][col]
+    maze[row][col] = -1
+    for _, d := range dirs {
+        nr, nc := row+d[0], col+d[1]
+        if nr >= 0 && nr < rows && nc >= 0 && nc < cols && maze[nr][nc] == 0 {
+            *path = append(*path, byte(d[2]))
+            if search(maze, nr, nc, path) {
+                maze[row][col] = orig
+                return true
+            }
+            *path = (*path)[:len(*path)-1]
+        }
+    }
+    maze[row][col] = orig
+    return false
+}
+
+func ratInAMaze(maze [][]int) string {
+    if len(maze) == 0 || len(maze[0]) == 0 || maze[0][0] != 0 {
+        return ""
+    }
+    path := []byte{}
+    if search(maze, 0, 0, &path) {
+        return string(path)
+    }
+    return ""
+}
+
+func main() {
+    fmt.Println(ratInAMaze([][]int{{0,1,1,1},{0,0,1,0},{0,0,1,1},{1,0,0,0}}))
+}
+```
+
+```kotlin,editable
+class Solution {
+    private val dirs = arrayOf(intArrayOf(1, 0, 'D'.code), intArrayOf(0, 1, 'R'.code),
+                                intArrayOf(-1, 0, 'U'.code), intArrayOf(0, -1, 'L'.code))
+
+    fun ratInAMaze(maze: Array<IntArray>): String {
+        if (maze.isEmpty() || maze[0].isEmpty() || maze[0][0] != 0) return ""
+        val path = StringBuilder()
+        return if (search(maze, 0, 0, path)) path.toString() else ""
+    }
+
+    private fun search(maze: Array<IntArray>, row: Int, col: Int, path: StringBuilder): Boolean {
+        val rows = maze.size; val cols = maze[0].size
+        if (row == rows - 1 && col == cols - 1) return true
+        val orig = maze[row][col]
+        maze[row][col] = -1
+        for (d in dirs) {
+            val nr = row + d[0]; val nc = col + d[1]
+            if (nr in 0 until rows && nc in 0 until cols && maze[nr][nc] == 0) {
+                path.append(d[2].toChar())
+                if (search(maze, nr, nc, path)) {
+                    maze[row][col] = orig
+                    return true
+                }
+                path.deleteCharAt(path.length - 1)
+            }
+        }
+        maze[row][col] = orig
+        return false
+    }
+}
+
+fun main() {
+    val maze = arrayOf(intArrayOf(0,1,1,1), intArrayOf(0,0,1,0), intArrayOf(0,0,1,1), intArrayOf(1,0,0,0))
+    println(Solution().ratInAMaze(maze))
+}
+```
+
+```rust,editable
+const DIRS: [(i32, i32, char); 4] = [(1, 0, 'D'), (0, 1, 'R'), (-1, 0, 'U'), (0, -1, 'L')];
+
+fn search(maze: &mut Vec<Vec<i32>>, row: i32, col: i32, path: &mut String) -> bool {
+    let rows = maze.len() as i32;
+    let cols = maze[0].len() as i32;
+    if row == rows - 1 && col == cols - 1 { return true; }
+    let orig = maze[row as usize][col as usize];
+    maze[row as usize][col as usize] = -1;
+    for &(dr, dc, ch) in DIRS.iter() {
+        let nr = row + dr; let nc = col + dc;
+        if nr >= 0 && nr < rows && nc >= 0 && nc < cols && maze[nr as usize][nc as usize] == 0 {
+            path.push(ch);
+            if search(maze, nr, nc, path) {
+                maze[row as usize][col as usize] = orig;
+                return true;
+            }
+            path.pop();
+        }
+    }
+    maze[row as usize][col as usize] = orig;
+    false
+}
+
+fn rat_in_a_maze(maze: &mut Vec<Vec<i32>>) -> String {
+    if maze.is_empty() || maze[0].is_empty() || maze[0][0] != 0 { return String::new(); }
+    let mut path = String::new();
+    if search(maze, 0, 0, &mut path) { path } else { String::new() }
+}
+
+fn main() {
+    let mut maze = vec![vec![0,1,1,1], vec![0,0,1,0], vec![0,0,1,1], vec![1,0,0,0]];
+    println!("{}", rat_in_a_maze(&mut maze));
+}
+```
+
+</div>
+
+---
+
+## Complexity Analysis
+
+| Resource | Cost | Why |
+|---|---|---|
+| **Time** | `O(4^(R·C))` worst case | Each cell can branch into up to 4 directions; total cells `R·C`. |
+| **Space (stack)** | `O(R·C)` | Recursion depth = path length ≤ total cells. |
+
+In practice, the visited-mark prevents revisiting cells, so the search is much faster than the naive `4^(R·C)` bound — closer to `O(R·C)` for typical mazes.
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected |
+|---|---|---|
+| Start blocked | `maze[0][0] = 1` | `""` (rat can't even start). |
+| Goal blocked | `maze[N-1][M-1] = 1` | `""`. |
+| 1×1 walkable | `[[0]]` | `""` (start = goal, path is empty string by convention). |
+| All open | `[[0,0],[0,0]]` | `"DR"` or `"RD"`. |
+| Disconnected | obstacles isolate the goal | `""`. |
+
+---
+
+## Final Takeaway
+
+Rat in a Maze is the canonical "find one path" search problem. Mark visited, recurse, propagate true on success, undo on failure. Same recipe applies to flood-fill, island-counting (when finding any cell of an island), and many graph reachability problems. The next problem keeps the 2D-grid setting but flips the goal: instead of reaching a destination, we're matching a sequence of characters.
 
 ***
 
-# Word quest
+# Word Quest
 
-## Problem Statement
+> **Course:** DSA › Algorithms › Backtracking › Search
 
-Given a 2D array **board** containing alphabets of the English language and a string called **word**. Write a function to check whether the word exists on the board. Return `true` if the word exists, or else return `false`. 
+A 2D character grid; we want to know whether a given word appears as a chain of orthogonally-adjacent cells (with no cell reused). Same search recipe as the maze, with character-matching instead of obstacle-checking.
 
-A word can be made from letters in cells next to each other, either up and down or left and right. The same letter cannot be used twice.
+---
 
-### Example
+## The Problem
 
-> -   **Input:** board = \[\[A, B, C, E\], \[S, F, C, S\], \[A, D, E, E\]\], word = ABCCED
-> -   **Output:** true
-> -   **Explanation:** The word exists on the board.
+Given a 2D grid `board` of single-character strings and a target string `word`, return `true` if `word` can be spelled by a chain of orthogonally adjacent cells (up, down, left, right) without reusing any cell. Else `false`.
 
-## Solution
+```
+Input:  board = [['A','B','C','E'],
+                 ['S','F','C','S'],
+                 ['A','D','E','E']],
+        word = "ABCCED"
+Output: true
+```
 
-```cpp
-#include <tuple>
+---
 
-using namespace std;
+## What's the Recursion Doing?
 
-class Solution {
-public:
+Try starting from every cell that matches `word[0]`. From each starting cell, recurse into the four neighbours; at each step, the next cell must match `word[index]`. Use the visited-mark trick to prevent reusing cells. When `index` reaches `len(word)`, the chain is complete — return `true`.
 
-    // Directions list: (row change, col change)
-    vector<tuple<int, int>> choices = {
-        { 1,  0}, // Down
-        {-1,  0}, // Up
-        { 0,  1}, // Right
-        { 0, -1}  // Left
-    };
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+  S["start at every (r,c) where board[r][c] = word[0]"]
+  S --> T["try search(r, c, index=1)"]
+  T --> M["mark board[r][c] visited"]
+  M --> N["for each neighbour matching word[index]"]
+  N --> R["recurse with index+1"]
+  R -->|"true"| OK["return true"]
+  R -->|"false"| ND["try next neighbour"]
+  ND --> N
+  N -->|"all exhausted"| FAIL["unmark, return false"]
+```
 
-    // Check if moving to (row,col) is valid for the current character
-    bool isValidMove(
-        vector<vector<string>> &board,
-        int row,
-        int col,
-        char target
-    ) {
+<p align="center"><strong>Backtracking search for word matching. The mark-visit-recurse-unmark dance is identical to the maze; only the validation differs (character match instead of cell type).</strong></p>
 
-        // Check boundaries
-        if (row < 0 || col < 0 || row >= board.size() ||
-            col >= board[0].size()) {
-            return false;
-        }
+---
 
-        // Check if the cell matches the target character
-        return board[row][col] == string(1, target);
-    }
+## Applying the Diagnostic Questions
 
-    // Recursive backtracking function
-    bool searchWord(
-        vector<vector<string>> &board,
-        string &word,
-        int index,
-        int row,
-        int col
-    ) {
+| # | Check | Answer |
+|---|---|---|
+| **Q1** | State IS the answer? | **Yes** — the visited grid + current index in word is the search state. |
+| **Q2** | Boolean propagation? | **Yes** — `true` if word can be completed from this cell, `false` otherwise. |
+| **Q3** | Explicit undo? | **Yes** — must unmark cells so other start positions can use them. |
 
-        // Base case: entire word matched (solution state)
-        if (index == word.length()) {
-            return true;
-        }
+### Q1 — Why "state IS"?
 
-        // Make choice: mark current cell as visited
-        string originalChar = board[row][col];
-        board[row][col] = "#";
+The "candidate" is "the chain of cells we've matched so far," tracked by the visited markers and the current `index`. ✓
 
-        // Explore all possible choices
-        for (auto &[dx, dy] : choices) {
-            int newRow = row + dx;
-            int newCol = col + dy;
+### Q2 — Why "boolean propagation"?
 
-            // Only recurse if this move is valid
-            if (isValidMove(board, newRow, newCol, word[index])) {
+We want a yes/no answer. If any starting cell can spell the word, return `true`; otherwise `false`. ✓
 
-                // Recurse to next character in word
-                if (searchWord(board, word, index + 1, newRow, newCol)) {
+### Q3 — Why "explicit undo"?
 
-                    // Unmake choice: restore original character
-                    board[row][col] = originalChar;
+Different starting cells should each get a clean view of the board. If we forget to unmark, one starting cell's pollution prevents another from working. ✓
 
-                    // Early return: solution found
+---
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+from typing import List
+
+class Solution:
+    DIRS = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+
+    def word_quest(self, board: List[List[str]], word: str) -> bool:
+        rows, cols = len(board), len(board[0])
+        for r in range(rows):
+            for c in range(cols):
+                if board[r][c] == word[0] and self._search(board, word, 1, r, c):
+                    return True
+        return False
+
+    def _search(self, board: List[List[str]], word: str, index: int, row: int, col: int) -> bool:
+        if index == len(word):
+            return True                              # entire word matched
+        rows, cols = len(board), len(board[0])
+        original = board[row][col]
+        board[row][col] = "#"                        # mark visited (sentinel value)
+        for dr, dc in self.DIRS:
+            nr, nc = row + dr, col + dc
+            if 0 <= nr < rows and 0 <= nc < cols and board[nr][nc] == word[index]:
+                if self._search(board, word, index + 1, nr, nc):
+                    board[row][col] = original
+                    return True
+        board[row][col] = original                   # undo on failure
+        return False
+
+
+if __name__ == "__main__":
+    board = [['A','B','C','E'], ['S','F','C','S'], ['A','D','E','E']]
+    print(Solution().word_quest(board, "ABCCED"))
+```
+
+```java,editable
+public class Solution {
+    private static final int[][] DIRS = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+
+    public boolean wordQuest(char[][] board, String word) {
+        int rows = board.length, cols = board[0].length;
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                if (board[r][c] == word.charAt(0) && search(board, word, 1, r, c)) {
                     return true;
                 }
             }
         }
-
-        // Unmake choice: restore the original character to allow other
-        // paths
-        board[row][col] = originalChar;
-
-        // Return false if word not found along this path
         return false;
     }
 
-    bool wordQuest(vector<vector<string>> &board, string word) {
-        int rows = board.size();
-        int cols = board[0].size();
-
-        // Start backtracking search from every cell on the board
-        for (int row = 0; row < rows; ++row) {
-            for (int col = 0; col < cols; ++col) {
-
-                // Only start if the first character matches
-                if (board[row][col] == string(1, word[0])) {
-
-                    // Start recursive backtracking
-                    if (searchWord(board, word, 1, row, col)) {
-                        return true;
-                    }
+    private boolean search(char[][] board, String word, int index, int row, int col) {
+        if (index == word.length()) return true;
+        char orig = board[row][col];
+        board[row][col] = '#';
+        for (int[] d : DIRS) {
+            int nr = row + d[0], nc = col + d[1];
+            if (nr >= 0 && nr < board.length && nc >= 0 && nc < board[0].length
+                && board[nr][nc] == word.charAt(index)) {
+                if (search(board, word, index + 1, nr, nc)) {
+                    board[row][col] = orig;
+                    return true;
                 }
             }
         }
-
-        // No path leads to the word
+        board[row][col] = orig;
         return false;
     }
-};
+
+    public static void main(String[] args) {
+        char[][] board = {{'A','B','C','E'}, {'S','F','C','S'}, {'A','D','E','E'}};
+        System.out.println(new Solution().wordQuest(board, "ABCCED"));
+    }
+}
 ```
 
-***
+```c,editable
+#include <stdio.h>
+#include <string.h>
+#include <stdbool.h>
 
-# Solve N queens
+#define R 3
+#define C 4
 
-## Problem Statement
+static const int dirs[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
-Given a positive integer **n**, Write a function to find and return all possible distinct solutions of the n queen puzzle. Each solution should show a unique configuration of the queens' placement on the chessboard, where the letter `Q` represents a queen and `.` represents an empty space. You can return the answer in **any order**.
+bool search(char board[R][C], const char *word, int index, int row, int col) {
+    if (index == (int) strlen(word)) return true;
+    char orig = board[row][col];
+    board[row][col] = '#';
+    for (int i = 0; i < 4; i++) {
+        int nr = row + dirs[i][0], nc = col + dirs[i][1];
+        if (nr >= 0 && nr < R && nc >= 0 && nc < C && board[nr][nc] == word[index]) {
+            if (search(board, word, index + 1, nr, nc)) {
+                board[row][col] = orig;
+                return true;
+            }
+        }
+    }
+    board[row][col] = orig;
+    return false;
+}
 
-The n-queens puzzle involves placing **n** queens on an **n x n** chessboard so that no two queens can attack each other.
+int main(void) {
+    char board[R][C] = {{'A','B','C','E'}, {'S','F','C','S'}, {'A','D','E','E'}};
+    const char *word = "ABCCED";
+    bool found = false;
+    for (int r = 0; r < R && !found; r++) {
+        for (int c = 0; c < C && !found; c++) {
+            if (board[r][c] == word[0] && search(board, word, 1, r, c)) found = true;
+        }
+    }
+    printf("%s\n", found ? "true" : "false");
+    return 0;
+}
+```
 
-### Example
-
-> -   **Input:** n = 4
-> -   **Output:** \[\[.Q.., ...Q, Q..., ..Q.\], \[..Q., Q..., ...Q, .Q..\]\]
-> -   **Explanation:** There exist two distinct solutions to the 4-queens puzzle, as shown above.
-
-## Solution
-
-```cpp
-#include <algorithm>
-
-using namespace std;
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <string>
 
 class Solution {
 public:
-
-    // Helper function to check if a queen can be safely placed at (row,
-    // col)
-    bool canPlaceQueen(vector<int> &queenPositions, int row, int col) {
-        for (int i = 0; i < row; i++) {
-
-            // Check for column conflict: no other queen should be in the
-            // same column Check for diagonal conflict: no other queen
-            // should be in the same diagonal
-            if (queenPositions[i] == col ||
-                row - i == abs(col - queenPositions[i])) {
-                return false;
+    bool search(std::vector<std::vector<char>>& board, const std::string& word, int index, int row, int col) {
+        if (index == (int) word.length()) return true;
+        char orig = board[row][col];
+        board[row][col] = '#';
+        const int dirs[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+        for (auto& d : dirs) {
+            int nr = row + d[0], nc = col + d[1];
+            if (nr >= 0 && nr < (int) board.size() && nc >= 0 && nc < (int) board[0].size()
+                && board[nr][nc] == word[index]) {
+                if (search(board, word, index + 1, nr, nc)) {
+                    board[row][col] = orig;
+                    return true;
+                }
             }
+        }
+        board[row][col] = orig;
+        return false;
+    }
+
+    bool wordQuest(std::vector<std::vector<char>>& board, const std::string& word) {
+        int rows = (int) board.size(), cols = (int) board[0].size();
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                if (board[r][c] == word[0] && search(board, word, 1, r, c)) return true;
+            }
+        }
+        return false;
+    }
+};
+
+int main() {
+    std::vector<std::vector<char>> board = {{'A','B','C','E'}, {'S','F','C','S'}, {'A','D','E','E'}};
+    std::cout << std::boolalpha << Solution{}.wordQuest(board, "ABCCED") << '\n';
+}
+```
+
+```scala,editable
+class Solution {
+  private val dirs = Array((1, 0), (-1, 0), (0, 1), (0, -1))
+
+  def wordQuest(board: Array[Array[Char]], word: String): Boolean = {
+    val rows = board.length; val cols = board(0).length
+    for (r <- 0 until rows; c <- 0 until cols) {
+      if (board(r)(c) == word.charAt(0) && search(board, word, 1, r, c)) return true
+    }
+    false
+  }
+
+  private def search(board: Array[Array[Char]], word: String, index: Int, row: Int, col: Int): Boolean = {
+    if (index == word.length) return true
+    val orig = board(row)(col)
+    board(row)(col) = '#'
+    for ((dr, dc) <- dirs) {
+      val nr = row + dr; val nc = col + dc
+      if (nr >= 0 && nr < board.length && nc >= 0 && nc < board(0).length && board(nr)(nc) == word.charAt(index)) {
+        if (search(board, word, index + 1, nr, nc)) {
+          board(row)(col) = orig
+          return true
+        }
+      }
+    }
+    board(row)(col) = orig
+    false
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    val board = Array(Array('A','B','C','E'), Array('S','F','C','S'), Array('A','D','E','E'))
+    println(new Solution().wordQuest(board, "ABCCED"))
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    constructor() { this.DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]]; }
+
+    wordQuest(board, word) {
+        const rows = board.length, cols = board[0].length;
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (board[r][c] === word[0] && this._search(board, word, 1, r, c)) return true;
+            }
+        }
+        return false;
+    }
+
+    _search(board, word, index, row, col) {
+        if (index === word.length) return true;
+        const orig = board[row][col];
+        board[row][col] = "#";
+        for (const [dr, dc] of this.DIRS) {
+            const nr = row + dr, nc = col + dc;
+            if (nr >= 0 && nr < board.length && nc >= 0 && nc < board[0].length && board[nr][nc] === word[index]) {
+                if (this._search(board, word, index + 1, nr, nc)) {
+                    board[row][col] = orig;
+                    return true;
+                }
+            }
+        }
+        board[row][col] = orig;
+        return false;
+    }
+}
+
+const board = [['A','B','C','E'], ['S','F','C','S'], ['A','D','E','E']];
+console.log(new Solution().wordQuest(board, "ABCCED"));
+```
+
+```typescript,editable
+class Solution {
+    private DIRS: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+    wordQuest(board: string[][], word: string): boolean {
+        const rows = board.length, cols = board[0].length;
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (board[r][c] === word[0] && this._search(board, word, 1, r, c)) return true;
+            }
+        }
+        return false;
+    }
+
+    private _search(board: string[][], word: string, index: number, row: number, col: number): boolean {
+        if (index === word.length) return true;
+        const orig = board[row][col];
+        board[row][col] = "#";
+        for (const [dr, dc] of this.DIRS) {
+            const nr = row + dr, nc = col + dc;
+            if (nr >= 0 && nr < board.length && nc >= 0 && nc < board[0].length && board[nr][nc] === word[index]) {
+                if (this._search(board, word, index + 1, nr, nc)) {
+                    board[row][col] = orig;
+                    return true;
+                }
+            }
+        }
+        board[row][col] = orig;
+        return false;
+    }
+}
+
+const board: string[][] = [['A','B','C','E'], ['S','F','C','S'], ['A','D','E','E']];
+console.log(new Solution().wordQuest(board, "ABCCED"));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+var dirs = [4][2]int{{1, 0}, {-1, 0}, {0, 1}, {0, -1}}
+
+func searchWord(board [][]byte, word string, index, row, col int) bool {
+    if index == len(word) {
+        return true
+    }
+    orig := board[row][col]
+    board[row][col] = '#'
+    for _, d := range dirs {
+        nr, nc := row+d[0], col+d[1]
+        if nr >= 0 && nr < len(board) && nc >= 0 && nc < len(board[0]) && board[nr][nc] == word[index] {
+            if searchWord(board, word, index+1, nr, nc) {
+                board[row][col] = orig
+                return true
+            }
+        }
+    }
+    board[row][col] = orig
+    return false
+}
+
+func wordQuest(board [][]byte, word string) bool {
+    for r := 0; r < len(board); r++ {
+        for c := 0; c < len(board[0]); c++ {
+            if board[r][c] == word[0] && searchWord(board, word, 1, r, c) {
+                return true
+            }
+        }
+    }
+    return false
+}
+
+func main() {
+    board := [][]byte{{'A','B','C','E'}, {'S','F','C','S'}, {'A','D','E','E'}}
+    fmt.Println(wordQuest(board, "ABCCED"))
+}
+```
+
+```kotlin,editable
+class Solution {
+    private val dirs = arrayOf(intArrayOf(1, 0), intArrayOf(-1, 0), intArrayOf(0, 1), intArrayOf(0, -1))
+
+    fun wordQuest(board: Array<CharArray>, word: String): Boolean {
+        for (r in board.indices) {
+            for (c in board[0].indices) {
+                if (board[r][c] == word[0] && search(board, word, 1, r, c)) return true
+            }
+        }
+        return false
+    }
+
+    private fun search(board: Array<CharArray>, word: String, index: Int, row: Int, col: Int): Boolean {
+        if (index == word.length) return true
+        val orig = board[row][col]
+        board[row][col] = '#'
+        for (d in dirs) {
+            val nr = row + d[0]; val nc = col + d[1]
+            if (nr in board.indices && nc in board[0].indices && board[nr][nc] == word[index]) {
+                if (search(board, word, index + 1, nr, nc)) {
+                    board[row][col] = orig
+                    return true
+                }
+            }
+        }
+        board[row][col] = orig
+        return false
+    }
+}
+
+fun main() {
+    val board = arrayOf(charArrayOf('A','B','C','E'), charArrayOf('S','F','C','S'), charArrayOf('A','D','E','E'))
+    println(Solution().wordQuest(board, "ABCCED"))
+}
+```
+
+```rust,editable
+const DIRS: [(i32, i32); 4] = [(1, 0), (-1, 0), (0, 1), (0, -1)];
+
+fn search(board: &mut Vec<Vec<char>>, word: &Vec<char>, index: usize, row: i32, col: i32) -> bool {
+    if index == word.len() { return true; }
+    let orig = board[row as usize][col as usize];
+    board[row as usize][col as usize] = '#';
+    let rows = board.len() as i32;
+    let cols = board[0].len() as i32;
+    for &(dr, dc) in DIRS.iter() {
+        let nr = row + dr; let nc = col + dc;
+        if nr >= 0 && nr < rows && nc >= 0 && nc < cols && board[nr as usize][nc as usize] == word[index] {
+            if search(board, word, index + 1, nr, nc) {
+                board[row as usize][col as usize] = orig;
+                return true;
+            }
+        }
+    }
+    board[row as usize][col as usize] = orig;
+    false
+}
+
+fn word_quest(board: &mut Vec<Vec<char>>, word: &str) -> bool {
+    let chars: Vec<char> = word.chars().collect();
+    let rows = board.len() as i32;
+    let cols = board[0].len() as i32;
+    for r in 0..rows {
+        for c in 0..cols {
+            if board[r as usize][c as usize] == chars[0] && search(board, &chars, 1, r, c) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn main() {
+    let mut board = vec![vec!['A','B','C','E'], vec!['S','F','C','S'], vec!['A','D','E','E']];
+    println!("{}", word_quest(&mut board, "ABCCED"));
+}
+```
+
+</div>
+
+---
+
+## Complexity Analysis
+
+| Resource | Cost | Why |
+|---|---|---|
+| **Time** | `O(rows · cols · 4^len(word))` | Up to `rows · cols` start positions × `4^len(word)` paths from each. |
+| **Space (stack)** | `O(len(word))` | Recursion depth = word length. |
+
+In practice the visited-mark prunes the search aggressively — most paths fail at length 2-3.
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected |
+|---|---|---|
+| Word longer than board cells | board has 5 cells, word length 6 | `false`. |
+| First-char absent | board has no 'A', word starts with 'A' | `false`. |
+| Single-char word | word = "X" | `true` iff the board contains 'X'. |
+| Word reuses a cell | needs same cell twice | `false` by problem statement. |
+
+---
+
+## Final Takeaway
+
+Word Quest is the canonical "match a sequence on a grid" search problem. Same recipe as the maze; only the validation function differs (character match vs walkability). The next problem changes the world from a 2D grid to an `n × n` chessboard, and the algorithm collects *all* valid configurations rather than just one.
+
+***
+
+# Solve N Queens
+
+> **Course:** DSA › Algorithms › Backtracking › Search
+
+The classic. Place `n` queens on an `n × n` board so no two attack each other. Find *all* valid configurations.
+
+---
+
+## The Problem
+
+Given `n`, return all distinct solutions to the n-queens problem. Each solution is a list of `n` strings, each of length `n`, where `Q` is a queen and `.` is empty. Two queens attack iff they share a row, column, or diagonal.
+
+```
+Input:  n = 4
+Output: [
+  [".Q..", "...Q", "Q...", "..Q."],
+  ["..Q.", "Q...", "...Q", ".Q.."]
+]
+```
+
+There are exactly two solutions for `n = 4`. For `n = 8`, the famous answer is 92 solutions (12 if you account for symmetry).
+
+---
+
+## Why This Is a Search With "Find All"
+
+Two structural choices simplify the problem:
+1. **One queen per row.** No two queens can share a row, so we place exactly one per row. Reduces the choice set per level from `n²` cells to `n` columns.
+2. **Process rows in order.** The state at depth `r` is "queens placed in rows 0..r-1." Each frame picks a column for row `r`.
+
+The constraint check at each placement: **the chosen column must not conflict with any already-placed queen** — same column, same diagonal, or same anti-diagonal.
+
+---
+
+## Applying the Diagnostic Questions
+
+| # | Check | Answer |
+|---|---|---|
+| **Q1** | State IS the answer? | **Yes** — the array of column-positions is the configuration. |
+| **Q2** | Boolean propagation? | Almost — but here we want *all* solutions, so we use a record-and-continue variant. |
+| **Q3** | Explicit undo? | **Yes** — set the column-position to `-1` after exploring its subtree. |
+
+### Q1 — Why "state IS"?
+
+The state — `queenPositions[i]` = column of the queen in row `i` — completely determines a board configuration. ✓
+
+### Q2 — Why "find-all variant"?
+
+For the maze and word problems, we wanted *one* solution and propagated `true` to stop. Here we want *all*, so the search doesn't stop on first success — instead, it records each valid configuration and continues. ✓
+
+### Q3 — Why "explicit undo"?
+
+After fully exploring "what configurations exist with the queen for row 0 in column 0?", we move on to "...with the queen in column 1." That requires resetting `queenPositions[0]` so it doesn't pollute later rows' conflict checks. ✓
+
+---
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+from typing import List
+
+class Solution:
+    def solve_n_queens(self, n: int) -> List[List[str]]:
+        positions = [-1] * n          # positions[r] = col of queen in row r
+        results: List[List[str]] = []
+        self._search(positions, 0, n, results)
+        return results
+
+    def _search(self, positions: List[int], row: int, n: int, results: List[List[str]]) -> None:
+        if row == n:
+            results.append(self._make_board(positions, n))
+            return
+        for col in range(n):
+            if self._can_place(positions, row, col):
+                positions[row] = col              # apply
+                self._search(positions, row + 1, n, results)
+                positions[row] = -1               # undo
+
+    @staticmethod
+    def _can_place(positions: List[int], row: int, col: int) -> bool:
+        for r in range(row):
+            if positions[r] == col:               # same column
+                return False
+            if abs(positions[r] - col) == row - r: # same diagonal (|Δcol| == Δrow)
+                return False
+        return True
+
+    @staticmethod
+    def _make_board(positions: List[int], n: int) -> List[str]:
+        board = []
+        for r in range(n):
+            row_str = ['.'] * n
+            row_str[positions[r]] = 'Q'
+            board.append("".join(row_str))
+        return board
+
+
+if __name__ == "__main__":
+    for sol in Solution().solve_n_queens(4):
+        for row in sol: print(row)
+        print()
+```
+
+```java,editable
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+public class Solution {
+    public List<List<String>> solveNQueens(int n) {
+        int[] positions = new int[n];
+        Arrays.fill(positions, -1);
+        List<List<String>> results = new ArrayList<>();
+        search(positions, 0, n, results);
+        return results;
+    }
+
+    private void search(int[] positions, int row, int n, List<List<String>> results) {
+        if (row == n) {
+            results.add(makeBoard(positions, n));
+            return;
+        }
+        for (int col = 0; col < n; col++) {
+            if (canPlace(positions, row, col)) {
+                positions[row] = col;
+                search(positions, row + 1, n, results);
+                positions[row] = -1;
+            }
+        }
+    }
+
+    private boolean canPlace(int[] positions, int row, int col) {
+        for (int r = 0; r < row; r++) {
+            if (positions[r] == col) return false;
+            if (Math.abs(positions[r] - col) == row - r) return false;
         }
         return true;
     }
 
-    // Helper function to convert the current state vector into a board
-    // representation
-    vector<string> makeSolution(vector<int> &queenPositions, int n) {
-
-        // Create an n x n board initialized with '.'
-        vector<string> board(n, string(n, '.'));
-
-        // Place queens on the board based on the state vector
-        for (int i = 0; i < n; i++) {
-            board[i][queenPositions[i]] = 'Q';
+    private List<String> makeBoard(int[] positions, int n) {
+        List<String> board = new ArrayList<>();
+        for (int r = 0; r < n; r++) {
+            char[] row = new char[n];
+            Arrays.fill(row, '.');
+            row[positions[r]] = 'Q';
+            board.add(new String(row));
         }
-
-        // Return the board representation
         return board;
     }
 
-    void searchSolutions(
-        vector<int> &queenPositions,
-        int row,
-        int n,
-        vector<vector<string>> &solutions
-    ) {
-
-        // Check if all queens have been successfully placed
-        if (row == n) {
-
-            // Current state represents a valid solution, convert it to
-            // board format and store
-            solutions.push_back(makeSolution(queenPositions, n));
-
-            // Stop searching further as we found a valid solution
-            return;
-        }
-
-        // Loop through each column in the current row to try placing a
-        // queen (all choices)
-        for (int col = 0; col < n; col++) {
-
-            // Check if placing a queen at (row, col) is safe
-            if (canPlaceQueen(queenPositions, row, col)) {
-
-                // Place the queen in the current row at column col (make
-                // choice)
-                queenPositions[row] = col;
-
-                // Recursively try to place queens in the next row
-                searchSolutions(queenPositions, row + 1, n, solutions);
-
-                // Remove the queen from the current row to backtrack and
-                // try the next column (revert choice)
-                queenPositions[row] = -1;
-            }
-        }
+    public static void main(String[] args) {
+        System.out.println(new Solution().solveNQueens(4));
     }
-
-    vector<vector<string>> solveNQueens(int n) {
-
-        // Vector to store all valid board configurations (solution
-        // states)
-        vector<vector<string>> solutions;
-
-        // State vector: queenPositions[i] stores the column index of the
-        // queen placed in row i
-        vector<int> queenPositions(n, -1);
-
-        // Start the search process from the first row (row 0)
-        searchSolutions(queenPositions, 0, n, solutions);
-
-        // Return all valid solutions found
-        return solutions;
-    }
-};
+}
 ```
 
-***
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
-# Solve sudoku
+static bool can_place(int *positions, int row, int col) {
+    for (int r = 0; r < row; r++) {
+        if (positions[r] == col) return false;
+        if (abs(positions[r] - col) == row - r) return false;
+    }
+    return true;
+}
 
-## Problem Statement
+static void print_board(int *positions, int n) {
+    for (int r = 0; r < n; r++) {
+        for (int c = 0; c < n; c++) putchar(positions[r] == c ? 'Q' : '.');
+        putchar('\n');
+    }
+    putchar('\n');
+}
 
-Given a `9X9` 2D array **board** representing a partially filled Sudoku puzzle, write a function to return the solution for the puzzle by filling the empty cells. A valid solution to the Sudoku puzzle must abide by the following rules:
+static void search(int *positions, int row, int n, int *count) {
+    if (row == n) { print_board(positions, n); (*count)++; return; }
+    for (int col = 0; col < n; col++) {
+        if (can_place(positions, row, col)) {
+            positions[row] = col;
+            search(positions, row + 1, n, count);
+            positions[row] = -1;
+        }
+    }
+}
 
-> -   Each digit from `1` to `9` must appear exactly once in each row.
-> -   Each digit from `1` to `9` must appear exactly once in each column.
-> -   Each digit from `1` to `9` must appear exactly once in each of the `9` `3x3` sub-boxes of the grid.
+int main(void) {
+    int n = 4;
+    int *positions = (int *) malloc(sizeof(int) * n);
+    for (int i = 0; i < n; i++) positions[i] = -1;
+    int count = 0;
+    search(positions, 0, n, &count);
+    printf("Total: %d solutions\n", count);
+    free(positions);
+    return 0;
+}
+```
 
-Note that in the input puzzle, the character `X` represents an empty cell.
-
-### Example
-
-> -   **Input:** board = \[\[5, 3, X, X, 7, X, X, X, X\], \[6, X, X, 1, 9, 5, X, X, X\], \[X, 9, 8, X, X, X, X, 6, X\], \[8, X, X, X, 6, X, X, X, 3\], \[4, X, X, 8, X, 3, X, X, 1\], \[7, X, X, X, 2, X, X, X, 6\], \[X, 6, X, X, X, X, 2, 8, X\], \[X, X, X, 4, 1, 9, X, X, 5\], \[X, X, X, X, 8, X, X, 7, 9\]\]
-> -   **Output:** \[\[5, 3, 4, 6, 7, 8, 9, 1, 2\], \[6, 7, 2, 1, 9, 5, 3, 4, 8\], \[1, 9, 8, 3, 4, 2, 5, 6, 7\], \[8, 5, 9, 7, 6, 1, 4, 2, 3\], \[4, 2, 6, 8, 5, 3, 7, 9, 1\], \[7, 1, 3, 9, 2, 4, 8, 5, 6\], \[9, 6, 1, 5, 3, 7, 2, 8, 4\], \[2, 8, 7, 4, 1, 9, 6, 3, 5\], \[3, 4, 5, 2, 8, 6, 1, 7, 9\]\]
-> -   **Explanation:** Above is the only valid solution for this puzzle.
-
-## Solution
-
-```cpp
-using namespace std;
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <string>
+#include <cstdlib>
 
 class Solution {
 public:
-
-    // Checks if placing 'num' in the specified row is valid
-    bool isValidRow(vector<vector<string>> &board, int row, string num) {
-        for (int col = 0; col < 9; col++) {
-            if (board[row][col] == num) {
-                return false;
-            }
+    bool canPlace(std::vector<int>& positions, int row, int col) {
+        for (int r = 0; r < row; r++) {
+            if (positions[r] == col) return false;
+            if (std::abs(positions[r] - col) == row - r) return false;
         }
         return true;
     }
 
-    // Checks if placing 'num' in the specified column is valid
-    bool isValidCol(vector<vector<string>> &board, int col, string num) {
-        for (int row = 0; row < 9; row++) {
-            if (board[row][col] == num) {
-                return false;
+    std::vector<std::string> makeBoard(std::vector<int>& positions, int n) {
+        std::vector<std::string> board(n, std::string(n, '.'));
+        for (int r = 0; r < n; r++) board[r][positions[r]] = 'Q';
+        return board;
+    }
+
+    void search(std::vector<int>& positions, int row, int n, std::vector<std::vector<std::string>>& results) {
+        if (row == n) { results.push_back(makeBoard(positions, n)); return; }
+        for (int col = 0; col < n; col++) {
+            if (canPlace(positions, row, col)) {
+                positions[row] = col;
+                search(positions, row + 1, n, results);
+                positions[row] = -1;
             }
+        }
+    }
+
+    std::vector<std::vector<std::string>> solveNQueens(int n) {
+        std::vector<int> positions(n, -1);
+        std::vector<std::vector<std::string>> results;
+        search(positions, 0, n, results);
+        return results;
+    }
+};
+
+int main() {
+    auto r = Solution{}.solveNQueens(4);
+    for (auto& sol : r) { for (auto& row : sol) std::cout << row << '\n'; std::cout << '\n'; }
+}
+```
+
+```scala,editable
+import scala.collection.mutable.ArrayBuffer
+
+class Solution {
+  def solveNQueens(n: Int): List[List[String]] = {
+    val positions = Array.fill(n)(-1)
+    val results = ArrayBuffer[List[String]]()
+    search(positions, 0, n, results)
+    results.toList
+  }
+
+  private def search(positions: Array[Int], row: Int, n: Int, results: ArrayBuffer[List[String]]): Unit = {
+    if (row == n) {
+      results += makeBoard(positions, n)
+      return
+    }
+    for (col <- 0 until n) {
+      if (canPlace(positions, row, col)) {
+        positions(row) = col
+        search(positions, row + 1, n, results)
+        positions(row) = -1
+      }
+    }
+  }
+
+  private def canPlace(positions: Array[Int], row: Int, col: Int): Boolean = {
+    for (r <- 0 until row) {
+      if (positions(r) == col) return false
+      if (math.abs(positions(r) - col) == row - r) return false
+    }
+    true
+  }
+
+  private def makeBoard(positions: Array[Int], n: Int): List[String] = {
+    (0 until n).map { r =>
+      val sb = new StringBuilder
+      for (c <- 0 until n) sb.append(if (positions(r) == c) 'Q' else '.')
+      sb.toString()
+    }.toList
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = println(new Solution().solveNQueens(4))
+}
+```
+
+```javascript,editable
+class Solution {
+    solveNQueens(n) {
+        const positions = new Array(n).fill(-1);
+        const results = [];
+        this._search(positions, 0, n, results);
+        return results;
+    }
+
+    _search(positions, row, n, results) {
+        if (row === n) { results.push(this._makeBoard(positions, n)); return; }
+        for (let col = 0; col < n; col++) {
+            if (this._canPlace(positions, row, col)) {
+                positions[row] = col;
+                this._search(positions, row + 1, n, results);
+                positions[row] = -1;
+            }
+        }
+    }
+
+    _canPlace(positions, row, col) {
+        for (let r = 0; r < row; r++) {
+            if (positions[r] === col) return false;
+            if (Math.abs(positions[r] - col) === row - r) return false;
         }
         return true;
     }
 
-    // Checks if placing 'num' in the 3x3 sub-grid containing (row, col)
-    // is valid
-    bool isValidSubGrid(
-        vector<vector<string>> &board,
-        int row,
-        int col,
-        string num
-    ) {
-        int startRow = (row / 3) * 3;
-        int startCol = (col / 3) * 3;
-        for (int r = startRow; r < startRow + 3; r++) {
-            for (int c = startCol; c < startCol + 3; c++) {
-                if (board[r][c] == num)
-                    return false;
+    _makeBoard(positions, n) {
+        const board = [];
+        for (let r = 0; r < n; r++) {
+            const row = new Array(n).fill('.');
+            row[positions[r]] = 'Q';
+            board.push(row.join(""));
+        }
+        return board;
+    }
+}
+
+console.log(new Solution().solveNQueens(4));
+```
+
+```typescript,editable
+class Solution {
+    solveNQueens(n: number): string[][] {
+        const positions: number[] = new Array(n).fill(-1);
+        const results: string[][] = [];
+        this._search(positions, 0, n, results);
+        return results;
+    }
+
+    private _search(positions: number[], row: number, n: number, results: string[][]): void {
+        if (row === n) { results.push(this._makeBoard(positions, n)); return; }
+        for (let col = 0; col < n; col++) {
+            if (this._canPlace(positions, row, col)) {
+                positions[row] = col;
+                this._search(positions, row + 1, n, results);
+                positions[row] = -1;
             }
+        }
+    }
+
+    private _canPlace(positions: number[], row: number, col: number): boolean {
+        for (let r = 0; r < row; r++) {
+            if (positions[r] === col) return false;
+            if (Math.abs(positions[r] - col) === row - r) return false;
         }
         return true;
     }
 
-    // Checks if placing 'num' at (row, col) is valid in all respects
-    bool isValidPlacement(
-        vector<vector<string>> &board,
-        int row,
-        int col,
-        string num
-    ) {
+    private _makeBoard(positions: number[], n: number): string[] {
+        const board: string[] = [];
+        for (let r = 0; r < n; r++) {
+            const row = new Array(n).fill('.');
+            row[positions[r]] = 'Q';
+            board.push(row.join(""));
+        }
+        return board;
+    }
+}
 
-        // Check row, column, and sub-grid constraints
-        return isValidRow(board, row, num) &&
-               isValidCol(board, col, num) &&
-               isValidSubGrid(board, row, col, num);
+console.log(new Solution().solveNQueens(4));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func canPlace(positions []int, row, col int) bool {
+    for r := 0; r < row; r++ {
+        if positions[r] == col {
+            return false
+        }
+        if abs(positions[r]-col) == row-r {
+            return false
+        }
+    }
+    return true
+}
+
+func abs(x int) int { if x < 0 { return -x }; return x }
+
+func makeBoard(positions []int, n int) []string {
+    board := make([]string, n)
+    for r := 0; r < n; r++ {
+        row := make([]byte, n)
+        for c := 0; c < n; c++ {
+            if positions[r] == c {
+                row[c] = 'Q'
+            } else {
+                row[c] = '.'
+            }
+        }
+        board[r] = string(row)
+    }
+    return board
+}
+
+func search(positions []int, row, n int, results *[][]string) {
+    if row == n {
+        *results = append(*results, makeBoard(positions, n))
+        return
+    }
+    for col := 0; col < n; col++ {
+        if canPlace(positions, row, col) {
+            positions[row] = col
+            search(positions, row+1, n, results)
+            positions[row] = -1
+        }
+    }
+}
+
+func solveNQueens(n int) [][]string {
+    positions := make([]int, n)
+    for i := range positions { positions[i] = -1 }
+    results := [][]string{}
+    search(positions, 0, n, &results)
+    return results
+}
+
+func main() {
+    fmt.Println(solveNQueens(4))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun solveNQueens(n: Int): List<List<String>> {
+        val positions = IntArray(n) { -1 }
+        val results = mutableListOf<List<String>>()
+        search(positions, 0, n, results)
+        return results
     }
 
-    // Recursive search function to fill the Sudoku board
-    bool searchSolution(vector<vector<string>> &board) {
+    private fun search(positions: IntArray, row: Int, n: Int, results: MutableList<List<String>>) {
+        if (row == n) { results.add(makeBoard(positions, n)); return }
+        for (col in 0 until n) {
+            if (canPlace(positions, row, col)) {
+                positions[row] = col
+                search(positions, row + 1, n, results)
+                positions[row] = -1
+            }
+        }
+    }
 
-        // Iterate through each cell of the board
+    private fun canPlace(positions: IntArray, row: Int, col: Int): Boolean {
+        for (r in 0 until row) {
+            if (positions[r] == col) return false
+            if (kotlin.math.abs(positions[r] - col) == row - r) return false
+        }
+        return true
+    }
+
+    private fun makeBoard(positions: IntArray, n: Int): List<String> {
+        return (0 until n).map { r ->
+            (0 until n).joinToString("") { c -> if (positions[r] == c) "Q" else "." }
+        }
+    }
+}
+
+fun main() {
+    println(Solution().solveNQueens(4))
+}
+```
+
+```rust,editable
+fn can_place(positions: &Vec<i32>, row: usize, col: i32) -> bool {
+    for r in 0..row {
+        if positions[r] == col { return false; }
+        if (positions[r] - col).abs() == (row as i32 - r as i32) { return false; }
+    }
+    true
+}
+
+fn make_board(positions: &Vec<i32>, n: i32) -> Vec<String> {
+    (0..n as usize).map(|r| {
+        (0..n).map(|c| if positions[r] == c { 'Q' } else { '.' }).collect::<String>()
+    }).collect()
+}
+
+fn search(positions: &mut Vec<i32>, row: usize, n: i32, results: &mut Vec<Vec<String>>) {
+    if row == n as usize { results.push(make_board(positions, n)); return; }
+    for col in 0..n {
+        if can_place(positions, row, col) {
+            positions[row] = col;
+            search(positions, row + 1, n, results);
+            positions[row] = -1;
+        }
+    }
+}
+
+fn solve_n_queens(n: i32) -> Vec<Vec<String>> {
+    let mut positions: Vec<i32> = vec![-1; n as usize];
+    let mut results: Vec<Vec<String>> = Vec::new();
+    search(&mut positions, 0, n, &mut results);
+    results
+}
+
+fn main() {
+    println!("{:?}", solve_n_queens(4));
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — n = 4</strong></summary>
+
+```
+Place row 0:
+  col 0: ok, recurse
+    row 1: try col 0 conflict, col 1 conflict (diag), col 2 conflict (diag), col 3 ok
+      row 2: col 0 conflict, col 1 (with row 0's q at 0)? same col, no — actually position 0 and 1 differ by row diff 2, col diff 1: no diag. ok... actually let me redo
+        try col 0: conflicts with row 0's queen at 0 (same col)
+        try col 1: row diff 2, col diff 1, not equal — but does conflict with row 1's q at 3? col diff 2, row diff 1, not equal — ok!
+        ... (continues)
+
+(Full trace would take many lines; the algorithm finds 2 solutions for n=4.)
+
+Result for n=4: 2 solutions, matching the expected.
+```
+
+</details>
+
+---
+
+## Complexity Analysis
+
+| Resource | Cost | Why |
+|---|---|---|
+| **Time** | `O(n!)` worst case | Each row has up to `n` columns; pruning reduces this in practice. |
+| **Space (stack)** | `O(n)` | Recursion depth = number of rows. |
+| **Space (output)** | `O(num_solutions × n²)` | Each solution is `n` strings of length `n`. |
+
+For `n = 8`, the algorithm finds 92 solutions; for `n = 12`, 14,200; growth is super-exponential.
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected |
+|---|---|---|
+| `n = 1` | n = 1 | `[["Q"]]` (one solution). |
+| `n = 2, 3` | n = 2 or 3 | `[]` (no valid configurations). |
+| `n = 4` | n = 4 | 2 solutions. |
+| `n = 8` | n = 8 | 92 solutions. |
+
+---
+
+## Final Takeaway
+
+N-Queens is the canonical "find all configurations" search problem. Place-recurse-undo, with a `canPlace` pruning function that catches conflicts early. The next problem turns the dial up to its maximum — every cell of the world has 9 possible values, and we have to fill 81 of them.
+
+***
+
+# Solve Sudoku
+
+> **Course:** DSA › Algorithms › Backtracking › Search
+
+The hardest worked problem in this section. Sudoku's state space is enormous, but constraint propagation prunes it relentlessly.
+
+---
+
+## The Problem
+
+Given a partially filled `9 × 9` sudoku grid (with `'X'` marking empty cells), fill in the empty cells so that:
+1. Every row contains digits `1`-`9` exactly once.
+2. Every column contains digits `1`-`9` exactly once.
+3. Each of the nine `3 × 3` sub-boxes contains digits `1`-`9` exactly once.
+
+The grid is mutated in place.
+
+---
+
+## What's the Recursion Doing?
+
+Find the first empty cell. Try every digit `1`-`9` that doesn't conflict with the row, column, or sub-box. For each viable digit, place it and recurse. If the recursion solves the rest, return `true`. If not, undo the placement and try the next digit. If no digit works, return `false`.
+
+The world is the grid; the answer *is* the grid; the validation check is "does placing `d` here satisfy all three constraints (row, col, box)?"
+
+---
+
+## Applying the Diagnostic Questions
+
+| # | Check | Answer |
+|---|---|---|
+| **Q1** | State IS the answer? | **Yes** — the grid is the candidate; when filled, it's the solution. |
+| **Q2** | Boolean propagation? | **Yes** — `solve()` returns `true` if a solution exists from the current state. |
+| **Q3** | Explicit undo? | **Yes** — write digit, recurse; on failure, set cell back to empty. |
+
+### Q1 — Why "state IS"?
+
+The 9×9 grid we're filling is the candidate. Once it's fully populated and valid, it's the answer. ✓
+
+### Q2 — Why "boolean propagation"?
+
+Sudoku has a unique solution (in well-formed puzzles). We propagate `true` upward as soon as we find it. ✓
+
+### Q3 — Why "explicit undo"?
+
+If a digit doesn't lead to a solution, we have to clear that cell so we can try the next digit (or so the parent's loop can try a different placement). ✓
+
+---
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+from typing import List
+
+class Solution:
+    def solve_sudoku(self, board: List[List[str]]) -> None:
+        self._search(board)
+
+    def _search(self, board: List[List[str]]) -> bool:
+        for row in range(9):
+            for col in range(9):
+                if board[row][col] == "X":
+                    for digit in "123456789":
+                        if self._is_valid(board, row, col, digit):
+                            board[row][col] = digit
+                            if self._search(board):
+                                return True
+                            board[row][col] = "X"      # undo
+                    return False
+        return True                                     # all cells filled
+
+    @staticmethod
+    def _is_valid(board: List[List[str]], row: int, col: int, digit: str) -> bool:
+        for i in range(9):
+            if board[row][i] == digit: return False
+            if board[i][col] == digit: return False
+            br, bc = (row // 3) * 3 + i // 3, (col // 3) * 3 + i % 3
+            if board[br][bc] == digit: return False
+        return True
+
+
+if __name__ == "__main__":
+    board = [["5","3","X","X","7","X","X","X","X"],
+             ["6","X","X","1","9","5","X","X","X"],
+             ["X","9","8","X","X","X","X","6","X"],
+             ["8","X","X","X","6","X","X","X","3"],
+             ["4","X","X","8","X","3","X","X","1"],
+             ["7","X","X","X","2","X","X","X","6"],
+             ["X","6","X","X","X","X","2","8","X"],
+             ["X","X","X","4","1","9","X","X","5"],
+             ["X","X","X","X","8","X","X","7","9"]]
+    Solution().solve_sudoku(board)
+    for row in board: print(" ".join(row))
+```
+
+```java,editable
+public class Solution {
+    public void solveSudoku(char[][] board) {
+        search(board);
+    }
+
+    private boolean search(char[][] board) {
         for (int row = 0; row < 9; row++) {
             for (int col = 0; col < 9; col++) {
-
-                // Only attempt to fill empty cells
-                if (board[row][col] == "X") {
-
-                    // Try all digits from "1" to "9" in this cell
-                    for (string num = "1"; num <= "9"; num[0]++) {
-
-                        // Check if placing the number is valid (solution
-                        // state possible)
-                        if (isValidPlacement(board, row, col, num)) {
-
-                            // Place the number in the cell (make choice)
-                            board[row][col] = num;
-
-                            // Recursively attempt to fill the rest of
-                            // the board
-                            if (searchSolution(board)) {
-
-                                // If successful, propagate success back
-                                return true;
-                            }
-
-                            // If it did not lead to a solution, remove
-                            // the number (revert choice)
-                            board[row][col] = "X";
+                if (board[row][col] == 'X') {
+                    for (char d = '1'; d <= '9'; d++) {
+                        if (isValid(board, row, col, d)) {
+                            board[row][col] = d;
+                            if (search(board)) return true;
+                            board[row][col] = 'X';
                         }
                     }
-
-                    // If no valid number can be placed in this cell,
-                    // backtrack
                     return false;
                 }
             }
         }
-
-        // If all cells are filled successfully, the board is solved
         return true;
     }
 
-    void solveSudoku(vector<vector<string>> &board) {
-
-        // Start the search process to fill the board
-        searchSolution(board);
+    private boolean isValid(char[][] board, int row, int col, char d) {
+        for (int i = 0; i < 9; i++) {
+            if (board[row][i] == d) return false;
+            if (board[i][col] == d) return false;
+            int br = (row / 3) * 3 + i / 3, bc = (col / 3) * 3 + i % 3;
+            if (board[br][bc] == d) return false;
+        }
+        return true;
     }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdbool.h>
+
+static bool is_valid(char board[9][9], int row, int col, char d) {
+    for (int i = 0; i < 9; i++) {
+        if (board[row][i] == d) return false;
+        if (board[i][col] == d) return false;
+        int br = (row / 3) * 3 + i / 3, bc = (col / 3) * 3 + i % 3;
+        if (board[br][bc] == d) return false;
+    }
+    return true;
+}
+
+static bool search(char board[9][9]) {
+    for (int row = 0; row < 9; row++) {
+        for (int col = 0; col < 9; col++) {
+            if (board[row][col] == 'X') {
+                for (char d = '1'; d <= '9'; d++) {
+                    if (is_valid(board, row, col, d)) {
+                        board[row][col] = d;
+                        if (search(board)) return true;
+                        board[row][col] = 'X';
+                    }
+                }
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+int main(void) {
+    char board[9][9] = {
+        {'5','3','X','X','7','X','X','X','X'},
+        {'6','X','X','1','9','5','X','X','X'},
+        {'X','9','8','X','X','X','X','6','X'},
+        {'8','X','X','X','6','X','X','X','3'},
+        {'4','X','X','8','X','3','X','X','1'},
+        {'7','X','X','X','2','X','X','X','6'},
+        {'X','6','X','X','X','X','2','8','X'},
+        {'X','X','X','4','1','9','X','X','5'},
+        {'X','X','X','X','8','X','X','7','9'}};
+    search(board);
+    for (int r = 0; r < 9; r++) {
+        for (int c = 0; c < 9; c++) putchar(board[r][c]);
+        putchar('\n');
+    }
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+class Solution {
+public:
+    bool isValid(std::vector<std::vector<char>>& board, int row, int col, char d) {
+        for (int i = 0; i < 9; i++) {
+            if (board[row][i] == d) return false;
+            if (board[i][col] == d) return false;
+            int br = (row / 3) * 3 + i / 3, bc = (col / 3) * 3 + i % 3;
+            if (board[br][bc] == d) return false;
+        }
+        return true;
+    }
+
+    bool search(std::vector<std::vector<char>>& board) {
+        for (int row = 0; row < 9; row++) {
+            for (int col = 0; col < 9; col++) {
+                if (board[row][col] == 'X') {
+                    for (char d = '1'; d <= '9'; d++) {
+                        if (isValid(board, row, col, d)) {
+                            board[row][col] = d;
+                            if (search(board)) return true;
+                            board[row][col] = 'X';
+                        }
+                    }
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    void solveSudoku(std::vector<std::vector<char>>& board) { search(board); }
 };
 ```
+
+```scala,editable
+class Solution {
+  def solveSudoku(board: Array[Array[Char]]): Unit = { search(board) }
+
+  private def search(board: Array[Array[Char]]): Boolean = {
+    for (row <- 0 until 9; col <- 0 until 9) {
+      if (board(row)(col) == 'X') {
+        for (d <- '1' to '9') {
+          if (isValid(board, row, col, d)) {
+            board(row)(col) = d
+            if (search(board)) return true
+            board(row)(col) = 'X'
+          }
+        }
+        return false
+      }
+    }
+    true
+  }
+
+  private def isValid(board: Array[Array[Char]], row: Int, col: Int, d: Char): Boolean = {
+    for (i <- 0 until 9) {
+      if (board(row)(i) == d) return false
+      if (board(i)(col) == d) return false
+      val br = (row / 3) * 3 + i / 3
+      val bc = (col / 3) * 3 + i % 3
+      if (board(br)(bc) == d) return false
+    }
+    true
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    solveSudoku(board) { this._search(board); }
+
+    _search(board) {
+        for (let row = 0; row < 9; row++) {
+            for (let col = 0; col < 9; col++) {
+                if (board[row][col] === 'X') {
+                    for (const d of "123456789") {
+                        if (this._isValid(board, row, col, d)) {
+                            board[row][col] = d;
+                            if (this._search(board)) return true;
+                            board[row][col] = 'X';
+                        }
+                    }
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    _isValid(board, row, col, d) {
+        for (let i = 0; i < 9; i++) {
+            if (board[row][i] === d) return false;
+            if (board[i][col] === d) return false;
+            const br = ((row / 3) | 0) * 3 + ((i / 3) | 0);
+            const bc = ((col / 3) | 0) * 3 + (i % 3);
+            if (board[br][bc] === d) return false;
+        }
+        return true;
+    }
+}
+```
+
+```typescript,editable
+class Solution {
+    solveSudoku(board: string[][]): void { this._search(board); }
+
+    private _search(board: string[][]): boolean {
+        for (let row = 0; row < 9; row++) {
+            for (let col = 0; col < 9; col++) {
+                if (board[row][col] === 'X') {
+                    for (const d of "123456789") {
+                        if (this._isValid(board, row, col, d)) {
+                            board[row][col] = d;
+                            if (this._search(board)) return true;
+                            board[row][col] = 'X';
+                        }
+                    }
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private _isValid(board: string[][], row: number, col: number, d: string): boolean {
+        for (let i = 0; i < 9; i++) {
+            if (board[row][i] === d) return false;
+            if (board[i][col] === d) return false;
+            const br = Math.floor(row / 3) * 3 + Math.floor(i / 3);
+            const bc = Math.floor(col / 3) * 3 + (i % 3);
+            if (board[br][bc] === d) return false;
+        }
+        return true;
+    }
+}
+```
+
+```go,editable
+package main
+
+func isValid(board [][]byte, row, col int, d byte) bool {
+    for i := 0; i < 9; i++ {
+        if board[row][i] == d { return false }
+        if board[i][col] == d { return false }
+        br := (row/3)*3 + i/3
+        bc := (col/3)*3 + i%3
+        if board[br][bc] == d { return false }
+    }
+    return true
+}
+
+func searchSudoku(board [][]byte) bool {
+    for row := 0; row < 9; row++ {
+        for col := 0; col < 9; col++ {
+            if board[row][col] == 'X' {
+                for d := byte('1'); d <= '9'; d++ {
+                    if isValid(board, row, col, d) {
+                        board[row][col] = d
+                        if searchSudoku(board) { return true }
+                        board[row][col] = 'X'
+                    }
+                }
+                return false
+            }
+        }
+    }
+    return true
+}
+
+func solveSudoku(board [][]byte) { searchSudoku(board) }
+```
+
+```kotlin,editable
+class Solution {
+    fun solveSudoku(board: Array<CharArray>) { search(board) }
+
+    private fun search(board: Array<CharArray>): Boolean {
+        for (row in 0 until 9) {
+            for (col in 0 until 9) {
+                if (board[row][col] == 'X') {
+                    for (d in '1'..'9') {
+                        if (isValid(board, row, col, d)) {
+                            board[row][col] = d
+                            if (search(board)) return true
+                            board[row][col] = 'X'
+                        }
+                    }
+                    return false
+                }
+            }
+        }
+        return true
+    }
+
+    private fun isValid(board: Array<CharArray>, row: Int, col: Int, d: Char): Boolean {
+        for (i in 0 until 9) {
+            if (board[row][i] == d) return false
+            if (board[i][col] == d) return false
+            val br = (row / 3) * 3 + i / 3
+            val bc = (col / 3) * 3 + i % 3
+            if (board[br][bc] == d) return false
+        }
+        return true
+    }
+}
+```
+
+```rust,editable
+fn is_valid(board: &Vec<Vec<char>>, row: usize, col: usize, d: char) -> bool {
+    for i in 0..9 {
+        if board[row][i] == d { return false; }
+        if board[i][col] == d { return false; }
+        let br = (row / 3) * 3 + i / 3;
+        let bc = (col / 3) * 3 + i % 3;
+        if board[br][bc] == d { return false; }
+    }
+    true
+}
+
+fn search(board: &mut Vec<Vec<char>>) -> bool {
+    for row in 0..9 {
+        for col in 0..9 {
+            if board[row][col] == 'X' {
+                for d in "123456789".chars() {
+                    if is_valid(board, row, col, d) {
+                        board[row][col] = d;
+                        if search(board) { return true; }
+                        board[row][col] = 'X';
+                    }
+                }
+                return false;
+            }
+        }
+    }
+    true
+}
+
+fn solve_sudoku(board: &mut Vec<Vec<char>>) { search(board); }
+```
+
+</div>
+
+---
+
+## Complexity Analysis
+
+| Resource | Cost |
+|---|---|
+| **Time** | `O(9^81)` worst case (exponential) |
+| **Space (stack)** | `O(81)` (one frame per empty cell) |
+
+In practice, the constraint propagation (rule out digits that conflict with row/col/box) reduces this enormously — typical Sudokus solve in milliseconds.
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected |
+|---|---|---|
+| Already solved | All cells filled | Return immediately. |
+| Unsolvable | Contradictory clues | `false` returned (no solution). |
+| Empty board | All cells 'X' | Generates *some* valid Sudoku (not unique). |
+| Multiple solutions | Some easier puzzles | Returns the first found. |
+
+---
+
+## Final Takeaway
+
+Sudoku is backtracking search at maximum complexity: 81 cells, up to 9 choices per cell, three constraints to validate per placement. The recipe — find empty cell, try digits, recurse, undo — is identical to the maze and N-Queens. Only the constraint check is richer.
+
+You came in suspecting search and enumeration were two faces of the same algorithm. You're leaving knowing they share the recursion's structure but differ in three specific ways: state mutation vs append, boolean return vs leaf record, explicit vs implicit undo. With these four problems — maze pathfinding, word search, N-queens, sudoku — you have the canonical examples for every search-flavoured backtracking problem you'll meet.
+
+The next major topic in the course is **sorting**, where the four backtracking patterns and recursion's mechanics from the previous chapter give way to a different style of algorithm design: divide-and-conquer (merge sort, quicksort) and engineering trade-offs across worst-case, average-case, and stability.
+
+**Transfer challenge — close out backtracking:** Take the Sudoku solver and modify it to count *all* solutions instead of returning the first one. (Don't worry about run-time; for some puzzles this is intractable.) What changes? Hint: when a solution is found, *don't* return `true`; record the board state and continue.
+
+<details>
+<summary><strong>Answer — open after you've thought about it</strong></summary>
+
+```python,editable
+class Solution:
+    def count_sudoku_solutions(self, board):
+        count = [0]                      # mutable counter (closure trick)
+        self._search(board, count)
+        return count[0]
+
+    def _search(self, board, count):
+        for row in range(9):
+            for col in range(9):
+                if board[row][col] == "X":
+                    for d in "123456789":
+                        if self._is_valid(board, row, col, d):
+                            board[row][col] = d
+                            self._search(board, count)
+                            board[row][col] = "X"      # undo (always)
+                    return                              # don't propagate "true"
+        count[0] += 1                                   # all cells filled — record one more solution
+```
+
+The change: instead of returning `true` and propagating, *continue exploring* even after a solution is found. The undo step now always runs (no "if true: return"). Time complexity is much worse — we no longer get the exponential speedup of early termination — but the recipe is otherwise identical.
+
+This is the same enumeration-vs-search distinction we set up at the top of this lesson. **Search → Enumeration just by removing the early-termination return.** The world is your candidate; the world is your output; the world is your accumulator. You've now seen all four backtracking patterns and built the muscle memory to spot them on sight.
+
+</details>

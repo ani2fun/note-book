@@ -1,1065 +1,1037 @@
-# Understanding the minimum predicate search pattern
+# 10. Pattern: Minimum Predicate Search
 
-Binary search is a very powerful search technique to search for an item in a sorted sequence. However, at its core, it's a decision-making technique that exploits the ordered nature of a sequence. There are many problems where we may not be given a sorted sequence, but an ordered search space where every input may either be a valid solution or not. The minimum predicate search algorithm generalizes the binary search algorithm to find the minimum value that satisfies a predicate function.
+The previous patterns binary-searched a *sorted array* for a target index. This pattern binary-searches a **range of integer values** for the smallest value `x` that satisfies some predicate `P(x)`. The "search space" isn't an array — it's a numeric range. The "comparison" isn't `arr[mid] vs target` — it's a custom function `P(mid)` returning true or false.
 
-The minimum predicate pattern is a classification of problems that can be solved using minimum predicate search algorithm
+This is **"binary search on the answer."** Many real-world questions fit:
+- "Minimum speed needed to arrive on time?" — search speed values; predicate = "can we arrive within `hour` hours?"
+- "Minimum cost penalty after k operations?" — search penalty values; predicate = "can we achieve this penalty?"
+- "Smallest divisor that fits a budget?" — search divisor values.
 
-// Diagram: The minimum predicate search is the technique to find the minimum value in the search space at which the predicate flips.
+The pattern requires *monotonicity*: if `P(x)` is true, then `P(x + 1)` must also be true (and so on). Once the predicate "flips" from false to true, it stays true. Binary search exploits this flip — the answer is the *first true*.
 
-In this lesson, we will learn more about using the lower bound to solve problems where we need to find the minimum predicate and how to identify a problem as a minimum predicate search pattern problem.
+By the end of this lesson you'll know the diagnostic checks, the canonical "minimum-x-with-P-true" template, and four worked problems showing different predicates.
 
-## The minimum predicate search problem
+## Table of contents
 
-Consider we have a search space defined by an ordered set `S` where values are sorted in non-decreasing order, and a predicate function `p` that takes as input values from the set `S` and returns either `true` or `false`. The results of the predicate function `p` are monotonic over the search space and flip only once from `true` to `false` or from `false` to `true`.
-
-// Diagram: A monotonic sequence of true and false, starting from false, that flips once over a sorted space.
-
-The goal of the problem is to find the minimum value in `S` where the predicate result first flips.
-
-// Diagram: The minimum value in the search space where the predicate value flips.
-
-Depending on the problem, the predicate result may start from `false` and flip to `true` or start from `true` and flip to `false`.
-
-// Diagram: The predicate may flip from false to true or from true to false.
-
-In this lesson, we will consider the case where the predicate results flip from `false` to `true`. This means that, if `p(x)` is `true` then `p(y)` will also be `true` for all `y > x`, and if `p(x)` is `false` `p(y)` will also be `false` for all `y < x`. The goal of the problem is to find the minimum input `x` in `S` for which `p(x)` yields `true`.
-
-The same solution can be used to find the minimum `false` if the predicate results start from `true` and flip to `false` in the ordered set `S`.
-
-// Diagram: The predicate starts with false values and flips to true values.
-
-The minimum predicate search problem can be solved using the generalized binary search algorithm. This is because the constraints of the problem enforce that for an increasing order of `x` in `S`, the series `p(x)` will always be monotonic, flipping only once from `false` to `true`. This allows us to make the same assumptions as binary search, which facilitates skipping the unwanted half of an array in each iteration.
-
-The idea is quite simple, we start by setting the variables `low` and `high` to the minimum and maximum (inclusive) values in the search space `S`. We iterate until `low < high`, and in each iteration, find the middle of the range in a variable `mid`.
-
-If the predicate `p(mid)` is `true`, it means all values in `S` that are greater than or equal to `mid` also have `true` predicate values. This means `mid`  could potentially be the first (minimum) value for which the predicate is `true` and potentially be the final solution. And so we set `high = mid` for the next iteration. On the other hand, if the predicate `p(mid)` is `false`, it means all values in `S` that are less than or equal to `mid` also have a `false` predicate value, and so we set `low = mid + 1` for the next iteration. This way, we discard the unwanted range in each iteration and reduce the size of the search space by half.
-
-At the end of all iterations, when `low` becomes equal to `high` and `low` potentially has the **minimum** value in `S` for which the predicate is `true`. However, there could be an edge case where all predicate values are `false`, and so, we need to check if the `p(low)` is `true` at the end of all iterations. If it is `true`, `low` is the solution; otherwise, we return an error to the caller as defined by the problem.
-
-// Diagram: Find the minimum value in the search space where the predicate function flips from false to true
-
-## Algorithm
-
-The steps below summarizes the minimum predicate search algorithm to find the minimum value where the predicate result flips from `false` to `true` in a series that starts with `false`.
-
-> **minimumPredicate()**
->
-> -   **Step 1:** Set `low` to the minimum value in the search space
-> -   **Step 2:** Set `high` to the maximum value in the problem search space
-> -   **Step 3:** Iterate while `low` < `high` and do the following:
->     -   **Step 3.1:** Set `mid` = `low` + (`high` - `low`) / 2
->     -   **Step 3.2:** If `p(mid)` is `true`, set `high` = `mid`
->     -   **Step 3.3:** Otherwiese if `p(mid)` is `false`, set `low` = `mid` + 1
-> -   **Step 4:** If `p(low)` is `false` return an error as there is no `true` predicate
-> -   **Step 5:** Return `low` as the solution
-
-## Implementation
-
-Given below is the generic code implementation to find the minimum value where the predicate results flip from `false` to `true` in a series starting with `false` predicate results. The boundaries of the search spaces are held in `low` and `high`.
-
-To modify the implementation for a series that starts with `true` values and flips to `false` values, we can change `p ( mid )` to `! p ( mid )` to find the minimum value where the predicate result flips to `false`.
-
-C++
-
-```cpp
-
-class Solution {
-public:
-    int minimumPredicate() {
-
-        int low = 1; // The minimum valid value in the search space
-        int high = 1e7; // The maximum valid value in the search space
-
-        // Perform binary search to find the minimum true predicate
-        while (low < high) {
-
-            // Find the middle of the current search space
-            int mid = low + (high - low) / 2;
-
-            // If the predicate is true at mid, search in the lower half
-            if (p(mid)) {
-                // Set high to mid as mid might be the minimum true predicate
-                high = mid;
-            }
-
-            // If the predicate is false at mid, search in the higher half
-            else {
-                // Since all values less than mid are also false, move low up
-                low = mid + 1;
-            }
-
-        // After the loop, low should point to the minimum true predicate
-        if (!p(low)) {
-            return -1; // All inputs are false
-        }
-
-        // Return input for the minimum true predicate
-        return low;
-    }
-private:
-    // Example predicate function (to be replaced with actual logic)
-    bool p(int x) {
-        // Implement your predicate logic here
-        return x >= 1000;
-    }
-};
-```
-
-Java
-
-```java
-class Solution {
-
-// Diagram: public int minimumPredicate() {
-
-        int low = 1; // The minimum valid value in the search space
-        int high = (int) 1e7; // The maximum valid value in the search space
-
-        // Perform binary search to find the minimum true predicate
-        while (low < high) {
-
-            // Find the middle of the current search space
-            int mid = low + (high - low) / 2;
-
-            // If the predicate is true at mid, search in the lower half
-            if (p(mid)) {
-                // Set high to mid as mid might be the minimum true predicate
-                high = mid;
-            }
-
-            // If the predicate is false at mid, search in the higher half
-            else {
-                // Since all values less than mid are also false, move low up
-                low = mid + 1;
-            }
-
-        // After the loop, low should point to the minimum true predicate
-        if (!p(low)) {
-            return -1; // All inputs are false
-        }
-
-        // Return input for the minimum true predicate
-        return low;
-    }
-
-    // Example predicate function (to be replaced with actual logic)
-    private boolean p(int x) {
-        // Implement your predicate logic here
-        return x >= 1000;
-    }
-
-    // Example driver for testing
-    public static void main(String[] args) {
-        Solution sol = new Solution();
-        System.out.println(sol.firstTruePredicate());
-    }
-```
-
-Typescript
-
-```typescript
-class Solution {
-  minimumPredicate(): number {
-    let low = 1; // The minimum valid value in the search space
-    let high = 1e7; // The maximum valid value in the search space
-
-    // Perform binary search to find the minimum true predicate
-    while (low < high) {
-      // Find the middle of the current search space
-      const mid = low + Math.floor((high - low) / 2);
-
-      // If the predicate is true at mid, search in the lower half
-      if (this.p(mid)) {
-        // Set high to mid as mid might be the minimum true predicate
-        high = mid;
-      }
-
-      // If the predicate is false at mid, search in the higher half
-      else {
-        // Since all values less than mid are also false, move low up
-        low = mid + 1;
-      }
-
-    // After the loop, low should point to the minimum true predicate
-    if (!this.p(low)) {
-      return -1; // All inputs are false
-    }
-
-    // Return input for the minimum true predicate
-    return low;
-  }
-
-  // Example predicate function (to be replaced with actual logic)
-  private p(x: number): boolean {
-    // Implement your predicate logic here
-    return x >= 1000;
-  }
-```
-
-Javascript
-
-```javascript
-class Solution {
-
-// Diagram: minimumPredicate() {
-
-    let low = 1; // The minimum valid value in the search space
-    let high = 1e7; // The maximum valid value in the search space
-
-    // Perform binary search to find the minimum true predicate
-    while (low < high) {
-
-      // Find the middle of the current search space
-      let mid = Math.floor(low + (high - low) / 2);
-
-      // If the predicate is true at mid, search in the lower half
-      if (this.p(mid)) {
-        // Set high to mid as mid might be the minimum true predicate
-        high = mid;
-      }
-
-      // If the predicate is false at mid, search in the higher half
-      else {
-        // Since all values less than mid are also false, move low up
-        low = mid + 1;
-      }
-
-    // After the loop, low should point to the minimum true predicate
-    if (!this.p(low)) {
-      return -1; // All inputs are false
-    }
-
-    // Return input for the minimum true predicate
-    return low;
-  }
-
-  // Example predicate function (to be replaced with actual logic)
-  p(x) {
-    // Implement your predicate logic here
-    return x >= 1000;
-  }
-```
-
-Python
-
-```python
-class Solution:
-    def minimumPredicate(self) -> int:
-        low: int = 1  # The minimum valid value in the search space
-        high: int = int(1e7)  # The maximum valid value in the search space
-
-        # Perform binary search to find the minimum true predicate
-        while low < high:
-
-            # Find the middle of the current search space
-            mid: int = low + (high - low) // 2
-
-            # If the predicate is true at mid, search in the lower half
-            if self.p(mid):
-                # Set high to mid as mid might be the minimum true predicate
-                high = mid
-
-            # If the predicate is false at mid, search in the higher half
-            else:
-                # Since all values less than mid are also false, move low up
-                low = mid + 1
-
-        # After the loop, low should point to the minimum true predicate
-        if not self.p(low):
-            return -1  # All inputs are false
-
-        # Return input for the minimum true predicate
-        return low
-
-    # Example predicate function (to be replaced with actual logic)
-    def p(self, x: int) -> bool:
-        # Implement your predicate logic here
-        return x >= 1000
-```
-
-## Complexity Analysis
-
-The algorithm's time and space complexity are easy to understand. We have the two variables `low` and `high` that hold the start and end of the current search space, respectively, and in each iteration, we reduce the size of the search space by half. If we assume that the predicate function p takes constant time and space and the initial size of the problem space is **N**, the time complexity in any case is **O(log(N))**.
-
-Since we don't create only a fixed number of extra variables during the execution of the algorithm, the space complexity **O(1)** is constant in any case.
-
-> **Any case -**
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(log(N))**
-
-Later in the course, we will examine techniques for identifying problems that can be solved using the minimum predicate search algorithm and walk through an example to better understand it.
+1. [Identifying the pattern](#identifying-the-pattern)
+2. [Punctual arrival speed](#punctual-arrival-speed)
+3. [Penalty with balls](#penalty-with-balls)
+4. [Minimum shipping capacity](#minimum-shipping-capacity)
+5. [Trip completion frenzy](#trip-completion-frenzy)
 
 ***
 
-# Example | Searching | Codeintuition
+# Identifying the Pattern
 
-// Diagram: Identifying the minimum predicate search pattern
+Three diagnostic questions:
 
-The minimum predicate search algorithm is a generalisation of the binary search algorithm used to find the first (minimum) point in a sorted search space at which a monotonic boolean function (predicate) changes its value, assuming it changes only once. It is a very powerful technique that can solve many optimization and feasibility problems in logarithmic time.
+| # | Question | If "yes," the pattern fits because... |
+|---|---|---|
+| **Q1** | We're optimizing for the *minimum* value satisfying a constraint? | Binary search finds the flip point. |
+| **Q2** | The constraint is *monotonic* — if `x` works, then `x + 1` also works? | Required for the predicate to have a unique flip point. |
+| **Q3** | Can we *evaluate* the predicate `P(x)` in `O(f(n))` time? | Each iteration costs `O(f(n))`; total is `O(f(n) · log range)`. |
 
-These are generally medium or hard problems where we have a large sorted search space, and we need to define a predicate function that verifies if certain constraints are met. The goal is to find the first (minimum) value in the search space where the result of the predicate function flips.
+If all three hold, the pattern applies. The total time is `O(log(range) · f(n))` — much faster than brute-forcing every value.
 
-If the problem statement or its solution follows the generic template below, it can be solved using the minimum predicate search algorithm.
+---
 
-**Template:**
+## The Template
 
-Given a predicate function that results in a monotonic sequence that flips once from `true` to `false` or `false` to `true` over a sorted search space, find the minimum value in the search space where the result flips.
-
-## Example
-
-Let's consider the following problem as an example to better understand how to identify and solve a problem using the minimum predicate search algorithm.
-
-> **Problem statement:** Given an array distance of size `n`, where `distance\[i\]` denotes the distance of the `ith` bus ride. You are also given a decimal number of `hours`, representing the minimum time you must reach your house. To reach home, you must take sequential bus rides. Write a function to find and return the minimum speed that all buses must travel at so you can reach home on time. Return `-1` if it's not possible to reach home on time.
->
-> **Note:** Each bus can only depart at an integer time, so for e.g. if the 1st bus takes 2.3 hours, you must wait 0.7 hours to take the second bus
-
-// Diagram: Find the minimum speed at which we can reach home within 5.50 hours.
-
-### The minimum predicate search solution
-
-On closely observing the problem, we can see that if we cannot reach home on time for a speed `si` , we will not reach home on time for any speed lower than that. Similarly, if we can reach home on time for a speed `sj` we will reach home on time for any speed greater than that.
-
-// Diagram: For all speeds <= si we can never reach home on time and for all speeds >= sj we will always reach home on time.
-
-And so, there will be a **minimum** speed `S` for and beyond which, we will reach home on time.
-
-// Diagram: The minimum speed S for which we can reach home on time.
-
-We create a function `canReach` that takes as input a `speed` and the given hours before which we must reach home, and returns whether we can reach home on time as `true` or `false`. We initialise a variable, `totalTime`, to 0 and iterate over the `distance` array.
-
-Since a bus can only run at integer hours, in each iteration, we calculate the integer number of hours a bus takes to run at the given `speed` by dividing its distance by `speed` and rounding it up to the nearest integer, where the rounded-up part is the waiting time for the next bus. We do this for every bus except the last one, since it drops us straight at our home and we don't need to wait further. In the end, we return `true` if `totalTime <= hours` ; otherwise, we return `false`.
-
-Below is the execution of the `canReach` function for two different values, one for which we cannot reach home on time and the other for which we can reach home on time.
-
-Given below is a case when we **cannot** reach home on time at the given `speed`.
-
-// Diagram: Find if we can reach home within 5.50 hours at speed 2
-
-Given below is a case when we **can** reach home on time at the given `speed`.
-
-// Diagram: Find if we can reach home within 5.50 hours at speed 20
-
-The results from the `canReach` function over an increasing value of `speed` will be a monotonic series that starts with a `false` value and gradually flips to `true`, depending on the array `distance` and `hours`.
-
-// Diagram: canReach (distance, speed, hour)
-
-We need to find the minimum value of `speed` for which the monotonic function `canReach` flips from `false` to `true`.  This fits the generic template for the minimum predicate search pattern, where `canReach` is the predicate function, and the integer range is the search space for `speed`.
-
-**Template:**Given a predicate function (`canReach`) that results in a monotonic sequence that flips once from `false` to `true` over a sorted search space (1 to maximum valid speed), find the minimum value in the search space where the result flips.
-
-To find the minimum speed at which we can reach our home on time, we initialise two variables, `low` and `high`, with `1` and the maximum integer value, respectively. We iterate until `low < high`, and in each iteration, find the middle of the range in a variable `mid`.
-
-We then check if the function `canReach` returns `true` for `mid`. If it does, it means `mid`  could potentially be the first (minimum) speed at which we can reach home in time, and so set `high = mid` for the next iteration. Otherwise, if `canReach` returns`false`, it means all speeds less than or equal to `mid` will also make us late, and so we set `low = mid + 1` for the next iteration.
-
-At the end of all iterations, when`low`becomes equal to`high` and `low`potentially has the minimum speed at which we can reach home on time. We return it as the minimum speed if `canReach` returns `true` for `low` ; otherwise, we return `-1` as we can't arrive on time at any valid speed.
-
-Below is the execution of the minimum predicate search solution for the problem using the `canReach` function.
-
-In the illustration we initialize `high` with a smaller value instead of integer maximum to reduce the number of iterations for simplicity.
-
-Find the minimum speed at which we can reach home in 5.50 hours.
-
-The implementation of the minimum predicate search solution is given as follows. 
-
-C++
-
-```cpp
-#include <cmath>
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-
-    // Predicate: checks if it's possible to reach the destination on
-    // time with a given speed
-    bool canReachOnTime(vector<int> &distance, double hour, int speed) {
-        double totalTime = 0;
-
-        // Calculate the total time required to reach each checkpoint
-        for (int i = 0; i < distance.size() - 1; i++) {
-            totalTime += ceil(static_cast<double>(distance[i]) / speed);
-        }
-
-        // Add the time required to reach the final destination
-        totalTime += static_cast<double>(distance.back()) / speed;
-
-        // Check if the total time is less than or equal to the given
-        // hour
-        return totalTime <= hour;
-    }
-
-// Diagram: int punctualArrivalSpeed(vector<int> &distance, double hour) {
-
-        // Initialise the search space for speed with low as 1
-        int low = 1;
-
-        // Initialise high to a large value (1e7) as per problem
-        // constraints
-        int high = 1e7;
-
-        // Perform binary search to find the minimum speed required to
-        // reach the destination on time
-        while (low < high) {
-
-            // Find the middle speed to check if it is possible to reach
-            // the destination on time
-            int mid = low + (high - low) / 2;
-
-            // mid is a possible speed, update the result and search
-            // for a smaller speed
-            if (canReachOnTime(distance, hour, mid)) {
-
-                // Try to find a smaller speed
-                high = mid;
-            }
-
-            // mid is not a possible speed, search for a larger speed
-            else {
-
-                // Try to find a larger speed
-                low = mid + 1;
-            }
-
-        // After the search, low is the candidate minimum speed
-        // Check if it actually works, as it could be possible that no
-        // speed allows reaching on time
-        if (!canReachOnTime(distance, hour, low)) {
-            return -1;
-        }
-
-        // Return the minimum speed found
-        return low;
-    }
-};
+```python,editable
+def min_predicate_search(low, high, predicate):
+    while low < high:
+        mid = low + (high - low) // 2
+        if predicate(mid):                    # mid works → try smaller
+            high = mid
+        else:                                  # mid doesn't work → try larger
+            low = mid + 1
+    return low                                 # smallest x with predicate(x) == true
 ```
 
-Java
+Identical structure to lower bound on an array — the only difference is the predicate replaces `arr[mid] >= target`. The search space is `[low, high]` numeric range; the answer is `low` after the loop.
 
-```java
-class Solution {
+---
 
-    // Predicate: checks if it's possible to reach the destination on
-    // time with a given speed
-    private boolean canReachOnTime(
-        int[] distance,
-        double hour,
-        int speed
-    ) {
-        double totalTime = 0;
+# Punctual Arrival Speed
 
-        // Calculate the total time required to reach each checkpoint
-        for (int i = 0; i < distance.length - 1; i++) {
-            totalTime += Math.ceil((double) distance[i] / speed);
-        }
+## The Problem
 
-        // Add the time required to reach the final destination
-        totalTime += (double) distance[distance.length - 1] / speed;
+Given bus distances `distance[]` and time budget `hour`, find the minimum integer speed at which all buses must travel for arrival within `hour`. Each bus departs at the next integer time after the previous bus arrives. Return `-1` if impossible.
 
-        // Check if the total time is less than or equal to the given
-        // hour
-        return totalTime <= hour;
-    }
+```
+Input:  distance = [1, 3, 5], hour = 2.5
+Output: 10
 
-// Diagram: public int punctualArrivalSpeed(int[] distance, double hour) {
+Input:  distance = [1, 4, 9], hour = 6
+Output: 3
 
-        // Initialise the search space for speed with low as 1
-        int low = 1;
-
-        // Initialise high to a large value (1e7) as per problem
-        // constraints
-        int high = (int) 1e7;
-
-        // Perform binary search to find the minimum speed required to
-        // reach the destination on time
-        while (low < high) {
-
-            // Find the middle speed to check if it is possible to reach
-            // the destination on time
-            int mid = low + (high - low) / 2;
-
-            // mid is a possible speed, update the result and search
-            // for a smaller speed
-            if (canReachOnTime(distance, hour, mid)) {
-
-                // Try to find a smaller speed
-                high = mid;
-            }
-
-            // mid is not a possible speed, search for a larger speed
-            else {
-
-                // Try to find a larger speed
-                low = mid + 1;
-            }
-
-        // After the search, low is the candidate minimum speed
-        // Check if it actually works, as it could be possible that no
-        // speed allows reaching on time
-        if (!canReachOnTime(distance, hour, low)) {
-            return -1;
-        }
-
-        // Return the minimum speed found
-        return low;
-    }
+Input:  distance = [1, 8, 10], hour = 2
+Output: -1
 ```
 
-Typescript
+## The Solution
 
-```typescript
-export class Solution {
+Predicate `can_reach(speed)`: simulate the rides; for the last leg, partial time counts; for prior legs, you must round up to the next integer. Binary-search speed in `[1, 10^7]`.
 
-    // Predicate: checks if it's possible to reach the destination on
-    // time with a given speed
-    canReachOnTime(
-        distance: number[],
-        hour: number,
-        speed: number
-    ): boolean {
-        let totalTime = 0;
+<div class="lang-tabs">
 
-        // Calculate the total time required to reach each checkpoint
-        for (let i = 0; i < distance.length - 1; i++) {
-            totalTime += Math.ceil(distance[i] / speed);
-        }
-
-        // Add the time required to reach the final destination
-        totalTime += distance[distance.length - 1] / speed;
-
-        // Check if the total time is less than or equal to the given
-        // hour
-        return totalTime <= hour;
-    }
-
-// Diagram: punctualArrivalSpeed(distance: number[], hour: number): number {
-
-        // Initialise the search space for speed with low as 1
-        let low = 1;
-
-        // Initialise high to a large value (1e7) as per problem
-        // constraints
-        let high = 1e7;
-
-        // Perform binary search to find the minimum speed required to
-        // reach the destination on time
-        while (low < high) {
-
-            // Find the middle speed to check if it is possible to reach
-            // the destination on time
-            let mid = low + Math.floor((high - low) / 2);
-
-            // mid is a possible speed, update the result and search
-            // for a smaller speed
-            if (this.canReachOnTime(distance, hour, mid)) {
-
-                // Try to find a smaller speed
-                high = mid;
-            }
-
-            // mid is not a possible speed, search for a larger speed
-            else {
-
-                // Try to find a larger speed
-                low = mid + 1;
-            }
-
-        // After the search, low is the candidate minimum speed
-        // Check if it actually works, as it could be possible that no
-        // speed allows reaching on time
-        if (!this.canReachOnTime(distance, hour, low)) {
-            return -1;
-        }
-
-        // Return the minimum speed found
-        return low;
-    }
-```
-
-Javascript
-
-```javascript
-export class Solution {
-
-    // Predicate: checks if it's possible to reach the destination on
-    // time with a given speed
-    canReachOnTime(distance, hour, speed) {
-        let totalTime = 0;
-
-        // Calculate the total time required to reach each checkpoint
-        for (let i = 0; i < distance.length - 1; i++) {
-            totalTime += Math.ceil(distance[i] / speed);
-        }
-
-        // Add the time required to reach the final destination
-        totalTime += distance[distance.length - 1] / speed;
-
-        // Check if the total time is less than or equal to the given
-        // hour
-        return totalTime <= hour;
-    }
-
-// Diagram: punctualArrivalSpeed(distance, hour) {
-
-        // Initialise the search space for speed with low as 1
-        let low = 1;
-
-        // Initialise high to a large value (1e7) as per problem
-        // constraints
-        let high = 1e7;
-
-        // Perform binary search to find the minimum speed required to
-        // reach the destination on time
-        while (low < high) {
-
-            // Find the middle speed to check if it is possible to reach
-            // the destination on time
-            let mid = low + Math.floor((high - low) / 2);
-
-            // mid is a possible speed, update the result and search
-            // for a smaller speed
-            if (this.canReachOnTime(distance, hour, mid)) {
-
-                // Try to find a smaller speed
-                high = mid;
-            }
-
-            // mid is not a possible speed, search for a larger speed
-            else {
-
-                // Try to find a larger speed
-                low = mid + 1;
-            }
-
-        // After the search, low is the candidate minimum speed
-        // Check if it actually works, as it could be possible that no
-        // speed allows reaching on time
-        if (!this.canReachOnTime(distance, hour, low)) {
-            return -1;
-        }
-
-        // Return the minimum speed found
-        return low;
-    }
-```
-
-Python
-
-```python
+```python,editable
 import math
 from typing import List
 
 class Solution:
-
-    # Predicate: checks if it's possible to reach the destination on
-    # time with a given speed
-    def can_reach_on_time(
-        self, distance: List[int], hour: float, speed: int
-    ) -> bool:
-        total_time = 0
-
-        # Calculate the total time required to reach each checkpoint
-        for i in range(len(distance) - 1):
-            total_time += math.ceil(distance[i] / speed)
-
-        # Add the time required to reach the final destination
-        total_time += distance[-1] / speed
-
-        # Check if the total time is less than or equal to the given hour
-        return total_time <= hour
-
-    def punctual_arrival_speed(
-        self, distance: List[int], hour: float
-    ) -> int:
-
-        # Initialise the search space for speed with low as 1
-        low: int = 1
-
-        # Initialise high to a large value (1e7) as per problem
-        # constraints
-        high: int = int(1e7)
-
-        # Perform binary search to find the minimum speed required to
-        # reach the destination on time
+    def punctual_arrival_speed(self, distance: List[int], hour: float) -> int:
+        low, high = 1, 10 ** 7
         while low < high:
-
-            # Find the middle speed to check if it is possible to reach
-            # the destination on time
             mid = low + (high - low) // 2
-
-            # mid is a possible speed, update the result and search
-            # for a smaller speed
-            if self.can_reach_on_time(distance, hour, mid):
-
-                # Try to find a smaller speed
+            if self._can_reach(distance, hour, mid):
                 high = mid
-
-            # mid is not a possible speed, search for a larger speed
             else:
-
-                # Try to find a larger speed
                 low = mid + 1
+        return low if self._can_reach(distance, hour, low) else -1
 
-        # After the search, low is the candidate minimum speed
-        # Check if it actually works, as it could be possible that no
-        # speed allows reaching on time
-        if not self.can_reach_on_time(distance, hour, low):
-            return -1
+    def _can_reach(self, distance, hour, speed):
+        total = 0.0
+        for i, d in enumerate(distance):
+            t = d / speed
+            if i < len(distance) - 1:
+                total += math.ceil(t)
+            else:
+                total += t
+        return total <= hour
 
-        # Return the minimum speed found
+
+if __name__ == "__main__":
+    print(Solution().punctual_arrival_speed([1, 3, 5], 2.5))   # 10
+```
+
+```java,editable
+public class Solution {
+    public int punctualArrivalSpeed(int[] distance, double hour) {
+        int low = 1, high = (int) 1e7;
+        while (low < high) {
+            int mid = low + (high - low) / 2;
+            if (canReach(distance, hour, mid)) high = mid;
+            else low = mid + 1;
+        }
+        return canReach(distance, hour, low) ? low : -1;
+    }
+    private boolean canReach(int[] distance, double hour, int speed) {
+        double total = 0;
+        for (int i = 0; i < distance.length; i++) {
+            double t = (double) distance[i] / speed;
+            total += (i < distance.length - 1) ? Math.ceil(t) : t;
+        }
+        return total <= hour;
+    }
+}
+```
+
+```c,editable
+#include <math.h>
+#include <stdbool.h>
+
+bool can_reach(int *distance, int n, double hour, int speed) {
+    double total = 0;
+    for (int i = 0; i < n; i++) {
+        double t = (double) distance[i] / speed;
+        total += (i < n - 1) ? ceil(t) : t;
+    }
+    return total <= hour;
+}
+
+int punctual_arrival_speed(int *distance, int n, double hour) {
+    int low = 1, high = 10000000;
+    while (low < high) {
+        int mid = low + (high - low) / 2;
+        if (can_reach(distance, n, hour, mid)) high = mid;
+        else low = mid + 1;
+    }
+    return can_reach(distance, n, hour, low) ? low : -1;
+}
+```
+
+```cpp,editable
+#include <vector>
+#include <cmath>
+
+class Solution {
+public:
+    int punctualArrivalSpeed(std::vector<int>& distance, double hour) {
+        int low = 1, high = (int) 1e7;
+        while (low < high) {
+            int mid = low + (high - low) / 2;
+            if (canReach(distance, hour, mid)) high = mid;
+            else low = mid + 1;
+        }
+        return canReach(distance, hour, low) ? low : -1;
+    }
+    bool canReach(std::vector<int>& distance, double hour, int speed) {
+        double total = 0;
+        for (size_t i = 0; i < distance.size(); i++) {
+            double t = (double) distance[i] / speed;
+            total += (i < distance.size() - 1) ? std::ceil(t) : t;
+        }
+        return total <= hour;
+    }
+};
+```
+
+```scala,editable
+class Solution {
+  def punctualArrivalSpeed(distance: Array[Int], hour: Double): Int = {
+    var low = 1; var high = (1e7).toInt
+    while (low < high) {
+      val mid = low + (high - low) / 2
+      if (canReach(distance, hour, mid)) high = mid else low = mid + 1
+    }
+    if (canReach(distance, hour, low)) low else -1
+  }
+  private def canReach(distance: Array[Int], hour: Double, speed: Int): Boolean = {
+    var total: Double = 0
+    for (i <- distance.indices) {
+      val t = distance(i).toDouble / speed
+      total += (if (i < distance.length - 1) math.ceil(t) else t)
+    }
+    total <= hour
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    punctualArrivalSpeed(distance, hour) {
+        let low = 1, high = 1e7;
+        while (low < high) {
+            const mid = Math.floor(low + (high - low) / 2);
+            if (this._canReach(distance, hour, mid)) high = mid;
+            else low = mid + 1;
+        }
+        return this._canReach(distance, hour, low) ? low : -1;
+    }
+    _canReach(distance, hour, speed) {
+        let total = 0;
+        for (let i = 0; i < distance.length; i++) {
+            const t = distance[i] / speed;
+            total += (i < distance.length - 1) ? Math.ceil(t) : t;
+        }
+        return total <= hour;
+    }
+}
+```
+
+```typescript,editable
+class Solution {
+    punctualArrivalSpeed(distance: number[], hour: number): number {
+        let low = 1, high = 1e7;
+        while (low < high) {
+            const mid = Math.floor(low + (high - low) / 2);
+            if (this._canReach(distance, hour, mid)) high = mid;
+            else low = mid + 1;
+        }
+        return this._canReach(distance, hour, low) ? low : -1;
+    }
+    private _canReach(distance: number[], hour: number, speed: number): boolean {
+        let total = 0;
+        for (let i = 0; i < distance.length; i++) {
+            const t = distance[i] / speed;
+            total += (i < distance.length - 1) ? Math.ceil(t) : t;
+        }
+        return total <= hour;
+    }
+}
+```
+
+```go,editable
+package main
+
+import "math"
+
+func canReach(distance []int, hour float64, speed int) bool {
+    total := 0.0
+    for i, d := range distance {
+        t := float64(d) / float64(speed)
+        if i < len(distance)-1 { total += math.Ceil(t) } else { total += t }
+    }
+    return total <= hour
+}
+
+func punctualArrivalSpeed(distance []int, hour float64) int {
+    low, high := 1, 10000000
+    for low < high {
+        mid := low + (high-low)/2
+        if canReach(distance, hour, mid) { high = mid } else { low = mid + 1 }
+    }
+    if canReach(distance, hour, low) { return low }
+    return -1
+}
+```
+
+```kotlin,editable
+import kotlin.math.ceil
+
+class Solution {
+    fun punctualArrivalSpeed(distance: IntArray, hour: Double): Int {
+        var low = 1; var high = 10_000_000
+        while (low < high) {
+            val mid = low + (high - low) / 2
+            if (canReach(distance, hour, mid)) high = mid else low = mid + 1
+        }
+        return if (canReach(distance, hour, low)) low else -1
+    }
+    private fun canReach(distance: IntArray, hour: Double, speed: Int): Boolean {
+        var total = 0.0
+        for (i in distance.indices) {
+            val t = distance[i].toDouble() / speed
+            total += if (i < distance.size - 1) ceil(t) else t
+        }
+        return total <= hour
+    }
+}
+```
+
+```rust,editable
+fn can_reach(distance: &[i32], hour: f64, speed: i32) -> bool {
+    let mut total = 0.0;
+    let n = distance.len();
+    for (i, &d) in distance.iter().enumerate() {
+        let t = d as f64 / speed as f64;
+        total += if i < n - 1 { t.ceil() } else { t };
+    }
+    total <= hour
+}
+
+fn punctual_arrival_speed(distance: &[i32], hour: f64) -> i32 {
+    let mut low = 1; let mut high = 10_000_000;
+    while low < high {
+        let mid = low + (high - low) / 2;
+        if can_reach(distance, hour, mid) { high = mid; } else { low = mid + 1; }
+    }
+    if can_reach(distance, hour, low) { low } else { -1 }
+}
+```
+
+</div>
+
+***
+
+# Penalty With Balls
+
+## The Problem
+
+Given bag sizes `bags[]` and `maxOperations`, you can split any bag into two non-zero parts (counts as one operation). Minimize the largest bag size after at most `maxOperations` splits.
+
+```
+Input:  bags = [9, 7, 6], maxOperations = 3
+Output: 5
+
+Input:  bags = [4, 8], maxOperations = 1
+Output: 4
+
+Input:  bags = [4, 2], maxOperations = 4
+Output: 1
+```
+
+## The Solution
+
+Predicate: "can we achieve max-bag-size = penalty?" — a bag of size `b > penalty` needs `(b - 1) // penalty` splits. Sum and check against `maxOperations`. Binary-search penalty in `[1, max(bags)]`.
+
+<div class="lang-tabs">
+
+```python,editable
+from typing import List
+
+class Solution:
+    def penalty_with_balls(self, bags: List[int], max_operations: int) -> int:
+        low, high = 1, max(bags)
+        while low < high:
+            mid = low + (high - low) // 2
+            if self._can_achieve(bags, max_operations, mid):
+                high = mid
+            else:
+                low = mid + 1
         return low
+
+    def _can_achieve(self, bags, max_ops, penalty):
+        ops = 0
+        for b in bags:
+            if b > penalty:
+                ops += (b - 1) // penalty
+        return ops <= max_ops
+
+
+if __name__ == "__main__":
+    print(Solution().penalty_with_balls([9, 7, 6], 3))   # 5
 ```
 
-## Example problems
-
-Most problems in this category are **easy** or **medium**; a list of a few is given below.
-
-> -   **[Punctual arrival speed](https://www.codeintuition.io/courses/searching/BBW1lqQsy_CkJayBMckzM)**
-> -   **[Penalty with balls](https://www.codeintuition.io/courses/searching/xQ7pAmpG-Up4uHUCd2rS9)**
-> -   **[Minimum shipping capacity](https://www.codeintuition.io/courses/searching/ke266Y-PVh5hOSYdfs0gV)**
-> -   **[Trip completion frenzy](https://www.codeintuition.io/courses/searching/9FWiQSJuhqx7ps6KgUg9n)**
-
-We will now solve these problems to understand the minimum predicate search pattern better.
-
-***
-
-# Punctual arrival speed
-
-## Problem Statement
-
-Given an array **distance** of size **n**, where `distance[i]` denotes the distance of the `ith` bus ride. You are also given a decimal number of **hours**,representing the minimum time you must reach your house. To reach home, you must take sequential bus rides. Write a function to find and return the minimum speed that all buses must travel at so you can reach home on time. Return `-1` if it's not possible to reach home on time.
-
-Each bus can only depart at an integer time, so for e.g. if the 1st bus takes `2.3` hours, you must wait `0.7` hours to take the second bus
-
-### Example 1
-
-> -   **Input:** distance = \[1, 3, 5\], hours = 2.5
-> -   **Output:** 10
-> -   **Explanation:** Here is the sequence of events.
-> -   The first bus ride takes 1/10 = 0.1 time, now we must wait for 0.9 hours
-> -   The second bus ride takes 3/10 = 0.3 time, now we must wait 0.7 hours
-> -   The third bus rides takes 5/10 = 0.5 time
-
-### Example 2
-
-> -   **Input:** distance = \[1, 4, 9\], hours = 6
-> -   **Output:** 3
-> -   **Explanation:** Here is the sequence of events.
-> -   The first bus ride takes 1/3 = 0.333 time, now we must wait for 0.667 hours
-> -   The second bus ride takes 4/3 = 1.333 time, now we must wait 0.667 hours
-> -   The third bus rides takes 9/3 = 3 time
-
-### Example 3
-
-> -   **Input:** distance = \[1, 8, 10\], hours = 2
-> -   **Output:** -1
-> -   **Explanation:** It is impossible as the earliest train can depart is at the 2-hour mark.
-
-## Solution
-
-```cpp
-#include <cmath>
-
-using namespace std;
-
-class Solution {
-public:
-
-    // Predicate: checks if it's possible to reach the destination on
-    // time with a given speed
-    bool canReachOnTime(vector<int> &distance, double hour, int speed) {
-        double totalTime = 0;
-
-        // Calculate the total time required to reach each checkpoint
-        for (int i = 0; i < distance.size() - 1; i++) {
-            totalTime += ceil(static_cast<double>(distance[i]) / speed);
-        }
-
-        // Add the time required to reach the final destination
-        totalTime += static_cast<double>(distance.back()) / speed;
-
-        // Check if the total time is less than or equal to the given
-        // hour
-        return totalTime <= hour;
-    }
-
-    int punctualArrivalSpeed(vector<int> &distance, double hour) {
-
-        // Initialise the search space for speed with low as 1
-        int low = 1;
-
-        // Initialise high to a large value (1e7) as per problem
-        // constraints
-        int high = 1e7;
-
-        // Perform binary search to find the minimum speed required to
-        // reach the destination on time
+```java,editable
+public class Solution {
+    public int penaltyWithBalls(int[] bags, int maxOperations) {
+        int low = 1, high = 0;
+        for (int b : bags) high = Math.max(high, b);
         while (low < high) {
-
-            // Find the middle speed to check if it is possible to reach
-            // the destination on time
             int mid = low + (high - low) / 2;
-
-            // mid is a possible speed, update the result and search
-            // for a smaller speed
-            if (canReachOnTime(distance, hour, mid)) {
-
-                // Try to find a smaller speed
-                high = mid;
-            }
-
-            // mid is not a possible speed, search for a larger speed
-            else {
-
-                // Try to find a larger speed
-                low = mid + 1;
-            }
+            if (canAchieve(bags, maxOperations, mid)) high = mid;
+            else low = mid + 1;
         }
-
-        // After the search, low is the candidate minimum speed
-        // Check if it actually works, as it could be possible that no
-        // speed allows reaching on time
-        if (!canReachOnTime(distance, hour, low)) {
-            return -1;
-        }
-
-        // Return the minimum speed found
         return low;
     }
-};
+    private boolean canAchieve(int[] bags, int maxOps, int penalty) {
+        int ops = 0;
+        for (int b : bags) if (b > penalty) ops += (b - 1) / penalty;
+        return ops <= maxOps;
+    }
+}
 ```
 
-***
+```c,editable
+#include <stdbool.h>
 
-# Penalty with balls
+bool can_achieve(int *bags, int n, int max_ops, int penalty) {
+    int ops = 0;
+    for (int i = 0; i < n; i++) if (bags[i] > penalty) ops += (bags[i] - 1) / penalty;
+    return ops <= max_ops;
+}
 
-## Problem Statement
-
-You are given an array **bags**, where `bags[i]` denotes the number of balls in the `ith` bag and an integer **maxOperations**. In each operation, you can divide any of the bags into two bags, each containing a non-zero number of balls, or not divide them at all. You can do this operation at almost maxOperation times. Your penalty is the maximum number of balls in a bag. Write a function to find and return the **minimum** possible penalty after you perform all the operations.
-
-### Example 1
-
-> -   **Input:** bags = \[9, 7, 6\], maxOperations = 3
-> -   **Output:** 5
-> -   **Explanation:** Below are the steps involved:
-> -   Divide the first bag into two bags, one with 5 and the other with 4 balls.
-> -   Divide the second bag into two bags, one with 4 and the other with 3 balls.
-> -   Divide the third bag into two bags, both with 3 balls each.
-
-### Example 2
-
-> -   **Input:** bags = \[4, 8\], maxOperations = 1
-> -   **Output:** 4
-> -   **Explanation:** Below are the steps involved:
-> -   Divide the second bag into two bags, both with 4 balls each.
-
-### Example 3
-
-> -   **Input:** bags = \[4, 2\], maxOperations = 4
-> -   **Output:** 1
-> -   **Explanation:** Below are the steps involved:
-> -   Divide the first bag into two bags, both with 2 balls each.
-> -   Divide all the remaining three bags into bags of size 1 each (3 operations).
-
-## Solution
-
-```cpp
-#include <algorithm>
-#include <cmath>
-
-using namespace std;
-
-class Solution {
-public:
-
-    // Predicate: checks if it's possible to achieve a given penalty
-    // (max number of balls in any bag)
-    bool canAchievePenalty(
-        vector<int> &bags,
-        int maxOperations,
-        int penalty
-    ) {
-        int operations = 0;
-        for (int balls : bags) {
-
-            // If a bag has more than 'penalty' balls, we need to split
-            // it. The number of splits required for a bag with 'balls'
-            // is (balls - 1) / penalty
-            if (balls > penalty) {
-
-                // This is the number of splits required
-                operations += (balls - 1) / penalty;
-            }
-        }
-
-        // Check if we can do the splits within maxOperations
-        return operations <= maxOperations;
+int penalty_with_balls(int *bags, int n, int max_operations) {
+    int low = 1, high = 0;
+    for (int i = 0; i < n; i++) if (bags[i] > high) high = bags[i];
+    while (low < high) {
+        int mid = low + (high - low) / 2;
+        if (can_achieve(bags, n, max_operations, mid)) high = mid;
+        else low = mid + 1;
     }
-
-    int penaltyWithBalls(vector<int> &bags, int maxOperations) {
-
-        // The minimum penalty is at least 1 ball in a bag
-        int low = 1;
-
-        // The maximum penalty is the maximum number of balls in a
-        // single bag
-        int high = *max_element(bags.begin(), bags.end());
-
-        while (low < high) {
-
-            // Calculate the middle penalty
-            int mid = low + (high - low) / 2;
-
-            // If we can achieve this penalty, this is a potential answer
-            // so try to find a smaller one
-            if (canAchievePenalty(bags, maxOperations, mid)) {
-
-                // Try a smaller penalty
-                high = mid;
-            }
-
-            // If we can't achieve this penalty, try a larger one
-            else {
-
-                // Try a larger penalty
-                low = mid + 1;
-            }
-        }
-
-        // After the search, low is the minimum penalty achievable
-        return low;
-    }
-};
+    return low;
+}
 ```
 
-***
-
-# Minimum shipping capacity
-
-## Problem Statement
-
-You are given an array **weights**, where `weights[i]` denotes the weight of the `i-th` package, and an integer **days**. You have a ship that can carry packages in the order they appear in the array. Each day, the ship can carry one or more packages as long as the total weight does not exceed its capacity. Your task is to find and return the minimum ship capacity required to transport all the packages within the specified time frame.
-
-### Example 1
-
-> -   **Input:** weights = \[20, 10, 25, 35\], days = 3
-> -   **Output:** 35
-> -   **Explanation:** Below are the steps involved:
-> -   Day 1: Ship packages \[20, 10\] → total 30 (within capacity 35).
-> -   Day 2: Ship package \[25\] → total 25 (within capacity 35).
-> -   Day 3: Ship package \[35\] → total (within capacity 35).
-
-### Example 2
-
-> -   **Input:** weights = \[20, 10, 40, 30\], days = 3
-> -   **Output:** 40
-> -   **Explanation:** Below are the steps involved:
-> -   Day 1: Ship packages \[20, 10\] → total 30 (within capacity 40).
-> -   Day 2: Ship package \[40\] → total 40 (within capacity 40).
-> -   Day 3: Ship package \[30\] → total 30 (within capacity 40).
-
-### Example 3
-
-> -   **Input:** weights = \[6, 3, 9\], days = 3
-> -   **Output:** 18
-> -   **Explanation:** Below are the steps involved:
-> -   Day 1: Ship packages \[6, 3, 9\] → total 18 (within capacity 18).
-
-## Solution
-
-```cpp
-using namespace std;
-
-class Solution {
-public:
-    int minimumShippingCapacity(vector<int> &weights, int days) {
-
-    }
-};
-```
-
-***
-
-# Trip completion frenzy
-
-## Problem Statement
-
-Given an array of non-negative integer **times**, where `times[i]` denotes the time a plane takes to complete a trip. Each plane can pick up another trip as soon as it finishes one trip, i.e., each of the planes operates independently and is not influenced by other planes. You are also given an integer **totalTrips**, write a function to find and return the minimum time required to complete all the trips using the planes at your disposal.
-
-### Example 1
-
-> -   **Input:** times = \[3, 4, 5\], totalTrips= 4
-> -   **Output:** 6
-> -   **Explanation:** Below are the trips completed by the planes at each time interval: t1 = \[0, 0, 0\] t2 = \[0, 0, 0\] t3 = \[1, 0, 0\] t4 = \[1, 1, 0\] t5 = \[1, 1, 1\] t6 = \[2, 1, 1\]
-
-### Example 2
-
-> -   **Input:** times = \[1, 2, 3\], totalTrips= 5
-> -   **Output:** 3
-> -   **Explanation:** Below are the trips completed by the planes at each time interval: t1 = \[1, 0, 0\] t2 = \[2, 1, 0\] t3 = \[3, 1, 1\]
-
-### Example 3
-
-> -   **Input:** times = \[1\], totalTrips= 5
-> -   **Output:** 5
-> -   **Explanation:** Below are the trips completed by the planes at each time interval: t1 = \[1\] t2 = \[2\] t3 = \[3\] t4 = \[4\] t5 = \[5\]
-
-## Solution
-
-```cpp
+```cpp,editable
+#include <vector>
 #include <algorithm>
 
-using namespace std;
-
 class Solution {
 public:
-
-    // Predicate: checks if it's possible to complete at least
-    // 'totalTrips' in 'time' time
-    bool canCompleteTrips(vector<int> &times, int totalTrips, int time) {
-        int tripsCompleted = 0;
-        for (int t : times) {
-
-            // Calculate how many trips each plane can complete in 'time'
-            tripsCompleted += time / t;
-        }
-
-        // Check if the total trips are enough
-        return tripsCompleted >= totalTrips;
-    }
-
-    int tripCompletionFrenzy(vector<int> &times, int totalTrips) {
-
-        // The minimum time required is 0
-        int low = 0;
-
-        // The high boundary is the maximum time taken by any plane
-        int high = *max_element(times.begin(), times.end()) * totalTrips;
-
+    int penaltyWithBalls(std::vector<int>& bags, int maxOperations) {
+        int low = 1, high = *std::max_element(bags.begin(), bags.end());
         while (low < high) {
-
-            // Calculate the middle time
             int mid = low + (high - low) / 2;
-
-            // If we can complete the trips in 'mid' time, try for
-            // smaller time
-            if (canCompleteTrips(times, totalTrips, mid)) {
-
-                // Try a smaller time
-                high = mid;
-            }
-
-            // If we can't complete the trips, try larger time
-            else {
-
-                // Try a larger time
-                low = mid + 1;
-            }
+            if (canAchieve(bags, maxOperations, mid)) high = mid;
+            else low = mid + 1;
         }
-
-        // After the search, low is the minimum time required
         return low;
+    }
+    bool canAchieve(std::vector<int>& bags, int maxOps, int penalty) {
+        int ops = 0;
+        for (int b : bags) if (b > penalty) ops += (b - 1) / penalty;
+        return ops <= maxOps;
     }
 };
 ```
+
+```scala,editable
+class Solution {
+  def penaltyWithBalls(bags: Array[Int], maxOperations: Int): Int = {
+    var low = 1; var high = bags.max
+    while (low < high) {
+      val mid = low + (high - low) / 2
+      if (canAchieve(bags, maxOperations, mid)) high = mid else low = mid + 1
+    }
+    low
+  }
+  private def canAchieve(bags: Array[Int], maxOps: Int, penalty: Int): Boolean = {
+    var ops = 0
+    for (b <- bags) if (b > penalty) ops += (b - 1) / penalty
+    ops <= maxOps
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    penaltyWithBalls(bags, maxOperations) {
+        let low = 1, high = Math.max(...bags);
+        while (low < high) {
+            const mid = low + ((high - low) >> 1);
+            if (this._canAchieve(bags, maxOperations, mid)) high = mid;
+            else low = mid + 1;
+        }
+        return low;
+    }
+    _canAchieve(bags, maxOps, penalty) {
+        let ops = 0;
+        for (const b of bags) if (b > penalty) ops += Math.floor((b - 1) / penalty);
+        return ops <= maxOps;
+    }
+}
+```
+
+```typescript,editable
+class Solution {
+    penaltyWithBalls(bags: number[], maxOperations: number): number {
+        let low = 1, high = Math.max(...bags);
+        while (low < high) {
+            const mid = low + ((high - low) >> 1);
+            if (this._canAchieve(bags, maxOperations, mid)) high = mid;
+            else low = mid + 1;
+        }
+        return low;
+    }
+    private _canAchieve(bags: number[], maxOps: number, penalty: number): boolean {
+        let ops = 0;
+        for (const b of bags) if (b > penalty) ops += Math.floor((b - 1) / penalty);
+        return ops <= maxOps;
+    }
+}
+```
+
+```go,editable
+package main
+
+func canAchieve(bags []int, maxOps, penalty int) bool {
+    ops := 0
+    for _, b := range bags { if b > penalty { ops += (b - 1) / penalty } }
+    return ops <= maxOps
+}
+
+func penaltyWithBalls(bags []int, maxOperations int) int {
+    low, high := 1, 0
+    for _, b := range bags { if b > high { high = b } }
+    for low < high {
+        mid := low + (high-low)/2
+        if canAchieve(bags, maxOperations, mid) { high = mid } else { low = mid + 1 }
+    }
+    return low
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun penaltyWithBalls(bags: IntArray, maxOperations: Int): Int {
+        var low = 1; var high = bags.max()!!
+        while (low < high) {
+            val mid = low + (high - low) / 2
+            if (canAchieve(bags, maxOperations, mid)) high = mid else low = mid + 1
+        }
+        return low
+    }
+    private fun canAchieve(bags: IntArray, maxOps: Int, penalty: Int): Boolean {
+        var ops = 0
+        for (b in bags) if (b > penalty) ops += (b - 1) / penalty
+        return ops <= maxOps
+    }
+}
+```
+
+```rust,editable
+fn can_achieve(bags: &[i32], max_ops: i32, penalty: i32) -> bool {
+    let mut ops = 0;
+    for &b in bags { if b > penalty { ops += (b - 1) / penalty; } }
+    ops <= max_ops
+}
+
+fn penalty_with_balls(bags: &[i32], max_operations: i32) -> i32 {
+    let mut low = 1; let mut high = *bags.iter().max().unwrap();
+    while low < high {
+        let mid = low + (high - low) / 2;
+        if can_achieve(bags, max_operations, mid) { high = mid; } else { low = mid + 1; }
+    }
+    low
+}
+```
+
+</div>
+
+***
+
+# Minimum Shipping Capacity
+
+## The Problem
+
+Given package weights `weights[]` (in order) and `days`, find the minimum ship capacity that allows all packages to be shipped within `days`. Packages must be shipped in input order.
+
+```
+Input:  weights = [20, 10, 25, 35], days = 3
+Output: 35
+
+Input:  weights = [20, 10, 40, 30], days = 3
+Output: 40
+
+Input:  weights = [6, 3, 9], days = 3
+Output: 18
+```
+
+## The Solution
+
+Predicate: "can we ship within `days` days at capacity `cap`?" — greedy: sum weights into a bucket; when adding next would exceed `cap`, start a new day. Count days. Binary-search `cap` in `[max(weights), sum(weights)]`.
+
+<div class="lang-tabs">
+
+```python,editable
+from typing import List
+
+class Solution:
+    def minimum_shipping_capacity(self, weights: List[int], days: int) -> int:
+        low, high = max(weights), sum(weights)
+        while low < high:
+            mid = low + (high - low) // 2
+            if self._can_ship(weights, days, mid): high = mid
+            else: low = mid + 1
+        return low
+
+    def _can_ship(self, weights, days, cap):
+        d, current = 1, 0
+        for w in weights:
+            if current + w > cap:
+                d += 1
+                current = 0
+            current += w
+        return d <= days
+
+
+if __name__ == "__main__":
+    print(Solution().minimum_shipping_capacity([20, 10, 25, 35], 3))   # 35
+```
+
+```java,editable
+public class Solution {
+    public int minimumShippingCapacity(int[] weights, int days) {
+        int low = 0, high = 0;
+        for (int w : weights) { low = Math.max(low, w); high += w; }
+        while (low < high) {
+            int mid = low + (high - low) / 2;
+            if (canShip(weights, days, mid)) high = mid;
+            else low = mid + 1;
+        }
+        return low;
+    }
+    private boolean canShip(int[] weights, int days, int cap) {
+        int d = 1, cur = 0;
+        for (int w : weights) {
+            if (cur + w > cap) { d++; cur = 0; }
+            cur += w;
+        }
+        return d <= days;
+    }
+}
+```
+
+```c,editable
+#include <stdbool.h>
+
+bool can_ship(int *weights, int n, int days, int cap) {
+    int d = 1, cur = 0;
+    for (int i = 0; i < n; i++) {
+        if (cur + weights[i] > cap) { d++; cur = 0; }
+        cur += weights[i];
+    }
+    return d <= days;
+}
+
+int minimum_shipping_capacity(int *weights, int n, int days) {
+    int low = 0, high = 0;
+    for (int i = 0; i < n; i++) { if (weights[i] > low) low = weights[i]; high += weights[i]; }
+    while (low < high) {
+        int mid = low + (high - low) / 2;
+        if (can_ship(weights, n, days, mid)) high = mid;
+        else low = mid + 1;
+    }
+    return low;
+}
+```
+
+```cpp,editable
+#include <vector>
+#include <algorithm>
+#include <numeric>
+
+class Solution {
+public:
+    int minimumShippingCapacity(std::vector<int>& weights, int days) {
+        int low = *std::max_element(weights.begin(), weights.end());
+        int high = std::accumulate(weights.begin(), weights.end(), 0);
+        while (low < high) {
+            int mid = low + (high - low) / 2;
+            if (canShip(weights, days, mid)) high = mid;
+            else low = mid + 1;
+        }
+        return low;
+    }
+    bool canShip(std::vector<int>& weights, int days, int cap) {
+        int d = 1, cur = 0;
+        for (int w : weights) {
+            if (cur + w > cap) { d++; cur = 0; }
+            cur += w;
+        }
+        return d <= days;
+    }
+};
+```
+
+```scala,editable
+class Solution {
+  def minimumShippingCapacity(weights: Array[Int], days: Int): Int = {
+    var low = weights.max; var high = weights.sum
+    while (low < high) {
+      val mid = low + (high - low) / 2
+      if (canShip(weights, days, mid)) high = mid else low = mid + 1
+    }
+    low
+  }
+  private def canShip(weights: Array[Int], days: Int, cap: Int): Boolean = {
+    var d = 1; var cur = 0
+    for (w <- weights) {
+      if (cur + w > cap) { d += 1; cur = 0 }
+      cur += w
+    }
+    d <= days
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    minimumShippingCapacity(weights, days) {
+        let low = Math.max(...weights), high = weights.reduce((a, b) => a + b, 0);
+        while (low < high) {
+            const mid = low + ((high - low) >> 1);
+            if (this._canShip(weights, days, mid)) high = mid;
+            else low = mid + 1;
+        }
+        return low;
+    }
+    _canShip(weights, days, cap) {
+        let d = 1, cur = 0;
+        for (const w of weights) {
+            if (cur + w > cap) { d++; cur = 0; }
+            cur += w;
+        }
+        return d <= days;
+    }
+}
+```
+
+```typescript,editable
+class Solution {
+    minimumShippingCapacity(weights: number[], days: number): number {
+        let low = Math.max(...weights), high = weights.reduce((a, b) => a + b, 0);
+        while (low < high) {
+            const mid = low + ((high - low) >> 1);
+            if (this._canShip(weights, days, mid)) high = mid;
+            else low = mid + 1;
+        }
+        return low;
+    }
+    private _canShip(weights: number[], days: number, cap: number): boolean {
+        let d = 1, cur = 0;
+        for (const w of weights) {
+            if (cur + w > cap) { d++; cur = 0; }
+            cur += w;
+        }
+        return d <= days;
+    }
+}
+```
+
+```go,editable
+package main
+
+func canShip(weights []int, days, cap int) bool {
+    d, cur := 1, 0
+    for _, w := range weights {
+        if cur+w > cap { d++; cur = 0 }
+        cur += w
+    }
+    return d <= days
+}
+
+func minimumShippingCapacity(weights []int, days int) int {
+    low, high := 0, 0
+    for _, w := range weights { if w > low { low = w }; high += w }
+    for low < high {
+        mid := low + (high-low)/2
+        if canShip(weights, days, mid) { high = mid } else { low = mid + 1 }
+    }
+    return low
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun minimumShippingCapacity(weights: IntArray, days: Int): Int {
+        var low = weights.max()!!; var high = weights.sum()
+        while (low < high) {
+            val mid = low + (high - low) / 2
+            if (canShip(weights, days, mid)) high = mid else low = mid + 1
+        }
+        return low
+    }
+    private fun canShip(weights: IntArray, days: Int, cap: Int): Boolean {
+        var d = 1; var cur = 0
+        for (w in weights) {
+            if (cur + w > cap) { d++; cur = 0 }
+            cur += w
+        }
+        return d <= days
+    }
+}
+```
+
+```rust,editable
+fn can_ship(weights: &[i32], days: i32, cap: i32) -> bool {
+    let mut d = 1; let mut cur = 0;
+    for &w in weights {
+        if cur + w > cap { d += 1; cur = 0; }
+        cur += w;
+    }
+    d <= days
+}
+
+fn minimum_shipping_capacity(weights: &[i32], days: i32) -> i32 {
+    let mut low = *weights.iter().max().unwrap();
+    let mut high: i32 = weights.iter().sum();
+    while low < high {
+        let mid = low + (high - low) / 2;
+        if can_ship(weights, days, mid) { high = mid; } else { low = mid + 1; }
+    }
+    low
+}
+```
+
+</div>
+
+***
+
+# Trip Completion Frenzy
+
+## The Problem
+
+Given an array `times[]` (each plane's per-trip duration) and `totalTrips`, find the minimum time required for the planes (operating independently) to complete `totalTrips` trips total.
+
+```
+Input:  times = [3, 4, 5], totalTrips = 4
+Output: 6
+
+Input:  times = [1, 2, 3], totalTrips = 5
+Output: 3
+
+Input:  times = [1], totalTrips = 5
+Output: 5
+```
+
+## The Solution
+
+Predicate: "in time `t`, can we complete `totalTrips`?" — each plane finishes `t / times[i]` trips. Sum and check ≥ totalTrips. Binary-search `t` in `[0, min(times) * totalTrips]`.
+
+<div class="lang-tabs">
+
+```python,editable
+from typing import List
+
+class Solution:
+    def trip_completion_frenzy(self, times: List[int], total_trips: int) -> int:
+        low, high = 0, max(times) * total_trips
+        while low < high:
+            mid = low + (high - low) // 2
+            if self._can_complete(times, total_trips, mid): high = mid
+            else: low = mid + 1
+        return low
+
+    def _can_complete(self, times, total_trips, time):
+        return sum(time // t for t in times) >= total_trips
+
+
+if __name__ == "__main__":
+    print(Solution().trip_completion_frenzy([3, 4, 5], 4))   # 6
+```
+
+```java,editable
+public class Solution {
+    public long tripCompletionFrenzy(int[] times, int totalTrips) {
+        long low = 0, high = (long) Long.MAX_VALUE / 2;
+        long maxT = 0;
+        for (int t : times) maxT = Math.max(maxT, t);
+        high = maxT * (long) totalTrips;
+        while (low < high) {
+            long mid = low + (high - low) / 2;
+            if (canComplete(times, totalTrips, mid)) high = mid;
+            else low = mid + 1;
+        }
+        return low;
+    }
+    private boolean canComplete(int[] times, int totalTrips, long time) {
+        long completed = 0;
+        for (int t : times) completed += time / t;
+        return completed >= totalTrips;
+    }
+}
+```
+
+```c,editable
+#include <stdbool.h>
+
+bool can_complete(int *times, int n, int total_trips, long long time) {
+    long long completed = 0;
+    for (int i = 0; i < n; i++) completed += time / times[i];
+    return completed >= total_trips;
+}
+
+long long trip_completion_frenzy(int *times, int n, int total_trips) {
+    long long low = 0, high = 0, maxT = 0;
+    for (int i = 0; i < n; i++) if (times[i] > maxT) maxT = times[i];
+    high = maxT * (long long) total_trips;
+    while (low < high) {
+        long long mid = low + (high - low) / 2;
+        if (can_complete(times, n, total_trips, mid)) high = mid;
+        else low = mid + 1;
+    }
+    return low;
+}
+```
+
+```cpp,editable
+#include <vector>
+#include <algorithm>
+
+class Solution {
+public:
+    long long tripCompletionFrenzy(std::vector<int>& times, int totalTrips) {
+        long long low = 0;
+        long long high = (long long) *std::max_element(times.begin(), times.end()) * totalTrips;
+        while (low < high) {
+            long long mid = low + (high - low) / 2;
+            if (canComplete(times, totalTrips, mid)) high = mid;
+            else low = mid + 1;
+        }
+        return low;
+    }
+    bool canComplete(std::vector<int>& times, int totalTrips, long long time) {
+        long long completed = 0;
+        for (int t : times) completed += time / t;
+        return completed >= totalTrips;
+    }
+};
+```
+
+```scala,editable
+class Solution {
+  def tripCompletionFrenzy(times: Array[Int], totalTrips: Int): Long = {
+    var low = 0L; var high = times.max.toLong * totalTrips
+    while (low < high) {
+      val mid = low + (high - low) / 2
+      if (canComplete(times, totalTrips, mid)) high = mid else low = mid + 1
+    }
+    low
+  }
+  private def canComplete(times: Array[Int], totalTrips: Int, time: Long): Boolean = {
+    var completed = 0L
+    for (t <- times) completed += time / t
+    completed >= totalTrips
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    tripCompletionFrenzy(times, totalTrips) {
+        let low = 0n, high = BigInt(Math.max(...times)) * BigInt(totalTrips);
+        while (low < high) {
+            const mid = low + (high - low) / 2n;
+            if (this._canComplete(times, totalTrips, mid)) high = mid;
+            else low = mid + 1n;
+        }
+        return Number(low);
+    }
+    _canComplete(times, totalTrips, time) {
+        let completed = 0n;
+        for (const t of times) completed += time / BigInt(t);
+        return completed >= BigInt(totalTrips);
+    }
+}
+```
+
+```typescript,editable
+class Solution {
+    tripCompletionFrenzy(times: number[], totalTrips: number): number {
+        let low = 0n, high = BigInt(Math.max(...times)) * BigInt(totalTrips);
+        while (low < high) {
+            const mid = low + (high - low) / 2n;
+            if (this._canComplete(times, totalTrips, mid)) high = mid;
+            else low = mid + 1n;
+        }
+        return Number(low);
+    }
+    private _canComplete(times: number[], totalTrips: number, time: bigint): boolean {
+        let completed = 0n;
+        for (const t of times) completed += time / BigInt(t);
+        return completed >= BigInt(totalTrips);
+    }
+}
+```
+
+```go,editable
+package main
+
+func canComplete(times []int, totalTrips int, time int64) bool {
+    var completed int64 = 0
+    for _, t := range times { completed += time / int64(t) }
+    return completed >= int64(totalTrips)
+}
+
+func tripCompletionFrenzy(times []int, totalTrips int) int64 {
+    var low, high int64 = 0, 0
+    var maxT int64 = 0
+    for _, t := range times { if int64(t) > maxT { maxT = int64(t) } }
+    high = maxT * int64(totalTrips)
+    for low < high {
+        mid := low + (high-low)/2
+        if canComplete(times, totalTrips, mid) { high = mid } else { low = mid + 1 }
+    }
+    return low
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun tripCompletionFrenzy(times: IntArray, totalTrips: Int): Long {
+        var low = 0L; var high = times.max()!!.toLong() * totalTrips
+        while (low < high) {
+            val mid = low + (high - low) / 2
+            if (canComplete(times, totalTrips, mid)) high = mid else low = mid + 1
+        }
+        return low
+    }
+    private fun canComplete(times: IntArray, totalTrips: Int, time: Long): Boolean {
+        var completed = 0L
+        for (t in times) completed += time / t
+        return completed >= totalTrips
+    }
+}
+```
+
+```rust,editable
+fn can_complete(times: &[i32], total_trips: i64, time: i64) -> bool {
+    let mut completed: i64 = 0;
+    for &t in times { completed += time / t as i64; }
+    completed >= total_trips
+}
+
+fn trip_completion_frenzy(times: &[i32], total_trips: i32) -> i64 {
+    let mut low: i64 = 0;
+    let mut high: i64 = (*times.iter().max().unwrap() as i64) * total_trips as i64;
+    while low < high {
+        let mid = low + (high - low) / 2;
+        if can_complete(times, total_trips as i64, mid) { high = mid; } else { low = mid + 1; }
+    }
+    low
+}
+```
+
+</div>
+
+***
+
+## Final Takeaway
+
+The minimum-predicate-search pattern: when you're optimizing for the smallest value satisfying a monotonic predicate, binary-search the value range. The four problems showed four different predicate functions — "can-reach," "can-achieve-penalty," "can-ship," "can-complete-trips" — each independently a creative greedy/simulation, but all sharing the same outer binary-search shell.
+
+The next lesson (the Maximum Predicate Search Pattern lesson) is the dual: **maximum-predicate-search** — when you're optimizing for the largest value satisfying a predicate that's true-then-false (instead of false-then-true).

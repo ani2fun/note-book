@@ -1,828 +1,708 @@
-# Understanding finding the minimum in a sorted rotated array
+# 6. Sorted Rotated Array
 
-Binary search exponentially speeds up the search for values in a sequence by exploiting the order of items in it. There are many problems that may not be solvable by direct application of binary search, but by algorithms that use the same principle to reduce the size of the problem space by half in each iteration. One such problem is to find the minimum in a sorted rotated array.
+A sorted array is rotated by some unknown amount: `[1, 2, 3, 4, 5, 6, 7]` becomes `[4, 5, 6, 7, 1, 2, 3]`. Plain binary search doesn't work — the array isn't sorted globally. But it's *almost* sorted: it consists of two sorted segments, with the second's values smaller than the first's. Can we still binary-search it in `O(log n)`?
 
-A sorted rotated array is one where a sorted array is rotated in either direction by a certain number of times. The minimum item in a sorted rotated array is called the pivot item. Finding the minimum (pivot) item in a sorted rotated array is a classical problem that can be solved by exploiting the semi-sorted nature of the sequence. 
+Yes — and this lesson covers two related problems:
+1. **Find the minimum** — locate the rotation point (the start of the smaller segment).
+2. **Search for a target** — find a specific value in the rotated array.
 
-// Diagram: The minimum in a sorted rotated array.
+Both run in `O(log n)`. The trick: at any midpoint, *one of the two halves is guaranteed sorted*. Determining which half by comparing `arr[mid]` with `arr[low]` (or `arr[high]`) lets us decide which half could possibly contain the target — same divide-and-conquer logic as binary search, with one extra comparison per iteration.
 
-### Finding the minimum in a sorted rotated array
+By the end of this lesson you'll know both algorithms, the "one half is always sorted" insight that makes them work, and the precise per-iteration decision tree.
 
-It is easy to see that a sorted rotated array is made up of two sorted sequences that come one after the other. The minimum value in a sorted rotated array is also called its pivot item, and it is the first item in the second sorted sequence.
+## Table of contents
 
-// Diagram: A sorted rotated array is made up of two sorted sequences, one after the other.
+1. [The rotated array structure](#the-rotated-array-structure)
+2. [Finding the minimum](#finding-the-minimum)
+3. [Searching for a target](#searching-for-a-target)
+4. [Complexity analysis](#complexity-analysis)
+5. [Rotated array minimum problem](#rotated-array-minimum-problem)
+6. [Rotated array search problem](#rotated-array-search-problem)
 
-Given below is how the sorted rotated array from the example looks when its values are plotted on a Cartesian plane.
+***
 
-// Diagram: The array, when plotted on a Cartesian plane.
+# The Rotated Array Structure
 
-Since all the sorted rotated arrays have two sorted sequences arranged in the same way, we can leverage this information to devise an algorithm to find the minimum. Consider the example of a generic sorted rotated array mapped on a Cartesian plane, given below. We will use this generic example to devise the minimum-finding algorithm.
+> **Course:** DSA › Algorithms › Searching › Sorted Rotated Array
 
-// Diagram: Representation of a generic sorted rotated array on a Cartesian plane.
+A sorted array `[a₀, a₁, ..., a_{n-1}]` rotated at pivot `k` becomes:
 
-We start by creating two variables `low` and `high` and initializing them with the two ends of the array, and maintaining the following invariant:
+```
+[a_k, a_{k+1}, ..., a_{n-1}, a_0, a_1, ..., a_{k-1}]
+```
 
-// Diagram: Invariant: The minimum value is always between low and high and low <= high
+Three properties hold:
+1. The first `n - k` elements form a sorted segment (the original suffix).
+2. The last `k` elements form another sorted segment (the original prefix).
+3. **All elements in the first segment are larger than all elements in the second segment.**
 
-Note that the initial values of `low` and `high` satisfies the invariant.
+Visually:
 
-// Diagram: Start by setting low and high to the boundaries of the array.
+```d2
+direction: right
 
-We then iterate until `low < high`, and in each iteration, we find the midpoint of the search space in `mid` and use it to reduce the size of the search space in a way that the invariant is maintained. Every time we find `mid`, it can fall in either the first or the second sorted sequence of the array. And so, there are two cases that we need to consider in each iteration:
+input: "Original sorted: [1, 2, 3, 4, 5, 6, 7]" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+rotated: "After rotating at k=4:\n[5, 6, 7, 1, 2, 3, 4]\n  ↑       ↑\n  segment 1 (sorted, larger values)\n          segment 2 (sorted, smaller values)" {style.fill: "#fde68a"; style.stroke: "#d97706"}
 
-#### 1\. arr\[mid\] > arr\[high\]
+input -> rotated: rotate left by k=4 (or right by n-k=3)
+```
 
-This can only happen if `mid` is in the first sorted sequence and `high` is in the second sorted sequence, respectively. Because for all other cases, `arr[mid]` will be less than or equal to `arr[high]`.
+<p align="center"><strong>A sorted-rotated array is two sorted segments stitched together, with all elements of the first larger than all elements of the second.</strong></p>
 
-// Diagram: This case is only possible if mid is in the first sequence and high is in the second sequence.
+The minimum of the array is at the start of segment 2 — the rotation point.
 
-Since we know the minimum is in between `mid` and `high` (second sorted sequence), we discard the left half of the search (between `low` and `mid`) by setting `low = mid + 1` and preserve the invariant for the next iteration.
+---
 
-// Diagram: We set low to mid + 1 to discard the half including and before mid.
+## The Key Property
 
-#### 2\. arr\[mid\] <= arr\[high\]
+For any midpoint `mid` in a sorted-rotated array, *at least one of the two halves `[low, mid]` and `[mid, high]` is fully sorted*. Why?
 
-This can only happen if both `mid` and `high` either fall in the first or the second sorted sequence.
+- If `arr[low] ≤ arr[mid]`, then `low..mid` lies entirely within one segment → that half is sorted.
+- Otherwise, `arr[mid] < arr[low]`, meaning `mid` is in segment 2 while `low` is in segment 1 → the right half `mid..high` lies entirely within segment 2 → that half is sorted.
 
-// Diagram: This can happen when both mid and high fall in the same sorted sequence.
+Either way, exactly one half is sorted. We can apply standard binary-search reasoning to that half (compare target with its endpoints), then either find the target there or restrict the search to the other half.
 
-However, since we maintain the invariant that the minimum will always be between `low` and `high`, and we know that the minimum is the first item in the **second** sorted sequence. This means `high` can never be in the first sorted sequence, as it will invalidate the invariant. And so, we can only hit this case, if `mid` is in the second sorted sequence.
+This is the entire algorithmic insight. Now we apply it.
 
-// Diagram: We will only hit this case if both mid and high are in the second sorted sequence.
+---
 
-In this case, the array between `mid` and `high` is guaranteed to be sorted, and so, the minimum is guaranteed **not** to be after `mid`. We discard the right half of the search space (between `mid` and `high`) by setting `high` to `mid`. We set `high` to `mid` as `mid` Itself could be the minimum. This way, we preserve the invariant for the next iteration.
+## Key Takeaway
 
-// Diagram: We set high to mid to discard the half after mid.
+A rotated sorted array has two sorted segments with all-bigger followed by all-smaller. At any midpoint, one half is fully sorted. Use that half to decide which half to discard. Now the two algorithms.
 
-At the end of all iterations, when `low` becomes equal to `high`, the item at low is the minimum in the sorted rotated array.
+***
 
-Since the invariant holds true at the beginning and is preserved through all iterations, we are guaranteed to find the minimum item at the end of all iterations.
+# Finding the Minimum
+
+> **Course:** DSA › Algorithms › Searching › Sorted Rotated Array
+
+The minimum is at the start of segment 2 — the only place where `arr[i-1] > arr[i]` (the unique "discontinuity"). Find that index.
 
 ## Algorithm
 
-The steps below combine all the cases using conditional statements and outline the algorithm to find the minimum in a sorted rotated array.
+Compare `arr[mid]` with `arr[high]`:
+- If `arr[mid] > arr[high]`: the discontinuity is in the right half — the minimum is somewhere in `(mid, high]`. Set `low = mid + 1`.
+- Otherwise: the right half is sorted from `mid` onward — the minimum is in `[low, mid]`. Set `high = mid` (keeping `mid` as a candidate).
 
-> **minimumInRotatedSortedArray(arr, target)**
->
-> -   **Step 1:** Set `low` = 0
-> -   **Step 2:** Set `high` = size of `arr` - 1
-> -   **Step 3:** Iterate while `low` < `high` and do the following:
->     -   **Step 3.1:** Set `mid` = `low` + (`high` - `low`) / 2
->     -   **Step 3.2:** If `arr\[mid\]` > `arr\[high\]`, set `low` = `mid` + 1
->     -   **Step 3.3:** Otherwise, set `high` = `mid`
-> -   **Step 4:** Return `low`
+Loop until `low == high`. Return `low`.
 
-Given below is the execution of the algorithm to find the minimum in a sorted rotated array.
+```
+arr = [4, 5, 6, 1, 2, 3]
 
-// Diagram: Find the minimum in a sorted rotated array
+low=0, high=5, mid=2, arr[mid]=6, arr[high]=3. 6 > 3 → low = 3
+low=3, high=5, mid=4, arr[mid]=2, arr[high]=3. 2 ≤ 3 → high = 4
+low=3, high=4, mid=3, arr[mid]=1, arr[high]=2. 1 ≤ 2 → high = 3
+low=3, high=3 → loop exits
+return 3 (arr[3] = 1, the minimum). ✓
+```
+
+## Why Compare with `arr[high]` (Not `arr[low]`)?
+
+Comparing with `arr[high]` is unambiguous. If `arr[mid] > arr[high]`, the second segment must be in `(mid, high]` (because `arr[high]` is in segment 2 and `arr[mid]` is in segment 1, so the boundary is between them). Comparing with `arr[low]` works for distinct elements but breaks if duplicates are allowed (e.g., `arr[mid] == arr[low]` doesn't tell us which segment `mid` is in).
 
 ## Implementation
 
-Given below is the implementation to find the minimum in a sorted rotated array.
+<div class="lang-tabs">
 
-C++
-
-```cpp
-using namespace std;
-
-class Solution {
-public:
-    int rotatedArrayMinimum(vector<int> &arr) {
-        int low = 0;
-        int high = arr.size() - 1;
-
-        // Perform binary search until low becomes equal to high
-        while (low < high) {
-            int mid = low + (high - low) / 2;
-
-            // If the middle element is greater than the element at high
-            // index, it means the minimum element lies in the right part
-            // of the array.
-            if (arr[mid] > arr[high]) {
-                low = mid + 1;
-            }
-
-            // Otherwise, the minimum element lies in the left part of
-            // the array.
-            else {
-                high = mid;
-            }
-
-        // Return the index of the minimum element
-        return low;
-    }
-};
-```
-
-Java
-
-```java
-class Solution {
-    public int rotatedArrayMinimum(int[] arr) {
-        int low = 0;
-        int high = arr.length - 1;
-
-        // Perform binary search until low becomes equal to high
-        while (low < high) {
-            int mid = low + (high - low) / 2;
-
-            // If the middle element is greater than the element at high
-            // index, it means the minimum element lies in the right part
-            // of the array.
-            if (arr[mid] > arr[high]) {
-                low = mid + 1;
-            }
-
-            // Otherwise, the minimum element lies in the left part of
-            // the array.
-            else {
-                high = mid;
-            }
-
-        // Return the index of the minimum element
-        return low;
-    }
-```
-
-Typescript
-
-```typescript
-export class Solution {
-    rotatedArrayMinimum(arr: number[]): number {
-        let low: number = 0;
-        let high: number = arr.length - 1;
-
-        // Perform binary search until low becomes equal to high
-        while (low < high) {
-            const mid: number = low + Math.floor((high - low) / 2);
-
-            // If the middle element is greater than the element at high
-            // index, it means the minimum element lies in the right part
-            // of the array.
-            if (arr[mid] > arr[high]) {
-                low = mid + 1;
-            }
-
-            // Otherwise, the minimum element lies in the left part of
-            // the array.
-            else {
-                high = mid;
-            }
-
-        // Return the index of the minimum element
-        return low;
-    }
-```
-
-Javascript
-
-```javascript
-export class Solution {
-    rotatedArrayMinimum(arr) {
-        let low = 0;
-        let high = arr.length - 1;
-
-        // Perform binary search until low becomes equal to high
-        while (low < high) {
-            const mid = low + Math.floor((high - low) / 2);
-
-            // If the middle element is greater than the element at high
-            // index, it means the minimum element lies in the right part
-            // of the array.
-            if (arr[mid] > arr[high]) {
-                low = mid + 1;
-            }
-
-            // Otherwise, the minimum element lies in the left part of
-            // the array.
-            else {
-                high = mid;
-            }
-
-        // Return the index of the minimum element
-        return low;
-    }
-```
-
-Python
-
-```python
+```python,editable
 from typing import List
 
 class Solution:
     def rotated_array_minimum(self, arr: List[int]) -> int:
-        low: int = 0
-        high: int = len(arr) - 1
-
-        # Perform binary search until low becomes equal to high
+        low, high = 0, len(arr) - 1
         while low < high:
-            mid: int = low + (high - low) // 2
-
-            # If the middle element is greater than the element at high
-            # index, it means the minimum element lies in the right part
-            # of the array.
+            mid = low + (high - low) // 2
             if arr[mid] > arr[high]:
-                low = mid + 1
-
-            # Otherwise, the minimum element lies in the left part of the
-            # array.
+                low = mid + 1                           # min is in the right half
             else:
-                high = mid
-
-        # Return the index of the minimum element
+                high = mid                              # min is in the left half (incl. mid)
         return low
+
+
+if __name__ == "__main__":
+    print(Solution().rotated_array_minimum([4, 5, 6, 1, 2, 3]))   # 3
+    print(Solution().rotated_array_minimum([5, 6, 1, 2, 3, 4]))   # 2
 ```
 
-## Complexity Analysis
+```java,editable
+public class Solution {
+    public int rotatedArrayMinimum(int[] arr) {
+        int low = 0, high = arr.length - 1;
+        while (low < high) {
+            int mid = low + (high - low) / 2;
+            if (arr[mid] > arr[high]) low = mid + 1;
+            else high = mid;
+        }
+        return low;
+    }
 
-The algorithm's time and space complexity are easy to understand. We have the two variables `low` and `high` that hold the start and end of the current search space, respectively, and in each iteration, we reduce the size of the search space by half. If we assume that the initial size of the problem space is **N**, the time complexity in any case is **O(log(N))**.
+    public static void main(String[] args) {
+        System.out.println(new Solution().rotatedArrayMinimum(new int[]{4, 5, 6, 1, 2, 3}));
+    }
+}
+```
 
-Since we don't create only a fixed number of extra variables during the execution of the algorithm, the space complexity **O(1)** is constant in any case.
+```c,editable
+#include <stdio.h>
 
-> **Any case -**
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(log(N))**
+int rotated_array_minimum(int *arr, int n) {
+    int low = 0, high = n - 1;
+    while (low < high) {
+        int mid = low + (high - low) / 2;
+        if (arr[mid] > arr[high]) low = mid + 1;
+        else high = mid;
+    }
+    return low;
+}
 
-***
+int main(void) {
+    int arr[] = {4, 5, 6, 1, 2, 3};
+    printf("%d\n", rotated_array_minimum(arr, 6));
+    return 0;
+}
+```
 
-# Rotated array minimum
-
-## Problem Statement
-
-Given an integer array **arr** that **contains distinct elements** and is sorted in ascending order, write a function to find the index of the minimum element in the array. 
-
-The array, however, has been rotated along an unknown pivot k, such that it has now become `[arr[k], arr[k+1], ..., arr[n-1], arr[0], arr[1], ..., arr[k-1]`. For e.g an array `[1, 2, 3, 4, 5]` when rotated at a pivot index 2 becomes `[3, 4, 5, 1, 2]`.
-
-You must do this in a time complexity of `O(logN)`.
-
-### Example 1
-
-> -   **Input:** arr = \[4, 5, 6, 1, 2, 3\]
-> -   **Output:** 3
-> -   **Explanation:** The minimum element is 1, which is at index 3.
-
-### Example 2
-
-> -   **Input:** arr = \[5, 6, 1, 2, 3, 4\]
-> -   **Output:** 2
-> -   **Explanation:** The minimum element is 1, which is at index 2.
-
-### Example 3
-
-> -   **Input:** arr = \[6, 7, 2, 3, 4, 5\]
-> -   **Output:** 2
-> -   **Explanation:** The minimum element is 2, which is at index 2.
-
-## Solution
-
-```cpp
-using namespace std;
+```cpp,editable
+#include <iostream>
+#include <vector>
 
 class Solution {
 public:
-    int rotatedArrayMinimum(vector<int> &arr) {
-        int low = 0;
-        int high = arr.size() - 1;
-
-        // Perform binary search until low becomes equal to high
+    int rotatedArrayMinimum(const std::vector<int>& arr) {
+        int low = 0, high = (int) arr.size() - 1;
         while (low < high) {
             int mid = low + (high - low) / 2;
-
-            // If the middle element is greater than the element at high
-            // index, it means the minimum element lies in the right part
-            // of the array.
-            if (arr[mid] > arr[high]) {
-                low = mid + 1;
-            }
-
-            // Otherwise, the minimum element lies in the left part of
-            // the array.
-            else {
-                high = mid;
-            }
+            if (arr[mid] > arr[high]) low = mid + 1;
+            else high = mid;
         }
-
-        // Return the index of the minimum element
         return low;
     }
 };
+
+int main() {
+    std::cout << Solution{}.rotatedArrayMinimum({4, 5, 6, 1, 2, 3}) << '\n';
+}
 ```
+
+```scala,editable
+class Solution {
+  def rotatedArrayMinimum(arr: Array[Int]): Int = {
+    var low = 0; var high = arr.length - 1
+    while (low < high) {
+      val mid = low + (high - low) / 2
+      if (arr(mid) > arr(high)) low = mid + 1 else high = mid
+    }
+    low
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    println(new Solution().rotatedArrayMinimum(Array(4, 5, 6, 1, 2, 3)))
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    rotatedArrayMinimum(arr) {
+        let low = 0, high = arr.length - 1;
+        while (low < high) {
+            const mid = low + ((high - low) >> 1);
+            if (arr[mid] > arr[high]) low = mid + 1;
+            else high = mid;
+        }
+        return low;
+    }
+}
+
+console.log(new Solution().rotatedArrayMinimum([4, 5, 6, 1, 2, 3]));
+```
+
+```typescript,editable
+class Solution {
+    rotatedArrayMinimum(arr: number[]): number {
+        let low = 0, high = arr.length - 1;
+        while (low < high) {
+            const mid = low + ((high - low) >> 1);
+            if (arr[mid] > arr[high]) low = mid + 1;
+            else high = mid;
+        }
+        return low;
+    }
+}
+
+console.log(new Solution().rotatedArrayMinimum([4, 5, 6, 1, 2, 3]));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func rotatedArrayMinimum(arr []int) int {
+    low, high := 0, len(arr)-1
+    for low < high {
+        mid := low + (high-low)/2
+        if arr[mid] > arr[high] {
+            low = mid + 1
+        } else {
+            high = mid
+        }
+    }
+    return low
+}
+
+func main() {
+    fmt.Println(rotatedArrayMinimum([]int{4, 5, 6, 1, 2, 3}))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun rotatedArrayMinimum(arr: IntArray): Int {
+        var low = 0; var high = arr.size - 1
+        while (low < high) {
+            val mid = low + (high - low) / 2
+            if (arr[mid] > arr[high]) low = mid + 1 else high = mid
+        }
+        return low
+    }
+}
+
+fun main() {
+    println(Solution().rotatedArrayMinimum(intArrayOf(4, 5, 6, 1, 2, 3)))
+}
+```
+
+```rust,editable
+fn rotated_array_minimum(arr: &[i32]) -> usize {
+    let mut low = 0; let mut high = arr.len() - 1;
+    while low < high {
+        let mid = low + (high - low) / 2;
+        if arr[mid] > arr[high] { low = mid + 1; } else { high = mid; }
+    }
+    low
+}
+
+fn main() {
+    println!("{}", rotated_array_minimum(&[4, 5, 6, 1, 2, 3]));
+}
+```
+
+</div>
 
 ***
 
-# Understanding searching in a sorted rotated array
+# Searching for a Target
 
-Binary search to find a target value in a sorted array is an exponentially fast algorithm that only works on sorted arrays. However, we can also search for a target item in a sorted rotated array using the same underlying principle as binary search, exploiting its semi-sorted nature. As we will see later, this semi-sorted structure allows us to discard one half of the search space in each iteration until we find the target value.
+> **Course:** DSA › Algorithms › Searching › Sorted Rotated Array
 
-A sorted rotated array is one where a sorted array is rotated in either direction by a certain number of times. While the array is no longer sorted, we can still efficiently search for items in such arrays using the sorted rotated search algorithm.
-
-// Diagram: Find if the given target exists in the sorted rotated array.
-
-## The sorted rotated search algorithm
-
-Consider a sorted array `arr` that is rotated an unknown number of times in either (left or right) direction, and we need to find if a value `target` exits in the array.
-
-// Diagram: Find if the given target exists in the sorted rotated array.
-
-Every sorted rotated array of size `n` has a pivot index `p` where `arr[p]` is  the **minimum** item in the array.
-
-// Diagram: The pivot index is the index in the array that has the minimum value item.
-
-// Diagram: Every sorted rotated array has the following properties
-
-1.  1`arr[0] <= arr[1] <= . . . . <= arr[p-1]`
-2.  2`arr[p] <= arr[p+1] <= . . . . <= arr[n-1]`
-3.  3`arr[j] < arr[i]` for all `i < p` and `j >=p`
-
-Thus, the array consists of two sorted non-decreasing intervals, starting with the interval where all values are greater than the next interval.
-
-// Diagram: A sorted rotated array contains two sorted sequences, one after the other, starting with the higher value sequence.
-
-Consider the example of a generic sorted rotated array mapped on a Cartesian plane, given below. We will use this generic example to devise the search algorithm.
-
-// Diagram: Representation of a generic sorted rotated array on a Cartesian plane.
-
-It is important to note that if we take any two points `low` and `high` in the array and find a midpoint `mid`, at least one side of the midpoint is always sorted, i.e. either `arr[low] <=. . . <= arr[mid]` or `arr[mid] <= . . . <=arr[high]`.
-
-This is because if low and high fall in the same sorted sequence, then the interval between low and high will be sorted, including the intervals between `low` and `mid` and `mid` and `high`. On the other hand, if `low` falls in the first sequence and `high` in the second sequence, `mid` will fall either in the first or second sequence, making the interval between `low` and `mid` sorted, or the interval between `mid` and `high` sorted, respectively.
-
-Although the sequence is not monotonically increasing, we can devise an algorithm similar to binary search that reduces the search space in half in each iteration by leveraging this essential property of a sorted rotated array.
-
-We start by creating two variables `low` and `high` and initializing them with the two ends of the array, and maintaining the following invariant:
-
-**Invariant**
-
-// Diagram: If the target exists in the array, it is always between low and high and low <= high
-
-Note that the initial values of `low` and `high` satisfies the invariant.
-
-// Diagram: Start by setting low and high to the boundaries of the array.
-
-We then iterate until `low < high`, and in each iteration, we find the midpoint of the search space in `mid` and use it to reduce the size of the search space in a way that the invariant is maintained. Every time we find `mid`, we could hit one of the three cases as given below.
-
-### 1\. The target is found at arr\[mid\]
-
-If the item at `mid`is the target value, we can terminate further search as we have found the target item and return the index`mid`.
-
-// Diagram: If the item at mid is the target value, return mid.
-
-### 2\. The left half is sorted arr\[low\] <= arr\[mid\]
-
-In this case, the sequence between `low` and `mid` is guaranteed to be non-decreasing, while the sequence between `mid` and `high` may or may not be.
-
-// Diagram: In this case, the sequence between low and mid is guaranteed to be sorted.
-
-There can be three further subcases in this case, as given below.
-
-#### 2.1 arr\[low\] <= target < arr\[mid\]
-
-Since the sequence between `low` and `mid` is sorted, if `arr[low]  <= target < arr[mid]`, it means `target`, if it exists, is somewhere in the left half of the search space defined by `low` and `high` i.e. between `low` and `mid` and so, the right half can be discarded.
-
-// Diagram: If arr\[low\] <= target < arr\[mid\] it means that target is before mid.
-
-And so, we set `high = mid - 1` to discard the right half, including `mid` and preserve the invariant for the next iteration.
-
-// Diagram: We set high to mid - 1 to discard the half including and after mid.
-
-#### 2.2 target > arr\[mid\]
-
-Since the sequence between `low` and `mid` is sorted, if `target > arr[mid]` it means `target` is **not** in the left half of the search space defined by `low` and `high` i.e. between `low` and `mid`, and so, if it exists at all, it must be in the right half.
-
-// Diagram: If target > arr\[mid\], it means it is after mid in the search space.
-
-We set `low = mid + 1` to discard the left half and preserve the invariant for the next iteration.
-
-// Diagram: We set low to mid + 1 to discard the half including and before mid.
-
-#### 2.3 target < arr\[low\]
-
-Since the sequence between `low` and `mid` is sorted, if `target < arr[low]` it means `target` is must be before `low`. However, since our invariant states, `target`, if it exists is always between `low` and `high`, and since we maintain the invariant at all times, this can only happen if both `low` and `mid` are in the first sorted sequence, and `high` is in the second sorted sequence. This is because all items in the second sorted sequence are less than the items in the first sorted sequence, and they can still be within the search space defined by `low` and `high` without breaking the invariant if `low` is in the first sorted sequence, and `high` is in the second sorted sequence.
-
-We set `low = mid + 1` to discard the left half defined by the search space between `low` and `high`, i.e. between `low` and `mid`, and preserve the invariant for the next iteration.
-
-// Diagram: We set low to mid + 1 to discard the half including and before mid.
-
-### 3\. The right half is sorted arr\[mid\] <= arr\[high\]
-
-In this case, the sequence between `mid` and `high` is guaranteed to be non-decreasing, while the sequence between `low` and `mid` may or may not be.
-
-// Diagram: In this case, the sequence between mid and high is guaranteed to be sorted.
-
-There can be three further subcases in this case, as given below.
-
-#### 3.1 arr\[mid\] < target <=  arr\[high\]
-
-Since the sequence between `mid` and `high` is sorted, if `arr[mid]  < target <= arr[high]`, it means `target`, if it exists, is somewhere in the right half of the search space defined by `low` and `high` i.e. between `mid` and `high`, and so, the left half can be discarded.
-
-// Diagram: If arr\[mid\] <= target < arr\[high\] it means that target is after mid.
-
-And so, we set `low = mid + 1` to discard the left half, including `mid` and preserve the invariant for the next iteration.
-
-// Diagram: We set low to mid + 1 to discard the half, including and before mid.
-
-#### 3.2 target < arr\[mid\]
-
-Since the sequence between `mid` and `high` is sorted, if `target < arr[mid]` it means `target` is **not** in the right half of the search space defined by `low` and `high`, i.e. between `mid` and `high`, and so, if it exists at all, it must be in the left half.
-
-// Diagram: If target < arr\[mid\], it means it is before mid in the search space.
-
-We set `high = mid - 1` to discard the right half and preserve the invariant for the next iteration.
-
-// Diagram: We set high to mid - 1 to discard the half including and after mid.
-
-#### 3.3 target > arr\[high\]
-
-Since the sequence between `mid` and `high` is sorted, if `target > arr[high]` it means `target` must be after `high`. However, since our invariant states, `target`, if it exists is always between `low` and `high`, and since we maintain the invariant at all times, this can only happen if both `mid` and `high` are in the second sorted sequence, and `low` is in the first sorted sequence. This is because all items in the first sorted sequence are greater than the items in the second sorted sequence, and they can still be within the search space defined by `low` and `high` without breaking the invariant if `low` is in the first sorted sequence, and `high` is in the second sorted sequence.
-
-We set `high = mid - 1` to discard the right half defined by the search space between `low` and `high`, i.e. between `mid` and `high`, and preserve the invariant for the next iteration.
-
-// Diagram: We set high to mid - 1 to discard the half including and after mid.
-
-At the end of all iterations `low` becomes greater than or equal to `high` and we cannot iterate any further. If we couldn't find the target by this time, it means the target does not exist in the array.
-
-It is important to note that in each iteration, the algorithm discards half of the search space that is guaranteed not to contain the target. And so, the invariant that the array between `low` and `high` will always contain `target`, if it exists, is maintained throughout.
+Standard binary search structure plus one extra check: identify the sorted half and decide whether the target is in it.
 
 ## Algorithm
 
-We can combine all the cases above using conditional statements to discard half of the search space in each iteration. The steps below outline the sorted rotated search algorithm in a sorted rotated array.
+```
+while low <= high:
+    mid = (low + high) / 2
+    if arr[mid] == target: return mid
 
-> **rotatedSortedSearch(arr, target)**
->
-> -   **Step 1:** Set `low` = 0
-> -   **Step 2:** Set `high` = size of `arr` - 1
-> -   **Step 3:** Iterate while `low` <= `high` and do the following:
->     -   **Step 3.1:** Set `mid` = `low` + (`high` - `low`) / 2
->     -   **Step 3.2:** If `arr\[mid\]` == `target` return `mid`
->     -   **Step 3.3:** Otherwise, If `arr\[mid\]` > `arr\[low\]`, it means the left half is sorted, do the following
->         -   **Step 3.3.1:** If `arr\[low\]` <= `target` < `arr\[mid\]` set `high` = `mid` - 1
->         -   **Step 3.3.2:** Otherwise set `low` = `mid` + 1
->     -   **Step 3.4:** Otherwise, it means the right half is sorted, do the following
->         -   **Step 3.4.1:** If `arr\[mid\]` < `target` <= `arr\[high\]` set `low` = `mid` + 1
->         -   **Step 3.4.2:** Otherwise set `high` = `mid` - 1
-> -   **Step 4:** The `target` is not found, return -1
+    if arr[mid] >= arr[low]:               # left half [low, mid] is sorted
+        if arr[low] <= target < arr[mid]: high = mid - 1   # target in left half
+        else: low = mid + 1                                 # target in right half
+    else:                                  # right half [mid, high] is sorted
+        if arr[mid] < target <= arr[high]: low = mid + 1   # target in right half
+        else: high = mid - 1                                # target in left half
+```
 
-Given below is the execution of the algorithm to find a target value in a sorted rotated array.
+The decision tree at each iteration:
+1. Found target? Return.
+2. Otherwise, identify the sorted half by checking `arr[mid] >= arr[low]` (left sorted) or `arr[mid] < arr[low]` (right sorted).
+3. If target falls within the sorted half's value range → search there. Else → search the other half.
 
-// Diagram: Search for target (8) in a sorted rotated array
+## A Walkthrough
+
+`arr = [4, 5, 6, 1, 2, 3]`, `target = 2`.
+
+```
+low=0, high=5, mid=2, arr[mid]=6.
+  6 != 2. arr[mid]=6 >= arr[low]=4 → left half [4,5,6] is sorted.
+  Is 4 <= 2 < 6? no → target not in left → low = 3.
+
+low=3, high=5, mid=4, arr[mid]=2.
+  2 == 2 → return 4.
+```
+
+Two iterations to find the target on a 6-element array.
 
 ## Implementation
 
-Given below is the implementation to find the given target value in a sorted rotated array using the sorted rotated search algorithm.
+<div class="lang-tabs">
 
-C++
-
-```cpp
-using namespace std;
-
-class Solution {
-public:
-    int rotatedArraySearch(vector<int> &arr, int target) {
-        int low = 0;
-        int high = arr.size() - 1;
-
-        while (low <= high) {
-            int mid = low + (high - low) / 2;
-
-            // If the middle element is the target, return its index
-            if (arr[mid] == target) {
-                return mid;
-            }
-
-            // If the left half is sorted
-            if (arr[mid] >= arr[low]) {
-
-                // If the target is within the range of the left half
-                // Update the high index to search in the left half
-                if (arr[low] <= target && target < arr[mid]) {
-                    high = mid - 1;
-                }
-
-                // Ohterwise, update the low index to search in the right
-                // half
-                else {
-                    low = mid + 1;
-                }
-
-            // Otherwise, if the right half is sorted
-            else {
-
-                // If the target is within the range of the right
-                // half Update the low index to search in the right
-                // half
-                if (arr[mid] < target && target <= arr[high]) {
-                    low = mid + 1;
-                }
-
-                // Otherwise, update the high index to search in the left
-                // half
-                else {
-                    high = mid - 1;
-                }
-
-        // Target not found
-        return -1;
-    }
-};
-```
-
-Java
-
-```java
-class Solution {
-    public int rotatedArraySearch(int[] arr, int target) {
-        int low = 0;
-        int high = arr.length - 1;
-
-        while (low <= high) {
-            int mid = low + (high - low) / 2;
-
-            // If the middle element is the target, return its index
-            if (arr[mid] == target) {
-                return mid;
-            }
-
-            // If the left half is sorted
-            if (arr[mid] >= arr[low]) {
-
-                // If the target is within the range of the left half
-                // Update the high index to search in the left half
-                if (arr[low] <= target && target < arr[mid]) {
-                    high = mid - 1;
-                }
-
-                // Otherwise, update the low index to search in the right
-                // half
-                else {
-                    low = mid + 1;
-                }
-
-            // Otherwise, if the right half is sorted
-            else {
-
-                // If the target is within the range of the right half
-                // Update the low index to search in the right half
-                if (arr[mid] < target && target <= arr[high]) {
-                    low = mid + 1;
-                }
-
-                // Otherwise, update the high index to search in the left
-                // half
-                else {
-                    high = mid - 1;
-                }
-
-        // Target not found
-        return -1;
-    }
-```
-
-Typescript
-
-```typescript
-export class Solution {
-    rotatedArraySearch(arr: number[], target: number): number {
-        let low = 0;
-        let high = arr.length - 1;
-
-        while (low <= high) {
-            const mid: number = low + Math.floor((high - low) / 2);
-
-            // If the middle element is the target, return its index
-            if (arr[mid] === target) {
-                return mid;
-            }
-
-            // If the left half is sorted
-            if (arr[mid] >= arr[low]) {
-
-                // If the target is within the range of the left half
-                // Update the high index to search in the left half
-                if (arr[low] <= target && target < arr[mid]) {
-                    high = mid - 1;
-                }
-
-                // Otherwise, update the low index to search in the right
-                // half
-                else {
-                    low = mid + 1;
-                }
-
-            // Otherwise, if the right half is sorted
-            else {
-
-                // If the target is within the range of the right half
-                // Update the low index to search in the right half
-                if (arr[mid] < target && target <= arr[high]) {
-                    low = mid + 1;
-                }
-
-                // Otherwise, update the high index to search in the left
-                // half
-                else {
-                    high = mid - 1;
-                }
-
-        // Target not found
-        return -1;
-    }
-```
-
-Javascript
-
-```javascript
-export class Solution {
-    rotatedArraySearch(arr, target) {
-        let low = 0;
-        let high = arr.length - 1;
-
-        while (low <= high) {
-            const mid = low + Math.floor((high - low) / 2);
-
-            // If the middle element is the target, return its index
-            if (arr[mid] === target) {
-                return mid;
-            }
-
-            // If the left half is sorted
-            if (arr[mid] >= arr[low]) {
-
-                // If the target is within the range of the left half
-                // Update the high index to search in the left half
-                if (arr[low] <= target && target < arr[mid]) {
-                    high = mid - 1;
-                }
-
-                // Otherwise, update the low index to search in the right
-                // half
-                else {
-                    low = mid + 1;
-                }
-
-            // Otherwise, if the right half is sorted
-            else {
-
-                // If the target is within the range of the right half
-                // Update the low index to search in the right half
-                if (arr[mid] < target && target <= arr[high]) {
-                    low = mid + 1;
-                }
-
-                // Otherwise, update the high index to search in the left
-                // half
-                else {
-                    high = mid - 1;
-                }
-
-        // Target not found
-        return -1;
-    }
-```
-
-Python
-
-```python
+```python,editable
 from typing import List
 
 class Solution:
     def rotated_array_search(self, arr: List[int], target: int) -> int:
-        low = 0
-        high = len(arr) - 1
-
+        low, high = 0, len(arr) - 1
         while low <= high:
             mid = low + (high - low) // 2
-
-            # If the middle element is the target, return its index
             if arr[mid] == target:
                 return mid
-
-            # If the left half is sorted
-            if arr[mid] >= arr[low]:
-
-                # If the target is within the range of the left half
-                # Update the high index to search in the left half
-                if arr[low] <= target and target < arr[mid]:
+            if arr[mid] >= arr[low]:                    # left half sorted
+                if arr[low] <= target < arr[mid]:
                     high = mid - 1
-
-                # Otherwise, update the low index to search in the right
-                # half
                 else:
                     low = mid + 1
-
-            # Otherwise, if the right half is sorted
-            else:
-
-                # If the target is within the range of the right half
-                # Update the low index to search in the right half
-                if arr[mid] < target and target <= arr[high]:
+            else:                                       # right half sorted
+                if arr[mid] < target <= arr[high]:
                     low = mid + 1
-
-                # Otherwise, update the high index to search in the left
-                # half
                 else:
                     high = mid - 1
-
-        # Target not found
         return -1
+
+
+if __name__ == "__main__":
+    print(Solution().rotated_array_search([4, 5, 6, 1, 2, 3], 2))   # 4
+    print(Solution().rotated_array_search([4, 5, 6, 1, 2, 3], 10))  # -1
 ```
 
-## Complexity Analysis
+```java,editable
+public class Solution {
+    public int rotatedArraySearch(int[] arr, int target) {
+        int low = 0, high = arr.length - 1;
+        while (low <= high) {
+            int mid = low + (high - low) / 2;
+            if (arr[mid] == target) return mid;
+            if (arr[mid] >= arr[low]) {
+                if (arr[low] <= target && target < arr[mid]) high = mid - 1;
+                else low = mid + 1;
+            } else {
+                if (arr[mid] < target && target <= arr[high]) low = mid + 1;
+                else high = mid - 1;
+            }
+        }
+        return -1;
+    }
 
-The algorithm's time and space complexity are easy to understand. We have the two variables `low` and `high` that hold the start and end of the current search space, respectively, and in each iteration, we reduce the size of the search space by half. If we assume that the initial size of the problem space is **N**, the time complexity in any case is **O(log(N))**.
+    public static void main(String[] args) {
+        System.out.println(new Solution().rotatedArraySearch(new int[]{4, 5, 6, 1, 2, 3}, 2));
+    }
+}
+```
 
-Since we don't create only a fixed number of extra variables during the execution of the algorithm, the space complexity **O(1)** is constant in any case.
+```c,editable
+#include <stdio.h>
 
-> **Any case -**
->
-> -   Space Complexity - **O(1)**
-> -   Time Complexity - **O(log(N))**
+int rotated_array_search(int *arr, int n, int target) {
+    int low = 0, high = n - 1;
+    while (low <= high) {
+        int mid = low + (high - low) / 2;
+        if (arr[mid] == target) return mid;
+        if (arr[mid] >= arr[low]) {
+            if (arr[low] <= target && target < arr[mid]) high = mid - 1;
+            else low = mid + 1;
+        } else {
+            if (arr[mid] < target && target <= arr[high]) low = mid + 1;
+            else high = mid - 1;
+        }
+    }
+    return -1;
+}
 
-***
+int main(void) {
+    int arr[] = {4, 5, 6, 1, 2, 3};
+    printf("%d\n", rotated_array_search(arr, 6, 2));
+    return 0;
+}
+```
 
-# Rotated array search
-
-## Problem Statement
-
-Given an integer array **arr** that contains distinct elements and is sorted in ascending order, you are also given an integer **target**, write a function to search the target in the array. If the target exists, return its index. Otherwise, return `-1`. 
-
-The array, however, has been rotated along an unknown pivot k, such that it has now become `[arr[k], arr[k+1], ..., arr[n-1], arr[0], arr[1], ..., arr[k-1]`. For e.g an array `[1, 2, 3, 4, 5]` when rotated at a pivot index 2 becomes `[3, 4, 5, 1, 2]`. 
-
-You must do this in a time complexity of `O(logN)`.
-
-### Example 1
-
-> -   **Input:** arr = \[4, 5, 6, 1, 2, 3\], target = 3
-> -   **Output:** 5
-> -   **Explanation:** The integer 3 is at index 5 in the array.
-
-### Example 2
-
-> -   **Input:** arr = \[5, 6, 1, 2, 3, 4\], target = 6
-> -   **Output:** 1
-> -   **Explanation:** The integer 6 is at index 1 in the array.
-
-### Example 3
-
-> -   **Input:** arr = \[6, 1, 2, 3, 4, 5\], target = 10
-> -   **Output:** -1
-> -   **Explanation:** The integer 10 does not exist in the array.
-
-## Solution
-
-```cpp
-using namespace std;
+```cpp,editable
+#include <iostream>
+#include <vector>
 
 class Solution {
 public:
-    int rotatedArraySearch(vector<int> &arr, int target) {
-        int low = 0;
-        int high = arr.size() - 1;
-
+    int rotatedArraySearch(const std::vector<int>& arr, int target) {
+        int low = 0, high = (int) arr.size() - 1;
         while (low <= high) {
             int mid = low + (high - low) / 2;
-
-            // If the middle element is the target, return its index
-            if (arr[mid] == target) {
-                return mid;
-            }
-
-            // If the left half is sorted
+            if (arr[mid] == target) return mid;
             if (arr[mid] >= arr[low]) {
-
-                // If the target is within the range of the left half
-                // Update the high index to search in the left half
-                if (arr[low] <= target && target < arr[mid]) {
-                    high = mid - 1;
-                }
-
-                // Ohterwise, update the low index to search in the right
-                // half
-                else {
-                    low = mid + 1;
-                }
-
-            }
-
-            // Otherwise, if the right half is sorted
-            else {
-
-                // If the target is within the range of the right
-                // half Update the low index to search in the right
-                // half
-                if (arr[mid] < target && target <= arr[high]) {
-                    low = mid + 1;
-                }
-
-                // Otherwise, update the high index to search in the left
-                // half
-                else {
-                    high = mid - 1;
-                }
+                if (arr[low] <= target && target < arr[mid]) high = mid - 1;
+                else low = mid + 1;
+            } else {
+                if (arr[mid] < target && target <= arr[high]) low = mid + 1;
+                else high = mid - 1;
             }
         }
-
-        // Target not found
         return -1;
     }
 };
+
+int main() {
+    std::cout << Solution{}.rotatedArraySearch({4, 5, 6, 1, 2, 3}, 2) << '\n';
+}
 ```
+
+```scala,editable
+class Solution {
+  def rotatedArraySearch(arr: Array[Int], target: Int): Int = {
+    var low = 0; var high = arr.length - 1
+    while (low <= high) {
+      val mid = low + (high - low) / 2
+      if (arr(mid) == target) return mid
+      if (arr(mid) >= arr(low)) {
+        if (arr(low) <= target && target < arr(mid)) high = mid - 1 else low = mid + 1
+      } else {
+        if (arr(mid) < target && target <= arr(high)) low = mid + 1 else high = mid - 1
+      }
+    }
+    -1
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    println(new Solution().rotatedArraySearch(Array(4, 5, 6, 1, 2, 3), 2))
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    rotatedArraySearch(arr, target) {
+        let low = 0, high = arr.length - 1;
+        while (low <= high) {
+            const mid = low + ((high - low) >> 1);
+            if (arr[mid] === target) return mid;
+            if (arr[mid] >= arr[low]) {
+                if (arr[low] <= target && target < arr[mid]) high = mid - 1;
+                else low = mid + 1;
+            } else {
+                if (arr[mid] < target && target <= arr[high]) low = mid + 1;
+                else high = mid - 1;
+            }
+        }
+        return -1;
+    }
+}
+
+console.log(new Solution().rotatedArraySearch([4, 5, 6, 1, 2, 3], 2));
+```
+
+```typescript,editable
+class Solution {
+    rotatedArraySearch(arr: number[], target: number): number {
+        let low = 0, high = arr.length - 1;
+        while (low <= high) {
+            const mid = low + ((high - low) >> 1);
+            if (arr[mid] === target) return mid;
+            if (arr[mid] >= arr[low]) {
+                if (arr[low] <= target && target < arr[mid]) high = mid - 1;
+                else low = mid + 1;
+            } else {
+                if (arr[mid] < target && target <= arr[high]) low = mid + 1;
+                else high = mid - 1;
+            }
+        }
+        return -1;
+    }
+}
+
+console.log(new Solution().rotatedArraySearch([4, 5, 6, 1, 2, 3], 2));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func rotatedArraySearch(arr []int, target int) int {
+    low, high := 0, len(arr)-1
+    for low <= high {
+        mid := low + (high-low)/2
+        if arr[mid] == target {
+            return mid
+        }
+        if arr[mid] >= arr[low] {
+            if arr[low] <= target && target < arr[mid] {
+                high = mid - 1
+            } else {
+                low = mid + 1
+            }
+        } else {
+            if arr[mid] < target && target <= arr[high] {
+                low = mid + 1
+            } else {
+                high = mid - 1
+            }
+        }
+    }
+    return -1
+}
+
+func main() {
+    fmt.Println(rotatedArraySearch([]int{4, 5, 6, 1, 2, 3}, 2))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun rotatedArraySearch(arr: IntArray, target: Int): Int {
+        var low = 0; var high = arr.size - 1
+        while (low <= high) {
+            val mid = low + (high - low) / 2
+            if (arr[mid] == target) return mid
+            if (arr[mid] >= arr[low]) {
+                if (arr[low] <= target && target < arr[mid]) high = mid - 1 else low = mid + 1
+            } else {
+                if (arr[mid] < target && target <= arr[high]) low = mid + 1 else high = mid - 1
+            }
+        }
+        return -1
+    }
+}
+
+fun main() {
+    println(Solution().rotatedArraySearch(intArrayOf(4, 5, 6, 1, 2, 3), 2))
+}
+```
+
+```rust,editable
+fn rotated_array_search(arr: &[i32], target: i32) -> i32 {
+    let mut low: i64 = 0;
+    let mut high: i64 = arr.len() as i64 - 1;
+    while low <= high {
+        let mid = low + (high - low) / 2;
+        let mid_u = mid as usize;
+        if arr[mid_u] == target { return mid as i32; }
+        if arr[mid_u] >= arr[low as usize] {
+            if arr[low as usize] <= target && target < arr[mid_u] { high = mid - 1; }
+            else { low = mid + 1; }
+        } else {
+            if arr[mid_u] < target && target <= arr[high as usize] { low = mid + 1; }
+            else { high = mid - 1; }
+        }
+    }
+    -1
+}
+
+fn main() {
+    println!("{}", rotated_array_search(&[4, 5, 6, 1, 2, 3], 2));
+}
+```
+
+</div>
+
+***
+
+# Complexity Analysis
+
+| Algorithm | Time | Space |
+|---|---|---|
+| **Find minimum** | `O(log n)` | `O(1)` |
+| **Search target** | `O(log n)` | `O(1)` |
+
+Both algorithms halve the search range each iteration. The extra check ("which half is sorted?") is `O(1)` per iteration, so the total stays `O(log n)`.
+
+***
+
+# Rotated Array Minimum Problem
+
+> **Course:** DSA › Algorithms › Searching › Sorted Rotated Array
+
+Given a sorted-then-rotated array of *distinct* elements, return the index of the minimum.
+
+```
+Input:  arr = [4, 5, 6, 1, 2, 3]
+Output: 3
+
+Input:  arr = [5, 6, 1, 2, 3, 4]
+Output: 2
+
+Input:  arr = [6, 7, 2, 3, 4, 5]
+Output: 2
+```
+
+The implementation matches the version above. See [Finding the Minimum](#finding-the-minimum) for all 10 languages.
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected |
+|---|---|---|
+| Not actually rotated | `[1, 2, 3]` | `0` (minimum at start) |
+| Single element | `[5]` | `0` |
+| Two elements rotated | `[2, 1]` | `1` |
+| Two elements not rotated | `[1, 2]` | `0` |
+
+***
+
+# Rotated Array Search Problem
+
+> **Course:** DSA › Algorithms › Searching › Sorted Rotated Array
+
+Given a sorted-then-rotated array of *distinct* elements and a target, return the index of target, or `-1`.
+
+```
+Input:  arr = [4, 5, 6, 1, 2, 3], target = 3
+Output: 5
+
+Input:  arr = [5, 6, 1, 2, 3, 4], target = 6
+Output: 1
+
+Input:  arr = [6, 1, 2, 3, 4, 5], target = 10
+Output: -1
+```
+
+The implementation matches the version above. See [Searching for a Target](#searching-for-a-target) for all 10 languages.
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected |
+|---|---|---|
+| Empty array | `[], target = 5` | `-1` |
+| Not rotated, target present | `[1, 2, 3], target = 2` | `1` |
+| Single element match | `[5], target = 5` | `0` |
+| Target absent in rotated array | `[4, 5, 1, 2], target = 7` | `-1` |
+| Target at the rotation boundary | `[4, 5, 1, 2], target = 1` | `2` |
+
+---
+
+## Final Takeaway
+
+Sorted-rotated arrays look broken but are amenable to binary search via one extra check per iteration: which half is sorted? Once you know, the standard binary-search logic applies to the sorted half. `O(log n)` for both finding the minimum and searching for a target.
+
+The next lesson shifts gears entirely — the Binary Search Pattern lesson begins the **pattern lessons** for searching. The five pattern lessons that follow cover four canonical patterns: **binary search pattern** (the Binary Search Pattern lesson), **lower-bound pattern** (the Lower Bound Pattern lesson), **upper-bound pattern** (the Upper Bound Pattern lesson), and the two **predicate-search patterns** (Minimum Predicate Search and Maximum Predicate Search). Each pattern lesson has 4 worked problems showing how to recognise and apply binary-search-style algorithms in scenarios that don't *look* like binary search at first glance.
+
+**Transfer challenge — try before the Binary Search Pattern lesson:** What if the rotated array contains *duplicates*? For example, `[2, 2, 2, 0, 1, 2, 2]`. Does the minimum-finding algorithm still work? Why or why not?
+
+<details>
+<summary><strong>Answer — open after you've thought about it</strong></summary>
+
+The algorithm partially breaks. When `arr[mid] == arr[high]`, we can't tell which segment they're in — both could be in segment 1 (so the right half could contain the minimum) or split across (so the right half is sorted from `mid` onward).
+
+Fix: when `arr[mid] == arr[high]`, conservatively decrement `high` by 1. This is the only safe move — we can't make a binary decision.
+
+```python,editable
+class Solution:
+    def rotated_min_with_dups(self, arr):
+        low, high = 0, len(arr) - 1
+        while low < high:
+            mid = low + (high - low) // 2
+            if arr[mid] > arr[high]: low = mid + 1
+            elif arr[mid] < arr[high]: high = mid
+            else: high -= 1                             # conservative: skip the duplicate
+        return low
+
+
+print(Solution().rotated_min_with_dups([2, 2, 2, 0, 1, 2, 2]))   # 3
+```
+
+Time complexity degrades to `O(n)` in the worst case (all elements equal — we decrement `high` `n - 1` times). The average case is still `O(log n)` for typical inputs. **You just discovered why "rotated array with duplicates" is a separate, harder problem (LeetCode #154 vs #153).**
+
+</details>

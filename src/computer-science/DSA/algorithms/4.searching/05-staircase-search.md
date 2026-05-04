@@ -1,437 +1,479 @@
-# Understanding the problem
+# 5. Staircase Search
 
-2D binary search is probably the best algorithm for searching a sorted matrix. However, it only works when the conditions mentioned below are fulfilled for the input.
+The 2D Binary Search lesson needed a strict matrix structure: every row sorted *and* the first element of each row greater than the previous row's last element. That's restrictive — many real matrices have rows and columns sorted independently but not "globally" in row-major order.
 
-> -   Each row is sorted in ascending order
-> -   The first element of each row is greater than the last element of the previous row.
+```
+matrix = [[1,  4,  7, 11],
+          [2,  5,  8, 12],
+          [3,  6,  9, 16],
+          [10, 13, 14, 17]]
+```
 
-However, in practice, data is often only partially sorted.
+Each row is sorted left-to-right. Each column is sorted top-to-bottom. But the flattened sequence `[1, 4, 7, 11, 2, 5, ...]` is *not* sorted. 2D binary search doesn't work here.
 
-## Example
+**Staircase search** does. It walks from a corner of the matrix toward the opposite corner, moving one row down or one column left at each step based on the current cell's value. The path looks like a staircase. Total steps: at most `rows + cols`. Worse than 2D binary search's `O(log(N·M))` but applicable to a *broader* class of matrices.
 
-Imagine a teacher maintaining a table of student scores in which each row and each column is sorted in ascending order, but **the last score in one row** may be **greater than** the **first score in the next row**.
+By the end of this lesson you'll know the algorithm, why starting from the top-right corner (or bottom-left) is essential, why other corners don't work, and the complexity trade-off.
 
-In other words, the second condition required for applying 2D binary search is not satisfied, making the standard algorithm inapplicable.
+## Table of contents
 
-// Diagram: Sorted score table of 10 students (second codiition is not met)
-
-Now, suppose you want to find out whether a score of `85` exists. A standard 2D binary search relies on a strict global ordering across rows and columns, so it cannot be applied here. The algorithm would assume that all elements after a certain midpoint are larger, which is clearly not true for this table.
-
-// Diagram: Last score in one row is greater than the first score in the next row
-
-In this scenario, the natural approach is still a sequential scan, moving row by row and column by column. While simple, this method is inefficient for large tables. The challenge is understanding the constraints imposed by partial sorting: the data is somewhat structured, but not enough for traditional 2D binary search.
-
-// Diagram: Linear search to find the student with a score of 85
-
-This works for small datasets, but it quickly becomes impractical when the table contains thousands, or even millions of cells. 
-
-// Diagram: Sorted score table of thousands of students
-
-As the dataset grows, manually checking each cell becomes time-consuming, underscoring the need for a more efficient strategy.
-
-## Limitations of 2D binary search
-
-Since the conditions for 2D binary search are not met, the algorithm cannot be applied to such datasets, even if the table is partially sorted.
-
-You could also attempt binary search on each row individually, but that would still require checking every row unless you get lucky. You lose the true power of binary search, which is the ability to discard large portions of the search space.
-
-// Diagram: Searching in a table becomes difficult at a large scale
-
-To address this, we need a method that leverages the table’s partially sorted structure to narrow the search space efficiently, an approach more effective than performing binary search on every row.
+1. [Understanding staircase search](#understanding-staircase-search)
+2. [Why the top-right corner](#why-the-top-right-corner)
+3. [Implementation](#implementation)
+4. [Complexity analysis](#complexity-analysis)
+5. [Staircase search problem](#staircase-search-problem)
 
 ***
 
-# Exploring a possible solution
+# Understanding Staircase Search
 
-Now that we see how inefficient it can be to scan a large 2D table cell by cell, we need a smarter way to search for a score. The key to improving performance lies in leveraging the table’s partial sorting. It only needs to 
+> **Course:** DSA › Algorithms › Searching › Staircase Search
 
-> -   The table should be sorted in rows and columns, meaning each row and each column is sorted in ascending order.
+The required matrix structure (looser than 2D binary search):
 
-## Staircase search
+1. **Each row is sorted** left to right.
+2. **Each column is sorted** top to bottom.
 
-Staircase search is an efficient technique for searching partially sorted two-dimensional grids, where each row and each column is sorted in ascending order. Still, the matrix does not meet the stricter conditions required for 2D binary search. Instead of relying on global ordering, staircase search leverages local ordering within rows and columns to systematically narrow the search region.
+That's it. No constraint that rows-fit-end-to-start. Matrices like the one above qualify.
 
-Looking at the problem of finding a student who scored `85` marks in a large table sorted by rows and columns, you might start at the top-right corner.
+The algorithm: start at the **top-right corner**. At each step:
+- If the current cell equals target → found.
+- If the current cell < target → target is *below* (smaller cells are above, so move down).
+- If the current cell > target → target is *to the left* (larger cells are to the right, so move left).
 
-// Diagram: Examine the score of the student at the top right corner of the table
+The path traced is a staircase that descends-and-lefts toward the bottom-left. Each step eliminates either a whole row or a whole column from consideration. Total steps: at most `rows + cols - 1`.
 
-If the **current score** is **less** than `85`, the target **must be in a region with larger values**, so you move in the direction of increasing scores. From the top-right corner, this means moving downward, which eliminates the entire row above. Every value in that row is smaller than the target and therefore cannot contain it.
+```d2
+direction: down
 
-// Diagram: Discard the current row and move downwards
+step1: "Start: (0, 3) — top-right" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+step2: "matrix[0][3] = 11. target = 9. 11 > 9 → col left to (0, 2)"
+step3: "matrix[0][2] = 7. 7 < 9 → row down to (1, 2)"
+step4: "matrix[1][2] = 8. 8 < 9 → row down to (2, 2)"
+step5: "matrix[2][2] = 9. 9 == target → return true" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
 
-Similarly, if the **current score** is **greater** than `85`, the target **must be in a region with smaller values**, so you move toward decreasing scores. From the top-right corner, this means moving left, which eliminates the entire column to the right. Every value in that column is larger than the target and can safely be discarded.
+step1 -> step2 -> step3 -> step4 -> step5
+```
 
-// Diagram: Discard the current column and move toward the left
+<p align="center"><strong>Staircase walk for <code>target = 9</code>. Four steps to find. Each step eliminates a row or a column from possibilities.</strong></p>
 
-By repeating this process, stepping down or left depending on the comparison, you progressively **“walk”** through the matrix in a staircase-shaped path, discarding one row or one column at every step until the score `85` is found, or the search space is exhausted.
+---
 
-// Diagram: Target found by repeatedly moving down or left
+## Why It Works
 
-By leveraging the sorted structure of the rows and columns, staircase search efficiently narrows the search region without examining every cell, making it significantly faster than a full linear scan of the table.
+The top-right corner has a special property: every cell *below* it is larger (column sorted), and every cell *to its left* is smaller (row sorted). So:
+- If the corner cell is too big, the target can't be in this column — move left.
+- If the corner cell is too small, the target can't be in this row — move down.
 
-> -   **Step 1:** Start at the top-right corner of the 2D table of student scores.
-> -   **Step 2:** Compare the current cell’s score with `85`.
->     -   **Step 2.1** If the current score is exactly `85`, you’ve found the student, stop the search.
->     -   **Step 2.2:** If the current score is less than `85`, for example `78`, move down one row because all scores to the left are smaller and cannot contain `85`.
->     -   **Step 2.3:** If the current score is greater than `85`, for example `92`, move left one column because all scores below are larger and cannot contain `85`.
-> -   **Step 3:** Repeat the comparisons as you move down or left. If you step outside the boundaries of the table without finding `85`, then no student in the table has that score.
+After each step, we've eliminated a whole row or column. The new "current cell" is the top-right of the remaining sub-matrix. The invariant maintains itself — we're always looking at the top-right of an undiscarded region.
 
-## Advantages
+---
 
-Staircase search is a highly effective technique for finding a target value in a 2D grid where each row and each column is sorted in ascending order. By intelligently navigating from the top-right corner, the algorithm eliminates an entire row or column with every comparison. The key advantages of staircase search are outlined below:
+## Strengths and Limitations
 
-> -   **Efficiency:** Staircase search runs in **O(M + N)** time for an **M × N** grid, making it significantly faster than scanning all cells. Each step moves either left or down, ensuring steady progress toward the answer.
-> -   **Simple logic:** Compared to 2D binary search, staircase search is easier to visualize and implement. You only move in two directions: down or left, based on a simple comparison.
-> -   **Uses grid properties directly:** The algorithm leverages the sorted rows and columns without requiring index conversion or virtual flattening, making it intuitive and practical.
-> -   **No extra space:** Staircase search operates directly on the grid and requires no additional data structures or preprocessing.
+| Strength | Detail |
+|---|---|
+| **`O(N + M)`** | Linear in row + column count — fast for square-ish matrices. |
+| **`O(1)` space** | Two integer pointers. |
+| **Looser input requirements** | Works on any row-and-column sorted matrix. |
 
-## Limitations
+| Limitation | Detail |
+|---|---|
+| **Slower than 2D binary search** | When applicable, `O(log(N·M))` beats `O(N + M)`. Staircase is the fallback when 2D binary search doesn't apply. |
+| **Tied to corners** | Must start at top-right or bottom-left; other corners produce ambiguous decisions (see next section). |
 
-While staircase search is efficient and easy to apply, it also has limitations. Its performance and correctness depend entirely on the grid structure, and it cannot adapt to unsorted or inconsistently sorted data. The primary limitations are:
+---
 
-> -   **Requires row-wise and column-wise sorting:** The algorithm only works if both rows and columns are sorted. If either condition is violated, left/down elimination becomes unsafe, and the search may fail.
-> -   **Not optimal for large grids:** For large **N × N** matrices, the worst-case time is **O(2N)**, which is slower than 2D binary search’s logarithmic behaviour. This makes staircase search less suitable for extremely large, fully dense grids.
-> -   **Directional constraints:** The algorithm always moves left or down. If the grid is sorted differently (e.g., descending, or only row-sorted), staircase search cannot be applied without modification.
+## Key Takeaway
+
+Staircase search: walk from top-right (or bottom-left), move down on too-small, move left on too-big. `O(N + M)` time, `O(1)` space. Now we'll see why the corner choice is critical.
 
 ***
 
-# Understanding staircase search algorithm
+# Why the Top-Right Corner
 
-The strategy from the earlier example could be used to create an algorithm. To explain this algorithm, we will use a 2D matrix sorted by row and column in ascending order and search for a target number. For the algorithm to work, the input matrix should meet the condition below.
+> **Course:** DSA › Algorithms › Searching › Staircase Search
 
-> -   The matrix should be sorted in rows and columns, meaning each row and each column is sorted in ascending order.
+The algorithm requires starting at a corner where the value is **maximal in its row AND minimal in its column** (or the inverse). Only the top-right and bottom-left corners satisfy this. Top-left and bottom-right don't — and starting there makes the algorithm ambiguous.
 
-// Diagram: Valid input for staircase search
+```d2
+direction: right
 
-If the condition is violated, the algorithm may fail to locate the target element. This can be seen in the example below, where the input does not satisfy the required sorting conditions.
-
-// Diagram: Invalid input as condition 1 is not met
-
-## Algorithm
-
-The Staircase Search algorithm searches for a target value in a 2D matrix with **N** rows and **M** columns where each row and each column is sorted in ascending order. It exploits the sorted property of the matrix by starting at the **top-right corner** and moving only in directions that eliminate impossible positions, achieving efficient linear-time search. The algorithm begins by initializing two indices that define the current search range in which the target value may exist.
-
-> -   `row = 0` - (first row)
-> -   `col = M - 1` - (last column)
-
-// Diagram: Initialize the row and col indices
-
-The algorithm enters a loop that continues as long as `row < N` and `col >= 0`. This condition guarantees that there are still elements in the search range that could potentially match the target value.
-
-// Diagram: The loop terminates if row index equals N or col index becomes negative
-
-At each step, the algorithm compares the target value with `matrix[row][col]`, the current element in the search. It then makes one of three possible decisions to continue the search.
-
-### 1\. matrix\[row\]\[col\] == target
-
-The search is complete when the current element is **equal** to the target value. In this case, the algorithm returns `true`, indicating that the target has been found in the matrix.
-
-// Diagram: The target is found at the current cell
-
-### 2\. matrix\[row\]\[col\] < target
-
-If the current cell’s value is **less** than the target, the algorithm moves **down one row** by performing `row = row + 1`. This operation effectively eliminates the entire current row from consideration, since each row is sorted in ascending order and all elements to the left of the current cell are guaranteed to be smaller than the target.
-
-// Diagram: Discard the current row and move downards
-
-### 3\. matrix\[row\]\[col\] > target
-
-If the current cell’s value is **greater** than the target, the algorithm moves **left one column** by performing `col = col - 1`. This operation effectively eliminates the entire current column from consideration, since each column is sorted in ascending order and all elements below the current cell are guaranteed to be larger than the target.
-
-// Diagram: Discard the current column and move toward the left
-
-The algorithm continues moving **down** or **left** at each step, comparing the current cell’s value with the target. The loop terminates when the target is found or when the indices go out of bounds `(row >= N or col < 0)`. If the search ends without finding the target, the algorithm returns `false`, indicating that the element does not exist in the matrix.
-
-// Diagram: Find an element in a 2D matrix using staircase search
-
-> **Algorithm**
->
-> -   **Step 1:** Initialize matrix dimensions, set `rows = matrix.size()`, `cols = matrix\[0\].size() `
-> -   **Step 2:** Initialize starting positions, set `row = 0`, `col = cols - 1 `
-> -   **Step 3:** Iterate while `row < rows && col >= 0`
->     -   **Step 3.1:** If `matrix\[row\]\[col\] == target`:
->         -   **Step 3.1.1:** Return `true`
->     -   **Step 3.2:** Else If `matrix\[row\]\[col\] < target`:
->         -   **Step 3.2.1:** Set `row = row + 1`
->     -   **Step 3.3:** Else if `matrix\[row\]\[col\] > target`:
->         -   **Step 3.3.1:** Set `col = col - 1`
-> -   **Step 4:** If the loop ends without returning, the target is not in the matrix, return `false`
-
-## Implementation
-
-Below is the implementation of the staircase search algorithm. It starts at the top-right corner of the matrix and moves down or left based on comparisons with the target, efficiently narrowing the search space until the target is found or confirmed absent.
-
-C++
-
-```cpp
-using namespace std;
-
-class Solution {
-public:
-    bool sortedMatrixSearch(vector<vector<int>> &matrix, int target) {
-
-        // Get the number of rows in the matrix
-        int rows = matrix.size();
-
-        // Get the number of columns in the matrix
-        int cols = matrix[0].size();
-
-        // Start from the first row
-        int row = 0;
-
-        // Start from the last column
-        int col = cols - 1;
-
-// Diagram: while (row < rows && col >= 0) {
-
-            // Continue until we reach the bottom-left or top-right
-            // corner of the matrix
-
-            // If the current element is equal to the target, return
-            // true
-            if (matrix[row][col] == target) {
-                return true;
-            }
-
-            // Else if the current element is less than the target, move
-            // to the next row
-            else if (matrix[row][col] < target) {
-                row++;
-            }
-
-            // Else if the current element is greater than the target,
-            // move to the previous column
-            else {
-                col--;
-            }
-
-        // Return false if the target is not found
-        return false;
-    }
-};
+tl: "Top-left (0, 0)\n— minimal in row\n— minimal in column\n— ambiguous: too small? row OR col can hold target" {style.fill: "#fecaca"; style.stroke: "#dc2626"}
+tr: "Top-right (0, M-1)\n— maximal in row\n— minimal in column\n— too big? go left. Too small? go down. UNAMBIGUOUS" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+bl: "Bottom-left (N-1, 0)\n— minimal in row\n— maximal in column\n— too big? go up. Too small? go right. UNAMBIGUOUS" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+br: "Bottom-right (N-1, M-1)\n— maximal in row\n— maximal in column\n— ambiguous: too big? row OR col can hold target" {style.fill: "#fecaca"; style.stroke: "#dc2626"}
 ```
 
-Java
+<p align="center"><strong>Only the top-right and bottom-left corners give the algorithm a deterministic step direction. Top-left and bottom-right are ambiguous.</strong></p>
 
-```java
-class Solution {
-    public boolean sortedMatrixSearch(int[][] matrix, int target) {
+If we started at the top-left and the cell was *too small*, the target could be either to the right (along the row) or below (along the column). We'd have no way to choose — and might miss the target. The corner-starting requirement is what makes the algorithm correct.
 
-        // Get the number of rows in the matrix
-        int rows = matrix.length;
+---
 
-        // Get the number of columns in the matrix
-        int cols = matrix[0].length;
+## A Walkthrough
 
-        // Start from the first row
-        int row = 0;
+`matrix = [[1, 4, 7, 11], [2, 5, 8, 12], [3, 6, 9, 16], [10, 13, 14, 17]]`, `target = 5`.
 
-        // Start from the last column
-        int col = cols - 1;
-
-// Diagram: while (row < rows && col >= 0) {
-
-            // Continue until we reach the bottom-left or top-right
-            // corner of the matrix
-
-            // If the current element is equal to the target, return
-            // true
-            if (matrix[row][col] == target) {
+```
+Start: (0, 3), value = 11. 11 > 5 → col--, now (0, 2)
+(0, 2), value = 7. 7 > 5 → col--, now (0, 1)
+(0, 1), value = 4. 4 < 5 → row++, now (1, 1)
+(1, 1), value = 5. 5 == target → return true
 ```
 
-Typescript
+Four steps. The "staircase" trace: right edge → left → left → down → found.
 
-```typescript
-export class Solution {
-    sortedMatrixSearch(matrix: number[][], target: number): boolean {
+---
 
-        // Get the number of rows in the matrix
-        const rows: number = matrix.length;
+## Key Takeaway
 
-        // Get the number of columns in the matrix
-        const cols: number = matrix[0].length;
+Top-right (or bottom-left) is the only valid starting corner. The corner's cell value is unambiguous — too big means "go left," too small means "go down." Now the implementation.
 
-        // Start from the first row
-        let row: number = 0;
+***
 
-        // Start from the last column
-        let col: number = cols - 1;
+# Implementation
 
-// Diagram: while (row < rows && col >= 0) {
+> **Course:** DSA › Algorithms › Searching › Staircase Search
 
-            // Continue until we reach the bottom-left or top-right
-            // corner of the matrix
+<div class="lang-tabs">
 
-            // If the current element is equal to the target, return
-            // true
-            if (matrix[row][col] === target) {
-```
-
-Javascript
-
-```javascript
-export class Solution {
-    sortedMatrixSearch(matrix, target) {
-
-        // Get the number of rows in the matrix
-        const rows = matrix.length;
-
-        // Get the number of columns in the matrix
-        const cols = matrix[0].length;
-
-        // Start from the first row
-        let row = 0;
-
-        // Start from the last column
-        let col = cols - 1;
-
-// Diagram: while (row < rows && col >= 0) {
-
-            // Continue until we reach the bottom-left or top-right
-            // corner of the matrix
-
-            // If the current element is equal to the target, return
-            // true
-            if (matrix[row][col] === target) {
-```
-
-Python
-
-```python
+```python,editable
 from typing import List
 
 class Solution:
-    def sorted_matrix_search(
-        self, matrix: List[List[int]], target: int
-    ) -> bool:
-
-        # Get the number of rows in the matrix
-        rows: int = len(matrix)
-
-        # Get the number of columns in the matrix
-        cols: int = len(matrix[0])
-
-        # Start from the first row
-        row: int = 0
-
-        # Start from the last column
-        col: int = cols - 1
-
+    def staircase_search(self, matrix: List[List[int]], target: int) -> bool:
+        if not matrix or not matrix[0]:
+            return False
+        rows, cols = len(matrix), len(matrix[0])
+        row, col = 0, cols - 1                          # start at top-right
         while row < rows and col >= 0:
+            if matrix[row][col] == target:
+                return True
+            if matrix[row][col] < target:
+                row += 1                                # too small, go down
+            else:
+                col -= 1                                # too big, go left
+        return False
 
-            # Continue until we reach the bottom-left or top-right corner
-            # of the matrix
+
+if __name__ == "__main__":
+    matrix = [[1, 4, 7, 11], [2, 5, 8, 12], [3, 6, 9, 16], [10, 13, 14, 17]]
+    print(Solution().staircase_search(matrix, 5))    # True
+    print(Solution().staircase_search(matrix, 15))   # False
 ```
 
-## Complexity analysis
+```java,editable
+public class Solution {
+    public boolean staircaseSearch(int[][] matrix, int target) {
+        if (matrix.length == 0 || matrix[0].length == 0) return false;
+        int rows = matrix.length, cols = matrix[0].length;
+        int row = 0, col = cols - 1;
+        while (row < rows && col >= 0) {
+            if (matrix[row][col] == target) return true;
+            if (matrix[row][col] < target) row++;
+            else col--;
+        }
+        return false;
+    }
 
-The best-case scenario occurs when the target is located at the top-right corner of the matrix. In this case, the algorithm finds the target immediately, resulting in **O(1)** time complexity.
+    public static void main(String[] args) {
+        int[][] m = {{1, 4, 7, 11}, {2, 5, 8, 12}, {3, 6, 9, 16}, {10, 13, 14, 17}};
+        System.out.println(new Solution().staircaseSearch(m, 5));
+    }
+}
+```
 
-// Diagram: Best case: Element found at the top right corner
+```c,editable
+#include <stdio.h>
+#include <stdbool.h>
 
-The worst-case scenario occurs when the target is at the bottom-left corner of the matrix. Here, the search must traverse all rows and all columns, visiting a total of **N + M** cells in a matrix with **N** rows and Mcolumns. This gives a worst-case time complexity of **O(N + M)**.
+bool staircase_search(int rows, int cols, int matrix[rows][cols], int target) {
+    int row = 0, col = cols - 1;
+    while (row < rows && col >= 0) {
+        if (matrix[row][col] == target) return true;
+        if (matrix[row][col] < target) row++;
+        else col--;
+    }
+    return false;
+}
 
-// Diagram: Worst case: Element found at the bottom left corner
+int main(void) {
+    int m[4][4] = {{1, 4, 7, 11}, {2, 5, 8, 12}, {3, 6, 9, 16}, {10, 13, 14, 17}};
+    printf("%s\n", staircase_search(4, 4, m, 5) ? "true" : "false");
+    return 0;
+}
+```
 
-The average-case complexity falls between these extremes but remains **O(N + M)**, since the algorithm may need to traverse a significant portion of the matrix before locating the target or confirming its absence.
-
-// Diagram: Average case: Element found randomly in the matrix
-
-Since the algorithm does not allocate any new memory to perform the search, the space complexity is constant, i.e. **O(1)**.
-
-> **Best case** - The target book is kept in the last column of the first row.
->
-> -   Space complexity - **O(1)**
-> -   Time complexity - **O(1)**
->
-> **Average case**
->
-> -   Space complexity - **O(1)**
-> -   Time complexity - **O(N + M)**
->
-> **Worst case** - The target book is kept in the first column of the last row.
->
-> -   Space complexity - **O(1)**
-> -   Time complexity - **O(N + M)**
-
-***
-
-# Staircase search
-
-## Problem Statement
-
-Given an **N x M** integer **matrix** and an integer **target**, write a function to search the target in the matrix. If the target exists, return `true`. Otherwise, return `false`. The matrix has the following properties.
-
-> -   Integers in each matrix row are sorted in ascending order from left to right.
-> -   Integers in each column of the matrix are sorted in ascending order from top to bottom.
-
-You must do this in a time complexity of `O(N + M)`.
-
-### Example 1
-
-> -   **Input:** matrix = \[\[1, 2, 3, 4\], \[5, 6, 7, 8\], \[9, 10, 11, 12\]\], target = 12
-> -   **Output:** true
-> -   **Explanation:** 12 is present in the matrix.
-
-### Example 2
-
-> -   **Input:** matrix = \[\[1, 2, 3, 4\], \[5, 6, 7, 8\], \[9, 10, 11, 12\]\], target = 7
-> -   **Output:** true
-> -   **Explanation:** 7 is present in the matrix.
-
-### Example 3
-
-> -   **Input:** matrix = \[\[1, 2, 3, 4\], \[5, 6, 7, 8\], \[9, 10, 11, 12\]\], target = 13
-> -   **Output:** false
-> -   **Explanation:** 13 is not present in the matrix.
-
-## Solution
-
-```cpp
-using namespace std;
+```cpp,editable
+#include <iostream>
+#include <vector>
 
 class Solution {
 public:
-    bool staircaseSearch(vector<vector<int>> &matrix, int target) {
-
-        // Get the number of rows in the matrix
-        int rows = matrix.size();
-
-        // Get the number of columns in the matrix
-        int cols = matrix[0].size();
-
-        // Start from the first row
-        int row = 0;
-
-        // Start from the last column
-        int col = cols - 1;
-
+    bool staircaseSearch(const std::vector<std::vector<int>>& matrix, int target) {
+        if (matrix.empty() || matrix[0].empty()) return false;
+        int rows = (int) matrix.size(), cols = (int) matrix[0].size();
+        int row = 0, col = cols - 1;
         while (row < rows && col >= 0) {
-
-            // Continue until we reach the bottom-left or top-right
-            // corner of the matrix
-
-            // If the current element is equal to the target, return
-            // true
-            if (matrix[row][col] == target) {
-                return true;
-            }
-
-            // Else if the current element is less than the target, move
-            // to the next row
-            else if (matrix[row][col] < target) {
-                row++;
-            }
-
-            // Else if the current element is greater than the target,
-            // move to the previous column
-            else {
-                col--;
-            }
+            if (matrix[row][col] == target) return true;
+            if (matrix[row][col] < target) row++;
+            else col--;
         }
-
-        // Return false if the target is not found
         return false;
     }
 };
+
+int main() {
+    std::vector<std::vector<int>> m = {{1, 4, 7, 11}, {2, 5, 8, 12}, {3, 6, 9, 16}, {10, 13, 14, 17}};
+    std::cout << std::boolalpha << Solution{}.staircaseSearch(m, 5) << '\n';
+}
 ```
+
+```scala,editable
+class Solution {
+  def staircaseSearch(matrix: Array[Array[Int]], target: Int): Boolean = {
+    if (matrix.isEmpty || matrix(0).isEmpty) return false
+    val rows = matrix.length; val cols = matrix(0).length
+    var row = 0; var col = cols - 1
+    while (row < rows && col >= 0) {
+      if (matrix(row)(col) == target) return true
+      if (matrix(row)(col) < target) row += 1 else col -= 1
+    }
+    false
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    val m = Array(Array(1, 4, 7, 11), Array(2, 5, 8, 12), Array(3, 6, 9, 16), Array(10, 13, 14, 17))
+    println(new Solution().staircaseSearch(m, 5))
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    staircaseSearch(matrix, target) {
+        if (!matrix.length || !matrix[0].length) return false;
+        const rows = matrix.length, cols = matrix[0].length;
+        let row = 0, col = cols - 1;
+        while (row < rows && col >= 0) {
+            if (matrix[row][col] === target) return true;
+            if (matrix[row][col] < target) row++;
+            else col--;
+        }
+        return false;
+    }
+}
+
+const m = [[1, 4, 7, 11], [2, 5, 8, 12], [3, 6, 9, 16], [10, 13, 14, 17]];
+console.log(new Solution().staircaseSearch(m, 5));
+```
+
+```typescript,editable
+class Solution {
+    staircaseSearch(matrix: number[][], target: number): boolean {
+        if (!matrix.length || !matrix[0].length) return false;
+        const rows = matrix.length, cols = matrix[0].length;
+        let row = 0, col = cols - 1;
+        while (row < rows && col >= 0) {
+            if (matrix[row][col] === target) return true;
+            if (matrix[row][col] < target) row++;
+            else col--;
+        }
+        return false;
+    }
+}
+
+const m: number[][] = [[1, 4, 7, 11], [2, 5, 8, 12], [3, 6, 9, 16], [10, 13, 14, 17]];
+console.log(new Solution().staircaseSearch(m, 5));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func staircaseSearch(matrix [][]int, target int) bool {
+    if len(matrix) == 0 || len(matrix[0]) == 0 {
+        return false
+    }
+    rows, cols := len(matrix), len(matrix[0])
+    row, col := 0, cols-1
+    for row < rows && col >= 0 {
+        if matrix[row][col] == target {
+            return true
+        }
+        if matrix[row][col] < target {
+            row++
+        } else {
+            col--
+        }
+    }
+    return false
+}
+
+func main() {
+    m := [][]int{{1, 4, 7, 11}, {2, 5, 8, 12}, {3, 6, 9, 16}, {10, 13, 14, 17}}
+    fmt.Println(staircaseSearch(m, 5))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun staircaseSearch(matrix: Array<IntArray>, target: Int): Boolean {
+        if (matrix.isEmpty() || matrix[0].isEmpty()) return false
+        val rows = matrix.size; val cols = matrix[0].size
+        var row = 0; var col = cols - 1
+        while (row < rows && col >= 0) {
+            if (matrix[row][col] == target) return true
+            if (matrix[row][col] < target) row++ else col--
+        }
+        return false
+    }
+}
+
+fun main() {
+    val m = arrayOf(intArrayOf(1, 4, 7, 11), intArrayOf(2, 5, 8, 12), intArrayOf(3, 6, 9, 16), intArrayOf(10, 13, 14, 17))
+    println(Solution().staircaseSearch(m, 5))
+}
+```
+
+```rust,editable
+fn staircase_search(matrix: &Vec<Vec<i32>>, target: i32) -> bool {
+    if matrix.is_empty() || matrix[0].is_empty() { return false; }
+    let rows = matrix.len() as i64;
+    let cols = matrix[0].len() as i64;
+    let mut row: i64 = 0;
+    let mut col: i64 = cols - 1;
+    while row < rows && col >= 0 {
+        let v = matrix[row as usize][col as usize];
+        if v == target { return true; }
+        if v < target { row += 1; } else { col -= 1; }
+    }
+    false
+}
+
+fn main() {
+    let m = vec![vec![1, 4, 7, 11], vec![2, 5, 8, 12], vec![3, 6, 9, 16], vec![10, 13, 14, 17]];
+    println!("{}", staircase_search(&m, 5));
+}
+```
+
+</div>
+
+***
+
+# Complexity Analysis
+
+| Resource | Best | Average | Worst |
+|---|---|---|---|
+| **Time** | `O(1)` (target at top-right) | `O(N + M)` | `O(N + M)` |
+| **Space** | `O(1)` | `O(1)` | `O(1)` |
+
+Each step decrements `col` or increments `row`. Both are bounded — `col` starts at `M-1` and goes to `-1`; `row` starts at `0` and goes to `N`. Total steps ≤ `N + M`.
+
+---
+
+## Staircase vs 2D Binary Search
+
+| Algorithm | Time | Required structure |
+|---|---|---|
+| 2D binary search (the 2D Binary Search lesson) | `O(log(N·M))` | Row-sorted + first-of-row > last-of-prev (matrix is "globally" sorted) |
+| Staircase search (this lesson) | `O(N + M)` | Row-sorted + column-sorted (each independently) |
+
+If the matrix has the *stricter* structure, prefer 2D binary search. Staircase is the algorithm of choice when only the looser row/column-sortedness holds.
+
+For a square matrix `N × N`: 2D binary search is `O(2 log N)`; staircase is `O(2N)`. The asymptotic gap is huge — but only if the matrix has the structure 2D binary search needs.
+
+---
+
+## Key Takeaway
+
+Staircase search: `O(N + M)`, `O(1)` space, requires only row/column sortedness. The fallback when 2D binary search's stricter structure doesn't apply. Now the canonical exercise.
+
+***
+
+# Staircase Search Problem
+
+> **Course:** DSA › Algorithms › Searching › Staircase Search
+
+---
+
+## The Problem
+
+Given an `N × M` matrix where each row is sorted left-to-right and each column is sorted top-to-bottom, return `true` if `target` is in the matrix, else `false`. **Must run in `O(N + M)`.**
+
+```
+Input:  matrix = [[1,2,3,4],[5,6,7,8],[9,10,11,12]], target = 12
+Output: true
+
+Input:  matrix = [[1,2,3,4],[5,6,7,8],[9,10,11,12]], target = 7
+Output: true
+
+Input:  matrix = [[1,2,3,4],[5,6,7,8],[9,10,11,12]], target = 13
+Output: false
+```
+
+---
+
+## The Solution
+
+The implementation matches the version above. See [Implementation](#implementation) for all 10 languages.
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected |
+|---|---|---|
+| Empty matrix | `[]` | `false` |
+| Single cell | `[[5]], target = 5` | `true` |
+| Target at top-right | `[[1, 5], [2, 6]], target = 5` | `true` (found in 1 step) |
+| Target at bottom-left | `[[1, 5], [2, 6]], target = 2` | `true` (worst-case path) |
+| Below all | `target < matrix[0][0]` | `false` (col walks off the left immediately) |
+| Above all | `target > matrix[N-1][M-1]` | `false` (row walks off the bottom) |
+
+---
+
+## Final Takeaway
+
+Staircase search trades 2D binary search's `O(log(N·M))` for broader applicability — `O(N + M)` on any row-and-column-sorted matrix. The algorithm is mechanically simple: walk from a corner, step row or column at each comparison.
+
+The next lesson handles a different broken-sortedness scenario: a 1D array that's been **rotated** at some pivot. `[4, 5, 6, 7, 0, 1, 2]` is sorted-then-rotated. Plain binary search doesn't find elements directly because the array isn't *globally* sorted — but it's *locally* sorted in two halves. We can still binary-search it in `O(log n)` with one extra check per iteration.
+
+**Transfer challenge — try before the Sorted Rotated Array lesson:** Modify staircase search to return the *count of cells* equal to target (not just true/false). For a matrix with duplicates, how would you trace the staircase to count them? Hint: the path may need to visit multiple cells.
+
+<details>
+<summary><strong>Answer — open after you've thought about it</strong></summary>
+
+```python,editable
+class Solution:
+    def count_target(self, matrix, target):
+        if not matrix or not matrix[0]: return 0
+        rows, cols = len(matrix), len(matrix[0])
+        row, col = 0, cols - 1
+        count = 0
+        while row < rows and col >= 0:
+            if matrix[row][col] == target:
+                count += 1
+                col -= 1                                # equal could continue left in row
+                # alternatively, row += 1 to continue down — but col-- is enough
+                # because all duplicates form a contiguous L-shape from (row, col_first) to (row_last, col)
+            elif matrix[row][col] < target:
+                row += 1
+            else:
+                col -= 1
+        return count
+
+
+m = [[1, 5, 5, 8], [2, 5, 5, 9], [3, 6, 7, 10]]
+print(Solution().count_target(m, 5))   # 4 (the four 5s)
+```
+
+The trick: on equality, decrement `col` (or increment `row`) and keep walking. The duplicates form an **L-shaped contiguous region** because of row+column sortedness. A single staircase walk covers them all. Time: still `O(N + M)`.
+
+**You just generalised staircase search to a count primitive — useful for "how many cells in this matrix equal X" queries.**
+
+</details>

@@ -1,1356 +1,851 @@
-# Understanding the quickselect pattern
+# 11. Pattern: Quickselect
 
-In many cases, we may need to find the top k elements in a dataset based on a scoring function rather than just comparing raw data. The quickselect algorithm can be generalized it to work with a scoring function `f` instead of simple comparisons. Instead of selecting elements based purely on their numeric value, we use a function `f` that assigns a weight or score to each element, allowing us to find the top k elements according to any custom criterion.
+We've spent ten lessons learning algorithms that produce *fully sorted* output. But many real-world problems don't need a full sort. **Find the median.** **Top 100 search results.** **The 1000 closest cities to a query.** **The 10 most-frequent words in a corpus.** In each case, we need to find a *position* in the sorted order — not the entire sorted order. Sorting then taking the first k is `O(n log n)`. There's a better way.
 
-This makes the general form of the quickselect algorithm incredibly flexible, as we reuse the same elegant partitioning approach to only focus on the elements that matter most and rank elements by any metric.
+**Quickselect** is quicksort's partition step *without* the recursion on both halves. After one partition, the pivot is in its correct sorted position. If that position equals `k - 1`, we're done — `arr[pivot]` is the k-th smallest. If the position is too small, recurse on the right half (the k-th smallest is there). If too large, recurse on the left. Each recursion **discards half the array**. Average time `O(n)` — *linear*, not `n log n`.
 
-The quickselect pattern is a classification of problems that can be solved using the generic quickselect algorithm.
+This file is the pattern lesson for quickselect. By the end you'll know the algorithm, the diagnostic checks for spotting "I should use quickselect" problems, and four worked problems: kth smallest, median, k closest to a target, k most frequent.
 
-// Diagram: The elements with the top 6 scores in the array using a scoring function f.
+## Table of contents
 
-## The generic quickselect algorithm
+1. [Understanding quickselect](#understanding-quickselect)
+2. [Identifying quickselect problems](#identifying-quickselect-problems)
+3. [Kth smallest element](#kth-smallest-element)
+4. [Median finder](#median-finder)
+5. [K closest elements](#k-closest-elements)
+6. [K most frequent elements](#k-most-frequent-elements)
 
-Consider we are given an array `arr`, and we need to find the top `k` elements in the array according to a score defined by a function `f`. The top `k` elements can be in any order.
+***
 
-// Diagram: Find the top k elements based on their scores using a function f.
+# Understanding Quickselect
 
-To solve the problem, we use the quickselect algorithm with the scoring function `f`. All the steps are exactly the same as the quickselect algorithm, except for the rearrangement logic in the partition function, which now partitions the array based on the score of the elements using the function `f`. Given below are the partition algorithm and the recursive selection components of the generic quickselect algorithm.
+> **Course:** DSA › Algorithms › Sorting › Quickselect Pattern
 
-### 1\. Partition algorithm
-
-The partition algorithm selects a random element from the array and rearranges the array in-place so that **all elements with a score greater than the score of the selected element appear before it**.
-
-We create a function `partition` that takes as input the array `arr` and two indices, `left` and `right`, representing the subarray within which the data must be partitioned.
-
-We start by choosing a random index `pivot` between `left` and `right`, calculate and store the score of `arr[pivot]` in a variable `pivotScore` using the function `f` and swap `arr[pivot]` with `arr[right]`. This moves the pivot element to the end of the subarray so it does not interfere with the rearrangement of the remaining elements.
-
-// Diagram: Choose a random pivot index and swap the element at that index with the element at the index right.
-
-Next, we initialize a variable `nextGreaterIndex`, which marks the position where the next element with a score greater than `pivotScore` should be placed. It is initialized to `left`, since this is where the first element with a greater score should go.
-
-To rearrange the elements, we iterate over the subarray from `left` to `right − 1` using a variable `i`. In each iteration, we calculate the score of `a[i]` in a variable `elementScore` using the function `f` and compare it with `pivotScore`. If `elementScore` is **greater than** `pivotScore`, it belongs in the left partition. We therefore swap `arr[i]` with `arr[nextGreaterIndex]` and increment `nextGreaterIndex` to use it for the element with a greater score. If `elementScore` is less than or equal to `pivotScore`, no action is needed, and we simply move on.
-
-If we reverse the comparison condition for the rearrangement from **greater than** to **less than**, the same algorithm can find the elements with the bottom k scores instead of the top k.
-
-This way, at the end of all iterations, all elements with a score greater than `pivotScore` appear before `nextGreaterIndex`, and all elements smaller than or equal to it appear after. In the end, we swap `arr[right]` with `arr[nextGreaterIndex]` to place the pivot element into its correct (sorted, descending by score) position. The function then returns `nextGreaterIndex`, which is the final index of the pivot.
-
-// Diagram: Partition the array around a random pivot
-
-### 2\. Recursive selection
-
-The entry point to the generic quickselect algorithm is the `quickselect` function, which repeatedly uses the `partition` function and relies on its randomness to efficiently narrow the search space until the array is partitioned around the k-th largest element. It is identical to the quickselect algorithm we learned earlier.
-
-We define a function `quickselect` that takes as input the array `arr`, two indices `left` and `right` representing the current search boundaries, and an integer `k` .Initially, we call this function with `left = 0`, `right = n − 1`, and the given value of `k`.
-
-If `left == right`, the subarray contains only one element, and no further partitioning is possible, so we return. Otherwise, we call the `partition` function passing it `left` and `right`. The `partition` function places a randomly selected element into its correct (sorted, descending by score) position and returns its index, which we store in a variable `pivot`. At this point, one of the following three cases must occur.
-
-#### 2.1 pivot == k - 1
-
-Since array indices are zero-based, if `pivot == k − 1`, the `pivot` is the element with the kth largest score in the array. All elements before it have a greater score, and all elements after it have a smaller score. In this case, the problem is solved, and we return to the caller.
-
-// Diagram: If the final position of the pivot is at index k-1, all elements including and before it make up the elements with the top k scores.
-
-#### 2.2 pivot > k - 1
-
-If `pivot > k − 1`, `pivot` lies to the right of the element with the kth largest score. This means the element with the k-th largest score must lie in the left subarray. Since all elements to the right of the `pivot` have a smaller score, they can be safely discarded. We therefore recursively call `quickselect` on the range `[left, pivot - 1]` in hopes of partitioning on the element with the kth largest score the next time.
-
-// Diagram: If the final position of the pivot is after the index k-1, it means the elements with the top k scores are to its left.
-
-#### 2.2 pivot < k - 1
-
-If `pivot < k − 1`, `pivot` lies to the left of the element with the kth largest score. Since the `pivot` element is already in its correct sorted position and all elements before it have a score greater than it, the element with the kth largest score must lie in the right subarray. We therefore recursively call quickselect on the range `[pivot + 1, right]` in hopes of partitioning on the element with the kth largest score the next time.
-
-// Diagram: If the final position of the pivot is before the index k-1, it means there are more elements with the top k scores in the right subarray.
-
-By repeatedly discarding half of the remaining search space and recursing only into the side that still contains the element with the kth largest score, quickselect becomes blazingly fast in the average case. Given below is an example execution of the algorithm to find the top `k` elements with the largest score in an array using the function `f`.
-
-// Diagram: Find the top k(6) elements in the array using the scoring function f
-
-## Algorithm
-
-The steps given below summarize the generic quickselect algorithm to find the top `k` elements with the largest score in an array using the function `f`. If we slightly change the partition function to move elements with a smaller score before the randomly selected pivot, keeping everything else the same, we can find the top `k` elements with the smallest scores in the array.
-
-> **partition(\[ref\]arr, left, right)**
->
-> -   **Step 1:** Set `pivot` = Randomly select an index between `left` and `right`
-> -   **Step 2:** Set `pivotScore` = Call `f(arr\[pivot\])`
-> -   **Step 3:** Swap `arr\[pivot\]` with `arr\[right\]`
-> -   **Step 4:** Initialize `nextGreaterIndex` = `left`
-> -   **Step 5:** Iterate from `left` to `right - 1` using `i` and do the following:
->     -   **Step 5.1:** Set `elementScore` = `f(arr\[i\])`
->     -   **Step 5.2:** If `elementScore` > `pivotScore` do the following:
->         -   **Step 5.2.1:** Swap `arr\[i\]` with `arr\[nextGreaterIndex\]`
->         -   **Step 5.2.2:** Increment `nextGreaterIndex`
-> -   **Step 6:** Swap `arr\[nextGreaterIndex\]` with `arr\[right\]` to place pivot in its final position
-> -   **Step 6:** Return `nextGreaterIndex`
->
-> **quickselect(\[ref\]arr, left, right, k)**
->
-> -   **Step 1:** If `left` >= `right`, return
-> -   **Step 2:** Call `pivot` = `partition(arr, left, right)`
-> -   **Step 3:** If `pivot` == `k - 1`, pivot is correctly positioned; return
-> -   **Step 4:** Otherwise, If `pivot` > `k - 1`, recursively call `quickselect(arr, left, pivot - 1, k)`
-> -   **Step 5:** Otherwise, recursively call `quickselect(arr, pivot + 1, right, k)`
-
-## Implementaion
-
-Given below is the recursive implementation of the generic quickselect algorithm to find the elements with the top `k` elements in the array with the largest scores using the function `f`.
-
-C++
-
-```cpp
-#include <cmath>
-#include <cstdlib>
-#include <vector>
-
-// Diagram: using namespace std;
-
-class Solution {
-public:
-
-    // Function to partition the array based on comparison to pivot
-    int partition(vector<int> &arr, int left, int right) {
-
-        // Randomly select a pivot index between left and right
-        int pivot = left + rand() % (right - left + 1);
-
-        // 1. Calculate the score of the pivot element
-        int pivotScore = f(arr[pivot]);
-
-        // Move the pivot to the end
-        swap(arr[pivot], arr[right]);
-
-        // 2. Move elements around the pivot such that larger elements
-        // come to the left
-        int nextGreaterIndex = left;
-        for (int i = left; i < right; i++) {
-            int elementScore = f(arr[i]);
-            // Elements with score greater than pivot come to left
-            if (elementScore > pivotScore) {
-                swap(arr[nextGreaterIndex], arr[i]);
-                nextGreaterIndex++;
-            }
-
-        // 3. Move pivot to its final position
-        swap(arr[nextGreaterIndex], arr[right]);
-
-        // nextGreaterIndex is now the final index of the pivotValue
-        return nextGreaterIndex;
-    }
-
-    // Quickselect to find the Kth largest element
-    void quickselect(vector<int> &arr, int left, int right, int k) {
-        if (left >= right) {
-            return;
-        }
-
-        // Partition the array and get the pivot index
-        int pivot = partition(arr, left, right);
-
-        // If the pivot is at the k-1th position (in 0-indexed from the
-        // right)
-        if (pivot == k - 1) {
-            return;
-        }
-
-        // If pivot is greater than k - 1, search in the left half
-        else if (pivot > k - 1) {
-            quickselect(arr, left, pivot - 1, k);
-        }
-
-        // If k is greater than the pivot index, search in the right half
-        else {
-            quickselect(arr, pivot + 1, right, k);
-        }
-
-    int f(int element) {
-      // Stub implementation to calculate score
-      return element;
-    }
-
-    vector<int> elementsWithTopKScores(vector<int> &arr, int k) {
-        int n = arr.size();
-
-        // Step 1: Perform Quickselect to position the elements with
-        // the top k scores in range [0, k-1]
-        quickselect(arr, 0, n - 1, k);
-
-        // Step 2: First k elements are the elements with the top K scores
-        return vector<int>(arr.begin(), arr.begin() + k);
-    }
-};
-```
-
-Java
-
-```java
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
-
-// Diagram: class Solution {
-
-// Diagram: private Random rand = new Random();
-
-    // Function to partition the array based on comparison to pivot
-    int partition(List<Integer> arr, int left, int right) {
-
-        // Randomly select a pivot index between left and right
-        int pivot = left + rand.nextInt(right - left + 1);
-
-        // 1. Calculate the score of the pivot element
-        int pivotScore = f(arr.get(pivot));
-
-        // Move the pivot to the end
-        Collections.swap(arr, pivot, right);
-
-        // 2. Move elements around the pivot such that larger elements
-        // come to the left
-        int nextGreaterIndex = left;
-        for (int i = left; i < right; i++) {
-            int elementScore = f(arr.get(i));
-
-            // Elements with score greater than pivot come to left
-            if (elementScore > pivotScore) {
-                Collections.swap(arr, nextGreaterIndex, i);
-                nextGreaterIndex++;
-            }
-
-        // 3. Move pivot to its final position
-        Collections.swap(arr, nextGreaterIndex, right);
-
-        // nextGreaterIndex is now the final index of the pivotValue
-        return nextGreaterIndex;
-    }
-
-    // Quickselect to find the Kth largest element
-    void quickselect(List<Integer> arr, int left, int right, int k) {
-        if (left >= right) {
-            return;
-        }
-
-        // Partition the array and get the pivot index
-        int pivot = partition(arr, left, right);
-
-        // If the pivot is at the k-1th position (in 0-indexed from the
-        // right)
-        if (pivot == k - 1) {
-            return;
-        }
-
-        // If pivot is greater than k - 1, search in the left half
-        else if (pivot > k - 1) {
-            quickselect(arr, left, pivot - 1, k);
-        }
-
-        // If k is greater than the pivot index, search in the right half
-        else {
-            quickselect(arr, pivot + 1, right, k);
-        }
-
-    int f(int element) {
-        // Stub implementation to calculate score
-        return element;
-    }
-
-    List<Integer> elementsWithTopKScores(List<Integer> arr, int k) {
-        int n = arr.size();
-
-        // Step 1: Perform Quickselect to position the elements with
-        // the top k scores in range [0, k-1]
-        quickselect(arr, 0, n - 1, k);
-
-        // Step 2: First k elements are the elements with the top K scores
-        return new ArrayList<>(arr.subList(0, k));
-    }
+Quickselect is a one-sided variant of quicksort. The partition step is identical (Lomuto's, with a random pivot). The difference: after partitioning, instead of recursing on *both* halves, we recurse on *only* the half that contains the target position.
 
 ```
-
-Typescript
-
-```typescript
-class Solution {
-  // Function to partition the array based on comparison to pivot
-  partition(arr: number[], left: number, right: number): number {
-
-    // Randomly select a pivot index between left and right
-    const pivot = left + Math.floor(Math.random() * (right - left + 1));
-
-    // 1. Calculate the score of the pivot element
-    const pivotScore = this.f(arr[pivot]);
-
-    // Move the pivot to the end
-    [arr[pivot], arr[right]] = [arr[right], arr[pivot]];
-
-    // 2. Move elements around the pivot such that larger elements
-    // come to the left
-    let nextGreaterIndex = left;
-    for (let i = left; i < right; i++) {
-      const elementScore = this.f(arr[i]);
-
-      // Elements with score greater than pivot come to left
-      if (elementScore > pivotScore) {
-        [arr[nextGreaterIndex], arr[i]] = [arr[i], arr[nextGreaterIndex]];
-        nextGreaterIndex++;
-      }
-
-    // 3. Move pivot to its final position
-    [arr[nextGreaterIndex], arr[right]] = [arr[right], arr[nextGreaterIndex]];
-
-    // nextGreaterIndex is now the final index of the pivotValue
-    return nextGreaterIndex;
-  }
-
-  // Quickselect to find the Kth largest element
-  quickselect(arr: number[], left: number, right: number, k: number): void {
-    if (left >= right) {
-      return;
-    }
-
-    // Partition the array and get the pivot index
-    const pivot = this.partition(arr, left, right);
-
-    // If the pivot is at the k-1th position (in 0-indexed from the
-    // right)
-    if (pivot === k - 1) {
-      return;
-    }
-
-    // If pivot is greater than k - 1, search in the left half
-    else if (pivot > k - 1) {
-      this.quickselect(arr, left, pivot - 1, k);
-    }
-
-    // If k is greater than the pivot index, search in the right half
-    else {
-      this.quickselect(arr, pivot + 1, right, k);
-    }
-
-  f(element: number): number {
-    // Stub implementation to calculate score
-    return element;
-  }
-
-  elementsWithTopKScores(arr: number[], k: number): number[] {
-    const n = arr.length;
-
-    // Step 1: Perform Quickselect to position the elements with
-    // the top k scores in range [0, k-1]
-    this.quickselect(arr, 0, n - 1, k);
-
-    // Step 2: First k elements are the elements with the top K scores
-    return arr.slice(0, k);
-  }
+function quickselect(arr, left, right, k):
+    if left >= right:
+        return                         # base case: 0 or 1 elements
+    pivot = partition(arr, left, right)    # pivot ends up at its final sorted position
+    if pivot == k - 1:
+        return                         # arr[pivot] is the k-th smallest
+    if pivot > k - 1:
+        quickselect(arr, left, pivot - 1, k)    # recurse on left half
+    else:
+        quickselect(arr, pivot + 1, right, k)   # recurse on right half
 ```
 
-Javascript
+After the call returns, `arr[k - 1]` holds the k-th smallest element. (If you want the k-th *largest*, change the partition's comparison from `<` to `>`.)
 
-```javascript
-class Solution {
-
-  // Function to partition the array based on comparison to pivot
-  partition(arr, left, right) {
-
-    // Randomly select a pivot index between left and right
-    const pivot = left + Math.floor(Math.random() * (right - left + 1));
-
-    // 1. Calculate the score of the pivot element
-    const pivotScore = this.f(arr[pivot]);
-
-    // Move the pivot to the end
-    [arr[pivot], arr[right]] = [arr[right], arr[pivot]];
-
-    // 2. Move elements around the pivot such that larger elements
-    // come to the left
-    let nextGreaterIndex = left;
-    for (let i = left; i < right; i++) {
-      const elementScore = this.f(arr[i]);
-      // Elements with score greater than pivot come to left
-      if (elementScore > pivotScore) {
-        [arr[nextGreaterIndex], arr[i]] = [arr[i], arr[nextGreaterIndex]];
-        nextGreaterIndex++;
-      }
-
-    // 3. Move pivot to its final position
-    [arr[nextGreaterIndex], arr[right]] = [arr[right], arr[nextGreaterIndex]];
-
-    // nextGreaterIndex is now the final index of the pivotValue
-    return nextGreaterIndex;
-  }
-
-  // Quickselect to find the Kth largest element
-  quickselect(arr, left, right, k) {
-    if (left >= right) {
-      return;
-    }
-
-    // Partition the array and get the pivot index
-    const pivot = this.partition(arr, left, right);
-
-    // If the pivot is at the k-1th position (in 0-indexed from the
-    // right)
-    if (pivot === k - 1) {
-      return;
-    }
-
-    // If pivot is greater than k - 1, search in the left half
-    else if (pivot > k - 1) {
-      this.quickselect(arr, left, pivot - 1, k);
-    }
-
-    // If k is greater than the pivot index, search in the right half
-    else {
-      this.quickselect(arr, pivot + 1, right, k);
-    }
-
-  f(element) {
-    // Stub implementation to calculate score
-    return element;
-  }
-
-  elementsWithTopKScores(arr, k) {
-    const n = arr.length;
-
-    // Step 1: Perform Quickselect to position the elements with
-    // the top k scores in range [0, k-1]
-    this.quickselect(arr, 0, n - 1, k);
-
-    // Step 2: First k elements are the elements with the top K scores
-    return arr.slice(0, k);
-  }
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+  S["Find k-th smallest of n elements"]
+  S --> P["Partition: pivot lands at index p (final sorted position)"]
+  P -->|"p == k-1"| FOUND["arr[p] is the answer"]
+  P -->|"p > k-1"| L["Recurse on left half [left..p-1]"]
+  P -->|"p < k-1"| R["Recurse on right half [p+1..right]"]
+  L --> P
+  R --> P
 ```
 
-Python
+<p align="center"><strong>Quickselect's recursion. Each step partitions and discards one half. Eventually <code>p == k-1</code> and we're done.</strong></p>
 
-```python
+---
+
+## Why It's `O(n)` on Average
+
+Quicksort recurses on *both* halves: each level does `O(n)` work, total `n log n`. Quickselect recurses on *one* half: each level does `O(n)` work, but the input shrinks by ~50% each time. Total: `n + n/2 + n/4 + ... = 2n = O(n)`.
+
+```d2
+direction: down
+
+l0: "Level 0 — scan n elements" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
+l1: "Level 1 — scan n/2 elements" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+l2: "Level 2 — scan n/4 elements" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+l3: "..."
+total: "Total: n + n/2 + n/4 + ... ≈ 2n = O(n)" {style.fill: "#ede9fe"; style.stroke: "#7c3aed"}
+
+l0 -> l1 -> l2 -> l3 -> total
+```
+
+<p align="center"><strong>Quickselect's geometric cost. Each level halves the input; the sum of a geometric series with ratio 1/2 is bounded by twice the first term. Total <code>O(n)</code> on average.</strong></p>
+
+The worst case is still `O(n²)` — same as quicksort — when bad pivots produce maximally unbalanced partitions. Random pivot selection makes this practically unreachable.
+
+---
+
+## Why You Don't Just Sort and Take the First K
+
+| Approach | Time | Space |
+|---|---|---|
+| Full sort + first k | `O(n log n)` | `O(1)` (in-place sort) or `O(n)` (out-of-place) |
+| Min-heap of size n + extract k | `O(n + k log n)` | `O(1)` (in-place heap) |
+| Min-heap of size k | `O(n log k)` | `O(k)` |
+| **Quickselect** | `O(n)` average | `O(1)` |
+
+For `k << n`, quickselect's `O(n)` beats every alternative. For `k = n`, all approaches converge to `O(n log n)` and you should just sort.
+
+---
+
+## Strengths and Limitations
+
+| Strength | Detail |
+|---|---|
+| **`O(n)` average** | Linear time on random data — faster than any full-sort approach. |
+| **In-place** | `O(1)` extra memory beyond the recursion stack. |
+| **Reuses partition** | If you already have quicksort, quickselect is 5 lines of additional code. |
+
+| Limitation | Detail |
+|---|---|
+| **Mutates the input** | The array is reordered. (Copy first if the original order matters.) |
+| **`O(n²)` worst case** | Random pivots mitigate; deterministic median-of-medians achieves `O(n)` worst case but with much higher constant factor. |
+| **Not a "sort"** | After running, only the k-th position is correct; the rest is partially ordered. |
+
+In practice, quickselect is used:
+- `numpy.partition()` and `std::nth_element()` — standard library "find the k-th" primitives.
+- Top-K queries in databases (often combined with heaps for streaming data).
+- Image processing (median filters, percentile-based denoising).
+- Statistics (computing percentiles in `O(n)` instead of `O(n log n)`).
+
+---
+
+## Key Takeaway
+
+Quickselect: quicksort's partition without the both-halves recursion. `O(n)` average for finding the k-th smallest. Now we'll learn how to spot the pattern.
+
+***
+
+# Identifying Quickselect Problems
+
+> **Course:** DSA › Algorithms › Sorting › Quickselect Pattern
+
+Three diagnostic questions decide whether quickselect fits.
+
+| # | Question | If "yes," quickselect fits because... |
+|---|---|---|
+| **Q1** | Do we need a *position* in the sorted order, not the full sort? | Quickselect finds one position in `O(n)`; full sort is `O(n log n)`. |
+| **Q2** | Can we define a *partial order* on the elements with a `<` comparison? | The partition step needs a comparison rule. |
+| **Q3** | Is mutating / reordering the input acceptable? | Quickselect rearranges the array in place. |
+
+If all three are "yes," quickselect is the algorithm of choice.
+
+### Q1 — Why "position, not full sort"?
+
+If you need the entire sorted output, use a full sort. Quickselect's leverage comes from *only finding what you need*. For "the median," "the 95th percentile," "the top 10," "the bottom k" — quickselect dominates.
+
+If you need *all* k smallest in *sorted* order (e.g., a leaderboard), quickselect gives you the partition (`arr[0..k-1]` are the k smallest) but not in sorted order. You'd need to sort that small region after — `O(n + k log k)` total, still better than full sort for small k.
+
+### Q2 — Why "partial order"?
+
+The partition step compares each element against the pivot using `<` (or any total order). If you can define a total order on your elements (numeric value, distance to a target, frequency count, lexicographic on strings), quickselect works. If your elements have no comparison rule, you can't quickselect.
+
+### Q3 — Why "mutation OK"?
+
+Quickselect rearranges the array in place. If you need the original ordering preserved, you must copy first.
+
+---
+
+## Recognising Quickselect in the Wild
+
+Common phrasings that signal quickselect:
+- "Find the k-th smallest / largest element."
+- "Find the median / percentile."
+- "Find the k closest [to a target / origin / pivot]."
+- "Find the k most frequent."
+
+Less obvious but equally fitting:
+- "Two-sum where the answer is the k-th best pair."
+- "Stock prices: find the k worst days."
+- "Sensor readings: filter out the bottom 10%."
+
+Anytime you can phrase the problem as "find the k-th item by some score," quickselect applies.
+
+---
+
+## Key Takeaway
+
+Three checks — position-not-sort, total order on elements, mutation OK — gate every quickselect problem. Pass all three and you've earned `O(n)` instead of `O(n log n)`. Now four worked problems.
+
+***
+
+# Kth Smallest Element
+
+> **Course:** DSA › Algorithms › Sorting › Quickselect Pattern
+
+The textbook quickselect problem. Find the k-th smallest element of an array.
+
+---
+
+## The Problem
+
+Given an array `arr` and a positive integer `k`, return the k-th smallest element.
+
+```
+Input:  arr = [5, 4, 2, 8], k = 2
+Output: 4
+
+Input:  arr = [1, 2, 3, 4, 5], k = 5
+Output: 5
+
+Input:  arr = [7, 5, 9], k = 3
+Output: 9
+```
+
+---
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
 import random
 from typing import List
 
 class Solution:
-    # Function to partition the array based on comparison to pivot
-    def partition(self, arr: List[int], left: int, right: int) -> int:
-        # Randomly select a pivot index between left and right
-        pivot: int = left + random.randint(0, right - left)
+    def kth_smallest_element(self, arr: List[int], k: int) -> int:
+        self._quickselect(arr, 0, len(arr) - 1, k)
+        return arr[k - 1]
 
-        # 1. Calculate the score of the pivot element
-        pivot_score: int = self.f(arr[pivot])
-
-        # Move the pivot to the end
-        arr[pivot], arr[right] = arr[right], arr[pivot]
-
-        # 2. Move elements around the pivot such that larger elements
-        # come to the left
-        next_greater_index: int = left
-        for i in range(left, right):
-            element_score: int = self.f(arr[i])
-            # Elements with score greater than pivot come to left
-            if element_score > pivot_score:
-                arr[next_greater_index], arr[i] = arr[i], arr[next_greater_index]
-                next_greater_index += 1
-
-        # 3. Move pivot to its final position
-        arr[next_greater_index], arr[right] = arr[right], arr[next_greater_index]
-
-        # next_greater_index is now the final index of the pivotValue
-        return next_greater_index
-
-    # Quickselect to find the Kth largest element
-    def quickselect(self, arr: List[int], left: int, right: int, k: int) -> None:
+    def _quickselect(self, arr: List[int], left: int, right: int, k: int) -> None:
         if left >= right:
             return
-
-        # Partition the array and get the pivot index
-        pivot: int = self.partition(arr, left, right)
-
-        # If the pivot is at the k-1th position (in 0-indexed from the
-        # right)
-        if pivot == k - 1:
+        p = self._partition(arr, left, right)
+        if p == k - 1:
             return
-
-        # If pivot is greater than k - 1, search in the left half
-        elif pivot > k - 1:
-            self.quickselect(arr, left, pivot - 1, k)
-
-        # If k is greater than the pivot index, search in the right half
+        if p > k - 1:
+            self._quickselect(arr, left, p - 1, k)
         else:
-            self.quickselect(arr, pivot + 1, right, k)
+            self._quickselect(arr, p + 1, right, k)
 
-    def f(self, element: int) -> int:
-        # Stub implementation to calculate score
-        return element
+    def _partition(self, arr: List[int], left: int, right: int) -> int:
+        pivot_idx = random.randint(left, right)
+        pivot_val = arr[pivot_idx]
+        arr[pivot_idx], arr[right] = arr[right], arr[pivot_idx]
+        boundary = left
+        for i in range(left, right):
+            if arr[i] < pivot_val:
+                arr[boundary], arr[i] = arr[i], arr[boundary]
+                boundary += 1
+        arr[boundary], arr[right] = arr[right], arr[boundary]
+        return boundary
 
-    def elements_with_top_k_scores(self, arr: List[int], k: int) -> List[int]:
-        n: int = len(arr)
 
-        # Step 1: Perform Quickselect to position the elements with
-        # the top k scores in range [0, k-1]
-        self.quickselect(arr, 0, n - 1, k)
-
-        # Step 2: First k elements are the elements with the top K scores
-        return arr[:k]
+if __name__ == "__main__":
+    print(Solution().kth_smallest_element([5, 4, 2, 8], 2))   # 4
 ```
 
-## Complexity Analysis
+```java,editable
+import java.util.Random;
 
-The generic quickselect algorithm uses the same partition and recursive selection steps as the quickselect algorithm, with the only difference being the use of the function `f` to calculate scores. If we assume the function `f` has a constant **O(1)** space and time complexity, the overall complexity of the generic algorithm will be the same as the quickselect algorithm.
+public class Solution {
+    private final Random rand = new Random();
 
-> **Best case** - The first pivot is the element with the kth largest score
->
-> -   Space complexity - **O(1)**
-> -   Time complexity - **O(N)**
->
-> **Average case** - The pivot is randomly chosen, discarding half of the elements in every recursive call
->
-> -   Space complexity - **O(logN)**
-> -   Time complexity - **O(N)**
->
-> **Worst case** - The worst pivot is chosen every time discarding only 1 element in every recursive call
->
-> -   Space complexity - **O(N)**
-> -   Time complexity - **O(N^2)**
+    public int kthSmallestElement(int[] arr, int k) {
+        quickselect(arr, 0, arr.length - 1, k);
+        return arr[k - 1];
+    }
 
-***
+    private void quickselect(int[] arr, int left, int right, int k) {
+        if (left >= right) return;
+        int p = partition(arr, left, right);
+        if (p == k - 1) return;
+        if (p > k - 1) quickselect(arr, left, p - 1, k);
+        else quickselect(arr, p + 1, right, k);
+    }
 
-# Identifying the quickselect pattern
+    private int partition(int[] arr, int left, int right) {
+        int pivotIdx = left + rand.nextInt(right - left + 1);
+        int pivotVal = arr[pivotIdx];
+        swap(arr, pivotIdx, right);
+        int boundary = left;
+        for (int i = left; i < right; i++) {
+            if (arr[i] < pivotVal) { swap(arr, boundary, i); boundary++; }
+        }
+        swap(arr, boundary, right);
+        return boundary;
+    }
 
-There are many problems where we need to find the top or bottom `k` elements in a dataset based on some complex scoring criteria. These are generally **medium** or **hard** problems where we need to define a scoring function to rank elements in a dataset. The scoring function may be stateless or stateful, depending on the complexity of the problem, and the goal is to find the elements with the top `k` or the bottom `k` scores.
+    private void swap(int[] arr, int i, int j) { int t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
 
-If the problem statement or its solution follows the generic template below, it can be solved using the generic quickselect algorithm.
+    public static void main(String[] args) {
+        System.out.println(new Solution().kthSmallestElement(new int[]{5, 4, 2, 8}, 2));
+    }
+}
+```
 
-**Template:**
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
 
-Given an array of data elements, find the elements with the top `k` or bottom `k` scores, where a function `f` computes the score of every element.
+void swap(int *a, int *b) { int t = *a; *a = *b; *b = t; }
 
-## Example
+int partition_(int *arr, int left, int right) {
+    int pi = left + rand() % (right - left + 1);
+    int pv = arr[pi];
+    swap(&arr[pi], &arr[right]);
+    int b = left;
+    for (int i = left; i < right; i++) {
+        if (arr[i] < pv) { swap(&arr[b], &arr[i]); b++; }
+    }
+    swap(&arr[b], &arr[right]);
+    return b;
+}
 
-Let's consider the following problem as an example to better understand how to identify and solve a problem using the generic quickselect algorithm.
+void quickselect(int *arr, int left, int right, int k) {
+    if (left >= right) return;
+    int p = partition_(arr, left, right);
+    if (p == k - 1) return;
+    if (p > k - 1) quickselect(arr, left, p - 1, k);
+    else quickselect(arr, p + 1, right, k);
+}
 
-> **Problem statement:** Given an integer array `arr`, an integer `k` and a `target`. Find the `k` closest elements to the `target`.
->
-> And integer `x` is closer to `target` that `y` if:
->
-> -   `|x-target|` < `|y-target|` OR
-> -   `|x-target|` == `|y-target|` AND `x` < `y`
+int kth_smallest_element(int *arr, int n, int k) {
+    quickselect(arr, 0, n - 1, k);
+    return arr[k - 1];
+}
 
-// Diagram: Find the k(3) closest elements to the target(5)
+int main(void) {
+    int arr[] = {5, 4, 2, 8};
+    printf("%d\n", kth_smallest_element(arr, 4, 2));
+    return 0;
+}
+```
 
-## The quickselect solution
-
-We observe that the closeness of an element to the `target` is governed by a well-defined rule. If two elements `x` and `y` are different, the smaller of `|x - target | and | y - target |` will be closer to the target. However, if they are equal, the one with the smaller value will be closer to the target. And so, if we define the score of an element `x` as a tuple of `( | x - target| , x )`, we can compare the scores for each element to do the comparison according to the rule. The `k` closest values will be the ones with the **bottom(smallest)** `k` values of these scores.
-
-We create a function `score` that takes as input an `element` in the array and the target, and returns a tuple with the value `( | element - target |, element )`
-
-// Diagram: The score function returns the score of every element in the array.
-
-The solution to the problem fits the template for the quickselect pattern.
-
-**Template:**Given an array of data elements, find the elements with the bottom `k` scores, where a function `f` (returning tuple score) computes the score of every element.
-
-We then run the generic quickselect algorithm on the array using the function `score` to get the score of every element.
-
-We create a function `partition` that takes as input the array `arr` and two indices, `left` and `right`, representing the subarray within which the data must be partitioned and rearranges the array around a randomly chosen element based on the scores of every element using the function `score`. It rearranges the array such that all elements with a score less than the score of a randomly chosen element appear before it.
-
-Next, we initialize a variable `nextSmallerIndex`, which marks the position where the next element with a score less than `pivotScore` should be placed. It is initialized to `left`, since this is where the first element with a lesser score should go.
-
-To rearrange the elements, we iterate over the subarray from `left` to `right − 1` using a variable `i`. In each iteration, we calculate the score of `a[i]` in a variable `elementScore` using the function `score` and compare it with `pivotScore`. If `elementScore` is **less than** `pivotScore`, it belongs in the left partition. We therefore swap `arr[i]` with `arr[nextSmallerIndex]` and increment `nextSmallerIndex` to use it for the element with a greater score. If `elementScore` is greater than or equal to `pivotScore`, no action is needed, and we simply move on.
-
-This way, at the end of all iterations, all elements with a score less than `pivotScore` appear before `nextSmallerIndex`, and all elements greater than or equal to it appear after. In the end, we swap `arr[right]` with `arr[nextSmallerIndex]` to place the pivot element into its correct (sorted, ascending by score) position. The function then returns `nextSmallerIndex`, which is the final index of the pivot.
-
-// Diagram: Partition the array around a random pivot
-
-We define a function `quickselect` that takes as input the array `arr`, two indices `left` and `right` representing the current search boundaries, and an integer `k` . If `left == right`, the subarray contains only one element, and no further partitioning is possible, so we return. Otherwise, we call the `partition` function passing it `left` and `right`. The `partition` function places a randomly selected element into its correct (sorted, ascending by score) position and returns its index, which we store in a variable `pivot`. 
-
-We then check if `pivot == k - 1`, we return to the caller. If `pivot > k - 1`, we recursively call `quickselect` on `[left, pivot - 1]`, otherwise we recursively call `quickselect` on `[pivot + 1, right]`.
-
-We call the `quickselect` function with the initial boundaries as `0` and `n-1`, where `n` is the size of the array, and at the end of all the recursive calls, the elements in the range `[0, k-1]` will be the `k` closest elements to the target.
-
-// Diagram: Find the k(3) closest elements to the target(5)
-
-The implementation of the generic quick select solution to solve the problem is given below.
-
-C++
-
-```cpp
-#include <cstdlib>
+```cpp,editable
+#include <iostream>
 #include <vector>
-#include <cmath>
-#include <algorithm>
-
-// Diagram: using namespace std;
+#include <cstdlib>
 
 class Solution {
 public:
-
-    // Function to calculate the "score" of an element
-    pair<int, int> score(int val, int target) {
-        return { abs(val - target), val };
+    int kthSmallestElement(std::vector<int>& arr, int k) {
+        quickselect(arr, 0, (int) arr.size() - 1, k);
+        return arr[k - 1];
     }
 
-    // Function to partition the array based on the absolute difference
-    // to the target
-    int partition(vector<int> &arr, int left, int right, int target) {
+    void quickselect(std::vector<int>& arr, int left, int right, int k) {
+        if (left >= right) return;
+        int p = partition(arr, left, right);
+        if (p == k - 1) return;
+        if (p > k - 1) quickselect(arr, left, p - 1, k);
+        else quickselect(arr, p + 1, right, k);
+    }
 
-        // Randomly select a pivot index between left and right
-        int pivot = left + rand() % (right - left + 1);
-
-        // Get the pivot value and its score
-        pair<int,int> pivotScore = score(arr[pivot], target);
-
-        // Move the pivot to the end and update the index
-        swap(arr[pivot], arr[right]);
-
-        // Move elements around the pivot such that closer elements
-        // come to the left
-        int index = left;
+    int partition(std::vector<int>& arr, int left, int right) {
+        int pi = left + rand() % (right - left + 1);
+        int pv = arr[pi];
+        std::swap(arr[pi], arr[right]);
+        int b = left;
         for (int i = left; i < right; i++) {
-
-            // If the current element is closer to the target than the
-            // pivot element, swap it with the element at index
-            auto elementScore = score(arr[i], target);
-            if ( elementScore < pivotScore) {
-                swap(arr[index], arr[i]);
-                index++;
-            }
-
-        // Move pivot to its final position
-        swap(arr[index], arr[right]);
-        return index;
-    }
-
-    // Quickselect to find the k closest elements
-    void quickselect(
-        vector<int> &arr,
-        int left,
-        int right,
-        int k,
-        int target
-    ) {
-        if (left == right) {
-            return;
+            if (arr[i] < pv) { std::swap(arr[b], arr[i]); b++; }
         }
-
-        // Partition the array and get the pivot index
-        int pivot = partition(arr, left, right, target);
-
-        // If the pivot is at the k-th position (in 0-indexed)
-        if (pivot == k - 1) {
-            return;
-        }
-
-        // If k is less than the pivot index, search in the left half
-        else if (k - 1 < pivot) {
-            quickselect(arr, left, pivot - 1, k, target);
-        }
-
-        // Else if k is greater than the pivot index, search in the right
-        // half
-        else {
-            quickselect(arr, pivot + 1, right, k, target);
-        }
-
-// Diagram: vector<int> kClosestElements(vector<int> &arr, int k, int target) {
-
-        // Step 1: Perform Quickselect to find the k closest elements
-        quickselect(arr, 0, arr.size() - 1, k, target);
-
-        // Step 2: The first k elements will be the closest elements
-        return vector<int>(arr.begin(), arr.begin() + k);
+        std::swap(arr[b], arr[right]);
+        return b;
     }
 };
+
+int main() {
+    std::vector<int> arr = {5, 4, 2, 8};
+    std::cout << Solution{}.kthSmallestElement(arr, 2) << '\n';
+}
 ```
 
-Java
+```scala,editable
+import scala.util.Random
 
-```java
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
-
-// Diagram: class Solution {
-
-// Diagram: private Random rand = new Random();
-
-    // Function to calculate the "score" of an element
-    private int[] score(int val, int target) {
-        return new int[]{Math.abs(val - target), val};
-    }
-
-    // Function to partition the array based on the absolute difference to the target
-    private int partition(List<Integer> arr, int left, int right, int target) {
-
-        // Randomly select a pivot index between left and right
-        int pivot = left + rand.nextInt(right - left + 1);
-
-        // Get the pivot value and its score
-        int[] pivotScore = score(arr.get(pivot), target);
-
-        // Move the pivot to the end and update the index
-        Collections.swap(arr, pivot, right);
-
-        // Move elements around the pivot such that closer elements come to the left
-        int index = left;
-        for (int i = left; i < right; i++) {
-
-            // If the current element is closer to the target than the pivot element, swap it
-            int[] elementScore = score(arr.get(i), target);
-            // Compare the score tuples according to the rule
-            if (elementScore[0] < pivotScore[0] || (elementScore[0] == pivotScore[0] && elementScore[1] < pivotScore[1])) {
-                Collections.swap(arr, index, i);
-                index++;
-            }
-
-        // Move pivot to its final position
-        Collections.swap(arr, index, right);
-        return index;
-    }
-
-    // Quickselect to find the k closest elements
-    private void quickselect(List<Integer> arr, int left, int right, int k, int target) {
-        if (left == right) {
-            return;
-        }
-
-        // Partition the array and get the pivot index
-        int pivot = partition(arr, left, right, target);
-
-        // If the pivot is at the k-th position (in 0-indexed)
-        if (pivot == k - 1) {
-            return;
-        }
-
-        // If k is less than the pivot index, search in the left half
-        else if (k - 1 < pivot) {
-            quickselect(arr, left, pivot - 1, k, target);
-        }
-
-        // Else if k is greater than the pivot index, search in the right half
-        else {
-            quickselect(arr, pivot + 1, right, k, target);
-        }
-
-// Diagram: public List<Integer> kClosestElements(List<Integer> arr, int k, int target) {
-
-        // Step 1: Perform Quickselect to find the k closest elements
-        quickselect(arr, 0, arr.size() - 1, k, target);
-
-        // Step 2: The first k elements will be the closest elements
-        return new ArrayList<>(arr.subList(0, k));
-    }
-
-```
-
-Typescript
-
-```typescript
 class Solution {
-
-  // Function to calculate the "score" of an element
-  score(val: number, target: number): number[] {
-    return [Math.abs(val - target), val];
+  def kthSmallestElement(arr: Array[Int], k: Int): Int = {
+    quickselect(arr, 0, arr.length - 1, k)
+    arr(k - 1)
   }
 
-  // Function to partition the array based on the absolute difference to the target
-  partition(arr: number[], left: number, right: number, target: number): number {
-
-    // Randomly select a pivot index between left and right
-    const pivot = left + Math.floor(Math.random() * (right - left + 1));
-
-    // Get the pivot value and its score
-    const pivotScore = this.score(arr[pivot], target);
-
-    // Move the pivot to the end and update the index
-    [arr[pivot], arr[right]] = [arr[right], arr[pivot]];
-
-    // Move elements around the pivot such that closer elements come to the left
-    let index = left;
-    for (let i = left; i < right; i++) {
-```
-
-Javascript
-
-```javascript
-class Solution {
-
-  // Function to calculate the "score" of an element
-  score(val, target) {
-    return [Math.abs(val - target), val];
+  private def quickselect(arr: Array[Int], left: Int, right: Int, k: Int): Unit = {
+    if (left >= right) return
+    val p = partition(arr, left, right)
+    if (p == k - 1) return
+    if (p > k - 1) quickselect(arr, left, p - 1, k)
+    else quickselect(arr, p + 1, right, k)
   }
 
-  // Function to partition the array based on the absolute difference to the target
-  partition(arr, left, right, target) {
+  private def partition(arr: Array[Int], left: Int, right: Int): Int = {
+    val pi = left + Random.nextInt(right - left + 1)
+    val pv = arr(pi)
+    val t1 = arr(pi); arr(pi) = arr(right); arr(right) = t1
+    var b = left
+    for (i <- left until right) {
+      if (arr(i) < pv) { val t = arr(b); arr(b) = arr(i); arr(i) = t; b += 1 }
+    }
+    val t2 = arr(b); arr(b) = arr(right); arr(right) = t2
+    b
+  }
+}
 
-    // Randomly select a pivot index between left and right
-    const pivot = left + Math.floor(Math.random() * (right - left + 1));
-
-    // Get the pivot value and its score
-    const pivotScore = this.score(arr[pivot], target);
-
-    // Move the pivot to the end and update the index
-    [arr[pivot], arr[right]] = [arr[right], arr[pivot]];
-
-    // Move elements around the pivot such that closer elements come to the left
-    let index = left;
-    for (let i = left; i < right; i++) {
+object Main {
+  def main(args: Array[String]): Unit = {
+    println(new Solution().kthSmallestElement(Array(5, 4, 2, 8), 2))
+  }
+}
 ```
 
-Python
+```javascript,editable
+class Solution {
+    kthSmallestElement(arr, k) {
+        this._quickselect(arr, 0, arr.length - 1, k);
+        return arr[k - 1];
+    }
 
-```python
+    _quickselect(arr, left, right, k) {
+        if (left >= right) return;
+        const p = this._partition(arr, left, right);
+        if (p === k - 1) return;
+        if (p > k - 1) this._quickselect(arr, left, p - 1, k);
+        else this._quickselect(arr, p + 1, right, k);
+    }
+
+    _partition(arr, left, right) {
+        const pi = left + Math.floor(Math.random() * (right - left + 1));
+        const pv = arr[pi];
+        [arr[pi], arr[right]] = [arr[right], arr[pi]];
+        let b = left;
+        for (let i = left; i < right; i++) {
+            if (arr[i] < pv) { [arr[b], arr[i]] = [arr[i], arr[b]]; b++; }
+        }
+        [arr[b], arr[right]] = [arr[right], arr[b]];
+        return b;
+    }
+}
+
+console.log(new Solution().kthSmallestElement([5, 4, 2, 8], 2));
+```
+
+```typescript,editable
+class Solution {
+    kthSmallestElement(arr: number[], k: number): number {
+        this._quickselect(arr, 0, arr.length - 1, k);
+        return arr[k - 1];
+    }
+
+    private _quickselect(arr: number[], left: number, right: number, k: number): void {
+        if (left >= right) return;
+        const p = this._partition(arr, left, right);
+        if (p === k - 1) return;
+        if (p > k - 1) this._quickselect(arr, left, p - 1, k);
+        else this._quickselect(arr, p + 1, right, k);
+    }
+
+    private _partition(arr: number[], left: number, right: number): number {
+        const pi = left + Math.floor(Math.random() * (right - left + 1));
+        const pv = arr[pi];
+        [arr[pi], arr[right]] = [arr[right], arr[pi]];
+        let b = left;
+        for (let i = left; i < right; i++) {
+            if (arr[i] < pv) { [arr[b], arr[i]] = [arr[i], arr[b]]; b++; }
+        }
+        [arr[b], arr[right]] = [arr[right], arr[b]];
+        return b;
+    }
+}
+
+console.log(new Solution().kthSmallestElement([5, 4, 2, 8], 2));
+```
+
+```go,editable
+package main
+
+import (
+    "fmt"
+    "math/rand"
+)
+
+func partition(arr []int, left, right int) int {
+    pi := left + rand.Intn(right-left+1)
+    pv := arr[pi]
+    arr[pi], arr[right] = arr[right], arr[pi]
+    b := left
+    for i := left; i < right; i++ {
+        if arr[i] < pv {
+            arr[b], arr[i] = arr[i], arr[b]
+            b++
+        }
+    }
+    arr[b], arr[right] = arr[right], arr[b]
+    return b
+}
+
+func quickselect(arr []int, left, right, k int) {
+    if left >= right { return }
+    p := partition(arr, left, right)
+    if p == k-1 { return }
+    if p > k-1 { quickselect(arr, left, p-1, k) } else { quickselect(arr, p+1, right, k) }
+}
+
+func kthSmallestElement(arr []int, k int) int {
+    quickselect(arr, 0, len(arr)-1, k)
+    return arr[k-1]
+}
+
+func main() {
+    fmt.Println(kthSmallestElement([]int{5, 4, 2, 8}, 2))
+}
+```
+
+```kotlin,editable
+import kotlin.random.Random
+
+class Solution {
+    fun kthSmallestElement(arr: IntArray, k: Int): Int {
+        quickselect(arr, 0, arr.size - 1, k)
+        return arr[k - 1]
+    }
+
+    private fun quickselect(arr: IntArray, left: Int, right: Int, k: Int) {
+        if (left >= right) return
+        val p = partition(arr, left, right)
+        if (p == k - 1) return
+        if (p > k - 1) quickselect(arr, left, p - 1, k)
+        else quickselect(arr, p + 1, right, k)
+    }
+
+    private fun partition(arr: IntArray, left: Int, right: Int): Int {
+        val pi = left + Random.nextInt(right - left + 1)
+        val pv = arr[pi]
+        val t1 = arr[pi]; arr[pi] = arr[right]; arr[right] = t1
+        var b = left
+        for (i in left until right) {
+            if (arr[i] < pv) { val t = arr[b]; arr[b] = arr[i]; arr[i] = t; b++ }
+        }
+        val t2 = arr[b]; arr[b] = arr[right]; arr[right] = t2
+        return b
+    }
+}
+
+fun main() {
+    println(Solution().kthSmallestElement(intArrayOf(5, 4, 2, 8), 2))
+}
+```
+
+```rust,editable
+use rand::Rng;
+
+fn partition(arr: &mut Vec<i32>, left: usize, right: usize) -> usize {
+    let pi = left + rand::thread_rng().gen_range(0..=(right - left));
+    let pv = arr[pi];
+    arr.swap(pi, right);
+    let mut b = left;
+    for i in left..right {
+        if arr[i] < pv { arr.swap(b, i); b += 1; }
+    }
+    arr.swap(b, right);
+    b
+}
+
+fn quickselect(arr: &mut Vec<i32>, left: i64, right: i64, k: i64) {
+    if left >= right { return; }
+    let p = partition(arr, left as usize, right as usize) as i64;
+    if p == k - 1 { return; }
+    if p > k - 1 { quickselect(arr, left, p - 1, k); }
+    else { quickselect(arr, p + 1, right, k); }
+}
+
+fn kth_smallest_element(arr: &mut Vec<i32>, k: i64) -> i32 {
+    quickselect(arr, 0, arr.len() as i64 - 1, k);
+    arr[(k - 1) as usize]
+}
+
+fn main() {
+    let mut arr = vec![5, 4, 2, 8];
+    println!("{}", kth_smallest_element(&mut arr, 2));
+}
+```
+
+</div>
+
+---
+
+## Complexity
+
+| Resource | Best | Average | Worst |
+|---|---|---|---|
+| **Time** | `O(n)` | `O(n)` | `O(n²)` |
+| **Space (stack)** | `O(1)` | `O(log n)` | `O(n)` |
+
+***
+
+# Median Finder
+
+> **Course:** DSA › Algorithms › Sorting › Quickselect Pattern
+
+The median is the middle element. For odd `n`, it's the `(n/2 + 1)`-th smallest. For even `n`, it's the *floor* of the average of the two middles. Either way, it's a quickselect problem.
+
+---
+
+## The Problem
+
+Return the median of `arr`. For odd-length arrays, the middle element. For even-length arrays, the floor of the two middle elements' average.
+
+```
+Input:  arr = [5, 4, 2, 8, 9]
+Output: 5      (sorted: [2, 4, 5, 8, 9], middle = 5)
+
+Input:  arr = [5, 8, 1, 2]
+Output: 3      (sorted: [1, 2, 5, 8], middle two avg = 3.5 → floor = 3)
+
+Input:  arr = [-3, -4]
+Output: -3     ((-3 + -4) // 2 = -3 — floor division of negatives rounds toward -∞ in some languages; here we use truncation toward zero)
+```
+
+---
+
+## The Solution
+
+The trick: for odd `n`, one quickselect call. For even `n`, two calls — one for `n/2 - 1`, one for `n/2`. Take the floor of their average.
+
+```python,editable
+import random
+from typing import List
+
+class Solution:
+    def find_median(self, arr: List[int]) -> int:
+        n = len(arr)
+        if n % 2 == 1:
+            return self._quickselect(arr, 0, n - 1, n // 2)
+        left_mid = self._quickselect(arr, 0, n - 1, n // 2 - 1)
+        right_mid = self._quickselect(arr, 0, n - 1, n // 2)
+        return (left_mid + right_mid) // 2
+
+    def _quickselect(self, arr: List[int], left: int, right: int, k: int) -> int:
+        if left >= right: return arr[left]
+        p = self._partition(arr, left, right)
+        if p == k: return arr[p]
+        if p > k: return self._quickselect(arr, left, p - 1, k)
+        return self._quickselect(arr, p + 1, right, k)
+
+    def _partition(self, arr, left, right):
+        pi = left + random.randint(0, right - left)
+        pv = arr[pi]
+        arr[pi], arr[right] = arr[right], arr[pi]
+        b = left
+        for i in range(left, right):
+            if arr[i] < pv:
+                arr[b], arr[i] = arr[i], arr[b]
+                b += 1
+        arr[b], arr[right] = arr[right], arr[b]
+        return b
+
+
+if __name__ == "__main__":
+    print(Solution().find_median([5, 4, 2, 8, 9]))   # 5
+    print(Solution().find_median([5, 8, 1, 2]))      # 3
+```
+
+For implementations in the other 9 languages, the structure is identical — wrap the kth-smallest from the previous problem and call it once or twice. The full 10-language code follows the same pattern as in [Kth Smallest Element](#kth-smallest-element); the only change is calling `_quickselect` with `k = n/2` (odd) or twice with `n/2 - 1` and `n/2` (even).
+
+---
+
+## Complexity
+
+| Resource | Cost |
+|---|---|
+| **Time** | `O(n)` average for both odd-n (one call) and even-n (two calls). |
+| **Space (stack)** | `O(log n)` average. |
+
+***
+
+# K Closest Elements
+
+> **Course:** DSA › Algorithms › Sorting › Quickselect Pattern
+
+Quickselect's partition step compares against a pivot. Change *what* you compare and you can find the k-th most-anything: closest to a target, brightest, oldest, etc.
+
+---
+
+## The Problem
+
+Given an array `arr`, an integer `k`, and a target `target`, return the `k` closest elements to `target`. Closeness is measured by `|x - target|`; ties broken by smaller value first.
+
+```
+Input:  arr = [1, 2, 3, 4, 5, 6], k = 3, target = 4
+Output: [4, 3, 5]
+
+Input:  arr = [1, 4, 5, 6, 7, 8], k = 4, target = 3
+Output: [4, 1, 5, 6]
+
+Input:  arr = [1, 5, 8, 10, 12, 13], k = 3, target = 10
+Output: [10, 8, 12]
+```
+
+---
+
+## The Solution
+
+Replace the partition's "compare elements directly" with "compare distance-to-target." Everything else is identical.
+
+```python,editable
 import random
 from typing import List, Tuple
 
 class Solution:
-    # Function to calculate the "score" of an element
-    def score(self, val: int, target: int) -> Tuple[int, int]:
-        return (abs(val - target), val)
-
-    # Function to partition the array based on the absolute difference to the target
-    def partition(self, arr: List[int], left: int, right: int, target: int) -> int:
-        # Randomly select a pivot index between left and right
-        pivot = left + random.randint(0, right - left)
-
-        # Get the pivot value and its score
-        pivotScore = self.score(arr[pivot], target)
-
-        # Move the pivot to the end
-        arr[pivot], arr[right] = arr[right], arr[pivot]
-
-        # Move elements around the pivot such that closer elements come to the left
-        index = left
-        for i in range(left, right):
-            elementScore = self.score(arr[i], target)
-            # Compare the score tuple directly
-            if elementScore < pivotScore:
-                arr[index], arr[i] = arr[i], arr[index]
-                index += 1
-
-        # Move pivot to its final position
-        arr[index], arr[right] = arr[right], arr[index]
-        return index
-
-    # Quickselect to find the k closest elements
-    def quickselect(self, arr: List[int], left: int, right: int, k: int, target: int) -> None:
-        if left == right:
-            return
-
-        # Partition the array and get the pivot index
-        pivot = self.partition(arr, left, right, target)
-
-        # If the pivot is at the k-th position (in 0-indexed)
-        if pivot == k - 1:
-            return
-
-        # If k is less than the pivot index, search in the left half
-        elif k - 1 < pivot:
-            self.quickselect(arr, left, pivot - 1, k, target)
-
-        # Else if k is greater than the pivot index, search in the right half
-        else:
-            self.quickselect(arr, pivot + 1, right, k, target)
-
-    def kClosestElements(self, arr: List[int], k: int, target: int) -> List[int]:
-        # Step 1: Perform Quickselect to find the k closest elements
-        self.quickselect(arr, 0, len(arr) - 1, k, target)
-
-        # Step 2: The first k elements will be the closest elements
+    def k_closest_elements(self, arr: List[int], k: int, target: int) -> List[int]:
+        self._quickselect(arr, 0, len(arr) - 1, k, target)
         return arr[:k]
+
+    def _score(self, val: int, target: int) -> Tuple[int, int]:
+        return (abs(val - target), val)                # (distance, tiebreaker on value)
+
+    def _quickselect(self, arr, left, right, k, target):
+        if left >= right: return
+        p = self._partition(arr, left, right, target)
+        if p == k - 1: return
+        if p > k - 1: self._quickselect(arr, left, p - 1, k, target)
+        else: self._quickselect(arr, p + 1, right, k, target)
+
+    def _partition(self, arr, left, right, target):
+        pi = left + random.randint(0, right - left)
+        pivot_score = self._score(arr[pi], target)
+        arr[pi], arr[right] = arr[right], arr[pi]
+        b = left
+        for i in range(left, right):
+            if self._score(arr[i], target) < pivot_score:
+                arr[b], arr[i] = arr[i], arr[b]
+                b += 1
+        arr[b], arr[right] = arr[right], arr[b]
+        return b
+
+
+if __name__ == "__main__":
+    print(Solution().k_closest_elements([1, 2, 3, 4, 5, 6], 3, 4))   # [4, 3, 5] (any order)
 ```
 
-## Example problems
+For all 10 languages, the partition uses the score-tuple `(|x - target|, x)` instead of the value `x` for comparisons. The structure of `quickselect` and the recursive driver is unchanged.
 
-Most problems that fall under this category are**medium** or **hard**problems; a list of a few is given below.
+---
 
-> -   **[K closest elements](https://www.codeintuition.io/courses/sorting/PYZvDPNTwxquoKTCWlUhv)**
-> -   **[K most frequent elements](https://www.codeintuition.io/courses/sorting/S3XXvpyz2gD_8-O0GU5fi)**
+## Complexity
 
-We will now solve these problems to gain a deeper understanding of the quickselect pattern.
+`O(n)` average — same as basic quickselect. The `_score` function is `O(1)`, so the partition is still linear.
 
 ***
 
-# Kth smallest element
+# K Most Frequent Elements
 
-## Problem Statement
+> **Course:** DSA › Algorithms › Sorting › Quickselect Pattern
 
-Given an array **arr** and a positive integer **k**, write a function to find and return the kth smallest element in this array.
+The final pattern — quickselect on a *derived* array. Build a frequency map, extract unique elements, quickselect by frequency.
 
-You must use **quickselect algorithm** to solve this problem.
+---
 
-### Example 1
+## The Problem
 
-> -   **Input:** arr = \[5, 4, 2, 8\], k = 2
-> -   **Output:** 4
-> -   **Explanation:** 4 is the 2nd smallest element in the array.
+Given an array `arr` and a positive integer `k`, return the `k` most frequent elements (in any order).
 
-### Example 2
+```
+Input:  arr = [1, 2, 2, 3, 3, 3], k = 2
+Output: [2, 3]      (3 appears 3 times, 2 appears 2 times)
 
-> -   **Input:** arr = \[1, 2, 3, 4, 5\], k = 5
-> -   **Output:** 5
-> -   **Explanation:** 5 is the 5th smallest element in the array.
+Input:  arr = [1, 5, 6, 6], k = 1
+Output: [6]
 
-### Example 3
-
-> -   **Input:** arr = \[7, 5, 9\], k = 3
-> -   **Output:** 9
-> -   **Explanation:** 9 is the 3rd smallest element in the array.
-
-## Solution
-
-```cpp
-#include <cmath>
-#include <cstdlib>
-
-using namespace std;
-
-class Solution {
-public:
-
-    // Function to partition the array based on comparison to pivot
-    int partition(vector<int> &arr, int left, int right) {
-
-        // Randomly select a pivot index between left and right
-        int pivot = left + rand() % (right - left + 1);
-
-        // 1. Get the pivot value
-        int pivotValue = arr[pivot];
-
-        // Move the pivot to the end
-        swap(arr[pivot], arr[right]);
-
-        // 2. Move elements around the pivot such that smaller elements
-        // come to the left
-        int nextSmallerIndex = left;
-        for (int i = left; i < right; i++) {
-
-            // Elements smaller than pivot come to left
-            if (arr[i] < pivotValue) {
-                swap(arr[nextSmallerIndex], arr[i]);
-                nextSmallerIndex++;
-            }
-        }
-
-        // 3. Move pivot to its final position
-        swap(arr[nextSmallerIndex], arr[right]);
-
-        // nextSmallerIndex is now the final index of the pivotValue
-        return nextSmallerIndex;
-    }
-
-    // Quickselect to find the Kth smallest element
-    void quickselect(vector<int> &arr, int left, int right, int k) {
-        if (left >= right) {
-            return;
-        }
-
-        // Partition the array and get the pivot index
-        int pivot = partition(arr, left, right);
-
-        // If the pivot is at the k-1th position (in 0-indexed from the
-        // right)
-        if (pivot == k - 1) {
-            return;
-        }
-
-        // If pivot is greater than k - 1, search in the left half
-        else if (pivot > k - 1) {
-            quickselect(arr, left, pivot - 1, k);
-        }
-
-        // If k is greater than the pivot index, search in the right half
-        else {
-            quickselect(arr, pivot + 1, right, k);
-        }
-    }
-
-    int kthSmallestElement(vector<int> &arr, int k) {
-        int n = arr.size();
-
-        // Step 1: Perform Quickselect to position smallest k elements
-        quickselect(arr, 0, n - 1, k);
-
-        // Step 2: Return the k-th smallest element
-        return arr[k - 1];
-    }
-};
+Input:  arr = [1], k = 1
+Output: [1]
 ```
 
-***
+---
 
-# Median finder
+## The Solution
 
-## Problem Statement
+Two phases:
+1. **Build a frequency map** in `O(n)`.
+2. **Quickselect over the unique elements**, comparing by frequency, to find the top k.
 
-Given an unsorted array **arr**, write a function to find and return the median of all the elements from this array.
+```python,editable
+import random
+from collections import Counter
+from typing import List
 
-The median of an array is the **middle** value when sorted, and if the array has an even number of elements, it is the average of the two middle values truncated to an integer.
+class Solution:
+    def k_most_frequent_elements(self, arr: List[int], k: int) -> List[int]:
+        freq = Counter(arr)
+        unique = list(freq.keys())
+        self._quickselect(unique, 0, len(unique) - 1, k, freq)
+        return unique[:k]
 
-You must use a **heap** to solve this problem.
+    def _quickselect(self, unique, left, right, k, freq):
+        if left >= right: return
+        p = self._partition(unique, left, right, freq)
+        if p == k - 1: return
+        if p > k - 1: self._quickselect(unique, left, p - 1, k, freq)
+        else: self._quickselect(unique, p + 1, right, k, freq)
 
-### Example 1
+    def _partition(self, unique, left, right, freq):
+        pi = left + random.randint(0, right - left)
+        pivot_freq = freq[unique[pi]]
+        unique[pi], unique[right] = unique[right], unique[pi]
+        b = left
+        for i in range(left, right):
+            if freq[unique[i]] > pivot_freq:           # > because we want HIGHER frequencies first
+                unique[b], unique[i] = unique[i], unique[b]
+                b += 1
+        unique[b], unique[right] = unique[right], unique[b]
+        return b
 
-> -   **Input:** arr = \[5, 4, 2, 8, 9\]
-> -   **Output:** 5
-> -   **Explanation:** When the array is sorted \[2, 4, 5, 8, 9\], 5 is the middle value, so it is the median.
 
-### Example 2
-
-> -   **Input:** arr = \[5, 8, 1, 2\]
-> -   **Output:** 3
-> -   **Explanation:** When the array is sorted \[1, 2, 5, 8\], the middle values are 2 and 5. Their average is 3.5, which is truncated to 3 as the median.
-
-### Example 3
-
-> -   **Input:** arr = \[-3, -4\]
-> -   **Output:** -3
-> -   **Explanation:** When the array is sorted \[-4, -3\], the middle values are -4 and -3. Their average is -3.5, which is truncated to -3 as the median.
-
-## Solution
-
-```cpp
-#include <cmath>
-#include <cstdlib>
-
-using namespace std;
-
-class Solution {
-public:
-
-    // Function to partition the array based on comparison to pivot
-    int partition(vector<int> &arr, int left, int right) {
-
-        // Randomly select a pivot index between left and right
-        int pivot = left + rand() % (right - left + 1);
-
-        // 1. Get the pivot value
-        int pivotValue = arr[pivot];
-
-        // Move the pivot to the end
-        swap(arr[pivot], arr[right]);
-
-        // 2. Move elements around the pivot such that smaller elements
-        // come to the left
-        int nextSmallerIndex = left;
-        for (int i = left; i < right; i++) {
-
-            // Elements smaller than pivot come to left
-            if (arr[i] < pivotValue) {
-                swap(arr[nextSmallerIndex], arr[i]);
-                nextSmallerIndex++;
-            }
-        }
-
-        // 3. Move pivot to its final position
-        swap(arr[nextSmallerIndex], arr[right]);
-
-        // nextSmallerIndex is now the final index of the pivotValue
-        return nextSmallerIndex;
-    }
-
-    // Quickselect to find the Kth smallest element
-    int quickselect(vector<int> &arr, int left, int right, int k) {
-        if (left >= right) {
-            return arr[left];
-        }
-
-        // Partition the array and get the pivot index
-        int pivot = partition(arr, left, right);
-
-        // If the pivot is at the k-th position (0-indexed),
-        // we've found the k-th smallest element and can return it.
-        // Note: We are **not using k-1** here because k is already
-        // treated as a 0-based index in this implementation. In other
-        // words, k = 0 corresponds to the smallest element, k = 1 to the
-        // second smallest, and so on.
-        if (pivot == k) {
-            return arr[pivot];
-        }
-
-        // If the pivot's index is greater than k,
-        // the k-th smallest element must be in the left partition
-        else if (pivot > k) {
-            return quickselect(arr, left, pivot - 1, k);
-        }
-
-        // If k is greater than the pivot index, search in the right half
-        else {
-            return quickselect(arr, pivot + 1, right, k);
-        }
-    }
-
-    int findMedian(vector<int> &arr) {
-        int n = arr.size();
-
-        // If odd, return the middle element
-        if (n % 2 == 1) {
-            return quickselect(arr, 0, n - 1, n / 2);
-        }
-
-        // If even, take the average of the two middle elements and round
-        // up
-        int leftMid = quickselect(arr, 0, n - 1, n / 2 - 1);
-        int rightMid = quickselect(arr, 0, n - 1, n / 2);
-
-        // Round down the average of the two middle elements
-        return (leftMid + rightMid) / 2;
-    }
-};
+if __name__ == "__main__":
+    print(Solution().k_most_frequent_elements([1, 2, 2, 3, 3, 3], 2))   # [3, 2]
 ```
 
-***
+The full 10-language implementation follows the same structure: a hash map (`Counter`, `HashMap`, `unordered_map`, `dict`, etc.) for frequency counting, and quickselect over the unique-elements list. The partition's comparison uses `freq[unique[i]] > pivot_freq` to put higher frequencies on the left.
 
-# K closest elements
+---
 
-## Problem Statement
+## Complexity
 
-Given an integer array **arr** sorted in ascending order, a non-negative integer **k**, and an integer **target**, write a function to find and return the k closest elements to the target. You can return the answer in **any order**.
+| Resource | Cost |
+|---|---|
+| **Time (frequency build)** | `O(n)` — one pass over `arr`. |
+| **Time (quickselect on unique)** | `O(u)` average, where `u = number of unique elements ≤ n`. |
+| **Total time** | `O(n)` average. |
+| **Space** | `O(u)` for the frequency map and unique list. |
 
-An integer `x` is closer to the target than an integer `y` if:
+For inputs with many unique elements (`u ≈ n`), this is `O(n)` time and `O(n)` space.
 
-// Diagram: |x - target| < |y - target|, or
+---
 
-// Diagram: |x - target| == |y - target| and x < y
+## Final Takeaway
 
-You must use **quickselect algorithm** to solve this problem.
+Quickselect is one algorithm with a hundred faces. Find the k-th smallest, the median, the k closest to a target, the k most frequent — they're all the same recursion with a different comparison function. The pattern: **derive a score for each element, partition by score, recurse on the half that contains position k**.
 
-### Example 1
+This pattern shows up everywhere — top-K queries in databases, percentile computations in statistics, ranking systems in recommendation engines. Once you can spot it, you stop sorting full arrays just to look at one position.
 
-> -   **Input:** arr = \[1, 2, 3, 4, 5, 6\], k = 3, target = 4
-> -   **Output:** \[4, 3, 5\]
-> -   **Explanation:** Above are the three closest elements to 4.
+The next lesson is the final pattern in the sorting section: **custom compare**. Sometimes the elements aren't simple integers — they're records, tuples, objects with multiple fields. The sort key is an expression, not a value. We'll see how to abstract the comparison out of the algorithm so any sort can handle any comparison rule.
 
-### Example 2
+**Transfer challenge — try before the Custom Compare lesson:** Write a function that returns the *k smallest* elements of an array, sorted ascending. Quickselect gets you the partition (`arr[0..k-1]` are the k smallest, but in arbitrary order). What additional step makes the output sorted? What's the total time?
 
-> -   **Input:** arr = \[1, 4, 5, 6, 7, 8\], k = 4, target = 3
-> -   **Output:** \[4, 1, 5, 6\]
-> -   **Explanation:** Above are the four closest elements to 3.
+<details>
+<summary><strong>Answer — open after you've thought about it</strong></summary>
 
-### Example 3
-
-> -   **Input:** arr = \[1, 5, 8, 10, 12, 13\], k = 3, target = 10
-> -   **Output:** \[10, 8, 12\]
-> -   **Explanation:** Above are the three closest elements to 10.
-
-## Solution
-
-```cpp
-#include <cstdlib>
-
-using namespace std;
-
-class Solution {
-public:
-
-    // Function to partition the array based on the absolute difference
-    // to the target
-    int partition(vector<int> &arr, int left, int right, int target) {
-
-        // Randomly select a pivot index between left and right
-        int pivot = left + rand() % (right - left + 1);
-
-        // 1. Get the pivot value and its absolute difference to the
-        // target
-        int pivotVal = arr[pivot];
-        int pivotDiff = abs(pivotVal - target);
-
-        // Move the pivot to the end and update the index
-        swap(arr[pivot], arr[right]);
-
-        // 2. Move elements around the pivot such that closer elements
-        // come to the left
-        int nextClosestIndex = left;
-        for (int i = left; i < right; i++) {
-
-            // If the current element is closer to the target than the
-            // pivot element, swap it with the element at
-            // nextClosestIndex
-            if (abs(arr[i] - target) < pivotDiff ||
-                (abs(arr[i] - target) == pivotDiff &&
-                 arr[i] < pivotVal)) {
-                swap(arr[nextClosestIndex], arr[i]);
-                nextClosestIndex++;
-            }
-        }
-
-        // 3. Move pivot to its final position
-        swap(arr[nextClosestIndex], arr[right]);
-        return nextClosestIndex;
-    }
-
-    // Quickselect to find the k closest elements
-    void quickselect(
-        vector<int> &arr,
-        int left,
-        int right,
-        int k,
-        int target
-    ) {
-        if (left == right) {
-            return;
-        }
-
-        // Partition the array and get the pivot index
-        int pivot = partition(arr, left, right, target);
-
-        // If the pivot is at the k-th position (in 0-indexed)
-        if (k - 1 == pivot) {
-            return;
-        }
-
-        // If pivot is greater than k - 1, search in the left half
-        else if (pivot > k - 1) {
-            quickselect(arr, left, pivot - 1, k, target);
-        }
-
-        // If k is greater than the pivot index, search in the right half
-        else {
-            quickselect(arr, pivot + 1, right, k, target);
-        }
-    }
-
-    vector<int> kClosestElements(vector<int> &arr, int k, int target) {
-
-        // Step 1: Perform Quickselect to find the k closest elements
-        quickselect(arr, 0, arr.size() - 1, k, target);
-
-        // Step 2: The first k elements will be the closest elements
-        return vector<int>(arr.begin(), arr.begin() + k);
-    }
-};
+```python,editable
+class Solution:
+    def k_smallest_sorted(self, arr, k):
+        self._quickselect(arr, 0, len(arr) - 1, k)
+        return sorted(arr[:k])
 ```
 
-***
+Quickselect: `O(n)` average. Sorting the first k elements: `O(k log k)`. Total: `O(n + k log k)`.
 
-# K most frequent elements
+For `k << n`, this is `O(n)` — a strict improvement over full sort's `O(n log n)`. For `k = n`, it's `O(n log n)` — same as full sort. The break-even is `k ≈ n / log n`.
 
-## Problem Statement
+This pattern (partition + small sort) is exactly what `numpy.partition()` + `numpy.sort()[:k]` does internally. **You just rediscovered the optimal top-K-sorted algorithm.**
 
-Given an array **arr** and a non-negative integer **k**, write a function to find and return the top k frequent elements in this array. You can return the answer in **any order**.
-
-You must use **quickselect** **algorithm** to solve this problem.
-
-### Example 1
-
-> -   **Input:** arr = \[1, 2, 2, 3, 3, 3\], k = 2
-> -   **Output:** \[2, 3\]
-> -   **Explanation:** 3 and 2 are the most frequent and the second most frequent elements respectively.
-
-### Example 2
-
-> -   **Input:** arr = \[1, 5, 6, 6\], k = 1
-> -   **Output:** \[6\]
-> -   **Explanation:** 6 is the most frequent element.
-
-### Example 3
-
-> -   **Input:** arr = \[1\], k = 1
-> -   **Output:** \[1\]
-> -   **Explanation:** 1 is the most frequent element.
-
-## Solution
-
-```cpp
-#include <algorithm>
-#include <cstdlib>
-#include <unordered_map>
-
-using namespace std;
-
-class Solution {
-public:
-
-    // Partition function to rearrange the elements based on their
-    // frequency
-    int partition(
-        vector<int> &unique,
-        int left,
-        int right,
-        unordered_map<int, int> &frequency
-    ) {
-
-        // Random pivot index
-        int pivot = left + rand() % (right - left + 1);
-
-        // 1. Get the frequency of the pivot element
-        int pivotFreq = frequency[unique[pivot]];
-
-        // Move pivot to the end
-        swap(unique[pivot], unique[right]);
-
-        // 2. Move all more frequent elements to the left
-        int nextHigherFrequencyIndex = left;
-        for (int i = left; i < right; i++) {
-
-            // If the frequency of the current element is greater than
-            // the frequency of the pivot element, swap them
-            if (frequency[unique[i]] > pivotFreq) {
-                swap(unique[nextHigherFrequencyIndex], unique[i]);
-                nextHigherFrequencyIndex += 1;
-            }
-        }
-
-        // 3. Move pivot to its final position
-        swap(unique[right], unique[nextHigherFrequencyIndex]);
-        return nextHigherFrequencyIndex;
-    }
-
-    // Quickselect to find the k-th most frequent element
-    void quickselect(
-        vector<int> &unique,
-        int left,
-        int right,
-        int k,
-        unordered_map<int, int> &frequency
-    ) {
-
-        // Only one element left in the range
-        if (left == right) {
-            return;
-        }
-
-        // Partition the array and get the pivot index
-        int pivot = partition(unique, left, right, frequency);
-
-        // If the pivot is at the k-th position (in 0-indexed)
-        if (k - 1 == pivot) {
-            return;
-        }
-
-        // If pivot is greater than k - 1, search in the left half
-        else if (pivot > k - 1) {
-            quickselect(unique, left, pivot - 1, k, frequency);
-        }
-
-        // If k is greater than the pivot index, search in the right half
-        else {
-            quickselect(unique, pivot + 1, right, k, frequency);
-        }
-    }
-
-    vector<int> kMostFrequentElements(vector<int> &arr, int k) {
-
-        // Hash map to store frequency of each element
-        unordered_map<int, int> frequency;
-
-        // Step 1: Count frequency of each element
-        for (int n : arr) {
-            frequency[n]++;
-        }
-
-        // Array to keep track of unique elements
-        vector<int> unique;
-
-        // Step 2: Store the unique elements in the vector
-        for (auto &element : frequency) {
-            unique.push_back(element.first);
-        }
-
-        // Step 3: Find the k-th most frequent element
-        // We want the k-th largest element by frequency
-        quickselect(unique, 0, unique.size() - 1, k, frequency);
-
-        // Step 4: Return the top k frequent elements
-        return vector<int>(unique.begin(), unique.begin() + k);
-    }
-};
-```
+</details>

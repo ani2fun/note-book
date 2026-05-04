@@ -1,385 +1,780 @@
-# Introduction to insertion sort
+# 4. Insertion Sort
 
-Insertion sort is a sorting algorithm that builds the final sorted list by simply moving the items to their correct positions one at a time. It's not the most efficient algorithm and follows a brute-force approach, but it's simple to understand and implement.
+You're holding a hand of playing cards, picked up one at a time. After grabbing the third card, you don't sort the whole hand — you just slide that one card into its right spot among the two you already had sorted. Pick up the fourth card; slide it in. Pick up the fifth; slide it in. By the time you've picked up all the cards, your hand is sorted, and you never did a "full sort" — you just inserted each new card where it belonged.
 
-**Is insertion sort faster than bubble and selection sorts?**
+This is insertion sort. It's the algorithm humans naturally use when sorting cards, papers, books — anything where the items arrive one at a time. In code, it builds the sorted array left-to-right by *inserting* each new element into its correct position within the already-sorted prefix. Like bubble and selection sort, it's `O(n²)` in the worst case. Unlike them, **it's the fastest `O(n²)` sort in practice** — its inner loop terminates early when the input is partially sorted, and on truly small arrays it beats even `O(n log n)` algorithms because of its tiny constant factor.
 
-In practical application, insertion sort is a better performer than bubble or selection sorts, as, on average, it makes fewer comparisons to sort data
+By the end of this lesson you'll know the algorithm, why it's fundamentally different from bubble and selection sort despite the same asymptotic complexity, why it's the canonical "best of the quadratic sorts," and why every modern sorting library (TimSort, IntroSort) falls back to insertion sort for small subarrays.
 
-## Example
+## Table of contents
 
-An intuitive example of insertion sort can be seen when arranging a hand of cards in ascending order.
-
-// Diagram: Random deck of cards
-
-When holding a set of cards, you typically pick one card at a time and compare it with the cards already in your hand. If the card is smaller than the ones before it, you reposition it to the correct spot among the sorted cards.
-
-// Diagram: Move the card to its correct position
-
-While placing the card in its proper position, you shift all larger cards one position to the right to make space. This ensures that the sorted portion of the hand remains in order as you insert each new card.
-
-// Diagram: The card moved to its correct position
-
-Thereafter, repeat the process for the next out-of-order card, inserting it into the correct position within the sorted portion by comparing it with the cards to its left.
-
-// Diagram: Move the next card to its correct position
-
-You continue this process, picking and inserting each card in turn, until all the cards are arranged in ascending order.
-
-// Diagram: The next card moved to the correct position
-
-By gradually building a sorted portion at the front of the hand, insertion sort efficiently organises the entire set.
-
-// Diagram: All cards are sorted
-
-> -   **Step 1:** Find the card that is out of order relative to the cards around it.
-> -   **Step 2:** Remove the card from the deck.
-> -   **Step 3:** Find where this card belongs.
-> -   **Step 4:** Shift all the cards from that spot to one place to the right.
-> -   **Step 5:** Insert the removed card on the new spot.
-> -   **Step 6:** Repeat the above until all the cards are in their correct positions.
-
-// Diagram: Sorting a deck of cards using insertion sort
-
-## Advantages
-
-Even though insertion sort is not the most efficient algorithm, it has several advantages. It is simple to understand and implement. It works well for small or nearly sorted datasets and requires only a small amount of extra memory.
-
-> -   **Simplicity:** Insertion sort is quite simple to understand and implement, making it an ideal choice for learning about sorting.
-> -   **Efficiency:** In practice, insertion sort is more efficient than other quadratic sorting algorithms, such as selection sort and bubble sort, when the data set is small.
-> -   **Adaptive:** The efficiency of insertion sort increases if the input list is partially sorted. The time complexity of the sort reduces to **O(k\*N)** from **O(N^2)** when each element in the list is no more than k places away from its sorted position.
-> -   **Stable:** Insertion sort is stable i.e. it does not change the relative order of equal values in the list
-> -   **In-place:** Insertion sort can sort the input list without allocating new memory for the algorithm.
-
-## Limitations
-
-Insertion sort has significant limitations for large or randomly ordered datasets.
-
-> -   **Inefficient:** Compared to other sorting algorithms insertion sort is not ideal for sorting large data sets as it presents an average time complexity of **O(N^2)**.
+1. [Understanding insertion sort](#understanding-insertion-sort)
+2. [Why insertion sort beats its quadratic cousins](#why-insertion-sort-beats-its-quadratic-cousins)
+3. [Implementation](#implementation)
+4. [Complexity analysis](#complexity-analysis)
+5. [Insertion sort problem](#insertion-sort-problem)
 
 ***
 
-# Understanding insertion sort algorithm
+# Understanding Insertion Sort
 
-The strategy from the earlier example could be used to create an algorithm. To explain this algorithm, we will take an array as an input list, but the same algorithm can be applied to any list data structure.
+> **Course:** DSA › Algorithms › Sorting › Insertion Sort
 
-## Algorithm
+Insertion sort divides the array into a **sorted prefix** at the front and an **unsorted suffix** at the back — exactly like selection sort. The difference is in how each pass works:
 
-Like bubble and selection sorts, insertion sort conceptually divides the input array into two subarrays: a **sorted subarray** and an **unsorted subarray**. Initially, the first element of the array is considered sorted.
+- **Selection sort** scans the unsorted suffix to find its minimum, then swaps it to the front of the suffix. One swap per pass; `O(n)` linear scan inside.
+- **Insertion sort** takes the *first* element of the unsorted suffix and inserts it into its correct position within the sorted prefix by shifting larger elements one step right. Up to `O(i)` shifts per pass, but the loop *exits early* the moment the correct position is found.
 
-// Diagram: Sorted and unsorted subarrays
+```d2
+direction: down
 
-During each iteration, the algorithm takes the first element from the unsorted subarray and inserts it into its correct position within the sorted subarray. To do this, it compares the element with the elements in the sorted subarray, moving from right to left.
+before: "Before pass" {
+  grid-rows: 1
+  grid-columns: 5
+  grid-gap: 0
+  s0: "1 (sorted)" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+  s1: "3 (sorted)" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+  s2: "5 (sorted)" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+  s3: "2 (key)" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  s4: "8"
+}
 
-// Diagram: Compare the first unsorted element with the last sorted element
+after: "After pass — 2 inserted at index 1, others shifted right" {
+  grid-rows: 1
+  grid-columns: 5
+  grid-gap: 0
+  s0: "1 (sorted)" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+  s1: "2 (sorted)" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+  s2: "3 (sorted)" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+  s3: "5 (sorted)" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+  s4: "8"
+}
 
-If the unsorted element is smaller than a sorted element, the sorted element is shifted one position to the right. This shifting continues until the correct position for the unsorted element is found, at which point it is inserted.
-
-// Diagram: Move the first unsorted element to the correct position
-
-At this point, the first element from the unsorted subarray has reached its correct position in the sorted subarray.
-
-// Diagram: Unsorted element reached the correct position in the sorted subarray
-
-By repeating this process, the sorted subarray grows, and the unsorted subarray shrinks, until the entire array is sorted.
-
-// Diagram: The array is now sorted
-
-When implementing this algorithm based on the above approach, the array is sorted by gradually building a sorted portion from left to right. At each step, an element from the unsorted section is inserted into its correct position within the sorted subarray. The algorithm uses two nested loops controlled by variables `i` and `j`.
-
-The outer loop initializes `i` at `1` and continues until `n - 1`. At the start of each iteration, the element at index `i` is selected as the `key`. The subarray to the left of index `i` (from `0` to `i - 1`) is already sorted, and the goal of the current iteration is to insert the key into its correct position within this sorted portion.
-
-**Why do we start the outer loop from 1 and not 0?**
-
-We start `i` from `1` because a single element at index `0` is already considered sorted by definition. There is no need to insert the first element into a sorted portion, so the algorithm begins with the second element.
-
-// Diagram: The outer loop iterates from 1 to n - 1
-
-The inner loop begins by initializing `j` to `i - 1`. This allows the algorithm to compare the `key` with elements in the sorted portion of the array. While `j >= 0`  and `arr[j] > key`, the algorithm shifts `arr[j]` one position to the right by assigning it to `arr[j + 1]`. This shifting process creates space for the `key` to be inserted into the correct position. After each shift, `j` is decremented by `1` so that the algorithm can continue comparing the `key` with the next element to the left.
-
-**Why do we use a loop with the condition `j >= 0` and `arr[j] > key`?**
-
-The condition `j >= 0` ensures that comparisons stay within the bounds of the array, preventing access to invalid indices. The condition `arr[j] > key` ensures that only elements larger than the `key` are shifted. As soon as an element smaller than or equal to the `key` is encountered, the correct position for the `key` has been found.
-
-// Diagram: The inner loop shifts arr\[j\] while j ≥ 0 and arr\[j\] > key
-
-Once the inner loop ends, the algorithm inserts the `key` at index `j + 1`, which is the correct position in the sorted portion of the array. At this point, all elements to the left of `j + 1` are less than or equal to the `key`, and all elements to the right have already been shifted accordingly.
-
-// Diagram: At the end of the inner loop, the key is placed in its correct position
-
-With each iteration of the outer loop, the sorted portion of the array grows by one element from the left to right, and the unsorted portion shrinks accordingly. After all iterations from`1` to `n - 1`are complete, the entire array is sorted in ascending order.
-
-// Diagram: The sorted subarray grows and the unsorted subarray shrinks
-
-The full dry run of the algorithm is given below.
-
-// Diagram: Sorting an array in ascending order using insertion sort
-
-> **Algorithm**
->
-> -   **Step 1:** Iterate through the array using `i` from `1` to `n-1`
->     -   **Step 1.1:** Select `arr\[i\]` as the `key`
->     -   **Step 1.2:** Initialize `j = i - 1` to compare the `key` with the sorted portion
->     -   **Step 1.3:** While `j >= 0` and `arr\[j\] > key`
->         -   **Step 1.3.1:** Shift `arr\[j\]` one position to the right `arr\[j + 1\] = arr\[j\]`
->         -   **Step 1.3.2:** Decrement `j` by `1`
->     -   **Step 1.4:** Insert the key at its correct position `arr\[j + 1\] = key`
-
-## Implementation
-
-This implementation of insertion sort iterates through the array, treating the first element as a sorted portion. For each subsequent element (the "key"), it compares with elements in the sorted portion and shifts larger elements to the right to make space. The key is then inserted into its correct position. This process repeats until the entire array is sorted. The algorithm is simple, stable, and works efficiently for small or nearly sorted arrays.
-
-C++
-
-```cpp
-using namespace std;
-
-class Solution {
-public:
-    void insertionSort(vector<int> &arr) {
-
-        // Get the size of the array
-        int n = arr.size();
-
-// Diagram: for (int i = 1; i < n; i++) {
-
-            // Select the current element as the key
-            int key = arr[i];
-
-            // Start comparing with the previous element
-            int j = i - 1;
-
-            // Move elements of arr[0..i-1], that are greater than the
-            // key, to one position ahead of their current position
-            while (j >= 0 && arr[j] > key) {
-
-                // Shift the elements one position to the right
-                arr[j + 1] = arr[j];
-                j--;
-            }
-
-            // Insert the key in its correct position
-            arr[j + 1] = key;
-        }
-};
+before -> after: pull key (2), shift 5 and 3 right, insert 2 at position where prefix is still sorted
 ```
 
-Java
+<p align="center"><strong>One pass of insertion sort. The key (<code>2</code>) is pulled out, larger elements (<code>5</code>, <code>3</code>) shift right one at a time, and the key drops into the gap. The sorted prefix grows by one.</strong></p>
 
-```java
-class Solution {
-    public void insertionSort(int[] arr) {
+---
 
-        // Get the length of the array
-        int n = arr.length;
+## The Card-Sorting Walkthrough
 
-// Diagram: for (int i = 1; i < n; i++) {
+Imagine being dealt cards one at a time. After receiving each card, you slide it into its correct position in your already-sorted hand.
 
-            // Select the current element as the key
-            int key = arr[i];
+Hand starts empty. You pick up `[5, 3, 8, 1, 4]` one card at a time:
 
-            // Start comparing with the previous element
-            int j = i - 1;
+**After card `5`:** hand is `[5]` — trivially sorted.
 
-            // Move elements of arr[0..i-1], that are greater than the
-            // key, to one position ahead of their current position
-            while (j >= 0 && arr[j] > key) {
+**After card `3`:** compare with `5`. `3 < 5`, so shift `5` right and put `3` at the front. Hand is `[3, 5]`.
 
-                // Shift the elements one position to the right
-                arr[j + 1] = arr[j];
-                j--;
-            }
+**After card `8`:** compare with `5`. `8 > 5`, so it stays at the end. Hand is `[3, 5, 8]`.
 
-            // Insert the key in its correct position
-            arr[j + 1] = key;
-        }
+**After card `1`:** compare with `8`, `5`, `3` — each greater, each shifts right. Drop `1` at the front. Hand is `[1, 3, 5, 8]`.
+
+**After card `4`:** compare with `8` (shift), then `5` (shift), then `3` (stop). Drop `4` at index 2. Hand is `[1, 3, 4, 5, 8]`.
+
+```d2
+direction: down
+
+p0: "Initial — hand = []"
+p1: "After card 5 — hand = [5]"
+p2: "After card 3 — hand = [3, 5]\n(1 shift)"
+p3: "After card 8 — hand = [3, 5, 8]\n(0 shifts)"
+p4: "After card 1 — hand = [1, 3, 5, 8]\n(3 shifts)"
+p5: "After card 4 — hand = [1, 3, 4, 5, 8]\n(2 shifts)" {style.fill: "#bbf7d0"; style.stroke: "#16a34a"}
+
+p0 -> p1: insert 5
+p1 -> p2: insert 3
+p2 -> p3: insert 8 (no shift; 8 ≥ all)
+p3 -> p4: insert 1 (worst case for this card)
+p4 -> p5: insert 4
 ```
 
-Typescript
+<p align="center"><strong>The full sort. Each pass extends the sorted prefix by one. The number of shifts per pass varies — from <code>0</code> when the new element is already in the right place to <code>i</code> when it has to travel the full sorted prefix.</strong></p>
 
-```typescript
-export class Solution {
-    insertionSort(arr: number[]): void {
+---
 
-        // Get the length of the array
-        const n = arr.length;
+## The Two Halves Look the Same — But Mean Different Things
 
-// Diagram: for (let i = 1; i < n; i++) {
+Both selection sort and insertion sort have a "sorted prefix" and "unsorted suffix." The difference: **selection sort's sorted prefix is permanent** (each pass guarantees the next correct element), while **insertion sort's sorted prefix is provisional** (each pass slides the new element somewhere into the prefix, possibly displacing a lot of already-placed elements).
 
-            // Select the current element as the key
-            const key = arr[i];
+This is the key insight that makes insertion sort *adaptive*. If a new element happens to be larger than everything in the sorted prefix, the inner loop exits immediately — `0` shifts. Selection sort never gets that benefit; it always scans the full unsorted suffix even if everything is in order.
 
-            // Start comparing with the previous element
-            let j = i - 1;
+> *Pause and predict — for an already-sorted input <code>[1, 2, 3, 4, 5]</code>, how many comparisons does insertion sort make? How many shifts?*
 
-            // Move elements of arr[0..i-1], that are greater than the
-            // key, to one position ahead of their current position
-            while (j >= 0 && arr[j] > key) {
+`n - 1` comparisons (one per pass, each exits the inner loop after the first comparison). Zero shifts. Total time: `O(n)`. **Insertion sort is the only `O(n²)` sort that's also `O(n)` in the best case.** Selection sort can't do this because it always has to find the minimum, which requires scanning everything.
 
-                // Shift the elements one position to the right
-                arr[j + 1] = arr[j];
-                j--;
-            }
+---
 
-            // Insert the key in its correct position
-            arr[j + 1] = key;
-        }
+## Strengths and Limitations
+
+| Strength | Detail |
+|---|---|
+| **Adaptive** | `O(n)` on already-sorted input; `O(k·n)` if every element is at most `k` positions away from its sorted spot. |
+| **In-place** | `O(1)` extra memory. |
+| **Stable** | Equal elements keep their relative order. |
+| **Online** | Can sort a stream as elements arrive — no need to know the full input upfront. |
+| **Fast on small inputs** | Lower constant factor than `O(n log n)` algorithms; libraries fall back to insertion sort for `n ≤ 10–20`. |
+
+| Limitation | Detail |
+|---|---|
+| **Quadratic on random input** | `O(n²)` average and worst case. |
+
+In practice, insertion sort is the algorithm of choice for:
+1. Small inputs (under ~20 elements).
+2. Almost-sorted data.
+3. Streaming / online sorting.
+4. The "last mile" of hybrid sorts like TimSort (Python's default) and IntroSort (C++ STL).
+
+---
+
+## Key Takeaway
+
+Insertion sort: take each new element, slide it into the sorted prefix by shifting larger elements right, repeat. Adaptive, stable, in-place. The fastest of the `O(n²)` sorts and the canonical "small-input" sort used inside every major library. Now we'll see exactly *why* it beats bubble and selection sort.
+
+***
+
+# Why Insertion Sort Beats Its Quadratic Cousins
+
+> **Course:** DSA › Algorithms › Sorting › Insertion Sort
+
+All three of bubble sort, selection sort, and insertion sort are `O(n²)` in the worst case. But "same big-O" hides huge differences in **average performance** and **adaptiveness**. Insertion sort wins on both axes.
+
+---
+
+## Comparison Across the Three Sorts
+
+| Property | Bubble (basic) | Bubble (optimised) | Selection | Insertion |
+|---|---|---|---|---|
+| Best | `O(n²)` | `O(n)` | `O(n²)` | `O(n)` |
+| Average | `O(n²)` | `O(n²)` | `O(n²)` | `O(n²)` |
+| Worst | `O(n²)` | `O(n²)` | `O(n²)` | `O(n²)` |
+| Comparisons (random) | ≈ `n²/2` | ≈ `n²/2` | `n(n-1)/2` | ≈ `n²/4` average |
+| Swaps (random) | ≈ `n²/4` | ≈ `n²/4` | `n - 1` | ≈ `n²/4` (as shifts) |
+| Stable | ✓ | ✓ | ✗ | ✓ |
+| Adaptive | ✗ | ✓ | ✗ | ✓ |
+| Online | ✗ | ✗ | ✗ | ✓ |
+
+The insight: **insertion sort makes about half the comparisons of bubble sort on random input** because the inner loop exits early. And the `O(n)` best case + adaptiveness mean it dominates on almost-sorted data.
+
+---
+
+## The "Online" Advantage
+
+Insertion sort is the only one of the three that can be used as an *online* algorithm — sorting elements as they arrive without seeing the full input upfront. After receiving the `i`-th element, the array `[0..i]` is fully sorted. Both bubble and selection sort require the full input before starting.
+
+This matters in real-world applications where data streams in:
+- A leaderboard updating live.
+- Sorting log lines as they arrive.
+- Maintaining a sorted database index as records are inserted.
+
+Most production "online sorting" implementations are insertion sort variants on top of skip lists or balanced trees.
+
+---
+
+## Why Hybrid Sorts Use Insertion Sort
+
+Look at the source of any modern sorting library and you'll find a special case for small arrays:
+
+```python,editable
+# (paraphrased; actual TimSort source is more complex)
+if n < 32:
+    insertion_sort(arr)
+else:
+    merge_sort(arr)
 ```
 
-Javascript
+The reason: `O(n log n)` algorithms have higher constant factors. For `n = 10`, insertion sort's ~50 operations (~`n²/2`) beats merge sort's ~30 operations × overhead per recursive call. The crossover point is somewhere around `n = 16–32` depending on the implementation.
 
-```javascript
-export class Solution {
-    insertionSort(arr) {
+This isn't a hack — it's literally the strategy used by:
+- **Python** — TimSort (since Python 2.3).
+- **Java** — `Arrays.sort()` for objects (TimSort).
+- **C++** — `std::sort` (IntroSort, which is quicksort + heapsort + insertion sort).
+- **Rust** — `slice::sort` (TimSort variant).
 
-        // Get the length of the array
-        const n = arr.length;
-        for (let i = 1; i < n; i++) {
+> *Predict before reading on — for a 1,000,000-element array, would insertion sort or merge sort win? What about for a 20-element array?*
 
-            // Select the current element as the key
-            const key = arr[i];
+For a million elements, merge sort wins by orders of magnitude (`O(n log n)` vs `O(n²)`). For 20 elements, insertion sort wins because of the lower constant factor. Real-world sorts use *both* — merge sort for the big picture, insertion sort for the small tail.
 
-            // Start comparing with the previous element
-            let j = i - 1;
+---
 
-            // Move elements of arr[0..i-1], that are greater than the
-            // key, to one position ahead of their current position
-            while (j >= 0 && arr[j] > key) {
+## Key Takeaway
 
-                // Shift the elements one position to the right
-                arr[j + 1] = arr[j];
-                j--;
-            }
+Insertion sort is `O(n²)` in the worst case but wins on best case (`O(n)`), adaptiveness (linear on partially sorted), and constant factor (fastest `O(n²)` algorithm). The combination makes it the foundation layer of every modern hybrid sort. Now we'll write the implementation.
 
-            // Insert the key in its correct position
-            arr[j + 1] = key;
-        }
-```
+***
 
-Python
+# Implementation
 
-```python
+> **Course:** DSA › Algorithms › Sorting › Insertion Sort
+
+The algorithm uses two nested loops: an outer loop that picks the next "key" from the unsorted suffix, and an inner loop that shifts larger elements right until the key's correct position is found.
+
+<div class="lang-tabs">
+
+```python,editable
 from typing import List
 
 class Solution:
     def insertion_sort(self, arr: List[int]) -> None:
-
-        # Get the length of the array
-        n: int = len(arr)
-
-        for i in range(1, n):
-
-            # Select the current element as the key
-            key: int = arr[i]
-
-            # Start comparing with the previous element
-            j: int = i - 1
-
-            # Move elements of arr[0..i-1], that are greater than the
-            # key, to one position ahead of their current position
-            while j >= 0 and arr[j] > key:
-
-                # Shift the elements one position to the right
+        n = len(arr)
+        for i in range(1, n):                       # i = 1 because arr[0] is trivially sorted
+            key = arr[i]                             # take the next element from the unsorted suffix
+            j = i - 1
+            while j >= 0 and arr[j] > key:          # shift larger elements right
                 arr[j + 1] = arr[j]
                 j -= 1
+            arr[j + 1] = key                         # insert key at the gap
 
-            # Insert the key in its correct position
-            arr[j + 1] = key
+
+if __name__ == "__main__":
+    arr = [5, 3, 8, 1, 4]
+    Solution().insertion_sort(arr)
+    print(arr)   # [1, 3, 4, 5, 8]
 ```
 
-## Complexity analysis
-
-When insertion sort is applied to a list of size **N**, each iteration compares the current element with elements in the sorted portion of the list and shifts elements as needed to insert the key into its correct position.
-
-The best-case scenario occurs when the list is already sorted. In this case, each key only needs to be compared with the last element of the sorted sublist, and no shifts are required. As a result, the algorithm performs only **N-1** comparisons and no swaps, giving a linear time complexity of **O(N)**.
-
-// Diagram: Best case: When the array is already sorted
-
-The average-case scenario occurs when the elements are in random order. On average, each key may need to be compared with half of the sorted sublist, and elements may be shifted accordingly. This results in quadratic time complexity **O(N^2)**. Despite this, for small lists (typically ten or fewer), insertion sort can be faster than more complex algorithms like quicksort due to its lower overhead. The exact threshold for “small” depends on the system and implementation.
-
-// Diagram: Average case: When the array is not sorted
-
-The worst-case scenario occurs when the list is sorted in reverse order. Here, each key must be compared with all elements in the sorted sublist, requiring the maximum number of shifts in each iteration. This also results in quadratic time complexity, **O(N^2)**.
-
-// Diagram: Worst case: When the array is sorted in reverse order
-
-Since insertion sort modifies the input list without creating a new one, the space complexity remains **constant**, i.e., **O(1)**.
-
-> **Best case** - The input list is sorted in the desired order.
->
-> -   Space complexity - **O(1)**
-> -   Time complexity - **O(N)**
->
-> **Average case** - The input list is a mix of sorted and unsorted elements.
->
-> -   Space complexity - **O(1)**
-> -   Time complexity - **O(N^2)**
->
-> **Worst case** - The input list is sorted in reverse order.
->
-> -   Space complexity - **O(1)**
-> -   Time complexity - **O(N^2)**
-
-***
-
-# Insertion sort
-
-## Problem Statement
-
-Given an integer array **arr**, write a function that sorts the given array in non-decreasing order. You must do it **in place**.
-
-You must use **insertion sort algorithm** to sort this array.
-
-### Example 1
-
-> -   **Input:** arr = \[2, 3, 2, 1, 5, 6\]
-> -   **Output:** \[1, 2, 2, 3, 5, 6\]
-> -   **Explanation:** Above is the sorted array.
-
-### Example 2
-
-> -   **Input:** arr = \[6, 5, 4, 4, 4, 3, 2, 1\]
-> -   **Output:** \[1, 2, 3, 4, 4, 4, 5, 6\]
-> -   **Explanation:** Above is the sorted array.
-
-### Example 3
-
-> -   **Input:** arr = \[1, 2, 3, 4, 5, 6\]
-> -   **Output:** \[1, 2, 3, 4, 5, 6\]
-> -   **Explanation:** The array is already sorted.
-
-## Solution
-
-```cpp
-using namespace std;
-
-class Solution {
-public:
-    void insertionSort(vector<int> &arr) {
-
-        // Get the size of the array
-        int n = arr.size();
-
+```java,editable
+public class Solution {
+    public void insertionSort(int[] arr) {
+        int n = arr.length;
         for (int i = 1; i < n; i++) {
-
-            // Select the current element as the key
             int key = arr[i];
-
-            // Start comparing with the previous element
             int j = i - 1;
-
-            // Move elements of arr[0..i-1], that are greater than the
-            // key, to one position ahead of their current position
             while (j >= 0 && arr[j] > key) {
-
-                // Shift the elements one position to the right
                 arr[j + 1] = arr[j];
                 j--;
             }
+            arr[j + 1] = key;
+        }
+    }
 
-            // Insert the key in its correct position
+    public static void main(String[] args) {
+        int[] arr = {5, 3, 8, 1, 4};
+        new Solution().insertionSort(arr);
+        for (int x : arr) System.out.print(x + " ");
+        System.out.println();
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+void insertion_sort(int *arr, int n) {
+    for (int i = 1; i < n; i++) {
+        int key = arr[i];
+        int j = i - 1;
+        while (j >= 0 && arr[j] > key) {
+            arr[j + 1] = arr[j];
+            j--;
+        }
+        arr[j + 1] = key;
+    }
+}
+
+int main(void) {
+    int arr[] = {5, 3, 8, 1, 4};
+    int n = 5;
+    insertion_sort(arr, n);
+    for (int i = 0; i < n; i++) printf("%d ", arr[i]);
+    printf("\n");
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+
+class Solution {
+public:
+    void insertionSort(std::vector<int>& arr) {
+        int n = (int) arr.size();
+        for (int i = 1; i < n; i++) {
+            int key = arr[i];
+            int j = i - 1;
+            while (j >= 0 && arr[j] > key) {
+                arr[j + 1] = arr[j];
+                j--;
+            }
+            arr[j + 1] = key;
+        }
+    }
+};
+
+int main() {
+    std::vector<int> arr = {5, 3, 8, 1, 4};
+    Solution{}.insertionSort(arr);
+    for (int x : arr) std::cout << x << ' ';
+    std::cout << '\n';
+}
+```
+
+```scala,editable
+class Solution {
+  def insertionSort(arr: Array[Int]): Unit = {
+    val n = arr.length
+    for (i <- 1 until n) {
+      val key = arr(i)
+      var j = i - 1
+      while (j >= 0 && arr(j) > key) {
+        arr(j + 1) = arr(j)
+        j -= 1
+      }
+      arr(j + 1) = key
+    }
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    val arr = Array(5, 3, 8, 1, 4)
+    new Solution().insertionSort(arr)
+    println(arr.mkString(" "))
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    insertionSort(arr) {
+        const n = arr.length;
+        for (let i = 1; i < n; i++) {
+            const key = arr[i];
+            let j = i - 1;
+            while (j >= 0 && arr[j] > key) {
+                arr[j + 1] = arr[j];
+                j--;
+            }
+            arr[j + 1] = key;
+        }
+    }
+}
+
+const arr = [5, 3, 8, 1, 4];
+new Solution().insertionSort(arr);
+console.log(arr);
+```
+
+```typescript,editable
+class Solution {
+    insertionSort(arr: number[]): void {
+        const n = arr.length;
+        for (let i = 1; i < n; i++) {
+            const key = arr[i];
+            let j = i - 1;
+            while (j >= 0 && arr[j] > key) {
+                arr[j + 1] = arr[j];
+                j--;
+            }
+            arr[j + 1] = key;
+        }
+    }
+}
+
+const arr: number[] = [5, 3, 8, 1, 4];
+new Solution().insertionSort(arr);
+console.log(arr);
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func insertionSort(arr []int) {
+    n := len(arr)
+    for i := 1; i < n; i++ {
+        key := arr[i]
+        j := i - 1
+        for j >= 0 && arr[j] > key {
+            arr[j+1] = arr[j]
+            j--
+        }
+        arr[j+1] = key
+    }
+}
+
+func main() {
+    arr := []int{5, 3, 8, 1, 4}
+    insertionSort(arr)
+    fmt.Println(arr)
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun insertionSort(arr: IntArray) {
+        val n = arr.size
+        for (i in 1 until n) {
+            val key = arr[i]
+            var j = i - 1
+            while (j >= 0 && arr[j] > key) {
+                arr[j + 1] = arr[j]
+                j--
+            }
+            arr[j + 1] = key
+        }
+    }
+}
+
+fun main() {
+    val arr = intArrayOf(5, 3, 8, 1, 4)
+    Solution().insertionSort(arr)
+    println(arr.toList())
+}
+```
+
+```rust,editable
+fn insertion_sort(arr: &mut Vec<i32>) {
+    let n = arr.len();
+    for i in 1..n {
+        let key = arr[i];
+        let mut j = i as i32 - 1;
+        while j >= 0 && arr[j as usize] > key {
+            arr[(j + 1) as usize] = arr[j as usize];
+            j -= 1;
+        }
+        arr[(j + 1) as usize] = key;
+    }
+}
+
+fn main() {
+    let mut arr: Vec<i32> = vec![5, 3, 8, 1, 4];
+    insertion_sort(&mut arr);
+    println!("{:?}", arr);
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — arr = [5, 3, 8, 1, 4]</strong></summary>
+
+```
+i=1: key=3, compare with arr[0]=5
+  5 > 3 → shift: arr=[5, 5, 8, 1, 4], j=-1
+  loop exits (j < 0)
+  insert key at j+1=0: arr=[3, 5, 8, 1, 4]   (1 shift)
+
+i=2: key=8, compare with arr[1]=5
+  5 > 8? no, exit loop immediately
+  insert key at j+1=2 (already there): arr=[3, 5, 8, 1, 4]   (0 shifts)
+
+i=3: key=1, compare with arr[2]=8
+  8 > 1 → shift: arr=[3, 5, 8, 8, 4], j=1
+  arr[1]=5 > 1 → shift: arr=[3, 5, 5, 8, 4], j=0
+  arr[0]=3 > 1 → shift: arr=[3, 3, 5, 8, 4], j=-1
+  loop exits
+  insert key at 0: arr=[1, 3, 5, 8, 4]   (3 shifts)
+
+i=4: key=4, compare with arr[3]=8
+  8 > 4 → shift: arr=[1, 3, 5, 8, 8], j=2
+  arr[2]=5 > 4 → shift: arr=[1, 3, 5, 5, 8], j=1
+  arr[1]=3 > 4? no, exit loop
+  insert key at j+1=2: arr=[1, 3, 4, 5, 8]   (2 shifts)
+
+Result: [1, 3, 4, 5, 8] ✓ — total shifts: 1+0+3+2 = 6
+```
+
+</details>
+
+***
+
+# Complexity Analysis
+
+> **Course:** DSA › Algorithms › Sorting › Insertion Sort
+
+| Resource | Best | Average | Worst |
+|---|---|---|---|
+| **Time** | `O(n)` | `O(n²)` | `O(n²)` |
+| **Space** | `O(1)` | `O(1)` | `O(1)` |
+| **Stability** | ✓ | ✓ | ✓ |
+
+---
+
+## When Each Case Hits
+
+**Best case (`O(n)`)** — Already-sorted input. Each new key is `≥` all previous elements, so the inner loop exits after the first comparison. Total: `n - 1` comparisons, `0` shifts.
+
+**Worst case (`O(n²)`)** — Reverse-sorted input. Each new key is smaller than every element in the sorted prefix, so the inner loop has to shift the entire prefix. Total: `n(n-1)/2` shifts.
+
+**Average case (`O(n²)`)** — Random input. On average, each key is shifted halfway through the sorted prefix. Total: `n(n-1)/4` shifts — same big-O, smaller constant than the worst case.
+
+---
+
+## The Adaptive Sweet Spot — `O(k·n)`
+
+A particularly useful sub-case: if every element is at most `k` positions away from its final sorted position, insertion sort runs in `O(k·n)` time. For `k = O(1)` (constant displacement), this is `O(n)` — *linear time*.
+
+This is why insertion sort dominates on almost-sorted data. Examples:
+- A sorted log file with one entry out of order.
+- A sorted database index where one record was just inserted.
+- A leaderboard after a single user's score changed.
+
+In each case, `k` is tiny (often 1) and insertion sort's `O(k·n)` is dramatically better than `O(n log n)`'s `n log n`.
+
+---
+
+## Why Insertion Sort Has the Lowest Constant Factor of the `O(n²)` Sorts
+
+The inner loop is structurally simple: compare, shift, decrement. No branch on swap-or-skip; no auxiliary indexing variable like selection sort's `min_index`. Modern CPUs love this:
+- The shift pattern is cache-friendly (linear memory access).
+- The branch predictor handles the inner loop well (most iterations either keep going or exit).
+- The compiler can sometimes vectorise the shift loop.
+
+Bubble sort, by contrast, branches on every comparison (swap or skip) and writes more often. Selection sort spends most of its time finding the minimum (which doesn't reduce the comparison count).
+
+---
+
+## Key Takeaway
+
+Insertion sort: `O(n)` best, `O(n²)` worst, `O(k·n)` for almost-sorted data, plus the lowest constant factor of any quadratic sort. This combination makes it the dominant choice for small or partially sorted inputs. Now we'll apply it to a problem.
+
+***
+
+# Insertion Sort Problem
+
+> **Course:** DSA › Algorithms › Sorting › Insertion Sort
+
+The canonical exercise.
+
+---
+
+## The Problem
+
+Given an integer array `arr`, sort it in non-decreasing order **in place** using insertion sort.
+
+```
+Input:  arr = [2, 3, 2, 1, 5, 6]
+Output: [1, 2, 2, 3, 5, 6]
+
+Input:  arr = [6, 5, 4, 4, 4, 3, 2, 1]
+Output: [1, 2, 3, 4, 4, 4, 5, 6]
+
+Input:  arr = [1, 2, 3, 4, 5, 6]
+Output: [1, 2, 3, 4, 5, 6]   (already sorted, runs in O(n))
+```
+
+---
+
+## The Solution
+
+The implementation matches the version above; reproduced below for completeness.
+
+<div class="lang-tabs">
+
+```python,editable
+from typing import List
+
+class Solution:
+    def insertion_sort(self, arr: List[int]) -> None:
+        n = len(arr)
+        for i in range(1, n):
+            key = arr[i]
+            j = i - 1
+            while j >= 0 and arr[j] > key:
+                arr[j + 1] = arr[j]
+                j -= 1
+            arr[j + 1] = key
+
+
+if __name__ == "__main__":
+    arr = [2, 3, 2, 1, 5, 6]
+    Solution().insertion_sort(arr)
+    print(arr)
+```
+
+```java,editable
+public class Solution {
+    public void insertionSort(int[] arr) {
+        int n = arr.length;
+        for (int i = 1; i < n; i++) {
+            int key = arr[i];
+            int j = i - 1;
+            while (j >= 0 && arr[j] > key) {
+                arr[j + 1] = arr[j];
+                j--;
+            }
+            arr[j + 1] = key;
+        }
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+void insertion_sort(int *arr, int n) {
+    for (int i = 1; i < n; i++) {
+        int key = arr[i];
+        int j = i - 1;
+        while (j >= 0 && arr[j] > key) {
+            arr[j + 1] = arr[j];
+            j--;
+        }
+        arr[j + 1] = key;
+    }
+}
+```
+
+```cpp,editable
+#include <vector>
+
+class Solution {
+public:
+    void insertionSort(std::vector<int>& arr) {
+        int n = (int) arr.size();
+        for (int i = 1; i < n; i++) {
+            int key = arr[i];
+            int j = i - 1;
+            while (j >= 0 && arr[j] > key) {
+                arr[j + 1] = arr[j];
+                j--;
+            }
             arr[j + 1] = key;
         }
     }
 };
 ```
+
+```scala,editable
+class Solution {
+  def insertionSort(arr: Array[Int]): Unit = {
+    for (i <- 1 until arr.length) {
+      val key = arr(i)
+      var j = i - 1
+      while (j >= 0 && arr(j) > key) {
+        arr(j + 1) = arr(j)
+        j -= 1
+      }
+      arr(j + 1) = key
+    }
+  }
+}
+```
+
+```javascript,editable
+class Solution {
+    insertionSort(arr) {
+        for (let i = 1; i < arr.length; i++) {
+            const key = arr[i];
+            let j = i - 1;
+            while (j >= 0 && arr[j] > key) {
+                arr[j + 1] = arr[j];
+                j--;
+            }
+            arr[j + 1] = key;
+        }
+    }
+}
+```
+
+```typescript,editable
+class Solution {
+    insertionSort(arr: number[]): void {
+        for (let i = 1; i < arr.length; i++) {
+            const key = arr[i];
+            let j = i - 1;
+            while (j >= 0 && arr[j] > key) {
+                arr[j + 1] = arr[j];
+                j--;
+            }
+            arr[j + 1] = key;
+        }
+    }
+}
+```
+
+```go,editable
+package main
+
+func insertionSort(arr []int) {
+    for i := 1; i < len(arr); i++ {
+        key := arr[i]
+        j := i - 1
+        for j >= 0 && arr[j] > key {
+            arr[j+1] = arr[j]
+            j--
+        }
+        arr[j+1] = key
+    }
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun insertionSort(arr: IntArray) {
+        for (i in 1 until arr.size) {
+            val key = arr[i]
+            var j = i - 1
+            while (j >= 0 && arr[j] > key) {
+                arr[j + 1] = arr[j]
+                j--
+            }
+            arr[j + 1] = key
+        }
+    }
+}
+```
+
+```rust,editable
+fn insertion_sort(arr: &mut Vec<i32>) {
+    for i in 1..arr.len() {
+        let key = arr[i];
+        let mut j = i as i32 - 1;
+        while j >= 0 && arr[j as usize] > key {
+            arr[(j + 1) as usize] = arr[j as usize];
+            j -= 1;
+        }
+        arr[(j + 1) as usize] = key;
+    }
+}
+```
+
+</div>
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected |
+|---|---|---|
+| Empty | `[]` | `[]` (loop doesn't execute). |
+| Single element | `[7]` | `[7]`. |
+| Already sorted | `[1, 2, 3]` | `[1, 2, 3]` (best case, `O(n)`). |
+| Reverse sorted | `[5, 4, 3, 2, 1]` | `[1, 2, 3, 4, 5]` (worst case, `O(n²)`). |
+| All equal | `[3, 3, 3]` | `[3, 3, 3]` (best case — equality doesn't trigger shift). |
+| Two elements | `[2, 1]` | `[1, 2]`. |
+
+---
+
+## Final Takeaway
+
+Insertion sort is the best of the `O(n²)` sorts and the small-input workhorse of every modern sorting library. Adaptive (`O(n)` best case), stable, in-place, online — and unlike bubble or selection sort, you'll *actually use* it in production code (as the small-array fallback inside hybrid sorts).
+
+The next algorithm — counting sort — breaks the comparison-sort family entirely. Instead of comparing pairs, it counts occurrences. The result: `O(n + k)` time where `k` is the value range. For small `k`, that's linear-time sorting.
+
+**Transfer challenge — try before the Counting Sort lesson:** Write a *binary insertion sort* — instead of linearly scanning the sorted prefix to find the insertion point, use binary search. What's the new complexity? Why doesn't this make insertion sort `O(n log n)`?
+
+<details>
+<summary><strong>Answer — open after you've thought about it</strong></summary>
+
+Binary insertion sort uses binary search to find the insertion point in `O(log i)` instead of `O(i)`. Total comparisons: `O(n log n)`.
+
+But the *shifts* are still `O(n²)` — finding the insertion point doesn't help you avoid moving all the larger elements one position right. Total time stays `O(n²)`.
+
+```python,editable
+import bisect
+class Solution:
+    def binary_insertion_sort(self, arr):
+        for i in range(1, len(arr)):
+            key = arr[i]
+            pos = bisect.bisect_left(arr, key, 0, i)   # O(log i)
+            arr[pos+1:i+1] = arr[pos:i]                 # O(i) shifts — still quadratic
+            arr[pos] = key
+```
+
+This is the small but real reason `O(n log n)` algorithms (merge sort, quicksort) win for large inputs: they avoid the `O(n²)` shift cost by structurally rearranging the data, not by linear shuffling. **You just hit the wall that motivates divide-and-conquer.**
+
+</details>

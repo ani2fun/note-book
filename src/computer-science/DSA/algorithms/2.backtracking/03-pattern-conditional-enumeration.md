@@ -1,1535 +1,2231 @@
-# Understanding the conditional enumeration pattern
+# 3. Pattern: Conditional Enumeration
 
-Conditional enumeration is another fundamental backtracking technique that explores the entire problem space using backtracking and collects all the solutions. However, unlike unconditional enumeration, in which choices at each step are independent of previous choices, in conditional enumeration, the set of choices at each step depends on the choices made in previous steps. To enumerate all solutions, we start from an initial state and, at each step, choose from a set of available choices to move to another state, eventually exploring the entire problem space.
+Unconditional enumeration walks the full state space tree and records every leaf. **Conditional enumeration** does something smarter: at each step, it filters which branches it bothers to explore. Some leaves are valid solutions; others aren't. Some partial guesses can't possibly extend to a valid solution; the algorithm prunes them before walking their subtrees.
 
-It is essential to note that any choice we make at a step is **dependent** on the choices we made earlier, and hence we call this process **conditional** enumeration.
+The leverage from pruning is exponential. A 2-way decision pruned at depth `d` skips a subtree of `2^(n-d)` leaves. For a tree of depth 30, pruning at depth 10 saves 2²⁰ ≈ 1 million leaves per pruned branch. Multiply by the number of branches you prune and you've turned an intractable brute-force search into something a laptop solves in milliseconds.
 
-The conditional enumeration pattern is the classification of problems that can be solved using the conditional enumeration backtracking technique.
+By the end of this lesson you'll know what makes a problem "conditional" rather than unconditional, two flavours of pruning (constraint-bounded and choice-bounded), the diagnostic checks for spotting it, and four worked problems that anchor the pattern.
 
-// Diagram: The state space tree for conditional enumeration.
+## Table of contents
 
-In this course, we will learn more about the conditional-enumeration technique and how to identify a problem as a conditional-enumeration pattern problem.
+1. [Understanding conditional enumeration](#understanding-conditional-enumeration)
+2. [Identifying conditional enumeration](#identifying-conditional-enumeration)
+3. [Generate parentheses](#generate-parentheses)
+4. [Target sum combinations](#target-sum-combinations)
+5. [Generate IP addresses](#generate-ip-addresses)
+6. [String permutations](#string-permutations)
 
-## Conditional enumeration
+***
 
-In conditional enumeration, we begin with an initial problem state defined by some state variables. At every step, we can make one of many **dependent** choices to reduce the size of the problem and move to another state. This process of making choices at every step is repeated recursively until we reach a solution state. As we make these choices and move from one state to another, we incrementally build the solution in some state variable.
+# Understanding Conditional Enumeration
 
-Consider the state space tree below, where we have an initial problem state and `k` dependent choices that we can make at each step. The depth of the problem space is denoted by `n`, which is the maximum number of choices we must make to reach a solution state. At every step, making a different choice may lead to completely different solution states in the end. We recursively make a series of choices until we reach a solution state, then backtrack to update our choices. In this way, we visit every solution state exactly once.
+> **Course:** DSA › Algorithms › Backtracking › Conditional Enumeration
 
-Note that every step can have a different number of choices, and those choices depend on the previously made choices. We only show `k` choices in the state space tree below to make it simpler and easier to understand.
+A backtracking solution exhibits **conditional enumeration** when **some leaves of the state space tree aren't valid solutions** *or* **some internal nodes can be pruned because no descendant of theirs could possibly be valid**. The algorithm validates as it goes, abandons doomed paths early, and only records leaves that survive every check.
 
-// Diagram: The state space tree for conditional enumeration of depth n where we can make dependent choices at every step.
+The cleanest way to see this is to compare with the unconditional template from the previous lesson. There, *every* leaf was recorded. Here, leaves are recorded only if they pass a validation check, and **internal nodes are pruned** the moment we know they can't extend to a solution.
 
-We maintain a shared container as we explore the problem space, and add a solution state to it when we reach it. This way, when the entire problem space is explored, the container contains an enumeration of all solution states.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+  ROOT["start"]
+  ROOT --> A["valid partial<br/>continue"]
+  ROOT --> B["already invalid<br/>PRUNE"]
+  A --> A1["valid → recurse"]
+  A --> A2["invalid → PRUNE"]
+  A1 --> A1A["leaf valid → record"]
+  A1 --> A1B["leaf invalid → discard"]
 
-// Diagram: A series of dependent choices starting from a problem state, leading to a solution state.
+  classDef pruned fill:#fecaca,stroke:#dc2626
+  class B,A2,A1B pruned
+```
 
-We create a state variable `state` to record the outcome of choices we make to reach a solution state, starting from the initial state, using some function `f`. At each step, we check if the current step is a solution state. If it is a solution, we add it to an`enumerations`container.
+<p align="center"><strong>Conditional enumeration's tree shape: red nodes are pruned without exploration; green leaves are recorded only if they pass validation. The pruning is the speedup.</strong></p>
 
-We also create another variable`control`that captures the effect of the previously made choices on subsequent choices using some function`g`. It is used at every step to determine the available choices to move to the next step. This way, each step accounts for the choices made in previous steps when computing the set of choices it can make to proceed.
+The runtime is *no longer* the full tree size. It's the size of the **explored** portion — the portion the pruning didn't cut off. For well-pruned problems, this can be exponentially smaller than the full tree. The pruning function is therefore the heart of every conditional-enumeration solution.
 
-The goal of the conditional enumeration problem is to find**all** the solution states that can be reached by making any valid set of choices from the initial state. As we will see later, we also usually have functions `fInverse` and`gInverse`to remove the contribution of the **last** choice made from `state` and `control` respectively. We use them to undo previous choices and make new, different choices when we have no further choices left to move on from a step.
+---
 
-In this example, we enumerate the outcomes of a series of choices that lead from the problem state to a solution state using the function `f`; we could similarly enumerate and store all solution states instead.
+## Two Flavours of Pruning
 
-Start from the initial problem state and add all the solution states to the enumerations list.
+Pruning happens in one of two places, and most problems use both:
 
-### The conditional enumeration problem
+**1. Choice-bounded pruning.** When generating choices for the next slot, *don't generate* the ones that would lead to invalid states. The `for` loop only iterates over choices that are still viable.
 
-Consider an example where the problem space is represented by an integer `n` , and we start from the initial problem state with some default values of the `state` and `control` variables. We can make multiple choices, denoted by an integer `choice` at every step, to reduce the problem space, and we update the `state` variable with those choices as we make them. The goal is to find **all** solution states and the sequence of choices that lead to them, starting from the initial problem state.
+**2. Constraint-bounded pruning.** Inside the recursion, check the current partial state. If it already violates a constraint, return immediately without recursing further.
 
-We have the following functions that we can use.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+  ENTRY["enter recursion"]
+  ENTRY --> CHECK["constraint check<br/>(constraint-bounded)"]
+  CHECK -->|"already violates"| PRUNE1["return — prune"]
+  CHECK -->|"still valid"| LEAF["leaf check"]
+  LEAF -->|"is leaf, record"| RECORD["append to results"]
+  LEAF -->|"not leaf"| GENCHOICES["generate choices<br/>(choice-bounded)"]
+  GENCHOICES --> LOOP["for each viable choice"]
+  LOOP --> RECURSE["recurse"]
 
--   `getChoices ( control, n )` - Takes as an input the `control` variable and the current problem space `n` and returns a list of choices we can make.
--   `makeChoice (state, choice)` - Takes as input the state variable `state` and a `choice` from the list of available choices and adds the contribution of `choice` to `state`.
--   `updateControl (control, choice)` - Takes as input the current problem space `n`, reference to the variable `control` and the `choice` we decide to make and adds the contribution of `choice` to `control`.
--   `revertLastChoiceFromState (state)` - Takes as input the variable `state` and reverts the contribution of the last choice that was made from it.
--   `revertLastChoiceFromControl (control)` - Takes as input the variable `control` and reverts the contribution of the last choice that was made from it.
--   `getReducedProblemSpace (n, choice)` - Takes as input the current problem space `n` and the `choice` we decide to make, and returns a value denoting the reduced problem space.
--   `isSolutionState (n)` - Takes as input the current problem space `n` and returns true if it is a solution.
+  classDef pruned fill:#fecaca,stroke:#dc2626
+  class PRUNE1 pruned
+```
 
-Note how the `getChoices` function depend not only on the current problem space, but also on the `control` variable that accounts for the previously made choices.
+<p align="center"><strong>Both kinds of pruning. Choice-bounded never even creates a doomed branch; constraint-bounded checks at the top of the recursion and returns early.</strong></p>
 
-Note that this is the generic conditional enumeration problem. Most of these functions and their definitions are very problem-specific. For example, in some problems, the `control` variable may be a primitive type and need not be shared across recursive calls; we can use local copies. In that case, the `updateControl` function would return a new copy of the updated control variable instead of updating the shared copy, and there would be no `revertLastChoiceFromControl` function.
+Generate Parentheses below uses choice-bounded pruning (the `getChoices` function only returns characters that won't break balance). Target Sum uses constraint-bounded (skips array entries larger than the remaining target). Most real problems combine both.
 
-We will only learn about the generic conditional enumeration problem and its solution in this lesson. All the more specific cases of this problem can be solved using slightly modified, easier implementations of the generic solution.
+---
 
-### The conditional enumeration technique
+## What Conditional Enumeration Looks Like in Code
 
-To solve this problem, we create a recursive function `conditionalEnumeration` that takes as input the integer `n` denoting the problem space, a reference to the state variable `state`, a `control` variable accounting for the previously made choices, and a reference to a list `enumerations` to store all the solution states.
+The general shape:
 
-We initialize `state` and `control` to default values and `enumerations` to an empty list in the calling function and pass them as reference arguments to the function `conditionalEnumeration` along with the input `n`.
+```
+function enumerate(state):
+    if state already violates a constraint:
+        return                              ← constraint-bounded prune
 
-As we enter the function, we check if the current step is a solution state using `isSolutionState`. If the current step is a solution state, we add the current value of  `state` to the list `enumerations` and return to the caller.
+    if state is a complete candidate:
+        if state is a valid solution:
+            record(state)
+        return
 
-If the current state is not a solution state, we use the function `getReducedProblemSpace` to get the next input for the reduced problem space in a variable `reducedProblemSpace`. Next, we use the function `getChoices` passing it the variables `n` and `control` to get a list of all the choices we can make to reduce the problem space. We then iterate through the list of all choices, and in each iteration, simulate making that choice by adding its contribution to `state` using `makeChoice` and updating the `control` variable using the `updateControl` function that accounts for this choice.
+    for choice in viable_choices(state):    ← choice-bounded prune happens here
+        extend(state, choice)
+        enumerate(state)
+        undo(state)
+```
 
-We then recursively call the same function with `reducedProblemSpace`, the updated `state` and the updated `control`. The same process is repeated recursively until it reaches a solution state, where we add the current value of `state` to the `enumerations` list. When a recursive call ends and control goes back to the caller, we revert the last choice made using `revertLastChoiceFromState` and `revertLastChoiceFromControl` on `state` and `control` variables respectively, and continue the iteration to make the next choice in exactly the same way.
+The two prunes appear in the two highlighted lines. Either one alone is sufficient for some problems; both together is the most powerful form.
 
-Since we call `revertLastChoiceFromState` and `revertLstChoiceFromControl` after returning from **every** recursive call, it is guaranteed that the choice made before making a recursive call is the one that is reverted after returning from it.
+> *Predict before reading on — for "all balanced parentheses of length 6" with no pruning at all, how many leaves does the tree have? With perfect pruning, how many leaves are valid?*
 
-This way, we simulate making a choice at every step until we reach a solution state, aggregate the consequences of all those choices in `state`, and add the final value of `state` (outcome) to the `enumerations` list. We also undo the choices in the same order they were made, so that backtracking to make different choices next time works the same way.
+Without pruning, length-6 strings of `(` and `)` total `2⁶ = 64` candidates. With pruning, only 5 are balanced (`(((()))`, `(()(())`, `(()()()`, `(())()`, `()()()`). The pruning saves us from generating 59 doomed candidates out of 64 — about 92% of the work.
 
-When all the recursive calls end, control is passed back to the caller of `conditionalEnumeration`, the `enumerations` list has the list of all outcomes from all choices, and the variables `state` and `control` are reverted to the default value with which they were initialized.
+---
 
-Consider the example below, where we start from an initial problem state and enumerate all solutions using recursive function calls.
+## Passing Data Down
 
-Enumerate all solutions starting from an initial problem state.
+Same options as unconditional: by-value (immutable) or by-reference (mutated, with explicit undo). The conditional case adds **state for constraint checking** — typically a few additional integers (counts, running sum, etc.) that ride along with the partial state.
+
+For Generate Parentheses, the additional state is `(open_count, close_count)`. For Target Sum, it's `remaining_target`. For Generate IPs, it's the position in the string and the count of segments built so far. The auxiliary state is what makes choice-bounded pruning possible — without knowing how many `(` we've placed, we can't decide whether to allow another one.
+
+---
 
 ## Algorithm
 
-The algorithm given below outlines the generic conditional-enumeration technique, making use of the functions `getReducedProblemSpace`, `getChoices`, `makeChoice`, `updateControl`, `revertLastChoiceFromState`, `revertLastChoiceFromControl` and `isSolutionState`. All these functions and their implementations are problem-dependent.
-
-All these functions and their implementations are highly problem-dependent, but the overall structure of the algorithm remains the same.
-
-We also create a calling function that initializes the state variables `state`, `control` and `enumerations` with default values. It then passes them as a reference to the top-level recursive call. 
-
-> **conditionalEnumeration(n, \[ref\] control, \[ref\] state, \[ref\] enumerations)**
+> **enumerate(state, aux)**
 >
-> -   **Step 1:** Call `isSolutionState(n, state)` to check if it is a solution state.
->     -   **Step 1.1:** If `true`, add `state` to `enumerations`
->     -   **Step 1.2:** Return to the caller
-> -   **Step 2:** Set `choices` = Call `getChoices(n, control)` to get all choices available at this step.
-> -   **Step 3:** Iterate over `choices` using a variable `choice` and do the following:
->     -   **Step 3.1:** Call `makeChoice(state, choice)` to add the contribution of `choice` to the `state` variable
->     -   **Step 3.2:** Call `updateControl(n, control, choice)` to update the control variable based on the current choice and input `n`
->     -   **Step 3.3:** Set `reducedProblemSpace` = Call `getReducedProblemSpace(n, choice)` to obtain the reduced problem space for the next recursive call
->     -   **Step 3.4:** Call `conditionalEnumeration(reducedProblemSpace, control, state, enumerations)`
->     -   **Step 3.5:** Call `revertLastChoiceFromControl(control)` to revert the contribution of the last choice from the control variable
->     -   **Step 3.6:** Call `revertLastChoiceFromState(state)` to revert the contribution of the last choice from the state variable
-> -   **Step 4:** Return to the caller
->
-> **callingFunction(n)**
->
-> -   **Step 1:** Create a variable `state` and initialize it to a default value
-> -   **Step 2:** Create a variable `control` and initialize it to a default value
-> -   **Step 3:** Create an empty list `enumerations`
-> -   **Step 4:** Call `conditionalEnumeration(n, control, state, enumerations)`
-> -   **Step 5:** Return `enumerations`
+> 1. **Constraint check** — if `state` already violates a constraint, return.
+> 2. **Leaf check** — if `state` is a complete candidate, validate; if valid, record.
+> 3. **Generate viable choices** — compute the set of choices that don't immediately violate any constraint.
+> 4. **Branch** — for each viable choice:
+>    - Extend `state` and update `aux`.
+>    - Recurse.
+>    - Undo the extension.
+
+Step 1 is constraint-bounded pruning; step 3 is choice-bounded pruning; step 4 is the same as unconditional. Together they enumerate only the viable portion of the tree.
+
+---
 
 ## Implementation
 
-To implement the conditional enumeration technique, we create a calling function that initialises the state variables `state` and `enumerations`, the control variable `control`, and makes the top-level recursive calls. For languages that do not support passing values by reference, we can create the state variables in the enclosing scope to share them across recursive calls.
+A clean, language-agnostic implementation showing both pruning styles. We'll use Generate Parentheses as the canonical example since it has both flavours visible.
 
-Given below is a generic implementation of conditional enumeration, with the functions `isSolutionState`, `getChoices` and `getReducedProblemSpace` having some stub implementation.
+<div class="lang-tabs">
 
-C++
+```python,editable
+from typing import List
 
-```cpp
-#include <vector>
-using namespace std;
+class Solution:
+    def generate_balanced(self, n: int) -> List[str]:
+        results: List[str] = []
+        current: List[str] = []
+        self._helper(n, 0, 0, current, results)
+        return results
 
-class Solution
-{
-public:
-  void conditionalEnumeration(
-      int n,
-      vector<int> &control,
-      vector<int> &state,
-      vector<vector<int>> &enumerations)
-  {
-    // Check if the current size of the problem space along with the state variable
-    // represents a solution state
-    if (isSolutionState(n, state))
-    {
-      // The state contains the aggregation of all choices made so far
-      // and therefore represents a complete solution
-      enumerations.push_back(state);
-      return;
-    }
+    def _helper(self, n: int, opens: int, closes: int, current: List[str], results: List[str]) -> None:
+        # Leaf check: 2n characters means we have a complete candidate.
+        # Because of pruning, every leaf reached here is guaranteed balanced.
+        if len(current) == 2 * n:
+            results.append("".join(current))
+            return
 
-    // Get all possible choices that can be made for the current input n
-    // using the control variable
-    vector<int> choices = getChoices(n, control);
+        # Choice-bounded pruning: only emit choices that don't immediately
+        # violate the balance constraint.
+        if opens < n:                         # we can still open
+            current.append("(")
+            self._helper(n, opens + 1, closes, current, results)
+            current.pop()
+        if closes < opens:                    # we can close only if there's an open to match
+            current.append(")")
+            self._helper(n, opens, closes + 1, current, results)
+            current.pop()
 
-    // Iterate through each available choice
-    for (int choice : choices)
-    {
-      // Update the state variable by applying the current choice
-      makeChoice(state, choice);
 
-      // Update the control variable based on the current choice and n
-      updateControl(n, control, choice);
-
-      // Reduce the problem space based on the current choice
-      int reducedProblemSpace = getReducedProblemSpace(n, choice);
-
-      // Recur on the reduced problem space
-      conditionalEnumeration(reducedProblemSpace, control, state, enumerations);
-
-      // Revert the contribution of the last choice from control (backtracking)
-      revertLastChoiceFromControl(control);
-
-      // Revert the contribution of the last choice from state (backtracking)
-      revertLastChoiceFromState(state);
-    }
-
-private:
-  // Returns true if the current size of the problem space corresponds
-  // to a solution state
-  bool isSolutionState(int n, const vector<int> &state)
-  {
-    // Simple stub:
-    // either the problem space is exhausted
-    // or the state reached a fixed size
-    return n == 0 || state.size() == 3;
-  }
-
-  // Generates all possible choices that can be made for the current input n
-  // using the control variable
-  vector<int> getChoices(int n, const vector<int> &control)
-  {
-    int maxChoice = n;
-
-    // Control restricts the available choices
-    if (!control.empty())
-      maxChoice = min(maxChoice, control.back());
-
-    // Simple stub choices that clearly depend on n and control
-    vector<int> choices;
-    if (maxChoice >= 1) choices.push_back(1);
-    if (maxChoice >= 2) choices.push_back(2);
-
-    return choices;
-  }
-
-  // Updates the state variable by adding the contribution of the given choice
-  void makeChoice(vector<int> &state, int choice)
-  {
-    state.push_back(choice);
-  }
-
-  // Reverts the contribution of the most recent choice from the state variable
-  void revertLastChoiceFromState(vector<int> &state)
-  {
-    if (!state.empty())
-      state.pop_back();
-  }
-
-  // Updates the control variable based on the given choice and input n
-  void updateControl(int n, vector<int> &control, int choice)
-  {
-    // Simple stub:
-    // record a value derived from n and choice
-    control.push_back(n - choice);
-  }
-
-  // Reverts the contribution of the most recent choice from the control variable
-  void revertLastChoiceFromControl(vector<int> &control)
-  {
-    if (!control.empty())
-      control.pop_back();
-  }
-
-  // Returns the reduced problem space for the next recursive call
-  // based on the current input n and the choice
-  int getReducedProblemSpace(int n, const int choice)
-  {
-    return n - choice;
-  }
-};
+if __name__ == "__main__":
+    print(Solution().generate_balanced(3))
 ```
 
-Java
-
-```java
+```java,editable
 import java.util.ArrayList;
 import java.util.List;
 
-// Diagram: class Solution {
+public class Solution {
+    public List<String> generateBalanced(int n) {
+        List<String> results = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        helper(n, 0, 0, current, results);
+        return results;
+    }
 
-    public void conditionalEnumeration(
-        int n,
-        List<Integer> control,
-        List<Integer> state,
-        List<List<Integer>> enumerations
-    ) {
-        // Check if the current size of the problem space along with the state variable
-        // represents a solution state
-        if (isSolutionState(n, state)) {
-            // The state contains the aggregation of all choices made so far
-            // and therefore represents a complete solution
-            enumerations.add(new ArrayList<>(state));
+    private void helper(int n, int opens, int closes, StringBuilder current, List<String> results) {
+        if (current.length() == 2 * n) {
+            results.add(current.toString());
             return;
         }
-
-        // Get all possible choices that can be made for the current input n
-        // using the control variable
-        List<Integer> choices = getChoices(n, control);
-
-        // Iterate through each available choice
-        for (int choice : choices) {
-            // Update the state variable by applying the current choice
-            makeChoice(state, choice);
-
-            // Update the control variable based on the current choice and n
-            updateControl(n, control, choice);
-
-            // Reduce the problem space based on the current choice
-            int reducedProblemSpace = getReducedProblemSpace(n, choice);
-
-            // Recur on the reduced problem space
-            conditionalEnumeration(reducedProblemSpace, control, state, enumerations);
-
-            // Revert the contribution of the last choice from control (backtracking)
-            revertLastChoiceFromControl(control);
-
-            // Revert the contribution of the last choice from state (backtracking)
-            revertLastChoiceFromState(state);
+        if (opens < n) {
+            current.append('(');
+            helper(n, opens + 1, closes, current, results);
+            current.deleteCharAt(current.length() - 1);
         }
-
-    // Returns true if the current size of the problem space corresponds
-    // to a solution state
-    private boolean isSolutionState(int n, List<Integer> state) {
-        // Simple stub:
-        // either the problem space is exhausted
-        // or the state reached a fixed size
-        return n == 0 || state.size() == 3;
-    }
-
-    // Generates all possible choices that can be made for the current input n
-    // using the control variable
-    private List<Integer> getChoices(int n, List<Integer> control) {
-        int maxChoice = n;
-
-        // Control restricts the available choices
-        if (!control.isEmpty()) {
-            maxChoice = Math.min(maxChoice, control.get(control.size() - 1));
+        if (closes < opens) {
+            current.append(')');
+            helper(n, opens, closes + 1, current, results);
+            current.deleteCharAt(current.length() - 1);
         }
-
-        // Simple stub choices that clearly depend on n and control
-        List<Integer> choices = new ArrayList<>();
-        if (maxChoice >= 1) choices.add(1);
-        if (maxChoice >= 2) choices.add(2);
-
-        return choices;
     }
 
-    // Updates the state variable by adding the contribution of the given choice
-    private void makeChoice(List<Integer> state, int choice) {
-        state.add(choice);
+    public static void main(String[] args) {
+        System.out.println(new Solution().generateBalanced(3));
     }
-
-    // Reverts the contribution of the most recent choice from the state variable
-    private void revertLastChoiceFromState(List<Integer> state) {
-        if (!state.isEmpty()) {
-            state.remove(state.size() - 1);
-        }
-
-    // Updates the control variable based on the given choice and input n
-    private void updateControl(int n, List<Integer> control, int choice) {
-        // Simple stub:
-        // record a value derived from n and choice
-        control.add(n - choice);
-    }
-
-    // Reverts the contribution of the most recent choice from the control variable
-    private void revertLastChoiceFromControl(List<Integer> control) {
-        if (!control.isEmpty()) {
-            control.remove(control.size() - 1);
-        }
-
-    // Returns the reduced problem space for the next recursive call
-    // based on the current input n and the choice
-    private int getReducedProblemSpace(int n, int choice) {
-        return n - choice;
-    }
-
+}
 ```
 
-Typescript
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-```typescript
+static void helper(int n, int opens, int closes, char *current, int curLen, char **results, int *count) {
+    if (curLen == 2 * n) {
+        current[curLen] = '\0';
+        results[*count] = strdup(current);
+        (*count)++;
+        return;
+    }
+    if (opens < n) {
+        current[curLen] = '(';
+        helper(n, opens + 1, closes, current, curLen + 1, results, count);
+    }
+    if (closes < opens) {
+        current[curLen] = ')';
+        helper(n, opens, closes + 1, current, curLen + 1, results, count);
+    }
+}
+
+int main(void) {
+    int n = 3;
+    char **results = (char **) malloc(sizeof(char *) * 100);
+    char *current = (char *) malloc(2 * n + 1);
+    int count = 0;
+    helper(n, 0, 0, current, 0, results, &count);
+    for (int i = 0; i < count; i++) { printf("%s\n", results[i]); free(results[i]); }
+    free(current); free(results);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <string>
+
 class Solution {
-  conditionalEnumeration(
-    n: number,
-    control: number[],
-    state: number[],
-    enumerations: number[][]
-  ): void {
-    // Check if the current size of the problem space along with the state variable
-    // represents a solution state
-    if (this.isSolutionState(n, state)) {
-      // The state contains the aggregation of all choices made so far
-      // and therefore represents a complete solution
-      enumerations.push([...state]);
-      return;
+public:
+    void helper(int n, int opens, int closes, std::string& current, std::vector<std::string>& results) {
+        if ((int) current.length() == 2 * n) {
+            results.push_back(current);
+            return;
+        }
+        if (opens < n) {
+            current.push_back('(');
+            helper(n, opens + 1, closes, current, results);
+            current.pop_back();
+        }
+        if (closes < opens) {
+            current.push_back(')');
+            helper(n, opens, closes + 1, current, results);
+            current.pop_back();
+        }
     }
 
-    // Get all possible choices that can be made for the current input n
-    // using the control variable
-    const choices: number[] = this.getChoices(n, control);
-
-    // Iterate through each available choice
-    for (const choice of choices) {
-      // Update the state variable by applying the current choice
-      this.makeChoice(state, choice);
-
-      // Update the control variable based on the current choice and n
-      this.updateControl(n, control, choice);
-
-      // Reduce the problem space based on the current choice
-      const reducedProblemSpace = this.getReducedProblemSpace(n, choice);
-
-      // Recur on the reduced problem space
-      this.conditionalEnumeration(
-        reducedProblemSpace,
-        control,
-        state,
-        enumerations
-      );
-
-      // Revert the contribution of the last choice from control (backtracking)
-      this.revertLastChoiceFromControl(control);
-
-      // Revert the contribution of the last choice from state (backtracking)
-      this.revertLastChoiceFromState(state);
+    std::vector<std::string> generateBalanced(int n) {
+        std::vector<std::string> results;
+        std::string current;
+        helper(n, 0, 0, current, results);
+        return results;
     }
+};
 
-  // Returns true if the current size of the problem space corresponds
-  // to a solution state
-  private isSolutionState(n: number, state: number[]): boolean {
-    // Simple stub:
-    // either the problem space is exhausted
-    // or the state reached a fixed size
-    return n === 0 || state.length === 3;
-  }
-
-  // Generates all possible choices that can be made for the current input n
-  // using the control variable
-  private getChoices(n: number, control: number[]): number[] {
-    let maxChoice = n;
-
-    // Control restricts the available choices
-    if (control.length > 0) {
-      maxChoice = Math.min(maxChoice, control[control.length - 1]);
-    }
-
-    // Simple stub choices that clearly depend on n and control
-    const choices: number[] = [];
-    if (maxChoice >= 1) choices.push(1);
-    if (maxChoice >= 2) choices.push(2);
-
-    return choices;
-  }
-
-  // Updates the state variable by adding the contribution of the given choice
-  private makeChoice(state: number[], choice: number): void {
-    state.push(choice);
-  }
-
-  // Reverts the contribution of the most recent choice from the state variable
-  private revertLastChoiceFromState(state: number[]): void {
-    if (state.length > 0) state.pop();
-  }
-
-  // Updates the control variable based on the given choice and input n
-  private updateControl(n: number, control: number[], choice: number): void {
-    // Simple stub:
-    // record a value derived from n and choice
-    control.push(n - choice);
-  }
-
-  // Reverts the contribution of the most recent choice from the control variable
-  private revertLastChoiceFromControl(control: number[]): void {
-    if (control.length > 0) control.pop();
-  }
-
-  // Returns the reduced problem space for the next recursive call
-  // based on the current input n and the choice
-  private getReducedProblemSpace(n: number, choice: number): number {
-    return n - choice;
-  }
+int main() {
+    auto r = Solution{}.generateBalanced(3);
+    for (auto& s : r) std::cout << s << '\n';
+}
 ```
 
-Javascript
+```scala,editable
+import scala.collection.mutable.ArrayBuffer
 
-```javascript
 class Solution {
-  conditionalEnumeration(
-    n,
-    control,
-    state,
-    enumerations
-  ) {
-    // Check if the current size of the problem space along with the state variable
-    // represents a solution state
-    if (this.isSolutionState(n, state)) {
-      // The state contains the aggregation of all choices made so far
-      // and therefore represents a complete solution
-      enumerations.push([...state]);
-      return;
-    }
-
-    // Get all possible choices that can be made for the current input n
-    // using the control variable
-    const choices = this.getChoices(n, control);
-
-    // Iterate through each available choice
-    for (const choice of choices) {
-      // Update the state variable by applying the current choice
-      this.makeChoice(state, choice);
-
-      // Update the control variable based on the current choice and n
-      this.updateControl(n, control, choice);
-
-      // Reduce the problem space based on the current choice
-      const reducedProblemSpace = this.getReducedProblemSpace(n, choice);
-
-      // Recur on the reduced problem space
-      this.conditionalEnumeration(
-        reducedProblemSpace,
-        control,
-        state,
-        enumerations
-      );
-
-      // Revert the contribution of the last choice from control (backtracking)
-      this.revertLastChoiceFromControl(control);
-
-      // Revert the contribution of the last choice from state (backtracking)
-      this.revertLastChoiceFromState(state);
-    }
-
-  // Returns true if the current size of the problem space corresponds
-  // to a solution state
-  isSolutionState(n, state) {
-    // Simple stub:
-    // either the problem space is exhausted
-    // or the state reached a fixed size
-    return n === 0 || state.length === 3;
+  def generateBalanced(n: Int): List[String] = {
+    val results = ArrayBuffer[String]()
+    val current = new StringBuilder
+    helper(n, 0, 0, current, results)
+    results.toList
   }
 
-  // Generates all possible choices that can be made for the current input n
-  // using the control variable
-  getChoices(n, control) {
-    let maxChoice = n;
-
-    // Control restricts the available choices
-    if (control.length > 0) {
-      maxChoice = Math.min(maxChoice, control[control.length - 1]);
+  private def helper(n: Int, opens: Int, closes: Int, current: StringBuilder, results: ArrayBuffer[String]): Unit = {
+    if (current.length == 2 * n) {
+      results += current.toString()
+      return
     }
-
-    // Simple stub choices that clearly depend on n and control
-    const choices = [];
-    if (maxChoice >= 1) choices.push(1);
-    if (maxChoice >= 2) choices.push(2);
-
-    return choices;
-  }
-
-  // Updates the state variable by adding the contribution of the given choice
-  makeChoice(state, choice) {
-    state.push(choice);
-  }
-
-  // Reverts the contribution of the most recent choice from the state variable
-  revertLastChoiceFromState(state) {
-    if (state.length > 0) {
-      state.pop();
+    if (opens < n) {
+      current.append('(')
+      helper(n, opens + 1, closes, current, results)
+      current.deleteCharAt(current.length - 1)
     }
-
-  // Updates the control variable based on the given choice and input n
-  updateControl(n, control, choice) {
-    // Simple stub:
-    // record a value derived from n and choice
-    control.push(n - choice);
-  }
-
-  // Reverts the contribution of the most recent choice from the control variable
-  revertLastChoiceFromControl(control) {
-    if (control.length > 0) {
-      control.pop();
+    if (closes < opens) {
+      current.append(')')
+      helper(n, opens, closes + 1, current, results)
+      current.deleteCharAt(current.length - 1)
     }
-
-  // Returns the reduced problem space for the next recursive call
-  // based on the current input n and the choice
-  getReducedProblemSpace(n, choice) {
-    return n - choice;
   }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = println(new Solution().generateBalanced(3))
+}
 ```
 
-Python
+```javascript,editable
+class Solution {
+    generateBalanced(n) {
+        const results = [];
+        const current = [];
+        this._helper(n, 0, 0, current, results);
+        return results;
+    }
 
-```python
-from typing import List
+    _helper(n, opens, closes, current, results) {
+        if (current.length === 2 * n) {
+            results.push(current.join(""));
+            return;
+        }
+        if (opens < n) {
+            current.push("(");
+            this._helper(n, opens + 1, closes, current, results);
+            current.pop();
+        }
+        if (closes < opens) {
+            current.push(")");
+            this._helper(n, opens, closes + 1, current, results);
+            current.pop();
+        }
+    }
+}
 
-class Solution:
-    def conditional_enumeration(
-        self,
-        n: int,
-        control: List[int],
-        state: List[int],
-        enumerations: List[List[int]]
-    ) -> None:
-        # Check if the current size of the problem space along with the state variable
-        # represents a solution state
-        if self.is_solution_state(n, state):
-            # The state contains the aggregation of all choices made so far
-            # and therefore represents a complete solution
-            enumerations.append(state.copy())
+console.log(new Solution().generateBalanced(3));
+```
+
+```typescript,editable
+class Solution {
+    generateBalanced(n: number): string[] {
+        const results: string[] = [];
+        const current: string[] = [];
+        this._helper(n, 0, 0, current, results);
+        return results;
+    }
+
+    private _helper(n: number, opens: number, closes: number, current: string[], results: string[]): void {
+        if (current.length === 2 * n) {
+            results.push(current.join(""));
+            return;
+        }
+        if (opens < n) {
+            current.push("(");
+            this._helper(n, opens + 1, closes, current, results);
+            current.pop();
+        }
+        if (closes < opens) {
+            current.push(")");
+            this._helper(n, opens, closes + 1, current, results);
+            current.pop();
+        }
+    }
+}
+
+console.log(new Solution().generateBalanced(3));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func helper(n, opens, closes int, current []byte, results *[]string) {
+    if len(current) == 2*n {
+        *results = append(*results, string(current))
+        return
+    }
+    if opens < n {
+        current = append(current, '(')
+        helper(n, opens+1, closes, current, results)
+        current = current[:len(current)-1]
+    }
+    if closes < opens {
+        current = append(current, ')')
+        helper(n, opens, closes+1, current, results)
+        current = current[:len(current)-1]
+    }
+}
+
+func generateBalanced(n int) []string {
+    results := []string{}
+    helper(n, 0, 0, []byte{}, &results)
+    return results
+}
+
+func main() {
+    fmt.Println(generateBalanced(3))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun generateBalanced(n: Int): List<String> {
+        val results = mutableListOf<String>()
+        val current = StringBuilder()
+        helper(n, 0, 0, current, results)
+        return results
+    }
+
+    private fun helper(n: Int, opens: Int, closes: Int, current: StringBuilder, results: MutableList<String>) {
+        if (current.length == 2 * n) {
+            results.add(current.toString())
             return
+        }
+        if (opens < n) {
+            current.append('(')
+            helper(n, opens + 1, closes, current, results)
+            current.deleteCharAt(current.length - 1)
+        }
+        if (closes < opens) {
+            current.append(')')
+            helper(n, opens, closes + 1, current, results)
+            current.deleteCharAt(current.length - 1)
+        }
+    }
+}
 
-        # Get all possible choices that can be made for the current input n
-        # using the control variable
-        choices: List[int] = self.get_choices(n, control)
-
-        # Iterate through each available choice
-        for choice in choices:
-            # Update the state variable by applying the current choice
-            self.make_choice(state, choice)
-
-            # Update the control variable based on the current choice and n
-            self.update_control(n, control, choice)
-
-            # Reduce the problem space based on the current choice
-            reduced_problem_space: int = self.get_reduced_problem_space(n, choice)
-
-            # Recur on the reduced problem space
-            self.conditional_enumeration(
-                reduced_problem_space,
-                control,
-                state,
-                enumerations
-            )
-
-            # Revert the contribution of the last choice from control (backtracking)
-            self.revert_last_choice_from_control(control)
-
-            # Revert the contribution of the last choice from state (backtracking)
-            self.revert_last_choice_from_state(state)
-
-    # Returns true if the current size of the problem space corresponds
-    # to a solution state
-    def is_solution_state(self, n: int, state: List[int]) -> bool:
-        # Simple stub:
-        # either the problem space is exhausted
-        # or the state reached a fixed size
-        return n == 0 or len(state) == 3
-
-    # Generates all possible choices that can be made for the current input n
-    # using the control variable
-    def get_choices(self, n: int, control: List[int]) -> List[int]:
-        max_choice: int = n
-
-        # Control restricts the available choices
-        if control:
-            max_choice = min(max_choice, control[-1])
-
-        # Simple stub choices that clearly depend on n and control
-        choices: List[int] = []
-        if max_choice >= 1:
-            choices.append(1)
-        if max_choice >= 2:
-            choices.append(2)
-
-// Diagram: return choices
-
-    # Updates the state variable by adding the contribution of the given choice
-    def make_choice(self, state: List[int], choice: int) -> None:
-        state.append(choice)
-
-    # Reverts the contribution of the most recent choice from the state variable
-    def revert_last_choice_from_state(self, state: List[int]) -> None:
-        if state:
-            state.pop()
-
-    # Updates the control variable based on the given choice and input n
-    def update_control(self, n: int, control: List[int], choice: int) -> None:
-        # Simple stub:
-        # record a value derived from n and choice
-        control.append(n - choice)
-
-    # Reverts the contribution of the most recent choice from the control variable
-    def revert_last_choice_from_control(self, control: List[int]) -> None:
-        if control:
-            control.pop()
-
-    # Returns the reduced problem space for the next recursive call
-    # based on the current input n and the choice
-    def get_reduced_problem_space(self, n: int, choice: int) -> int:
-        return n - choice
+fun main() {
+    println(Solution().generateBalanced(3))
+}
 ```
+
+```rust,editable
+fn helper(n: usize, opens: usize, closes: usize, current: &mut Vec<u8>, results: &mut Vec<String>) {
+    if current.len() == 2 * n {
+        results.push(String::from_utf8(current.clone()).unwrap());
+        return;
+    }
+    if opens < n {
+        current.push(b'(');
+        helper(n, opens + 1, closes, current, results);
+        current.pop();
+    }
+    if closes < opens {
+        current.push(b')');
+        helper(n, opens, closes + 1, current, results);
+        current.pop();
+    }
+}
+
+fn generate_balanced(n: usize) -> Vec<String> {
+    let mut results: Vec<String> = Vec::new();
+    let mut current: Vec<u8> = Vec::new();
+    helper(n, 0, 0, &mut current, &mut results);
+    results
+}
+
+fn main() {
+    println!("{:?}", generate_balanced(3));
+}
+```
+
+</div>
+
+---
 
 ## Complexity Analysis
 
-The conditional enumeration technique uses multiple recursion at every step as it simulates making all available choices. Hence, it has an exponential time complexity that depends on the depth of recursion and the branching factor.
+| Resource | Cost | Why |
+|---|---|---|
+| **Time** | `O(n · C(n))` where `C(n)` is the n-th Catalan number | The `n`-th Catalan number counts well-formed parentheses of `n` pairs. Each leaf takes `O(n)` to copy. |
+| **Space (output)** | `O(n · C(n))` | Same argument. |
+| **Space (stack)** | `O(n)` | Recursion depth equals number of pairs. |
 
-If we assume that the functions functions `isSolutionState`, `getReducedProblemSpace`, `getChoices`, `makeChoice`, `updatecontrol`, `revertLastChoiceFromState`, and `revertLastChoiceFromControl` all take constant **O(1)** time, and the input **N** is reduced linearly in every step, the depth of recursion will also be linear **O(N)**.
+The Catalan number `C(n) ≈ 4^n / n^1.5` — vastly smaller than the unpruned `2^(2n)` tree. The pruning saves us roughly a factor of `n^1.5`.
 
-// Diagram: If the input is reduced linearly at each step, the depth of recursion is the same as the size of the input N.
-
-For conditional enumeration, the number of choices at every step is generally dynamic and dependent on the previously made choices. If we assume that there are total of `k` choices to choose from at every step, and every solution state is at a depth **N**, the overall time complexity in the worst case would be **O(N^k)**.
-
-Since we need to explore the entire problem space to find all the solution states, the time complexity would be **O(N^k)** in any case.
-
-// Diagram: If we can make k choices at every step, it leads to an exponential complexity when searching for all solution states.
-
-Assuming that the variable `state` takes constant **O(1)** space at all times, since we add it to the `enumerations` list when a series of choices leads us to a solution state, the final size of the list will be equal to the number of ways we can reach a solution state. If no solution state exists, the list will always be empty, but recursive calls to depth **N** will take **O(N)** space for all local variables.
-
-In the worst case, all terminal states can be solution states, and so the size of the `enumeration` list will be **O(N^k)**. Since we only create constant **O(1)** sized local variables in every recursive call and the depth of recursion is **O(N)**, the space complexity in the worst case would be **O(N + N^k) ~ O(N^k)**.
-
-> **Best Case:** No solution state exists
+> **Best Case** — Time `O(n · C(n))`, Space `O(n · C(n))`
 >
-> -   Space Complexity - **O(N)**
-> -   Time Complexity - **O(N^k)**
->
-> **Worst Case:** All terminal states are solution states
->
-> -   Space Complexity - **O(N^k)**
-> -   Time Complexity - **O(N^k)**
+> **Worst Case** — Same — pruning is deterministic; no input variation changes the tree size
+
+---
+
+## Key Takeaway
+
+Conditional enumeration adds *pruning* to the unconditional template. Two flavours: choice-bounded (don't even generate doomed choices) and constraint-bounded (return early when state is already invalid). The pruning is exponential leverage. Now we'll learn how to spot conditional enumeration on sight.
 
 ***
 
-# Identifying the conditional enumeration pattern
+# Identifying Conditional Enumeration
 
-Conditional enumeration is another foundational backtracking technique to solve problems where we need to find all the solution states. It is versatile and can model more complicated problems as it accounts for previously made choices when deciding the choices for any step. Most problems that can be solved using this technique are easy to medium problems, where we are given an initial problem state and can make multiple choices to reduce the problem space and transition to other states.
+> **Course:** DSA › Algorithms › Backtracking › Conditional Enumeration
 
-Most problems where we can make a set of choices that are dependent on previously made choices can be solved using the conditional enumeration technique.
+Three diagnostic questions decide whether conditional enumeration fits.
 
-If the problem statement or its solution follows the generic template below, it can be solved using conditional enumeration.
+| # | Question | If "yes," conditional enumeration fits because... |
+|---|---|---|
+| **Q1** | Are some complete candidates *invalid*? | We need a validation step at the leaf — that's what makes it conditional. |
+| **Q2** | Can a *partial* candidate be detected as already-doomed before completion? | Internal-node pruning is possible — the speedup. |
+| **Q3** | Is the candidate built by **incremental decisions** like in unconditional? | The same recipe applies, just with extra checks. |
 
-**Template:**Given an initial problem state, enumerate all the solution states that can be reached from it by making a dynamic set of choices at each step that depend on previously made choices.
+If all three are "yes," you're in conditional enumeration's sweet spot — same template as unconditional, plus pruning.
 
-## Example
+### Q1 — Why "some leaves are invalid"?
 
-Let's consider the following problem as an example to better understand how to identify and solve a problem using conditional enumeration.
+**Mental model.** If every leaf is automatically valid, you don't need a validation function and conditional enumeration's machinery is overkill — go back to unconditional. Conditional enumeration's value comes from the leaf-validation check that filters bad outcomes.
 
-> **Problem statement:** Given a positive integer `n`, write a function to generate and return a list of all possible combinations of well-formed parentheses with `n` pairs. You can return the output in any order.
+**Concrete check.** Generate Parentheses: many length-`2n` strings of `(` and `)` aren't balanced. ✓
 
-// Diagram: Find all well-formed parentheses strings with n pairs of parentheses.
+**What breaks otherwise.** If every leaf is valid, the validation step at the leaf is wasted code. Just use unconditional.
 
-## The conditional enumeration solution
+### Q2 — Why "doomed-partial detection"?
 
-Closely observing the problem, we can identify the brute force way of building the parentheses strings. We start with an empty string (the initial problem state), and we have only one choice: to put an open parenthesis.
+**Mental model.** Pruning is possible only if a partial state can be classified as "no descendant of this state can possibly be valid." If you can't classify partial states, you have to walk the whole tree and check at the leaves only — which is still correct but loses the pruning speedup.
 
-Next time, however, we have two choices: either to add another open parenthesis or a closing parenthesis to close the previous one. This process is repeated until we reach a solution state where we have placed all `n` pairs of parentheses (`n` opening and `n` closing parentheses) in the string. We then backtrack and update our choices to enumerate all valid strings that can be created with n pairs of parentheses.
+**Concrete check.** Generate Parentheses: a partial string with more `)` than `(` (e.g., `())`) can never extend to a balanced one. Detect this early; prune. ✓
 
-It is important to note that choices at the current step (open or closing parentheses) depend on the previously made choices (number of unclosed parentheses)
+**What breaks otherwise.** Without partial-state pruning, you're paying full unconditional cost for the search even though some leaves get rejected. Inefficient but still correct.
 
-// Diagram: The state space tree for the problem where n = 2.
+### Q3 — Why "incremental decisions"?
 
-It is clear from the above what the initial problem state (empty string) is, and the choices we have to reduce the problem space and incrementally build the solution. The choice we make at every step depends on the outcome of the choices made in the previous steps (the number of unclosed parentheses). The solution to the problem fits the template description for the conditional enumeration pattern we learned earlier.
+**Mental model.** The state space tree must still be built one decision at a time, just like unconditional. The pruning happens *between* decisions, not as a replacement for the decision-making structure.
 
-**Template:**Given an initial problem state (empty string), enumerate all the solution states (valid parentheses strings) that can be reached from it by making a dynamic set of choices at each step that depend on previously made choices (number of unclosed parentheses).
+**Concrete check.** Target Sum Combinations: pick a number, recurse with reduced target; pick the next number; recurse with further-reduced target. Same incremental shape as unconditional. ✓
 
-We create a recursive function `backtrack` that takes as input the number of parentheses pairs allowed `n`, the number of open parentheses added `open`, the number of closing parentheses added `close`, a reference to a string `currentCombination` to incrementally build the solution string and a reference to a list `solution` to hold all the solution states. The recursive function `backtrack` recursively explores the entire problem space, starting with 0 open and closed parentheses and an empty `currentCombination` string and adds all the valid parentheses strings with `n` pairs of parentheses to the `solution`.
+**What breaks otherwise.** If the candidate isn't built incrementally (e.g., a single closed-form computation), backtracking isn't the right pattern at all.
 
-It is important to note that the variables `open` and `close` collectively define the control variable and the variable `currentCombination` defines the state in the state space tree that we explore.
+---
 
-We initialize the `currentCombination` to an empty string and the `solution` list to an empty list in the calling function, and pass them by reference to the `backtrack` function along with `n`, 0 for `open` and 0 for `close`. This makes up the initial problem state.
+## A Worked Example — Generate Strings With Property X
 
-As we enter the `backtrack` function, we check if we have finished making all the choices by checking the size of `currentCombination`. If its size is `2 * n`, it means we have added `n` pairs of parentheses, and this is a solution state. We add `currentCombination` to the `solution` list and return to the caller. If we are not at a solution state, we can make one or both choices based on the values of the `open` and `close` variables.
+> *Pause and predict — for the problem "generate all length-6 strings of `(` and `)` that are balanced," sketch the state space tree without pruning. How many leaves? How many of those are balanced?*
 
-1.  1If `open < n` we can make a choice of adding an opening parenthesis to `currentCombination`.
-2.  2If `close < open` we can make a choice of closing an previously open parenthesis by adding a closing parenthesis to `currentCombination`.
+Without pruning, `2⁶ = 64` candidate strings. With balance-checking only at the leaf, we'd generate all 64 and reject 59. That's the unconditional approach with leaf validation.
 
-In both cases, after making the choice by updating `currentCombination`, we recursively call `backtrack` passing an incremented value of `open` or `close`, depending on the choice. When the recursive call ends, we pop the last character from `currentCombination` to make the next choice and do the same after it ends.
+With pruning, we keep two counters during the descent: `opens` (number of `(`) and `closes` (number of `)`). At any step, if `closes > opens`, the partial string is already unbalanced — prune the subtree without exploring.
 
-This way, at every step, make choices based on the previously made choices and update and revert the `currentCombination` accordingly, add it to the `solution` list when we reach a solution state. At the end of all recursive calls, the `solution` list will have all the valid parentheses strings with `n` pairs of parentheses in the calling function.
+```
+At the partial string '()(',  opens=2, closes=1:
+  - We can add '(' if opens < 3.  ✓ (2 < 3)
+  - We can add ')' if closes < opens. ✓ (1 < 2)
 
-Consider the execution below to generate all valid parentheses strings for `n = 2`.
-
-Find all well formed parentheses with n(2) pairs.
-
-The implementation of the conditional enumeration solution to solve the problem is given below.
-
-C++
-
-```cpp
-using namespace std;
-
-class Solution {
-public:
-    void backtrack(
-        int n,
-        int open,
-        int close,
-        string &currentCombination,
-        vector<string> &solution
-    ) {
-
-        // Base case: If the current combination has used all n pairs of
-        // parentheses, add it to the solution
-        if (currentCombination.size() == 2 * n) {
-
-            // Store the valid combination
-            solution.push_back(currentCombination);
-            return;
-        }
-
-        // If we can add an open parenthesis, do so and recurse
-        if (open < n) {
-
-            // Add an open parenthesis
-            currentCombination.push_back('(');
-
-            // Recurse with updated open count
-            backtrack(n, open + 1, close, currentCombination, solution);
-
-            // Backtrack (remove the last added parenthesis)
-            currentCombination.pop_back();
-        }
-
-        // If we can add a close parenthesis, do so and recurse
-        if (close < open) {
-
-            // Add a close parenthesis
-            currentCombination.push_back(')');
-
-            // Recurse with updated close count
-            backtrack(n, open, close + 1, currentCombination, solution);
-
-            // Backtrack (remove the last added parenthesis)
-            currentCombination.pop_back();
-        }
-
-// Diagram: vector<string> generateParentheses(int n) {
-
-        // Vector to store all valid combinations
-        vector<string> solution;
-
-        // String to build the current combination of parentheses
-        string currentCombination;
-
-        // Start backtracking with 0 open and 0 close parentheses
-        backtrack(n, 0, 0, currentCombination, solution);
-
-        // Return the list of all valid parentheses combinations
-        return solution;
-    }
-};
+At the partial string '()))', opens=1, closes=3:
+  - opens < closes — IMPOSSIBLE state. PRUNE. (we never reach this node in the pruned tree.)
 ```
 
-Java
+Result: only the 5 balanced strings are walked to leaves; the other 59 are pruned at various depths. We make this concrete in **Problem 1** below.
 
-```java
-import java.util.*;
+---
 
-class Solution {
-    public void backtrack(
-        int n,
-        int open,
-        int close,
-        StringBuilder currentCombination,
-        List<String> solution
-    ) {
+## Key Takeaway
 
-        // Base case: If the current combination has used all n pairs of
-        // parentheses, add it to the solution
-        if (currentCombination.length() == 2 * n) {
+Three checks — invalid-leaf possibility, partial-state pruning possibility, incremental decisions — gate every conditional-enumeration problem. Pass all three and the algorithm slides in. Four worked problems coming up. The first introduces partial-state pruning via counters; the second adds constraint-bounded pruning; the third combines both with multi-segment validation; the fourth uses a permutation-flavoured swap-and-undo recipe.
 
-            // Store the valid combination
-            solution.add(currentCombination.toString());
-            return;
-        }
+***
 
-        // If we can add an open parenthesis, do so and recurse
-        if (open < n) {
+# Generate Parentheses
 
-            // Add an open parenthesis
-            currentCombination.append('(');
+> **Course:** DSA › Algorithms › Backtracking › Conditional Enumeration
 
-            // Recurse with updated open count
-            backtrack(n, open + 1, close, currentCombination, solution);
+The canonical conditional-enumeration problem. Both flavours of pruning visible side-by-side: choice-bounded (only emit `(` if there's room; only emit `)` if there's an open to match) and the implicit constraint-bounded (no separate check needed, because the choice-bounded prune handles it).
 
-            // Backtrack (remove the last added parenthesis)
-            currentCombination.deleteCharAt(
-                currentCombination.length() - 1
-            );
-        }
+---
 
-        // If we can add a close parenthesis, do so and recurse
-        if (close < open) {
+## The Problem
 
-            // Add a close parenthesis
-            currentCombination.append(')');
+Given a positive integer `n`, return all combinations of well-formed parentheses with exactly `n` pairs. Output may be in any order.
 
-            // Recurse with updated close count
-            backtrack(n, open, close + 1, currentCombination, solution);
+```
+Input:  n = 2
+Output: ["(())", "()()"]
 
-            // Backtrack (remove the last added parenthesis)
-            currentCombination.deleteCharAt(
-                currentCombination.length() - 1
-            );
-        }
+Input:  n = 1
+Output: ["()"]
 
-// Diagram: public List<String> generateParentheses(int n) {
-
-        // List to store all valid combinations
-        List<String> solution = new ArrayList<>();
-
-        // StringBuilder to build the current combination of parentheses
-        StringBuilder currentCombination = new StringBuilder();
-
-        // Start backtracking with 0 open and 0 close parentheses
-        backtrack(n, 0, 0, currentCombination, solution);
-
-        // Return the list of all valid parentheses combinations
-        return solution;
-    }
+Input:  n = 0
+Output: []
 ```
 
-Typescript
+---
 
-```typescript
-export class Solution {
-    backtrack(
-        n: number,
-        open: number,
-        close: number,
-        currentCombination: string[],
-        solution: string[]
-    ): void {
+## What Does "Well-Formed" Mean Recursively?
 
-        // Base case: If the current combination has used all n pairs of
-        // parentheses, add it to the solution
-        if (currentCombination.length === 2 * n) {
+A balanced sequence of parentheses obeys two invariants at every prefix:
+1. **`opens ≥ closes`** at every position. (You can't have more `)` than `(` so far — that would mean an unmatched `)`.)
+2. **`opens == closes` and `opens == n` at the end.** (Equal counts and `n` pairs total.)
 
-            // Store the valid combination
-            solution.push(currentCombination.join(""));
-            return;
-        }
+Pruning happens by enforcing invariant 1 *during* construction. Whenever we'd add a `)` that violates `closes < opens`, we don't even try.
 
-        // If we can add an open parenthesis, do so and recurse
-        if (open < n) {
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+  R["empty<br/>opens=0, closes=0"]
+  R -->|"add ( allowed (opens<2)"| L1["( <br/>opens=1, closes=0"]
+  R -.->|"add ) BLOCKED (closes < opens FALSE)"| L1X["pruned"]
+  L1 -->|"add ("| L2A["(( <br/>opens=2, closes=0"]
+  L1 -->|"add )"| L2B["() <br/>opens=1, closes=1"]
+  L2A -.->|"add ( BLOCKED (opens=n)"| L3X["pruned"]
+  L2A -->|"add )"| L3A["(() <br/>opens=2, closes=1"]
+  L2B -->|"add ("| L3B["()( <br/>opens=2, closes=1"]
+  L3A -->|"add )"| L4A["(())<br/>LEAF ✓"]
+  L3B -->|"add )"| L4B["()()<br/>LEAF ✓"]
 
-            // Add an open parenthesis
-            currentCombination.push("(");
-
-            // Recurse with updated open count
-            this.backtrack(
-                n,
-                open + 1,
-                close,
-                currentCombination,
-                solution
-            );
-
-            // Backtrack (remove the last added parenthesis)
-            currentCombination.pop();
-        }
-
-        // If we can add a close parenthesis, do so and recurse
-        if (close < open) {
-
-            // Add a close parenthesis
-            currentCombination.push(")");
-
-            // Recurse with updated close count
-            this.backtrack(
-                n,
-                open,
-                close + 1,
-                currentCombination,
-                solution
-            );
-
-            // Backtrack (remove the last added parenthesis)
-            currentCombination.pop();
-        }
-
-// Diagram: generateParentheses(n: number): string[] {
-
-        // Array to store all valid combinations
-        const solution: string[] = [];
-
-        // Temporary array to store the current combination of
-        // parentheses
-        const currentCombination: string[] = [];
-
-        // Start backtracking with 0 open and 0 close parentheses
-        this.backtrack(n, 0, 0, currentCombination, solution);
-
-        // Return the array of all valid parentheses combinations
-        return solution;
-    }
+  classDef pruned fill:#fecaca,stroke:#dc2626
+  class L1X,L3X pruned
 ```
 
-Javascript
+<p align="center"><strong>State space tree for <code>n = 2</code> with pruning. Red branches are never explored. Out of <code>2⁴ = 16</code> possible length-4 strings, only 2 are balanced — and we generate exactly those 2.</strong></p>
 
-```javascript
-export class Solution {
-    backtrack(n, open, close, currentCombination, solution) {
+---
 
-        // Base case: If the current combination has used all n pairs of
-        // parentheses, add it to the solution
-        if (currentCombination.length === 2 * n) {
+## Applying the Diagnostic Questions
 
-            // Store the valid combination
-            solution.push(currentCombination.join(""));
-            return;
-        }
+| # | Check | Answer |
+|---|---|---|
+| **Q1** | Some leaves invalid? | **Yes** — most random `(`/`)` strings aren't balanced. |
+| **Q2** | Doomed-partial detectable? | **Yes** — `closes > opens` partway through is already invalid. |
+| **Q3** | Incremental decisions? | **Yes** — one character per decision. |
 
-        // If we can add an open parenthesis, do so and recurse
-        if (open < n) {
+### Q1 — Why "many leaves invalid"?
 
-            // Add an open parenthesis
-            currentCombination.push("(");
+For length `2n`, there are `2^(2n)` total candidates. The number of balanced ones is the `n`-th Catalan number, roughly `4^n / n^1.5` — much smaller. The vast majority are invalid. ✓
 
-            // Recurse with updated open count
-            this.backtrack(
-                n,
-                open + 1,
-                close,
-                currentCombination,
-                solution
-            );
+### Q2 — Why "early-detect doomed partials"?
 
-            // Backtrack (remove the last added parenthesis)
-            currentCombination.pop();
-        }
+The invariant `closes ≤ opens` must hold at *every* prefix of a balanced string. Violating it once means *no* extension can recover; every descendant of that partial state is doomed. Perfect pruning candidate. ✓
 
-        // If we can add a close parenthesis, do so and recurse
-        if (close < open) {
+### Q3 — Why "incremental"?
 
-            // Add a close parenthesis
-            currentCombination.push(")");
+We build the string one character at a time. The state at depth `d` is the prefix of length `d`. Same shape as unconditional enumeration. ✓
 
-            // Recurse with updated close count
-            this.backtrack(
-                n,
-                open,
-                close + 1,
-                currentCombination,
-                solution
-            );
+---
 
-            // Backtrack (remove the last added parenthesis)
-            currentCombination.pop();
-        }
+## The Pruned-DFS Strategy (Visualised)
 
-// Diagram: generateParentheses(n) {
+We maintain two counters — `opens` and `closes` — and decide at each step which next characters are viable:
 
-        // Array to store all valid combinations
-        const solution = [];
+- Adding `(` is viable iff `opens < n`.
+- Adding `)` is viable iff `closes < opens`.
 
-        // Temporary array to store the current combination of
-        // parentheses
-        const currentCombination = [];
+If neither is viable (which never happens during a properly running search but is the boundary condition), we'd return without recursing. With `n` pairs, the leaves are exactly the `2n`-length strings the search reaches; every one is balanced because we prevented imbalance at every step.
 
-        // Start backtracking with 0 open and 0 close parentheses
-        this.backtrack(n, 0, 0, currentCombination, solution);
+---
 
-        // Return the array of all valid parentheses combinations
-        return solution;
-    }
+## The Solution
+
+The implementation in 10 languages was already shown in the [Implementation](#implementation) section above (where we used Generate Parentheses as the canonical example for the conditional-enumeration template). We restate the Python here to keep this section self-contained, then provide the trace.
+
+```python,editable
+class Solution:
+    def generate_parentheses(self, n: int):
+        results = []
+        current = []
+        self._helper(n, 0, 0, current, results)
+        return results
+
+    def _helper(self, n, opens, closes, current, results):
+        if len(current) == 2 * n:
+            results.append("".join(current))
+            return
+        if opens < n:                                  # choice-bounded prune
+            current.append("(")
+            self._helper(n, opens + 1, closes, current, results)
+            current.pop()
+        if closes < opens:                             # choice-bounded prune
+            current.append(")")
+            self._helper(n, opens, closes + 1, current, results)
+            current.pop()
+
+
+print(Solution().generate_parentheses(3))   # ['((()))', '(()())', '(())()', '()(())', '()()()']
 ```
 
-Python
+For the implementations in the other 9 languages, see the [Implementation](#implementation) section at the top of this lesson (the function name there is `generateBalanced` — same logic).
 
-```python
+<details>
+<summary><strong>Trace — n = 2</strong></summary>
+
+```
+helper("", opens=0, closes=0)
+├─ '(' allowed (0 < 2)
+│  helper("(", opens=1, closes=0)
+│  ├─ '(' allowed (1 < 2)
+│  │  helper("((", opens=2, closes=0)
+│  │  ├─ '(' BLOCKED (opens not < 2)
+│  │  └─ ')' allowed (0 < 2)
+│  │     helper("(()", opens=2, closes=1)
+│  │     ├─ '(' BLOCKED
+│  │     └─ ')' allowed (1 < 2)
+│  │        helper("(())", opens=2, closes=2)  → leaf, record "(())"
+│  └─ ')' allowed (0 < 1)
+│     helper("()", opens=1, closes=1)
+│     ├─ '(' allowed (1 < 2)
+│     │  helper("()(", opens=2, closes=1)
+│     │  ├─ '(' BLOCKED
+│     │  └─ ')' allowed
+│     │     helper("()()", opens=2, closes=2) → leaf, record "()()"
+│     └─ ')' BLOCKED (closes not < opens; 1 not < 1)
+
+Result: ["(())", "()()"]  (only 2 leaves ever reached, vs 16 unpruned)
+```
+
+</details>
+
+---
+
+## Complexity Analysis
+
+| Resource | Cost |
+|---|---|
+| **Time** | `O(n · C(n))` where `C(n)` is the n-th Catalan number |
+| **Space (output)** | `O(n · C(n))` |
+| **Space (stack)** | `O(n)` |
+
+Catalan numbers: `C(0)=1, C(1)=1, C(2)=2, C(3)=5, C(4)=14, C(5)=42, C(6)=132, ..., C(n) ≈ 4^n / (n^1.5 √π)`.
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected |
+|---|---|---|
+| `n = 0` | `[]` | No pairs, no balanced strings (or `[""]` depending on convention; we return `[]`). |
+| `n = 1` | `["()"]` | Only one balanced sequence. |
+| `n = 3` | `["((()))", "(()())", "(())()", "()(())", "()()()"]` | 5 sequences = `C(3)`. |
+
+---
+
+## Final Takeaway
+
+Generate Parentheses is the textbook example of choice-bounded pruning. Two counters in the recursion's parameters; two prune-checks before each recursive call. The next problem flips to constraint-bounded pruning: instead of checking what's *allowable* before generating, we check what's *over-budget* on entry.
+
+***
+
+# Target Sum Combinations
+
+> **Course:** DSA › Algorithms › Backtracking › Conditional Enumeration
+
+Find all combinations of array elements (with repetition) that sum to a target. Constraint-bounded pruning: stop the recursion the moment the partial sum *exceeds* the target.
+
+---
+
+## The Problem
+
+Given an array `arr` of distinct positive integers and a positive integer `target`, return all unique combinations whose elements sum to `target`. The same number from `arr` may be reused. Two combinations are *unique* if they differ in the multiplicities of the chosen numbers.
+
+```
+Input:  arr = [2, 3, 5], target = 8
+Output: [[2,2,2,2], [2,3,3], [3,5]]
+
+Input:  arr = [2, 3, 6, 7], target = 7
+Output: [[2,2,3], [7]]
+
+Input:  arr = [1, 2, 3], target = 4
+Output: [[1,1,1,1], [1,1,2], [1,3], [2,2]]
+```
+
+---
+
+## What Pruning Helps Here?
+
+Two prunes:
+1. **Skip overshoots.** If `arr[i] > remaining_target`, choosing `arr[i]` would push the partial sum past the target. Skip.
+2. **Early termination.** If `remaining_target == 0`, the partial sum exactly hits the target. Record the combination and return — no further children to explore.
+
+A third structural trick avoids generating duplicate combinations: **only consider candidates from the current index onward.** This forces a canonical order on the chosen numbers (non-decreasing in input order) so that `[2, 3, 3]` is generated but `[3, 2, 3]` and `[3, 3, 2]` aren't.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+  R["target=8, []"]
+  R -->|"pick 2"| A["target=6, [2]"]
+  R -->|"pick 3"| B["target=5, [3]"]
+  R -->|"pick 5"| C["target=3, [5]"]
+  A -->|"pick 2 (i stays)"| A1["target=4, [2,2]"]
+  A -->|"pick 3 (i advances)"| A2["target=3, [2,3]"]
+  A1 -->|"pick 2"| A11["target=2, [2,2,2]"]
+  A11 -->|"pick 2"| L1["target=0, [2,2,2,2]"]
+  A2 -->|"pick 3"| L2["target=0, [2,3,3]"]
+  C -->|"pick 5 BLOCKED (5>3)"| Cprune["pruned"]
+
+  classDef pruned fill:#fecaca,stroke:#dc2626
+  class Cprune pruned
+```
+
+<p align="center"><strong>Tree (partial) for <code>arr = [2, 3, 5], target = 8</code>. The "pick 5 with 3 remaining" branch is pruned — 5 overshoots. The recursion uses <code>i</code> to enforce non-decreasing order.</strong></p>
+
+---
+
+## Applying the Diagnostic Questions
+
+| # | Check | Answer |
+|---|---|---|
+| **Q1** | Some leaves invalid? | **Yes** — overshooting partial sums and the wrong target totals. |
+| **Q2** | Doomed-partial detectable? | **Yes** — partial sum exceeding target is unrecoverable (positive numbers only). |
+| **Q3** | Incremental decisions? | **Yes** — one element added per call. |
+
+### Q1 — Why "many partials invalid"?
+
+Most ways of summing array elements don't hit the target exactly. We must filter. ✓
+
+### Q2 — Why "overshoot is doom"?
+
+Since `arr` contains only positive integers, adding any element strictly increases the partial sum. Once the sum exceeds the target, no future addition can decrease it back. The branch is dead. ✓
+
+### Q3 — Why "incremental"?
+
+Each recursive call picks one element to add. ✓
+
+---
+
+## The Constrained-Sum Strategy (Visualised)
+
+The state at each call is `(remaining_target, current_combination, start_index)`. The `start_index` enforces non-decreasing order; the `remaining_target` shrinks per addition; the `current_combination` accumulates the picks.
+
+The recursion's three branches:
+1. `remaining_target == 0` → record `current_combination`, return.
+2. `remaining_target < 0` → prune (won't happen because we skip overshooting elements before recursing).
+3. Otherwise → for each `i` from `start_index` to `len(arr) - 1`, if `arr[i] ≤ remaining_target`, append `arr[i]`, recurse with `remaining_target - arr[i]` and `start_index = i` (allowing reuse), undo.
+
+---
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
 from typing import List
 
 class Solution:
-    def backtrack(
-        self,
-        n: int,
-        open: int,
-        close: int,
-        current_combination: List[str],
-        solution: List[str],
-    ) -> None:
+    def target_sum_combinations(self, arr: List[int], target: int) -> List[List[int]]:
+        arr = sorted(arr)                          # canonical order for the trick to work
+        results: List[List[int]] = []
+        current: List[int] = []
+        self._helper(arr, target, 0, current, results)
+        return results
 
-        # Base case: If the current combination has used all n pairs of
-        # parentheses, add it to the solution
-        if len(current_combination) == 2 * n:
-            solution.append("".join(current_combination))
+    def _helper(self, arr: List[int], remaining: int, start: int, current: List[int], results: List[List[int]]) -> None:
+        # Leaf — exact sum found, record
+        if remaining == 0:
+            results.append(current.copy())
             return
 
-        # If we can add an open parenthesis, do so and recurse
-        if open < n:
+        for i in range(start, len(arr)):
+            if arr[i] > remaining:                # constraint-bounded prune
+                break                              # sorted, so all larger; safe to break
+            current.append(arr[i])
+            self._helper(arr, remaining - arr[i], i, current, results)   # i (not i+1): reuse allowed
+            current.pop()
 
-            # Add an open parenthesis
-            current_combination.append("(")
 
-            # Recurse with updated open count
-            self.backtrack(
-                n, open + 1, close, current_combination, solution
-            )
-
-            # Backtrack (remove the last added parenthesis)
-            current_combination.pop()
-
-        # If we can add a close parenthesis, do so and recurse
-        if close < open:
-
-            # Add a close parenthesis
-            current_combination.append(")")
-
-            # Recurse with updated close count
-            self.backtrack(
-                n, open, close + 1, current_combination, solution
-            )
-
-            # Backtrack (remove the last added parenthesis)
-            current_combination.pop()
-
-    def generate_parentheses(self, n: int) -> List[str]:
-
-        # List to store all valid combinations
-        solution = []
-
-        # Temporary list to store the current combination of parentheses
-        current_combination = []
-
-        # Start backtracking with 0 open and 0 close parentheses
-        self.backtrack(n, 0, 0, current_combination, solution)
-
-        # Return the list of all valid parentheses combinations
-        return solution
+if __name__ == "__main__":
+    print(Solution().target_sum_combinations([2, 3, 5], 8))
 ```
 
-.
+```java,editable
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
-## Example problems
-
-Most problems that fall under this category are**medium**or **hard**problems; a list of a few is given below.
-
-> -   **[String permutations](https://www.codeintuition.io/courses/backtracking/5_fmXxS8tuCRVuwe5Rker)**
-> -   **[Target sum combinations](https://www.codeintuition.io/courses/backtracking/cSpk4BcXCiyL89PTOFCyM)**
-> -   **[Generate parentheses](https://www.codeintuition.io/courses/backtracking/-xhgaEmiz9mw4lW6l_CFC)**
-> -   **[Generate IP addresses](https://www.codeintuition.io/courses/backtracking/sBQbNSN0kLWVCOqmnUC4j)**
-
-We will now solve these problems to gain a deeper understanding of the conditional enumeration pattern.
-
-***
-
-# Generate parentheses
-
-## Problem Statement
-
-Given a positive integer **n**, write a function to generate and return a list of all possible combinations of well-formed parentheses with n pairs. You can return the output in **any order**.
-
-### Example 1
-
-> -   **Input:** n = 2
-> -   **Output:** \[(()), ()()\]
-> -   **Explanation:** Above is the list of all well-formed parentheses that can be formed for n = 2.
-
-### Example 2
-
-> -   **Input:** n = 1
-> -   **Output:** \[()\]
-> -   **Explanation:** Above is the list of all well-formed parentheses that can be formed for n = 1.
-
-### Example 3
-
-> -   **Input:** n = 0
-> -   **Output:** \[\]
-> -   **Explanation:** No parentheses can be formed for n = 0.
-
-## Solution
-
-```cpp
-using namespace std;
-
-class Solution {
-public:
-    string getChoices(int n, int open, int close) {
-
-        string choices = "";
-
-        // Can add an open parenthesis if we haven't used all n
-        if (open < n) {
-            choices += '(';
-        }
-
-        // Can add a close parenthesis if we have more opens than closes
-        if (close < open) {
-            choices += ')';
-        }
-
-        return choices;
+public class Solution {
+    public List<List<Integer>> targetSumCombinations(int[] arr, int target) {
+        Arrays.sort(arr);
+        List<List<Integer>> results = new ArrayList<>();
+        List<Integer> current = new ArrayList<>();
+        helper(arr, target, 0, current, results);
+        return results;
     }
 
-    void generateCombinations(
-        int n,
-        int open,
-        int close,
-        string &currentCombination,
-        vector<string> &combinations
-    ) {
-
-        // If the current combination has used all n pairs of parentheses
-        // (solution state)
-        if (currentCombination.size() == 2 * n) {
-
-            // Store the valid combination
-            combinations.push_back(currentCombination);
-
-            // Return to continue exploring other possibilities
+    private void helper(int[] arr, int remaining, int start, List<Integer> current, List<List<Integer>> results) {
+        if (remaining == 0) {
+            results.add(new ArrayList<>(current));
             return;
         }
-
-        // Get all valid choices for the current position
-        string choices = getChoices(n, open, close);
-
-        // Loop through all valid choices
-        for (char choice : choices) {
-
-            // Add the chosen bracket to the current combination (make
-            // choice)
-            currentCombination.push_back(choice);
-
-            // If the choice is an opening bracket, recur by increasing
-            // open count
-            if (choice == '(') {
-                generateCombinations(
-                    n, open + 1, close, currentCombination, combinations
-                );
-            }
-
-            // Else if the choice is a closing bracket, recur by
-            // increasing close count
-            else {
-                generateCombinations(
-                    n, open, close + 1, currentCombination, combinations
-                );
-            }
-
-            // Backtrack by removing the last added bracket (revert
-            // choice)
-            currentCombination.pop_back();
+        for (int i = start; i < arr.length; i++) {
+            if (arr[i] > remaining) break;        // sorted → break
+            current.add(arr[i]);
+            helper(arr, remaining - arr[i], i, current, results);
+            current.remove(current.size() - 1);
         }
     }
 
-    vector<string> generateParentheses(int n) {
-
-        // Vector to store all valid combinations
-        vector<string> combinations;
-
-        // String to build the current combination of parentheses (state)
-        string currentCombination;
-
-        // Start the unconditional enumeration process with 0 open and 0
-        // close
-        generateCombinations(n, 0, 0, currentCombination, combinations);
-
-        // Return the list of all valid parentheses combinations
-        return combinations;
+    public static void main(String[] args) {
+        System.out.println(new Solution().targetSumCombinations(new int[]{2, 3, 5}, 8));
     }
-};
+}
 ```
 
-***
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-# Target sum combinations
+static int cmp(const void *a, const void *b) { return *(int*)a - *(int*)b; }
 
-## Problem Statement
+static void helper(int *arr, int n, int remaining, int start, int *current, int curLen, int **results, int *count, int *resLens) {
+    if (remaining == 0) {
+        results[*count] = (int *) malloc(sizeof(int) * curLen);
+        memcpy(results[*count], current, sizeof(int) * curLen);
+        resLens[*count] = curLen;
+        (*count)++;
+        return;
+    }
+    for (int i = start; i < n; i++) {
+        if (arr[i] > remaining) break;
+        current[curLen] = arr[i];
+        helper(arr, n, remaining - arr[i], i, current, curLen + 1, results, count, resLens);
+    }
+}
 
-Given an array **arr** that contains distinct integers and an integer **target**, write a function to return a list of all unique combinations of the numbers in arr that add up to the target. You can return the list of combinations in **any order**.
+int main(void) {
+    int arr[] = {2, 3, 5};
+    int n = 3, target = 8;
+    qsort(arr, n, sizeof(int), cmp);
+    int **results = (int **) malloc(sizeof(int *) * 100);
+    int *current = (int *) malloc(sizeof(int) * 50);
+    int *resLens = (int *) calloc(100, sizeof(int));
+    int count = 0;
+    helper(arr, n, target, 0, current, 0, results, &count, resLens);
+    for (int i = 0; i < count; i++) {
+        printf("[");
+        for (int j = 0; j < resLens[i]; j++) printf("%d%s", results[i][j], j+1<resLens[i] ? "," : "");
+        printf("]\n");
+        free(results[i]);
+    }
+    free(current); free(results); free(resLens);
+    return 0;
+}
+```
 
-You may use the same number from arr as many times as necessary to reach the target sum. Two combinations are considered unique if the frequency of at least one of the chosen numbers differs. 
-
-### Example 1
-
-> -   **Input:** arr = \[2, 3, 5\], target = 8
-> -   **Output:** \[\[2, 2, 2, 2\], \[2, 3, 3\], \[3, 5\]\]
-> -   **Explanation:** Above is the list of all the combinations for arr = \[2, 3, 5\] and target = 8.
-
-### Example 2
-
-> -   **Input:** arr = \[2, 3, 6, 7\], target = 7
-> -   **Output:** \[\[2, 2, 3\], \[7\]\]
-> -   **Explanation:** Above is the list of all the combinations for arr = \[2, 3, 6, 7\] and target = 7.
-
-### Example 3
-
-> -   **Input:** arr = \[1, 2, 3\], target = 4
-> -   **Output:** \[\[1, 1, 1, 1\], \[1, 1, 2\], \[1, 3\], \[2, 2\]\]
-> -   **Explanation:** Above is the list of all the combinations for arr = \[1, 2, 3\] and target = 4.
-
-## Solution
-
-```cpp
+```cpp,editable
+#include <iostream>
+#include <vector>
 #include <algorithm>
-
-using namespace std;
 
 class Solution {
 public:
-    void generateCombinations(
-        vector<int> &arr,
-        int target,
-        int index,
-        vector<int> &currentCombination,
-        vector<vector<int>> &combinations
-    ) {
-
-        // If the current combination adds up to the target, store it
-        // (solution state)
-        if (target == 0) {
-
-            // Store the current combination
-            combinations.push_back(currentCombination);
-
-            // Return to continue exploring other possibilities
+    void helper(std::vector<int>& arr, int remaining, int start, std::vector<int>& current, std::vector<std::vector<int>>& results) {
+        if (remaining == 0) {
+            results.push_back(current);
             return;
         }
-
-        // Loop through all possible choices starting from 'index' index
-        for (int i = index; i < arr.size(); i++) {
-
-            // Skip numbers greater than the remaining target
-            if (arr[i] > target) {
-                continue;
-            }
-
-            // Include the current number in the combination (make
-            // choice)
-            currentCombination.push_back(arr[i]);
-
-            // Recurse with updated target
-            // Note: 'i' is passed to allow reuse of the same number
-            generateCombinations(
-                arr, target - arr[i], i, currentCombination, combinations
-            );
-
-            // Backtrack by removing the last added number (revert
-            // choice)
-            currentCombination.pop_back();
+        for (int i = start; i < (int) arr.size(); i++) {
+            if (arr[i] > remaining) break;
+            current.push_back(arr[i]);
+            helper(arr, remaining - arr[i], i, current, results);
+            current.pop_back();
         }
     }
 
-    vector<vector<int>> targetSumCombinations(
-        vector<int> &arr,
-        int target
-    ) {
-
-        // Sort the array to ensure combinations are generated in
-        // ascending order
-        sort(arr.begin(), arr.end());
-
-        // Vector to store all valid combinations (solution states)
-        vector<vector<int>> combinations;
-
-        // Temporary vector to store the current combination (state)
-        vector<int> currentCombination;
-
-        // Start the conditional enumeration (backtracking) process from
-        // index 0
-        generateCombinations(
-            arr, target, 0, currentCombination, combinations
-        );
-
-        // Return the list of all valid target sum combinations
-        return combinations;
+    std::vector<std::vector<int>> targetSumCombinations(std::vector<int>& arr, int target) {
+        std::sort(arr.begin(), arr.end());
+        std::vector<std::vector<int>> results;
+        std::vector<int> current;
+        helper(arr, target, 0, current, results);
+        return results;
     }
 };
+
+int main() {
+    std::vector<int> arr = {2, 3, 5};
+    auto r = Solution{}.targetSumCombinations(arr, 8);
+    for (auto& v : r) { std::cout << "["; for (int x : v) std::cout << x << ' '; std::cout << "]\n"; }
+}
 ```
+
+```scala,editable
+import scala.collection.mutable.ArrayBuffer
+
+class Solution {
+  def targetSumCombinations(arr: Array[Int], target: Int): List[List[Int]] = {
+    val sorted = arr.sorted
+    val results = ArrayBuffer[List[Int]]()
+    val current = ArrayBuffer[Int]()
+    helper(sorted, target, 0, current, results)
+    results.toList
+  }
+
+  private def helper(arr: Array[Int], remaining: Int, start: Int, current: ArrayBuffer[Int], results: ArrayBuffer[List[Int]]): Unit = {
+    if (remaining == 0) {
+      results += current.toList
+      return
+    }
+    var i = start
+    while (i < arr.length && arr(i) <= remaining) {
+      current += arr(i)
+      helper(arr, remaining - arr(i), i, current, results)
+      current.remove(current.length - 1)
+      i += 1
+    }
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = println(new Solution().targetSumCombinations(Array(2, 3, 5), 8))
+}
+```
+
+```javascript,editable
+class Solution {
+    targetSumCombinations(arr, target) {
+        arr = [...arr].sort((a, b) => a - b);
+        const results = [];
+        const current = [];
+        this._helper(arr, target, 0, current, results);
+        return results;
+    }
+
+    _helper(arr, remaining, start, current, results) {
+        if (remaining === 0) {
+            results.push([...current]);
+            return;
+        }
+        for (let i = start; i < arr.length; i++) {
+            if (arr[i] > remaining) break;
+            current.push(arr[i]);
+            this._helper(arr, remaining - arr[i], i, current, results);
+            current.pop();
+        }
+    }
+}
+
+console.log(new Solution().targetSumCombinations([2, 3, 5], 8));
+```
+
+```typescript,editable
+class Solution {
+    targetSumCombinations(arr: number[], target: number): number[][] {
+        arr = [...arr].sort((a, b) => a - b);
+        const results: number[][] = [];
+        const current: number[] = [];
+        this._helper(arr, target, 0, current, results);
+        return results;
+    }
+
+    private _helper(arr: number[], remaining: number, start: number, current: number[], results: number[][]): void {
+        if (remaining === 0) {
+            results.push([...current]);
+            return;
+        }
+        for (let i = start; i < arr.length; i++) {
+            if (arr[i] > remaining) break;
+            current.push(arr[i]);
+            this._helper(arr, remaining - arr[i], i, current, results);
+            current.pop();
+        }
+    }
+}
+
+console.log(new Solution().targetSumCombinations([2, 3, 5], 8));
+```
+
+```go,editable
+package main
+
+import (
+    "fmt"
+    "sort"
+)
+
+func helper(arr []int, remaining, start int, current *[]int, results *[][]int) {
+    if remaining == 0 {
+        cpy := make([]int, len(*current))
+        copy(cpy, *current)
+        *results = append(*results, cpy)
+        return
+    }
+    for i := start; i < len(arr); i++ {
+        if arr[i] > remaining {
+            break
+        }
+        *current = append(*current, arr[i])
+        helper(arr, remaining-arr[i], i, current, results)
+        *current = (*current)[:len(*current)-1]
+    }
+}
+
+func targetSumCombinations(arr []int, target int) [][]int {
+    sort.Ints(arr)
+    results := [][]int{}
+    current := []int{}
+    helper(arr, target, 0, &current, &results)
+    return results
+}
+
+func main() {
+    fmt.Println(targetSumCombinations([]int{2, 3, 5}, 8))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun targetSumCombinations(arr: IntArray, target: Int): List<List<Int>> {
+        val sorted = arr.sortedArray()
+        val results = mutableListOf<List<Int>>()
+        val current = mutableListOf<Int>()
+        helper(sorted, target, 0, current, results)
+        return results
+    }
+
+    private fun helper(arr: IntArray, remaining: Int, start: Int, current: MutableList<Int>, results: MutableList<List<Int>>) {
+        if (remaining == 0) {
+            results.add(current.toList())
+            return
+        }
+        for (i in start until arr.size) {
+            if (arr[i] > remaining) break
+            current.add(arr[i])
+            helper(arr, remaining - arr[i], i, current, results)
+            current.removeAt(current.size - 1)
+        }
+    }
+}
+
+fun main() {
+    println(Solution().targetSumCombinations(intArrayOf(2, 3, 5), 8))
+}
+```
+
+```rust,editable
+fn helper(arr: &[i32], remaining: i32, start: usize, current: &mut Vec<i32>, results: &mut Vec<Vec<i32>>) {
+    if remaining == 0 {
+        results.push(current.clone());
+        return;
+    }
+    for i in start..arr.len() {
+        if arr[i] > remaining { break; }
+        current.push(arr[i]);
+        helper(arr, remaining - arr[i], i, current, results);
+        current.pop();
+    }
+}
+
+fn target_sum_combinations(arr: &[i32], target: i32) -> Vec<Vec<i32>> {
+    let mut sorted = arr.to_vec();
+    sorted.sort();
+    let mut results: Vec<Vec<i32>> = Vec::new();
+    let mut current: Vec<i32> = Vec::new();
+    helper(&sorted, target, 0, &mut current, &mut results);
+    results
+}
+
+fn main() {
+    println!("{:?}", target_sum_combinations(&[2, 3, 5], 8));
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — arr = [2, 3, 5], target = 8</strong></summary>
+
+```
+helper(rem=8, start=0, current=[])
+├─ i=0, pick 2 → helper(rem=6, start=0, current=[2])
+│  ├─ pick 2 → helper(rem=4, start=0, current=[2,2])
+│  │  ├─ pick 2 → helper(rem=2, start=0, current=[2,2,2])
+│  │  │  ├─ pick 2 → helper(rem=0, ..., [2,2,2,2]) → record [2,2,2,2]
+│  │  │  ├─ pick 3 → 3 > 2 → BREAK (no more for this loop)
+│  │  ├─ pick 3 → helper(rem=1, start=1, current=[2,2,3])
+│  │  │  ├─ pick 3 → 3 > 1 → BREAK
+│  │  ├─ pick 5 → 5 > 4 → BREAK
+│  ├─ pick 3 → helper(rem=3, start=1, current=[2,3])
+│  │  ├─ pick 3 → helper(rem=0, ..., [2,3,3]) → record [2,3,3]
+│  │  ├─ pick 5 → 5 > 3 → BREAK
+│  ├─ pick 5 → 5 > 4 → BREAK
+├─ i=1, pick 3 → helper(rem=5, start=1, current=[3])
+│  ├─ pick 3 → helper(rem=2, start=1, current=[3,3])
+│  │  ├─ pick 3 → 3 > 2 → BREAK
+│  │  ├─ pick 5 → 5 > 2 → BREAK
+│  ├─ pick 5 → helper(rem=0, ..., [3,5]) → record [3,5]
+├─ i=2, pick 5 → helper(rem=3, start=2, current=[5])
+│  ├─ pick 5 → 5 > 3 → BREAK
+
+Result: [[2,2,2,2], [2,3,3], [3,5]] ✓
+```
+
+</details>
+
+---
+
+## Complexity Analysis
+
+| Resource | Cost | Why |
+|---|---|---|
+| **Time** | `O(arr.length^(target/min(arr)))` worst case | Hard to bound tightly; depends on how aggressively pruning fires. |
+| **Space (output)** | `O(combinations × avg_combination_length)` | Total size of all valid combos. |
+| **Space (stack)** | `O(target / min(arr))` | Deepest recursion = longest combination = target divided by smallest element. |
+
+The two-pronged pruning (sort + `break` on overshoot) typically reduces the search by orders of magnitude vs unpruned brute force.
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected |
+|---|---|---|
+| `target = 0` | any input | `[[]]` (one empty combination). |
+| All elements > target | `[5, 6], target = 3` | `[]`. |
+| One-element solution | `[7, 2], target = 7` | `[[7], [2,2,2]]` (after sorting). |
+| Large target | `[1], target = 100` | `[[1] * 100]`. |
+
+---
+
+## Final Takeaway
+
+Target Sum Combinations introduces constraint-bounded pruning at its cleanest: a `break` in the loop the moment future iterations would also overshoot. Combined with the index-based de-duplication trick, this is the canonical "find all sums" pattern. The next problem combines several constraints — leading-zero rejection, value-range checks, segment count — for a multi-pronged validation.
 
 ***
 
-# Generate IP addresses
+# Generate IP Addresses
 
-## Problem Statement
+> **Course:** DSA › Algorithms › Backtracking › Conditional Enumeration
 
-Given a string **s** which consists only of digits, write a function to find and return a list of all possible valid IP addresses that can be formed by adding dots into the string. You can return the answer in **any order**.
+A digit string can split into an IPv4 address in many ways, but most splits produce invalid octets. Validation per segment + segment-count constraint = several pruning rules combined.
 
-Each IP address must have exactly four integers separated by single dots and each integer must be between `0` and `255` (inclusive). The IP address must not contain any leading zeros. This means that, for example, `0.1.2.201` is valid, but `00.1.2.201` is not.
+---
 
-### Example 1
+## The Problem
 
-> -   **Input:** s = 25525512235
-> -   **Output:** \[255.255.12.235, 255.255.122.35\]
-> -   **Explanation:** Above is the list of all valid IP addresses that can be formed.
+Given a digit string `s`, return all valid IPv4 addresses formed by inserting three dots. An address has exactly 4 segments, each in `[0, 255]`, with no leading zeros (so `0.0.0.0` is fine but `01.0.0.0` is not).
 
-### Example 2
+```
+Input:  s = "25525512235"
+Output: ["255.255.12.235", "255.255.122.35"]
 
-> -   **Input:** s = 025511135
-> -   **Output:** \[0.255.11.135, 0.255.111.35\]
-> -   **Explanation:** Above is the list of all valid IP addresses that can be formed.
+Input:  s = "025511135"
+Output: ["0.255.11.135", "0.255.111.35"]
 
-### Example 3
+Input:  s = "789"
+Output: []
+```
 
-> -   **Input:** s = 789
-> -   **Output:** \[\]
-> -   **Explanation:** No valid IP address can be formed for the above string.
+---
 
-## Solution
+## What's the Recursion Doing?
 
-```cpp
-#include <algorithm>
+We're choosing where to place the three dots inside the string. Equivalently, we're picking the *length* of each segment (1, 2, or 3 characters), one at a time, until we've consumed all 4 segments.
 
-using namespace std;
+Three pruning rules:
+1. **Segment length bounded.** Segment length must be 1, 2, or 3.
+2. **Leading zeros forbidden** (except a literal `"0"`).
+3. **Numeric value bounded.** Segment value must be in `[0, 255]`.
 
-class Solution {
-public:
+Plus the structural constraint: **exactly 4 segments must consume exactly all of `s`** — neither too few nor too many.
 
-    // Join the four parts of the IP address into a single string
-    string join(const vector<string> &parts) {
-        return parts[0] + "." + parts[1] + "." + parts[2] + "." +
-               parts[3];
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+  R["s='25525512235', segments=[]"]
+  R -->|"len 1: '2'"| A["s starts at idx 1, segments=['2']"]
+  R -->|"len 2: '25'"| B["s starts at idx 2, segments=['25']"]
+  R -->|"len 3: '255'"| C["s starts at idx 3, segments=['255']"]
+  R -.->|"e.g. len 3: '256' would be invalid → no such branch"| Cprune["pruned"]
+
+  classDef pruned fill:#fecaca,stroke:#dc2626
+  class Cprune pruned
+```
+
+<p align="center"><strong>At each level, three potential segment lengths (1, 2, or 3 chars). Each is validated before recursing — invalid segments produce no branch.</strong></p>
+
+---
+
+## Applying the Diagnostic Questions
+
+| # | Check | Answer |
+|---|---|---|
+| **Q1** | Some leaves invalid? | **Yes** — most splits don't produce valid IPv4 addresses. |
+| **Q2** | Doomed-partial detectable? | **Yes** — invalid segment, leading-zero, or wrong segment count caught early. |
+| **Q3** | Incremental decisions? | **Yes** — one segment per recursion level. |
+
+### Q1 — Why "many leaves invalid"?
+
+Most random splits produce segments outside `[0, 255]` or with leading zeros. ✓
+
+### Q2 — Why "early detection"?
+
+We can validate each segment as we extract it. Invalid → don't recurse. The other prune is segment-count: if we've placed 4 segments but haven't consumed all of `s`, that path is dead — return without recording. ✓
+
+### Q3 — Why "incremental"?
+
+Each recursion picks one more segment. ✓
+
+---
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+from typing import List
+
+class Solution:
+    def generate_ip_addresses(self, s: str) -> List[str]:
+        results: List[str] = []
+        segments: List[str] = []
+        self._helper(s, 0, segments, results)
+        return results
+
+    def _helper(self, s: str, index: int, segments: List[str], results: List[str]) -> None:
+        # Leaf — 4 segments built; they must consume *all* of s
+        if len(segments) == 4:
+            if index == len(s):
+                results.append(".".join(segments))
+            return                                  # constraint-bounded prune
+
+        # Try every viable next segment length (1, 2, or 3)
+        for length in (1, 2, 3):
+            if index + length > len(s):
+                break                               # ran off the end
+            part = s[index:index + length]
+            if self._is_valid_part(part):           # choice-bounded prune
+                segments.append(part)
+                self._helper(s, index + length, segments, results)
+                segments.pop()
+
+    @staticmethod
+    def _is_valid_part(part: str) -> bool:
+        if len(part) > 1 and part[0] == "0":
+            return False                            # leading zero
+        return 0 <= int(part) <= 255
+
+
+if __name__ == "__main__":
+    print(Solution().generate_ip_addresses("25525512235"))
+```
+
+```java,editable
+import java.util.ArrayList;
+import java.util.List;
+
+public class Solution {
+    public List<String> generateIPAddresses(String s) {
+        List<String> results = new ArrayList<>();
+        List<String> segments = new ArrayList<>();
+        helper(s, 0, segments, results);
+        return results;
     }
 
-    // Check if a part of the IP address is valid
-    bool isValidPart(const string &part) {
-
-        // Leading zeros are invalid unless the part is exactly "0"
-        if (part.size() > 1 && part[0] == '0') {
-            return false;
+    private void helper(String s, int index, List<String> segments, List<String> results) {
+        if (segments.size() == 4) {
+            if (index == s.length()) {
+                results.add(String.join(".", segments));
+            }
+            return;
         }
+        for (int length = 1; length <= 3; length++) {
+            if (index + length > s.length()) break;
+            String part = s.substring(index, index + length);
+            if (isValidPart(part)) {
+                segments.add(part);
+                helper(s, index + length, segments, results);
+                segments.remove(segments.size() - 1);
+            }
+        }
+    }
 
-        // Convert part to integer and check range
-        int value = stoi(part);
-
-        // Valid if in the range 0-255
+    private boolean isValidPart(String part) {
+        if (part.length() > 1 && part.charAt(0) == '0') return false;
+        int value = Integer.parseInt(part);
         return value >= 0 && value <= 255;
     }
 
-    // Get all valid segments starting from index
-    vector<string> getSegments(const string &s, int index) {
-
-        vector<string> segments;
-
-        // Loop through possible substring lengths (1 to 3)
-        for (int len = 1; len <= 3; ++len) {
-
-            // Ensure we do not exceed the bounds of the string
-            if (index + len > s.size()) {
-                break;
-            }
-
-            // Extract the substring for the current segment
-            string part = s.substr(index, len);
-
-            // Only include valid segments
-            if (isValidPart(part)) {
-                segments.push_back(part);
-            }
-        }
-
-        return segments;
+    public static void main(String[] args) {
+        System.out.println(new Solution().generateIPAddresses("25525512235"));
     }
-
-    void generateCombinations(
-        const string &s,
-        int index,
-        vector<string> &currentSegments,
-        vector<string> &ipAddresses
-    ) {
-
-        // If the current state has 4 segments, check for solution
-        if (currentSegments.size() == 4) {
-
-            // If all characters in the string are used, store the
-            // solution
-            if (index == s.size()) {
-                ipAddresses.push_back(join(currentSegments));
-            }
-
-            // Return to continue exploring other possibilities
-            return;
-        }
-
-        // Get all valid segments (choices) starting at this index
-        vector<string> segments = getSegments(s, index);
-
-        // Loop through all valid choices
-        for (const string &segment : segments) {
-
-            // Include the current part in the state (make choice)
-            currentSegments.push_back(segment);
-
-            // Recurse with updated control (next starting index)
-            generateCombinations(
-                s, index + segment.size(), currentSegments, ipAddresses
-            );
-
-            // Backtrack by removing the last added part (revert choice)
-            currentSegments.pop_back();
-        }
-    }
-
-    vector<string> generateIPAddresses(const string &s) {
-
-        // Vector to store all valid IP addresses (solution states)
-        vector<string> ipAddresses;
-
-        // Temporary vector to store the current IP segments (state)
-        vector<string> currentSegments;
-
-        // Start the unconditional enumeration (backtracking) process
-        // from index 0
-        generateCombinations(s, 0, currentSegments, ipAddresses);
-
-        // Return the list of all valid IP addresses
-        return ipAddresses;
-    }
-};
+}
 ```
 
-***
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-# String permutations
+static int is_valid_part(const char *part) {
+    int len = (int) strlen(part);
+    if (len > 1 && part[0] == '0') return 0;
+    int v = atoi(part);
+    return v >= 0 && v <= 255;
+}
 
-## Problem Statement
+static void helper(const char *s, int n, int index, char segs[4][4], int segCount, char **results, int *count) {
+    if (segCount == 4) {
+        if (index == n) {
+            char buf[20];
+            snprintf(buf, sizeof(buf), "%s.%s.%s.%s", segs[0], segs[1], segs[2], segs[3]);
+            results[*count] = strdup(buf);
+            (*count)++;
+        }
+        return;
+    }
+    for (int length = 1; length <= 3; length++) {
+        if (index + length > n) break;
+        char part[4];
+        strncpy(part, s + index, length);
+        part[length] = '\0';
+        if (is_valid_part(part)) {
+            strcpy(segs[segCount], part);
+            helper(s, n, index + length, segs, segCount + 1, results, count);
+        }
+    }
+}
 
-Given a string **s**, write a function to return a list containing all the permutations of the string. You can return the list in **any order**.
+int main(void) {
+    const char *s = "25525512235";
+    int n = (int) strlen(s);
+    char segs[4][4];
+    char **results = (char **) malloc(sizeof(char *) * 100);
+    int count = 0;
+    helper(s, n, 0, segs, 0, results, &count);
+    for (int i = 0; i < count; i++) { printf("%s\n", results[i]); free(results[i]); }
+    free(results);
+    return 0;
+}
+```
 
-It is guaranteed that the length of the input string will not exceed more than five characters.
-
-## Example 1
-
-## Example 2
-
-> -   **Input:** s = abc
-> -   **Output:** \[abc, acb, bac, bca, cab, cba\]
-> -   **Explanation:** These are all the permutations of the string.
-
-## Solution
-
-```cpp
-using namespace std;
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <string>
 
 class Solution {
 public:
-    void generatePermutations(
-        string &state,
-        int index,
-        vector<string> &result
-    ) {
+    bool isValidPart(const std::string& part) {
+        if (part.length() > 1 && part[0] == '0') return false;
+        int value = std::stoi(part);
+        return value >= 0 && value <= 255;
+    }
 
-        // If index reaches the end of the string, we have found a
-        // permutation (solution state)
-        if (index == state.length()) {
-
-            // Add the current permutation (string) to the result vector
-            result.push_back(state);
-
-            // Return to continue exploring other possibilities
+    void helper(const std::string& s, int index, std::vector<std::string>& segments, std::vector<std::string>& results) {
+        if ((int) segments.size() == 4) {
+            if (index == (int) s.length()) {
+                std::string ip = segments[0] + "." + segments[1] + "." + segments[2] + "." + segments[3];
+                results.push_back(ip);
+            }
             return;
         }
-
-        // Loop through the characters starting from the current index
-        // to generate permutations (dynamic choices)
-        for (int i = index; i < state.length(); i++) {
-
-            // Swap the characters at the current index and i to create a
-            // new permutation (make choice)
-            swap(state[index], state[i]);
-
-            // Recursively call generate for the remaining characters
-            // (reduced input -> index + 1)
-            generatePermutations(state, index + 1, result);
-
-            // Swap back the characters to revert to the original string
-            // (revert choice)
-            swap(state[index], state[i]);
+        for (int length = 1; length <= 3; length++) {
+            if (index + length > (int) s.length()) break;
+            std::string part = s.substr(index, length);
+            if (isValidPart(part)) {
+                segments.push_back(part);
+                helper(s, index + length, segments, results);
+                segments.pop_back();
+            }
         }
     }
 
-    vector<string> stringPermutations(string s) {
-
-        // Vector to store the permutations
-        vector<string> result;
-
-        // Start the conditional enumeration process from index 0
-        generatePermutations(s, 0, result);
-
-        // Return the vector containing all permutations
-        return result;
+    std::vector<std::string> generateIPAddresses(const std::string& s) {
+        std::vector<std::string> results;
+        std::vector<std::string> segments;
+        helper(s, 0, segments, results);
+        return results;
     }
 };
+
+int main() {
+    auto r = Solution{}.generateIPAddresses("25525512235");
+    for (auto& x : r) std::cout << x << '\n';
+}
 ```
+
+```scala,editable
+import scala.collection.mutable.ArrayBuffer
+
+class Solution {
+  def generateIPAddresses(s: String): List[String] = {
+    val results = ArrayBuffer[String]()
+    val segments = ArrayBuffer[String]()
+    helper(s, 0, segments, results)
+    results.toList
+  }
+
+  private def helper(s: String, index: Int, segments: ArrayBuffer[String], results: ArrayBuffer[String]): Unit = {
+    if (segments.length == 4) {
+      if (index == s.length) results += segments.mkString(".")
+      return
+    }
+    var length = 1
+    while (length <= 3 && index + length <= s.length) {
+      val part = s.substring(index, index + length)
+      if (isValidPart(part)) {
+        segments += part
+        helper(s, index + length, segments, results)
+        segments.remove(segments.length - 1)
+      }
+      length += 1
+    }
+  }
+
+  private def isValidPart(part: String): Boolean = {
+    if (part.length > 1 && part.charAt(0) == '0') return false
+    val v = part.toInt
+    v >= 0 && v <= 255
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = println(new Solution().generateIPAddresses("25525512235"))
+}
+```
+
+```javascript,editable
+class Solution {
+    generateIPAddresses(s) {
+        const results = [];
+        const segments = [];
+        this._helper(s, 0, segments, results);
+        return results;
+    }
+
+    _helper(s, index, segments, results) {
+        if (segments.length === 4) {
+            if (index === s.length) results.push(segments.join("."));
+            return;
+        }
+        for (let length = 1; length <= 3; length++) {
+            if (index + length > s.length) break;
+            const part = s.substring(index, index + length);
+            if (this._isValidPart(part)) {
+                segments.push(part);
+                this._helper(s, index + length, segments, results);
+                segments.pop();
+            }
+        }
+    }
+
+    _isValidPart(part) {
+        if (part.length > 1 && part[0] === "0") return false;
+        const v = parseInt(part, 10);
+        return v >= 0 && v <= 255;
+    }
+}
+
+console.log(new Solution().generateIPAddresses("25525512235"));
+```
+
+```typescript,editable
+class Solution {
+    generateIPAddresses(s: string): string[] {
+        const results: string[] = [];
+        const segments: string[] = [];
+        this._helper(s, 0, segments, results);
+        return results;
+    }
+
+    private _helper(s: string, index: number, segments: string[], results: string[]): void {
+        if (segments.length === 4) {
+            if (index === s.length) results.push(segments.join("."));
+            return;
+        }
+        for (let length = 1; length <= 3; length++) {
+            if (index + length > s.length) break;
+            const part = s.substring(index, index + length);
+            if (this._isValidPart(part)) {
+                segments.push(part);
+                this._helper(s, index + length, segments, results);
+                segments.pop();
+            }
+        }
+    }
+
+    private _isValidPart(part: string): boolean {
+        if (part.length > 1 && part[0] === "0") return false;
+        const v = parseInt(part, 10);
+        return v >= 0 && v <= 255;
+    }
+}
+
+console.log(new Solution().generateIPAddresses("25525512235"));
+```
+
+```go,editable
+package main
+
+import (
+    "fmt"
+    "strconv"
+    "strings"
+)
+
+func isValidPart(part string) bool {
+    if len(part) > 1 && part[0] == '0' {
+        return false
+    }
+    v, _ := strconv.Atoi(part)
+    return v >= 0 && v <= 255
+}
+
+func helper(s string, index int, segments *[]string, results *[]string) {
+    if len(*segments) == 4 {
+        if index == len(s) {
+            *results = append(*results, strings.Join(*segments, "."))
+        }
+        return
+    }
+    for length := 1; length <= 3; length++ {
+        if index+length > len(s) {
+            break
+        }
+        part := s[index : index+length]
+        if isValidPart(part) {
+            *segments = append(*segments, part)
+            helper(s, index+length, segments, results)
+            *segments = (*segments)[:len(*segments)-1]
+        }
+    }
+}
+
+func generateIPAddresses(s string) []string {
+    results := []string{}
+    segments := []string{}
+    helper(s, 0, &segments, &results)
+    return results
+}
+
+func main() {
+    fmt.Println(generateIPAddresses("25525512235"))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun generateIPAddresses(s: String): List<String> {
+        val results = mutableListOf<String>()
+        val segments = mutableListOf<String>()
+        helper(s, 0, segments, results)
+        return results
+    }
+
+    private fun helper(s: String, index: Int, segments: MutableList<String>, results: MutableList<String>) {
+        if (segments.size == 4) {
+            if (index == s.length) results.add(segments.joinToString("."))
+            return
+        }
+        for (length in 1..3) {
+            if (index + length > s.length) break
+            val part = s.substring(index, index + length)
+            if (isValidPart(part)) {
+                segments.add(part)
+                helper(s, index + length, segments, results)
+                segments.removeAt(segments.size - 1)
+            }
+        }
+    }
+
+    private fun isValidPart(part: String): Boolean {
+        if (part.length > 1 && part[0] == '0') return false
+        val v = part.toInt()
+        return v in 0..255
+    }
+}
+
+fun main() {
+    println(Solution().generateIPAddresses("25525512235"))
+}
+```
+
+```rust,editable
+fn is_valid_part(part: &str) -> bool {
+    if part.len() > 1 && part.starts_with('0') { return false; }
+    match part.parse::<i32>() {
+        Ok(v) => (0..=255).contains(&v),
+        Err(_) => false,
+    }
+}
+
+fn helper(s: &str, index: usize, segments: &mut Vec<String>, results: &mut Vec<String>) {
+    if segments.len() == 4 {
+        if index == s.len() {
+            results.push(segments.join("."));
+        }
+        return;
+    }
+    for length in 1..=3 {
+        if index + length > s.len() { break; }
+        let part = &s[index..index + length];
+        if is_valid_part(part) {
+            segments.push(part.to_string());
+            helper(s, index + length, segments, results);
+            segments.pop();
+        }
+    }
+}
+
+fn generate_ip_addresses(s: &str) -> Vec<String> {
+    let mut results: Vec<String> = Vec::new();
+    let mut segments: Vec<String> = Vec::new();
+    helper(s, 0, &mut segments, &mut results);
+    results
+}
+
+fn main() {
+    println!("{:?}", generate_ip_addresses("25525512235"));
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — s = "25525512235"</strong></summary>
+
+```
+helper(idx=0, segs=[])
+├─ try '2'   → valid → recurse(idx=1, ['2'])      ... eventually fails (too many chars left)
+├─ try '25'  → valid → recurse(idx=2, ['25'])     ... eventually fails
+├─ try '255' → valid → recurse(idx=3, ['255'])
+│  ├─ try '2'   → valid → recurse(idx=4, ['255','2'])     ... eventually fails
+│  ├─ try '25'  → valid → recurse(idx=5, ['255','25'])    ... eventually fails
+│  ├─ try '255' → valid → recurse(idx=6, ['255','255'])
+│  │  ├─ try '1'   → valid → recurse(idx=7, ['255','255','1'])
+│  │  │  ├─ try '2'    → recurse(8, [...,'2'])      ... fails (too many chars)
+│  │  │  ├─ try '22'   → recurse(9, [...,'22'])     ... fails (too many)
+│  │  │  ├─ try '223'  → recurse(10, [...,'223'])   ... fails (too many)
+│  │  ├─ try '12'  → valid → recurse(idx=8, ['255','255','12'])
+│  │  │  ├─ try '2'    → recurse(9, [...,'2'])     leaf, idx=9 ≠ 11 → discard
+│  │  │  ├─ try '23'   → recurse(10, [...,'23'])   leaf, idx=10 ≠ 11 → discard
+│  │  │  ├─ try '235'  → recurse(11, [...,'235'])  leaf, idx=11=11 → RECORD "255.255.12.235"
+│  │  ├─ try '122' → valid → recurse(idx=9, ['255','255','122'])
+│  │  │  ├─ try '3'    → recurse(10, [...,'3'])    leaf, idx=10 ≠ 11 → discard
+│  │  │  ├─ try '35'   → recurse(11, [...,'35'])   leaf, idx=11=11 → RECORD "255.255.122.35"
+
+Result: ["255.255.12.235", "255.255.122.35"]
+```
+
+</details>
+
+---
+
+## Complexity Analysis
+
+| Resource | Cost | Why |
+|---|---|---|
+| **Time** | `O(81 · n)` = `O(n)` | At most `3⁴ = 81` ways to split into 4 segments; each takes `O(n)` to validate and join. |
+| **Space (output)** | `O(n × num_results)` | Up to 81 results × ~16 chars each. |
+| **Space (stack)** | `O(1)` (depth ≤ 4) | Constant — IP addresses always have 4 segments. |
+
+The constant depth is unusual; most backtracking has linear depth. The bound here is the *fixed* number of segments.
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected |
+|---|---|---|
+| Too short | `"12"` | `[]` (can't split into 4 segments). |
+| Too long | `"123456789012345"` | `[]` (every split has at least one over-3-char segment). |
+| All zeros | `"0000"` | `["0.0.0.0"]`. |
+| Leading zeros | `"010010"` | `["0.10.0.10"]` (others have leading zeros). |
+| Boundary 255 | `"255255255255"` | `["255.255.255.255"]`. |
+
+---
+
+## Final Takeaway
+
+Generate IPs combines several pruning rules: per-segment validation, segment-count constraint, total-length constraint. The recipe still fits the conditional-enumeration template — only the validation function gets richer. The next problem swaps the *style* of recursion: instead of "build an output one piece at a time," we *swap* characters in place to generate permutations.
+
+***
+
+# String Permutations
+
+> **Course:** DSA › Algorithms › Backtracking › Conditional Enumeration
+
+The swap-and-undo recipe. Different shape from the previous three problems — we mutate the input string directly to produce each permutation, then swap back to undo.
+
+---
+
+## The Problem
+
+Given a string `s`, return all permutations. Order doesn't matter. The input length is bounded (e.g., ≤ 5 characters).
+
+```
+Input:  s = "abc"
+Output: ["abc", "acb", "bac", "bca", "cab", "cba"]
+```
+
+---
+
+## What's the Recursion Doing?
+
+We process positions left-to-right. At position `index`, we try each "remaining unused character" by swapping it into position `index`. After recursing, we swap it back. The implicit choice-pool is "everything not yet placed in positions `0..index-1`."
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart TB
+  R["abc, idx=0"]
+  R -->|"swap idx=0 with 0 → 'abc'"| A["abc, idx=1"]
+  R -->|"swap idx=0 with 1 → 'bac'"| B["bac, idx=1"]
+  R -->|"swap idx=0 with 2 → 'cba'"| C["cba, idx=1"]
+  A -->|"swap 1↔1"| AA["abc"]
+  A -->|"swap 1↔2"| AB["acb"]
+  B -->|"swap 1↔1"| BA["bac"]
+  B -->|"swap 1↔2"| BB["bca"]
+  C -->|"swap 1↔1"| CA["cba"]
+  C -->|"swap 1↔2"| CB["cab"]
+```
+
+<p align="center"><strong>Permutation tree via swap-and-undo. At each level, we swap the current position with each remaining position. The leaves are all <code>n!</code> permutations.</strong></p>
+
+This is technically *unconditional* — every leaf is a valid permutation. We include it in the conditional-enumeration chapter because the *style* (swap during descent, swap-back to undo) is a different recipe from the earlier append/pop pattern, and you'll see it in many real conditional-enumeration problems where permutation-generation is a sub-step.
+
+---
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+from typing import List
+
+class Solution:
+    def string_permutations(self, s: str) -> List[str]:
+        chars = list(s)                          # make mutable
+        results: List[str] = []
+        self._helper(chars, 0, results)
+        return results
+
+    def _helper(self, chars: List[str], index: int, results: List[str]) -> None:
+        if index == len(chars):
+            results.append("".join(chars))
+            return
+        for i in range(index, len(chars)):
+            chars[index], chars[i] = chars[i], chars[index]    # swap
+            self._helper(chars, index + 1, results)
+            chars[index], chars[i] = chars[i], chars[index]    # swap back
+
+
+if __name__ == "__main__":
+    print(Solution().string_permutations("abc"))
+```
+
+```java,editable
+import java.util.ArrayList;
+import java.util.List;
+
+public class Solution {
+    public List<String> stringPermutations(String s) {
+        char[] chars = s.toCharArray();
+        List<String> results = new ArrayList<>();
+        helper(chars, 0, results);
+        return results;
+    }
+
+    private void helper(char[] chars, int index, List<String> results) {
+        if (index == chars.length) {
+            results.add(new String(chars));
+            return;
+        }
+        for (int i = index; i < chars.length; i++) {
+            char tmp = chars[index]; chars[index] = chars[i]; chars[i] = tmp;
+            helper(chars, index + 1, results);
+            tmp = chars[index]; chars[index] = chars[i]; chars[i] = tmp;
+        }
+    }
+
+    public static void main(String[] args) {
+        System.out.println(new Solution().stringPermutations("abc"));
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static void helper(char *chars, int n, int index, char **results, int *count) {
+    if (index == n) {
+        results[*count] = strdup(chars);
+        (*count)++;
+        return;
+    }
+    for (int i = index; i < n; i++) {
+        char tmp = chars[index]; chars[index] = chars[i]; chars[i] = tmp;
+        helper(chars, n, index + 1, results, count);
+        tmp = chars[index]; chars[index] = chars[i]; chars[i] = tmp;
+    }
+}
+
+int main(void) {
+    char chars[] = "abc";
+    int n = 3;
+    char **results = (char **) malloc(sizeof(char *) * 100);
+    int count = 0;
+    helper(chars, n, 0, results, &count);
+    for (int i = 0; i < count; i++) { printf("%s\n", results[i]); free(results[i]); }
+    free(results);
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+
+class Solution {
+public:
+    void helper(std::string& chars, int index, std::vector<std::string>& results) {
+        if (index == (int) chars.length()) {
+            results.push_back(chars);
+            return;
+        }
+        for (int i = index; i < (int) chars.length(); i++) {
+            std::swap(chars[index], chars[i]);
+            helper(chars, index + 1, results);
+            std::swap(chars[index], chars[i]);
+        }
+    }
+
+    std::vector<std::string> stringPermutations(std::string s) {
+        std::vector<std::string> results;
+        helper(s, 0, results);
+        return results;
+    }
+};
+
+int main() {
+    auto r = Solution{}.stringPermutations("abc");
+    for (auto& x : r) std::cout << x << '\n';
+}
+```
+
+```scala,editable
+import scala.collection.mutable.ArrayBuffer
+
+class Solution {
+  def stringPermutations(s: String): List[String] = {
+    val chars = s.toCharArray
+    val results = ArrayBuffer[String]()
+    helper(chars, 0, results)
+    results.toList
+  }
+
+  private def helper(chars: Array[Char], index: Int, results: ArrayBuffer[String]): Unit = {
+    if (index == chars.length) {
+      results += new String(chars)
+      return
+    }
+    for (i <- index until chars.length) {
+      val tmp = chars(index); chars(index) = chars(i); chars(i) = tmp
+      helper(chars, index + 1, results)
+      val tmp2 = chars(index); chars(index) = chars(i); chars(i) = tmp2
+    }
+  }
+}
+
+object Main {
+  def main(args: Array[String]): Unit = println(new Solution().stringPermutations("abc"))
+}
+```
+
+```javascript,editable
+class Solution {
+    stringPermutations(s) {
+        const chars = [...s];
+        const results = [];
+        this._helper(chars, 0, results);
+        return results;
+    }
+
+    _helper(chars, index, results) {
+        if (index === chars.length) {
+            results.push(chars.join(""));
+            return;
+        }
+        for (let i = index; i < chars.length; i++) {
+            [chars[index], chars[i]] = [chars[i], chars[index]];
+            this._helper(chars, index + 1, results);
+            [chars[index], chars[i]] = [chars[i], chars[index]];
+        }
+    }
+}
+
+console.log(new Solution().stringPermutations("abc"));
+```
+
+```typescript,editable
+class Solution {
+    stringPermutations(s: string): string[] {
+        const chars: string[] = [...s];
+        const results: string[] = [];
+        this._helper(chars, 0, results);
+        return results;
+    }
+
+    private _helper(chars: string[], index: number, results: string[]): void {
+        if (index === chars.length) {
+            results.push(chars.join(""));
+            return;
+        }
+        for (let i = index; i < chars.length; i++) {
+            [chars[index], chars[i]] = [chars[i], chars[index]];
+            this._helper(chars, index + 1, results);
+            [chars[index], chars[i]] = [chars[i], chars[index]];
+        }
+    }
+}
+
+console.log(new Solution().stringPermutations("abc"));
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func helper(chars []byte, index int, results *[]string) {
+    if index == len(chars) {
+        *results = append(*results, string(chars))
+        return
+    }
+    for i := index; i < len(chars); i++ {
+        chars[index], chars[i] = chars[i], chars[index]
+        helper(chars, index+1, results)
+        chars[index], chars[i] = chars[i], chars[index]
+    }
+}
+
+func stringPermutations(s string) []string {
+    chars := []byte(s)
+    results := []string{}
+    helper(chars, 0, &results)
+    return results
+}
+
+func main() {
+    fmt.Println(stringPermutations("abc"))
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun stringPermutations(s: String): List<String> {
+        val chars = s.toCharArray()
+        val results = mutableListOf<String>()
+        helper(chars, 0, results)
+        return results
+    }
+
+    private fun helper(chars: CharArray, index: Int, results: MutableList<String>) {
+        if (index == chars.size) {
+            results.add(String(chars))
+            return
+        }
+        for (i in index until chars.size) {
+            val tmp = chars[index]; chars[index] = chars[i]; chars[i] = tmp
+            helper(chars, index + 1, results)
+            val tmp2 = chars[index]; chars[index] = chars[i]; chars[i] = tmp2
+        }
+    }
+}
+
+fun main() {
+    println(Solution().stringPermutations("abc"))
+}
+```
+
+```rust,editable
+fn helper(chars: &mut Vec<char>, index: usize, results: &mut Vec<String>) {
+    if index == chars.len() {
+        results.push(chars.iter().collect());
+        return;
+    }
+    for i in index..chars.len() {
+        chars.swap(index, i);
+        helper(chars, index + 1, results);
+        chars.swap(index, i);
+    }
+}
+
+fn string_permutations(s: &str) -> Vec<String> {
+    let mut chars: Vec<char> = s.chars().collect();
+    let mut results: Vec<String> = Vec::new();
+    helper(&mut chars, 0, &mut results);
+    results
+}
+
+fn main() {
+    println!("{:?}", string_permutations("abc"));
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — s = "abc"</strong></summary>
+
+```
+helper("abc", index=0)
+├─ swap 0,0 → "abc" → helper("abc", index=1)
+│  ├─ swap 1,1 → "abc" → helper("abc", index=2) → leaf "abc" → swap back
+│  ├─ swap 1,2 → "acb" → helper("acb", index=2) → leaf "acb" → swap back → "abc"
+│  swap back
+├─ swap 0,1 → "bac" → helper("bac", index=1)
+│  ├─ swap 1,1 → "bac" → leaf
+│  ├─ swap 1,2 → "bca" → leaf → swap back → "bac"
+│  swap back → "abc"
+├─ swap 0,2 → "cba" → helper("cba", index=1)
+│  ├─ swap 1,1 → "cba" → leaf
+│  ├─ swap 1,2 → "cab" → leaf → swap back → "cba"
+│  swap back → "abc"
+
+Result: ["abc","acb","bac","bca","cba","cab"]
+```
+
+</details>
+
+---
+
+## Complexity Analysis
+
+| Resource | Cost |
+|---|---|
+| **Time** | `O(n · n!)` |
+| **Space (output)** | `O(n · n!)` |
+| **Space (stack)** | `O(n)` |
+
+`n!` permutations × `O(n)` to copy each into the result.
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected |
+|---|---|---|
+| Empty | `""` | `[""]` (one empty permutation). |
+| Single | `"a"` | `["a"]`. |
+| Duplicates | `"aa"` | swap-style produces `["aa", "aa"]` — two identical entries. (To dedupe: skip i if chars[i] equals chars[index], a separate variant.) |
+| Five chars | `"abcde"` | 120 permutations. |
+
+---
+
+## Final Takeaway
+
+String Permutations is the swap-and-undo recipe. The state mutation is happening *inside* the input itself, and the undo restores it for the parent. This shape is also used in N-Queens (the Backtracking Search lesson) where we mutate a board representation directly. With these four problems, you've now covered conditional enumeration's full vocabulary: choice-bounded pruning (parentheses), constraint-bounded pruning (target sum), multi-pronged validation (IP addresses), and swap-and-undo state mutation (permutations).
+
+You came in with the discipline of unconditional enumeration. You're leaving with two new tools — pruning rules and constraint checking — that turn brute-force backtracking into something practical for problems with billions of candidates. The next lesson lifts the focus from *enumeration* to *search*: instead of finding *all* solutions, we want *one* — and the algorithm can stop as soon as it succeeds.
+
+**Transfer challenge — try before the Backtracking Search lesson:** Modify the Generate Parentheses solution to count the number of valid combinations *without storing them all*. What changes? What's the time complexity? (Hint: the recursion's structure stays the same; only the leaf action changes.)
+
+<details>
+<summary><strong>Answer — open after you've thought about it</strong></summary>
+
+```python,editable
+class Solution:
+    def count_balanced(self, n: int) -> int:
+        return self._helper(n, 0, 0, 0)
+
+    def _helper(self, n: int, length: int, opens: int, closes: int) -> int:
+        if length == 2 * n:
+            return 1                         # one valid leaf
+        count = 0
+        if opens < n:
+            count += self._helper(n, length + 1, opens + 1, closes)
+        if closes < opens:
+            count += self._helper(n, length + 1, opens, closes + 1)
+        return count
+
+
+print(Solution().count_balanced(3))   # 5 (the 3rd Catalan number)
+```
+
+The change: instead of recording leaves into a list, return `1` from each leaf and *sum* the returns. The recursion shape and pruning are identical; the leaf action is different. Time and space stay `O(n · C(n))` and `O(n)` respectively — same tree, less output.
+
+This pattern (count instead of enumerate) is a tiny step toward dynamic programming. Memoising the call by `(opens, closes, length)` would collapse the repeated subtrees and turn this into `O(n²)` time. **You're one cache away from the next major topic.**
+
+</details>
