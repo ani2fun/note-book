@@ -1,175 +1,642 @@
-# Understanding the palindrome partitioning problem
+# 8. Palindrome Partitioning — Minimum Cuts
 
-In many string processing softwares, the program must divide a string into smaller components while preserving certain structural properties. One such property is symmetry, and an interesting variation is when we want every piece to read the same forward and backwards. In such cases, instead of searching for a single large palindromic substring, we may want to partition the entire string into smaller palindromic pieces
+The previous two lessons hunted for *one* palindrome inside a string — the longest subsequence, then the longest contiguous substring. Now the demand flips: split the **whole** string so that every single piece is a palindrome, and use as few cuts as possible. `"abbbc"` looks unfriendly until you see it as `a | bbb | c` — three palindromic pieces, two cuts. The naive thing is to try every possible partition, but a string of length `n` has `2^(n-1)` ways to drop dividers; brute force collapses fast. Underneath, every cut decision depends on choices already made — classic optimal substructure with overlapping subproblems.
 
-This is known as the palindrome partitioning problem, where the objective is to determine the fewest cuts needed to ensure every resulting substring reads the same forwards and backwards.
+By the end of this lesson you'll know the **minimum-cut palindrome partitioning** recurrence (`cuts[i] = 0` when `s[0..i]` is itself palindromic, otherwise `min(cuts[j] + 1)` over every `j` where `s[j+1..i]` is palindromic), why the state collapses to *one* index instead of two, and how to interleave a precomputed palindromicity table with the cuts pass so each cell does only `O(n)` work — keeping the whole algorithm at `O(n²)`.
 
-// Diagram: Find the minimum number of cuts in a string to make every partition a palindrome.
+## Table of contents
 
-The palindrome partitioning problem serves as a cornerstone for sequence segmentation and has significant utility in bioinformatics for RNA structure prediction, data scrubbing in text processing, and optimizing storage in specialized compression formats.
-
-In this lesson, we will learn about the palindrome partitioning problem and how it can be solved efficiently using a dynamic programming solution.
-
-## The palindrom partitioning problem
-
-Consider we are given a string `s` of length `n`. A substring is a contiguous sequence of characters, and a palindrome is a string that reads the same in both directions, such as "aa", "racecar", etc.
-
-// Diagram: A string of size 6.
-
-Our goal is to partition `s` into substrings such that:
-
--   Every substring is a palindrome.
--   The number of cuts used is minimized.
-
-If a string is already a palindrome, then no cuts are required. Otherwise, we must decide where to cut so that each resulting piece satisfies the palindrome condition. We need to find the **minimum** number of cuts needed to partition the `s` into palindromic substrings.
-
-// Diagram: Find the minimum number of cuts to make every partition a palindrome.
-
-### Optimal substructure
-
-It is easy to prove that the optimal solution to the palindrome partitioning problem can be constructed from optimal solutions to its smaller subproblems. To see this, consider a substring `s[i...j]` and think about what choices are available to us.
-
-The most important observation is: if `s[i...j]` is already a palindrome, no cuts are needed at all. We are done for this range.
-
-// Diagram: If the substring s\[i...j\] is a palindrome, no cuts are needed to partition it into palindromic substrings.
-
-If `s[i...j]` is not a palindrome, then we must make at least one cut somewhere within it. For each possible cut position `k`, where `i ≤ k < j`, we split the substring into a left part `s[i...k]` and a right part `s[k+1...j]`.
-
-// Diagram: Split the substring s\[i...j\] into left and right parts for all values of k such that i <= k < j.
-
-However, not every cut position is valid, as we can only cut the substring at the index `k` if the left part `s[i...k]` is a palindrome.
-
-// Diagram: Only the positions where the substring s\[i...k\] is a palindrome are valid cut positions.
-
-If we choose the first valid cut, then the **minimum** number of cuts we need to make to partition the entire substring `s[i...j]` into palindromes would be `1` +  the **minimum** number of cuts needed to partition `s[k+1...j]` into palindromes.
-
-// Diagram: For a valid cut, the solution is 1 + the minimum number of cuts for the substring s\[k+1...j\].
-
-However, this may not be the most optimal solution of `s[i...j]` as some other value of `k` greater than the previous value may result in an overall lesser number of cuts. Since we want the **minimum** number of cuts, we take the **minimum** value of total cuts needed for `s[i...j]` over all valid cut positions `k` where `i<= k < j` and `s[i...k]` is a palindrome.
-
-// Diagram: We chose the cut that has the minimum number of cuts needed for partitioning the right substring.
-
-**Why don't we start cutting from the right and recurse in the left part?**
-
-It can be proved that iterating using `k` in any direction (left to right or right to left) will result in the same solution. Both formulations enumerate exactly the same set of partitions, just indexed differently. Any optimal partition of `s[i...j]` into palindromic pieces has a well-defined **first** cut and a well-defined **last** cut. Fixing the **left** segment as a palindrome and recursing right corresponds to choosing where the **first** cut falls, while fixing the **right** segment as a palindrome and recursing left corresponds to choosing where the **last** cut falls.
-
-Based on the above, it is clear that to find the minimum cuts for `s[i...j]`, we have the following cases:
-
--   If `s[i...j]` is a palindrome, no cut is needed and so the minimum cuts is `0`.
--   Otherwise, for each position `k` where `i <= k < j` and `s[i...k]` is a palindrome, the cost of cutting at position `k` is `1` + minimum cuts for `s[k+1][j]`. We take the minimum over all such valid `k`.
-
-The solution to the problem depends on the optimal solution of these smaller subproblems.
-
-// Diagram: The optimal solution to the problem depends on the optimal solution to the smaller subproblems.
-
-Note that the subproblems are uniquely identified by two dimensions: the starting index `i` and the ending index `j` of the substring.
-
-Based on the optimal substructure above, we can define the relationship between the problem and its subproblems. We define `isPalindrome(i, j)` that returns whether `s[i...j]` is a palindrome, and `minCuts(i, j)` that returns the minimum number of cuts to palindrome-partition `s[i...j]`.
-
-// Diagram: Define functions minCuts and isPalindrome to find the minimum partitions and check if a substring is a palindrome.
-
-The base cases are:
-
--   Any single character is a palindrome and requires no cuts, so `isPalindrome(i, i) = true` and `minCuts(i, i) = 0` if `i == j`.
--   If `i > j` then `isPalindrome(i, j) = false`, then `minCuts(i, j) = 0`.
-
-// Diagram: The base cases for the minCuts and isPalindrome functions.
-
-To determine `isPalindrome(i, j)`, we check whether `s[i]` equals `s[j]` and whether `isPalindrome(i+1, j-1)` is `true`.
-
-// Diagram: The recurrence relation for the isPalindrome function.
-
-To get the solution for `minCuts(i, j)`, we scan every cut position `k` from `i` to `j-1`. For each `k` where `isPalindrome(i, k)` is true, we evaluate `1 + minCuts(k+1, j)` and take the **minimum** across all such `k`.
-
-Note that there are two recursive functions `isPalindrome` and `minCuts`, where the `minCuts` depends on results from `isPalindrome`.
-
-The recurrence relation below expresses the solution to the problem as a function of solutions to smaller problems. The solution to the original problem is `minCuts(0, n-1)` where n is the length of `s`.
-
-// Diagram: The recurrence relation for the palindrome partitioning problem.
-
-### Overlapping Subproblems
-
-It is easy to see that the recurrence produces many overlapping subproblems. To compute `minCuts(i, j)`, we evaluate `minCuts(k+1, j)` for every `k` where `isPalindrome(i, k)` holds `true`. Each of those calls to `minCuts(k+1, j)` requires its own set of palindrome checks and further recursive calls.
-
-// Diagram: The minCuts function calls the isPalindrome function on multiple ranges and then recursively calls itself depending on the result.
-
-The converse of it is easy to visualize and understand. Conversely, `minCuts(k+1, j)` appears not only when computing `minCuts(i, j)`, but also when computing `minCuts(i', j)` for any `i' < k+1` such that `isPalindrome(i', k)` is `true`. We use `i1, ... , im` to depict the different values of such `i'`.
-
-// Diagram: A problem state may appear as a subproblem in many other problem states.
-
-A brute-force recursive solution recomputes the same subproblems each time they are reached from different paths, leading to exponential time complexity. Since these overlapping subproblems exist, the problem can be solved efficiently using either a top-down dynamic programming approach with memoization or a bottom-up dynamic programming approach built from the base cases upward.
+1. [The Partitioning Problem](#the-partitioning-problem)
+2. [Optimal Substructure — Fix the Last Piece](#optimal-substructure--fix-the-last-piece)
+3. [Two Tables, One Pass](#two-tables-one-pass)
+4. [Palindrome Partitioning — Minimum Cuts](#palindrome-partitioning--minimum-cuts)
 
 ***
 
-# Minimum partitioning
+# The Partitioning Problem
 
-## Problem Statement
+> **Course:** DSA › Algorithms › Dynamic Programming › Palindrome Partitioning
 
-Given a string **s**, write a function to find and return the minimum number of cuts needed to partition it such that each partition of the string is a palindrome.
+Given a string `s` of length `n`, find the **minimum number of cuts** so that every resulting piece reads the same forward and backward.
 
-### Example 1
+```d2
+direction: right
+ex: "Example: s = 'abbbc' → minimum cuts = 2" {
+  grid-rows: 2
+  grid-columns: 5
+  grid-gap: 0
+  c0: "a" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  c1: "b"
+  c2: "b"
+  c3: "b"
+  c4: "c" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  i0: "[0]"
+  i1: "[1]"
+  i2: "[2]"
+  i3: "[3]"
+  i4: "[4]"
+}
+```
 
-> -   **Input:** s = abbbc
-> -   **Output:** 2
-> -   **Explanation:** We can make two cuts to get the strings \[a, bbb, c\], each of which is a palindrome.
+<p align="center"><strong>Two cuts split <code>"abbbc"</code> into <code>a | bbb | c</code> — three palindromic pieces. Highlighted cells mark where the cuts fall (after index 0 and after index 3). <em>k</em> cuts always produce <em>k + 1</em> pieces.</strong></p>
 
-### Example 2
+The brute force enumerates every way to drop dividers — `2^(n-1)` partitions — and checks each one. Optimal substructure plus overlapping subproblems shrink this to `O(n²)`.
 
-> -   **Input:** s = abcdef
-> -   **Output:** 5
-> -   **Explanation:** We can make five cuts to get the strings \[a, b, c, d, e\], each of which is a palindrome.
+> *Predict before reading on — for `s = "aab"`, what's the minimum number of cuts?*
 
-### Example 3
+`1`. The whole string `"aab"` isn't palindromic (it reads `"baa"` backward), so 0 cuts is impossible. The naive split `a | a | b` uses 2 cuts. But `aa | b` works with just 1 — the first piece `"aa"` is already palindromic.
 
-> -   **Input:** s = aaa
-> -   **Output:** 0
-> -   **Explanation:** The given string is already a palindrome so we do not need to make a cut.
+The lesson: greedy "cut at the first non-match" misses better options. We need to compare all valid partitions and pick the cheapest.
 
-## Solution
+## Where this shows up
 
-```cpp
+Sequence segmentation appears all over the stack: tokenisation in NLP, RNA secondary-structure prediction in bioinformatics, run-length-style compression where each run must satisfy a structural property, and any "split a sequence into satisfying pieces" decision in a compiler or interpreter. The recurrence we'll derive here generalises far past palindromes.
+
+---
+
+## Key Takeaway
+
+Palindrome partitioning counts **cuts**, not pieces. Brute force is `2^(n-1)`; DP is `O(n²)`. Greedy fails because the first valid split isn't always the best.
+
+***
+
+# Optimal Substructure — Fix the Last Piece
+
+> **Course:** DSA › Algorithms › Dynamic Programming › Palindrome Partitioning
+
+Define `cuts[i]` = minimum cuts needed to palindrome-partition the prefix `s[0..i]`. Two cases:
+
+**Case 1 — `s[0..i]` is itself a palindrome.** The whole prefix is already one valid piece. No cut needed:
+```
+cuts[i] = 0
+```
+
+**Case 2 — `s[0..i]` is not a palindrome.** We must place at least one cut. Iterate the position `j` of the **last cut**, where `0 ≤ j < i`. The rightmost piece is `s[j+1..i]`; if it's palindromic, the partition is valid, and the leftover work is exactly `cuts[j]`:
+```
+cuts[i] = min over all valid j of (cuts[j] + 1)
+       where "valid" means s[j+1..i] is a palindrome
+```
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+  CASE["s[0..i] palindromic?"]
+  CASE -->|"yes"| ZERO["cuts[i] = 0<br/>whole prefix is one piece"]
+  CASE -->|"no"| MIN["cuts[i] = min over j of<br/>cuts[j] + 1<br/>where s[j+1..i] is a palindrome"]
+```
+
+<p align="center"><strong>Two cases of the recurrence. If the entire prefix is already a palindrome, no cut is needed. Otherwise, try every position for the last cut and pick the cheapest.</strong></p>
+
+> *Pause. Why fix the **last** cut, not the **first**? Predict the consequence of either choice.*
+
+It's a choice, not a constraint — both formulations enumerate exactly the same set of partitions, just indexed differently. Any valid partitioning of `s[0..i]` has a well-defined first cut and a well-defined last cut. Fixing the *first* cut and recursing on the right works; fixing the *last* cut and recursing on the left works. The convention is to fix the last cut because it lines up cleanly with prefix-indexed DP — `cuts[0], cuts[1], ..., cuts[n-1]` fills left-to-right, with each cell looking *backward* at smaller already-filled cells.
+
+## Why the State Is 1D, Not 2D
+
+LPSubstr last lesson used a 2D state `(i, j)` — a substring's two endpoints. Why does this problem get away with one index? Because we always partition a *prefix*, never an arbitrary middle slice. Once you fix the last piece, the leftover is `s[0..j]` — another prefix. The recursion shrinks only the right edge; the left edge stays pinned at `0`. One shrinking dimension means one index of state.
+
+If the problem changed to "minimum cuts to partition any substring `s[i..j]`", the state would jump to 2D `(i, j)`. The 1D-vs-2D split is dictated by what stays fixed.
+
+---
+
+## Key Takeaway
+
+Optimal substructure for partition problems: fix one piece (here, the last), recurse on the rest. State stays 1D when the recursion shrinks only one direction.
+
+***
+
+# Two Tables, One Pass
+
+> **Course:** DSA › Algorithms › Dynamic Programming › Palindrome Partitioning
+
+The recurrence asks `"is s[j+1..i] a palindrome?"` inside its inner loop. Naively that's an `O(n)` check, blowing the total cost to `O(n³)`. We need an `O(1)` palindromicity lookup.
+
+The fix is a precomputed `isPalin[i][j]` table — exactly the boolean table from the previous lesson:
+```
+isPalin[i][j] = (s[i] == s[j]) AND (j - i ≤ 2 OR isPalin[i+1][j-1])
+```
+
+Two ways to combine the two tables:
+
+1. **Two passes** — first fill the entire `isPalin` table by length (length 1 → length `n`), then sweep `cuts`.
+2. **One pass** — extend `isPalin[start][end]` *as `end` grows*. For each new `end`, scan `start` from `0` to `end`, computing `isPalin[start][end]` and updating `cuts[end]` in the same loop body. Each `isPalin` lookup is `O(1)` because the smaller interval `isPalin[start+1][end-1]` was filled when `end-1` was the outer loop's value.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+  E0["End = 0..n-1<br/>outer loop"]
+  E0 --> S0["Start = 0..end<br/>inner loop"]
+  S0 --> ISP["Compute isPalin[start][end]<br/>using s[start]==s[end]<br/>and isPalin[start+1][end-1]"]
+  ISP --> CUTS["If palindromic:<br/>update cuts[end]<br/>= min(cuts[end], cuts[start-1] + 1)"]
+  CUTS --> S0
+```
+
+<p align="center"><strong>The one-pass shape. Each iteration of the outer loop seals one column of the <code>isPalin</code> table and finalises one cell of <code>cuts</code>. Same <code>O(n²)</code> time as the two-pass version, fewer table writes overall.</strong></p>
+
+Both versions are `O(n²)` time and `O(n²)` space — only the loop nesting differs. The one-pass version is what the original CodeIntuition implementation uses, and it's what we'll code below.
+
+> *Predict before reading on — when the inner loop hits `start = 0` (cutting before the first character), the recurrence wants `cuts[start - 1] = cuts[-1]`. What should this represent?*
+
+It's the "no cut at all" case — `s[0..end]` is itself a palindrome. We can either special-case `start == 0` to set `cuts[end] = 0` directly, or pad the array with a sentinel `cuts[-1] = -1` so that `cuts[-1] + 1 = 0`. Both work; the special-case version reads more clearly.
+
+---
+
+## Key Takeaway
+
+Two-phase DPs ("predicate first, optimisation second") are common when the predicate has its own recurrence. Compute it upfront *or* interleave it with the main loop — same complexity, different code shape.
+
+***
+
+# Palindrome Partitioning — Minimum Cuts
+
+> **Course:** DSA › Algorithms › Dynamic Programming › Palindrome Partitioning
+
+## The Problem
+
+Given a string `s`, return the minimum number of cuts to partition it so every piece is a palindrome.
+
+```
+Input:  s = "abbbc"
+Output: 2                  Cuts: a | bbb | c
+
+Input:  s = "abcdef"
+Output: 5                  Cuts: a | b | c | d | e | f  (no two adjacent characters match)
+
+Input:  s = "aaa"
+Output: 0                  Already a palindrome — no cuts needed
+```
+
+---
+
+## Applying the Diagnostic Questions
+
+| # | Question | Answer |
+|---|---|---|
+| **Q1** | Optimal substructure? | **Yes** — every valid partition of `s[0..i]` decomposes into a last palindromic piece plus an optimum partition of the prefix to its left. |
+| **Q2** | Overlapping subproblems? | **Yes** — `cuts[j]` is reused by every later index `i > j` whose last palindromic piece starts at `j+1`. |
+| **Q3** | 1D or 2D state? | **1D** — only the prefix's right endpoint varies; the left endpoint is pinned at `0`. |
+| **Q4** | Answer's location? | **`cuts[n-1]`** — the optimum for the entire string. |
+
+### Q1 — Why "Yes"?
+
+**Mental model.** Imagine you've already made every cut. The *last* piece must end at index `n-1` and start at some index `j+1`. Whatever cuts came before turned `s[0..j]` into palindromic pieces optimally — otherwise we could re-do them and lower the total. So the optimum at `i` = (cost of one last cut) + (optimum at `j`).
+
+**Concrete numbers.** For `s = "abbbc"`, the optimal partition `a | bbb | c` has its last piece `"c"` starting at index 4. `cuts[4] = cuts[3] + 1`. And `cuts[3]` solves the same problem for `"abbb"` — which is `a | bbb`, one cut. So `cuts[4] = 1 + 1 = 2`. ✓
+
+**What breaks otherwise.** Suppose at `i = 4` we used a *suboptimal* `cuts[3]`. Then we could replace those choices with the real optimum for `s[0..3]` and lower the total — meaning our claimed minimum at `i = 4` wasn't actually minimum. Contradiction.
+
+### Q2 — Why "Yes"?
+
+**Mental model.** When you compute `cuts[i]`, you ask `cuts[j]` for many different `j`. Each of those `cuts[j]` was already asked for by *every* `i' > i` whose last cut might land at `j`. The same value gets queried over and over.
+
+**Concrete numbers.** For `s = "abcabc"`: computing `cuts[5]` reads `cuts[0], cuts[1], ..., cuts[4]`. Computing `cuts[4]` reads `cuts[0], cuts[1], cuts[2], cuts[3]`. The values `cuts[0..3]` are reused at every later index. Without memoization (i.e. recursing instead of tabulating), each is recomputed every time it's asked for — exponential.
+
+**What breaks otherwise.** Drop the table; recurse top-down with no cache. Time blows up to roughly `Θ(2^n)` because each `cuts(i)` re-derives every smaller subproblem from scratch.
+
+### Q3 — Why 1D, not 2D?
+
+**Mental model.** A partition always covers a *prefix* of `s`. The left edge stays pinned at index 0 — only the right edge `i` varies. One free index = 1D state.
+
+**Concrete numbers.** A 2D state `cuts[i][j]` would have `n²` cells. We'd be answering "minimum cuts for every substring of `s`" — far more questions than needed. We only ever ask about prefixes, so we only need `n` cells.
+
+**What breaks otherwise.** Using a 2D state still works, just wastes space. Using a 0D (single number) state breaks correctness because we lose the ability to compose subproblems.
+
+### Q4 — Why `cuts[n-1]`?
+
+**Mental model.** The whole problem is "minimum cuts for `s[0..n-1]`" — exactly the cell at index `n-1`.
+
+**Concrete numbers.** For `s = "abbbc"`, `n = 5`, answer = `cuts[4] = 2`.
+
+**What breaks otherwise.** Reading any earlier index would answer the question for a *strict prefix* of `s`, not the full string.
+
+---
+
+## The Solution
+
+The implementation interleaves the `isPalin` table with the `cuts` array — one outer loop on `end`, one inner loop on `start`.
+
+<div class="lang-tabs">
+
+```python,editable
+from typing import List
+
+class Solution:
+    def min_palindrome_cuts(self, s: str) -> int:
+        n = len(s)
+        if n <= 1:
+            return 0                               # Empty or single char is already palindromic
+        # is_palin[i][j] is True iff s[i..j] is a palindrome.
+        is_palin: List[List[bool]] = [[False] * n for _ in range(n)]
+        # cuts[i] = minimum cuts needed for s[0..i].
+        cuts: List[int] = [0] * n
+        for end in range(n):
+            min_cuts = end                         # Worst case: cut between every char → end cuts
+            for start in range(end + 1):
+                # s[start..end] is a palindrome iff endpoints match AND
+                # interior is palindromic (or interior has ≤ 1 char, no need to check).
+                if s[start] == s[end] and (end - start <= 2 or is_palin[start + 1][end - 1]):
+                    is_palin[start][end] = True
+                    if start == 0:
+                        # The whole prefix s[0..end] is one palindromic piece — no cut.
+                        min_cuts = 0
+                    else:
+                        # Last piece is s[start..end]; preceding work cost cuts[start-1] + 1.
+                        min_cuts = min(min_cuts, cuts[start - 1] + 1)
+            cuts[end] = min_cuts
+        return cuts[n - 1]
+
+
+if __name__ == "__main__":
+    print(Solution().min_palindrome_cuts("abbbc"))     # 2
+    print(Solution().min_palindrome_cuts("abcdef"))    # 5
+    print(Solution().min_palindrome_cuts("aaa"))       # 0
+```
+
+```java,editable
+public class Solution {
+    public int minPalindromeCuts(String s) {
+        int n = s.length();
+        if (n <= 1) return 0;
+        boolean[][] isPalin = new boolean[n][n];
+        int[] cuts = new int[n];
+        for (int end = 0; end < n; end++) {
+            int minCuts = end;
+            for (int start = 0; start <= end; start++) {
+                if (s.charAt(start) == s.charAt(end)
+                        && (end - start <= 2 || isPalin[start + 1][end - 1])) {
+                    isPalin[start][end] = true;
+                    if (start == 0) minCuts = 0;
+                    else minCuts = Math.min(minCuts, cuts[start - 1] + 1);
+                }
+            }
+            cuts[end] = minCuts;
+        }
+        return cuts[n - 1];
+    }
+
+    public static void main(String[] args) {
+        System.out.println(new Solution().minPalindromeCuts("abbbc"));    // 2
+        System.out.println(new Solution().minPalindromeCuts("abcdef"));   // 5
+        System.out.println(new Solution().minPalindromeCuts("aaa"));      // 0
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+#include <string.h>
+#include <stdbool.h>
+
+bool is_palin[1001][1001];
+int cuts_arr[1001];
+
+int min_palindrome_cuts(const char *s) {
+    int n = (int) strlen(s);
+    if (n <= 1) return 0;
+    for (int i = 0; i < n; i++) for (int j = 0; j < n; j++) is_palin[i][j] = false;
+    for (int end = 0; end < n; end++) {
+        int min_cuts = end;
+        for (int start = 0; start <= end; start++) {
+            if (s[start] == s[end] && (end - start <= 2 || is_palin[start + 1][end - 1])) {
+                is_palin[start][end] = true;
+                if (start == 0) min_cuts = 0;
+                else if (cuts_arr[start - 1] + 1 < min_cuts) min_cuts = cuts_arr[start - 1] + 1;
+            }
+        }
+        cuts_arr[end] = min_cuts;
+    }
+    return cuts_arr[n - 1];
+}
+
+int main(void) {
+    printf("%d\n", min_palindrome_cuts("abbbc"));     // 2
+    printf("%d\n", min_palindrome_cuts("abcdef"));    // 5
+    printf("%d\n", min_palindrome_cuts("aaa"));       // 0
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <string>
+#include <vector>
 #include <climits>
-
-using namespace std;
 
 class Solution {
 public:
-    int minimumPartitioning(string s) {
-        int n = s.length();
-
-        // Create a 2D table to store the minimum cuts needed
-        vector<vector<int>> dp(n, vector<int>(n, 0));
-
-        // Create a 1D table to store the minimum cuts from each index
-        vector<int> cuts(n, 0);
-
-        // Calculate the minimum cuts for all substrings
+    int minPalindromeCuts(std::string s) {
+        int n = (int) s.size();
+        if (n <= 1) return 0;
+        std::vector<std::vector<bool>> isPalin(n, std::vector<bool>(n, false));
+        std::vector<int> cuts(n, 0);
         for (int end = 0; end < n; end++) {
-            int minimumPartitionings = INT_MAX;
+            int minCuts = end;
             for (int start = 0; start <= end; start++) {
-                if (s[start] == s[end] &&
-                    (end - start <= 2 || dp[start + 1][end - 1])) {
-                    dp[start][end] = true;
-
-                    // If the current substring is a palindrome, update
-                    // the minimum cuts
-                    if (start > 0) {
-                        minimumPartitionings =
-                            min(minimumPartitionings,
-                                cuts[start - 1] + 1);
-                    } else {
-
-                        // No cuts needed if the whole string is a
-                        // palindrome
-                        minimumPartitionings = 0;
-                    }
+                if (s[start] == s[end] && (end - start <= 2 || isPalin[start + 1][end - 1])) {
+                    isPalin[start][end] = true;
+                    if (start == 0) minCuts = 0;
+                    else minCuts = std::min(minCuts, cuts[start - 1] + 1);
                 }
             }
-            cuts[end] = minimumPartitionings;
+            cuts[end] = minCuts;
         }
-
-        // Return the minimum cuts needed for palindrome partitioning
         return cuts[n - 1];
     }
 };
+
+int main() {
+    std::cout << Solution().minPalindromeCuts("abbbc")  << "\n";   // 2
+    std::cout << Solution().minPalindromeCuts("abcdef") << "\n";   // 5
+    std::cout << Solution().minPalindromeCuts("aaa")    << "\n";   // 0
+    return 0;
+}
 ```
+
+```scala,editable
+class Solution {
+  def minPalindromeCuts(s: String): Int = {
+    val n = s.length
+    if (n <= 1) return 0
+    val isPalin = Array.fill(n, n)(false)
+    val cuts = Array.fill(n)(0)
+    for (end <- 0 until n) {
+      var minCuts = end
+      for (start <- 0 to end) {
+        if (s(start) == s(end) && (end - start <= 2 || isPalin(start + 1)(end - 1))) {
+          isPalin(start)(end) = true
+          if (start == 0) minCuts = 0
+          else minCuts = math.min(minCuts, cuts(start - 1) + 1)
+        }
+      }
+      cuts(end) = minCuts
+    }
+    cuts(n - 1)
+  }
+}
+
+object Main extends App {
+  println(new Solution().minPalindromeCuts("abbbc"))    // 2
+  println(new Solution().minPalindromeCuts("abcdef"))   // 5
+  println(new Solution().minPalindromeCuts("aaa"))      // 0
+}
+```
+
+```javascript,editable
+class Solution {
+    minPalindromeCuts(s) {
+        const n = s.length;
+        if (n <= 1) return 0;
+        const isPalin = Array.from({length: n}, () => new Array(n).fill(false));
+        const cuts = new Array(n).fill(0);
+        for (let end = 0; end < n; end++) {
+            let minCuts = end;
+            for (let start = 0; start <= end; start++) {
+                if (s[start] === s[end] && (end - start <= 2 || isPalin[start + 1][end - 1])) {
+                    isPalin[start][end] = true;
+                    if (start === 0) minCuts = 0;
+                    else minCuts = Math.min(minCuts, cuts[start - 1] + 1);
+                }
+            }
+            cuts[end] = minCuts;
+        }
+        return cuts[n - 1];
+    }
+}
+
+console.log(new Solution().minPalindromeCuts("abbbc"));   // 2
+console.log(new Solution().minPalindromeCuts("abcdef"));  // 5
+console.log(new Solution().minPalindromeCuts("aaa"));     // 0
+```
+
+```typescript,editable
+class Solution {
+    minPalindromeCuts(s: string): number {
+        const n = s.length;
+        if (n <= 1) return 0;
+        const isPalin: boolean[][] = Array.from({length: n}, () => new Array(n).fill(false));
+        const cuts: number[] = new Array(n).fill(0);
+        for (let end = 0; end < n; end++) {
+            let minCuts = end;
+            for (let start = 0; start <= end; start++) {
+                if (s[start] === s[end] && (end - start <= 2 || isPalin[start + 1][end - 1])) {
+                    isPalin[start][end] = true;
+                    if (start === 0) minCuts = 0;
+                    else minCuts = Math.min(minCuts, cuts[start - 1] + 1);
+                }
+            }
+            cuts[end] = minCuts;
+        }
+        return cuts[n - 1];
+    }
+}
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func minPalindromeCuts(s string) int {
+    n := len(s)
+    if n <= 1 { return 0 }
+    isPalin := make([][]bool, n)
+    for i := range isPalin { isPalin[i] = make([]bool, n) }
+    cuts := make([]int, n)
+    for end := 0; end < n; end++ {
+        minCuts := end
+        for start := 0; start <= end; start++ {
+            if s[start] == s[end] && (end-start <= 2 || isPalin[start+1][end-1]) {
+                isPalin[start][end] = true
+                if start == 0 {
+                    minCuts = 0
+                } else if cuts[start-1]+1 < minCuts {
+                    minCuts = cuts[start-1] + 1
+                }
+            }
+        }
+        cuts[end] = minCuts
+    }
+    return cuts[n-1]
+}
+
+func main() {
+    fmt.Println(minPalindromeCuts("abbbc"))    // 2
+    fmt.Println(minPalindromeCuts("abcdef"))   // 5
+    fmt.Println(minPalindromeCuts("aaa"))      // 0
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun minPalindromeCuts(s: String): Int {
+        val n = s.length
+        if (n <= 1) return 0
+        val isPalin = Array(n) { BooleanArray(n) }
+        val cuts = IntArray(n)
+        for (end in 0 until n) {
+            var minCuts = end
+            for (start in 0..end) {
+                if (s[start] == s[end] && (end - start <= 2 || isPalin[start + 1][end - 1])) {
+                    isPalin[start][end] = true
+                    if (start == 0) minCuts = 0
+                    else minCuts = minOf(minCuts, cuts[start - 1] + 1)
+                }
+            }
+            cuts[end] = minCuts
+        }
+        return cuts[n - 1]
+    }
+}
+
+fun main() {
+    println(Solution().minPalindromeCuts("abbbc"))    // 2
+    println(Solution().minPalindromeCuts("abcdef"))   // 5
+    println(Solution().minPalindromeCuts("aaa"))      // 0
+}
+```
+
+```rust,editable
+fn min_palindrome_cuts(s: &str) -> i32 {
+    let bytes = s.as_bytes();
+    let n = bytes.len();
+    if n <= 1 { return 0; }
+    let mut is_palin = vec![vec![false; n]; n];
+    let mut cuts = vec![0i32; n];
+    for end in 0..n {
+        let mut min_cuts = end as i32;
+        for start in 0..=end {
+            let interior_ok = end as i32 - start as i32 <= 2
+                || is_palin[start + 1][end - 1];
+            if bytes[start] == bytes[end] && interior_ok {
+                is_palin[start][end] = true;
+                if start == 0 {
+                    min_cuts = 0;
+                } else if cuts[start - 1] + 1 < min_cuts {
+                    min_cuts = cuts[start - 1] + 1;
+                }
+            }
+        }
+        cuts[end] = min_cuts;
+    }
+    cuts[n - 1]
+}
+
+fn main() {
+    println!("{}", min_palindrome_cuts("abbbc"));     // 2
+    println!("{}", min_palindrome_cuts("abcdef"));    // 5
+    println!("{}", min_palindrome_cuts("aaa"));       // 0
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — s = "abbbc"</strong></summary>
+
+```
+Initial: cuts = [_, _, _, _, _]   isPalin all false
+
+end = 0  (char 'a'):
+  start = 0: s[0]='a'==s[0]='a' (length 1) → isPalin[0][0]=true
+             start==0 → minCuts = 0
+  cuts[0] = 0
+
+end = 1  (char 'b'):
+  start = 0: 'a' != 'b' → skip
+  start = 1: 'b' == 'b' (length 1) → isPalin[1][1]=true
+             cuts[0]+1 = 1 → minCuts = 1
+  cuts[1] = 1
+
+end = 2  (char 'b'):
+  start = 0: 'a' != 'b' → skip
+  start = 1: 'b' == 'b', length 2 → isPalin[1][2]=true
+             cuts[0]+1 = 1 → minCuts = 1
+  start = 2: 'b' == 'b' (length 1) → isPalin[2][2]=true
+             cuts[1]+1 = 2 → minCuts stays 1
+  cuts[2] = 1
+
+end = 3  (char 'b'):
+  start = 0: 'a' != 'b' → skip
+  start = 1: 'b' == 'b', interior isPalin[2][2]=true → isPalin[1][3]=true
+             cuts[0]+1 = 1 → minCuts = 1
+  start = 2: 'b' == 'b', length 2 → isPalin[2][3]=true
+             cuts[1]+1 = 2 → minCuts stays 1
+  start = 3: 'b' == 'b' (length 1) → isPalin[3][3]=true
+             cuts[2]+1 = 2 → minCuts stays 1
+  cuts[3] = 1
+
+end = 4  (char 'c'):
+  start = 0: 'a' != 'c' → skip
+  start = 1: 'b' != 'c' → skip
+  start = 2: 'b' != 'c' → skip
+  start = 3: 'b' != 'c' → skip
+  start = 4: 'c' == 'c' (length 1) → isPalin[4][4]=true
+             cuts[3]+1 = 2 → minCuts = 2
+  cuts[4] = 2
+
+Final cuts = [0, 1, 1, 1, 2]
+Answer: cuts[4] = 2  ✓  (partition: a | bbb | c)
+```
+
+</details>
+
+---
+
+## Complexity Analysis
+
+| Aspect | Cost | Why |
+|---|---|---|
+| Time | `O(n²)` | Outer loop is `n`; inner loop is up to `n`; each iteration is `O(1)` thanks to the `isPalin` table. |
+| Space | `O(n²)` | The `isPalin` boolean table dominates; the `cuts` array is `O(n)`. |
+
+There's a slicker `O(n)`-space variant that exploits the "expand around centre" trick from the previous lesson — for each centre, expand outward, and at each successful expansion update `cuts[end]` directly. Same `O(n²)` time, drops the `isPalin` table. Beyond this lesson, but worth mentioning.
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected | Reasoning |
+|---|---|---|---|
+| Empty string | `""` | `0` | Guard returns 0; nothing to partition. |
+| Single char | `"a"` | `0` | A single character is trivially palindromic. |
+| Already a palindrome | `"racecar"` | `0` | `start = 0` branch fires for `end = n-1`. |
+| All distinct chars | `"abcdef"` | `n - 1` | Every cut needed; answer hits the worst-case initial value `end`. |
+| All same chars | `"aaaa"` | `0` | Whole string palindromic; same as "already a palindrome". |
+| Two chars matching | `"aa"` | `0` | Length-2 palindrome. |
+| Two chars different | `"ab"` | `1` | One cut; both pieces single-char palindromes. |
+| Embedded long palindrome | `"abbbc"` | `2` | Cuts surround the central palindrome `bbb`. |
+
+---
+
+## Final Takeaway
+
+Palindrome partitioning is the canonical "split into satisfying pieces" DP. State is 1D — minimum cuts for a prefix — because the left endpoint stays pinned at index 0 while only the right endpoint shrinks. The recurrence fixes the *last* piece (palindromic, by predicate lookup) and recurses on the leftover prefix. The `isPalin` table from the previous lesson plugs in directly, giving `O(1)` predicate checks and `O(n²)` total time. **You didn't just solve palindrome partitioning. You learned the shape of every "minimum / maximum / count of partitions where each piece satisfies P" problem — fix the last piece, recurse on the prefix, and combine the predicate's DP with the optimisation's DP.**
+
+> *Transfer challenge for the next lesson:* Replace "is this piece a palindrome?" with "is this piece a word in a dictionary?" — and switch the goal from "minimum cuts" to "is *any* valid partition possible?". Predict how the recurrence changes shape.
+
+<details>
+<summary><strong>Answer</strong></summary>
+
+The state stays 1D — `canBreak[i]` = whether `s[0..i]` is segmentable. The min-over-cuts becomes a logical OR: `canBreak[i] = OR over valid j of canBreak[j]`, where "valid" means `s[j+1..i]` is in the dictionary. The predicate is now a hash-set membership check (O(1) average) instead of palindrome lookup. Same shape; different predicate; aggregator changed from `min(... + 1)` to `OR`. The next lesson formalises this as the **Word Break** problem.
+
+</details>

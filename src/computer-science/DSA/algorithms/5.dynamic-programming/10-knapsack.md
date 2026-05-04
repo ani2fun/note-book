@@ -1,704 +1,1662 @@
-# Understanding the 0/1 knapsack problem
+# 10. The Knapsack Family
 
-In many applications, software must choose between several competing options while operating under limited resources such as time, memory, or computational capacity. Each option provides some benefit, but selecting it consumes part of the available budget and may prevent other options from being chosen. The goal, therefore, is to determine which combination of options produces the greatest overall value without exceeding the given constraint.
+A burglar slips into a vault. The shelves are stacked with treasures — gold bars, jewelled goblets, paintings — each with a weight and a market value. The burglar's bag holds only so much weight; pile too much in and the straps snap. Which subset maximises the haul without breaking the bag? You can take an item or leave it (no fractions). Greedy "highest value first" fails — a 9 kg gold bar worth $7 beats two 3 kg silver chalices worth $5 each, until the capacity is 6 kg. Then it's the chalices, by a wide margin.
 
-A fundamental problem in this space is the 0/1 knapsack problem, where the "0/1" indicates that each item must be either included entirely or left out entirely; no partial items are allowed.
+By the end of this lesson you'll know the **0/1 knapsack** recurrence (`dp[i][w] = max(dp[i-1][w], dp[i-1][w - weight[i]] + value[i])`), how to reconstruct *which* items got picked (not just the total value), and how the recurrence morphs for two close cousins — **unbounded knapsack** (each item available infinitely) and **bounded knapsack** (each item has a count limit). These four problems are the most-cited DP archetypes in interviews and the foundation for currency-change, rod-cutting, partition, and resource-allocation problems.
 
-// Diagram: The 0/1 knapsack problem.
+## Table of contents
 
-The 0/1 knapsack problem is a foundational problem in dynamic programming and appears frequently in applications such as portfolio optimization, resource allocation in computing systems, cargo loading, budget planning, and project selection.
-
-In this lesson, we will learn about the 0/1 knapsack problem and how it can be solved efficiently using a dynamic programming solution.
-
-## The 0/1 knapsack problem
-
-Consider we are given `n` items, where the item at index `i` has a weight `weights[i]` and a value `values[i]`. We also have a knapsack with a maximum weight capacity `capacity`. Each item can either be included in the knapsack or excluded; we cannot take a fraction of an item.
-
-// Diagram: We are given n items with weights and corresponding values, and we have a fixed capacity for the knapsack.
-
-We need to find the maximum total value we can achieve by selecting a subset of items such that their total weight does not exceed `capacity`.
-
-// Diagram: We need to find the maximum total value we can achieve.
-
-## Optimal substructure
-
-It is easy to prove that the optimal solution to the 0/1 knapsack problem can be constructed from optimal solutions to its smaller subproblems. It is important to observe that when we consider items `0` through `i` and a knapsack with capacity `c`, we have a clear choice to make regarding the item at index `i`.
-
-If for item at index `i`, its weight `weights[i]` is greater than the available capacity `c`, we have no choice but to exclude it and work with items `0` through `i - 1` using the full capacity `c`.
-
-// Diagram: If the weight of the item at index i is greater than c, we cannot choose that item.
-
-However, if for the item at index `i` its weight `weights[i]` is less than or equal to the available capacity `c`, we have the following two choices.
-
-1.  1We can include the item at index `i` in our knapsack and gain its value `values[i]` but consume capacity `weights[i]`, leaving us with a remaining capacity of `c - weights[i]` for items `0` through `i - 1`.
-2.  2We can exclude the item at index `i` and maintain the full capacity `c` but can only use items `0` through `i - 1` to build our solution.
-
-The optimal solution between these choices is the one that results in greater total value for items `0` through `i` and capacity `c`.
-
-// Diagram: If the weight of the ith item is less than or equal to c, we have two choices and the optimal choice is one with the maximum value.
-
-Based on the above, it is clear that to find the maximum value achievable with items `0` through `i` and capacity `c`, we have two options to choose from:
-
-1.  1If `weights[i]` is greater than `c`, we must exclude item `i`, and the solution is the maximum value achievable with items `0` through `i - 1` and capacity `c`.
-2.  2If `weights[i]` does not exceed `c`, we take the maximum of the two options: including item `i` (gaining `values[i]` and reducing capacity to `c - weights[i]`) or excluding item `i` (keeping the full capacity `c`). Both options then solve for items `0` through `i - 1`.
-
-The solution to the problem depends on the optimal solution of these smaller subproblems.
-
-// Diagram: The optimal solution to the problem depends on the optimal solution to the smaller subproblems.
-
-Note that the subproblems are uniquely identified by two dimensions: the index `i` of the last item under consideration and the remaining capacity `c`.
-
-Based on the optimal substructure above, we can define the relationship between the problem and its subproblems. We can define a function `knapsack(i, c)` that returns the maximum value achievable using items `0` through `i` with a knapsack capacity of `c`.
-
-// Diagram: Define a function knapsack to find the maximum value achievable when considering items \[0...i\] with a capacity of c
-
-The recurrence relation breaks the problem into smaller subproblems by reducing `i` by one at each step. This reduction eventually reaches the point where `i` drops below `0`. When `i` is less than `0`, there are no items left to consider, so no value can be achieved and `knapsack` returns `0`. Additionally, when `c` is `0`, the knapsack has no remaining capacity, so no items can be added regardless of `i`, and `knapsack` returns `0`. These serve as the base cases of the recurrence relation, terminating the recursion.
-
-**Why does the base case use `i < 0` instead of `i == 0`?** 
-
-Since `i` is an index into the items, the value `i == 0` represents the state where we are considering item `0`, which is still a valid item that can potentially be included. Only when `i` drops below `0` have we truly exhausted all items.
-
-// Diagram: The base case for the 0/1 knapsack problem.
-
-To get the solution for `knapsack(i, c)`, we check whether `weights[i]` exceeds `c`. If the item is too heavy, we cannot include it, so the solution is `knapsack(i - 1, c)`. If the item fits, we take the maximum of two choices: `values[i] + knapsack(i - 1, c - weights[i])`, representing the inclusion of item `i`, or `knapsack(i - 1, c)`, representing the exclusion of item `i`.
-
-The recurrence relation below expresses the solution to the problem as a function of solutions to smaller problems. The solution to the original problem is `knapsack(n - 1, capacity)` where `n` is the number of items and `capacity` is the knapsack capacity.
-
-// Diagram: The recurrence relation for the 0/1 knapsack problem.
-
-## Overlapping Subproblems
-
-It is easy to see that there are many overlapping subproblems in the recurrence relation to solve the 0/1 knapsack problem. To compute `knapsack(i, c)`, we may recursively compute `knapsack(i - 1, c - weights[i])` when including item `i`, or `knapsack(i - 1, c)` when excluding it.
-
-// Diagram: There are many overlapping subproblems when finding the solution to a problem state.
-
-Conversely, the subproblem `knapsack(i, c)` appears in the computation of `knapsack(i + 1, c)` when item `i + 1` is excluded, and potentially in `knapsack(i + 1, c + weights[i + 1])` when item `i + 1` is included, since including item `i + 1` with capacity `c + weights[i + 1]` reduces the remaining capacity to `c`, reaching the same subproblem.
-
-// Diagram: A problem state may appear as a subproblem in many other problem states.
-
-**When does significant overlap actually occur?** 
-
-Overlap is most pronounced when multiple items have similar weights. For example, if items `3` and `4` both have weight `5` and the current capacity is `10`, then both `knapsack(2, 5)` (from including item `3`) and `knapsack(3, 5)` (from including item `4`) will eventually reach many of the same subproblems for items `0` through `2`.
-
-A naïve recursive backtracking approach ends up solving the same subproblems multiple times when they are encountered through different recursive branches, leading to very poor performance. Since these overlapping subproblems exist, the problem can be solved much more efficiently using dynamic programming, either through a top-down approach with memoization or a bottom-up approach that builds solutions starting from the base cases.
+1. [The 0/1 Knapsack Problem](#the-01-knapsack-problem)
+2. [Optimal Substructure — Include or Exclude](#optimal-substructure--include-or-exclude)
+3. [Top-Down vs Bottom-Up](#top-down-vs-bottom-up)
+4. [0/1 Knapsack — The Algorithm](#01-knapsack--the-algorithm)
+5. [0/1 Knapsack II — Recovering Which Items](#01-knapsack-ii--recovering-which-items)
+6. [Unbounded Knapsack — Items With Unlimited Copies](#unbounded-knapsack--items-with-unlimited-copies)
+7. [Bounded Knapsack — Items With Count Limits](#bounded-knapsack--items-with-count-limits)
+8. [Final Takeaway](#final-takeaway)
 
 ***
 
-# Understanding the top-down solution to the 0/1 knapsack problem
+# The 0/1 Knapsack Problem
 
-To solve the 0/1 knapsack problem using a top-down dynamic programming approach, we translate the recurrence relation into a recursive function and use a memoization table to store results of subproblems that have already been solved.
+> **Course:** DSA › Algorithms › Dynamic Programming › Knapsack
 
-## The top down solution
+You are given `n` items where item `i` has weight `weights[i]` and value `values[i]`, and a knapsack with capacity `capacity`. Each item is either picked entirely or skipped — no fractions. Maximise total value subject to total weight `≤ capacity`.
 
-As with any top-down solution, there is a recursive function that solves subproblems and a calling function that initializes the required data structures and triggers the computation. For the 0/1 knapsack, we define a single recursive function `knapsack` and a calling function that invokes it for the last item and the full capacity.
-
-### The knapsack function
-
-The function `knapsack()` takes as input an index `i` into the items, the remaining capacity `c`, references to the `weights` and `values` arrays, and a reference to the memoization array `memo`. The function returns the maximum value achievable using items `0` through `i` with the given remaining capacity `c`.
-
-// Diagram: Create a function knapsack to return the maximum value achievable from items \[0...i\] with capacity c.
-
-The `memo` array has dimensions `n × (capacity + 1)` where `n` is the number of items and `capacity` is the total knapsack capacity, and is initialized with `-1` in the calling function, where `-1` indicates that the state has not yet been computed. Any non-negative value represents the computed maximum achievable value for that state.
-
-// Diagram: The memo array has a size n x (capacity + 1) and is initalized with -1.
-
-When `knapsack()` is called, we first handle the base cases. If `c` equals `0`, no capacity remains and no more value can be added, so we return `0`. If `i` is less than `0`, there are no items left to consider, so we return `0`.
-
-**Why is the base case `i < 0` instead of `i == 0`?** 
-
-Since `i` is an index into the items, the value `i == 0` represents the state where we are considering item `0`, which is still a valid item. Only when `i` drops below `0` have we truly exhausted all items. This is the same reasoning that applies in the LCS problem where `i == 0` still represents a prefix containing one character.
-
-**Why are there two separate base cases?** 
-
-The case `c == 0` means the knapsack is full even if items remain, none can be added. The case `i < 0` means all items have been considered even if capacity remains, there is nothing left to put in. Either condition alone is sufficient to terminate, so we check both.
-
-// Diagram: If i < 0 or c == 0, the solution is 0, and this serves as the base case.
-
-Before making any recursive calls, we check the `memo` array to see if the solution to the current problem state has already been computed. If `memo[i][c]` is not `-1`, it means the result for this state has already been computed, and we return it directly.
-
-// Diagram: If memo\[i\]\[c\] is not -1, it means the solution to that subproblem is already computed and can be returned to the caller.
-
-If the state`(i, c)`has not been computed, we evaluate the recurrence relation. Since every item can either be excluded or included at most one time, we have two choices at every state.
-
-We can either **exclude**the current item by recursively calling`knapsack(i - 1, c)`, moving on to the remaining items with the same capacity.
-
-// Diagram: Exclude the item and find the maximum value that can be obtained with the remaining items and the remaining capacity.
-
-If `weights[i] <= c`, we can include one copy of the current item, which contributes `values[i]` and reduces the capacity by `weights[i]`. We then solve the problem for the remaining items ( 0 through i-1 ) with the remaining capacity by recursively calling `knapsack(i-1, c - weights[i])`.
-
-// Diagram: Include the item and find the maximum value that can be obtained with the remaining items and the remaining capacity.
-
-We set `memo[i][c]` to the **maximum** of the exclude and include values and return it. If the weight of item `i` exceeds the remaining capacity `c`, we can only exclude it, so we set `memo[i][c]` to the exclude result and return it.
-
-**Why do we take the maximum and not the minimum?** 
-
-The knapsack problem asks us to **maximize** total value. When we have two valid choices: include or exclude,  we pick whichever yields the higher value. This is in contrast to problems like edit distance where we **minimize** cost and take the minimum instead.
-
-// Diagram: Set the solution for state (i, c) in memo\[i\]\[c\] as the maximum of include and exclude choices.
-
-The execution of the `knapsack` function is given below.
-
-// Diagram: Top-down solution to the 0/1 Knapsack with capacity 4
-
-### The calling function
-
-In the calling function, we first create a memoization array `memo` of dimensions `n × (capacity + 1)` where `n` is the number of items and `capacity` is the total knapsack capacity, initialized with all entries set to `-1`.
-
-// Diagram: We create a 2D memo array of size n x (capacity+1) and initialize it with -1.
-
-We then call the recursive function `knapsack` with `i = n - 1` and `c = capacity` to solve for all items and the full capacity. The value returned by this call is the maximum value achievable.
-
-// Diagram: We call the knapsack function passing it n-1, capacity, weights, values and memo to get the solution to the problem.
-
-## Algorithm
-
-The steps below summarise the dynamic programming algorithm to solve the 0/1 knapsack problem using a top-down approach.
-
-> **knapsack(i, c, \[ref\] weights, \[ref\] values, \[ref\] memo):**
->
-> -   **Step 1:** If `c == 0` or `i < 0`, return `0`
-> -   **Step 2:** If `memo\[i\]\[c\] != -1`, return `memo\[i\]\[c\]`
-> -   **Step 3:** Set `memo\[i\]\[c\]` to the return value of call to `knapsack(i - 1, c, weights, values, memo)`
-> -   **Step 4:** If `weights\[i\] <= c`:
->     -   **Step 4.1:** Set `include` to `values\[i\]` plus the return value of call to `knapsack(i - 1, c - weights\[i\], weights, values, memo)`
->     -   **Step 4.2:** Set `memo\[i\]\[c\]` to the maximum of `memo\[i\]\[c\]` and `include`
-> -   **Step 5:** Return `memo\[i\]\[c\]`
->
-> **callingFunction(\[ref\] weights, \[ref\] values, capacity):**
->
-> -   **Step 1:** Initialize a variable `n` with the size of `weights`
-> -   **Step 2:** Create a 2D array `memo` of size `n x (capacity + 1)` and initialize it to `-1`
-> -   **Step 3:** Return the return value of call to `knapsack(n - 1, capacity, weights, values, memo)`
-
-## Implementation
-
-The top-down dynamic programming solution to the problem using memoization is given below.
-
-C++
-
-```cpp
-#include <vector>
-#include <algorithm>
-
-// Diagram: using namespace std;
-
-class Solution {
-private:
-    int knapsack(int i,
-                 int c,
-                 vector<int>& weights,
-                 vector<int>& values,
-                 vector<vector<int>>& memo) {
-
-        // Base case: no capacity or no items left
-        if (c == 0 || i < 0) return 0;
-
-        // Return cached result if already computed
-        if (memo[i][c] != -1) {
-            return memo[i][c];
-        }
-
-        // Option 1: Exclude the current item
-        int exclude = knapsack(i - 1, c, weights, values, memo);
-
-        // Option 2: Include the current item if it fits
-        if (weights[i] <= c) {
-            int include = values[i] +
-                         knapsack(i - 1, c - weights[i], weights, values, memo);
-
-            // Store the best of including or excluding
-            memo[i][c] = max(exclude, include);
-            return memo[i][c];
-        }
-
-        // If item cannot be included, store the exclude result
-        memo[i][c] = exclude;
-        return exclude;
-    }
-
-public:
-    int callingFunction(vector<int>& weights, vector<int>& values, int capacity) {
-
-// Diagram: int n = weights.size();
-
-        // memo[i][c] stores the maximum value using items 0..i with capacity c
-        // initialized to -1 to indicate "not yet computed"
-        vector<vector<int>> memo(n, vector<int>(capacity + 1, -1));
-
-        // Start recursion from the last item and full capacity
-        return knapsack(n - 1, capacity, weights, values, memo);
-    }
-};
+```d2
+direction: right
+ex: "Example: weights = [6, 4, 5, 3], values = [7, 3, 2, 6], capacity = 10" {
+  grid-rows: 3
+  grid-columns: 4
+  grid-gap: 0
+  v0: "weight 6<br/>value 7" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  v1: "weight 4<br/>value 3"
+  v2: "weight 5<br/>value 2"
+  v3: "weight 3<br/>value 6" {style.fill: "#fde68a"; style.stroke: "#d97706"}
+  i0: "item 0"
+  i1: "item 1"
+  i2: "item 2"
+  i3: "item 3"
+  s0: "✓ pick"
+  s1: "skip"
+  s2: "skip"
+  s3: "✓ pick"
+}
 ```
 
-Java
+<p align="center"><strong>Optimal selection: items 0 and 3 (total weight 6 + 3 = 9 ≤ 10, total value 7 + 6 = 13). Picking the heavier-but-poorer items 1 and 2 would total weight 9 with value only 5. Greedy "highest value first" picks item 0 (weight 6, value 7) and then has only 4 capacity left — too little for item 3, so it would settle for item 1 and miss item 3 entirely.</strong></p>
 
-```java
-import java.util.Arrays;
+The brute force enumerates all `2^n` subsets and keeps the best legal one. DP brings it to `O(n × capacity)` — pseudo-polynomial in `capacity`.
 
-// Diagram: class Solution {
+> *Predict before reading on — for `weights = [4, 5, 1]`, `values = [1, 2, 3]`, `capacity = 4`, what's the answer?*
 
-    private int knapsack(int i,
-                         int c,
-                         int[] weights,
-                         int[] values,
-                         int[][] memo) {
+`3`. Item 0 alone gives 1; item 1 weighs 5 — too heavy; item 2 alone (weight 1, value 3) fits and is best. Items 0 + 2 (weight 5) overflow. Greedy by density (`value/weight`) would correctly pick item 2 first (density 3) over item 0 (density 0.25), then have 3 capacity left — but item 1 still doesn't fit. Final value 3.
 
-        // Base case: no capacity or no items left
-        if (c == 0 || i < 0) return 0;
+## Where this shows up
 
-        // Return cached result if already computed
-        if (memo[i][c] != -1) {
-            return memo[i][c];
-        }
+Portfolio selection (each project has a cost and a return, total budget bounded), cargo loading (containers, weight limits), CPU scheduling under memory caps, knapsack-cryptosystem variants, the 1-D bin-packing decision problem, and the 0/1 reduction of integer linear programming. The recurrence we're about to build is the most-asked DP shape in tech interviews, by a long stretch.
 
-        // Option 1: Exclude the current item
-        int exclude = knapsack(i - 1, c, weights, values, memo);
+---
 
-        // Option 2: Include the current item if it fits
-        if (weights[i] <= c) {
-            int include = values[i] +
-                         knapsack(i - 1, c - weights[i], weights, values, memo);
+## Key Takeaway
 
-            // Store the best of including or excluding
-            memo[i][c] = Math.max(exclude, include);
-            return memo[i][c];
-        }
+0/1 knapsack: pick a subset to maximise value subject to weight `≤ capacity`. Brute force `2^n`; DP `O(n × capacity)`. Greedy fails because items interact through the shared capacity budget.
 
-        // If item cannot be included, store the exclude result
-        memo[i][c] = exclude;
-        return exclude;
-    }
+***
 
-// Diagram: public int callingFunction(int[] weights, int[] values, int capacity) {
+# Optimal Substructure — Include or Exclude
 
-// Diagram: int n = weights.length;
+> **Course:** DSA › Algorithms › Dynamic Programming › Knapsack
 
-        // memo[i][c] stores the maximum value using items 0..i with capacity c
-        // initialized to -1 to indicate "not yet computed"
-        int[][] memo = new int[n][capacity + 1];
-        for (int[] row : memo) {
-            Arrays.fill(row, -1);
-        }
+Consider items `0..i` and remaining capacity `c`. Two scenarios for item `i`:
 
-        // Start recursion from the last item and full capacity
-        return knapsack(n - 1, capacity, weights, values, memo);
-    }
+**Case 1 — `weights[i] > c`.** Item `i` doesn't fit. Skip it; the answer is whatever items `0..i-1` give with capacity `c`:
+```
+knapsack(i, c) = knapsack(i - 1, c)
 ```
 
-Python
+**Case 2 — `weights[i] ≤ c`.** Two choices:
+- **Exclude item `i`** — full capacity remains, items `0..i-1` available: `knapsack(i - 1, c)`.
+- **Include item `i`** — gain `values[i]`, capacity drops to `c - weights[i]`, items `0..i-1` available: `values[i] + knapsack(i - 1, c - weights[i])`.
 
-```python
+Take the max:
+```
+knapsack(i, c) = max(
+    knapsack(i - 1, c),                                   — exclude
+    values[i] + knapsack(i - 1, c - weights[i])           — include
+)
+```
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+  STATE["knapsack(i, c)"]
+  STATE -->|"weights[i] > c"| SKIP["knapsack(i-1, c)<br/>item too heavy"]
+  STATE -->|"weights[i] ≤ c"| MAX["max(<br/>  knapsack(i-1, c),                      — exclude<br/>  values[i] + knapsack(i-1, c-weights[i])  — include<br/>)"]
+```
+
+<p align="center"><strong>The recurrence forks on whether item <em>i</em> fits. If yes, choose include vs. exclude by max value. Both choices recurse on items <em>0..i-1</em>.</strong></p>
+
+> *Pause. Why do both branches recurse on `i - 1` rather than `i`? Predict the consequence of recursing on `i` instead.*
+
+In **0/1** knapsack each item can be picked at most once. Once we've decided about item `i`, we move on permanently — `i - 1`. Recursing on `i` would let us pick item `i` again and again — that's the unbounded variant, coming later. The single index decrement is what enforces "0/1".
+
+## Base Cases — When Does Recursion Stop?
+
+Two terminating conditions:
+- **`i < 0`** — no items left to consider. Return `0` (no value from no items).
+- **`c == 0`** — no capacity left. Return `0` (can't add anything).
+
+> *Why is the index base case `i < 0` and not `i == 0`?*
+
+Index 0 is still a valid item — the *first* item, not the empty state. We exhaust items only when `i` drops *below* 0. Same logic as LCS, edit distance, and any prefix-indexed DP.
+
+## Subproblem Identity
+
+Each subproblem is uniquely identified by `(i, c)` — the index of the last item considered and the remaining capacity. So the memo table has dimensions `n × (capacity + 1)`. Total subproblem count: `O(n × capacity)`.
+
+## Overlapping Subproblems
+
+For inputs with similar weights, the same `(i, c)` pair gets reached from many parents. Example: items 3 and 4 both weigh 5, current capacity is 10. Including item 4 reaches `(3, 5)`; excluding item 4 then including item 3 reaches `(2, 5)`. Both paths bury into the same prefix subproblems. Naïve recursion blows up exponentially; memoization collapses it to `O(n × capacity)`.
+
+---
+
+## Key Takeaway
+
+Two cases by fit; when fit allows, two choices by value. Always recurse on `i - 1` (single-use) and the appropriate capacity. State `(i, c)`; subproblems `O(n × capacity)`.
+
+***
+
+# Top-Down vs Bottom-Up
+
+> **Course:** DSA › Algorithms › Dynamic Programming › Knapsack
+
+Two ways to compute the same recurrence:
+
+**Top-down (memoization).** Recurse from `(n - 1, capacity)`; cache each `(i, c)` result on first compute, return the cache on later visits. Lazy: only the states actually reached get computed.
+
+**Bottom-up (tabulation).** Build a `(n + 1) × (capacity + 1)` table. Row 0 is the empty-items base; column 0 is the empty-capacity base. Fill row by row, left to right. Eager: every `(i, c)` cell gets computed.
+
+```d2
+direction: right
+flow: "Two faces of the same recurrence" {
+  grid-rows: 1
+  grid-columns: 2
+  grid-gap: 20
+  td: |md
+    **Top-down**
+    Recursion + memo table
+    Lazy fill (only reached states)
+    `O(n × cap)` time + recursion stack
+  |
+  bu: |md
+    **Bottom-up**
+    Two nested loops
+    Eager fill (every cell)
+    `O(n × cap)` time, no stack
+  |
+}
+```
+
+<p align="center"><strong>Both run in <code>O(n × capacity)</code>. Top-down skips unreachable cells but pays for recursion frames; bottom-up pays for every cell but skips the call overhead. Bottom-up is the canonical interview answer.</strong></p>
+
+For the canonical algorithm we'll write the **bottom-up** version: easier to reason about, no stack-overflow risk, slightly tighter constants.
+
+## The (n + 1) Shift
+
+Bottom-up uses `(n + 1) × (capacity + 1)` instead of `n × (capacity + 1)`. The extra row is the empty-items base case: `dp[0][c] = 0` for all `c`. Then row `i` represents *the first `i` items considered* (so `dp[1][...]` corresponds to item index 0, `dp[2][...]` to items 0–1, etc.). The `(i - 1)` indices into `weights` and `values` follow naturally.
+
+> *Predict before reading on — what does `dp[3][7]` mean for the running example?*
+
+The maximum value achievable using the first 3 items (indices 0, 1, 2) within capacity 7. Note: not items 0–3, just 0–2.
+
+---
+
+## Key Takeaway
+
+Bottom-up is the canonical knapsack form. The `(n + 1)` shift makes the empty-items base case sit at row 0; arithmetic on `weights[i - 1]` accommodates the shift.
+
+***
+
+# 0/1 Knapsack — The Algorithm
+
+> **Course:** DSA › Algorithms › Dynamic Programming › Knapsack
+
+## The Problem
+
+Given `weights`, `values`, and `capacity`, return the maximum value achievable.
+
+```
+Input:  weights = [6, 4, 5, 3], values = [7, 3, 2, 6], capacity = 10
+Output: 13                           Pick items 0 (w=6, v=7) and 3 (w=3, v=6)
+
+Input:  weights = [4, 5, 1], values = [1, 2, 3], capacity = 4
+Output: 3                            Pick item 2 (w=1, v=3) only
+
+Input:  weights = [4, 5, 6], values = [1, 2, 3], capacity = 3
+Output: 0                            All items too heavy to fit
+```
+
+---
+
+## Applying the Diagnostic Questions
+
+| # | Question | Answer |
+|---|---|---|
+| **Q1** | Optimal substructure? | **Yes** — every subset's value decomposes into "include item `i` or not" + the optimum on the prefix. |
+| **Q2** | Overlapping subproblems? | **Yes** — `(i, c)` reached from up to two parents at every step. |
+| **Q3** | 2D state? | **Yes** — `(i, c)` indexed by item count and remaining capacity. |
+| **Q4** | Optimisation direction? | **Maximise** — value, not cost. |
+
+### Q1 — Why "Yes"?
+
+**Mental model.** Imagine the optimal subset is decided. For its rightmost-included item `i*`, the remaining items form an optimum subset for indices `0..i*-1` and capacity `c - weights[i*]`. If they didn't, we could swap them for a better prefix and improve the total — contradicting optimality.
+
+**Concrete numbers.** For `weights = [6, 4, 5, 3], values = [7, 3, 2, 6], capacity = 10`: the optimum is `{0, 3}` with value 13. Drop item 3 — what remains is `{0}`, weight 6, value 7. That's the optimum for items `{0, 1, 2}` with capacity 7 (no other 3-or-fewer subset on items 0–2 gets above 7 in capacity 7).
+
+**What breaks otherwise.** Suppose the optimum subset's `prefix` weren't optimal. Replace it with the actual prefix optimum — same `i*` decision, better total. Contradiction with the original being optimal.
+
+### Q2 — Why "Yes"?
+
+**Mental model.** When two items share the same weight, the include/exclude branches funnel many parents into the same `(i, c)` cell.
+
+**Concrete numbers.** Items 1 and 2 both weigh 4. From `(3, 8)`: include item 3 → `(2, 5)`; exclude item 3, then include item 2 → `(1, 4)`; exclude both → `(1, 8)`. Different paths, same prefix subproblems.
+
+**What breaks otherwise.** Without memoization, recursion is `O(2^n)` because each `(i, c)` is recomputed from scratch on every visit.
+
+### Q3 — Why 2D?
+
+**Mental model.** Two free variables: which prefix of items, and how much capacity is left. Both vary independently as we recurse, so both must be stored.
+
+**Concrete numbers.** With `n = 4` and `capacity = 10`, the table has `5 × 11 = 55` cells. Each is `O(1)` to fill given its predecessors. Total work `O(n × capacity)`.
+
+**What breaks otherwise.** A 1D state `dp[c]` can't represent "considered items 0..i" — without `i`, the recurrence has no notion of progress and would loop forever on the same item.
+
+### Q4 — Why max?
+
+The problem says "maximum value." We want as much value as possible inside the budget. (Edit distance and palindrome partitioning minimise; knapsack maximises. Same recurrence shape, opposite direction.)
+
+---
+
+## The Solution
+
+Bottom-up tabulation. `dp[i][w]` = max value using the first `i` items with capacity `w`. Two nested loops: outer on items, inner on capacity. Final answer: `dp[n][capacity]`.
+
+<div class="lang-tabs">
+
+```python,editable
 from typing import List
 
 class Solution:
+    def zero_one_knapsack(self, weights: List[int], values: List[int], capacity: int) -> int:
+        n = len(weights)
+        # dp[i][w] = max value using the first i items within capacity w.
+        # Row 0 is the no-items base case → all zeros.
+        dp: List[List[int]] = [[0] * (capacity + 1) for _ in range(n + 1)]
+        for i in range(1, n + 1):
+            wi, vi = weights[i - 1], values[i - 1]   # Item i-1 in 0-indexed arrays
+            for w in range(1, capacity + 1):
+                if wi <= w:
+                    # Include item i-1 (gain vi, drop capacity by wi) OR exclude it (carry).
+                    dp[i][w] = max(dp[i - 1][w], vi + dp[i - 1][w - wi])
+                else:
+                    # Item too heavy for this w → only exclude is legal.
+                    dp[i][w] = dp[i - 1][w]
+        return dp[n][capacity]
 
-    def _knapsack(
-        self,
-        i: int,
-        c: int,
-        weights: List[int],
-        values: List[int],
-        memo: List[List[int]]
-    ) -> int:
 
-        # Base case: no capacity or no items left
-        if c == 0 or i < 0:
-            return 0
-
-        # Return cached result if already computed
-        if memo[i][c] != -1:
-            return memo[i][c]
-
-        # Option 1: Exclude the current item
-        exclude: int = self._knapsack(i - 1, c, weights, values, memo)
+if __name__ == "__main__":
+    sol = Solution()
+    print(sol.zero_one_knapsack([6, 4, 5, 3], [7, 3, 2, 6], 10))   # 13
+    print(sol.zero_one_knapsack([4, 5, 1],    [1, 2, 3],    4))    # 3
+    print(sol.zero_one_knapsack([4, 5, 6],    [1, 2, 3],    3))    # 0
 ```
 
-## Complexity analysis
+```java,editable
+public class Solution {
+    public int zeroOneKnapsack(int[] weights, int[] values, int capacity) {
+        int n = weights.length;
+        int[][] dp = new int[n + 1][capacity + 1];
+        for (int i = 1; i <= n; i++) {
+            int wi = weights[i - 1], vi = values[i - 1];
+            for (int w = 1; w <= capacity; w++) {
+                if (wi <= w) dp[i][w] = Math.max(dp[i - 1][w], vi + dp[i - 1][w - wi]);
+                else         dp[i][w] = dp[i - 1][w];
+            }
+        }
+        return dp[n][capacity];
+    }
 
-The total number of distinct subproblems in the top-down solution is determined by the number of valid `(i, c)` pairs where `i` ranges from `0` to `n - 1` and `c` ranges from `0` to `capacity`. This gives us at most `n × (capacity + 1)` unique subproblems, each computed at most once due to memoization.
+    public static void main(String[] args) {
+        Solution sol = new Solution();
+        System.out.println(sol.zeroOneKnapsack(new int[]{6, 4, 5, 3}, new int[]{7, 3, 2, 6}, 10));  // 13
+        System.out.println(sol.zeroOneKnapsack(new int[]{4, 5, 1},    new int[]{1, 2, 3},    4));   // 3
+        System.out.println(sol.zeroOneKnapsack(new int[]{4, 5, 6},    new int[]{1, 2, 3},    3));   // 0
+    }
+}
+```
 
-In the worst case, every valid state `(i, c)` must be computed exactly once. This happens when all items have small weights relative to the capacity, and all combinations must be examined before determining the optimal solution. For instance, if all items have weight `1` and the capacity is at least `n`, nearly every state in the table will be visited and computed, leading to a time complexity of **O(N × capacity)**.
+```c,editable
+#include <stdio.h>
 
-// Diagram: In the worst case, all the subproblems are computed.
+int dp[1001][10001];
 
-// Diagram: If all weights are greater than capacity, then only a linear path memo\[\]\[capacity\] is traced, leading to a linear O(N) time.
+int max(int a, int b) { return a > b ? a : b; }
 
-However, since we create and initialize the memoization array of size `n × (capacity + 1)` in the calling function, the overall time complexity is **O(N × capacity)** in any case.
+int zero_one_knapsack(const int *weights, const int *values, int n, int capacity) {
+    for (int i = 0; i <= n; i++)
+        for (int w = 0; w <= capacity; w++) dp[i][w] = 0;
+    for (int i = 1; i <= n; i++) {
+        int wi = weights[i - 1], vi = values[i - 1];
+        for (int w = 1; w <= capacity; w++) {
+            if (wi <= w) dp[i][w] = max(dp[i - 1][w], vi + dp[i - 1][w - wi]);
+            else         dp[i][w] = dp[i - 1][w];
+        }
+    }
+    return dp[n][capacity];
+}
 
-// Diagram: The time complexity is O(N x capacity) in any case.
+int main(void) {
+    int w1[] = {6, 4, 5, 3}, v1[] = {7, 3, 2, 6};
+    int w2[] = {4, 5, 1},    v2[] = {1, 2, 3};
+    int w3[] = {4, 5, 6},    v3[] = {1, 2, 3};
+    printf("%d\n", zero_one_knapsack(w1, v1, 4, 10));   // 13
+    printf("%d\n", zero_one_knapsack(w2, v2, 3, 4));    // 3
+    printf("%d\n", zero_one_knapsack(w3, v3, 3, 3));    // 0
+    return 0;
+}
+```
 
-Since we create one memoization array `memo` of size `n × (capacity + 1)` where `n` is the number of items and `capacity` is the knapsack capacity, the space complexity in any case is **O(N × capacity)**.
-
-// Diagram: The space complexity is O(N x capacity) in any case.
-
-> **Any Case:**
->
-> -   Space Complexity - **O(N × capacity)**
-> -   Time Complexity - **O(N × capacity)**
-
-***
-
-# Zero one knapsack
-
-## Problem Statement
-
-You are given two arrays **weights** and **profits** of size N where `weights[i]` denotes the weight of the `ith` item and `profits[i]` denotes the profit you will earn if you steal the `ith` item. You are also given a positive integer **capacity** that denotes the total weight your knapsack can hold. Write a function to find and return the maximum profit you can earn by stealing from these N items such that they fit in your knapsack.
-
-### Example 1
-
-> -   **Input:** weights = \[6, 4, 5, 3\], profits = \[7, 3, 2, 6\], capacity = 10
-> -   **Output:** 13
-> -   **Explanation:** We can only pick the first and the last item as they give us the maximum profit.
-
-### Example 2
-
-> -   **Input:** weights = \[4, 5, 1\], profits = \[1, 2, 3\], capacity = 4
-> -   **Output:** 3
-> -   **Explanation:** We can only pick the last item as this is the only one that will fit in our knapsack.
-
-### Example 3
-
-> -   **Input:** weights = \[4, 5, 6\], profits = \[1, 2, 3\], capacity = 3
-> -   **Output:** 0
-> -   **Explanation:** We cannot fit any item into the knapsack.
-
-## Solution
-
-```cpp
-using namespace std;
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
 
 class Solution {
 public:
-    int zeroOneKnapsack(
-        vector<int> &weights,
-        vector<int> &profits,
-        int capacity
-    ) {
-        int n = weights.size();
-
-        // Create a 2D DP array to store the maximum profit at each
-        // capacity for different items
-        vector<vector<int>> dp(n + 1, vector<int>(capacity + 1, 0));
-
-        // Iterate through each item
+    int zeroOneKnapsack(const std::vector<int>& weights, const std::vector<int>& values, int capacity) {
+        int n = (int) weights.size();
+        std::vector<std::vector<int>> dp(n + 1, std::vector<int>(capacity + 1, 0));
         for (int i = 1; i <= n; i++) {
-
-            // Iterate through each capacity from 1 to the total capacity
+            int wi = weights[i - 1], vi = values[i - 1];
             for (int w = 1; w <= capacity; w++) {
-
-                // If the weight of the current item is less than or
-                // equal to the current capacity
-                if (weights[i - 1] <= w) {
-
-                    // Include the current item and calculate the maximum
-                    // profit by considering the remaining capacity and
-                    // previous items' profits
-                    dp[i][w] =
-                        max(profits[i - 1] +
-                                dp[i - 1][w - weights[i - 1]],
-                            dp[i - 1][w]);
-                } else {
-
-                    // If the weight of the current item is greater than
-                    // the current capacity, skip including the item and
-                    // carry forward the previous maximum profit
-                    dp[i][w] = dp[i - 1][w];
-                }
+                if (wi <= w) dp[i][w] = std::max(dp[i - 1][w], vi + dp[i - 1][w - wi]);
+                else         dp[i][w] = dp[i - 1][w];
             }
         }
-
-        // Return the maximum profit obtained
         return dp[n][capacity];
     }
 };
+
+int main() {
+    Solution sol;
+    std::cout << sol.zeroOneKnapsack({6, 4, 5, 3}, {7, 3, 2, 6}, 10) << "\n";   // 13
+    std::cout << sol.zeroOneKnapsack({4, 5, 1},    {1, 2, 3},    4)  << "\n";   // 3
+    std::cout << sol.zeroOneKnapsack({4, 5, 6},    {1, 2, 3},    3)  << "\n";   // 0
+    return 0;
+}
 ```
+
+```scala,editable
+class Solution {
+  def zeroOneKnapsack(weights: Array[Int], values: Array[Int], capacity: Int): Int = {
+    val n = weights.length
+    val dp = Array.fill(n + 1, capacity + 1)(0)
+    for (i <- 1 to n) {
+      val wi = weights(i - 1); val vi = values(i - 1)
+      for (w <- 1 to capacity) {
+        dp(i)(w) =
+          if (wi <= w) math.max(dp(i - 1)(w), vi + dp(i - 1)(w - wi))
+          else dp(i - 1)(w)
+      }
+    }
+    dp(n)(capacity)
+  }
+}
+
+object Main extends App {
+  val sol = new Solution()
+  println(sol.zeroOneKnapsack(Array(6, 4, 5, 3), Array(7, 3, 2, 6), 10))  // 13
+  println(sol.zeroOneKnapsack(Array(4, 5, 1),    Array(1, 2, 3),    4))   // 3
+  println(sol.zeroOneKnapsack(Array(4, 5, 6),    Array(1, 2, 3),    3))   // 0
+}
+```
+
+```javascript,editable
+class Solution {
+    zeroOneKnapsack(weights, values, capacity) {
+        const n = weights.length;
+        const dp = Array.from({length: n + 1}, () => new Array(capacity + 1).fill(0));
+        for (let i = 1; i <= n; i++) {
+            const wi = weights[i - 1], vi = values[i - 1];
+            for (let w = 1; w <= capacity; w++) {
+                if (wi <= w) dp[i][w] = Math.max(dp[i - 1][w], vi + dp[i - 1][w - wi]);
+                else         dp[i][w] = dp[i - 1][w];
+            }
+        }
+        return dp[n][capacity];
+    }
+}
+
+const sol = new Solution();
+console.log(sol.zeroOneKnapsack([6, 4, 5, 3], [7, 3, 2, 6], 10));  // 13
+console.log(sol.zeroOneKnapsack([4, 5, 1],    [1, 2, 3],    4));   // 3
+console.log(sol.zeroOneKnapsack([4, 5, 6],    [1, 2, 3],    3));   // 0
+```
+
+```typescript,editable
+class Solution {
+    zeroOneKnapsack(weights: number[], values: number[], capacity: number): number {
+        const n = weights.length;
+        const dp: number[][] = Array.from({length: n + 1}, () => new Array(capacity + 1).fill(0));
+        for (let i = 1; i <= n; i++) {
+            const wi = weights[i - 1], vi = values[i - 1];
+            for (let w = 1; w <= capacity; w++) {
+                if (wi <= w) dp[i][w] = Math.max(dp[i - 1][w], vi + dp[i - 1][w - wi]);
+                else         dp[i][w] = dp[i - 1][w];
+            }
+        }
+        return dp[n][capacity];
+    }
+}
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func max(a, b int) int { if a > b { return a }; return b }
+
+func zeroOneKnapsack(weights, values []int, capacity int) int {
+    n := len(weights)
+    dp := make([][]int, n+1)
+    for i := range dp { dp[i] = make([]int, capacity+1) }
+    for i := 1; i <= n; i++ {
+        wi, vi := weights[i-1], values[i-1]
+        for w := 1; w <= capacity; w++ {
+            if wi <= w { dp[i][w] = max(dp[i-1][w], vi+dp[i-1][w-wi]) } else { dp[i][w] = dp[i-1][w] }
+        }
+    }
+    return dp[n][capacity]
+}
+
+func main() {
+    fmt.Println(zeroOneKnapsack([]int{6, 4, 5, 3}, []int{7, 3, 2, 6}, 10))  // 13
+    fmt.Println(zeroOneKnapsack([]int{4, 5, 1},    []int{1, 2, 3},    4))   // 3
+    fmt.Println(zeroOneKnapsack([]int{4, 5, 6},    []int{1, 2, 3},    3))   // 0
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun zeroOneKnapsack(weights: IntArray, values: IntArray, capacity: Int): Int {
+        val n = weights.size
+        val dp = Array(n + 1) { IntArray(capacity + 1) }
+        for (i in 1..n) {
+            val wi = weights[i - 1]; val vi = values[i - 1]
+            for (w in 1..capacity) {
+                dp[i][w] = if (wi <= w) maxOf(dp[i - 1][w], vi + dp[i - 1][w - wi])
+                           else dp[i - 1][w]
+            }
+        }
+        return dp[n][capacity]
+    }
+}
+
+fun main() {
+    val sol = Solution()
+    println(sol.zeroOneKnapsack(intArrayOf(6, 4, 5, 3), intArrayOf(7, 3, 2, 6), 10))  // 13
+    println(sol.zeroOneKnapsack(intArrayOf(4, 5, 1),    intArrayOf(1, 2, 3),    4))   // 3
+    println(sol.zeroOneKnapsack(intArrayOf(4, 5, 6),    intArrayOf(1, 2, 3),    3))   // 0
+}
+```
+
+```rust,editable
+fn zero_one_knapsack(weights: &[i32], values: &[i32], capacity: i32) -> i32 {
+    let n = weights.len();
+    let cap = capacity as usize;
+    let mut dp = vec![vec![0i32; cap + 1]; n + 1];
+    for i in 1..=n {
+        let wi = weights[i - 1]; let vi = values[i - 1];
+        for w in 1..=cap {
+            dp[i][w] = if wi as usize <= w {
+                std::cmp::max(dp[i - 1][w], vi + dp[i - 1][w - wi as usize])
+            } else { dp[i - 1][w] };
+        }
+    }
+    dp[n][cap]
+}
+
+fn main() {
+    println!("{}", zero_one_knapsack(&[6, 4, 5, 3], &[7, 3, 2, 6], 10));   // 13
+    println!("{}", zero_one_knapsack(&[4, 5, 1],    &[1, 2, 3],    4));    // 3
+    println!("{}", zero_one_knapsack(&[4, 5, 6],    &[1, 2, 3],    3));    // 0
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — weights = [6, 4, 5, 3], values = [7, 3, 2, 6], capacity = 10</strong></summary>
+
+```
+dp dimensions: 5 rows (i = 0..4) × 11 columns (w = 0..10).
+Row 0 (no items): all zeros.
+
+i = 1  (item 0: w=6, v=7)
+  Capacities 0..5: item too heavy → dp[1][0..5] = 0
+  Capacities 6..10: include is legal → dp[1][6..10] = max(0, 7) = 7
+
+i = 2  (item 1: w=4, v=3)
+  w=4: max(dp[1][4]=0, 3 + dp[1][0]=0)  = 3
+  w=5: max(dp[1][5]=0, 3 + dp[1][1]=0)  = 3
+  w=6: max(dp[1][6]=7, 3 + dp[1][2]=0)  = 7
+  w=7: max(dp[1][7]=7, 3 + dp[1][3]=0)  = 7
+  w=8: max(dp[1][8]=7, 3 + dp[1][4]=0)  = 7
+  w=9: max(dp[1][9]=7, 3 + dp[1][5]=0)  = 7
+  w=10: max(dp[1][10]=7, 3 + dp[1][6]=7) = 10
+  (lower w's: too heavy, copy from above)
+
+i = 3  (item 2: w=5, v=2)  — values are mostly the same; only marginal changes
+  Items 0+2 give w=11 (overflow); item 2 alone gives v=2 — strictly worse than v=3 from item 1.
+  So row 3 mostly mirrors row 2 (item 2 isn't worth picking unless it leaves room for item 1).
+  dp[3][10] = max(dp[2][10]=10, 2 + dp[2][5]=3) = 10
+
+i = 4  (item 3: w=3, v=6)
+  w=3: max(dp[3][3]=0, 6 + dp[3][0]=0)   = 6
+  w=4: max(dp[3][4]=3, 6 + dp[3][1]=0)   = 6
+  w=5: max(dp[3][5]=3, 6 + dp[3][2]=0)   = 6
+  w=6: max(dp[3][6]=7, 6 + dp[3][3]=0)   = 7
+  w=7: max(dp[3][7]=7, 6 + dp[3][4]=3)   = 9    (items 1+3)
+  w=8: max(dp[3][8]=7, 6 + dp[3][5]=3)   = 9
+  w=9: max(dp[3][9]=7, 6 + dp[3][6]=7)   = 13   (items 0+3) ✓
+  w=10: max(dp[3][10]=10, 6 + dp[3][7]=7) = 13   (items 0+3) ✓
+
+Final dp[4][10] = 13. ✓
+```
+
+</details>
+
+---
+
+## Complexity Analysis
+
+| Aspect | Cost | Why |
+|---|---|---|
+| Time | `O(n × capacity)` | Two nested loops; constant work per cell. Pseudo-polynomial: linear in `capacity`'s magnitude, *not* its bit length. |
+| Space | `O(n × capacity)` | Full table. Reducible to `O(capacity)` with a 1D rolling array — see below. |
+
+## Space Optimisation — Rolling 1D Array
+
+`dp[i][w]` only reads from `dp[i - 1][*]` — the previous row. So one 1D array suffices, *if* you iterate `w` from `capacity` down to `weights[i - 1]`. Iterating downward ensures `dp[w - weights[i - 1]]` still holds the *previous* row's value when we read it — going upward would let item `i` get picked twice.
+
+```python,editable
+def zero_one_knapsack_1d(weights, values, capacity):
+    dp = [0] * (capacity + 1)
+    for i in range(len(weights)):
+        wi, vi = weights[i], values[i]
+        # Iterate w DOWNWARD: prevents accidentally re-using item i in the same pass.
+        for w in range(capacity, wi - 1, -1):
+            dp[w] = max(dp[w], vi + dp[w - wi])
+    return dp[capacity]
+```
+
+Same `O(n × capacity)` time; `O(capacity)` space. Beautiful and the standard interview answer once you've shown the 2D version.
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected | Reasoning |
+|---|---|---|---|
+| Zero items | `weights=[]`, `capacity=10` | `0` | `n = 0`; `dp[0][10] = 0`. |
+| Zero capacity | `weights=[1]`, `capacity=0` | `0` | Column 0 stays all zeros. |
+| All items too heavy | `weights=[10, 11]`, `capacity=5` | `0` | Every `wi > w` branch → `dp[n][cap] = 0`. |
+| Single fitting item | `weights=[5]`, `values=[100]`, `capacity=5` | `100` | One include reaches capacity exactly. |
+| All items fit together | `weights=[1, 1]`, `values=[5, 5]`, `capacity=10` | `10` | Both included. |
+| Equal weights | `weights=[3, 3]`, `values=[5, 6]`, `capacity=3` | `6` | Pick the higher-value one. |
 
 ***
 
-# Zero one Knapsack II
+# 0/1 Knapsack II — Recovering Which Items
 
-## Problem Statement
+> **Course:** DSA › Algorithms › Dynamic Programming › Knapsack
 
-You are given two arrays **weights** and **profits** of size N where `weights[i]` denotes the weight of the `ith` item and `profits[i]` denotes the profit you will earn if you steal the `ith` item. You are also given a positive integer **capacity** that denotes the total weight your knapsack can hold. Write a function to find and return a list containing the indexes of items that you will steal to achieve maximum profit while ensuring that they fit in your knapsack. The list of indexes should be in sorted order.
+The standard knapsack returns just the *value*. But often we want the actual *set of items* — the burglar wants to know *what* to grab, not just how much they're worth. We can recover the selection by *backtracking* through the DP table after it's filled.
 
-### Example 1
+## The Idea
 
-> -   **Input:** weights = \[6, 4, 5, 3\], profits = \[7, 3, 2, 6\], capacity = 10
-> -   **Output:** \[0, 3\]
-> -   **Explanation:** We can only pick the first and the last item as they give us the maximum profit of 13.
+After the table is computed, walk from `dp[n][capacity]` backward toward `dp[0][0]`. At each step `(i, w)`:
+- If `dp[i][w] != dp[i - 1][w]`, item `i - 1` *was* included (its inclusion improved the value). Add `i - 1` to the selection; drop `w` by `weights[i - 1]`.
+- Otherwise, item `i - 1` was excluded. Move to row `i - 1` with the same `w`.
 
-### Example 2
+Continue until `i == 0` or `w == 0`. Reverse the selection to get sorted indices.
 
-> -   **Input:** weights = \[4, 5, 1\], profits = \[1, 2, 3\], capacity = 4
-> -   **Output:** \[2\]
-> -   **Explanation:** We can only pick the last item as this is the only one that will fit in our knapsack. This will give us a profit of 3.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#dbeafe"
+    primaryBorderColor: "#3b82f6"
+    primaryTextColor: "#1e3a5f"
+    lineColor: "#777777"
+    secondaryColor: "#ede9fe"
+    tertiaryColor: "#fef9c3"
+---
+flowchart LR
+  A["Start (n, capacity)"]
+  A --> B["dp[i][w] != dp[i-1][w]?"]
+  B -->|"yes — item was included"| C["push i-1; w -= weights[i-1]; i -= 1"]
+  B -->|"no — item was excluded"| D["i -= 1"]
+  C --> E["i == 0 or w == 0?"]
+  D --> E
+  E -->|"no"| B
+  E -->|"yes"| F["reverse selection → sorted indices"]
+```
 
-### Example 3
+<p align="center"><strong>Backtracking walks the DP table from <code>(n, capacity)</code> toward the origin. A cell-value change between consecutive rows reveals an inclusion; equality reveals an exclusion. The walk costs <code>O(n)</code> — one row decrement per step.</strong></p>
 
-> -   **Input:** weights = \[4, 5, 6\], profits = \[1, 2, 3\], capacity = 3
-> -   **Output:** \[\]
-> -   **Explanation:** We cannot fit any item into the knapsack.
+> *Pause. Why does `dp[i][w] != dp[i-1][w]` prove inclusion? Predict the reasoning.*
 
-## Solution
+`dp[i][w]` = `max(dp[i-1][w], vi + dp[i-1][w - wi])`. If the max came from the *exclude* branch, `dp[i][w] == dp[i-1][w]` — equal. If it came from the *include* branch, `dp[i][w]` strictly improved over `dp[i-1][w]` — different. So a value change is the signature of an include decision.
 
-```cpp
-using namespace std;
+(Edge case: if both branches happen to tie, the algorithm picks "exclude" and skips the item. Either choice is valid; the *value* is the same, only one of possibly many optimal subsets is recovered.)
+
+---
+
+## The Solution
+
+<div class="lang-tabs">
+
+```python,editable
+from typing import List
+
+class Solution:
+    def zero_one_knapsack_ii(self, weights: List[int], values: List[int], capacity: int) -> List[int]:
+        n = len(weights)
+        # Build the same DP table as before.
+        dp: List[List[int]] = [[0] * (capacity + 1) for _ in range(n + 1)]
+        for i in range(1, n + 1):
+            wi, vi = weights[i - 1], values[i - 1]
+            for w in range(1, capacity + 1):
+                if wi <= w:
+                    dp[i][w] = max(dp[i - 1][w], vi + dp[i - 1][w - wi])
+                else:
+                    dp[i][w] = dp[i - 1][w]
+        # Backtrack to recover the selected items.
+        selected: List[int] = []
+        i, w = n, capacity
+        while i > 0 and w > 0:
+            if dp[i][w] != dp[i - 1][w]:
+                # Value changed across rows → item i-1 was included.
+                selected.append(i - 1)
+                w -= weights[i - 1]
+            i -= 1
+        selected.reverse()                    # We collected them last-to-first; sort ascending
+        return selected
+
+
+if __name__ == "__main__":
+    sol = Solution()
+    print(sol.zero_one_knapsack_ii([6, 4, 5, 3], [7, 3, 2, 6], 10))   # [0, 3]
+    print(sol.zero_one_knapsack_ii([4, 5, 1],    [1, 2, 3],    4))    # [2]
+    print(sol.zero_one_knapsack_ii([4, 5, 6],    [1, 2, 3],    3))    # []
+```
+
+```java,editable
+import java.util.*;
+
+public class Solution {
+    public List<Integer> zeroOneKnapsackII(int[] weights, int[] values, int capacity) {
+        int n = weights.length;
+        int[][] dp = new int[n + 1][capacity + 1];
+        for (int i = 1; i <= n; i++) {
+            int wi = weights[i - 1], vi = values[i - 1];
+            for (int w = 1; w <= capacity; w++) {
+                if (wi <= w) dp[i][w] = Math.max(dp[i - 1][w], vi + dp[i - 1][w - wi]);
+                else         dp[i][w] = dp[i - 1][w];
+            }
+        }
+        List<Integer> selected = new ArrayList<>();
+        int i = n, w = capacity;
+        while (i > 0 && w > 0) {
+            if (dp[i][w] != dp[i - 1][w]) {
+                selected.add(i - 1);
+                w -= weights[i - 1];
+            }
+            i--;
+        }
+        Collections.reverse(selected);
+        return selected;
+    }
+
+    public static void main(String[] args) {
+        Solution sol = new Solution();
+        System.out.println(sol.zeroOneKnapsackII(new int[]{6, 4, 5, 3}, new int[]{7, 3, 2, 6}, 10));  // [0, 3]
+        System.out.println(sol.zeroOneKnapsackII(new int[]{4, 5, 1},    new int[]{1, 2, 3},    4));   // [2]
+        System.out.println(sol.zeroOneKnapsackII(new int[]{4, 5, 6},    new int[]{1, 2, 3},    3));   // []
+    }
+}
+```
+
+```c,editable
+#include <stdio.h>
+
+int dp[1001][10001];
+int selected[1001];
+
+int max(int a, int b) { return a > b ? a : b; }
+
+int zero_one_knapsack_ii(const int *weights, const int *values, int n, int capacity, int *out) {
+    for (int i = 0; i <= n; i++)
+        for (int w = 0; w <= capacity; w++) dp[i][w] = 0;
+    for (int i = 1; i <= n; i++) {
+        int wi = weights[i - 1], vi = values[i - 1];
+        for (int w = 1; w <= capacity; w++) {
+            if (wi <= w) dp[i][w] = max(dp[i - 1][w], vi + dp[i - 1][w - wi]);
+            else         dp[i][w] = dp[i - 1][w];
+        }
+    }
+    int len = 0, i = n, w = capacity;
+    while (i > 0 && w > 0) {
+        if (dp[i][w] != dp[i - 1][w]) { selected[len++] = i - 1; w -= weights[i - 1]; }
+        i--;
+    }
+    for (int k = 0; k < len; k++) out[k] = selected[len - 1 - k];     /* reverse */
+    return len;
+}
+
+int main(void) {
+    int w1[] = {6, 4, 5, 3}, v1[] = {7, 3, 2, 6}, out[10];
+    int len = zero_one_knapsack_ii(w1, v1, 4, 10, out);
+    for (int i = 0; i < len; i++) printf("%d ", out[i]);
+    printf("\n");                                                     /* 0 3 */
+    return 0;
+}
+```
+
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
 
 class Solution {
 public:
-    vector<int> zeroOneKnapsackII(
-        vector<int> &weights,
-        vector<int> &profits,
-        int capacity
-    ) {
-        int n = weights.size();
-
-        // Create a 2D DP array to store the maximum profit at each
-        // capacity for different items
-        vector<vector<int>> dp(n + 1, vector<int>(capacity + 1, 0));
-
-        // Iterate through each item
+    std::vector<int> zeroOneKnapsackII(const std::vector<int>& weights, const std::vector<int>& values, int capacity) {
+        int n = (int) weights.size();
+        std::vector<std::vector<int>> dp(n + 1, std::vector<int>(capacity + 1, 0));
         for (int i = 1; i <= n; i++) {
-
-            // Iterate through each capacity from 1 to the total capacity
+            int wi = weights[i - 1], vi = values[i - 1];
             for (int w = 1; w <= capacity; w++) {
-
-                // If the weight     of the current item is less than or
-                // equal to the current capacity
-                if (weights[i - 1] <= w) {
-
-                    // Include the current item and calculate the maximum
-                    // profit by considering the remaining capacity and
-                    // previous items' profits
-                    dp[i][w] =
-                        max(profits[i - 1] +
-                                dp[i - 1][w - weights[i - 1]],
-                            dp[i - 1][w]);
-                } else {
-
-                    // If the weight of the current item is greater than
-                    // the current capacity, skip including the item and
-                    // carry forward the previous maximum profit
-                    dp[i][w] = dp[i - 1][w];
-                }
+                if (wi <= w) dp[i][w] = std::max(dp[i - 1][w], vi + dp[i - 1][w - wi]);
+                else         dp[i][w] = dp[i - 1][w];
             }
         }
-
-        // Track the selected items that contribute to the maximum profit
-        vector<int> selectedItems;
-        int i = n;
-        int w = capacity;
-
-        // Starting from the last item and capacity, backtrack to find
-        // the selected items
+        std::vector<int> selected;
+        int i = n, w = capacity;
         while (i > 0 && w > 0) {
-
-            // If the current item was included in the optimal solution,
-            // add it to the selected items and reduce the remaining
-            // capacity
-            if (dp[i][w] != dp[i - 1][w]) {
-                selectedItems.push_back(i - 1);
-                w -= weights[i - 1];
-            }
-
-            // Move to the previous item
+            if (dp[i][w] != dp[i - 1][w]) { selected.push_back(i - 1); w -= weights[i - 1]; }
             i--;
         }
-
-        // Reverse the selected items to get them in the correct order
-        reverse(selectedItems.begin(), selectedItems.end());
-
-        // Return the selected items;
-        return selectedItems;
+        std::reverse(selected.begin(), selected.end());
+        return selected;
     }
 };
+
+int main() {
+    Solution sol;
+    auto out = sol.zeroOneKnapsackII({6, 4, 5, 3}, {7, 3, 2, 6}, 10);
+    for (int x : out) std::cout << x << " ";
+    std::cout << "\n";                                    // 0 3
+    return 0;
+}
 ```
 
+```scala,editable
+class Solution {
+  def zeroOneKnapsackII(weights: Array[Int], values: Array[Int], capacity: Int): List[Int] = {
+    val n = weights.length
+    val dp = Array.fill(n + 1, capacity + 1)(0)
+    for (i <- 1 to n) {
+      val wi = weights(i - 1); val vi = values(i - 1)
+      for (w <- 1 to capacity) {
+        dp(i)(w) = if (wi <= w) math.max(dp(i - 1)(w), vi + dp(i - 1)(w - wi))
+                   else dp(i - 1)(w)
+      }
+    }
+    val selected = scala.collection.mutable.ArrayBuffer[Int]()
+    var i = n; var w = capacity
+    while (i > 0 && w > 0) {
+      if (dp(i)(w) != dp(i - 1)(w)) { selected += (i - 1); w -= weights(i - 1) }
+      i -= 1
+    }
+    selected.reverse.toList
+  }
+}
+
+object Main extends App {
+  println(new Solution().zeroOneKnapsackII(Array(6, 4, 5, 3), Array(7, 3, 2, 6), 10))  // List(0, 3)
+}
+```
+
+```javascript,editable
+class Solution {
+    zeroOneKnapsackII(weights, values, capacity) {
+        const n = weights.length;
+        const dp = Array.from({length: n + 1}, () => new Array(capacity + 1).fill(0));
+        for (let i = 1; i <= n; i++) {
+            const wi = weights[i - 1], vi = values[i - 1];
+            for (let w = 1; w <= capacity; w++) {
+                if (wi <= w) dp[i][w] = Math.max(dp[i - 1][w], vi + dp[i - 1][w - wi]);
+                else         dp[i][w] = dp[i - 1][w];
+            }
+        }
+        const selected = [];
+        let i = n, w = capacity;
+        while (i > 0 && w > 0) {
+            if (dp[i][w] !== dp[i - 1][w]) { selected.push(i - 1); w -= weights[i - 1]; }
+            i--;
+        }
+        return selected.reverse();
+    }
+}
+
+console.log(new Solution().zeroOneKnapsackII([6, 4, 5, 3], [7, 3, 2, 6], 10));  // [0, 3]
+```
+
+```typescript,editable
+class Solution {
+    zeroOneKnapsackII(weights: number[], values: number[], capacity: number): number[] {
+        const n = weights.length;
+        const dp: number[][] = Array.from({length: n + 1}, () => new Array(capacity + 1).fill(0));
+        for (let i = 1; i <= n; i++) {
+            const wi = weights[i - 1], vi = values[i - 1];
+            for (let w = 1; w <= capacity; w++) {
+                if (wi <= w) dp[i][w] = Math.max(dp[i - 1][w], vi + dp[i - 1][w - wi]);
+                else         dp[i][w] = dp[i - 1][w];
+            }
+        }
+        const selected: number[] = [];
+        let i = n, w = capacity;
+        while (i > 0 && w > 0) {
+            if (dp[i][w] !== dp[i - 1][w]) { selected.push(i - 1); w -= weights[i - 1]; }
+            i--;
+        }
+        return selected.reverse();
+    }
+}
+```
+
+```go,editable
+package main
+
+import "fmt"
+
+func max(a, b int) int { if a > b { return a }; return b }
+
+func zeroOneKnapsackII(weights, values []int, capacity int) []int {
+    n := len(weights)
+    dp := make([][]int, n+1)
+    for i := range dp { dp[i] = make([]int, capacity+1) }
+    for i := 1; i <= n; i++ {
+        wi, vi := weights[i-1], values[i-1]
+        for w := 1; w <= capacity; w++ {
+            if wi <= w { dp[i][w] = max(dp[i-1][w], vi+dp[i-1][w-wi]) } else { dp[i][w] = dp[i-1][w] }
+        }
+    }
+    selected := []int{}
+    i, w := n, capacity
+    for i > 0 && w > 0 {
+        if dp[i][w] != dp[i-1][w] { selected = append(selected, i-1); w -= weights[i-1] }
+        i--
+    }
+    for l, r := 0, len(selected)-1; l < r; l, r = l+1, r-1 { selected[l], selected[r] = selected[r], selected[l] }
+    return selected
+}
+
+func main() {
+    fmt.Println(zeroOneKnapsackII([]int{6, 4, 5, 3}, []int{7, 3, 2, 6}, 10))  // [0 3]
+}
+```
+
+```kotlin,editable
+class Solution {
+    fun zeroOneKnapsackII(weights: IntArray, values: IntArray, capacity: Int): List<Int> {
+        val n = weights.size
+        val dp = Array(n + 1) { IntArray(capacity + 1) }
+        for (i in 1..n) {
+            val wi = weights[i - 1]; val vi = values[i - 1]
+            for (w in 1..capacity) {
+                dp[i][w] = if (wi <= w) maxOf(dp[i - 1][w], vi + dp[i - 1][w - wi])
+                           else dp[i - 1][w]
+            }
+        }
+        val selected = mutableListOf<Int>()
+        var i = n; var w = capacity
+        while (i > 0 && w > 0) {
+            if (dp[i][w] != dp[i - 1][w]) { selected.add(i - 1); w -= weights[i - 1] }
+            i--
+        }
+        return selected.reversed()
+    }
+}
+
+fun main() {
+    println(Solution().zeroOneKnapsackII(intArrayOf(6, 4, 5, 3), intArrayOf(7, 3, 2, 6), 10))  // [0, 3]
+}
+```
+
+```rust,editable
+fn zero_one_knapsack_ii(weights: &[i32], values: &[i32], capacity: i32) -> Vec<i32> {
+    let n = weights.len();
+    let cap = capacity as usize;
+    let mut dp = vec![vec![0i32; cap + 1]; n + 1];
+    for i in 1..=n {
+        let wi = weights[i - 1]; let vi = values[i - 1];
+        for w in 1..=cap {
+            dp[i][w] = if wi as usize <= w {
+                std::cmp::max(dp[i - 1][w], vi + dp[i - 1][w - wi as usize])
+            } else { dp[i - 1][w] };
+        }
+    }
+    let mut selected = Vec::new();
+    let (mut i, mut w) = (n, cap);
+    while i > 0 && w > 0 {
+        if dp[i][w] != dp[i - 1][w] {
+            selected.push((i - 1) as i32);
+            w -= weights[i - 1] as usize;
+        }
+        i -= 1;
+    }
+    selected.reverse();
+    selected
+}
+
+fn main() {
+    println!("{:?}", zero_one_knapsack_ii(&[6, 4, 5, 3], &[7, 3, 2, 6], 10));  // [0, 3]
+}
+```
+
+</div>
+
+<details>
+<summary><strong>Trace — backtracking from dp[4][10] for the running example</strong></summary>
+
+```
+Start: i = 4, w = 10. dp[4][10] = 13.
+
+Step 1: dp[4][10] = 13, dp[3][10] = 10.  Differ → item 3 included.
+        Push 3; w -= 3 → w = 7; i = 3.
+
+Step 2: dp[3][7] = 7, dp[2][7] = 7.       Same → item 2 excluded.
+        i = 2.
+
+Step 3: dp[2][7] = 7, dp[1][7] = 7.       Same → item 1 excluded.
+        i = 1.
+
+Step 4: dp[1][7] = 7, dp[0][7] = 0.       Differ → item 0 included.
+        Push 0; w -= 6 → w = 1; i = 0.
+
+Loop ends (i == 0).
+
+Collected: [3, 0].  Reverse → [0, 3].  ✓
+```
+
+</details>
+
+---
+
+## Complexity Analysis
+
+| Aspect | Cost | Why |
+|---|---|---|
+| Time | `O(n × capacity)` | DP build dominates; backtrack is `O(n)`. |
+| Space | `O(n × capacity)` | The full table is needed for backtracking. |
+
+The 1D rolling-array trick from earlier *cannot* directly reconstruct the path — overwriting rows loses the trail. Reconstruction needs the full 2D history (or some clever bit-packing variants beyond this lesson).
+
+---
+
+## Edge Cases
+
+| Case | Example | Expected | Reasoning |
+|---|---|---|---|
+| Nothing fits | `weights=[10]`, `capacity=5` | `[]` | Backtrack starts; `dp[1][5] == dp[0][5] == 0` → no inclusion ever recorded. |
+| One item exactly fills | `weights=[5]`, `values=[10]`, `capacity=5` | `[0]` | `dp[1][5] = 10 != 0` → record 0. |
+| Tie between two items, same weight | `weights=[3, 3]`, `values=[5, 5]`, `capacity=3` | `[1]` | Either index is correct; backtrack picks the later one due to the equality check. |
+| Multiple equally-good subsets | various | one valid subset | Algorithm returns *one* maximum — the one the backtrack walks. |
+
 ***
 
-# Understanding the unbounded knapsack problem
+# Unbounded Knapsack — Items With Unlimited Copies
 
-Unlike the 0/1 knapsack problem, many real-world optimization problems allow the same option to be used an unlimited number of times rather than restricting each choice to a single use. In these situations, the decision is not simply whether to include an option or not, but how many times it should be chosen while still respecting the overall capacity constraints. Each option has an associated cost and value, and the objective is to determine the combination that maximizes total value without exceeding the available capacity.
+> **Course:** DSA › Algorithms › Dynamic Programming › Knapsack
 
-A fundamental problem in this space is the unbounded knapsack problem, where "unbounded" means that each item can be included an unlimited number of times.
+In **unbounded** knapsack, each item type is available in unlimited supply — pick item `i` once, twice, or a hundred times. The recurrence shifts by *one index*: when including, you stay at item `i` (item is still available) instead of moving to `i - 1`.
 
-// Diagram: The unbounded knapsack problem.
+```
+unbounded(i, c) = max(
+    unbounded(i - 1, c),                               — exclude (move on, item gone)
+    values[i] + unbounded(i, c - weights[i])           — include AND keep item i available
+)
+```
 
-The unbounded knapsack problem extends beyond simple one-time selections and proves essential in scenarios like currency denomination (making change with unlimited coins of each type), rod cutting problems (cutting rods or materials where the same length can be cut repeatedly), production planning (manufacturing items with unlimited raw materials), and resource allocation where the same type of resource can be deployed multiple times.
+Compare to 0/1:
+```
+zero_one(i, c)  = max(
+    zero_one(i - 1, c),
+    values[i] + zero_one(i - 1, c - weights[i])        — include, item gone
+)
+```
 
-In this lesson, we will learn about the unbounded knapsack problem and how it can be solved efficiently using a dynamic programming solution.
+The single difference: include keeps `i` (unbounded) vs. moves to `i - 1` (0/1). That's it. One character.
 
-## The unbounded knapsack problem
+> *Pause. The diff is one character (`i` vs `i - 1`). What does that change in the bottom-up table's read direction? Predict before reading on.*
 
-Consider we are given `n` types of items, where the item at index `i` has a weight `weights[i]` and a value `values[i]`. We also have a knapsack with a maximum weight capacity `capacity`. Unlike the 0/1 variant, each item can be included zero, one, or multiple times in the knapsack.
+In bottom-up form, the include term reads `dp[i][w - wi]` (same row, smaller column) instead of `dp[i - 1][w - wi]` (row above). Same row means we read a value *just computed in the same outer-loop iteration* — and that's intentional: we want the same item to be reusable. The 0/1 1D rolling-array version iterates `w` *downward* to avoid this accidental reuse; the unbounded version iterates `w` *upward* to deliberately enable it.
 
-// Diagram: We are given n items with weights and corresponding values, and we have a fixed capacity for the knapsack.
+## Where this shows up
 
-We need to find the maximum total value we can achieve by selecting items (with repetition allowed) such that their total weight does not exceed `capacity`.
+Coin change (currencies have unlimited supply per denomination), rod cutting (a length of any size can be reused), production scheduling (raw materials replenish), and the classic "minimum number of coins to make change" problem (a min-aggregator unbounded knapsack).
 
-// Diagram: We need to find the maximum total value we can achieve.
+## Why More Overlap Than 0/1?
 
-## Optimal substructure
+In 0/1, each `(i, c)` is reached from at most two parents — include-or-exclude. In unbounded, the include branch creates a chain `(i, c), (i, c - wi), (i, c - 2·wi), ...` all stuck on item `i`. The fan-in at every state is much higher, making memoization/tabulation even more impactful.
 
-It is easy to prove that the optimal solution to the unbounded knapsack problem can be constructed from optimal solutions to its smaller subproblems. It is important to observe that when we consider items `0` through `i` and a knapsack with capacity `c`, we have multiple choices to make regarding the item at index `i`.
+---
 
-If for the item at index `i`, its weight `weights[i]` is greater than the available capacity `c`, we have no choice but to exclude it and work with items `0` through `i - 1` using the full capacity `c`.
+## The Algorithm
 
-// Diagram: If the weight of the item at index i is greater than c, we cannot choose that item.
+We use a `(n + 1) × (capacity + 1)` table, same shape as 0/1. The only difference: the include term reads from the *same* row.
 
-However, if for the item at index `i` its weight `weights[i]` is less than or equal to the available capacity `c`, we have the following two choices.
+<div class="lang-tabs">
 
-1.  1We can include the item at index `i` in our knapsack and gain its value `values[i]` but consume capacity `weights[i]`, leaving us with a remaining capacity of `c - weights[i]`. Since we can use every item an unlimited number of times, we can use the remaining capacity `c - weights[i]` to again choose from items `0` through `i` ( item `i` remains available for selection).
-2.  2We can exclude the item at index `i` and maintain the full capacity `c` but can only use items `0` through `i - 1` to build our solution. This permanently removes item `i` from consideration.
+```python,editable
+from typing import List
 
-The optimal solution between these choices is the one that results in greater total value for items `0` through `i` and capacity `c`.
+class Solution:
+    def unbounded_knapsack(self, weights: List[int], values: List[int], capacity: int) -> int:
+        n = len(weights)
+        dp: List[List[int]] = [[0] * (capacity + 1) for _ in range(n + 1)]
+        for i in range(1, n + 1):
+            wi, vi = weights[i - 1], values[i - 1]
+            for w in range(1, capacity + 1):
+                # Exclude: dp[i-1][w] — move on without using item i.
+                exclude = dp[i - 1][w]
+                # Include: stay at row i — same item still available for re-use.
+                include = vi + dp[i][w - wi] if wi <= w else 0
+                dp[i][w] = max(exclude, include)
+        return dp[n][capacity]
 
-// Diagram: \[0...i\] items
 
-**How does the include branch differ from the 0/1 knapsack?** 
+if __name__ == "__main__":
+    sol = Solution()
+    # 5 weight 1 value 1, weight 4 value 5, weight 3 value 4 — capacity 8.
+    # Best: 2× item with w=4, v=5 → total weight 8, value 10.
+    print(sol.unbounded_knapsack([1, 4, 3], [1, 5, 4], 8))   # 10
+    # Coin change in disguise: w=v=[1, 3, 4], capacity 6 → 6 (six 1-coins).
+    print(sol.unbounded_knapsack([1, 3, 4], [1, 3, 4], 6))   # 6
+```
 
-In the 0/1 knapsack, including item at the index `i` moves us to items `0` through `i - 1`, the item at the index `i` is used up and cannot be chosen again. In the unbounded knapsack, including item at the index `i` keeps us at items `0` through `i` i.e. the item at index `i` remains available because we have unlimited copies. This single difference in the recurrence is what makes the problem "unbounded."
+```java,editable
+public class Solution {
+    public int unboundedKnapsack(int[] weights, int[] values, int capacity) {
+        int n = weights.length;
+        int[][] dp = new int[n + 1][capacity + 1];
+        for (int i = 1; i <= n; i++) {
+            int wi = weights[i - 1], vi = values[i - 1];
+            for (int w = 1; w <= capacity; w++) {
+                int exclude = dp[i - 1][w];
+                int include = (wi <= w) ? vi + dp[i][w - wi] : 0;
+                dp[i][w] = Math.max(exclude, include);
+            }
+        }
+        return dp[n][capacity];
+    }
 
-Based on the above, it is clear that to find the maximum value achievable with items `0` through `i` and capacity `c`, we have two options to choose from:
+    public static void main(String[] args) {
+        System.out.println(new Solution().unboundedKnapsack(new int[]{1, 4, 3}, new int[]{1, 5, 4}, 8));  // 10
+    }
+}
+```
 
-1.  1If `weights[i]` is greater than `c`, we must exclude the item at index `i`, and the solution is the maximum value achievable with items `0` through `i - 1` and capacity `c`.
-2.  2If `weights[i]` does not exceed `c`, we take the maximum of the two options: including the item at index `i` (gaining `values[i]`, reducing capacity to `c - weights[i]`, and keeping item `i` available) or excluding item at index `i` (keeping the full capacity `c` but moving to items `0` through `i - 1`).
+```c,editable
+#include <stdio.h>
 
-The solution to the problem depends on the optimal solution of these smaller subproblems.
+int dp[1001][10001];
 
-// Diagram: The optimal solution to the problem depends on the optimal solution to the smaller subproblems.
+int max(int a, int b) { return a > b ? a : b; }
 
-Note that the subproblems are uniquely identified by two dimensions: the index `i` of the last item under consideration and the remaining capacity `c`.
+int unbounded_knapsack(const int *weights, const int *values, int n, int capacity) {
+    for (int i = 0; i <= n; i++)
+        for (int w = 0; w <= capacity; w++) dp[i][w] = 0;
+    for (int i = 1; i <= n; i++) {
+        int wi = weights[i - 1], vi = values[i - 1];
+        for (int w = 1; w <= capacity; w++) {
+            int exclude = dp[i - 1][w];
+            int include = (wi <= w) ? vi + dp[i][w - wi] : 0;
+            dp[i][w] = max(exclude, include);
+        }
+    }
+    return dp[n][capacity];
+}
 
-**Why does excluding the item at index `i` move to items `0` through `i - 1` rather than keeping item `i` available?** 
+int main(void) {
+    int w[] = {1, 4, 3}, v[] = {1, 5, 4};
+    printf("%d\n", unbounded_knapsack(w, v, 3, 8));   // 10
+    return 0;
+}
+```
 
-When we exclude the item at index `i`, we are deciding that it will not be used at all (not even once). If we kept it available after excluding it, we would re-encounter the same decision at the same state `(i, c)`, leading to infinite recursion. By moving to `i - 1`, we permanently remove the item at index `i` from future consideration and make progress toward the base case.
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
 
-Based on the optimal substructure above, we can define the relationship between the problem and its subproblems. We can define a function `knapsack(i, c)` that returns the maximum value achievable using items `0` through `i` with a knapsack capacity of `c`.
+class Solution {
+public:
+    int unboundedKnapsack(const std::vector<int>& weights, const std::vector<int>& values, int capacity) {
+        int n = (int) weights.size();
+        std::vector<std::vector<int>> dp(n + 1, std::vector<int>(capacity + 1, 0));
+        for (int i = 1; i <= n; i++) {
+            int wi = weights[i - 1], vi = values[i - 1];
+            for (int w = 1; w <= capacity; w++) {
+                int exclude = dp[i - 1][w];
+                int include = (wi <= w) ? vi + dp[i][w - wi] : 0;
+                dp[i][w] = std::max(exclude, include);
+            }
+        }
+        return dp[n][capacity];
+    }
+};
 
-// Diagram: Define a function knapsack to find the maximum value achievable when considering items \[0...i\] with a capacity of c
+int main() {
+    std::cout << Solution().unboundedKnapsack({1, 4, 3}, {1, 5, 4}, 8) << "\n";  // 10
+    return 0;
+}
+```
 
-The recurrence relation breaks the problem into smaller subproblems by either reducing `i` by one (exclude) or reducing `c` by `weights[i]` (include). This reduction eventually reaches the point where either `i` drops below `0` or `c` reaches `0`. When `i` is less than `0`, there are no items left to consider, so no value can be achieved and `knapsack` returns `0`. When `c` is `0`, the knapsack has no remaining capacity, so no items can be added regardless of `i`, and `knapsack` returns `0`. These serve as the base cases of the recurrence relation, terminating the recursion.
+```scala,editable
+class Solution {
+  def unboundedKnapsack(weights: Array[Int], values: Array[Int], capacity: Int): Int = {
+    val n = weights.length
+    val dp = Array.fill(n + 1, capacity + 1)(0)
+    for (i <- 1 to n) {
+      val wi = weights(i - 1); val vi = values(i - 1)
+      for (w <- 1 to capacity) {
+        val exclude = dp(i - 1)(w)
+        val include = if (wi <= w) vi + dp(i)(w - wi) else 0
+        dp(i)(w) = math.max(exclude, include)
+      }
+    }
+    dp(n)(capacity)
+  }
+}
 
-**Why does the base case use `i < 0` instead of `i == 0`?** 
+object Main extends App {
+  println(new Solution().unboundedKnapsack(Array(1, 4, 3), Array(1, 5, 4), 8))  // 10
+}
+```
 
-Since `i` is an index into the items, the value `i == 0` represents the state where we are considering the item at index `0`, which is still a valid item that can potentially be included. Only when `i` drops below `0` have we truly exhausted all items.
+```javascript,editable
+class Solution {
+    unboundedKnapsack(weights, values, capacity) {
+        const n = weights.length;
+        const dp = Array.from({length: n + 1}, () => new Array(capacity + 1).fill(0));
+        for (let i = 1; i <= n; i++) {
+            const wi = weights[i - 1], vi = values[i - 1];
+            for (let w = 1; w <= capacity; w++) {
+                const exclude = dp[i - 1][w];
+                const include = wi <= w ? vi + dp[i][w - wi] : 0;
+                dp[i][w] = Math.max(exclude, include);
+            }
+        }
+        return dp[n][capacity];
+    }
+}
 
-// Diagram: The base case for the unbounded knapsack problem.
+console.log(new Solution().unboundedKnapsack([1, 4, 3], [1, 5, 4], 8));   // 10
+```
 
-To get the solution for `knapsack(i, c)`, we check whether `weights[i]` exceeds `c`. If the item is too heavy, we cannot include it, so the solution is `knapsack(i - 1, c)`. If the item fits, we take the maximum of two choices: `values[i] + knapsack(i, c - weights[i])`, representing the inclusion of the item at index `i` (keeping it available for future use), or `knapsack(i - 1, c)`, representing the exclusion of the item at index `i`.
+```typescript,editable
+class Solution {
+    unboundedKnapsack(weights: number[], values: number[], capacity: number): number {
+        const n = weights.length;
+        const dp: number[][] = Array.from({length: n + 1}, () => new Array(capacity + 1).fill(0));
+        for (let i = 1; i <= n; i++) {
+            const wi = weights[i - 1], vi = values[i - 1];
+            for (let w = 1; w <= capacity; w++) {
+                const exclude = dp[i - 1][w];
+                const include = wi <= w ? vi + dp[i][w - wi] : 0;
+                dp[i][w] = Math.max(exclude, include);
+            }
+        }
+        return dp[n][capacity];
+    }
+}
+```
 
-The recurrence relation below expresses the solution to the problem as a function of solutions to smaller problems. The solution to the original problem is `knapsack(n - 1, capacity)` where `n` is the number of items and `capacity` is the knapsack capacity.
+```go,editable
+package main
 
-// Diagram: The recurrence relation for the unbounded knapsack problem.
+import "fmt"
 
-## Overlapping Subproblems
+func max(a, b int) int { if a > b { return a }; return b }
 
-It is easy to see that there are many overlapping subproblems in the recurrence relation to solve the unbounded knapsack problem. To compute `knapsack(i, c)`, we may recursively compute `knapsack(i, c - weights[i])` when including the item at index `i`, or `knapsack(i - 1, c)` when excluding it.
+func unboundedKnapsack(weights, values []int, capacity int) int {
+    n := len(weights)
+    dp := make([][]int, n+1)
+    for i := range dp { dp[i] = make([]int, capacity+1) }
+    for i := 1; i <= n; i++ {
+        wi, vi := weights[i-1], values[i-1]
+        for w := 1; w <= capacity; w++ {
+            exclude := dp[i-1][w]
+            include := 0
+            if wi <= w { include = vi + dp[i][w-wi] }
+            dp[i][w] = max(exclude, include)
+        }
+    }
+    return dp[n][capacity]
+}
 
-// Diagram: There are many overlapping subproblems when finding the solution to a problem state.
+func main() {
+    fmt.Println(unboundedKnapsack([]int{1, 4, 3}, []int{1, 5, 4}, 8))  // 10
+}
+```
 
-Conversely, the subproblem `knapsack(i, c)` can appear in multiple computations: in `knapsack(i, c + weights[i])` when the item at index `i` is included once, in `knapsack(i, c + 2 × weights[i])` when it is included twice, and so on. This chain of inclusions creates a pattern of overlapping subproblems along the capacity dimension that does not exist in the 0/1 variant.
+```kotlin,editable
+class Solution {
+    fun unboundedKnapsack(weights: IntArray, values: IntArray, capacity: Int): Int {
+        val n = weights.size
+        val dp = Array(n + 1) { IntArray(capacity + 1) }
+        for (i in 1..n) {
+            val wi = weights[i - 1]; val vi = values[i - 1]
+            for (w in 1..capacity) {
+                val exclude = dp[i - 1][w]
+                val include = if (wi <= w) vi + dp[i][w - wi] else 0
+                dp[i][w] = maxOf(exclude, include)
+            }
+        }
+        return dp[n][capacity]
+    }
+}
 
-// Diagram: A problem state may appear as a subproblem in many other problem states.
+fun main() {
+    println(Solution().unboundedKnapsack(intArrayOf(1, 4, 3), intArrayOf(1, 5, 4), 8))  // 10
+}
+```
 
-**Does the unbounded knapsack have more overlap than the 0/1 knapsack?** 
+```rust,editable
+fn unbounded_knapsack(weights: &[i32], values: &[i32], capacity: i32) -> i32 {
+    let n = weights.len();
+    let cap = capacity as usize;
+    let mut dp = vec![vec![0i32; cap + 1]; n + 1];
+    for i in 1..=n {
+        let wi = weights[i - 1]; let vi = values[i - 1];
+        for w in 1..=cap {
+            let exclude = dp[i - 1][w];
+            let include = if wi as usize <= w { vi + dp[i][w - wi as usize] } else { 0 };
+            dp[i][w] = std::cmp::max(exclude, include);
+        }
+    }
+    dp[n][cap]
+}
 
-Yes. In the 0/1 knapsack, the include branch moves from `(i, c)` to `(i - 1, c - weights[i])` and each subproblem is reached from **at most** two parents. In the unbounded knapsack, the include branch moves from `(i, c)` to `(i, c - weights[i])` and the same item index `i` can generate a chain of subproblems `(i, c), (i, c - w), (i, c - 2w), ...` that all share further subproblems. This additional overlap along the capacity axis makes memoization even more beneficial.
+fn main() {
+    println!("{}", unbounded_knapsack(&[1, 4, 3], &[1, 5, 4], 8));   // 10
+}
+```
 
-A naïve recursive backtracking approach ends up solving the same subproblems multiple times when they are encountered through different recursive branches, leading to very poor performance. Since these overlapping subproblems exist, the problem can be solved much more efficiently using dynamic programming, either through a top-down approach with memoization or a bottom-up approach that builds solutions starting from the base cases.
+</div>
+
+## Space Optimisation — Truly 1D
+
+Unbounded knapsack collapses to a clean 1D form because the include term reads *the same row*. We don't need history of previous items beyond what's already in `dp[w]`:
+
+```python,editable
+def unbounded_knapsack_1d(weights, values, capacity):
+    dp = [0] * (capacity + 1)
+    for i in range(len(weights)):
+        wi, vi = weights[i], values[i]
+        # Iterate w UPWARD: deliberately allows item i to be re-picked.
+        for w in range(wi, capacity + 1):
+            dp[w] = max(dp[w], vi + dp[w - wi])
+    return dp[capacity]
+```
+
+The direction is the *opposite* of the 0/1 1D form. Direction = semantics, in this case.
+
+---
+
+## Complexity Analysis
+
+| Aspect | Cost | Why |
+|---|---|---|
+| Time | `O(n × capacity)` | Same shape; one cell per `(i, w)`. |
+| Space | `O(capacity)` | 1D form. 2D form is `O(n × capacity)`. |
 
 ***
 
-# Understanding the bounded knapsack problem
+# Bounded Knapsack — Items With Count Limits
 
-In many real-world applications, software must make decisions under limited resources while also dealing with the limited availability of each option. In such situations, an item may not be restricted to a single choice but may also not be available an unlimited number of times. Instead, each item type may be selected multiple times up to a specified limit. Just like the regular 0/1 knapsack problem, each option provides some benefit, but selecting it consumes part of the available budget and may prevent other options from being chosen. The goal, therefore, is to determine which combination of options produces the greatest overall value without exceeding the given constraint.
+> **Course:** DSA › Algorithms › Dynamic Programming › Knapsack
 
-A fundamental problem in this space is the bounded knapsack problem, which extends the classic knapsack framework to scenarios where items come in limited quantities.
+In **bounded** knapsack, each item `i` comes with a count `counts[i]` — you can take it 0, 1, 2, ..., up to `counts[i]` times. This sits between 0/1 (`counts[i] = 1`) and unbounded (`counts[i] = ∞`).
 
-// Diagram: The bounded knapsack problem.
+The recurrence iterates over the choice `k` (number of copies of item `i` taken):
 
-The bounded knapsack problem mirrors real-world situations more accurately than the 0/1 variant, a few examples of which are: managing inventory where each product has limited stock, allocating bandwidth across multiple connection types with capacity constraints, loading containers with batches of goods, or selecting investments where each opportunity has a maximum investment limit.
+```
+bounded(i, c) = max over k ∈ [0, min(counts[i], c / weights[i])] of
+                  k × values[i] + bounded(i - 1, c - k × weights[i])
+```
 
-In this lesson, we will learn about the bounded knapsack problem and how it can be solved efficiently using a dynamic programming solution.
+The `min(counts[i], c / weights[i])` bound captures both constraints: can't exceed the supply, can't exceed the capacity.
 
-## The bounded knapsack problem
+> *Predict before reading on — when `counts[i] = 1` for all `i`, what does this reduce to?*
 
-Consider we are given `n` item types, where the item at index `i` has a weight `weights[i]`, a value `values[i]`, and a count `counts[i]` representing the maximum number of copies available. We also have a knapsack with a maximum weight capacity `capacity`. For the item at index `i`, we can take anywhere from `0` up to `counts[i]` copies.
+Plain 0/1 knapsack. With `counts[i] = 1`, `k` can only be 0 or 1 — exactly the include/exclude branches.
 
-// Diagram: We are given n items with their values, weights and counts, and we have a fixed capacity for the knapsack.
+When `counts[i] = ∞` (or `≥ capacity / weights[i]`), the `c / weights[i]` bound dominates, and the recurrence becomes the unbounded form. So bounded knapsack subsumes both extremes.
 
-We need to find the maximum total value we can achieve by selecting copies of items such that their total weight does not exceed `capacity`.
+## Why More Parents?
 
-// Diagram: We need to find the maximum total value we can achieve.
+In 0/1, each state `(i, c)` is reached from at most 2 parents (include/exclude on item `i + 1`). In unbounded, more — because including the same item with various counts feeds in. In **bounded**, up to `counts[i + 1] + 1` parents converge on `(i, c)` — one for each quantity choice. Memoization is even more valuable here.
 
-**How does the bounded knapsack differ from the 0/1 and unbounded variants?** 
+## A Faster Algorithm — Binary Decomposition
 
-In the 0/1 knapsack, each item can be taken at most once, i.e. the choice is simply include or exclude. In the unbounded knapsack, each item can be taken an unlimited number of times. The bounded knapsack sits between these two: the item at index `i` can be taken `0, 1, 2, ..., counts[i]` times. The 0/1 knapsack is a special case where `counts[i] = 1` for all `i`, and the unbounded knapsack is a special case where `counts[i] = ∞` for all `i`.
+The naïve bounded knapsack is `O(n × capacity × max(counts))` — for each `(i, c)`, iterate over `k`. There's a slick trick: **binary decomposition** breaks each item with count `m` into `O(log m)` virtual items with weights `wi, 2·wi, 4·wi, ...` (and matching values). Any subset of these reproduces any choice of `0..m` copies. Then run plain 0/1 knapsack on the virtual list — total time `O(n × log(max_count) × capacity)`. Beyond this lesson, but worth knowing the trick exists.
 
-## Optimal substructure
+## What Breaks If We Forget the Quantity Bound?
 
-It is easy to prove that the optimal solution to the bounded knapsack problem can be constructed from optimal solutions to its smaller subproblems. It is important to observe that when we consider items `0` through `i` and a knapsack with capacity `c`, we have multiple choices regarding how many copies of the item at index `i` to take.
+If we drop `min(counts[i], ...)` from the recurrence and just iterate `k` from 0 to infinity, the algorithm runs forever (or hits an out-of-bounds error). The bound *is* the bounded part — without it, you've reverted to unbounded.
 
-For the item at index `i`, we can take `0, 1, 2, ...,` up to `counts[i]` copies, subject to the constraint that the total weight does not exceed our available capacity `c`. Specifically, if we take `k` copies of the item at index `i`, we consume `k × weights[i]` capacity and gain `k × values[i]` value.
+---
 
-The maximum number of copies we can actually take is `min(counts[i], c / weights[i])`. We are either limited by the availability of the item or by the remaining capacity `c` of the knapsack.
+## The Algorithm
 
-**Why do we take the minimum of `counts[i]` and `c / weights[i]`?** 
+<div class="lang-tabs">
 
-We cannot take more copies than are available (`counts[i]`), and we cannot take more copies than the capacity allows (`c / weights[i]`). The actual limit is whichever constraint is tighter. Note that because we can only take a whole number of items (not fractions), we use truncating integer division when calculating `c / weights[i]` so that any fractional part is discarded.
+```python,editable
+from typing import List
 
-// Diagram: We can pick an item at index i upto min(counts\[i\], c/weights\[i\]) times.
+class Solution:
+    def bounded_knapsack(self, weights: List[int], values: List[int], counts: List[int], capacity: int) -> int:
+        n = len(weights)
+        dp: List[List[int]] = [[0] * (capacity + 1) for _ in range(n + 1)]
+        for i in range(1, n + 1):
+            wi, vi, ci = weights[i - 1], values[i - 1], counts[i - 1]
+            for w in range(capacity + 1):
+                # Try every legal count k of item i-1.
+                k_max = min(ci, w // wi) if wi > 0 else ci
+                best = 0
+                for k in range(k_max + 1):
+                    best = max(best, k * vi + dp[i - 1][w - k * wi])
+                dp[i][w] = best
+        return dp[n][capacity]
 
-For each valid choice of `k` copies (where `0 <= k <= min(counts[i], c / weights[i])`), we gain a value of `k × values[i]` from taking `k` copies and consume `k × weights[i]` capacity, leaving us with a remaining capacity of `c - (k × weights[i])` for items `0` through `i - 1`. The optimal solution is the choice of `k` that yields the maximum total value when combined with the optimal solution to the remaining subproblem.
 
-**Why do we move to items `0` through `i - 1` after choosing `k` copies?** 
+if __name__ == "__main__":
+    sol = Solution()
+    # 3 item types: (w=1,v=1, ≤2), (w=2,v=3, ≤2), (w=3,v=4, ≤1).  capacity=5.
+    # Best: 2 of item 1 + 1 of item 0 → w=5, v=7.   Or 1 of item 1 + 1 of item 2 → w=5, v=7. Tie.
+    print(sol.bounded_knapsack([1, 2, 3], [1, 3, 4], [2, 2, 1], 5))   # 7
+```
 
-Once we have decided how many copies of the item at index `i` to take (including possibly zero), we have fully resolved the decision for this item. The remaining problem is to optimally fill the leftover capacity using only the items at indices `0` through `i - 1`. This is similar to the 0/1 knapsack, the difference is that instead of a binary include/exclude decision, we iterate over all valid quantities `k`.
+```java,editable
+public class Solution {
+    public int boundedKnapsack(int[] weights, int[] values, int[] counts, int capacity) {
+        int n = weights.length;
+        int[][] dp = new int[n + 1][capacity + 1];
+        for (int i = 1; i <= n; i++) {
+            int wi = weights[i - 1], vi = values[i - 1], ci = counts[i - 1];
+            for (int w = 0; w <= capacity; w++) {
+                int kMax = (wi > 0) ? Math.min(ci, w / wi) : ci;
+                int best = 0;
+                for (int k = 0; k <= kMax; k++) {
+                    best = Math.max(best, k * vi + dp[i - 1][w - k * wi]);
+                }
+                dp[i][w] = best;
+            }
+        }
+        return dp[n][capacity];
+    }
 
-// Diagram: After choosing the item at index i k times, choose from the items \[0...i-1\] with the remaining capacity.
+    public static void main(String[] args) {
+        System.out.println(new Solution().boundedKnapsack(
+            new int[]{1, 2, 3}, new int[]{1, 3, 4}, new int[]{2, 2, 1}, 5));  // 7
+    }
+}
+```
 
-Based on the above, it is clear that to find the maximum value achievable with items `0` through `i` and capacity `c`, we need to try all valid quantities of the item at index `i` and select the best outcome. For each `k` from `0` to `min(counts[i], c / weights[i])`, we compute the total value as `k × values[i]` plus the maximum value achievable with items `0` through `i - 1` and remaining capacity `c - k × weights[i]`. We then take the maximum across all these choices.
+```c,editable
+#include <stdio.h>
 
-**Does this reduce to the 0/1 knapsack when `counts[i] = 1`?** 
+int dp[1001][10001];
 
-Yes. When every item has a count of `1`, `k` can only be `0` or `1`. Taking `k = 0` is the exclude branch and `k = 1` is the include branch — exactly the two choices in the 0/1 knapsack recurrence.
+int max(int a, int b) { return a > b ? a : b; }
+int min(int a, int b) { return a < b ? a : b; }
 
-The solution to the problem depends on the optimal solution of these smaller subproblems.
+int bounded_knapsack(const int *weights, const int *values, const int *counts, int n, int capacity) {
+    for (int i = 0; i <= n; i++)
+        for (int w = 0; w <= capacity; w++) dp[i][w] = 0;
+    for (int i = 1; i <= n; i++) {
+        int wi = weights[i - 1], vi = values[i - 1], ci = counts[i - 1];
+        for (int w = 0; w <= capacity; w++) {
+            int k_max = (wi > 0) ? min(ci, w / wi) : ci;
+            int best = 0;
+            for (int k = 0; k <= k_max; k++) {
+                int candidate = k * vi + dp[i - 1][w - k * wi];
+                if (candidate > best) best = candidate;
+            }
+            dp[i][w] = best;
+        }
+    }
+    return dp[n][capacity];
+}
 
-// Diagram: The optimal solution to the problem depends on the optimal solution to the smaller subproblems.
+int main(void) {
+    int w[] = {1, 2, 3}, v[] = {1, 3, 4}, c[] = {2, 2, 1};
+    printf("%d\n", bounded_knapsack(w, v, c, 3, 5));    // 7
+    return 0;
+}
+```
 
-Note that the subproblems are uniquely identified by two dimensions: the index `i` of the last item under consideration and the remaining capacity `c`.
+```cpp,editable
+#include <iostream>
+#include <vector>
+#include <algorithm>
 
-Based on the optimal substructure above, we can define the relationship between the problem and its subproblems. We can define a function `knapsack(i, c)` that returns the maximum value achievable using items `0` through `i` with a knapsack capacity of `c`.
+class Solution {
+public:
+    int boundedKnapsack(const std::vector<int>& weights, const std::vector<int>& values,
+                        const std::vector<int>& counts, int capacity) {
+        int n = (int) weights.size();
+        std::vector<std::vector<int>> dp(n + 1, std::vector<int>(capacity + 1, 0));
+        for (int i = 1; i <= n; i++) {
+            int wi = weights[i - 1], vi = values[i - 1], ci = counts[i - 1];
+            for (int w = 0; w <= capacity; w++) {
+                int kMax = (wi > 0) ? std::min(ci, w / wi) : ci;
+                int best = 0;
+                for (int k = 0; k <= kMax; k++) {
+                    best = std::max(best, k * vi + dp[i - 1][w - k * wi]);
+                }
+                dp[i][w] = best;
+            }
+        }
+        return dp[n][capacity];
+    }
+};
 
-// Diagram: Define a function knapsack to find the maximum value achievable when considering the items \[0...i\] with a capacity of c
+int main() {
+    std::cout << Solution().boundedKnapsack({1, 2, 3}, {1, 3, 4}, {2, 2, 1}, 5) << "\n";   // 7
+    return 0;
+}
+```
 
-The recurrence relation breaks the problem into smaller subproblems by reducing `i` by one after deciding how many copies of the item at index `i` to take. This reduction eventually reaches the point where `i` drops below `0`. When `i` is less than `0`, there are no items left to consider, so no value can be achieved and `knapsack` returns `0`. Additionally, when `c` is `0`, the knapsack has no remaining capacity, so no items can be added regardless of `i`, and `knapsack` returns `0`. These serve as the base cases of the recurrence relation, terminating the recursion.
+```scala,editable
+class Solution {
+  def boundedKnapsack(weights: Array[Int], values: Array[Int], counts: Array[Int], capacity: Int): Int = {
+    val n = weights.length
+    val dp = Array.fill(n + 1, capacity + 1)(0)
+    for (i <- 1 to n) {
+      val wi = weights(i - 1); val vi = values(i - 1); val ci = counts(i - 1)
+      for (w <- 0 to capacity) {
+        val kMax = if (wi > 0) math.min(ci, w / wi) else ci
+        var best = 0
+        for (k <- 0 to kMax) {
+          val candidate = k * vi + dp(i - 1)(w - k * wi)
+          if (candidate > best) best = candidate
+        }
+        dp(i)(w) = best
+      }
+    }
+    dp(n)(capacity)
+  }
+}
 
-**Why does the base case use `i < 0` instead of `i == 0`?** 
+object Main extends App {
+  println(new Solution().boundedKnapsack(Array(1, 2, 3), Array(1, 3, 4), Array(2, 2, 1), 5))  // 7
+}
+```
 
-Since `i` is an index into the items, the value `i == 0` represents the state where we are considering the item at index `0`, which is still a valid item that can potentially be included. Only when `i` drops below `0` have we truly exhausted all items.
+```javascript,editable
+class Solution {
+    boundedKnapsack(weights, values, counts, capacity) {
+        const n = weights.length;
+        const dp = Array.from({length: n + 1}, () => new Array(capacity + 1).fill(0));
+        for (let i = 1; i <= n; i++) {
+            const wi = weights[i - 1], vi = values[i - 1], ci = counts[i - 1];
+            for (let w = 0; w <= capacity; w++) {
+                const kMax = wi > 0 ? Math.min(ci, Math.floor(w / wi)) : ci;
+                let best = 0;
+                for (let k = 0; k <= kMax; k++) {
+                    best = Math.max(best, k * vi + dp[i - 1][w - k * wi]);
+                }
+                dp[i][w] = best;
+            }
+        }
+        return dp[n][capacity];
+    }
+}
 
-// Diagram: The base case for the bounded knapsack problem.
+console.log(new Solution().boundedKnapsack([1, 2, 3], [1, 3, 4], [2, 2, 1], 5));   // 7
+```
 
-To get the solution for `knapsack(i, c)`, we iterate over all valid quantities `k` of the item at index `i` (from `0` to `min(counts[i], c / weights[i])`) and compute `k × values[i] + knapsack(i - 1, c - k × weights[i])` for each `k`. The solution is the maximum value among all these choices.
+```typescript,editable
+class Solution {
+    boundedKnapsack(weights: number[], values: number[], counts: number[], capacity: number): number {
+        const n = weights.length;
+        const dp: number[][] = Array.from({length: n + 1}, () => new Array(capacity + 1).fill(0));
+        for (let i = 1; i <= n; i++) {
+            const wi = weights[i - 1], vi = values[i - 1], ci = counts[i - 1];
+            for (let w = 0; w <= capacity; w++) {
+                const kMax = wi > 0 ? Math.min(ci, Math.floor(w / wi)) : ci;
+                let best = 0;
+                for (let k = 0; k <= kMax; k++) {
+                    best = Math.max(best, k * vi + dp[i - 1][w - k * wi]);
+                }
+                dp[i][w] = best;
+            }
+        }
+        return dp[n][capacity];
+    }
+}
+```
 
-The recurrence relation below expresses the solution to the problem as a function of solutions to smaller problems. The solution to the original problem is `knapsack(n - 1, capacity)` where `n` is the number of item types and `capacity` is the knapsack capacity.
+```go,editable
+package main
 
-// Diagram: The recurrence relation for the bounded knapsack problem.
+import "fmt"
 
-## Overlapping subproblems
+func max(a, b int) int { if a > b { return a }; return b }
+func min(a, b int) int { if a < b { return a }; return b }
 
-It is easy to see that there are many overlapping subproblems in the recurrence relation to solve the bounded knapsack problem. To compute `knapsack(i, c)`, we may recursively compute `knapsack(i - 1, c - k × weights[i])` for various values of `k` representing different quantities of the item at index `i` taken.
+func boundedKnapsack(weights, values, counts []int, capacity int) int {
+    n := len(weights)
+    dp := make([][]int, n+1)
+    for i := range dp { dp[i] = make([]int, capacity+1) }
+    for i := 1; i <= n; i++ {
+        wi, vi, ci := weights[i-1], values[i-1], counts[i-1]
+        for w := 0; w <= capacity; w++ {
+            kMax := ci
+            if wi > 0 { kMax = min(ci, w/wi) }
+            best := 0
+            for k := 0; k <= kMax; k++ {
+                best = max(best, k*vi+dp[i-1][w-k*wi])
+            }
+            dp[i][w] = best
+        }
+    }
+    return dp[n][capacity]
+}
 
-Conversely, the subproblem `knapsack(i, c)` appears in the computation of `knapsack(i + 1, c)`, `knapsack(i + 1, c + weights[i + 1])`, `knapsack(i + 1, c + 2 × weights[i + 1])`, and so forth, depending on how many copies of the item at index `i + 1` are included in those computations. Every quantity choice `k` for the item at index `i + 1` (at different capacity values) that leaves exactly `c` remaining capacity will invoke the same subproblem `knapsack(i, c)`.
+func main() {
+    fmt.Println(boundedKnapsack([]int{1, 2, 3}, []int{1, 3, 4}, []int{2, 2, 1}, 5))   // 7
+}
+```
 
-// Diagram: A problem state may appear as a subproblem in many other problem states.
+```kotlin,editable
+class Solution {
+    fun boundedKnapsack(weights: IntArray, values: IntArray, counts: IntArray, capacity: Int): Int {
+        val n = weights.size
+        val dp = Array(n + 1) { IntArray(capacity + 1) }
+        for (i in 1..n) {
+            val wi = weights[i - 1]; val vi = values[i - 1]; val ci = counts[i - 1]
+            for (w in 0..capacity) {
+                val kMax = if (wi > 0) minOf(ci, w / wi) else ci
+                var best = 0
+                for (k in 0..kMax) {
+                    best = maxOf(best, k * vi + dp[i - 1][w - k * wi])
+                }
+                dp[i][w] = best
+            }
+        }
+        return dp[n][capacity]
+    }
+}
 
-**Does the bounded knapsack have more overlap than the 0/1 knapsack?** 
+fun main() {
+    println(Solution().boundedKnapsack(intArrayOf(1, 2, 3), intArrayOf(1, 3, 4), intArrayOf(2, 2, 1), 5))   // 7
+}
+```
 
-Yes. In the 0/1 knapsack, each state `(i, c)` is reached from at most two parents i.e. include or exclude. In the bounded knapsack, each state `(i, c)` can be reached from up to `counts[i + 1] + 1` parents, one for each valid quantity of the item at index `i + 1`. This increased fan-in means more paths converge on the same subproblems, making memoization even more beneficial.
+```rust,editable
+fn bounded_knapsack(weights: &[i32], values: &[i32], counts: &[i32], capacity: i32) -> i32 {
+    let n = weights.len();
+    let cap = capacity as usize;
+    let mut dp = vec![vec![0i32; cap + 1]; n + 1];
+    for i in 1..=n {
+        let wi = weights[i - 1] as usize; let vi = values[i - 1]; let ci = counts[i - 1];
+        for w in 0..=cap {
+            let k_max = if wi > 0 { std::cmp::min(ci as usize, w / wi) } else { ci as usize };
+            let mut best = 0;
+            for k in 0..=k_max {
+                let candidate = (k as i32) * vi + dp[i - 1][w - k * wi];
+                if candidate > best { best = candidate; }
+            }
+            dp[i][w] = best;
+        }
+    }
+    dp[n][cap]
+}
 
-A naïve recursive backtracking approach ends up solving the same subproblems multiple times when they are encountered through different recursive branches, leading to very poor performance. Since these overlapping subproblems exist, the problem can be solved much more efficiently using dynamic programming, either through a top-down approach with memoization or a bottom-up approach that builds solutions starting from the base cases.
+fn main() {
+    println!("{}", bounded_knapsack(&[1, 2, 3], &[1, 3, 4], &[2, 2, 1], 5));    // 7
+}
+```
+
+</div>
+
+---
+
+## Complexity Analysis
+
+| Aspect | Cost | Why |
+|---|---|---|
+| Time | `O(n × capacity × max(counts))` | Triple loop. Reducible to `O(n × capacity × log(max_count))` via binary decomposition. |
+| Space | `O(n × capacity)` | DP table. |
+
+---
+
+## Edge Cases Across the Family
+
+| Variant | Special Case | Behaviour |
+|---|---|---|
+| 0/1 | Item heavier than capacity | Excluded; `dp[i][cap] = dp[i-1][cap]`. |
+| 0/1 | All items free (`weights[i] = 0`) | Always include; `dp[n][cap] = sum(values)`. |
+| Unbounded | `weights[i] = 0`, `values[i] > 0` | Infinite loop unless guarded — every iteration re-includes the free-but-valuable item. |
+| Bounded | `counts[i] = 0` | Item effectively absent; equivalent to dropping the item entirely. |
+| Bounded | `counts[i] ≥ capacity/weights[i]` | Constraint never binds; behaves as unbounded for that item. |
+
+***
+
+# Final Takeaway
+
+The knapsack family is the most-asked DP archetype because three small variations on the recurrence cover an enormous slice of resource-allocation problems:
+
+- **0/1**: each item used 0 or 1 times → recurse on `(i - 1, c)` and `(i - 1, c - wi)`.
+- **Unbounded**: each item used 0+ times → recurse on `(i - 1, c)` and `(i, c - wi)` (note: `i`, not `i - 1`).
+- **Bounded**: each item used 0..counts[i] times → outer loop over quantity `k`, recurse on `(i - 1, c - k·wi)`.
+
+Reconstructing the *actual selection* (knapsack II) is a 5-line backtrack on the filled table. The 1D space optimisation has a meaningful catch: 0/1 iterates capacity *down*, unbounded iterates capacity *up*. **You didn't just memorise four recurrences. You learned that the bound on item reuse — once, infinite, or counted — controls one specific edge of the recurrence (`i - 1` vs `i`, plus an optional `k`-loop). Everything else is the same `(i, c)` table.**
+
+> *Transfer challenge for the next lesson:* Knapsack solves "max value within capacity". What if we changed the question to "is there *any* subset whose total weight is exactly `target`?" — boolean answer, no values, just feasibility. Predict the recurrence shape.
+
+<details>
+<summary><strong>Answer</strong></summary>
+
+`subsetSum[i][s] = subsetSum[i - 1][s] OR subsetSum[i - 1][s - weights[i]]` — the include term contributes if `weights[i] ≤ s`. Base case `subsetSum[i][0] = true` (empty subset hits sum 0). The aggregator is `OR`, not `max`. This is the **subset-sum** problem and the next several lessons (partition, target sum, coin change variants) all riff on this exact recurrence.
+
+</details>
