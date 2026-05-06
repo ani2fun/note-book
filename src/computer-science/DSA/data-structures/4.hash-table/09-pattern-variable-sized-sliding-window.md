@@ -120,6 +120,19 @@ flowchart LR
 
 <div class="lang-tabs">
 
+```pseudocode
+function unique_character_span(s):
+    freq ← empty Map; max_len ← 0; start ← 0
+    for end from 0 to length(s) − 1:
+        freq[s[end]] ← freq[s[end]] + 1
+        while freq[s[end]] > 1:
+            freq[s[start]] ← freq[s[start]] − 1
+            if freq[s[start]] = 0: remove s[start] from freq
+            start ← start + 1
+        max_len ← max(max_len, end − start + 1)
+    return max_len
+```
+
 ```python,editable
 def unique_character_span(s: str) -> int:
     freq, max_len, start = {}, 0, 0
@@ -242,25 +255,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function uniqueCharacterSpan(s) {
-    const freq = new Map(); let start = 0, max = 0;
-    for (let end = 0; end < s.length; end++) {
-        freq.set(s[end], (freq.get(s[end]) || 0) + 1);
-        while (freq.get(s[end]) > 1) {
-            const c = freq.get(s[start]) - 1;
-            if (c === 0) freq.delete(s[start]); else freq.set(s[start], c);
-            start++;
-        }
-        max = Math.max(max, end - start + 1);
-    }
-    return max;
-}
-console.log(uniqueCharacterSpan("abcbed"));
-console.log(uniqueCharacterSpan("aaaaabc"));
-console.log(uniqueCharacterSpan("abcdefgh"));
-```
-
 ```typescript,editable
 function uniqueCharacterSpan(s: string): number {
     const freq = new Map<string, number>(); let start = 0, max = 0;
@@ -301,28 +295,6 @@ func main() {
     fmt.Println(uniqueCharacterSpan("abcbed"),
                 uniqueCharacterSpan("aaaaabc"),
                 uniqueCharacterSpan("abcdefgh"))
-}
-```
-
-```kotlin,editable
-fun uniqueCharacterSpan(s: String): Int {
-    val freq = HashMap<Char, Int>(); var start = 0; var max = 0
-    for (end in s.indices) {
-        freq[s[end]] = (freq[s[end]] ?: 0) + 1
-        while (freq[s[end]]!! > 1) {
-            val c = freq[s[start]]!! - 1
-            if (c == 0) freq.remove(s[start]) else freq[s[start]] = c
-            start++
-        }
-        if (end - start + 1 > max) max = end - start + 1
-    }
-    return max
-}
-
-fun main() {
-    println(uniqueCharacterSpan("abcbed"))
-    println(uniqueCharacterSpan("aaaaabc"))
-    println(uniqueCharacterSpan("abcdefgh"))
 }
 ```
 
@@ -388,6 +360,19 @@ Given a string `s`, return the length of the longest substring with **distinct**
 Already implemented above as the canonical example. The core invariant: when the loop body finishes, the window contains only distinct characters.
 
 <div class="lang-tabs">
+
+```pseudocode
+function unique_character_span(s):
+    freq ← empty Map; max_len ← 0; start ← 0
+    for end from 0 to length(s) − 1:
+        freq[s[end]] ← freq[s[end]] + 1
+        while freq[s[end]] > 1:
+            freq[s[start]] ← freq[s[start]] − 1
+            if freq[s[start]] = 0: remove s[start] from freq
+            start ← start + 1
+        max_len ← max(max_len, end − start + 1)
+    return max_len
+```
 
 ```python,editable
 def unique_character_span(s: str) -> int:
@@ -506,25 +491,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function uniqueCharacterSpan(s) {
-    const freq = new Map(); let start = 0, max = 0;
-    for (let end = 0; end < s.length; end++) {
-        freq.set(s[end], (freq.get(s[end]) || 0) + 1);
-        while (freq.get(s[end]) > 1) {
-            const c = freq.get(s[start]) - 1;
-            if (c === 0) freq.delete(s[start]); else freq.set(s[start], c);
-            start++;
-        }
-        max = Math.max(max, end - start + 1);
-    }
-    return max;
-}
-console.log(uniqueCharacterSpan("abcbed"));
-console.log(uniqueCharacterSpan("aaaaabc"));
-console.log(uniqueCharacterSpan("abcdefgh"));
-```
-
 ```typescript,editable
 function uniqueCharacterSpan(s: string): number {
     const freq = new Map<string, number>(); let start = 0, max = 0;
@@ -565,28 +531,6 @@ func main() {
     fmt.Println(uniqueCharacterSpan("abcbed"))
     fmt.Println(uniqueCharacterSpan("aaaaabc"))
     fmt.Println(uniqueCharacterSpan("abcdefgh"))
-}
-```
-
-```kotlin,editable
-fun uniqueCharacterSpan(s: String): Int {
-    val freq = HashMap<Char, Int>(); var start = 0; var max = 0
-    for (end in s.indices) {
-        freq[s[end]] = (freq[s[end]] ?: 0) + 1
-        while (freq[s[end]]!! > 1) {
-            val c = freq[s[start]]!! - 1
-            if (c == 0) freq.remove(s[start]) else freq[s[start]] = c
-            start++
-        }
-        if (end - start + 1 > max) max = end - start + 1
-    }
-    return max
-}
-
-fun main() {
-    println(uniqueCharacterSpan("abcbed"))
-    println(uniqueCharacterSpan("aaaaabc"))
-    println(uniqueCharacterSpan("abcdefgh"))
 }
 ```
 
@@ -643,6 +587,19 @@ Same skeleton; the **rule** is now "at most K distinct characters in the window"
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function k_characters_span(s, k):
+    freq ← empty Map; max_len ← 0; start ← 0
+    for end from 0 to length(s) − 1:
+        freq[s[end]] ← freq[s[end]] + 1
+        while size(freq) > k:
+            freq[s[start]] ← freq[s[start]] − 1
+            if freq[s[start]] = 0: remove s[start] from freq
+            start ← start + 1
+        max_len ← max(max_len, end − start + 1)
+    return max_len
+```
 
 ```python,editable
 def k_characters_span(s: str, k: int) -> int:
@@ -764,25 +721,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function kCharactersSpan(s, k) {
-    const freq = new Map(); let start = 0, max = 0;
-    for (let end = 0; end < s.length; end++) {
-        freq.set(s[end], (freq.get(s[end]) || 0) + 1);
-        while (freq.size > k) {
-            const c = freq.get(s[start]) - 1;
-            if (c === 0) freq.delete(s[start]); else freq.set(s[start], c);
-            start++;
-        }
-        max = Math.max(max, end - start + 1);
-    }
-    return max;
-}
-console.log(kCharactersSpan("abcbed", 2));
-console.log(kCharactersSpan("aaaaabc", 3));
-console.log(kCharactersSpan("abcdefgh", 3));
-```
-
 ```typescript,editable
 function kCharactersSpan(s: string, k: number): number {
     const freq = new Map<string, number>(); let start = 0, max = 0;
@@ -823,28 +761,6 @@ func main() {
     fmt.Println(kCharactersSpan("abcbed", 2),
                 kCharactersSpan("aaaaabc", 3),
                 kCharactersSpan("abcdefgh", 3))
-}
-```
-
-```kotlin,editable
-fun kCharactersSpan(s: String, k: Int): Int {
-    val freq = HashMap<Char, Int>(); var start = 0; var max = 0
-    for (end in s.indices) {
-        freq[s[end]] = (freq[s[end]] ?: 0) + 1
-        while (freq.size > k) {
-            val c = freq[s[start]]!! - 1
-            if (c == 0) freq.remove(s[start]) else freq[s[start]] = c
-            start++
-        }
-        if (end - start + 1 > max) max = end - start + 1
-    }
-    return max
-}
-
-fun main() {
-    println(kCharactersSpan("abcbed", 2))
-    println(kCharactersSpan("aaaaabc", 3))
-    println(kCharactersSpan("abcdefgh", 3))
 }
 ```
 
@@ -926,6 +842,20 @@ w -> calc -> ok
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function maximal_character_swap(s, k):
+    freq ← empty Map; start ← 0; max_freq ← 0; max_len ← 0
+    for end from 0 to length(s) − 1:
+        freq[s[end]] ← freq[s[end]] + 1
+        max_freq ← max(max_freq, freq[s[end]])
+        # replacements needed = window size − count of most-frequent char
+        while end − start + 1 − max_freq > k:
+            freq[s[start]] ← freq[s[start]] − 1
+            start ← start + 1
+        max_len ← max(max_len, end − start + 1)
+    return max_len
+```
 
 ```python,editable
 def maximal_character_swap(s: str, k: int) -> int:
@@ -1043,24 +973,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function maximalCharacterSwap(s, k) {
-    const freq = new Map(); let start = 0, maxFreq = 0, max = 0;
-    for (let end = 0; end < s.length; end++) {
-        freq.set(s[end], (freq.get(s[end]) || 0) + 1);
-        if (freq.get(s[end]) > maxFreq) maxFreq = freq.get(s[end]);
-        while (end - start + 1 - maxFreq > k) {
-            freq.set(s[start], freq.get(s[start]) - 1); start++;
-        }
-        max = Math.max(max, end - start + 1);
-    }
-    return max;
-}
-console.log(maximalCharacterSwap("ABAB", 2));
-console.log(maximalCharacterSwap("ABCDEF", 4));
-console.log(maximalCharacterSwap("A", 5));
-```
-
 ```typescript,editable
 function maximalCharacterSwap(s: string, k: number): number {
     const freq = new Map<string, number>(); let start = 0, maxFreq = 0, max = 0;
@@ -1097,25 +1009,6 @@ func main() {
     fmt.Println(maximalCharacterSwap("ABAB", 2),
                 maximalCharacterSwap("ABCDEF", 4),
                 maximalCharacterSwap("A", 5))
-}
-```
-
-```kotlin,editable
-fun maximalCharacterSwap(s: String, k: Int): Int {
-    val freq = HashMap<Char, Int>(); var start = 0; var maxFreq = 0; var max = 0
-    for (end in s.indices) {
-        freq[s[end]] = (freq[s[end]] ?: 0) + 1
-        if (freq[s[end]]!! > maxFreq) maxFreq = freq[s[end]]!!
-        while (end - start + 1 - maxFreq > k) { freq[s[start]] = freq[s[start]]!! - 1; start++ }
-        if (end - start + 1 > max) max = end - start + 1
-    }
-    return max
-}
-
-fun main() {
-    println(maximalCharacterSwap("ABAB", 2))
-    println(maximalCharacterSwap("ABCDEF", 4))
-    println(maximalCharacterSwap("A", 5))
 }
 ```
 
@@ -1177,6 +1070,18 @@ This is technically a hash-table technique, not a sliding window, but the origin
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function subarray_sum_equals_k(arr, k):
+    first_index ← empty Map; s ← 0; max_len ← 0
+    for end from 0 to length(arr) − 1:
+        s ← s + arr[end]
+        if s = k: max_len ← end + 1
+        if (s − k) is in first_index:
+            max_len ← max(max_len, end − first_index[s − k])
+        if s is not in first_index: first_index[s] ← end
+    return max_len
+```
 
 ```python,editable
 def subarray_sum_equals_k(arr, k):
@@ -1293,23 +1198,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function subarraySumEqualsK(arr, k) {
-    const firstIndex = new Map(); let sum = 0, max = 0;
-    for (let end = 0; end < arr.length; end++) {
-        sum += arr[end];
-        if (sum === k) max = end + 1;
-        if (firstIndex.has(sum - k))
-            max = Math.max(max, end - firstIndex.get(sum - k));
-        if (!firstIndex.has(sum)) firstIndex.set(sum, end);
-    }
-    return max;
-}
-console.log(subarraySumEqualsK([4,4,2,6,4], 10));
-console.log(subarraySumEqualsK([2,2,1,2,4,3], 7));
-console.log(subarraySumEqualsK([2,3,1,2,4,3], 100));
-```
-
 ```typescript,editable
 function subarraySumEqualsK(arr: number[], k: number): number {
     const firstIndex = new Map<number, number>(); let sum = 0, max = 0;
@@ -1347,25 +1235,6 @@ func main() {
     fmt.Println(subarraySumEqualsK([]int{4,4,2,6,4}, 10))
     fmt.Println(subarraySumEqualsK([]int{2,2,1,2,4,3}, 7))
     fmt.Println(subarraySumEqualsK([]int{2,3,1,2,4,3}, 100))
-}
-```
-
-```kotlin,editable
-fun subarraySumEqualsK(arr: IntArray, k: Int): Int {
-    val firstIndex = HashMap<Int, Int>(); var sum = 0; var max = 0
-    for (end in arr.indices) {
-        sum += arr[end]
-        if (sum == k) max = end + 1
-        firstIndex[sum - k]?.let { if (end - it > max) max = end - it }
-        if (sum !in firstIndex) firstIndex[sum] = end
-    }
-    return max
-}
-
-fun main() {
-    println(subarraySumEqualsK(intArrayOf(4,4,2,6,4), 10))
-    println(subarraySumEqualsK(intArrayOf(2,2,1,2,4,3), 7))
-    println(subarraySumEqualsK(intArrayOf(2,3,1,2,4,3), 100))
 }
 ```
 
@@ -1445,6 +1314,16 @@ inp -> s -> check -> r
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function twin_in_proximity(arr, k):
+    seen ← empty set
+    for end from 0 to length(arr) − 1:
+        if arr[end] is in seen: return true
+        add arr[end] to seen
+        if end ≥ k: remove arr[end − k] from seen
+    return false
+```
 
 ```python,editable
 def twin_in_proximity(arr, k):
@@ -1548,21 +1427,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function twinInProximity(arr, k) {
-    const seen = new Set();
-    for (let end = 0; end < arr.length; end++) {
-        if (seen.has(arr[end])) return true;
-        seen.add(arr[end]);
-        if (end >= k) seen.delete(arr[end - k]);
-    }
-    return false;
-}
-console.log(twinInProximity([1,2,3,4,1], 5));
-console.log(twinInProximity([1,2,3,4,5,6,1], 5));
-console.log(twinInProximity([1,7], 5));
-```
-
 ```typescript,editable
 function twinInProximity(arr: number[], k: number): boolean {
     const seen = new Set<number>();
@@ -1595,24 +1459,6 @@ func main() {
     fmt.Println(twinInProximity([]int{1,2,3,4,1}, 5))
     fmt.Println(twinInProximity([]int{1,2,3,4,5,6,1}, 5))
     fmt.Println(twinInProximity([]int{1,7}, 5))
-}
-```
-
-```kotlin,editable
-fun twinInProximity(arr: IntArray, k: Int): Boolean {
-    val seen = HashSet<Int>()
-    for (end in arr.indices) {
-        if (arr[end] in seen) return true
-        seen.add(arr[end])
-        if (end >= k) seen.remove(arr[end - k])
-    }
-    return false
-}
-
-fun main() {
-    println(twinInProximity(intArrayOf(1,2,3,4,1), 5))
-    println(twinInProximity(intArrayOf(1,2,3,4,5,6,1), 5))
-    println(twinInProximity(intArrayOf(1,7), 5))
 }
 ```
 

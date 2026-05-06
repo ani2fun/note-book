@@ -166,6 +166,16 @@ note -> rec.s {style.stroke-dash: 3}
 
 <div class="lang-tabs">
 
+```pseudocode
+enum RecordType: EMPTY = 0, DELETED = 1, OCCUPIED = 2
+
+class Record:
+    state: RecordType   # EMPTY / DELETED / OCCUPIED
+    key: integer
+    value: integer
+    # default: state = EMPTY
+```
+
 ```python,editable
 from enum import Enum
 
@@ -267,27 +277,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const RecordType = Object.freeze({ EMPTY: 0, DELETED: 1, OCCUPIED: 2 });
-
-class Record {
-    constructor(key, value) {
-        if (key !== undefined && value !== undefined) {
-            this.state = RecordType.OCCUPIED;   // Populated → OCCUPIED
-            this.key   = key;
-            this.value = value;
-        } else {
-            this.state = RecordType.EMPTY;      // Default-constructed → EMPTY
-            this.key   = 0;
-            this.value = 0;
-        }
-    }
-}
-
-const r = new Record(7, 100);
-console.log(r.state, r.key, r.value);   // 2 7 100
-```
-
 ```typescript,editable
 enum RecordType { EMPTY, DELETED, OCCUPIED }
 
@@ -333,24 +322,6 @@ func newRecord(key, value int) Record {
 func main() {
     r := newRecord(7, 100)
     fmt.Println(r.State, r.Key, r.Value)
-}
-```
-
-```kotlin,editable
-enum class RecordType { EMPTY, DELETED, OCCUPIED }
-
-class Record(
-    var state: RecordType = RecordType.EMPTY,
-    var key:   Int        = 0,
-    var value: Int        = 0,
-) {
-    constructor(key: Int, value: Int)
-        : this(RecordType.OCCUPIED, key, value)
-}
-
-fun main() {
-    val r = Record(7, 100)
-    println("${r.state} ${r.key} ${r.value}")
 }
 ```
 
@@ -455,6 +426,17 @@ cls: MyHashTable class {
 ## Implementation
 
 <div class="lang-tabs">
+
+```pseudocode
+class MyHashTable:
+    capacity: integer
+    table: array of Record(state=EMPTY)   # length = capacity
+
+    function _hash(key): return key mod capacity
+    function search(key): ...     # filled in next
+    function insert(key, value): ...
+    function remove(key): ...
+```
 
 ```python,editable
 from enum import Enum
@@ -603,35 +585,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const RecordType = Object.freeze({ EMPTY: 0, DELETED: 1, OCCUPIED: 2 });
-
-class Record {
-    constructor(key, value) {
-        if (key !== undefined && value !== undefined) {
-            this.state = RecordType.OCCUPIED; this.key = key; this.value = value;
-        } else {
-            this.state = RecordType.EMPTY;    this.key = 0;   this.value = 0;
-        }
-    }
-}
-
-class MyHashTable {
-    constructor(capacity) {
-        this.capacity = capacity;
-        this.table    = Array.from({ length: capacity }, () => new Record());
-    }
-    _hash(key) { return key % this.capacity; }
-
-    search(key)        { return -1;    }
-    insert(key, value) { return false; }
-    remove(key)        {                }
-}
-
-const h = new MyHashTable(5);
-console.log("table created with capacity 5");
-```
-
 ```typescript,editable
 enum RecordType { EMPTY, DELETED, OCCUPIED }
 
@@ -691,30 +644,6 @@ func (h *MyHashTable) Remove(key int)                   {              }
 func main() {
     h := newTable(5)
     fmt.Printf("table created with capacity %d\n", h.capacity)
-}
-```
-
-```kotlin,editable
-enum class RecordType { EMPTY, DELETED, OCCUPIED }
-
-class Record(
-    var state: RecordType = RecordType.EMPTY,
-    var key:   Int        = 0,
-    var value: Int        = 0,
-) { constructor(k: Int, v: Int) : this(RecordType.OCCUPIED, k, v) }
-
-open class MyHashTable(protected val capacity: Int) {
-    protected val table: Array<Record> = Array(capacity) { Record() }
-    protected fun hash(key: Int): Int  = key % capacity
-
-    open fun search(key: Int): Int                  = -1
-    open fun insert(key: Int, value: Int): Boolean  = false
-    open fun remove(key: Int): Unit                 = Unit
-}
-
-fun main() {
-    val h = MyHashTable(5)
-    println("table created with capacity 5")
 }
 ```
 
@@ -855,6 +784,21 @@ c4: "(99)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
 We extract the probe loop into a private helper `probeForOccupiedIndex` so insert and delete can reuse it. The helper returns the index of the matching record or `-1` if no match exists.
 
 <div class="lang-tabs">
+
+```pseudocode
+function _probe_for_occupied(key, start):
+    for i from 0 to capacity − 1:
+        idx ← (start + i) mod capacity
+        if table[idx].state = EMPTY: return -1
+        if table[idx].state = OCCUPIED AND table[idx].key = key: return idx
+        # DELETED → continue probing
+    return -1
+
+function search(key):
+    idx ← _probe_for_occupied(key, _hash(key))
+    if idx = -1: return -1
+    return table[idx].value
+```
 
 ```python,editable
 from enum import Enum
@@ -1054,46 +998,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const RecordType = Object.freeze({ EMPTY: 0, DELETED: 1, OCCUPIED: 2 });
-
-class Record {
-    constructor(key, value) {
-        if (key !== undefined && value !== undefined) {
-            this.state = RecordType.OCCUPIED; this.key = key; this.value = value;
-        } else {
-            this.state = RecordType.EMPTY;    this.key = 0;   this.value = 0;
-        }
-    }
-}
-
-class MyHashTable {
-    constructor(capacity) {
-        this.capacity = capacity;
-        this.table    = Array.from({ length: capacity }, () => new Record());
-    }
-    _hash(key) { return key % this.capacity; }
-
-    _probeForOccupied(key, start) {
-        for (let i = 0; i < this.capacity; i++) {
-            const idx = (start + i) % this.capacity;
-            const s   = this.table[idx];
-            if (s.state === RecordType.EMPTY)                       return -1;
-            if (s.state === RecordType.OCCUPIED && s.key === key)   return idx;
-        }
-        return -1;
-    }
-
-    search(key) {
-        const idx = this._probeForOccupied(key, this._hash(key));
-        return idx === -1 ? -1 : this.table[idx].value;
-    }
-}
-
-const h = new MyHashTable(5);
-console.log(h.search(7));   // -1
-```
-
 ```typescript,editable
 enum RecordType { EMPTY, DELETED, OCCUPIED }
 
@@ -1172,41 +1076,6 @@ func (h *MyHashTable) Search(key int) int {
 func main() {
     h := newTable(5)
     fmt.Println(h.Search(7))   // -1
-}
-```
-
-```kotlin,editable
-enum class RecordType { EMPTY, DELETED, OCCUPIED }
-
-class Record(
-    var state: RecordType = RecordType.EMPTY,
-    var key:   Int        = 0,
-    var value: Int        = 0,
-) { constructor(k: Int, v: Int) : this(RecordType.OCCUPIED, k, v) }
-
-open class MyHashTable(protected val capacity: Int) {
-    protected val table: Array<Record> = Array(capacity) { Record() }
-    protected fun hash(key: Int): Int  = key % capacity
-
-    protected fun probeForOccupied(key: Int, start: Int): Int {
-        for (i in 0 until capacity) {
-            val idx = (start + i) % capacity
-            val s   = table[idx]
-            if (s.state == RecordType.EMPTY)                          return -1
-            if (s.state == RecordType.OCCUPIED && s.key == key)       return idx
-        }
-        return -1
-    }
-
-    open fun search(key: Int): Int {
-        val idx = probeForOccupied(key, hash(key))
-        return if (idx == -1) -1 else table[idx].value
-    }
-}
-
-fun main() {
-    val h = MyHashTable(5)
-    println(h.search(7))   // -1
 }
 ```
 
@@ -1365,6 +1234,25 @@ c4: "(99)" {style.fill: "#dbeafe"; style.stroke: "#3b82f6"}
 ## Implementation
 
 <div class="lang-tabs">
+
+```pseudocode
+function _probe_for_free(start):
+    for i from 0 to capacity − 1:
+        idx ← (start + i) mod capacity
+        if table[idx].state ≠ OCCUPIED: return idx
+    return -1   # table full
+
+function insert(key, value):
+    start ← _hash(key)
+    occ ← _probe_for_occupied(key, start)
+    if occ ≠ -1:
+        table[occ].value ← value   # update in place
+        return true
+    free ← _probe_for_free(start)
+    if free = -1: return false     # table full
+    table[free] ← Record(key, value, OCCUPIED)
+    return true
+```
 
 ```python,editable
 from enum import Enum
@@ -1661,64 +1549,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const RecordType = Object.freeze({ EMPTY: 0, DELETED: 1, OCCUPIED: 2 });
-
-class Record {
-    constructor(key, value) {
-        if (key !== undefined && value !== undefined) {
-            this.state = RecordType.OCCUPIED; this.key = key; this.value = value;
-        } else {
-            this.state = RecordType.EMPTY;    this.key = 0;   this.value = 0;
-        }
-    }
-}
-
-class MyHashTable {
-    constructor(capacity) {
-        this.capacity = capacity;
-        this.table    = Array.from({ length: capacity }, () => new Record());
-    }
-    _hash(key) { return key % this.capacity; }
-
-    _probeForOccupied(key, start) {
-        for (let i = 0; i < this.capacity; i++) {
-            const idx = (start + i) % this.capacity;
-            const s   = this.table[idx];
-            if (s.state === RecordType.EMPTY) return -1;
-            if (s.state === RecordType.OCCUPIED && s.key === key) return idx;
-        }
-        return -1;
-    }
-    _probeForFree(start) {
-        for (let i = 0; i < this.capacity; i++) {
-            const idx = (start + i) % this.capacity;
-            if (this.table[idx].state !== RecordType.OCCUPIED) return idx;
-        }
-        return -1;
-    }
-
-    search(key) {
-        const idx = this._probeForOccupied(key, this._hash(key));
-        return idx === -1 ? -1 : this.table[idx].value;
-    }
-    insert(key, value) {
-        const start = this._hash(key);
-        const occ   = this._probeForOccupied(key, start);
-        if (occ !== -1) { this.table[occ].value = value; return true; }
-        const free  = this._probeForFree(start);
-        if (free === -1) return false;
-        this.table[free] = new Record(key, value);
-        return true;
-    }
-}
-
-const h = new MyHashTable(5);
-h.insert(5, 50); h.insert(10, 100); h.insert(15, 150);
-console.log(h.search(15), h.search(10), h.search(5));
-h.insert(15, 999); console.log(h.search(15));
-```
-
 ```typescript,editable
 enum RecordType { EMPTY, DELETED, OCCUPIED }
 
@@ -1829,58 +1659,6 @@ func main() {
     h.Insert(5, 50); h.Insert(10, 100); h.Insert(15, 150)
     fmt.Println(h.Search(15), h.Search(10), h.Search(5))
     h.Insert(15, 999); fmt.Println(h.Search(15))
-}
-```
-
-```kotlin,editable
-enum class RecordType { EMPTY, DELETED, OCCUPIED }
-
-class Record(
-    var state: RecordType = RecordType.EMPTY,
-    var key: Int = 0, var value: Int = 0,
-) { constructor(k: Int, v: Int) : this(RecordType.OCCUPIED, k, v) }
-
-open class MyHashTable(protected val capacity: Int) {
-    protected val table: Array<Record> = Array(capacity) { Record() }
-    protected fun hash(key: Int): Int  = key % capacity
-
-    protected fun probeForOccupied(key: Int, start: Int): Int {
-        for (i in 0 until capacity) {
-            val idx = (start + i) % capacity
-            val s   = table[idx]
-            if (s.state == RecordType.EMPTY) return -1
-            if (s.state == RecordType.OCCUPIED && s.key == key) return idx
-        }
-        return -1
-    }
-    protected fun probeForFree(start: Int): Int {
-        for (i in 0 until capacity) {
-            val idx = (start + i) % capacity
-            if (table[idx].state != RecordType.OCCUPIED) return idx
-        }
-        return -1
-    }
-
-    open fun search(key: Int): Int {
-        val idx = probeForOccupied(key, hash(key))
-        return if (idx == -1) -1 else table[idx].value
-    }
-    open fun insert(key: Int, value: Int): Boolean {
-        val start = hash(key)
-        val occ = probeForOccupied(key, start)
-        if (occ != -1) { table[occ].value = value; return true }
-        val free = probeForFree(start)
-        if (free == -1) return false
-        table[free] = Record(key, value)
-        return true
-    }
-}
-
-fun main() {
-    val h = MyHashTable(5)
-    h.insert(5, 50); h.insert(10, 100); h.insert(15, 150)
-    println("${h.search(15)} ${h.search(10)} ${h.search(5)}")
-    h.insert(15, 999); println(h.search(15))
 }
 ```
 
@@ -2033,6 +1811,13 @@ flowchart LR
 ## Implementation
 
 <div class="lang-tabs">
+
+```pseudocode
+function remove(key):
+    idx ← _probe_for_occupied(key, _hash(key))
+    if idx ≠ -1:
+        table[idx].state ← DELETED   # tombstone: keeps probe chain intact
+```
 
 ```python,editable
 from enum import Enum
@@ -2329,68 +2114,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const RecordType = Object.freeze({ EMPTY: 0, DELETED: 1, OCCUPIED: 2 });
-
-class Record {
-    constructor(key, value) {
-        if (key !== undefined && value !== undefined) {
-            this.state = RecordType.OCCUPIED; this.key = key; this.value = value;
-        } else {
-            this.state = RecordType.EMPTY;    this.key = 0;   this.value = 0;
-        }
-    }
-}
-
-class MyHashTable {
-    constructor(capacity) {
-        this.capacity = capacity;
-        this.table    = Array.from({ length: capacity }, () => new Record());
-    }
-    _hash(key) { return key % this.capacity; }
-
-    _probeForOccupied(key, start) {
-        for (let i = 0; i < this.capacity; i++) {
-            const idx = (start + i) % this.capacity;
-            const s   = this.table[idx];
-            if (s.state === RecordType.EMPTY) return -1;
-            if (s.state === RecordType.OCCUPIED && s.key === key) return idx;
-        }
-        return -1;
-    }
-    _probeForFree(start) {
-        for (let i = 0; i < this.capacity; i++) {
-            const idx = (start + i) % this.capacity;
-            if (this.table[idx].state !== RecordType.OCCUPIED) return idx;
-        }
-        return -1;
-    }
-
-    search(key) {
-        const idx = this._probeForOccupied(key, this._hash(key));
-        return idx === -1 ? -1 : this.table[idx].value;
-    }
-    insert(key, value) {
-        const start = this._hash(key);
-        const occ   = this._probeForOccupied(key, start);
-        if (occ !== -1) { this.table[occ].value = value; return true; }
-        const free  = this._probeForFree(start);
-        if (free === -1) return false;
-        this.table[free] = new Record(key, value);
-        return true;
-    }
-    remove(key) {
-        const idx = this._probeForOccupied(key, this._hash(key));
-        if (idx !== -1) this.table[idx].state = RecordType.DELETED;
-    }
-}
-
-const h = new MyHashTable(5);
-h.insert(5, 50); h.insert(10, 100); h.insert(15, 150);
-h.remove(10);
-console.log(h.search(15), h.search(10));   // 150 -1
-```
-
 ```typescript,editable
 enum RecordType { EMPTY, DELETED, OCCUPIED }
 
@@ -2505,59 +2228,6 @@ func main() {
     h.Insert(5, 50); h.Insert(10, 100); h.Insert(15, 150)
     h.Remove(10)
     fmt.Println(h.Search(15), h.Search(10))   // 150 -1
-}
-```
-
-```kotlin,editable
-enum class RecordType { EMPTY, DELETED, OCCUPIED }
-
-class Record(
-    var state: RecordType = RecordType.EMPTY,
-    var key: Int = 0, var value: Int = 0,
-) { constructor(k: Int, v: Int) : this(RecordType.OCCUPIED, k, v) }
-
-open class MyHashTable(protected val capacity: Int) {
-    protected val table: Array<Record> = Array(capacity) { Record() }
-    protected fun hash(key: Int): Int = key % capacity
-
-    protected fun probeForOccupied(key: Int, start: Int): Int {
-        for (i in 0 until capacity) {
-            val idx = (start + i) % capacity
-            val s = table[idx]
-            if (s.state == RecordType.EMPTY) return -1
-            if (s.state == RecordType.OCCUPIED && s.key == key) return idx
-        }
-        return -1
-    }
-    protected fun probeForFree(start: Int): Int {
-        for (i in 0 until capacity) {
-            val idx = (start + i) % capacity
-            if (table[idx].state != RecordType.OCCUPIED) return idx
-        }
-        return -1
-    }
-
-    open fun search(key: Int): Int {
-        val idx = probeForOccupied(key, hash(key))
-        return if (idx == -1) -1 else table[idx].value
-    }
-    open fun insert(key: Int, value: Int): Boolean {
-        val start = hash(key); val occ = probeForOccupied(key, start)
-        if (occ != -1) { table[occ].value = value; return true }
-        val free = probeForFree(start); if (free == -1) return false
-        table[free] = Record(key, value); return true
-    }
-    open fun remove(key: Int) {
-        val idx = probeForOccupied(key, hash(key))
-        if (idx != -1) table[idx].state = RecordType.DELETED
-    }
-}
-
-fun main() {
-    val h = MyHashTable(5)
-    h.insert(5, 50); h.insert(10, 100); h.insert(15, 150)
-    h.remove(10)
-    println("${h.search(15)} ${h.search(10)}")   // 150 -1
 }
 ```
 
@@ -2686,6 +2356,32 @@ cons: Constraints {
 The full 10-language implementation. `getKeyAtIndex` is a one-liner: return the stored key if the slot is `OCCUPIED`, otherwise `-1` (covers both `EMPTY` and `DELETED` slots).
 
 <div class="lang-tabs">
+
+```pseudocode
+class MyHashTable:
+    function _hash(key): return key mod capacity
+    function _probe_for_occupied(key, start): ...  # stop on EMPTY, skip DELETED
+    function _probe_for_free(start): ...           # first non-OCCUPIED slot
+
+    function search(key):
+        idx ← _probe_for_occupied(key, _hash(key))
+        if idx = -1: return -1 else: return table[idx].value
+
+    function insert(key, value):
+        occ ← _probe_for_occupied(key, _hash(key))
+        if occ ≠ -1: table[occ].value ← value; return true
+        free ← _probe_for_free(_hash(key))
+        if free = -1: return false
+        table[free] ← Record(key, value, OCCUPIED); return true
+
+    function remove(key):
+        idx ← _probe_for_occupied(key, _hash(key))
+        if idx ≠ -1: table[idx].state ← DELETED
+
+    function getKeyAtIndex(index):
+        if table[index].state = OCCUPIED: return table[index].key
+        return -1
+```
 
 ```python,editable
 from enum import Enum
@@ -3002,74 +2698,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const RecordType = Object.freeze({ EMPTY: 0, DELETED: 1, OCCUPIED: 2 });
-
-class Record {
-    constructor(key, value) {
-        if (key !== undefined && value !== undefined) {
-            this.state = RecordType.OCCUPIED; this.key = key; this.value = value;
-        } else {
-            this.state = RecordType.EMPTY;    this.key = 0;   this.value = 0;
-        }
-    }
-}
-
-class MyHashTable {
-    constructor(capacity) {
-        this.capacity = capacity;
-        this.table    = Array.from({ length: capacity }, () => new Record());
-    }
-    _hash(key) { return key % this.capacity; }
-
-    _probeForOccupied(key, start) {
-        for (let i = 0; i < this.capacity; i++) {
-            const idx = (start + i) % this.capacity;
-            const s = this.table[idx];
-            if (s.state === RecordType.EMPTY) return -1;
-            if (s.state === RecordType.OCCUPIED && s.key === key) return idx;
-        }
-        return -1;
-    }
-    _probeForFree(start) {
-        for (let i = 0; i < this.capacity; i++) {
-            const idx = (start + i) % this.capacity;
-            if (this.table[idx].state !== RecordType.OCCUPIED) return idx;
-        }
-        return -1;
-    }
-
-    search(key) {
-        const idx = this._probeForOccupied(key, this._hash(key));
-        return idx === -1 ? -1 : this.table[idx].value;
-    }
-    insert(key, value) {
-        const start = this._hash(key);
-        const occ = this._probeForOccupied(key, start);
-        if (occ !== -1) { this.table[occ].value = value; return true; }
-        const free = this._probeForFree(start);
-        if (free === -1) return false;
-        this.table[free] = new Record(key, value); return true;
-    }
-    remove(key) {
-        const idx = this._probeForOccupied(key, this._hash(key));
-        if (idx !== -1) this.table[idx].state = RecordType.DELETED;
-    }
-    getKeyAtIndex(index) {
-        if (index < 0 || index >= this.capacity) return -1;
-        const s = this.table[index];
-        return s.state === RecordType.OCCUPIED ? s.key : -1;
-    }
-}
-
-const h = new MyHashTable(3);
-h.insert(1, 2); h.insert(2, 4); console.log(h.search(1));
-h.insert(1, 3); console.log(h.search(1));
-h.insert(2, 5);
-console.log(h.search(2), h.search(3));
-console.log(h.getKeyAtIndex(0));
-```
-
 ```typescript,editable
 enum RecordType { EMPTY, DELETED, OCCUPIED }
 
@@ -3197,65 +2825,6 @@ func main() {
     h.Insert(2, 5)
     fmt.Println(h.Search(2), h.Search(3))
     fmt.Println(h.GetKeyAtIndex(0))
-}
-```
-
-```kotlin,editable
-enum class RecordType { EMPTY, DELETED, OCCUPIED }
-
-class Record(
-    var state: RecordType = RecordType.EMPTY,
-    var key: Int = 0, var value: Int = 0,
-) { constructor(k: Int, v: Int) : this(RecordType.OCCUPIED, k, v) }
-
-open class MyHashTable(protected val capacity: Int) {
-    protected val table: Array<Record> = Array(capacity) { Record() }
-    protected fun hash(key: Int): Int  = key % capacity
-
-    protected fun probeForOccupied(key: Int, start: Int): Int {
-        for (i in 0 until capacity) {
-            val idx = (start + i) % capacity; val s = table[idx]
-            if (s.state == RecordType.EMPTY) return -1
-            if (s.state == RecordType.OCCUPIED && s.key == key) return idx
-        }
-        return -1
-    }
-    protected fun probeForFree(start: Int): Int {
-        for (i in 0 until capacity) {
-            val idx = (start + i) % capacity
-            if (table[idx].state != RecordType.OCCUPIED) return idx
-        }
-        return -1
-    }
-
-    open fun search(key: Int): Int {
-        val idx = probeForOccupied(key, hash(key))
-        return if (idx == -1) -1 else table[idx].value
-    }
-    open fun insert(key: Int, value: Int): Boolean {
-        val start = hash(key); val occ = probeForOccupied(key, start)
-        if (occ != -1) { table[occ].value = value; return true }
-        val free = probeForFree(start); if (free == -1) return false
-        table[free] = Record(key, value); return true
-    }
-    open fun remove(key: Int) {
-        val idx = probeForOccupied(key, hash(key))
-        if (idx != -1) table[idx].state = RecordType.DELETED
-    }
-    fun getKeyAtIndex(index: Int): Int {
-        if (index < 0 || index >= capacity) return -1
-        val s = table[index]
-        return if (s.state == RecordType.OCCUPIED) s.key else -1
-    }
-}
-
-fun main() {
-    val h = MyHashTable(3)
-    h.insert(1, 2); h.insert(2, 4); println(h.search(1))
-    h.insert(1, 3); println(h.search(1))
-    h.insert(2, 5)
-    println("${h.search(2)} ${h.search(3)}")
-    println(h.getKeyAtIndex(0))
 }
 ```
 

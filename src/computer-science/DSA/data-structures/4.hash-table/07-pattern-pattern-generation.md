@@ -158,6 +158,20 @@ The delimiter matters: without it, indices like `1,12` and `11,2` produce the sa
 
 <div class="lang-tabs">
 
+```pseudocode
+function generate_pattern(s):
+    char_to_index ← empty Map; parts ← empty list; seed ← 0
+    for ch in s:
+        if ch is not in char_to_index:
+            char_to_index[ch] ← seed; seed ← seed + 1
+        append str(char_to_index[ch]) to parts
+    return parts joined by ","
+
+function homomorphic_strings(s, t):
+    if length(s) ≠ length(t): return false
+    return generate_pattern(s) = generate_pattern(t)
+```
+
 ```python,editable
 def generate_pattern(s: str) -> str:
     char_to_index, parts, seed = {}, [], 0
@@ -279,24 +293,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function generatePattern(s) {
-    const charToIndex = new Map(); const parts = []; let seed = 0;
-    for (const ch of s) {
-        if (!charToIndex.has(ch)) charToIndex.set(ch, seed++);
-        parts.push(charToIndex.get(ch));
-    }
-    return parts.join(',');
-}
-function homomorphicStrings(s, t) {
-    if (s.length !== t.length) return false;
-    return generatePattern(s) === generatePattern(t);
-}
-console.log(homomorphicStrings("add", "qpp"),
-            homomorphicStrings("dad", "mom"),
-            homomorphicStrings("all", "mom"));
-```
-
 ```typescript,editable
 function generatePattern(s: string): string {
     const map = new Map<string, number>(); const parts: number[] = []; let seed = 0;
@@ -338,25 +334,6 @@ func main() {
     fmt.Println(homomorphicStrings("add", "qpp"),
                 homomorphicStrings("dad", "mom"),
                 homomorphicStrings("all", "mom"))
-}
-```
-
-```kotlin,editable
-fun generatePattern(s: String): String {
-    val map = HashMap<Char, Int>(); val parts = StringBuilder(); var seed = 0
-    for (ch in s) {
-        if (ch !in map) { map[ch] = seed; seed++ }
-        parts.append(map[ch]).append(',')
-    }
-    return parts.toString()
-}
-fun homomorphicStrings(s: String, t: String): Boolean =
-    s.length == t.length && generatePattern(s) == generatePattern(t)
-
-fun main() {
-    println(homomorphicStrings("add", "qpp"))
-    println(homomorphicStrings("dad", "mom"))
-    println(homomorphicStrings("all", "mom"))
 }
 ```
 
@@ -447,6 +424,17 @@ flowchart LR
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+ROW_OF ← map each char in "qwertyuiop" → 1, "asdfghjkl" → 2, "zxcvbnm" → 3
+
+function row_specific_words(words):
+    out ← empty list
+    for w in words:
+        rows ← {ROW_OF[lowercase(ch)] for ch in w}
+        if size(rows) = 1: append w to out
+    return out
+```
 
 ```python,editable
 ROW_OF = {ch: 1 for ch in "qwertyuiop"} | {ch: 2 for ch in "asdfghjkl"} | {ch: 3 for ch in "zxcvbnm"}
@@ -558,20 +546,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const ROW = {};
-for (const c of "qwertyuiop") ROW[c] = 1;
-for (const c of "asdfghjkl")  ROW[c] = 2;
-for (const c of "zxcvbnm")    ROW[c] = 3;
-
-function rowSpecificWords(words) {
-    return words.filter(w => new Set([...w.toLowerCase()].map(c => ROW[c])).size === 1);
-}
-console.log(rowSpecificWords(["you","were","some"]));
-console.log(rowSpecificWords(["sdk","nvm","hut"]));
-console.log(rowSpecificWords(["him","else","bat"]));
-```
-
 ```typescript,editable
 const ROW: Record<string, number> = {};
 for (const c of "qwertyuiop") ROW[c] = 1;
@@ -612,24 +586,6 @@ func main() {
     fmt.Println(rowSpecificWords([]string{"you","were","some"}))
     fmt.Println(rowSpecificWords([]string{"sdk","nvm","hut"}))
     fmt.Println(rowSpecificWords([]string{"him","else","bat"}))
-}
-```
-
-```kotlin,editable
-fun rowSpecificWords(words: List<String>): List<String> {
-    val row = HashMap<Char, Int>()
-    for (c in "qwertyuiop") row[c] = 1
-    for (c in "asdfghjkl")  row[c] = 2
-    for (c in "zxcvbnm")    row[c] = 3
-    return words.filter { w ->
-        w.lowercase().map { row[it]!! }.toSet().size == 1
-    }
-}
-
-fun main() {
-    println(rowSpecificWords(listOf("you","were","some")))
-    println(rowSpecificWords(listOf("sdk","nvm","hut")))
-    println(rowSpecificWords(listOf("him","else","bat")))
 }
 ```
 
@@ -681,6 +637,12 @@ Apply the `generatePattern` function we built above to both strings; compare the
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function homomorphic_strings(s, t):
+    if length(s) ≠ length(t): return false
+    return generate_pattern(s) = generate_pattern(t)
+```
 
 ```python,editable
 def generate_pattern(s: str) -> str:
@@ -796,23 +758,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function generatePattern(s) {
-    const m = new Map(); const parts = []; let seed = 0;
-    for (const ch of s) {
-        if (!m.has(ch)) m.set(ch, seed++);
-        parts.push(m.get(ch));
-    }
-    return parts.join(',');
-}
-function homomorphicStrings(s, t) {
-    return s.length === t.length && generatePattern(s) === generatePattern(t);
-}
-console.log(homomorphicStrings("add","qpp"),
-            homomorphicStrings("dad","mom"),
-            homomorphicStrings("all","mom"));
-```
-
 ```typescript,editable
 function generatePattern(s: string): string {
     const m = new Map<string, number>(); const parts: number[] = []; let seed = 0;
@@ -850,25 +795,6 @@ func main() {
     fmt.Println(homomorphicStrings("add","qpp"),
                 homomorphicStrings("dad","mom"),
                 homomorphicStrings("all","mom"))
-}
-```
-
-```kotlin,editable
-fun generatePattern(s: String): String {
-    val m = HashMap<Char, Int>(); val sb = StringBuilder(); var seed = 0
-    for (ch in s) {
-        if (ch !in m) { m[ch] = seed; seed++ }
-        sb.append(m[ch]).append(',')
-    }
-    return sb.toString()
-}
-fun homomorphicStrings(s: String, t: String): Boolean =
-    s.length == t.length && generatePattern(s) == generatePattern(t)
-
-fun main() {
-    println(homomorphicStrings("add","qpp"))
-    println(homomorphicStrings("dad","mom"))
-    println(homomorphicStrings("all","mom"))
 }
 ```
 
@@ -925,6 +851,13 @@ The bijection requirement is a real constraint: no two pattern letters can map t
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function pattern_matching(pattern, s):
+    words ← s split by spaces
+    if length(pattern) ≠ length(words): return false
+    return generate_pattern(chars of pattern) = generate_pattern(words)
+```
 
 ```python,editable
 def generate_pattern(seq) -> str:
@@ -1070,25 +1003,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function generatePattern(seq) {
-    const m = new Map(); const parts = []; let seed = 0;
-    for (const x of seq) {
-        if (!m.has(x)) m.set(x, seed++);
-        parts.push(m.get(x));
-    }
-    return parts.join(',');
-}
-function patternMatching(pattern, s) {
-    const words = s.split(/\s+/);
-    if (pattern.length !== words.length) return false;
-    return generatePattern([...pattern]) === generatePattern(words);
-}
-console.log(patternMatching("mom","hello world hello"));
-console.log(patternMatching("abc","hello my name"));
-console.log(patternMatching("abc","hello my my"));
-```
-
 ```typescript,editable
 function generatePattern<T>(seq: T[]): string {
     const m = new Map<T, number>(); const parts: number[] = []; let seed = 0;
@@ -1135,25 +1049,6 @@ func main() {
     fmt.Println(patternMatching("mom","hello world hello"),
                 patternMatching("abc","hello my name"),
                 patternMatching("abc","hello my my"))
-}
-```
-
-```kotlin,editable
-fun <T> generatePattern(seq: List<T>): String {
-    val m = HashMap<T, Int>(); val sb = StringBuilder(); var seed = 0
-    for (x in seq) { if (x !in m) { m[x] = seed; seed++ }; sb.append(m[x]).append(',') }
-    return sb.toString()
-}
-fun patternMatching(pattern: String, s: String): Boolean {
-    val words = s.trim().split(Regex("\\s+"))
-    if (pattern.length != words.size) return false
-    return generatePattern(pattern.toList()) == generatePattern(words)
-}
-
-fun main() {
-    println(patternMatching("mom","hello world hello"))
-    println(patternMatching("abc","hello my name"))
-    println(patternMatching("abc","hello my my"))
 }
 ```
 
@@ -1250,6 +1145,20 @@ inputs.s7 -> keys.k3: "no gaps"
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function generate_pattern(s):
+    parts ← empty list
+    for i from 1 to length(s) − 1:
+        diff ← (ord(s[i]) − ord(s[i−1])) mod 26
+        append str(diff) to parts
+    return parts joined by ","
+
+function cluster_displaced_strings(strs):
+    groups ← empty Map: string → list
+    for s in strs: append s to groups[generate_pattern(s)]
+    return values(groups)
+```
 
 ```python,editable
 from collections import defaultdict
@@ -1363,27 +1272,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function generatePattern(s) {
-    const parts = [];
-    for (let i = 1; i < s.length; i++) {
-        const diff = ((s.charCodeAt(i) - s.charCodeAt(i-1)) % 26 + 26) % 26;
-        parts.push(diff);
-    }
-    return parts.join(',');
-}
-function clusterDisplacedStrings(strs) {
-    const g = new Map();
-    for (const s of strs) {
-        const k = generatePattern(s);
-        if (!g.has(k)) g.set(k, []);
-        g.get(k).push(s);
-    }
-    return [...g.values()];
-}
-console.log(clusterDisplacedStrings(["abc","ghi","xyz","b","c","ab","cd"]));
-```
-
 ```typescript,editable
 function generatePattern(s: string): string {
     const parts: number[] = [];
@@ -1432,23 +1320,6 @@ func clusterDisplacedStrings(strs []string) [][]string {
 
 func main() {
     fmt.Println(clusterDisplacedStrings([]string{"abc","ghi","xyz","b","c","ab","cd"}))
-}
-```
-
-```kotlin,editable
-fun generatePattern(s: String): String {
-    val sb = StringBuilder()
-    for (i in 1 until s.length) {
-        val diff = ((s[i].code - s[i-1].code) % 26 + 26) % 26
-        sb.append(diff).append(',')
-    }
-    return sb.toString()
-}
-fun clusterDisplacedStrings(strs: List<String>): List<List<String>> =
-    strs.groupBy { generatePattern(it) }.values.toList()
-
-fun main() {
-    println(clusterDisplacedStrings(listOf("abc","ghi","xyz","b","c","ab","cd")))
 }
 ```
 

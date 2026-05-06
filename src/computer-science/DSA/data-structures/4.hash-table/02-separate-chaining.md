@@ -114,6 +114,12 @@ rec -> node.val: stored inside
 
 <div class="lang-tabs">
 
+```pseudocode
+class Record:
+    key: integer
+    value: integer
+```
+
 ```python,editable
 # Each chain entry is a (key, value) pair. We use a small dataclass-style class
 # instead of a raw tuple so the chain code reads cleanly: entry.key, entry.value.
@@ -197,19 +203,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-// Each chain entry holds a Record — a (key, value) pair.
-class Record {
-    constructor(key, value) {
-        this.key   = key;
-        this.value = value;
-    }
-}
-
-const r = new Record(1, 99);
-console.log(r.key, r.value);   // 1 99
-```
-
 ```typescript,editable
 class Record {
     key:   number;
@@ -238,16 +231,6 @@ type Record struct {
 func main() {
     r := Record{Key: 1, Value: 99}
     fmt.Println(r.Key, r.Value)   // 1 99
-}
-```
-
-```kotlin,editable
-// Record holds a single (key, value) pair stored inside a chain node.
-data class Record(val key: Int, var value: Int)
-
-fun main() {
-    val r = Record(1, 99)
-    println("${r.key} ${r.value}")   // 1 99
 }
 ```
 
@@ -374,6 +357,17 @@ cls: MyHashTable class {
 Below is the skeleton of the class — the constructor wires up an empty array of chains, but the three operations (`search`, `insert`, `remove`) are stubbed out. We'll fill them in over the next three sections.
 
 <div class="lang-tabs">
+
+```pseudocode
+class MyHashTable:
+    capacity: integer
+    table: array of empty lists   # length = capacity
+
+    function _hash(key): return key mod capacity
+    function search(key): ...     # filled in next section
+    function insert(key, value): ...
+    function remove(key): ...
+```
 
 ```python,editable
 # Skeleton of the separate-chaining hash table.
@@ -533,28 +527,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Record {
-    constructor(key, value) { this.key = key; this.value = value; }
-}
-
-class MyHashTable {
-    constructor(capacity) {
-        this.capacity = capacity;
-        // One empty chain (array) per slot
-        this.table    = Array.from({ length: capacity }, () => []);
-    }
-    _hash(key) { return key % this.capacity; }   // Division-method hash
-
-    search(key)        { return -1; }
-    insert(key, value) {            }
-    remove(key)        {            }
-}
-
-const h = new MyHashTable(4);
-console.log("created table with capacity 4");
-```
-
 ```typescript,editable
 class Record {
     key:   number;
@@ -612,27 +584,6 @@ func (h *MyHashTable) Remove(key int)                     {           }
 func main() {
     h := newTable(4)
     fmt.Printf("created table with capacity %d\n", h.capacity)
-}
-```
-
-```kotlin,editable
-data class Record(val key: Int, var value: Int)
-
-class MyHashTable(private val capacity: Int) {
-    // Each slot is a MutableList of records — grows on collision
-    private val table: Array<MutableList<Record>> =
-        Array(capacity) { mutableListOf() }
-
-    private fun hash(key: Int): Int = key % capacity
-
-    fun search(key: Int): Int  = -1
-    fun insert(key: Int, value: Int) {}
-    fun remove(key: Int) {}
-}
-
-fun main() {
-    val h = MyHashTable(4)
-    println("created table with capacity 4")
 }
 ```
 
@@ -745,6 +696,14 @@ flowchart LR
 ## Implementation
 
 <div class="lang-tabs">
+
+```pseudocode
+function search(key):
+    index ← _hash(key)
+    for entry in table[index]:
+        if entry.key = key: return entry.value
+    return -1
+```
 
 ```python,editable
 class Record:
@@ -890,29 +849,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Record { constructor(k, v){ this.key = k; this.value = v; } }
-
-class MyHashTable {
-    constructor(capacity) {
-        this.capacity = capacity;
-        this.table    = Array.from({ length: capacity }, () => []);
-    }
-    _hash(key) { return key % this.capacity; }
-
-    search(key) {
-        const index = this._hash(key);              // Step 1
-        for (const entry of this.table[index]) {    // Step 2
-            if (entry.key === key) return entry.value;
-        }
-        return -1;                                  // Step 3
-    }
-}
-
-const h = new MyHashTable(4);
-console.log(h.search(7));   // -1
-```
-
 ```typescript,editable
 class Record {
     constructor(public key: number, public value: number) {}
@@ -971,28 +907,6 @@ func (h *MyHashTable) Search(key int) int {
 func main() {
     h := newTable(4)
     fmt.Println(h.Search(7))   // -1
-}
-```
-
-```kotlin,editable
-data class Record(val key: Int, var value: Int)
-
-class MyHashTable(private val capacity: Int) {
-    private val table: Array<MutableList<Record>> = Array(capacity) { mutableListOf() }
-    private fun hash(key: Int): Int = key % capacity
-
-    fun search(key: Int): Int {
-        val index = hash(key)                              // Step 1
-        for (entry in table[index]) {                      // Step 2
-            if (entry.key == key) return entry.value
-        }
-        return -1                                          // Step 3
-    }
-}
-
-fun main() {
-    val h = MyHashTable(4)
-    println(h.search(7))   // -1
 }
 ```
 
@@ -1191,6 +1105,16 @@ flowchart LR
 
 <div class="lang-tabs">
 
+```pseudocode
+function insert(key, value):
+    index ← _hash(key)
+    for entry in table[index]:
+        if entry.key = key:
+            entry.value ← value   # update in place
+            return
+    append Record(key, value) to table[index]
+```
+
 ```python,editable
 class Record:
     def __init__(self, key, value):
@@ -1382,40 +1306,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Record { constructor(k, v){ this.key = k; this.value = v; } }
-
-class MyHashTable {
-    constructor(capacity) {
-        this.capacity = capacity;
-        this.table    = Array.from({ length: capacity }, () => []);
-    }
-    _hash(key) { return key % this.capacity; }
-
-    search(key) {
-        for (const e of this.table[this._hash(key)])
-            if (e.key === key) return e.value;
-        return -1;
-    }
-
-    insert(key, value) {
-        const index = this._hash(key);
-        // Case 1 — update if exists
-        for (const e of this.table[index]) {
-            if (e.key === key) { e.value = value; return; }
-        }
-        // Case 2 — append new record
-        this.table[index].push(new Record(key, value));
-    }
-}
-
-const h = new MyHashTable(4);
-h.insert(1, 10); h.insert(5, 50);
-console.log(h.search(5));   // 50
-h.insert(5, 99);
-console.log(h.search(5));   // 99
-```
-
 ```typescript,editable
 class Record {
     constructor(public key: number, public value: number) {}
@@ -1492,33 +1382,6 @@ func main() {
     fmt.Println(h.Search(5))   // 50
     h.Insert(5, 99)
     fmt.Println(h.Search(5))   // 99
-}
-```
-
-```kotlin,editable
-data class Record(val key: Int, var value: Int)
-
-class MyHashTable(private val capacity: Int) {
-    private val table: Array<MutableList<Record>> = Array(capacity) { mutableListOf() }
-    private fun hash(key: Int): Int = key % capacity
-
-    fun search(key: Int): Int =
-        table[hash(key)].find { it.key == key }?.value ?: -1
-
-    fun insert(key: Int, value: Int) {
-        val chain = table[hash(key)]
-        val existing = chain.find { it.key == key }
-        if (existing != null) existing.value = value      // Case 1 — update
-        else                  chain.add(Record(key, value)) // Case 2 — append
-    }
-}
-
-fun main() {
-    val h = MyHashTable(4)
-    h.insert(1, 10); h.insert(5, 50)
-    println(h.search(5))   // 50
-    h.insert(5, 99)
-    println(h.search(5))   // 99
 }
 ```
 
@@ -1689,6 +1552,16 @@ flowchart LR
 ## Implementation
 
 <div class="lang-tabs">
+
+```pseudocode
+function remove(key):
+    chain ← table[_hash(key)]
+    for i from 0 to length(chain) − 1:
+        if chain[i].key = key:
+            remove chain[i] from chain
+            return
+    # key absent — silent no-op
+```
 
 ```python,editable
 class Record:
@@ -1890,41 +1763,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Record { constructor(k, v){ this.key = k; this.value = v; } }
-
-class MyHashTable {
-    constructor(capacity) {
-        this.capacity = capacity;
-        this.table    = Array.from({ length: capacity }, () => []);
-    }
-    _hash(key) { return key % this.capacity; }
-
-    search(key) {
-        for (const e of this.table[this._hash(key)])
-            if (e.key === key) return e.value;
-        return -1;
-    }
-    insert(key, value) {
-        const idx = this._hash(key);
-        for (const e of this.table[idx])
-            if (e.key === key) { e.value = value; return; }
-        this.table[idx].push(new Record(key, value));
-    }
-    remove(key) {
-        const chain = this.table[this._hash(key)];
-        const idx   = chain.findIndex(e => e.key === key);
-        if (idx !== -1) chain.splice(idx, 1);   // Found → unlink
-        // Case 2 — silent no-op
-    }
-}
-
-const h = new MyHashTable(4);
-h.insert(1, 10); h.insert(5, 50); h.insert(9, 90);
-h.remove(5);
-console.log(h.search(5), h.search(9));   // -1 90
-```
-
 ```typescript,editable
 class Record { constructor(public key: number, public value: number){} }
 
@@ -1998,34 +1836,6 @@ func main() {
     h.Insert(1, 10); h.Insert(5, 50); h.Insert(9, 90)
     h.Remove(5)
     fmt.Println(h.Search(5), h.Search(9))   // -1 90
-}
-```
-
-```kotlin,editable
-data class Record(val key: Int, var value: Int)
-
-class MyHashTable(private val capacity: Int) {
-    private val table: Array<MutableList<Record>> = Array(capacity) { mutableListOf() }
-    private fun hash(key: Int): Int = key % capacity
-
-    fun search(key: Int): Int =
-        table[hash(key)].find { it.key == key }?.value ?: -1
-    fun insert(key: Int, value: Int) {
-        val c = table[hash(key)]
-        val r = c.find { it.key == key }
-        if (r != null) r.value = value else c.add(Record(key, value))
-    }
-    fun remove(key: Int) {
-        // removeIf is true ⇒ found and unlinked, false ⇒ silent no-op
-        table[hash(key)].removeIf { it.key == key }
-    }
-}
-
-fun main() {
-    val h = MyHashTable(4)
-    h.insert(1, 10); h.insert(5, 50); h.insert(9, 90)
-    h.remove(5)
-    println("${h.search(5)} ${h.search(9)}")   // -1 90
 }
 ```
 
@@ -2171,6 +1981,34 @@ cons: Constraints {
 The full implementation in 10 languages. Notice how `getKeysAtIndex` is just a shallow walk of the chain at the requested index — useful for testing and for any feature that needs to introspect the table's layout (e.g. iteration, cache eviction policies).
 
 <div class="lang-tabs">
+
+```pseudocode
+class MyHashTable:
+    capacity: integer
+    table: array of chains
+
+    function _hash(key): return key mod capacity
+
+    function search(key):
+        for e in table[_hash(key)]:
+            if e.key = key: return e.value
+        return -1
+
+    function insert(key, value):
+        idx ← _hash(key)
+        for e in table[idx]:
+            if e.key = key: e.value ← value; return true
+        append Record(key, value) to table[idx]; return true
+
+    function remove(key):
+        chain ← table[_hash(key)]
+        for i from 0 to length(chain) − 1:
+            if chain[i].key = key: remove chain[i]; return
+
+    function getKeysAtIndex(index):
+        if index < 0 OR index ≥ capacity: return empty list
+        return [e.key for e in table[index]]
+```
 
 ```python,editable
 class Record:
@@ -2409,46 +2247,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Record { constructor(k,v){ this.key=k; this.value=v; } }
-
-class MyHashTable {
-    constructor(capacity) {
-        this.capacity = capacity;
-        this.table    = Array.from({ length: capacity }, () => []);
-    }
-    _hash(key) { return key % this.capacity; }
-
-    search(key) {
-        for (const e of this.table[this._hash(key)]) if (e.key === key) return e.value;
-        return -1;
-    }
-    insert(key, value) {
-        const idx = this._hash(key);
-        for (const e of this.table[idx]) if (e.key === key) { e.value = value; return true; }
-        this.table[idx].push(new Record(key, value));
-        return true;
-    }
-    remove(key) {
-        const c = this.table[this._hash(key)];
-        const i = c.findIndex(e => e.key === key);
-        if (i !== -1) c.splice(i, 1);
-    }
-    getKeysAtIndex(index) {
-        if (index < 0 || index >= this.capacity) return [];
-        return this.table[index].map(e => e.key);
-    }
-}
-
-const h = new MyHashTable(1);
-h.insert(1, 2); h.insert(2, 4);
-console.log(h.search(1));                  // 2
-h.insert(1, 3); console.log(h.search(1));  // 3
-h.insert(2, 5);
-console.log(h.search(2), h.search(3));     // 5 -1
-console.log(h.getKeysAtIndex(0));          // [1, 2]
-```
-
 ```typescript,editable
 class Record { constructor(public key: number, public value: number){} }
 
@@ -2536,39 +2334,6 @@ func main() {
     h.Insert(2, 5)
     fmt.Println(h.Search(2), h.Search(3))     // 5 -1
     fmt.Println(h.GetKeysAtIndex(0))          // [1 2]
-}
-```
-
-```kotlin,editable
-data class Record(val key: Int, var value: Int)
-
-class MyHashTable(private val capacity: Int) {
-    private val table: Array<MutableList<Record>> = Array(capacity) { mutableListOf() }
-    private fun hash(key: Int): Int = key % capacity
-
-    fun search(key: Int): Int =
-        table[hash(key)].find { it.key == key }?.value ?: -1
-    fun insert(key: Int, value: Int): Boolean {
-        val c = table[hash(key)]; val r = c.find { it.key == key }
-        if (r != null) r.value = value else c.add(Record(key, value))
-        return true
-    }
-    fun remove(key: Int) {
-        table[hash(key)].removeIf { it.key == key }
-    }
-    fun getKeysAtIndex(index: Int): List<Int> =
-        if (index < 0 || index >= capacity) emptyList()
-        else table[index].map { it.key }
-}
-
-fun main() {
-    val h = MyHashTable(1)
-    h.insert(1, 2); h.insert(2, 4)
-    println(h.search(1))                      // 2
-    h.insert(1, 3); println(h.search(1))      // 3
-    h.insert(2, 5)
-    println("${h.search(2)} ${h.search(3)}")  // 5 -1
-    println(h.getKeysAtIndex(0))              // [1, 2]
 }
 ```
 

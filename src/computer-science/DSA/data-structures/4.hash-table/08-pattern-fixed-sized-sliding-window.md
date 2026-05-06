@@ -105,6 +105,20 @@ The generic skeleton — every problem in this lesson is a one-line change to st
 
 <div class="lang-tabs">
 
+```pseudocode
+function fixed_sliding_window(arr, k):
+    freq ← empty Map; start ← 0
+    for end from 0 to length(arr) − 1:
+        freq[arr[end]] ← freq[arr[end]] + 1
+        if end − start + 1 > k:
+            freq[arr[start]] ← freq[arr[start]] − 1
+            if freq[arr[start]] = 0: remove arr[start] from freq
+            start ← start + 1
+        if end − start + 1 = k:
+            # process this window
+            pass
+```
+
 ```python,editable
 from collections import defaultdict
 
@@ -227,26 +241,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function fixedSlidingWindow(arr, k) {
-    const freq = new Map();
-    let start = 0;
-    for (let end = 0; end < arr.length; end++) {
-        freq.set(arr[end], (freq.get(arr[end]) || 0) + 1);
-        if (end - start + 1 > k) {
-            const c = freq.get(arr[start]) - 1;
-            if (c === 0) freq.delete(arr[start]); else freq.set(arr[start], c);
-            start++;
-        }
-        if (end - start + 1 === k) {
-            // ── process this window ──
-        }
-    }
-}
-fixedSlidingWindow(['a','b','a','c','b','d','a'], 4);
-console.log("done");
-```
-
 ```typescript,editable
 function fixedSlidingWindow(arr: string[], k: number): void {
     const freq = new Map<string, number>();
@@ -289,27 +283,6 @@ func fixedSlidingWindow(arr []byte, k int) {
 func main() {
     fixedSlidingWindow([]byte("abacbda"), 4)
     fmt.Println("done")
-}
-```
-
-```kotlin,editable
-fun fixedSlidingWindow(arr: CharArray, k: Int) {
-    val freq = HashMap<Char, Int>()
-    var start = 0
-    for (end in arr.indices) {
-        freq[arr[end]] = (freq[arr[end]] ?: 0) + 1
-        if (end - start + 1 > k) {
-            val c = freq[arr[start]]!! - 1
-            if (c == 0) freq.remove(arr[start]) else freq[arr[start]] = c
-            start++
-        }
-        if (end - start + 1 == k) { /* process */ }
-    }
-}
-
-fun main() {
-    fixedSlidingWindow(charArrayOf('a','b','a','c','b','d','a'), 4)
-    println("done")
 }
 ```
 
@@ -399,6 +372,19 @@ Slide a window of size `k`; maintain frequencies. The instant any frequency exce
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function duplicate_detection(arr, k):
+    freq ← empty Map; start ← 0
+    for end from 0 to length(arr) − 1:
+        freq[arr[end]] ← freq[arr[end]] + 1
+        if end − start + 1 > k:
+            freq[arr[start]] ← freq[arr[start]] − 1
+            if freq[arr[start]] = 0: remove arr[start] from freq
+            start ← start + 1
+        if freq[arr[end]] > 1: return true
+    return false
+```
 
 ```python,editable
 from collections import defaultdict
@@ -528,25 +514,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function duplicateDetection(arr, k) {
-    const freq = new Map(); let start = 0;
-    for (let end = 0; end < arr.length; end++) {
-        freq.set(arr[end], (freq.get(arr[end]) || 0) + 1);
-        if (end - start + 1 > k) {
-            const c = freq.get(arr[start]) - 1;
-            if (c === 0) freq.delete(arr[start]); else freq.set(arr[start], c);
-            start++;
-        }
-        if (freq.get(arr[end]) > 1) return true;
-    }
-    return false;
-}
-console.log(duplicateDetection([2,1,2,3,2,1,4,5], 5));
-console.log(duplicateDetection([1,1,2,4], 3));
-console.log(duplicateDetection([1,2,3,4], 2));
-```
-
 ```typescript,editable
 function duplicateDetection(arr: number[], k: number): boolean {
     const freq = new Map<number, number>(); let start = 0;
@@ -587,28 +554,6 @@ func main() {
     fmt.Println(duplicateDetection([]int{2,1,2,3,2,1,4,5}, 5))
     fmt.Println(duplicateDetection([]int{1,1,2,4}, 3))
     fmt.Println(duplicateDetection([]int{1,2,3,4}, 2))
-}
-```
-
-```kotlin,editable
-fun duplicateDetection(arr: IntArray, k: Int): Boolean {
-    val freq = HashMap<Int, Int>(); var start = 0
-    for (end in arr.indices) {
-        freq[arr[end]] = (freq[arr[end]] ?: 0) + 1
-        if (end - start + 1 > k) {
-            val c = freq[arr[start]]!! - 1
-            if (c == 0) freq.remove(arr[start]) else freq[arr[start]] = c
-            start++
-        }
-        if (freq[arr[end]]!! > 1) return true
-    }
-    return false
-}
-
-fun main() {
-    println(duplicateDetection(intArrayOf(2,1,2,3,2,1,4,5), 5))
-    println(duplicateDetection(intArrayOf(1,1,2,4), 3))
-    println(duplicateDetection(intArrayOf(1,2,3,4), 2))
 }
 ```
 
@@ -694,6 +639,19 @@ m -> d
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function subarray_distinctness(arr, k):
+    freq ← empty Map; start ← 0; result ← empty list
+    for end from 0 to length(arr) − 1:
+        freq[arr[end]] ← freq[arr[end]] + 1
+        if end − start + 1 = k:
+            append size(freq) to result
+            freq[arr[start]] ← freq[arr[start]] − 1
+            if freq[arr[start]] = 0: remove arr[start] from freq
+            start ← start + 1
+    return result
+```
 
 ```python,editable
 from collections import defaultdict
@@ -817,25 +775,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function subarrayDistinctness(arr, k) {
-    const freq = new Map(); const result = []; let start = 0;
-    for (let end = 0; end < arr.length; end++) {
-        freq.set(arr[end], (freq.get(arr[end]) || 0) + 1);
-        if (end - start + 1 === k) {
-            result.push(freq.size);
-            const c = freq.get(arr[start]) - 1;
-            if (c === 0) freq.delete(arr[start]); else freq.set(arr[start], c);
-            start++;
-        }
-    }
-    return result;
-}
-console.log(subarrayDistinctness([2,1,2,3,2,1,4,5], 5));
-console.log(subarrayDistinctness([1,1,2,4], 3));
-console.log(subarrayDistinctness([1,2,3,4], 1));
-```
-
 ```typescript,editable
 function subarrayDistinctness(arr: number[], k: number): number[] {
     const freq = new Map<number, number>(); const result: number[] = []; let start = 0;
@@ -876,28 +815,6 @@ func main() {
     fmt.Println(subarrayDistinctness([]int{2,1,2,3,2,1,4,5}, 5))
     fmt.Println(subarrayDistinctness([]int{1,1,2,4}, 3))
     fmt.Println(subarrayDistinctness([]int{1,2,3,4}, 1))
-}
-```
-
-```kotlin,editable
-fun subarrayDistinctness(arr: IntArray, k: Int): List<Int> {
-    val freq = HashMap<Int, Int>(); val result = mutableListOf<Int>(); var start = 0
-    for (end in arr.indices) {
-        freq[arr[end]] = (freq[arr[end]] ?: 0) + 1
-        if (end - start + 1 == k) {
-            result.add(freq.size)
-            val c = freq[arr[start]]!! - 1
-            if (c == 0) freq.remove(arr[start]) else freq[arr[start]] = c
-            start++
-        }
-    }
-    return result
-}
-
-fun main() {
-    println(subarrayDistinctness(intArrayOf(2,1,2,3,2,1,4,5), 5))
-    println(subarrayDistinctness(intArrayOf(1,1,2,4), 3))
-    println(subarrayDistinctness(intArrayOf(1,2,3,4), 1))
 }
 ```
 
@@ -956,6 +873,21 @@ To avoid O(K) map comparisons every step, you can maintain a counter `matches` o
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function contains_variation(s1, s2):
+    if length(s1) > length(s2): return false
+    target ← count_frequency(s1)
+    window ← empty Map; start ← 0
+    for end from 0 to length(s2) − 1:
+        window[s2[end]] ← window[s2[end]] + 1
+        if end − start + 1 = length(s1):
+            if window matches target: return true
+            window[s2[start]] ← window[s2[start]] − 1
+            if window[s2[start]] = 0: remove s2[start] from window
+            start ← start + 1
+    return false
+```
 
 ```python,editable
 from collections import Counter, defaultdict
@@ -1095,33 +1027,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function mapsEqual(a, b) {
-    if (a.size !== b.size) return false;
-    for (const [k, v] of a) if (b.get(k) !== v) return false;
-    return true;
-}
-function containsVariation(s1, s2) {
-    if (s1.length > s2.length) return false;
-    const target = new Map();
-    for (const c of s1) target.set(c, (target.get(c) || 0) + 1);
-    const w = new Map(); let start = 0;
-    for (let end = 0; end < s2.length; end++) {
-        w.set(s2[end], (w.get(s2[end]) || 0) + 1);
-        if (end - start + 1 === s1.length) {
-            if (mapsEqual(w, target)) return true;
-            const c = w.get(s2[start]) - 1;
-            if (c === 0) w.delete(s2[start]); else w.set(s2[start], c);
-            start++;
-        }
-    }
-    return false;
-}
-console.log(containsVariation("abc","edbaclm"));
-console.log(containsVariation("cod","intdoce"));
-console.log(containsVariation("abc","defghiab"));
-```
-
 ```typescript,editable
 function mapsEqual<T>(a: Map<T, number>, b: Map<T, number>): boolean {
     if (a.size !== b.size) return false;
@@ -1177,31 +1082,6 @@ func main() {
     fmt.Println(containsVariation("abc","edbaclm"),
                 containsVariation("cod","intdoce"),
                 containsVariation("abc","defghiab"))
-}
-```
-
-```kotlin,editable
-fun containsVariation(s1: String, s2: String): Boolean {
-    if (s1.length > s2.length) return false
-    val target = HashMap<Char, Int>()
-    for (c in s1) target[c] = (target[c] ?: 0) + 1
-    val w = HashMap<Char, Int>(); var start = 0
-    for (end in s2.indices) {
-        w[s2[end]] = (w[s2[end]] ?: 0) + 1
-        if (end - start + 1 == s1.length) {
-            if (w == target) return true
-            val c = w[s2[start]]!! - 1
-            if (c == 0) w.remove(s2[start]) else w[s2[start]] = c
-            start++
-        }
-    }
-    return false
-}
-
-fun main() {
-    println(containsVariation("abc","edbaclm"))
-    println(containsVariation("cod","intdoce"))
-    println(containsVariation("abc","defghiab"))
 }
 ```
 
@@ -1292,6 +1172,21 @@ flowchart LR
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function anagram_finder(s, p):
+    if length(p) > length(s): return empty list
+    target ← count_frequency(p)
+    window ← empty Map; out ← empty list; start ← 0
+    for end from 0 to length(s) − 1:
+        window[s[end]] ← window[s[end]] + 1
+        if end − start + 1 = length(p):
+            if window matches target: append start to out
+            window[s[start]] ← window[s[start]] − 1
+            if window[s[start]] = 0: remove s[start] from window
+            start ← start + 1
+    return out
+```
 
 ```python,editable
 from collections import Counter, defaultdict
@@ -1433,34 +1328,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function mapsEqual(a, b) {
-    if (a.size !== b.size) return false;
-    for (const [k, v] of a) if (b.get(k) !== v) return false;
-    return true;
-}
-function anagramFinder(s, p) {
-    const out = [];
-    if (p.length > s.length) return out;
-    const target = new Map();
-    for (const c of p) target.set(c, (target.get(c) || 0) + 1);
-    const w = new Map(); let start = 0;
-    for (let end = 0; end < s.length; end++) {
-        w.set(s[end], (w.get(s[end]) || 0) + 1);
-        if (end - start + 1 === p.length) {
-            if (mapsEqual(w, target)) out.push(start);
-            const c = w.get(s[start]) - 1;
-            if (c === 0) w.delete(s[start]); else w.set(s[start], c);
-            start++;
-        }
-    }
-    return out;
-}
-console.log(anagramFinder("bacdefecab", "abc"));   // [0, 7]
-console.log(anagramFinder("fdef", "def"));         // [0, 1]
-console.log(anagramFinder("abcdef", "gh"));        // []
-```
-
 ```typescript,editable
 function mapsEqual<T>(a: Map<T, number>, b: Map<T, number>): boolean {
     if (a.size !== b.size) return false;
@@ -1518,32 +1385,6 @@ func main() {
     fmt.Println(anagramFinder("bacdefecab", "abc"))
     fmt.Println(anagramFinder("fdef", "def"))
     fmt.Println(anagramFinder("abcdef", "gh"))
-}
-```
-
-```kotlin,editable
-fun anagramFinder(s: String, p: String): List<Int> {
-    val out = mutableListOf<Int>()
-    if (p.length > s.length) return out
-    val target = HashMap<Char, Int>()
-    for (c in p) target[c] = (target[c] ?: 0) + 1
-    val w = HashMap<Char, Int>(); var start = 0
-    for (end in s.indices) {
-        w[s[end]] = (w[s[end]] ?: 0) + 1
-        if (end - start + 1 == p.length) {
-            if (w == target) out.add(start)
-            val c = w[s[start]]!! - 1
-            if (c == 0) w.remove(s[start]) else w[s[start]] = c
-            start++
-        }
-    }
-    return out
-}
-
-fun main() {
-    println(anagramFinder("bacdefecab", "abc"))
-    println(anagramFinder("fdef", "def"))
-    println(anagramFinder("abcdef", "gh"))
 }
 ```
 
