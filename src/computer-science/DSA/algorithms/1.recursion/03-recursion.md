@@ -424,6 +424,13 @@ That's it. There's no extra plumbing.
 
 <div class="lang-tabs">
 
+```pseudocode
+function findPosition(n):
+    if n = 1:                        # base case — recursion must terminate somewhere
+        return 1
+    return 1 + findPosition(n − 1)   # ask the person ahead, then add 1
+```
+
 ```python,editable
 class Solution:
     def find_position(self, n: int) -> int:
@@ -508,20 +515,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    findPosition(n) {
-        // Base case — stops the recursion
-        if (n === 1) return 1;
-        // Recursive case
-        return 1 + this.findPosition(n - 1);
-    }
-}
-
-const sol = new Solution();
-console.log(sol.findPosition(5));            // 5
-```
-
 ```typescript,editable
 class Solution {
     findPosition(n: number): number {
@@ -548,17 +541,6 @@ func findPosition(n int) int {
 
 func main() {
     fmt.Println(findPosition(5))             // 5
-}
-```
-
-```kotlin,editable
-fun findPosition(n: Int): Int {
-    if (n == 1) return 1                     // Base case
-    return 1 + findPosition(n - 1)           // Recursive case
-}
-
-fun main() {
-    println(findPosition(5))                 // 5
 }
 ```
 

@@ -214,6 +214,15 @@ A clean, language-agnostic implementation of the generic template — `g` and `h
 
 <div class="lang-tabs">
 
+```pseudocode
+function tailRecursion(n, acc):
+    if n ≤ 0:                              # base case — return accumulator directly
+        return acc
+    newAcc ← g(acc, n)                     # 1. fold this frame's contribution into the accumulator
+    nextN  ← h(n)                          # 2. reduce the input
+    return tailRecursion(nextN, newAcc)    # 3. tail call — caller has nothing left to do
+```
+
 ```python,editable
 class Solution:
     def tail_recursion(self, n: int, acc: int = 0) -> int:
@@ -328,20 +337,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    tailRecursion(n, acc = 0) {
-        if (n <= 0) return acc;                           // Base
-        return this.tailRecursion(this.h(n), this.g(acc, n));   // Tail call
-        // V8 has NO TCO. This will overflow on deep n.
-    }
-    g(acc, n) { return acc + n; }
-    h(n) { return n - 1; }
-}
-
-console.log(new Solution().tailRecursion(5));   // 15
-```
-
 ```typescript,editable
 class Solution {
     tailRecursion(n: number, acc: number = 0): number {
@@ -375,23 +370,6 @@ func tailRecursion(n, acc int) int {
 
 func main() {
     fmt.Println(tailRecursion(5, 0))   // 15
-}
-```
-
-```kotlin,editable
-class Solution {
-    // The `tailrec` modifier instructs the compiler to verify and apply TCO.
-    // Compiles to a loop — O(1) stack space.
-    tailrec fun tailRecursion(n: Int, acc: Int = 0): Int {
-        if (n <= 0) return acc
-        return tailRecursion(h(n), g(acc, n))
-    }
-    private fun g(acc: Int, n: Int) = acc + n
-    private fun h(n: Int) = n - 1
-}
-
-fun main() {
-    println(Solution().tailRecursion(5))   // 15
 }
 ```
 
@@ -611,6 +589,19 @@ state: "n=0 — base case fires, return" {
 
 <div class="lang-tabs">
 
+```pseudocode
+function reverseSequence(n):
+    result ← empty list
+    helper(n, result)
+    return result
+
+function helper(n, result):
+    if n ≤ 0:                              # base case — done
+        return
+    append n to result                     # work BEFORE recurse — tail recursion → n, n−1, …, 1
+    helper(n − 1, result)                  # tail call
+```
+
 ```python,editable
 from typing import List
 
@@ -728,23 +719,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    reverseSequence(n) {
-        const result = [];
-        this._helper(n, result);
-        return result;
-    }
-    _helper(n, result) {
-        if (n <= 0) return;          // Base case
-        result.push(n);              // Work first
-        this._helper(n - 1, result); // Tail call (V8 has no TCO)
-    }
-}
-
-console.log(new Solution().reverseSequence(5));   // [5, 4, 3, 2, 1]
-```
-
 ```typescript,editable
 class Solution {
     reverseSequence(n: number): number[] {
@@ -783,28 +757,6 @@ func reverseSequence(n int) []int {
 
 func main() {
     fmt.Println(reverseSequence(5))   // [5 4 3 2 1]
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun reverseSequence(n: Int): List<Int> {
-        val result = mutableListOf<Int>()
-        helper(n, result)
-        return result
-    }
-
-    // tailrec works only when the call is the LAST action.
-    // Here, append-then-recurse fits perfectly.
-    private tailrec fun helper(n: Int, result: MutableList<Int>) {
-        if (n <= 0) return        // Base case
-        result.add(n)             // Work first
-        return helper(n - 1, result)  // Tail call — Kotlin compiles to a loop
-    }
-}
-
-fun main() {
-    println(Solution().reverseSequence(5))   // [5, 4, 3, 2, 1]
 }
 ```
 
@@ -979,6 +931,18 @@ state: "Step 2 — i = 2 — MATCH" {
 
 <div class="lang-tabs">
 
+```pseudocode
+function searchElement(arr, target):
+    return helper(arr, target, 0)
+
+function helper(arr, target, index):
+    if index = length(arr):                # base case 1 — ran off the end
+        return −1
+    if arr[index] = target:                # base case 2 — found
+        return index
+    return helper(arr, target, index + 1)  # tail call — advance index
+```
+
 ```python,editable
 from typing import List
 
@@ -1085,21 +1049,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    searchElement(arr, target) {
-        return this._helper(arr, target, 0);
-    }
-    _helper(arr, target, index) {
-        if (index === arr.length) return -1;
-        if (arr[index] === target) return index;
-        return this._helper(arr, target, index + 1);
-    }
-}
-
-console.log(new Solution().searchElement([2, 8, 3, 6, 4], 3));   // 2
-```
-
 ```typescript,editable
 class Solution {
     searchElement(arr: number[], target: number): number {
@@ -1136,22 +1085,6 @@ func searchElement(arr []int, target int) int {
 
 func main() {
     fmt.Println(searchElement([]int{2, 8, 3, 6, 4}, 3))   // 2
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun searchElement(arr: IntArray, target: Int): Int = helper(arr, target, 0)
-
-    private tailrec fun helper(arr: IntArray, target: Int, index: Int): Int {
-        if (index == arr.size) return -1
-        if (arr[index] == target) return index
-        return helper(arr, target, index + 1)   // Tail call — compiled to loop
-    }
-}
-
-fun main() {
-    println(Solution().searchElement(intArrayOf(2, 8, 3, 6, 4), 3))   // 2
 }
 ```
 
@@ -1319,6 +1252,18 @@ state: "start=2, end=1   start ≥ end" {
 
 <div class="lang-tabs">
 
+```pseudocode
+function isPalindrome(arr):
+    return helper(arr, 0, length(arr) − 1)
+
+function helper(arr, start, end):
+    if start ≥ end:                        # base case — pointers met or crossed
+        return true
+    if arr[start] ≠ arr[end]:              # mismatch — not a palindrome
+        return false
+    return helper(arr, start + 1, end − 1) # tail call — march inward
+```
+
 ```python,editable
 from typing import List
 
@@ -1424,21 +1369,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    isPalindrome(arr) {
-        return this._helper(arr, 0, arr.length - 1);
-    }
-    _helper(arr, start, end) {
-        if (start >= end) return true;
-        if (arr[start] !== arr[end]) return false;
-        return this._helper(arr, start + 1, end - 1);
-    }
-}
-
-console.log(new Solution().isPalindrome([1, 2, 2, 1]));   // true
-```
-
 ```typescript,editable
 class Solution {
     isPalindrome(arr: number[]): boolean {
@@ -1475,22 +1405,6 @@ func isPalindrome(arr []int) bool {
 
 func main() {
     fmt.Println(isPalindrome([]int{1, 2, 2, 1}))   // true
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun isPalindrome(arr: IntArray): Boolean = helper(arr, 0, arr.size - 1)
-
-    private tailrec fun helper(arr: IntArray, start: Int, end: Int): Boolean {
-        if (start >= end) return true
-        if (arr[start] != arr[end]) return false
-        return helper(arr, start + 1, end - 1)
-    }
-}
-
-fun main() {
-    println(Solution().isPalindrome(intArrayOf(1, 2, 2, 1)))   // true
 }
 ```
 
@@ -1668,6 +1582,18 @@ state: "After step 4 — current=null, previous=10" {
 
 <div class="lang-tabs">
 
+```pseudocode
+function reverseList(head):
+    return helper(head, null)              # previous starts as null (new tail)
+
+function helper(current, previous):
+    if current is null:                    # base case — previous is the new head
+        return previous
+    next ← current.next                    # save next BEFORE rewiring
+    current.next ← previous                # rewire current to point backward
+    return helper(next, current)           # tail call — advance both pointers
+```
+
 ```python,editable
 from typing import Optional
 
@@ -1797,24 +1723,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class ListNode {
-    constructor(val = 0, next = null) { this.val = val; this.next = next; }
-}
-
-class Solution {
-    reverseAList(head) {
-        return this._helper(head, null);
-    }
-    _helper(current, previous) {
-        if (current === null) return previous;
-        const nxt = current.next;
-        current.next = previous;
-        return this._helper(nxt, current);
-    }
-}
-```
-
 ```typescript,editable
 class ListNode {
     val: number;
@@ -1870,21 +1778,6 @@ func main() {
         h = h.Next
     }
     fmt.Println()
-}
-```
-
-```kotlin,editable
-class ListNode(var value: Int, var next: ListNode? = null)
-
-class Solution {
-    fun reverseAList(head: ListNode?): ListNode? = helper(head, null)
-
-    private tailrec fun helper(current: ListNode?, previous: ListNode?): ListNode? {
-        if (current == null) return previous
-        val nxt = current.next
-        current.next = previous
-        return helper(nxt, current)              // tailrec — compiles to a loop
-    }
 }
 ```
 

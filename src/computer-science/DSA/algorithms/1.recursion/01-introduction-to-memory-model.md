@@ -146,6 +146,13 @@ In low-level languages — C, C++, and (with caveats) Rust — heap memory is ma
 
 <div class="lang-tabs">
 
+```pseudocode
+# Both objects live on the heap. Cleanup is automatic in GC languages,
+# manual (free / delete) in C/C++.
+arr ← list of 5 zeros          # heap-allocated container
+x ← 6                          # heap-allocated value
+```
+
 ```python,editable
 # Python doesn't have manual heap management — included here for parity.
 # Every container, every object, every "primitive" is heap-allocated under
@@ -224,14 +231,6 @@ object HeapLowLevel {
 }
 ```
 
-```javascript,editable
-// JavaScript has no manual heap — every object/array is GC-managed.
-// Included here for parity; the next sub-section is its real home.
-const arr = new Array(5);  // Heap-allocated array
-const x = 6;               // Number — engine-specific, but conceptually heap
-// No free needed; V8/SpiderMonkey/JavaScriptCore garbage-collect.
-```
-
 ```typescript,editable
 // TypeScript compiles to JavaScript, so the heap story is identical.
 // Included for parity.
@@ -254,18 +253,6 @@ func main() {
     *x = 6
     // No free needed — Go's GC reclaims when no reference remains.
     fmt.Println(arr, *x)
-}
-```
-
-```kotlin,editable
-// Kotlin runs on the JVM — heap allocation is identical to Java.
-// Included for parity.
-fun main() {
-    val arr = IntArray(5)              // Heap-allocated int[]
-    val x: Int = 6                     // Primitive on stack/register; boxed on heap if needed
-    // GC handles cleanup.
-    println(arr.toList())
-    println(x)
 }
 ```
 
@@ -335,6 +322,15 @@ The point is the same across all of them: **the lumber yard cleans itself.** You
 
 <div class="lang-tabs">
 
+```pseudocode
+arr ← list of 5 zeros                          # heap container
+obj ← empty Map: String → String               # heap container
+populate obj with {"name" → "alice"}
+n ← 10 ^ 100                                   # heap value (big integer)
+
+destroy arr                                    # drop the binding; GC reclaims when unreferenced
+```
+
 ```python,editable
 # Python: every container is a heap object. The garbage collector
 # (reference counting + cycle collector) reclaims when nothing references it.
@@ -396,14 +392,6 @@ object HeapHighLevel {
 }
 ```
 
-```javascript,editable
-// JS engines run a generational GC. New objects start in the "young" heap
-// and graduate to the "old" heap if they survive a few collections.
-const arr = new Array(5);
-const x = 6;
-// Drop the references and the GC reclaims the memory eventually.
-```
-
 ```typescript,editable
 // TypeScript compiles to JS — same GC behaviour.
 const arr: number[] = new Array<number>(5);
@@ -420,16 +408,6 @@ func main() {
     _ = arr
     _ = x
     // Concurrent GC reclaims when the references die.
-}
-```
-
-```kotlin,editable
-fun main() {
-    val arr = IntArray(5)
-    val x: Int? = 6           // Nullable Int may box on the heap
-    println(arr.size)
-    println(x)
-    // JVM GC handles cleanup.
 }
 ```
 
@@ -553,6 +531,14 @@ Stack-only code is the inverse of heap code: **no `new`, no `malloc`, no list cr
 
 <div class="lang-tabs">
 
+```pseudocode
+function total(a, b):
+    result ← a + b               # parameters and locals all sit on the stack frame
+    return result                # frame pops on return — a, b, result all vanish
+
+print total(3, 4)
+```
+
 ```python,editable
 def total(a: int, b: int) -> int:
     # `a` and `b` are parameters — bound on the call stack frame for total().
@@ -634,18 +620,6 @@ object StackOnly {
 }
 ```
 
-```javascript,editable
-// In JavaScript engines, every value is a tagged pointer, but the engine
-// still uses a real call stack of frames internally. The LIFO model holds
-// even though primitives aren't unboxed cells the way they are in C.
-function total(a, b) {
-    const result = a + b;   // Local — frame-local
-    return result;
-}
-
-console.log(total(3, 4));
-```
-
 ```typescript,editable
 function total(a: number, b: number): number {
     const result: number = a + b;  // Local
@@ -672,18 +646,6 @@ func total(a, b int) int {
 
 func main() {
     fmt.Println(total(3, 4))
-}
-```
-
-```kotlin,editable
-// Kotlin/JVM: same story as Java — primitives in locals stay on the stack.
-fun total(a: Int, b: Int): Int {
-    val result = a + b   // Stack-resident Int
-    return result
-}
-
-fun main() {
-    println(total(3, 4))
 }
 ```
 
@@ -885,6 +847,18 @@ Globals are useful for genuinely global state — a process-wide counter, a logg
 
 <div class="lang-tabs">
 
+```pseudocode
+global counter ← 0               # static-region storage — lives for the whole program
+
+function tick():
+    counter ← counter + 1        # mutate the single shared cell
+    return counter
+
+print tick()                     # 1
+print tick()                     # 2
+print tick()                     # 3
+```
+
 ```python,editable
 # Python's "global" lives in the module namespace, conceptually static.
 counter = 0
@@ -977,22 +951,6 @@ object GlobalExample {
 }
 ```
 
-```javascript,editable
-// In Node / browsers, top-level `let` and `const` in a module are
-// effectively static — module-scoped, allocated at module load,
-// never released as long as the module is alive.
-let counter = 0;
-
-function tick() {
-    counter += 1;
-    return counter;
-}
-
-console.log(tick());  // 1
-console.log(tick());  // 2
-console.log(tick());  // 3
-```
-
 ```typescript,editable
 let counter: number = 0;
 
@@ -1024,22 +982,6 @@ func main() {
     fmt.Println(tick())  // 1
     fmt.Println(tick())  // 2
     fmt.Println(tick())  // 3
-}
-```
-
-```kotlin,editable
-// Kotlin's top-level vars compile to static fields on a synthetic class.
-var counter: Int = 0
-
-fun tick(): Int {
-    counter += 1
-    return counter
-}
-
-fun main() {
-    println(tick())  // 1
-    println(tick())  // 2
-    println(tick())  // 3
 }
 ```
 
@@ -1101,6 +1043,17 @@ C, C++, Java, and a few others let you declare a variable `static` inside a func
 This is the cleanest way to give a function its own private memory without using a global.
 
 <div class="lang-tabs">
+
+```pseudocode
+# Persistent per-function counter — value lives in the static region across calls.
+function counter():
+    counter.n ← (counter.n if it exists, else 0) + 1
+    return counter.n
+
+print counter()                  # 1
+print counter()                  # 2
+print counter()                  # 3
+```
 
 ```python,editable
 # Python has no `static` keyword. The idiomatic substitutes are either
@@ -1191,21 +1144,6 @@ object StaticLocal {
 }
 ```
 
-```javascript,editable
-// JavaScript: idiomatic substitute is an IIFE-closure or a module-level let.
-const counter = (() => {
-    let n = 0;                    // Hidden inside the closure; survives calls
-    return () => {
-        n += 1;
-        return n;
-    };
-})();
-
-console.log(counter());  // 1
-console.log(counter());  // 2
-console.log(counter());  // 3
-```
-
 ```typescript,editable
 const counter: () => number = (() => {
     let n = 0;
@@ -1238,23 +1176,6 @@ func main() {
     fmt.Println(counter())  // 1
     fmt.Println(counter())  // 2
     fmt.Println(counter())  // 3
-}
-```
-
-```kotlin,editable
-// Kotlin: a `companion object` field, or a top-level `var` accessible
-// from one function, both behave as static-local substitutes.
-private var n: Int = 0
-
-fun counter(): Int {
-    n += 1
-    return n
-}
-
-fun main() {
-    println(counter())  // 1
-    println(counter())  // 2
-    println(counter())  // 3
 }
 ```
 

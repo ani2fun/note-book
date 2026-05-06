@@ -166,6 +166,15 @@ A clean, language-agnostic implementation of the generic 2D template.
 
 <div class="lang-tabs">
 
+```pseudocode
+function multiRecursion(x, y):
+    if x = 0: return 1                     # left-edge base
+    if y = 0: return 1                     # top-edge base
+    smaller1 ← multiRecursion(x − 1, y)    # reduce along x-axis
+    smaller2 ← multiRecursion(x, y − 1)    # reduce along y-axis
+    return smaller1 + smaller2             # combine
+```
+
 ```python,editable
 class Solution:
     def multi_recursion(self, x: int, y: int) -> int:
@@ -249,18 +258,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    multiRecursion(x, y) {
-        if (x === 0) return 1;
-        if (y === 0) return 1;
-        return this.multiRecursion(x - 1, y) + this.multiRecursion(x, y - 1);
-    }
-}
-
-console.log(new Solution().multiRecursion(3, 3));   // 20
-```
-
 ```typescript,editable
 class Solution {
     multiRecursion(x: number, y: number): number {
@@ -290,20 +287,6 @@ func multiRecursion(x, y int) int {
 
 func main() {
     fmt.Println(multiRecursion(3, 3))   // 20
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun multiRecursion(x: Int, y: Int): Int {
-        if (x == 0) return 1
-        if (y == 0) return 1
-        return multiRecursion(x - 1, y) + multiRecursion(x, y - 1)
-    }
-}
-
-fun main() {
-    println(Solution().multiRecursion(3, 3))   // 20
 }
 ```
 
@@ -526,6 +509,13 @@ table: "C(n, k) recursion grid (Pascal's triangle)" {
 
 <div class="lang-tabs">
 
+```pseudocode
+function binomialCoefficient(n, k):
+    if n = k OR k = 0:                                            # boundary bases
+        return 1
+    return binomialCoefficient(n − 1, k − 1) + binomialCoefficient(n − 1, k)   # Pascal's identity
+```
+
 ```python,editable
 class Solution:
     def binomial_coefficient(self, n: int, k: int) -> int:
@@ -600,17 +590,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    binomialCoefficient(n, k) {
-        if (n === k || k === 0) return 1;
-        return this.binomialCoefficient(n - 1, k - 1) + this.binomialCoefficient(n - 1, k);
-    }
-}
-
-console.log(new Solution().binomialCoefficient(5, 3));   // 10
-```
-
 ```typescript,editable
 class Solution {
     binomialCoefficient(n: number, k: number): number {
@@ -636,19 +615,6 @@ func binomialCoefficient(n, k int) int {
 
 func main() {
     fmt.Println(binomialCoefficient(5, 3))   // 10
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun binomialCoefficient(n: Int, k: Int): Int {
-        if (n == k || k == 0) return 1
-        return binomialCoefficient(n - 1, k - 1) + binomialCoefficient(n - 1, k)
-    }
-}
-
-fun main() {
-    println(Solution().binomialCoefficient(5, 3))   // 10
 }
 ```
 
@@ -811,6 +777,13 @@ table: "Cells of paths(r, c) — number of paths from (0,0) to (r,c)" {
 
 <div class="lang-tabs">
 
+```pseudocode
+function latticePaths(rows, cols):
+    if rows = 0 OR cols = 0:                                  # boundary — only one path along an edge
+        return 1
+    return latticePaths(rows − 1, cols) + latticePaths(rows, cols − 1)
+```
+
 ```python,editable
 class Solution:
     def lattice_paths(self, rows: int, cols: int) -> int:
@@ -885,17 +858,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    latticePaths(rows, cols) {
-        if (rows === 0 || cols === 0) return 1;
-        return this.latticePaths(rows - 1, cols) + this.latticePaths(rows, cols - 1);
-    }
-}
-
-console.log(new Solution().latticePaths(2, 2));   // 6
-```
-
 ```typescript,editable
 class Solution {
     latticePaths(rows: number, cols: number): number {
@@ -921,19 +883,6 @@ func latticePaths(rows, cols int) int {
 
 func main() {
     fmt.Println(latticePaths(2, 2))   // 6
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun latticePaths(rows: Int, cols: Int): Int {
-        if (rows == 0 || cols == 0) return 1
-        return latticePaths(rows - 1, cols) + latticePaths(rows, cols - 1)
-    }
-}
-
-fun main() {
-    println(Solution().latticePaths(2, 2))   // 6
 }
 ```
 
@@ -1100,6 +1049,15 @@ table: "Ackermann's small values — A(m, n)" {
 
 <div class="lang-tabs">
 
+```pseudocode
+function ackermann(m, n):
+    if m = 0:                                                 # base case
+        return n + 1
+    if n = 0:
+        return ackermann(m − 1, 1)
+    return ackermann(m − 1, ackermann(m, n − 1))              # nested recursive calls
+```
+
 ```python,editable
 class Solution:
     def ackermann(self, m: int, n: int) -> int:
@@ -1181,18 +1139,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    ackermann(m, n) {
-        if (m === 0) return n + 1;
-        if (n === 0) return this.ackermann(m - 1, 1);
-        return this.ackermann(m - 1, this.ackermann(m, n - 1));
-    }
-}
-
-console.log(new Solution().ackermann(2, 2));   // 7
-```
-
 ```typescript,editable
 class Solution {
     ackermann(m: number, n: number): number {
@@ -1222,20 +1168,6 @@ func ackermann(m, n int) int {
 
 func main() {
     fmt.Println(ackermann(2, 2))   // 7
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun ackermann(m: Int, n: Int): Int = when {
-        m == 0 -> n + 1
-        n == 0 -> ackermann(m - 1, 1)
-        else -> ackermann(m - 1, ackermann(m, n - 1))
-    }
-}
-
-fun main() {
-    println(Solution().ackermann(2, 2))   // 7
 }
 ```
 
@@ -1424,6 +1356,22 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+function eggDrop(eggs, floors):
+    if floors = 0: return 0
+    if floors = 1: return 1
+    if eggs = 1:                                              # one egg → linear scan is forced
+        return floors
+
+    minDrops ← +∞
+    for floor from 1 to floors:                               # try every drop floor
+        broke    ← eggDrop(eggs − 1, floor − 1)               # if egg breaks, search below
+        survived ← eggDrop(eggs,     floors − floor)          # if egg survives, search above
+        worst    ← max(broke, survived)                       # adversary picks the worse outcome
+        minDrops ← min(minDrops, worst + 1)                   # +1 for this drop
+    return minDrops
+```
+
 ```python,editable
 class Solution:
     def egg_drop(self, eggs: int, floors: int) -> int:
@@ -1555,27 +1503,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    eggDrop(eggs, floors) {
-        if (floors === 0) return 0;
-        if (floors === 1) return 1;
-        if (eggs === 1) return floors;
-
-        let minDrops = Infinity;
-        for (let f = 1; f <= floors; f++) {
-            const broke = this.eggDrop(eggs - 1, f - 1);
-            const survived = this.eggDrop(eggs, floors - f);
-            const worst = Math.max(broke, survived);
-            minDrops = Math.min(minDrops, worst + 1);
-        }
-        return minDrops;
-    }
-}
-
-console.log(new Solution().eggDrop(2, 10));   // 4
-```
-
 ```typescript,editable
 class Solution {
     eggDrop(eggs: number, floors: number): number {
@@ -1627,29 +1554,6 @@ func eggDrop(eggs, floors int) int {
 
 func main() {
     fmt.Println(eggDrop(2, 10))   // 4
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun eggDrop(eggs: Int, floors: Int): Int {
-        if (floors == 0) return 0
-        if (floors == 1) return 1
-        if (eggs == 1) return floors
-
-        var minDrops = Int.MAX_VALUE
-        for (f in 1..floors) {
-            val broke = eggDrop(eggs - 1, f - 1)
-            val survived = eggDrop(eggs, floors - f)
-            val worst = maxOf(broke, survived)
-            minDrops = minOf(minDrops, worst + 1)
-        }
-        return minDrops
-    }
-}
-
-fun main() {
-    println(Solution().eggDrop(2, 10))   // 4
 }
 ```
 

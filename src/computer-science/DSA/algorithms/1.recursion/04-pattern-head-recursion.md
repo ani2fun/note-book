@@ -214,6 +214,15 @@ A clean, language-agnostic implementation of the generic template — `g` and `h
 
 <div class="lang-tabs">
 
+```pseudocode
+function headRecursion(n):
+    if n ≤ 0:                                # base case — recursion must terminate
+        return 0
+    smallerInput  ← h(n)                     # 1. reduce the input toward the base case
+    smallerAnswer ← headRecursion(smallerInput)   # 2. descend — recurse first
+    return g(smallerAnswer, n)               # 3. combine on the ascent
+```
+
 ```python,editable
 class Solution:
     def head_recursion(self, n: int) -> int:
@@ -353,22 +362,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    headRecursion(n) {
-        if (n <= 0) return 0;                    // Step 1 — base case
-        const smallerInput  = this.h(n);          // Step 2 — reduce
-        const smallerAnswer = this.headRecursion(smallerInput);  // Step 3
-        const answer        = this.g(smallerAnswer, n);           // Step 4
-        return answer;                                            // Step 5
-    }
-    g(smaller, n) { return smaller + n; }
-    h(n) { return n - 1; }
-}
-
-console.log(new Solution().headRecursion(5));    // 15
-```
-
 ```typescript,editable
 class Solution {
     headRecursion(n: number): number {
@@ -405,24 +398,6 @@ func headRecursion(n int) int {
 
 func main() {
     fmt.Println(headRecursion(5))      // 15
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun headRecursion(n: Int): Int {
-        if (n <= 0) return 0                             // Step 1 — base case
-        val smallerInput  = h(n)                         // Step 2 — reduce
-        val smallerAnswer = headRecursion(smallerInput)  // Step 3 — descend
-        val answer        = g(smallerAnswer, n)          // Step 4 — combine
-        return answer                                    // Step 5 — return
-    }
-    private fun g(smaller: Int, n: Int) = smaller + n
-    private fun h(n: Int) = n - 1
-}
-
-fun main() {
-    println(Solution().headRecursion(5))   // 15
 }
 ```
 
@@ -670,6 +645,19 @@ state: "forward(5) appends 5 — final" {
 
 <div class="lang-tabs">
 
+```pseudocode
+function forwardSequence(n):
+    result ← empty list
+    helper(n, result)
+    return result
+
+function helper(n, result):
+    if n ≤ 0:                                # base case — nothing to add
+        return
+    helper(n − 1, result)                    # recurse FIRST — head recursion
+    append n to result                       # then append on the ascent → 1, 2, …, n
+```
+
 ```python,editable
 from typing import List
 
@@ -790,23 +778,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    forwardSequence(n) {
-        const result = [];
-        this._helper(n, result);
-        return result;
-    }
-    _helper(n, result) {
-        if (n <= 0) return;             // Base case
-        this._helper(n - 1, result);    // Recurse FIRST
-        result.push(n);                 // Combine on ascent
-    }
-}
-
-console.log(new Solution().forwardSequence(5));   // [1, 2, 3, 4, 5]
-```
-
 ```typescript,editable
 class Solution {
     forwardSequence(n: number): number[] {
@@ -845,25 +816,6 @@ func forwardSequence(n int) []int {
 
 func main() {
     fmt.Println(forwardSequence(5))   // [1 2 3 4 5]
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun forwardSequence(n: Int): List<Int> {
-        val result = mutableListOf<Int>()
-        helper(n, result)
-        return result
-    }
-    private fun helper(n: Int, result: MutableList<Int>) {
-        if (n <= 0) return                // Base case
-        helper(n - 1, result)             // Recurse FIRST
-        result.add(n)                     // Combine on ascent
-    }
-}
-
-fun main() {
-    println(Solution().forwardSequence(5))   // [1, 2, 3, 4, 5]
 }
 ```
 
@@ -1051,6 +1003,13 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+function factorial(n):
+    if n = 0:                          # base case — 0! = 1 (multiplicative identity)
+        return 1
+    return n × factorial(n − 1)        # multiply on the ascent
+```
+
 ```python,editable
 class Solution:
     def factorial(self, n: int) -> int:
@@ -1134,18 +1093,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    factorial(n) {
-        if (n === 0) return 1;             // Base case
-        return n * this.factorial(n - 1);  // Descend then multiply
-    }
-}
-
-console.log(new Solution().factorial(7));   // 5040
-console.log(new Solution().factorial(0));   // 1
-```
-
 ```typescript,editable
 class Solution {
     factorial(n: number): number {
@@ -1172,19 +1119,6 @@ func factorial(n int) int64 {
 func main() {
     fmt.Println(factorial(7))   // 5040
     fmt.Println(factorial(0))   // 1
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun factorial(n: Int): Long {
-        if (n == 0) return 1L                // Base case
-        return n.toLong() * factorial(n - 1) // Descend then multiply
-    }
-}
-
-fun main() {
-    println(Solution().factorial(7))   // 5040
 }
 ```
 
@@ -1353,6 +1287,13 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+function sumOfDigits(n):
+    if n = 0:                          # base case — empty number contributes 0
+        return 0
+    return sumOfDigits(n ÷ 10) + (n mod 10)   # strip the last digit, recurse, add it back
+```
+
 ```python,editable
 class Solution:
     def sum_of_digits(self, n: int) -> int:
@@ -1430,17 +1371,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    sumOfDigits(n) {
-        if (n === 0) return 0;                                     // Base case
-        return this.sumOfDigits(Math.floor(n / 10)) + (n % 10);    // Descend + add
-    }
-}
-
-console.log(new Solution().sumOfDigits(523));   // 10
-```
-
 ```typescript,editable
 class Solution {
     sumOfDigits(n: number): number {
@@ -1466,19 +1396,6 @@ func sumOfDigits(n int) int {
 
 func main() {
     fmt.Println(sumOfDigits(523))   // 10
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun sumOfDigits(n: Int): Int {
-        if (n == 0) return 0                     // Base case
-        return sumOfDigits(n / 10) + (n % 10)    // Descend + add on ascent
-    }
-}
-
-fun main() {
-    println(Solution().sumOfDigits(523))   // 10
 }
 ```
 
@@ -1669,6 +1586,15 @@ The "stash" is conceptual — those saved fronts physically live in `frontElemen
 
 <div class="lang-tabs">
 
+```pseudocode
+function reverseQueue(q):
+    if length(q) ≤ 1:                  # base case — already reversed
+        return
+    front ← dequeue from q             # save the front element
+    reverseQueue(q)                    # recurse on the now-smaller queue
+    enqueue front into q               # append on the ascent → original front lands at the back
+```
+
 ```python,editable
 from collections import deque
 
@@ -1799,21 +1725,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    reverseQueue(q) {
-        if (q.length <= 1) return;          // Base case
-        const front = q.shift();             // Save front
-        this.reverseQueue(q);                // Recurse
-        q.push(front);                       // Enqueue on ascent
-    }
-}
-
-const q = [1, 2, 3, 4, 5, 6, 7];
-new Solution().reverseQueue(q);
-console.log(q);   // [7, 6, 5, 4, 3, 2, 1]
-```
-
 ```typescript,editable
 class Solution {
     reverseQueue(q: number[]): void {
@@ -1848,25 +1759,6 @@ func main() {
     q := []int{1, 2, 3, 4, 5, 6, 7}
     reverseQueue(&q)
     fmt.Println(q)   // [7 6 5 4 3 2 1]
-}
-```
-
-```kotlin,editable
-import java.util.ArrayDeque
-
-class Solution {
-    fun reverseQueue(q: ArrayDeque<Int>) {
-        if (q.size <= 1) return                 // Base case
-        val front = q.poll()                     // Save front
-        reverseQueue(q)                          // Recurse
-        q.add(front)                             // Enqueue on ascent
-    }
-}
-
-fun main() {
-    val q = ArrayDeque<Int>().apply { for (i in 1..7) add(i) }
-    Solution().reverseQueue(q)
-    println(q)   // [7, 6, 5, 4, 3, 2, 1]
 }
 ```
 

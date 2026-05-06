@@ -179,6 +179,17 @@ A clean, language-agnostic implementation of the generic template with two recur
 
 <div class="lang-tabs">
 
+```pseudocode
+function multipleRecursion(n):
+    if n ≤ 0:                              # base cases — multiple recursion often needs several
+        return 0
+    if n = 1:
+        return 1
+    smaller1 ← multipleRecursion(n − 1)    # k = 2 recursive calls, each on a smaller input
+    smaller2 ← multipleRecursion(n − 2)
+    return smaller1 + smaller2             # combine
+```
+
 ```python,editable
 class Solution:
     def multiple_recursion(self, n: int) -> int:
@@ -271,18 +282,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    multipleRecursion(n) {
-        if (n <= 0) return 0;
-        if (n === 1) return 1;
-        return this.multipleRecursion(n - 1) + this.multipleRecursion(n - 2);
-    }
-}
-
-console.log(new Solution().multipleRecursion(10));   // 55
-```
-
 ```typescript,editable
 class Solution {
     multipleRecursion(n: number): number {
@@ -312,20 +311,6 @@ func multipleRecursion(n int) int {
 
 func main() {
     fmt.Println(multipleRecursion(10))   // 55
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun multipleRecursion(n: Int): Int {
-        if (n <= 0) return 0
-        if (n == 1) return 1
-        return multipleRecursion(n - 1) + multipleRecursion(n - 2)
-    }
-}
-
-fun main() {
-    println(Solution().multipleRecursion(10))   // 55
 }
 ```
 
@@ -561,6 +546,13 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+function fibonacci(n):
+    if n = 0: return 0                     # base cases — both essential
+    if n = 1: return 1
+    return fibonacci(n − 1) + fibonacci(n − 2)   # without memoisation: O(2ⁿ)
+```
+
 ```python,editable
 class Solution:
     def fibonacci(self, n: int) -> int:
@@ -640,18 +632,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    fibonacci(n) {
-        if (n === 0) return 0;
-        if (n === 1) return 1;
-        return this.fibonacci(n - 1) + this.fibonacci(n - 2);
-    }
-}
-
-console.log(new Solution().fibonacci(10));   // 55
-```
-
 ```typescript,editable
 class Solution {
     fibonacci(n: number): number {
@@ -681,20 +661,6 @@ func fibonacci(n int) int {
 
 func main() {
     fmt.Println(fibonacci(10))   // 55
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun fibonacci(n: Int): Int {
-        if (n == 0) return 0
-        if (n == 1) return 1
-        return fibonacci(n - 1) + fibonacci(n - 2)
-    }
-}
-
-fun main() {
-    println(Solution().fibonacci(10))   // 55
 }
 ```
 
@@ -880,6 +846,14 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+function zigzagSequence(n):
+    if n = 0: return 1                     # three base cases — one per reduction path
+    if n = 1: return 2
+    if n = 2: return 3
+    return zigzagSequence(n − 1) − zigzagSequence(n − 2) + zigzagSequence(n − 3)   # alternating signs
+```
+
 ```python,editable
 class Solution:
     def zigzag_sequence(self, n: int) -> int:
@@ -969,19 +943,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    zigZagSequence(n) {
-        if (n === 0) return 1;
-        if (n === 1) return 2;
-        if (n === 2) return 3;
-        return this.zigZagSequence(n - 1) - this.zigZagSequence(n - 2) + this.zigZagSequence(n - 3);
-    }
-}
-
-console.log(new Solution().zigZagSequence(7));   // 2
-```
-
 ```typescript,editable
 class Solution {
     zigZagSequence(n: number): number {
@@ -1014,21 +975,6 @@ func zigZagSequence(n int) int {
 
 func main() {
     fmt.Println(zigZagSequence(7))   // 2
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun zigZagSequence(n: Int): Int = when (n) {
-        0 -> 1
-        1 -> 2
-        2 -> 3
-        else -> zigZagSequence(n - 1) - zigZagSequence(n - 2) + zigZagSequence(n - 3)
-    }
-}
-
-fun main() {
-    println(Solution().zigZagSequence(7))   // 2
 }
 ```
 
@@ -1200,6 +1146,16 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+function climbStairs(n, steps):
+    if n < 0: return 0                     # base case — overshot, invalid path
+    if n = 0: return 1                     # base case — arrived, exactly one valid path
+    totalWays ← 0
+    for each step in steps:                # one recursive call per allowed step
+        totalWays ← totalWays + climbStairs(n − step, steps)
+    return totalWays
+```
+
 ```python,editable
 from typing import List
 
@@ -1299,20 +1255,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    climbStairs(n, steps) {
-        if (n < 0) return 0;
-        if (n === 0) return 1;
-        let total = 0;
-        for (const s of steps) total += this.climbStairs(n - s, steps);
-        return total;
-    }
-}
-
-console.log(new Solution().climbStairs(3, [1, 2, 3]));   // 4
-```
-
 ```typescript,editable
 class Solution {
     climbStairs(n: number, steps: number[]): number {
@@ -1348,20 +1290,6 @@ func climbStairs(n int, steps []int) int {
 
 func main() {
     fmt.Println(climbStairs(3, []int{1, 2, 3}))   // 4
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun climbStairs(n: Int, steps: IntArray): Int {
-        if (n < 0) return 0
-        if (n == 0) return 1
-        return steps.sumOf { climbStairs(n - it, steps) }
-    }
-}
-
-fun main() {
-    println(Solution().climbStairs(3, intArrayOf(1, 2, 3)))   // 4
 }
 ```
 
@@ -1544,6 +1472,16 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+function catalan(n):
+    if n = 0:                              # base case
+        return 1
+    result ← 0
+    for i from 0 to n − 1:                 # sum over all (i, n−1−i) partitions
+        result ← result + catalan(i) × catalan(n − 1 − i)
+    return result
+```
+
 ```python,editable
 class Solution:
     def catalan(self, n: int) -> int:
@@ -1639,21 +1577,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    catalan(n) {
-        if (n === 0) return 1;
-        let result = 0;
-        for (let i = 0; i < n; i++) {
-            result += this.catalan(i) * this.catalan(n - 1 - i);
-        }
-        return result;
-    }
-}
-
-console.log(new Solution().catalan(7));   // 429
-```
-
 ```typescript,editable
 class Solution {
     catalan(n: number): number {
@@ -1687,23 +1610,6 @@ func catalan(n int) int {
 
 func main() {
     fmt.Println(catalan(7))   // 429
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun catalan(n: Int): Long {
-        if (n == 0) return 1L
-        var result = 0L
-        for (i in 0 until n) {
-            result += catalan(i) * catalan(n - 1 - i)
-        }
-        return result
-    }
-}
-
-fun main() {
-    println(Solution().catalan(7))   // 429
 }
 ```
 

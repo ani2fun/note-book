@@ -129,6 +129,22 @@ Let's run a four-function program through the stack and watch the frames grow an
 
 <div class="lang-tabs">
 
+```pseudocode
+function functionC():
+    return                       # empty — we trace the stack, not the code
+
+function functionB():
+    functionC()                  # B's frame stays alive while C runs
+
+function functionA():
+    functionB()                  # A's frame stays alive while B + C run
+
+function main():
+    functionA()                  # main's frame stays alive while A + B + C run
+
+main()
+```
+
 ```python,editable
 def function_c() -> None:
     pass                # Empty body — we care about the call stack, not the code
@@ -214,24 +230,6 @@ object NestedCalls {
 }
 ```
 
-```javascript,editable
-function functionC() { /* empty */ }
-
-function functionB() {
-    functionC();
-}
-
-function functionA() {
-    functionB();
-}
-
-function main() {
-    functionA();
-}
-
-main();
-```
-
 ```typescript,editable
 function functionC(): void { /* empty */ }
 
@@ -264,22 +262,6 @@ func functionA() {
 }
 
 func main() {
-    functionA()
-}
-```
-
-```kotlin,editable
-fun functionC() { /* empty */ }
-
-fun functionB() {
-    functionC()
-}
-
-fun functionA() {
-    functionB()
-}
-
-fun main() {
     functionA()
 }
 ```
@@ -402,6 +384,15 @@ flowchart LR
 
 <div class="lang-tabs">
 
+```pseudocode
+function deep(n):
+    if n = 0:
+        return 0
+    return deep(n − 1) + 1       # one new stack frame per call — overflows past ~10⁴–10⁵
+
+deep(10000)                      # exhausts the call stack on every mainstream runtime
+```
+
 ```python,editable
 # Python: deep nesting hits the recursion limit (default ~1000) first,
 # raising RecursionError. Beyond that limit you'd get a real C-level
@@ -478,16 +469,6 @@ object DeepNesting {
 }
 ```
 
-```javascript,editable
-function deep(n) {
-    if (n === 0) return 0;
-    return deep(n - 1) + 1;        // Each call adds an engine frame
-}
-
-// V8 default stack: ~10K-15K calls before RangeError.
-console.log(deep(10_000));
-```
-
 ```typescript,editable
 function deep(n: number): number {
     if (n === 0) return 0;
@@ -514,18 +495,6 @@ func deep(n int) int {
 
 func main() {
     fmt.Println(deep(100_000))
-}
-```
-
-```kotlin,editable
-fun deep(n: Int): Int {
-    if (n == 0) return 0
-    return deep(n - 1) + 1
-}
-
-fun main() {
-    // JVM-default stack — same StackOverflowError as Java around 10K-30K.
-    println(deep(10_000))
 }
 ```
 
@@ -571,6 +540,14 @@ The classic offender is a giant fixed-size local array. C, C++, and Rust will ha
 The huge-frame case typically crashes immediately on the first call's entry; the deep-nesting case runs for milliseconds before tripping over its own pile of small frames. Both end with the same kernel signal, but the timing differs by orders of magnitude.
 
 <div class="lang-tabs">
+
+```pseudocode
+function bigLocal():
+    arr ← list of 1_000_000_000 zeros   # heap allocation — fails with MemoryError, not StackOverflow
+    return length(arr)
+
+bigLocal()
+```
 
 ```python,editable
 # Python lists are heap-allocated; you can't easily make a stack-sized
@@ -642,16 +619,6 @@ object BigLocal {
 }
 ```
 
-```javascript,editable
-function bigLocal() {
-    // Arrays in JS are objects — heap. RangeError or memory exhaustion.
-    const arr = new Array(1_000_000_000).fill(0);
-    console.log(arr.length);
-}
-
-// bigLocal();
-```
-
 ```typescript,editable
 function bigLocal(): void {
     const arr: number[] = new Array<number>(1_000_000_000).fill(0);
@@ -672,17 +639,6 @@ func bigLocal() {
 }
 
 func main() {
-    bigLocal()
-}
-```
-
-```kotlin,editable
-fun bigLocal() {
-    val arr = IntArray(1_000_000_000)   // Heap; OOM
-    println(arr.size)
-}
-
-fun main() {
     bigLocal()
 }
 ```
@@ -764,6 +720,16 @@ In well-tested code, this is the most common cause of real-world stack overflow.
 
 <div class="lang-tabs">
 
+```pseudocode
+function chain(n):
+    work ← list of 10000 zeros          # heap pressure
+    if n = 0:
+        return 0
+    return chain(n − 1) + work[0]       # also stack-deep — both regions stressed at once
+
+chain(10000)                            # in C this overflows the stack via giant locals
+```
+
 ```python,editable
 # Python: combined depth + heap allocation. Lists are heap, so big_local
 # allocations don't grow Python frames much. The depth-limit error comes first.
@@ -837,16 +803,6 @@ object Combined {
 }
 ```
 
-```javascript,editable
-function chain(n) {
-    const work = new Array(10000).fill(0);   // Heap
-    if (n === 0) return 0;
-    return chain(n - 1) + work[0];
-}
-
-console.log(chain(10_000));
-```
-
 ```typescript,editable
 function chain(n: number): number {
     const work: number[] = new Array<number>(10_000).fill(0);
@@ -872,18 +828,6 @@ func chain(n int) int {
 
 func main() {
     fmt.Println(chain(10_000))
-}
-```
-
-```kotlin,editable
-fun chain(n: Int): Int {
-    val work = IntArray(10_000)        // Heap
-    if (n == 0) return 0
-    return chain(n - 1) + work[0]
-}
-
-fun main() {
-    println(chain(10_000))
 }
 ```
 
