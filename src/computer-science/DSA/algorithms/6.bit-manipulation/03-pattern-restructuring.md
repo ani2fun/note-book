@@ -72,6 +72,16 @@ Because the integer has 32 bits — every position must be processed for the rev
 
 <div class="lang-tabs">
 
+```pseudocode
+# Reverse the 32-bit representation of num.
+function reverseBits(num):
+    result ← 0
+    repeat 32 times:
+        result ← (result shifted left by 1) bitwise OR (num bitwise AND 1)   # append num's LSB
+        num ← num shifted right by 1                                          # discard consumed LSB
+    return result bitwise AND 0xFFFFFFFF          # mask to 32 bits
+```
+
 ```python,editable
 class Solution:
     def reverse_bits(self, num: int) -> int:
@@ -164,22 +174,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    reverseBits(num) {
-        let result = 0;
-        for (let i = 0; i < 32; i++) {
-            // >>> 0 forces JS to interpret as unsigned 32-bit int.
-            result = ((result << 1) | (num & 1)) >>> 0;
-            num >>>= 1;
-        }
-        return result;
-    }
-}
-
-console.log(new Solution().reverseBits(28));   // 939524096
-```
-
 ```typescript,editable
 class Solution {
     reverseBits(num: number): number {
@@ -209,24 +203,6 @@ func reverseBits(num uint32) uint32 {
 
 func main() {
     fmt.Println(reverseBits(28))   // 939524096
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun reverseBits(num: Int): Int {
-        var result = 0
-        var n = num
-        for (i in 0 until 32) {
-            result = (result shl 1) or (n and 1)
-            n = n ushr 1                            // Unsigned shift right
-        }
-        return result
-    }
-}
-
-fun main() {
-    println(Solution().reverseBits(28))   // 939524096
 }
 ```
 
@@ -349,6 +325,17 @@ Rotating by 32 is the identity (every bit returns to its original position). Rot
 
 <div class="lang-tabs">
 
+```pseudocode
+# Treat num as a 32-bit unsigned value and rotate by k bits (left or right).
+function circularShiftBits(num, k, rotateLeft):
+    SIZE ← 32
+    k ← k mod SIZE                                 # rotating by SIZE is a no-op
+    num ← num bitwise AND 0xFFFFFFFF
+    if rotateLeft:
+        return ((num shifted left by k) bitwise OR (num shifted right by (SIZE − k))) bitwise AND 0xFFFFFFFF
+    return ((num shifted right by k) bitwise OR (num shifted left by (SIZE − k))) bitwise AND 0xFFFFFFFF
+```
+
 ```python,editable
 class Solution:
     def circular_shift_bits(self, num: int, k: int, rotate_left: bool) -> int:
@@ -433,21 +420,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    circularShiftBits(num, k, rotateLeft) {
-        k = k % 32;
-        if (k === 0) return num >>> 0;
-        const shifted = rotateLeft
-            ? (num << k) | (num >>> (32 - k))
-            : (num >>> k) | (num << (32 - k));
-        return shifted >>> 0;                       // Force unsigned interpretation
-    }
-}
-
-console.log(new Solution().circularShiftBits(28, 2, true));   // 112
-```
-
 ```typescript,editable
 class Solution {
     circularShiftBits(num: number, k: number, rotateLeft: boolean): number {
@@ -478,21 +450,6 @@ func circularShiftBits(num uint32, k int, rotateLeft bool) uint32 {
 
 func main() {
     fmt.Println(circularShiftBits(28, 2, true))   // 112
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun circularShiftBits(num: Int, k: Int, rotateLeft: Boolean): Int {
-        val kk = k % 32
-        if (kk == 0) return num
-        return if (rotateLeft) (num shl kk) or (num ushr (32 - kk))
-               else (num ushr kk) or (num shl (32 - kk))
-    }
-}
-
-fun main() {
-    println(Solution().circularShiftBits(28, 2, true))   // 112
 }
 ```
 

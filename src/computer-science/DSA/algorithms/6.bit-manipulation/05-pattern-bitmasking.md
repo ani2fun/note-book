@@ -135,6 +135,17 @@ Because each half has 1s only in *complementary* positions: after shifts, the fi
 
 <div class="lang-tabs">
 
+```pseudocode
+# Swap each adjacent pair of bits (positions 1↔2, 3↔4, …).
+# 0xAA…A masks the even positions; 0x55…5 masks the odd positions.
+function pairwiseBitsSwap(num):
+    evenMask ← 0xAAAAAAAA                          # bits at positions 2, 4, 6, … (1-indexed)
+    oddMask  ← 0x55555555                          # bits at positions 1, 3, 5, …
+    return ((num bitwise AND evenMask) shifted right by 1)
+            bitwise OR ((num bitwise AND oddMask) shifted left by 1)
+            bitwise AND 0xFFFFFFFF                 # mask to 32 bits
+```
+
 ```python,editable
 class Solution:
     def pairwise_bits_swap(self, num: int) -> int:
@@ -208,16 +219,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    pairwiseBitsSwap(num) {
-        return (((num & 0xAAAAAAAA) >>> 1) | ((num & 0x55555555) << 1)) >>> 0;
-    }
-}
-
-console.log(new Solution().pairwiseBitsSwap(1));   // 2
-```
-
 ```typescript,editable
 class Solution {
     pairwiseBitsSwap(num: number): number {
@@ -237,17 +238,6 @@ func pairwiseBitsSwap(num uint32) uint32 {
 
 func main() {
     fmt.Println(pairwiseBitsSwap(31568))   // 47008
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun pairwiseBitsSwap(num: Int): Int =
-        ((num and 0xAAAAAAAA.toInt()) ushr 1) or ((num and 0x55555555) shl 1)
-}
-
-fun main() {
-    println(Solution().pairwiseBitsSwap(31568))   // 47008
 }
 ```
 
@@ -332,6 +322,21 @@ loop: "n = 3, mask runs 0 to 7" {
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Iterate every n-bit mask in [0, 2ⁿ); each mask encodes one subset.
+# Bit j set in mask ⇔ include arr[j] in this subset.
+function uniqueSubsets(arr):
+    n ← length(arr)
+    result ← empty list
+    for mask from 0 to (1 shifted left by n) − 1:
+        subset ← empty list
+        for j from 0 to n − 1:
+            if (mask shifted right by j) bitwise AND 1 = 1:
+                append arr[j] to subset
+        append subset to result
+    return result
+```
 
 ```python,editable
 from typing import List
@@ -449,25 +454,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    uniqueSubsets(arr) {
-        const n = arr.length;
-        const result = [];
-        for (let mask = 0; mask < (1 << n); mask++) {
-            const subset = [];
-            for (let j = 0; j < n; j++) {
-                if (mask & (1 << j)) subset.push(arr[j]);
-            }
-            result.push(subset);
-        }
-        return result;
-    }
-}
-
-console.log(new Solution().uniqueSubsets([1, 2, 3]));
-```
-
 ```typescript,editable
 class Solution {
     uniqueSubsets(arr: number[]): number[][] {
@@ -505,27 +491,6 @@ func uniqueSubsets(arr []int) [][]int {
 
 func main() {
     fmt.Println(uniqueSubsets([]int{1, 2, 3}))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun uniqueSubsets(arr: IntArray): List<List<Int>> {
-        val n = arr.size
-        val result = mutableListOf<List<Int>>()
-        for (mask in 0 until (1 shl n)) {
-            val subset = mutableListOf<Int>()
-            for (j in 0 until n) {
-                if (mask and (1 shl j) != 0) subset.add(arr[j])
-            }
-            result.add(subset)
-        }
-        return result
-    }
-}
-
-fun main() {
-    println(Solution().uniqueSubsets(intArrayOf(1, 2, 3)))
 }
 ```
 

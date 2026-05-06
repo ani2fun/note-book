@@ -99,6 +99,12 @@ Because in two's complement, "less than zero" is determined by the sign bit alon
 
 <div class="lang-tabs">
 
+```pseudocode
+function haveOppositeSigns(num1, num2):
+    # XOR's sign bit is 1 iff the operands' sign bits differ → result is negative.
+    return (num1 bitwise XOR num2) < 0
+```
+
 ```python,editable
 class Solution:
     def have_opposite_signs(self, num1: int, num2: int) -> bool:
@@ -159,16 +165,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    haveOppositeSigns(num1, num2) {
-        return (num1 ^ num2) < 0;
-    }
-}
-
-console.log(new Solution().haveOppositeSigns(10, -1));   // true
-```
-
 ```typescript,editable
 class Solution {
     haveOppositeSigns(num1: number, num2: number): boolean {
@@ -188,16 +184,6 @@ func haveOppositeSigns(num1, num2 int32) bool {
 
 func main() {
     fmt.Println(haveOppositeSigns(10, -1))   // true
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun haveOppositeSigns(num1: Int, num2: Int): Boolean = (num1 xor num2) < 0
-}
-
-fun main() {
-    println(Solution().haveOppositeSigns(10, -1))   // true
 }
 ```
 
@@ -245,6 +231,16 @@ Disaster. Step 1 sets the location to `x ^ x = 0`. Step 2 sets it to `0 ^ 0 = 0`
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Classic XOR-swap. No temporary variable needed.
+function swapNumbers(num1, num2):
+    if num1 ≠ num2:                                # equal values would zero each other out
+        num1 ← num1 bitwise XOR num2
+        num2 ← num2 bitwise XOR num1               # = original num1
+        num1 ← num1 bitwise XOR num2               # = original num2
+    return (num1, num2)
+```
 
 ```python,editable
 class Solution:
@@ -331,21 +327,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    swapNumbers(num1, num2) {
-        if (num1 !== num2) {
-            num1 ^= num2;
-            num2 ^= num1;
-            num1 ^= num2;
-        }
-        return [num1, num2];
-    }
-}
-
-console.log(new Solution().swapNumbers(10, 1));   // [1, 10]
-```
-
 ```typescript,editable
 class Solution {
     swapNumbers(num1: number, num2: number): [number, number] {
@@ -375,20 +356,6 @@ func swapNumbers(num1, num2 int) (int, int) {
 
 func main() {
     fmt.Println(swapNumbers(10, 1))   // 1 10
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun swapNumbers(num1: Int, num2: Int): Pair<Int, Int> {
-        var a = num1; var b = num2
-        if (a != b) { a = a xor b; b = a xor b; a = a xor b }
-        return Pair(a, b)
-    }
-}
-
-fun main() {
-    println(Solution().swapNumbers(10, 1))   // (1, 10)
 }
 ```
 
@@ -434,6 +401,18 @@ It runs in **O(set-bit count)** rather than O(bit-width). For sparse integers (f
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Hamming distance — number of differing bits.
+# Brian Kernighan's trick: diff & (diff − 1) clears the lowest set bit each iteration.
+function toggleCount(num1, num2):
+    diff ← num1 bitwise XOR num2                   # 1s where bits differ
+    count ← 0
+    while diff ≠ 0:
+        diff ← diff bitwise AND (diff − 1)         # clear lowest set bit
+        count ← count + 1
+    return count
+```
 
 ```python,editable
 class Solution:
@@ -506,18 +485,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    toggleCount(num1, num2) {
-        let diff = num1 ^ num2, count = 0;
-        while (diff) { diff &= diff - 1; count++; }
-        return count;
-    }
-}
-
-console.log(new Solution().toggleCount(10, 1));   // 3
-```
-
 ```typescript,editable
 class Solution {
     toggleCount(num1: number, num2: number): number {
@@ -542,16 +509,6 @@ func toggleCount(num1, num2 uint32) int {
 
 func main() {
     fmt.Println(toggleCount(10, 1))   // 3
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun toggleCount(num1: Int, num2: Int): Int = Integer.bitCount(num1 xor num2)
-}
-
-fun main() {
-    println(Solution().toggleCount(10, 1))   // 3
 }
 ```
 
@@ -594,6 +551,16 @@ result = arr[0] ^ arr[1] ^ ... ^ arr[n-1]
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# All elements appear an even number of times except one. XOR everything;
+# even occurrences cancel (a ^ a = 0); the lone odd-occurrence element survives.
+function oddOccurringElement(arr):
+    result ← 0
+    for each v in arr:
+        result ← result bitwise XOR v
+    return result
+```
 
 ```python,editable
 from typing import List
@@ -666,16 +633,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    oddOccurringElement(arr) {
-        return arr.reduce((acc, v) => acc ^ v, 0);
-    }
-}
-
-console.log(new Solution().oddOccurringElement([2,2,2,1,3,1,4,3,1,4,1]));   // 2
-```
-
 ```typescript,editable
 class Solution {
     oddOccurringElement(arr: number[]): number {
@@ -697,16 +654,6 @@ func oddOccurringElement(arr []int) int {
 
 func main() {
     fmt.Println(oddOccurringElement([]int{2,2,2,1,3,1,4,3,1,4,1}))   // 2
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun oddOccurringElement(arr: IntArray): Int = arr.fold(0) { a, b -> a xor b }
-}
-
-fun main() {
-    println(Solution().oddOccurringElement(intArrayOf(2,2,2,1,3,1,4,3,1,4,1)))   // 2
 }
 ```
 
@@ -776,6 +723,24 @@ Because `a != b` (otherwise they'd be the same element). At least one bit must d
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Two elements occur an odd number of times. XOR everything → x = a ^ b ≠ 0.
+# Pick any bit set in x (lowest is convenient); a and b differ at that bit, so partition
+# the array by that bit into two buckets and XOR each independently.
+function oddOccurringElementII(arr):
+    xorAll ← 0
+    for each v in arr:
+        xorAll ← xorAll bitwise XOR v              # = a XOR b
+    diffBit ← xorAll bitwise AND (−xorAll)         # isolate any single bit where a, b differ
+    a ← 0; b ← 0
+    for each v in arr:
+        if (v bitwise AND diffBit) ≠ 0:
+            a ← a bitwise XOR v
+        else:
+            b ← b bitwise XOR v
+    return [a, b]
+```
 
 ```python,editable
 from typing import List
@@ -885,23 +850,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    oddOccurringElementII(arr) {
-        let xorAll = 0;
-        for (const v of arr) xorAll ^= v;
-        const diffBit = xorAll & -xorAll;
-        let a = 0, b = 0;
-        for (const v of arr) {
-            if (v & diffBit) a ^= v; else b ^= v;
-        }
-        return [a, b];
-    }
-}
-
-console.log(new Solution().oddOccurringElementII([2,2,2,1,3,1,4,3,1,4,1,5]));
-```
-
 ```typescript,editable
 class Solution {
     oddOccurringElementII(arr: number[]): [number, number] {
@@ -935,24 +883,6 @@ func oddOccurringElementII(arr []int) [2]int {
 
 func main() {
     fmt.Println(oddOccurringElementII([]int{2,2,2,1,3,1,4,3,1,4,1,5}))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun oddOccurringElementII(arr: IntArray): IntArray {
-        val xorAll = arr.fold(0) { a, b -> a xor b }
-        val diffBit = xorAll and -xorAll
-        var a = 0; var b = 0
-        for (v in arr) {
-            if ((v and diffBit) != 0) a = a xor v else b = b xor v
-        }
-        return intArrayOf(a, b)
-    }
-}
-
-fun main() {
-    println(Solution().oddOccurringElementII(intArrayOf(2,2,2,1,3,1,4,3,1,4,1,5)).toList())
 }
 ```
 
@@ -1005,6 +935,19 @@ result = (arr[0] ^ arr[1] ^ ... ^ arr[n-1]) ^ (1 ^ 2 ^ ... ^ (n-1))
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# arr is 1..(n − 1) with one element repeated. XOR array with 1..(n − 1);
+# every value cancels except the duplicate, which survives.
+function duplicateElement(arr):
+    n ← length(arr)
+    result ← 0
+    for each v in arr:
+        result ← result bitwise XOR v
+    for i from 1 to n − 1:
+        result ← result bitwise XOR i
+    return result
+```
 
 ```python,editable
 from typing import List
@@ -1090,20 +1033,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    duplicateElement(arr) {
-        const n = arr.length;
-        let result = 0;
-        for (const v of arr) result ^= v;
-        for (let i = 1; i < n; i++) result ^= i;
-        return result;
-    }
-}
-
-console.log(new Solution().duplicateElement([1, 4, 3, 2, 2]));   // 2
-```
-
 ```typescript,editable
 class Solution {
     duplicateElement(arr: number[]): number {
@@ -1131,20 +1060,6 @@ func duplicateElement(arr []int) int {
 
 func main() {
     fmt.Println(duplicateElement([]int{1, 4, 3, 2, 2}))   // 2
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun duplicateElement(arr: IntArray): Int {
-        var result = arr.fold(0) { a, b -> a xor b }
-        for (i in 1 until arr.size) result = result xor i
-        return result
-    }
-}
-
-fun main() {
-    println(Solution().duplicateElement(intArrayOf(1, 4, 3, 2, 2)))   // 2
 }
 ```
 
@@ -1190,6 +1105,35 @@ Final step: figure out which value is the missing one (it's *not* in the array) 
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# arr is 1..n with one missing and one duplicated. Combine the previous two tricks:
+# XOR array with 1..n → x = missing XOR duplicated. Partition on a differing bit.
+function missingAndDuplicated(arr):
+    n ← length(arr)
+    x ← 0
+    for each v in arr:
+        x ← x bitwise XOR v
+    for i from 1 to n:
+        x ← x bitwise XOR i
+
+    diffBit ← x bitwise AND (−x)
+    a ← 0; b ← 0
+    for each v in arr:
+        if (v bitwise AND diffBit) ≠ 0:
+            a ← a bitwise XOR v
+        else:
+            b ← b bitwise XOR v
+    for i from 1 to n:
+        if (i bitwise AND diffBit) ≠ 0:
+            a ← a bitwise XOR i
+        else:
+            b ← b bitwise XOR i
+
+    if a is not in arr:                            # a was the missing one
+        return [b, a]                              # [duplicated, missing]
+    return [a, b]
+```
 
 ```python,editable
 from typing import List
@@ -1323,23 +1267,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    missingAndDuplicated(arr) {
-        const n = arr.length;
-        let x = n;
-        for (let i = 0; i < n; i++) x ^= arr[i] ^ i;
-        const diffBit = x & -x;
-        let a = 0, b = 0;
-        for (const v of arr) { if (v & diffBit) a ^= v; else b ^= v; }
-        for (let i = 1; i <= n; i++) { if (i & diffBit) a ^= i; else b ^= i; }
-        return arr.includes(a) ? [a, b] : [b, a];
-    }
-}
-
-console.log(new Solution().missingAndDuplicated([1, 5, 2, 4, 2]));
-```
-
 ```typescript,editable
 class Solution {
     missingAndDuplicated(arr: number[]): [number, number] {
@@ -1374,25 +1301,6 @@ func missingAndDuplicated(arr []int) [2]int {
 
 func main() {
     fmt.Println(missingAndDuplicated([]int{1, 5, 2, 4, 2}))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun missingAndDuplicated(arr: IntArray): IntArray {
-        val n = arr.size
-        var x = n
-        for (i in 0 until n) x = x xor arr[i] xor i
-        val diffBit = x and -x
-        var a = 0; var b = 0
-        for (v in arr) { if ((v and diffBit) != 0) a = a xor v else b = b xor v }
-        for (i in 1..n) { if ((i and diffBit) != 0) a = a xor i else b = b xor i }
-        return if (arr.contains(a)) intArrayOf(a, b) else intArrayOf(b, a)
-    }
-}
-
-fun main() {
-    println(Solution().missingAndDuplicated(intArrayOf(1, 5, 2, 4, 2)).toList())
 }
 ```
 

@@ -110,6 +110,13 @@ Because `num & mask` keeps bit k *in its original position*, not at bit 1. For `
 
 <div class="lang-tabs">
 
+```pseudocode
+function kthBitCheck(num, k):
+    # Build a mask with only bit k set, then AND with num.
+    mask ← 1 shifted left by (k − 1)
+    return (num bitwise AND mask) ≠ 0
+```
+
 ```python,editable
 class Solution:
     def kth_bit_check(self, num: int, k: int) -> bool:
@@ -187,18 +194,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    kthBitCheck(num, k) {
-        return (num & (1 << (k - 1))) !== 0;
-    }
-}
-
-const sol = new Solution();
-console.log(sol.kthBitCheck(1, 1));   // true
-console.log(sol.kthBitCheck(3, 2));   // true
-```
-
 ```typescript,editable
 class Solution {
     kthBitCheck(num: number, k: number): boolean {
@@ -220,18 +215,6 @@ func main() {
     fmt.Println(kthBitCheck(1, 1))   // true
     fmt.Println(kthBitCheck(3, 2))   // true
     fmt.Println(kthBitCheck(2, 1))   // false
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun kthBitCheck(num: Int, k: Int): Boolean = (num and (1 shl (k - 1))) != 0
-}
-
-fun main() {
-    val sol = Solution()
-    println(sol.kthBitCheck(1, 1))   // true
-    println(sol.kthBitCheck(3, 2))   // true
 }
 ```
 
@@ -291,6 +274,12 @@ OR's truth table: `0 OR 0 = 0`, `1 OR 0 = 1`, `0 OR 1 = 1`, `1 OR 1 = 1`. ORing 
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function setKthBit(num, k):
+    # OR with mask forces bit k to 1; other bits unchanged.
+    return num bitwise OR (1 shifted left by (k − 1))
+```
 
 ```python,editable
 class Solution:
@@ -354,16 +343,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    setKthBit(num, k) {
-        return num | (1 << (k - 1));
-    }
-}
-
-console.log(new Solution().setKthBit(2, 1));   // 3
-```
-
 ```typescript,editable
 class Solution {
     setKthBit(num: number, k: number): number {
@@ -383,16 +362,6 @@ func setKthBit(num, k int) int {
 
 func main() {
     fmt.Println(setKthBit(2, 1))   // 3
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun setKthBit(num: Int, k: Int): Int = num or (1 shl (k - 1))
-}
-
-fun main() {
-    println(Solution().setKthBit(2, 1))   // 3
 }
 ```
 
@@ -444,6 +413,13 @@ Without the `~`, you'd be ANDing `num` against a mask that's 0 everywhere except
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function unsetKthBit(num, k):
+    # ~mask has all 1s except bit k; AND clears bit k, preserves others.
+    mask ← 1 shifted left by (k − 1)
+    return num bitwise AND (bitwise NOT mask)
+```
 
 ```python,editable
 class Solution:
@@ -506,16 +482,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    unsetKthBit(num, k) {
-        return num & ~(1 << (k - 1));
-    }
-}
-
-console.log(new Solution().unsetKthBit(3, 1));   // 2
-```
-
 ```typescript,editable
 class Solution {
     unsetKthBit(num: number, k: number): number {
@@ -535,16 +501,6 @@ func unsetKthBit(num, k int) int {
 
 func main() {
     fmt.Println(unsetKthBit(3, 1))   // 2
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun unsetKthBit(num: Int, k: Int): Int = num and (1 shl (k - 1)).inv()
-}
-
-fun main() {
-    println(Solution().unsetKthBit(3, 1))   // 2
 }
 ```
 
@@ -596,6 +552,12 @@ XOR's truth table: `0 ^ 0 = 0`, `1 ^ 0 = 1`, `0 ^ 1 = 1`, `1 ^ 1 = 0`. XORing wi
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function toggleKthBit(num, k):
+    # XOR with mask flips bit k; other bits unchanged.
+    return num bitwise XOR (1 shifted left by (k − 1))
+```
 
 ```python,editable
 class Solution:
@@ -658,16 +620,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    toggleKthBit(num, k) {
-        return num ^ (1 << (k - 1));
-    }
-}
-
-console.log(new Solution().toggleKthBit(3, 2));   // 1
-```
-
 ```typescript,editable
 class Solution {
     toggleKthBit(num: number, k: number): number {
@@ -687,16 +639,6 @@ func toggleKthBit(num, k int) int {
 
 func main() {
     fmt.Println(toggleKthBit(3, 2))   // 1
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun toggleKthBit(num: Int, k: Int): Int = num xor (1 shl (k - 1))
-}
-
-fun main() {
-    println(Solution().toggleKthBit(3, 2))   // 1
 }
 ```
 

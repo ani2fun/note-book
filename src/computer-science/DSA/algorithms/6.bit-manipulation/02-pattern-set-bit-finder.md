@@ -100,6 +100,15 @@ For `num = 0`, `num - 1` wraps to `-1` (or all-1s in two's-complement), so `num 
 
 <div class="lang-tabs">
 
+```pseudocode
+# Returns the 1-indexed bit position if num is a power of 2 (exactly one set bit). Else −1.
+# (num & (num − 1)) = 0 ⇔ num is a power of 2.
+function onlySetBit(num):
+    if num ≤ 0 OR (num bitwise AND (num − 1)) ≠ 0:
+        return −1
+    return ⌊log₂(num)⌋ + 1                       # +1 because positions are 1-indexed
+```
+
 ```python,editable
 import math
 
@@ -179,18 +188,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    onlySetBit(num) {
-        if (num <= 0 || (num & (num - 1)) !== 0) return -1;
-        return Math.log2(num) + 1;
-    }
-}
-
-console.log(new Solution().onlySetBit(16));   // 5
-console.log(new Solution().onlySetBit(10));   // -1
-```
-
 ```typescript,editable
 class Solution {
     onlySetBit(num: number): number {
@@ -216,19 +213,6 @@ func onlySetBit(num int) int {
 func main() {
     fmt.Println(onlySetBit(16))   // 5
     fmt.Println(onlySetBit(10))   // -1
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun onlySetBit(num: Int): Int {
-        if (num <= 0 || (num and (num - 1)) != 0) return -1
-        return (Math.log(num.toDouble()) / Math.log(2.0)).toInt() + 1
-    }
-}
-
-fun main() {
-    println(Solution().onlySetBit(16))   // 5
 }
 ```
 
@@ -292,6 +276,15 @@ In two's complement, `-num = ~num + 1`. The `~num` flips every bit; adding 1 pro
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# 1-indexed position of the lowest set bit (0 if num has no set bits).
+# Trick: num & −num isolates the lowest set bit (two's-complement identity).
+function rightmostSetBit(num):
+    if num = 0: return 0
+    isolated ← num bitwise AND (−num)
+    return bitLength(isolated)                    # bitLength of a power-of-2 = position
+```
 
 ```python,editable
 class Solution:
@@ -367,18 +360,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    rightmostSetBit(num) {
-        if (num === 0) return 0;
-        // No built-in ctz; use Math.log2 on isolated bit.
-        return Math.log2(num & -num) + 1;
-    }
-}
-
-console.log(new Solution().rightmostSetBit(10));   // 2
-```
-
 ```typescript,editable
 class Solution {
     rightmostSetBit(num: number): number {
@@ -403,17 +384,6 @@ func rightmostSetBit(num int) int {
 
 func main() {
     fmt.Println(rightmostSetBit(10))   // 2
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun rightmostSetBit(num: Int): Int =
-        if (num == 0) 0 else Integer.numberOfTrailingZeros(num) + 1
-}
-
-fun main() {
-    println(Solution().rightmostSetBit(10))   // 2
 }
 ```
 

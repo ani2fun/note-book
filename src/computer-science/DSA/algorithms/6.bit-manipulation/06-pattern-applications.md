@@ -46,6 +46,14 @@ Compare to `n % 2`: for negative numbers in C and similar languages, `(-3) % 2 =
 
 <div class="lang-tabs">
 
+```pseudocode
+function parityChecker(num):
+    # The lowest bit is 1 iff num is odd.
+    if (num bitwise AND 1) ≠ 0:
+        return "odd"
+    return "even"
+```
+
 ```python,editable
 class Solution:
     def parity_checker(self, num: int) -> str:
@@ -107,16 +115,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    parityChecker(num) {
-        return (num & 1) ? "odd" : "even";
-    }
-}
-
-console.log(new Solution().parityChecker(10));   // even
-```
-
 ```typescript,editable
 class Solution {
     parityChecker(num: number): string {
@@ -137,16 +135,6 @@ func parityChecker(num int) string {
 
 func main() {
     fmt.Println(parityChecker(10))   // even
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun parityChecker(num: Int): String = if (num and 1 != 0) "odd" else "even"
-}
-
-fun main() {
-    println(Solution().parityChecker(10))   // even
 }
 ```
 
@@ -193,6 +181,12 @@ In two's complement, `0 - 1 = -1` (all bits 1). `0 & -1 = 0`. Without the `n > 0
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function powerOf2(num):
+    # num & (num − 1) clears the lowest set bit. If the result is 0, num had exactly one set bit.
+    return num > 0 AND (num bitwise AND (num − 1)) = 0
+```
 
 ```python,editable
 class Solution:
@@ -257,16 +251,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    powerOf2(num) {
-        return num > 0 && (num & (num - 1)) === 0;
-    }
-}
-
-console.log(new Solution().powerOf2(8));   // true
-```
-
 ```typescript,editable
 class Solution {
     powerOf2(num: number): boolean {
@@ -286,16 +270,6 @@ func powerOf2(num int) bool {
 
 func main() {
     fmt.Println(powerOf2(8))   // true
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun powerOf2(num: Int): Boolean = num > 0 && (num and (num - 1)) == 0
-}
-
-fun main() {
-    println(Solution().powerOf2(8))   // true
 }
 ```
 
@@ -346,6 +320,19 @@ Both work. Kernighan's runs in O(set-bit count); the shift-and-count loop runs i
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Parity = whether the number of SET BITS is odd or even.
+# Brian Kernighan's loop counts set bits in O(popcount) time.
+function parityCheckerII(num):
+    flag ← false
+    while num ≠ 0:
+        flag ← NOT flag
+        num ← num bitwise AND (num − 1)            # clear lowest set bit
+    if flag:
+        return "odd"
+    return "even"
+```
 
 ```python,editable
 class Solution:
@@ -420,18 +407,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    parityCheckerII(num) {
-        let flag = false;
-        while (num) { flag = !flag; num &= num - 1; }
-        return flag ? "odd" : "even";
-    }
-}
-
-console.log(new Solution().parityCheckerII(10));   // even
-```
-
 ```typescript,editable
 class Solution {
     parityCheckerII(num: number): string {
@@ -457,17 +432,6 @@ func parityCheckerII(num uint32) string {
 
 func main() {
     fmt.Println(parityCheckerII(10))   // even
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun parityCheckerII(num: Int): String =
-        if (Integer.bitCount(num) % 2 == 1) "odd" else "even"
-}
-
-fun main() {
-    println(Solution().parityCheckerII(10))   // even
 }
 ```
 
@@ -554,6 +518,18 @@ flowchart LR
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Fast exponentiation by squaring. O(log n) multiplications.
+function powerFunction(num, n):
+    result ← 1
+    while n > 0:
+        if (n bitwise AND 1) ≠ 0:                  # current bit is set → fold num into result
+            result ← result × num
+        num ← num × num                             # square num for the next bit position
+        n ← n shifted right by 1
+    return result
+```
 
 ```python,editable
 class Solution:
@@ -648,22 +624,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    powerFunction(num, n) {
-        let result = 1, base = num;
-        while (n > 0) {
-            if (n & 1) result *= base;
-            base *= base;
-            n >>>= 1;
-        }
-        return result;
-    }
-}
-
-console.log(new Solution().powerFunction(2, 8));   // 256
-```
-
 ```typescript,editable
 class Solution {
     powerFunction(num: number, n: number): number {
@@ -695,24 +655,6 @@ func powerFunction(num, n int) int64 {
 
 func main() {
     fmt.Println(powerFunction(2, 8))   // 256
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun powerFunction(num: Int, n: Int): Long {
-        var result = 1L; var base = num.toLong(); var nn = n
-        while (nn > 0) {
-            if (nn and 1 != 0) result *= base
-            base *= base
-            nn = nn shr 1
-        }
-        return result
-    }
-}
-
-fun main() {
-    println(Solution().powerFunction(2, 8))   // 256
 }
 ```
 
