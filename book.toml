@@ -21,7 +21,6 @@ additional-js = [
   "theme/lang-tabs.js",
   "theme/python-playground.js",
   "theme/sql-playground.js",
-  "theme/js-playground.js",
   "theme/ts-playground.js",
   "theme/piston-playground.js",
   "theme/pagetoc.js",

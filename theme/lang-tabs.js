@@ -2,21 +2,20 @@
 
 (function langTabs() {
     const LANG_DISPLAY = {
+        pseudocode: '🧠 Pseudocode',
         c:          '⚙️ C',
         cpp:        '⚙️ C++',
         java:       '☕ Java',
         scala:      '⚡ Scala',
-        javascript: '🟨 JavaScript',
         typescript: '🟦 TypeScript',
         python:     '🐍 Python',
         go:         '🐹 Go',
-        kotlin:     '🎯 Kotlin',
         sql:        '🗃️ SQL',
         rust:       '🦀 Rust',
     };
 
     // Canonical tab order — tabs are always sorted by this list regardless of markdown order
-    const LANG_ORDER = ['python', 'java', 'c', 'cpp', 'scala', 'javascript', 'typescript', 'go', 'kotlin', 'sql', 'rust'];
+    const LANG_ORDER = ['pseudocode', 'python', 'java', 'c', 'cpp', 'scala', 'typescript', 'go', 'sql', 'rust'];
 
     const STORAGE_KEY = 'mdbook-lang-tab-preference';
 

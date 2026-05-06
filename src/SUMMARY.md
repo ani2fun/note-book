@@ -3,6 +3,7 @@
 ## 🛠️ Infrastructure Setup
 
 - [DSA](./computer-science/DSA/index.md)
+  - [Pseudocode Reference](./computer-science/DSA/00-pseudocode-guide.md)
   - [Data Structures](./computer-science/DSA/data-structures/index.md)
     - [Arrays](./computer-science/DSA/data-structures/1.arrays/index.md)
       - [Introduction](./computer-science/DSA/data-structures/1.arrays/01-introduction.md)

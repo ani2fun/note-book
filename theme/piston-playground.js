@@ -29,7 +29,6 @@
         c:      'c',
         cpp:    'c++',
         go:     'go',
-        kotlin: 'kotlin',
         scala:  'scala',
         rust:   'rust',
     };
