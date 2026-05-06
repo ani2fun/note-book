@@ -235,6 +235,33 @@ seq: "Capacity sequence as elements are pushed" {
 
 <div class="lang-tabs">
 
+```pseudocode
+# Dynamic array (vector / ArrayList) with amortised O(1) pushBack via capacity-doubling.
+class DynamicArray:
+    field arr                                          # backing storage
+    field currentSize                                  # number of stored elements
+    field capacity                                     # slots available in arr
+
+    constructor():
+        arr ← empty list
+        currentSize ← 0
+        capacity ← 0
+
+    function pushBack(val):
+        if currentSize ≥ capacity:                     # slow path — out of room
+            newCapacity ← 1 if capacity = 0 else capacity × 2     # double on each grow
+            newArr ← list of newCapacity zeros
+            for i from 0 to currentSize − 1:           # O(currentSize) — happens log₂N times total
+                newArr[i] ← arr[i]
+            arr ← newArr
+            capacity ← newCapacity
+        arr[currentSize] ← val                         # fast path — O(1)
+        currentSize ← currentSize + 1
+
+    function get(index):
+        return arr[index]                              # O(1) random access via contiguous storage
+```
+
 ```python,editable
 from typing import List
 
@@ -438,46 +465,6 @@ class DynamicArray {
 }
 ```
 
-```javascript,editable
-class DynamicArray {
-    constructor() {
-        // Using a plain JS array as fixed-capacity storage; we ignore its native
-        // dynamism and simulate the raw-array semantics with an explicit length bound.
-        this.arr = [];
-        this.currentSize = 0;
-        this.capacity = 0;
-    }
-
-    pushBack(val) {
-        if (this.currentSize >= this.capacity) {
-            // Geometric growth → amortised O(1)
-            const newCapacity = this.capacity === 0 ? 1 : this.capacity * 2;
-            const newArr = new Array(newCapacity).fill(0);
-
-            // Copy existing elements into the fresh storage
-            for (let i = 0; i < this.currentSize; i++) {
-                newArr[i] = this.arr[i];
-            }
-            this.arr = newArr;
-            this.capacity = newCapacity;
-        }
-        this.arr[this.currentSize++] = val;
-    }
-
-    get(index)  { return this.arr[index]; }
-    size()      { return this.currentSize; }
-}
-
-const da = new DynamicArray();
-da.pushBack(2);
-da.pushBack(3);
-console.log(da.get(1));   // 3
-console.log(da.size());   // 2
-da.pushBack(5);
-console.log(da.size());   // 3
-console.log(da.get(0));   // 2
-```
-
 ```typescript,editable
 class DynamicArray {
     private arr: number[] = [];
@@ -547,30 +534,6 @@ func main() {
     da.PushBack(5)
     fmt.Println(da.Size())   // 3
     fmt.Println(da.Get(0))   // 2
-}
-```
-
-```kotlin,editable
-class DynamicArray {
-    private var arr: IntArray = IntArray(0)
-    private var currentSize: Int = 0
-    private var cap: Int = 0
-
-    fun pushBack(v: Int) {
-        if (currentSize >= cap) {
-            // Geometric growth — factor 2 is the standard choice
-            val newCap = if (cap == 0) 1 else cap * 2
-            val newArr = IntArray(newCap)
-            for (i in 0 until currentSize) newArr[i] = arr[i]   // copy live elements
-            arr = newArr
-            cap = newCap
-        }
-        arr[currentSize] = v
-        currentSize++
-    }
-
-    fun get(index: Int): Int = arr[index]
-    fun size(): Int = currentSize
 }
 ```
 

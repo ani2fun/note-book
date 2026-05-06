@@ -379,6 +379,21 @@ The generic merge function below uses `<=` so touching intervals are merged. Fli
 
 <div class="lang-tabs">
 
+```pseudocode
+# Sort by start, then sweep left-to-right merging overlapping intervals into the previous one.
+function mergeOverlapping(arr):
+    if arr is empty: return empty list
+    sort arr by start ascending (tiebreak by end ascending)
+    merged ← [copy of arr[0]]
+    for i from 1 to length(arr) − 1:
+        last ← last element of merged
+        if arr[i].start ≤ last.end:                   # overlap (or touch) — extend
+            last.end ← max(last.end, arr[i].end)
+        else:
+            append copy of arr[i] to merged           # disjoint — start a new run
+    return merged
+```
+
 ```python,editable
 from typing import List
 
@@ -540,31 +555,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function mergeOverlapping(arr) {
-    if (arr.length === 0) return [];
-
-    // Sort by start ascending; ties broken by end ascending
-    arr.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-
-    const merged = [arr[0].slice()];   // copy seed to avoid mutating input
-
-    for (let i = 1; i < arr.length; i++) {
-        const last = merged[merged.length - 1];
-        if (arr[i][0] <= last[1]) {
-            // Extend — Math.max guards against contained intervals
-            last[1] = Math.max(last[1], arr[i][1]);
-        } else {
-            merged.push(arr[i].slice());
-        }
-    }
-    return merged;
-}
-
-console.log(mergeOverlapping([[1, 3], [2, 6], [8, 10], [15, 18]]));
-console.log(mergeOverlapping([[1, 4], [4, 5]]));
-```
-
 ```typescript,editable
 function mergeOverlapping(arr: number[][]): number[][] {
     if (arr.length === 0) return [];
@@ -626,28 +616,6 @@ func mergeOverlapping(arr [][]int) [][]int {
 
 func main() {
     fmt.Println(mergeOverlapping([][]int{{1, 3}, {2, 6}, {8, 10}, {15, 18}}))
-}
-```
-
-```kotlin,editable
-fun mergeOverlapping(arr: Array<IntArray>): Array<IntArray> {
-    if (arr.isEmpty()) return emptyArray()
-
-    // Sort by start ascending; ties broken by end ascending
-    arr.sortWith(compareBy({ it[0] }, { it[1] }))
-
-    val merged = mutableListOf(arr[0].copyOf())
-
-    for (i in 1 until arr.size) {
-        val last = merged.last()
-        if (arr[i][0] <= last[1]) {
-            // Extend; maxOf handles the contained-interval case
-            last[1] = maxOf(last[1], arr[i][1])
-        } else {
-            merged.add(arr[i].copyOf())
-        }
-    }
-    return merged.toTypedArray()
 }
 ```
 
@@ -789,6 +757,21 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+# Identical algorithm to mergeOverlapping — re-listed here for the delivery scenario.
+function deliveryIntervals(times):
+    if times is empty: return empty list
+    sort times by start ascending (tiebreak by end ascending)
+    merged ← [copy of times[0]]
+    for i from 1 to length(times) − 1:
+        last ← last element of merged
+        if times[i].start ≤ last.end:
+            last.end ← max(last.end, times[i].end)
+        else:
+            append copy of times[i] to merged
+    return merged
+```
+
 ```python,editable
 from typing import List
 
@@ -923,20 +906,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function deliveryIntervals(times) {
-    if (times.length === 0) return [];
-    times.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-    const merged = [times[0].slice()];
-    for (let i = 1; i < times.length; i++) {
-        const last = merged[merged.length - 1];
-        if (times[i][0] <= last[1]) last[1] = Math.max(last[1], times[i][1]);
-        else merged.push(times[i].slice());
-    }
-    return merged;
-}
-```
-
 ```typescript,editable
 function deliveryIntervals(times: number[][]): number[][] {
     if (times.length === 0) return [];
@@ -978,20 +947,6 @@ func deliveryIntervals(times [][]int) [][]int {
         }
     }
     return merged
-}
-```
-
-```kotlin,editable
-fun deliveryIntervals(times: Array<IntArray>): Array<IntArray> {
-    if (times.isEmpty()) return emptyArray()
-    times.sortWith(compareBy({ it[0] }, { it[1] }))
-    val merged = mutableListOf(times[0].copyOf())
-    for (i in 1 until times.size) {
-        val last = merged.last()
-        if (times[i][0] <= last[1]) last[1] = maxOf(last[1], times[i][1])
-        else merged.add(times[i].copyOf())
-    }
-    return merged.toTypedArray()
 }
 ```
 
@@ -1097,6 +1052,18 @@ After sorting, sweep left-to-right and check that **each meeting starts no earli
 
 <div class="lang-tabs">
 
+```pseudocode
+# After sorting by start, conflicts can only exist between consecutive pairs.
+# Strict < — touching intervals like [1,3] and [3,5] don't conflict.
+function canAttendAll(arr):
+    if length(arr) < 2: return true
+    sort arr by start ascending
+    for i from 1 to length(arr) − 1:
+        if arr[i].start < arr[i − 1].end:
+            return false
+    return true
+```
+
 ```python,editable
 from typing import List
 
@@ -1189,20 +1156,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function canAttendAll(arr) {
-    if (arr.length < 2) return true;
-    arr.sort((a, b) => a[0] - b[0]);
-    for (let i = 1; i < arr.length; i++) {
-        if (arr[i][0] < arr[i - 1][1]) return false;   // strict '<' allows touching
-    }
-    return true;
-}
-
-console.log(canAttendAll([[0, 30], [5, 10], [15, 20]]));   // false
-console.log(canAttendAll([[1, 3], [3, 6]]));               // true
-```
-
 ```typescript,editable
 function canAttendAll(arr: number[][]): boolean {
     if (arr.length < 2) return true;
@@ -1228,17 +1181,6 @@ func canAttendAll(arr [][]int) bool {
         if arr[i][0] < arr[i-1][1] {
             return false
         }
-    }
-    return true
-}
-```
-
-```kotlin,editable
-fun canAttendAll(arr: Array<IntArray>): Boolean {
-    if (arr.size < 2) return true
-    arr.sortBy { it[0] }
-    for (i in 1 until arr.size) {
-        if (arr[i][0] < arr[i - 1][1]) return false
     }
     return true
 }
@@ -1437,6 +1379,22 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+# Greedy: sort by END ascending, keep early-ending intervals.
+# Each kept interval leaves the most room for future ones.
+function eraseOverlapIntervals(arr):
+    if length(arr) < 2: return 0
+    sort arr by end ascending
+    removed ← 0
+    prevEnd ← −∞
+    for each (s, e) in arr:
+        if s ≥ prevEnd:                               # disjoint with the last kept → keep
+            prevEnd ← e
+        else:
+            removed ← removed + 1                     # overlaps; this one ends later → drop
+    return removed
+```
+
 ```python,editable
 from typing import List
 
@@ -1557,24 +1515,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function eraseOverlapIntervals(arr) {
-    if (arr.length < 2) return 0;
-    arr.sort((a, b) => a[1] - b[1]);   // sort by end ascending
-
-    let removed = 0;
-    let prevEnd = -Infinity;
-
-    for (const [s, e] of arr) {
-        if (s >= prevEnd) prevEnd = e;   // keep
-        else removed++;                   // remove
-    }
-    return removed;
-}
-
-console.log(eraseOverlapIntervals([[1, 2], [2, 3], [3, 4], [1, 3]]));   // 1
-```
-
 ```typescript,editable
 function eraseOverlapIntervals(arr: number[][]): number {
     if (arr.length < 2) return 0;
@@ -1614,19 +1554,6 @@ func eraseOverlapIntervals(arr [][]int) int {
         } else {
             removed++
         }
-    }
-    return removed
-}
-```
-
-```kotlin,editable
-fun eraseOverlapIntervals(arr: Array<IntArray>): Int {
-    if (arr.size < 2) return 0
-    arr.sortBy { it[1] }
-    var removed = 0
-    var prevEnd = Int.MIN_VALUE
-    for (iv in arr) {
-        if (iv[0] >= prevEnd) prevEnd = iv[1] else removed++
     }
     return removed
 }
@@ -1820,6 +1747,31 @@ The key observation: once you merge, you've completely forgotten *who* was busy 
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# 1) Flatten everyone's busy intervals. 2) Merge overlaps. 3) Gaps between merged blocks = free time.
+function employeeFreeTime(schedules):
+    busy ← empty list
+    for each schedule in schedules:
+        for each interval in schedule:
+            append interval to busy
+    if length(busy) < 2: return empty list
+    sort busy by start (tiebreak by end)
+
+    merged ← [copy of busy[0]]
+    for i from 1 to length(busy) − 1:
+        last ← last element of merged
+        if busy[i].start ≤ last.end:
+            last.end ← max(last.end, busy[i].end)
+        else:
+            append copy of busy[i] to merged
+
+    free ← empty list
+    for i from 1 to length(merged) − 1:
+        if merged[i − 1].end < merged[i].start:       # strict < → only positive-length gaps
+            append [merged[i − 1].end, merged[i].start] to free
+    return free
+```
 
 ```python,editable
 from typing import List
@@ -2016,37 +1968,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function employeeFreeTime(schedules) {
-    // Step 1: flatten
-    const busy = schedules.flat();
-    if (busy.length < 2) return [];
-
-    // Step 2: sort by start, tiebreak by end
-    busy.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-
-    // Step 3: merge
-    const merged = [busy[0].slice()];
-    for (let i = 1; i < busy.length; i++) {
-        const last = merged[merged.length - 1];
-        if (busy[i][0] <= last[1]) last[1] = Math.max(last[1], busy[i][1]);
-        else merged.push(busy[i].slice());
-    }
-
-    // Step 4: gaps
-    const free = [];
-    for (let i = 1; i < merged.length; i++) {
-        if (merged[i - 1][1] < merged[i][0]) {
-            free.push([merged[i - 1][1], merged[i][0]]);
-        }
-    }
-    return free;
-}
-
-console.log(employeeFreeTime([[[1, 3], [6, 7]], [[2, 4]], [[2, 5], [9, 12]]]));
-// [[5,6],[7,9]]
-```
-
 ```typescript,editable
 function employeeFreeTime(schedules: number[][][]): number[][] {
     const busy: number[][] = schedules.flat();
@@ -2110,30 +2031,6 @@ func employeeFreeTime(schedules [][][]int) [][]int {
         }
     }
     return free
-}
-```
-
-```kotlin,editable
-fun employeeFreeTime(schedules: Array<Array<IntArray>>): Array<IntArray> {
-    val busy = schedules.flatMap { it.toList() }.toMutableList()
-    if (busy.size < 2) return emptyArray()
-
-    busy.sortWith(compareBy({ it[0] }, { it[1] }))
-
-    val merged = mutableListOf(busy[0].copyOf())
-    for (i in 1 until busy.size) {
-        val last = merged.last()
-        if (busy[i][0] <= last[1]) last[1] = maxOf(last[1], busy[i][1])
-        else merged.add(busy[i].copyOf())
-    }
-
-    val free = mutableListOf<IntArray>()
-    for (i in 1 until merged.size) {
-        if (merged[i - 1][1] < merged[i][0]) {
-            free.add(intArrayOf(merged[i - 1][1], merged[i][0]))
-        }
-    }
-    return free.toTypedArray()
 }
 ```
 
@@ -2333,6 +2230,33 @@ For each `iv` in `intervals`:
 
 <div class="lang-tabs">
 
+```pseudocode
+# Insert a new interval into a sorted, non-overlapping list. Three sequential phases.
+function insert(intervals, newInterval):
+    result ← empty list
+    i ← 0; n ← length(intervals)
+    newStart ← newInterval.start
+    newEnd   ← newInterval.end
+
+    # Phase 1 — copy intervals that end strictly before newInterval starts.
+    while i < n AND intervals[i].end < newStart:
+        append intervals[i] to result
+        i ← i + 1
+
+    # Phase 2 — absorb every interval that overlaps newInterval into newInterval itself.
+    while i < n AND intervals[i].start ≤ newEnd:
+        newStart ← min(newStart, intervals[i].start)
+        newEnd   ← max(newEnd,   intervals[i].end)
+        i ← i + 1
+    append [newStart, newEnd] to result               # push the (possibly grown) merged interval
+
+    # Phase 3 — copy the rest (all start strictly after newEnd).
+    while i < n:
+        append intervals[i] to result
+        i ← i + 1
+    return result
+```
+
 ```python,editable
 from typing import List
 
@@ -2484,33 +2408,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function insert(intervals, newInterval) {
-    const result = [];
-    let i = 0, n = intervals.length;
-    let [ns, ne] = newInterval;
-
-    // Phase 1: strictly before
-    while (i < n && intervals[i][1] < ns) result.push(intervals[i++]);
-
-    // Phase 2: overlap → absorb
-    while (i < n && intervals[i][0] <= ne) {
-        ns = Math.min(ns, intervals[i][0]);
-        ne = Math.max(ne, intervals[i][1]);
-        i++;
-    }
-    result.push([ns, ne]);
-
-    // Phase 3: strictly after
-    while (i < n) result.push(intervals[i++]);
-
-    return result;
-}
-
-console.log(insert([[1, 3], [6, 9]], [2, 5]));
-console.log(insert([[1, 2], [3, 5], [6, 7], [8, 10], [12, 16]], [4, 8]));
-```
-
 ```typescript,editable
 function insert(intervals: number[][], newInterval: number[]): number[][] {
     const result: number[][] = [];
@@ -2557,26 +2454,6 @@ func insert(intervals [][]int, newInterval []int) [][]int {
         i++
     }
     return result
-}
-```
-
-```kotlin,editable
-fun insert(intervals: Array<IntArray>, newInterval: IntArray): Array<IntArray> {
-    val result = mutableListOf<IntArray>()
-    var i = 0
-    val n = intervals.size
-    var ns = newInterval[0]
-    var ne = newInterval[1]
-
-    while (i < n && intervals[i][1] < ns) { result.add(intervals[i]); i++ }
-    while (i < n && intervals[i][0] <= ne) {
-        ns = minOf(ns, intervals[i][0])
-        ne = maxOf(ne, intervals[i][1])
-        i++
-    }
-    result.add(intArrayOf(ns, ne))
-    while (i < n) { result.add(intervals[i]); i++ }
-    return result.toTypedArray()
 }
 ```
 

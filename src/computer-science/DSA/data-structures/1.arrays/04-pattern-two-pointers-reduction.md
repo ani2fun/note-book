@@ -109,6 +109,16 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+# Brute force — every pair (i, j) with j > i. O(n²).
+function twoSumBrute(arr, target):
+    for i from 0 to length(arr) − 1:
+        for j from i + 1 to length(arr) − 1:
+            if arr[i] + arr[j] = target:
+                return [arr[i], arr[j]]
+    return empty list
+```
+
 ```python,editable
 from typing import List
 
@@ -207,19 +217,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function twoSumBrute(arr, target) {
-    for (let i = 0; i < arr.length; i++) {
-        for (let j = i + 1; j < arr.length; j++) {
-            if (arr[i] + arr[j] === target) return [arr[i], arr[j]];
-        }
-    }
-    return [];
-}
-
-console.log(twoSumBrute([3,5,2,8,7,1,9,4], 13));
-```
-
 ```typescript,editable
 function twoSumBrute(arr: number[], target: number): number[] {
     for (let i = 0; i < arr.length; i++) {
@@ -251,21 +248,6 @@ func twoSumBrute(arr []int, target int) []int {
 
 func main() {
     fmt.Println(twoSumBrute([]int{3,5,2,8,7,1,9,4}, 13))
-}
-```
-
-```kotlin,editable
-fun twoSumBrute(arr: IntArray, target: Int): IntArray {
-    for (i in arr.indices) {
-        for (j in (i + 1) until arr.size) {
-            if (arr[i] + arr[j] == target) return intArrayOf(arr[i], arr[j])
-        }
-    }
-    return intArrayOf()
-}
-
-fun main() {
-    println(twoSumBrute(intArrayOf(3,5,2,8,7,1,9,4), 13).toList())
 }
 ```
 
@@ -442,6 +424,24 @@ R -> arr.a7
 
 <div class="lang-tabs">
 
+```pseudocode
+# Two-sum via reduction. Sort first → arr[left] is the running min, arr[right] the running max.
+# Each pointer move has a guaranteed direction: ++left grows the sum, --right shrinks it.
+function twoSum(arr, target):
+    sort arr in place
+    left ← 0
+    right ← length(arr) − 1
+    while left < right:
+        currentSum ← arr[left] + arr[right]
+        if currentSum = target:
+            return [arr[left], arr[right]]
+        else if currentSum < target:
+            left ← left + 1                       # arr[right] is max — only ++left can grow the sum
+        else:
+            right ← right − 1                     # arr[left] is min — only --right can shrink the sum
+    return empty list
+```
+
 ```python,editable
 from typing import List
 
@@ -571,23 +571,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function twoSum(arr, target) {
-    arr.sort((a, b) => a - b);   // ascending numeric sort — JS default sort is lexicographic
-    let left = 0, right = arr.length - 1;
-
-    while (left < right) {
-        const sum = arr[left] + arr[right];
-        if (sum === target) return [arr[left], arr[right]];
-        else if (sum < target) left++;
-        else                   right--;
-    }
-    return [];
-}
-
-console.log(twoSum([3,5,2,8,7,1,9,4], 13));
-```
-
 ```typescript,editable
 function twoSum(arr: number[], target: number): number[] {
     arr.sort((a, b) => a - b);
@@ -633,28 +616,6 @@ func twoSum(arr []int, target int) []int {
 
 func main() {
     fmt.Println(twoSum([]int{3,5,2,8,7,1,9,4}, 13))
-}
-```
-
-```kotlin,editable
-fun twoSum(arr: IntArray, target: Int): IntArray {
-    arr.sort()
-    var left = 0
-    var right = arr.size - 1
-
-    while (left < right) {
-        val sum = arr[left] + arr[right]
-        when {
-            sum == target  -> return intArrayOf(arr[left], arr[right])
-            sum  < target  -> left++
-            else           -> right--
-        }
-    }
-    return intArrayOf()
-}
-
-fun main() {
-    println(twoSum(intArrayOf(3,5,2,8,7,1,9,4), 13).toList())
 }
 ```
 
@@ -972,6 +933,22 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+function twoSum(arr, target):
+    sort arr in place
+    left ← 0
+    right ← length(arr) − 1
+    while left < right:
+        current ← arr[left] + arr[right]
+        if current = target:
+            return [arr[left], arr[right]]
+        else if current < target:
+            left ← left + 1
+        else:
+            right ← right − 1
+    return empty list
+```
+
 ```python,editable
 from typing import List
 
@@ -1121,28 +1098,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    twoSum(arr, target) {
-        arr.sort((a, b) => a - b);
-        let left = 0, right = arr.length - 1;
-        while (left < right) {
-            const sum = arr[left] + arr[right];
-            if (sum === target) return [arr[left], arr[right]];
-            else if (sum < target) left++;
-            else                   right--;
-        }
-        return [];
-    }
-}
-
-const sol = new Solution();
-console.log(sol.twoSum([2,8,3,6,4], 7));
-console.log(sol.twoSum([2,-1,5,-4,3], 34));
-console.log(sol.twoSum([2], 2));
-console.log(sol.twoSum([-3,-1,0,2,4,6], 3));
-```
-
 ```typescript,editable
 class Solution {
     twoSum(arr: number[], target: number): number[] {
@@ -1195,33 +1150,6 @@ func main() {
     fmt.Println(twoSum([]int{2,-1,5,-4,3}, 34))
     fmt.Println(twoSum([]int{2}, 2))
     fmt.Println(twoSum([]int{-3,-1,0,2,4,6}, 3))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun twoSum(arr: IntArray, target: Int): IntArray {
-        arr.sort()
-        var left = 0
-        var right = arr.size - 1
-        while (left < right) {
-            val sum = arr[left] + arr[right]
-            when {
-                sum == target -> return intArrayOf(arr[left], arr[right])
-                sum  < target -> left++
-                else          -> right--
-            }
-        }
-        return intArrayOf()
-    }
-}
-
-fun main() {
-    val sol = Solution()
-    println(sol.twoSum(intArrayOf(2,8,3,6,4), 7).toList())
-    println(sol.twoSum(intArrayOf(2,-1,5,-4,3), 34).toList())
-    println(sol.twoSum(intArrayOf(2), 2).toList())
-    println(sol.twoSum(intArrayOf(-3,-1,0,2,4,6), 3).toList())
 }
 ```
 
@@ -1415,6 +1343,22 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+# Largest pair sum strictly LESS than target.
+function targetLimitedTwoSum(arr, target):
+    sort arr in place
+    left ← 0; right ← length(arr) − 1
+    maxSum ← −1                                    # sentinel: no valid pair yet
+    while left < right:
+        total ← arr[left] + arr[right]
+        if total < target:
+            maxSum ← max(maxSum, total)            # valid candidate; try larger
+            left ← left + 1
+        else:
+            right ← right − 1                      # ≥ target — shrink from the max side
+    return maxSum
+```
+
 ```python,editable
 from typing import List
 
@@ -1568,31 +1512,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    targetLimitedTwoSum(arr, target) {
-        arr.sort((a, b) => a - b);
-        let left = 0, right = arr.length - 1, maxSum = -1;
-        while (left < right) {
-            const total = arr[left] + arr[right];
-            if (total < target) {
-                if (total > maxSum) maxSum = total;
-                left++;
-            } else {
-                right--;
-            }
-        }
-        return maxSum;
-    }
-}
-
-const sol = new Solution();
-console.log(sol.targetLimitedTwoSum([34,23,1,24,75,33,54,8], 60));
-console.log(sol.targetLimitedTwoSum([34,23,1,24,75,33,54,8], 36));
-console.log(sol.targetLimitedTwoSum([10,20,30], 15));
-console.log(sol.targetLimitedTwoSum([1,2], 10));
-```
-
 ```typescript,editable
 class Solution {
     targetLimitedTwoSum(arr: number[], target: number): number {
@@ -1648,35 +1567,6 @@ func main() {
     fmt.Println(targetLimitedTwoSum([]int{34,23,1,24,75,33,54,8}, 36))
     fmt.Println(targetLimitedTwoSum([]int{10,20,30}, 15))
     fmt.Println(targetLimitedTwoSum([]int{1,2}, 10))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun targetLimitedTwoSum(arr: IntArray, target: Int): Int {
-        arr.sort()
-        var left = 0
-        var right = arr.size - 1
-        var maxSum = -1
-        while (left < right) {
-            val total = arr[left] + arr[right]
-            if (total < target) {
-                if (total > maxSum) maxSum = total
-                left++
-            } else {
-                right--
-            }
-        }
-        return maxSum
-    }
-}
-
-fun main() {
-    val sol = Solution()
-    println(sol.targetLimitedTwoSum(intArrayOf(34,23,1,24,75,33,54,8), 60))
-    println(sol.targetLimitedTwoSum(intArrayOf(34,23,1,24,75,33,54,8), 36))
-    println(sol.targetLimitedTwoSum(intArrayOf(10,20,30), 15))
-    println(sol.targetLimitedTwoSum(intArrayOf(1,2), 10))
 }
 ```
 
@@ -1887,6 +1777,36 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+# Two-sum returning every distinct value-pair. After a hit, slide both pointers past
+# their runs of duplicates so each pair appears exactly once.
+function duplicateAwareTwoSum(arr, target):
+    sort arr in place
+    result ← empty list
+    left ← 0; right ← length(arr) − 1
+    while left < right:
+        total ← arr[left] + arr[right]
+        if total = target:
+            append [arr[left], arr[right]] to result
+            left  ← skipLeft(arr, left, right)
+            right ← skipRight(arr, left, right)
+        else if total < target:
+            left ← left + 1
+        else:
+            right ← right − 1
+    return result
+
+function skipLeft(arr, left, right):
+    while left < right AND arr[left] = arr[left + 1]:
+        left ← left + 1
+    return left + 1
+
+function skipRight(arr, left, right):
+    while left < right AND arr[right] = arr[right − 1]:
+        right ← right − 1
+    return right − 1
+```
+
 ```python,editable
 from typing import List
 
@@ -2087,37 +2007,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    duplicateAwareTwoSum(arr, target) {
-        arr.sort((a, b) => a - b);
-        const result = [];
-        let left = 0, right = arr.length - 1;
-        while (left < right) {
-            const total = arr[left] + arr[right];
-            if (total === target) {
-                result.push([arr[left], arr[right]]);
-                while (left < right && arr[left]  === arr[left + 1])  left++;
-                while (left < right && arr[right] === arr[right - 1]) right--;
-                left++;
-                right--;
-            } else if (total < target) {
-                left++;
-            } else {
-                right--;
-            }
-        }
-        return result;
-    }
-}
-
-const sol = new Solution();
-console.log(sol.duplicateAwareTwoSum([1,2,2,3,4,5], 6));
-console.log(sol.duplicateAwareTwoSum([1,2,2,2,2], 3));
-console.log(sol.duplicateAwareTwoSum([2], 2));
-console.log(sol.duplicateAwareTwoSum([3,3,3], 6));
-```
-
 ```typescript,editable
 class Solution {
     duplicateAwareTwoSum(arr: number[], target: number): number[][] {
@@ -2188,40 +2077,6 @@ func main() {
     fmt.Println(duplicateAwareTwoSum([]int{1,2,2,2,2}, 3))
     fmt.Println(duplicateAwareTwoSum([]int{2}, 2))
     fmt.Println(duplicateAwareTwoSum([]int{3,3,3}, 6))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun duplicateAwareTwoSum(arr: IntArray, target: Int): List<List<Int>> {
-        arr.sort()
-        val result = mutableListOf<List<Int>>()
-        var left = 0
-        var right = arr.size - 1
-        while (left < right) {
-            val total = arr[left] + arr[right]
-            when {
-                total == target -> {
-                    result.add(listOf(arr[left], arr[right]))
-                    while (left < right && arr[left]  == arr[left + 1])  left++
-                    while (left < right && arr[right] == arr[right - 1]) right--
-                    left++
-                    right--
-                }
-                total < target -> left++
-                else           -> right--
-            }
-        }
-        return result
-    }
-}
-
-fun main() {
-    val sol = Solution()
-    println(sol.duplicateAwareTwoSum(intArrayOf(1,2,2,3,4,5), 6))
-    println(sol.duplicateAwareTwoSum(intArrayOf(1,2,2,2,2), 3))
-    println(sol.duplicateAwareTwoSum(intArrayOf(2), 2))
-    println(sol.duplicateAwareTwoSum(intArrayOf(3,3,3), 6))
 }
 ```
 
@@ -2586,6 +2441,23 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+# "Container with most water". Area = width × min(heights[left], heights[right]).
+# Always move the SHORTER wall inward — only the bottleneck can improve the area.
+function largestContainer(heights):
+    left ← 0; right ← length(heights) − 1
+    maxArea ← 0
+    while left < right:
+        width  ← right − left
+        height ← min(heights[left], heights[right])
+        maxArea ← max(maxArea, width × height)
+        if heights[left] < heights[right]:
+            left ← left + 1
+        else:
+            right ← right − 1
+    return maxArea
+```
+
 ```python,editable
 from typing import List
 
@@ -2722,28 +2594,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    largestContainer(heights) {
-        let left = 0, right = heights.length - 1, maxArea = 0;
-        while (left < right) {
-            const width  = right - left;
-            const height = Math.min(heights[left], heights[right]);
-            maxArea = Math.max(maxArea, width * height);
-            if (heights[left] < heights[right]) left++;
-            else                                right--;
-        }
-        return maxArea;
-    }
-}
-
-const sol = new Solution();
-console.log(sol.largestContainer([2,4,3,3,5,2,4,3,2]));
-console.log(sol.largestContainer([1,8,6,2,5,4,8,3,7]));
-console.log(sol.largestContainer([1,1]));
-console.log(sol.largestContainer([4,3,2,1,4]));
-```
-
 ```typescript,editable
 class Solution {
     largestContainer(heights: number[]): number {
@@ -2794,32 +2644,6 @@ func main() {
     fmt.Println(largestContainer([]int{1,8,6,2,5,4,8,3,7}))
     fmt.Println(largestContainer([]int{1,1}))
     fmt.Println(largestContainer([]int{4,3,2,1,4}))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun largestContainer(heights: IntArray): Int {
-        var left = 0
-        var right = heights.size - 1
-        var maxArea = 0
-        while (left < right) {
-            val width  = right - left
-            val height = minOf(heights[left], heights[right])
-            maxArea    = maxOf(maxArea, width * height)
-            if (heights[left] < heights[right]) left++
-            else                                right--
-        }
-        return maxArea
-    }
-}
-
-fun main() {
-    val sol = Solution()
-    println(sol.largestContainer(intArrayOf(2,4,3,3,5,2,4,3,2)))
-    println(sol.largestContainer(intArrayOf(1,8,6,2,5,4,8,3,7)))
-    println(sol.largestContainer(intArrayOf(1,1)))
-    println(sol.largestContainer(intArrayOf(4,3,2,1,4)))
 }
 ```
 

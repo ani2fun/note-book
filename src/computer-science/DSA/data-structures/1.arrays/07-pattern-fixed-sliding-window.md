@@ -305,6 +305,21 @@ Given below is the generic code implementation of the fixed-sized sliding window
 
 <div class="lang-tabs">
 
+```pseudocode
+# Generic fixed-window template — four steps per iteration: expand, contract, process, advance.
+function fixedSizeSlidingWindow(arr, k):
+    start ← 0; end ← 0
+    aggregate ← 0
+    while end < length(arr):
+        aggregate ← fAdd(aggregate, arr[end])         # 1. expand right edge
+        if end − start + 1 > k:                       # 2. contract from left if oversized
+            aggregate ← fRemove(aggregate, arr[start])
+            start ← start + 1
+        if end − start + 1 = k:                       # 3. process when window is exactly k
+            process(aggregate)
+        end ← end + 1                                  # 4. advance right edge
+```
+
 ```python,editable
 from typing import List
 
@@ -439,28 +454,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const fAdd    = (agg, x) => agg + x;
-const fRemove = (agg, x) => agg - x;
-const process = (agg) => { /* problem-specific */ };
-
-function fixedSizeSlidingWindow(arr, k) {
-    let start = 0, end = 0, aggregate = 0;
-    while (end < arr.length) {
-        aggregate = fAdd(aggregate, arr[end]);
-        if (end - start + 1 > k) {
-            aggregate = fRemove(aggregate, arr[start]);
-            start++;
-        }
-        if (end - start + 1 === k) process(aggregate);
-        end++;
-    }
-}
-
-fixedSizeSlidingWindow([1, 2, 3, 4, 5], 3);
-console.log("Template ran.");
-```
-
 ```typescript,editable
 const fAdd    = (agg: number, x: number): number => agg + x;
 const fRemove = (agg: number, x: number): number => agg - x;
@@ -510,32 +503,6 @@ func fixedSizeSlidingWindow(arr []int, k int) {
 func main() {
     fixedSizeSlidingWindow([]int{1, 2, 3, 4, 5}, 3)
     fmt.Println("Template ran.")
-}
-```
-
-```kotlin,editable
-fun fAdd(agg: Int, x: Int) = agg + x
-fun fRemove(agg: Int, x: Int) = agg - x
-fun process(agg: Int) { /* problem-specific */ }
-
-fun fixedSizeSlidingWindow(arr: IntArray, k: Int) {
-    var start = 0
-    var end = 0
-    var aggregate = 0
-    while (end < arr.size) {
-        aggregate = fAdd(aggregate, arr[end])
-        if (end - start + 1 > k) {
-            aggregate = fRemove(aggregate, arr[start])
-            start++
-        }
-        if (end - start + 1 == k) process(aggregate)
-        end++
-    }
-}
-
-fun main() {
-    fixedSizeSlidingWindow(intArrayOf(1, 2, 3, 4, 5), 3)
-    println("Template ran.")
 }
 ```
 
@@ -700,6 +667,19 @@ Fix a starting index `i`, compute the sum of `k` elements starting there, check 
 
 <div class="lang-tabs">
 
+```pseudocode
+# Brute force — recompute the sum of every k-window. O(n × k).
+function kSubarrayMaxAverageBrute(arr, k):
+    n ← length(arr)
+    maxAverage ← −∞
+    for i from 0 to n − k:
+        currentSum ← 0
+        for j from 0 to k − 1:
+            currentSum ← currentSum + arr[i + j]
+        maxAverage ← max(maxAverage, currentSum / k)
+    return maxAverage
+```
+
 ```python,editable
 from typing import List
 
@@ -798,21 +778,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function kSubarrayMaxAverageBrute(arr, k) {
-    const n = arr.length;
-    let maxAverage = -Infinity;
-    for (let i = 0; i <= n - k; i++) {
-        let sum = 0;
-        for (let j = 0; j < k; j++) sum += arr[i + j];
-        maxAverage = Math.max(maxAverage, sum / k);
-    }
-    return maxAverage;
-}
-
-console.log(kSubarrayMaxAverageBrute([1, 12, -5, -6, 50, 3], 4));
-```
-
 ```typescript,editable
 function kSubarrayMaxAverageBrute(arr: number[], k: number): number {
     const n = arr.length;
@@ -854,23 +819,6 @@ func kSubarrayMaxAverageBrute(arr []int, k int) float64 {
 
 func main() {
     fmt.Println(kSubarrayMaxAverageBrute([]int{1, 12, -5, -6, 50, 3}, 4))
-}
-```
-
-```kotlin,editable
-fun kSubarrayMaxAverageBrute(arr: IntArray, k: Int): Double {
-    val n = arr.size
-    var maxAverage = Double.NEGATIVE_INFINITY
-    for (i in 0..(n - k)) {
-        var sum = 0.0
-        for (j in 0 until k) sum += arr[i + j]
-        maxAverage = maxOf(maxAverage, sum / k)
-    }
-    return maxAverage
-}
-
-fun main() {
-    println(kSubarrayMaxAverageBrute(intArrayOf(1, 12, -5, -6, 50, 3), 4))
 }
 ```
 
@@ -926,6 +874,23 @@ We apply the fixed sliding window algorithm directly. We initialise `start = 0`,
 - **Step 3.4:** Advance `end`
 
 <div class="lang-tabs">
+
+```pseudocode
+# Sliding window — each element added and removed exactly once. O(n).
+function kSubarrayMaxAverage(arr, k):
+    n ← length(arr)
+    start ← 0; end ← 0
+    windowSum ← 0; maxAverage ← −∞
+    while end < n:
+        windowSum ← windowSum + arr[end]              # expand
+        if end − start + 1 > k:                       # contract
+            windowSum ← windowSum − arr[start]
+            start ← start + 1
+        if end − start + 1 = k:                       # process
+            maxAverage ← max(maxAverage, windowSum / k)
+        end ← end + 1
+    return maxAverage
+```
 
 ```python,editable
 from typing import List
@@ -1069,30 +1034,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    kSubarrayMaxAverage(arr, k) {
-        const n = arr.length;
-        let start = 0, end = 0, windowSum = 0;
-        let maxAverage = -Infinity;
-        while (end < n) {
-            windowSum += arr[end];
-            if (end - start + 1 > k) {
-                windowSum -= arr[start];
-                start++;
-            }
-            if (end - start + 1 === k) {
-                maxAverage = Math.max(maxAverage, windowSum / k);
-            }
-            end++;
-        }
-        return maxAverage;
-    }
-}
-
-console.log(new Solution().kSubarrayMaxAverage([1, 12, -5, -6, 50, 3], 4));
-```
-
 ```typescript,editable
 class Solution {
     kSubarrayMaxAverage(arr: number[], k: number): number {
@@ -1148,34 +1089,6 @@ func kSubarrayMaxAverage(arr []int, k int) float64 {
 
 func main() {
     fmt.Println(kSubarrayMaxAverage([]int{1, 12, -5, -6, 50, 3}, 4))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun kSubarrayMaxAverage(arr: IntArray, k: Int): Double {
-        val n = arr.size
-        var start = 0
-        var end = 0
-        var windowSum = 0L
-        var maxAverage = Double.NEGATIVE_INFINITY
-        while (end < n) {
-            windowSum += arr[end]
-            if (end - start + 1 > k) {
-                windowSum -= arr[start]
-                start++
-            }
-            if (end - start + 1 == k) {
-                maxAverage = maxOf(maxAverage, windowSum.toDouble() / k)
-            }
-            end++
-        }
-        return maxAverage
-    }
-}
-
-fun main() {
-    println(Solution().kSubarrayMaxAverage(intArrayOf(1, 12, -5, -6, 50, 3), 4))
 }
 ```
 
@@ -1345,6 +1258,20 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+# Brute force — recompute every k-window's sum. O(n × k).
+function countSubarraysBrute(arr, k, target):
+    n ← length(arr)
+    count ← 0
+    for i from 0 to n − k:
+        windowSum ← 0
+        for j from 0 to k − 1:
+            windowSum ← windowSum + arr[i + j]
+        if windowSum = target:
+            count ← count + 1
+    return count
+```
+
 ```python,editable
 from typing import List
 
@@ -1442,22 +1369,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function countSubarraysBrute(arr, k, target) {
-    const n = arr.length;
-    let count = 0;
-    for (let i = 0; i <= n - k; i++) {
-        let sum = 0;
-        for (let j = 0; j < k; j++) sum += arr[i + j];
-        if (sum === target) count++;
-    }
-    return count;
-}
-
-console.log(countSubarraysBrute([1, 2, 3, 4, 5], 3, 9));
-console.log(countSubarraysBrute([1, 1, 1, 1, 1], 2, 2));
-```
-
 ```typescript,editable
 function countSubarraysBrute(arr: number[], k: number, target: number): number {
     const n = arr.length;
@@ -1497,24 +1408,6 @@ func countSubarraysBrute(arr []int, k, target int) int {
 func main() {
     fmt.Println(countSubarraysBrute([]int{1, 2, 3, 4, 5}, 3, 9))
     fmt.Println(countSubarraysBrute([]int{1, 1, 1, 1, 1}, 2, 2))
-}
-```
-
-```kotlin,editable
-fun countSubarraysBrute(arr: IntArray, k: Int, target: Int): Int {
-    val n = arr.size
-    var count = 0
-    for (i in 0..(n - k)) {
-        var sum = 0
-        for (j in 0 until k) sum += arr[i + j]
-        if (sum == target) count++
-    }
-    return count
-}
-
-fun main() {
-    println(countSubarraysBrute(intArrayOf(1, 2, 3, 4, 5), 3, 9))
-    println(countSubarraysBrute(intArrayOf(1, 1, 1, 1, 1), 2, 2))
 }
 ```
 
@@ -1558,6 +1451,21 @@ Return: 1 ✓  —  total additions: 9 (3 windows × 3 elements)
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function countSubarraysWithSum(arr, k, target):
+    start ← 0; end ← 0
+    windowSum ← 0; count ← 0
+    while end < length(arr):
+        windowSum ← windowSum + arr[end]              # expand
+        if end − start + 1 > k:                       # contract
+            windowSum ← windowSum − arr[start]
+            start ← start + 1
+        if end − start + 1 = k AND windowSum = target:
+            count ← count + 1                         # process
+        end ← end + 1
+    return count
+```
 
 ```python,editable
 from typing import List
@@ -1707,31 +1615,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    countSubarraysWithSum(arr, k, target) {
-        let start = 0, end = 0, windowSum = 0, count = 0;
-        while (end < arr.length) {
-            windowSum += arr[end];
-            if (end - start + 1 > k) {
-                windowSum -= arr[start];
-                start++;
-            }
-            if (end - start + 1 === k && windowSum === target) count++;
-            end++;
-        }
-        return count;
-    }
-}
-
-const sol = new Solution();
-console.log(sol.countSubarraysWithSum([1, 2, 3, 4, 5], 3, 9));
-console.log(sol.countSubarraysWithSum([1, 1, 1, 1, 1], 2, 2));
-console.log(sol.countSubarraysWithSum([3, 1, 4, 1, 5], 2, 5));
-console.log(sol.countSubarraysWithSum([1, 2, 3], 4, 6));
-console.log(sol.countSubarraysWithSum([5], 1, 5));
-```
-
 ```typescript,editable
 class Solution {
     countSubarraysWithSum(arr: number[], k: number, target: number): number {
@@ -1784,36 +1667,6 @@ func main() {
     fmt.Println(countSubarraysWithSum([]int{3, 1, 4, 1, 5}, 2, 5))
     fmt.Println(countSubarraysWithSum([]int{1, 2, 3}, 4, 6))
     fmt.Println(countSubarraysWithSum([]int{5}, 1, 5))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun countSubarraysWithSum(arr: IntArray, k: Int, target: Int): Int {
-        var start = 0
-        var end = 0
-        var windowSum = 0
-        var count = 0
-        while (end < arr.size) {
-            windowSum += arr[end]
-            if (end - start + 1 > k) {
-                windowSum -= arr[start]
-                start++
-            }
-            if (end - start + 1 == k && windowSum == target) count++
-            end++
-        }
-        return count
-    }
-}
-
-fun main() {
-    val sol = Solution()
-    println(sol.countSubarraysWithSum(intArrayOf(1, 2, 3, 4, 5), 3, 9))
-    println(sol.countSubarraysWithSum(intArrayOf(1, 1, 1, 1, 1), 2, 2))
-    println(sol.countSubarraysWithSum(intArrayOf(3, 1, 4, 1, 5), 2, 5))
-    println(sol.countSubarraysWithSum(intArrayOf(1, 2, 3), 4, 6))
-    println(sol.countSubarraysWithSum(intArrayOf(5), 1, 5))
 }
 ```
 
@@ -2007,6 +1860,19 @@ w1 -> w2: "remove arr[0]=1 (-1), add arr[4]=0 (+0) → ones=2"
 
 <div class="lang-tabs">
 
+```pseudocode
+function maxOnesBrute(arr, k):
+    n ← length(arr)
+    maxOnes ← 0
+    for i from 0 to n − k:
+        ones ← 0
+        for j from 0 to k − 1:
+            if arr[i + j] = 1:
+                ones ← ones + 1
+        maxOnes ← max(maxOnes, ones)
+    return maxOnes
+```
+
 ```python,editable
 from typing import List
 
@@ -2105,22 +1971,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function maxOnesBrute(arr, k) {
-    const n = arr.length;
-    let maxOnes = 0;
-    for (let i = 0; i <= n - k; i++) {
-        let ones = 0;
-        for (let j = 0; j < k; j++) if (arr[i + j] === 1) ones++;
-        maxOnes = Math.max(maxOnes, ones);
-    }
-    return maxOnes;
-}
-
-console.log(maxOnesBrute([1, 0, 1, 1, 0, 1, 1, 0], 4));
-console.log(maxOnesBrute([1, 1, 1, 1, 1], 3));
-```
-
 ```typescript,editable
 function maxOnesBrute(arr: number[], k: number): number {
     const n = arr.length;
@@ -2165,24 +2015,6 @@ func main() {
 }
 ```
 
-```kotlin,editable
-fun maxOnesBrute(arr: IntArray, k: Int): Int {
-    val n = arr.size
-    var maxOnes = 0
-    for (i in 0..(n - k)) {
-        var ones = 0
-        for (j in 0 until k) if (arr[i + j] == 1) ones++
-        maxOnes = maxOf(maxOnes, ones)
-    }
-    return maxOnes
-}
-
-fun main() {
-    println(maxOnesBrute(intArrayOf(1, 0, 1, 1, 0, 1, 1, 0), 4))
-    println(maxOnesBrute(intArrayOf(1, 1, 1, 1, 1), 3))
-}
-```
-
 ```rust,editable
 fn max_ones_brute(arr: &[i32], k: usize) -> i32 {
     let n = arr.len();
@@ -2208,6 +2040,21 @@ fn main() {
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function maxOnesInWindow(arr, k):
+    start ← 0; end ← 0
+    ones ← 0; maxOnes ← 0
+    while end < length(arr):
+        if arr[end] = 1: ones ← ones + 1              # expand
+        if end − start + 1 > k:                       # contract
+            if arr[start] = 1: ones ← ones − 1
+            start ← start + 1
+        if end − start + 1 = k:                       # process
+            maxOnes ← max(maxOnes, ones)
+        end ← end + 1
+    return maxOnes
+```
 
 ```python,editable
 from typing import List
@@ -2361,31 +2208,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    maxOnesInWindow(arr, k) {
-        let start = 0, end = 0, ones = 0, maxOnes = 0;
-        while (end < arr.length) {
-            if (arr[end] === 1) ones++;
-            if (end - start + 1 > k) {
-                if (arr[start] === 1) ones--;
-                start++;
-            }
-            if (end - start + 1 === k) maxOnes = Math.max(maxOnes, ones);
-            end++;
-        }
-        return maxOnes;
-    }
-}
-
-const sol = new Solution();
-console.log(sol.maxOnesInWindow([1, 0, 1, 1, 0, 1, 1, 0], 4));
-console.log(sol.maxOnesInWindow([1, 1, 1, 1, 1], 3));
-console.log(sol.maxOnesInWindow([0, 0, 0, 0], 2));
-console.log(sol.maxOnesInWindow([1, 0, 1, 0, 1, 0, 1], 3));
-console.log(sol.maxOnesInWindow([1], 1));
-```
-
 ```typescript,editable
 class Solution {
     maxOnesInWindow(arr: number[], k: number): number {
@@ -2442,36 +2264,6 @@ func main() {
     fmt.Println(maxOnesInWindow([]int{0, 0, 0, 0}, 2))
     fmt.Println(maxOnesInWindow([]int{1, 0, 1, 0, 1, 0, 1}, 3))
     fmt.Println(maxOnesInWindow([]int{1}, 1))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun maxOnesInWindow(arr: IntArray, k: Int): Int {
-        var start = 0
-        var end = 0
-        var ones = 0
-        var maxOnes = 0
-        while (end < arr.size) {
-            if (arr[end] == 1) ones++
-            if (end - start + 1 > k) {
-                if (arr[start] == 1) ones--
-                start++
-            }
-            if (end - start + 1 == k) maxOnes = maxOf(maxOnes, ones)
-            end++
-        }
-        return maxOnes
-    }
-}
-
-fun main() {
-    val sol = Solution()
-    println(sol.maxOnesInWindow(intArrayOf(1, 0, 1, 1, 0, 1, 1, 0), 4))
-    println(sol.maxOnesInWindow(intArrayOf(1, 1, 1, 1, 1), 3))
-    println(sol.maxOnesInWindow(intArrayOf(0, 0, 0, 0), 2))
-    println(sol.maxOnesInWindow(intArrayOf(1, 0, 1, 0, 1, 0, 1), 3))
-    println(sol.maxOnesInWindow(intArrayOf(1), 1))
 }
 ```
 
@@ -2667,6 +2459,22 @@ w2 -> w3: "remove 2 (+0), add -5 (+1) → neg=2"
 
 <div class="lang-tabs">
 
+```pseudocode
+# For every k-window, record how many elements are negative.
+function countNegativesPerWindow(arr, k):
+    start ← 0; end ← 0
+    negCount ← 0; result ← empty list
+    while end < length(arr):
+        if arr[end] < 0: negCount ← negCount + 1      # expand
+        if end − start + 1 > k:                       # contract
+            if arr[start] < 0: negCount ← negCount − 1
+            start ← start + 1
+        if end − start + 1 = k:                       # process
+            append negCount to result
+        end ← end + 1
+    return result
+```
+
 ```python,editable
 from typing import List
 
@@ -2830,32 +2638,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    countNegativesPerWindow(arr, k) {
-        let start = 0, end = 0, negCount = 0;
-        const result = [];
-        while (end < arr.length) {
-            if (arr[end] < 0) negCount++;
-            if (end - start + 1 > k) {
-                if (arr[start] < 0) negCount--;
-                start++;
-            }
-            if (end - start + 1 === k) result.push(negCount);
-            end++;
-        }
-        return result;
-    }
-}
-
-const sol = new Solution();
-console.log(sol.countNegativesPerWindow([-1, 2, -3, 4, -5], 3));
-console.log(sol.countNegativesPerWindow([1, 2, 3, 4], 2));
-console.log(sol.countNegativesPerWindow([-1, -2, -3], 2));
-console.log(sol.countNegativesPerWindow([-5, 1, -1, 2, -3], 3));
-console.log(sol.countNegativesPerWindow([-3], 1));
-```
-
 ```typescript,editable
 class Solution {
     countNegativesPerWindow(arr: number[], k: number): number[] {
@@ -2914,36 +2696,6 @@ func main() {
     fmt.Println(countNegativesPerWindow([]int{-1, -2, -3}, 2))
     fmt.Println(countNegativesPerWindow([]int{-5, 1, -1, 2, -3}, 3))
     fmt.Println(countNegativesPerWindow([]int{-3}, 1))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun countNegativesPerWindow(arr: IntArray, k: Int): List<Int> {
-        var start = 0
-        var end = 0
-        var negCount = 0
-        val result = mutableListOf<Int>()
-        while (end < arr.size) {
-            if (arr[end] < 0) negCount++
-            if (end - start + 1 > k) {
-                if (arr[start] < 0) negCount--
-                start++
-            }
-            if (end - start + 1 == k) result.add(negCount)
-            end++
-        }
-        return result
-    }
-}
-
-fun main() {
-    val sol = Solution()
-    println(sol.countNegativesPerWindow(intArrayOf(-1, 2, -3, 4, -5), 3))
-    println(sol.countNegativesPerWindow(intArrayOf(1, 2, 3, 4), 2))
-    println(sol.countNegativesPerWindow(intArrayOf(-1, -2, -3), 2))
-    println(sol.countNegativesPerWindow(intArrayOf(-5, 1, -1, 2, -3), 3))
-    println(sol.countNegativesPerWindow(intArrayOf(-3), 1))
 }
 ```
 
@@ -3155,6 +2907,25 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+# Count windows of size k that contain k/2 even and k/2 odd elements.
+function countEqualEvenOddWindows(arr, k):
+    if k mod 2 ≠ 0: return 0                          # odd k can't split evenly
+
+    start ← 0; end ← 0
+    evenCount ← 0; result ← 0
+    while end < length(arr):
+        if arr[end] mod 2 = 0: evenCount ← evenCount + 1     # expand
+        if end − start + 1 > k:                              # contract
+            if arr[start] mod 2 = 0: evenCount ← evenCount − 1
+            start ← start + 1
+        if end − start + 1 = k:                              # process
+            if evenCount = k ÷ 2:
+                result ← result + 1
+        end ← end + 1
+    return result
+```
+
 ```python,editable
 from typing import List
 
@@ -3314,33 +3085,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    countEqualEvenOddWindows(arr, k) {
-        if (k % 2 !== 0) return 0;
-        let start = 0, end = 0, evenCount = 0, result = 0;
-        while (end < arr.length) {
-            if (arr[end] % 2 === 0) evenCount++;
-            if (end - start + 1 > k) {
-                if (arr[start] % 2 === 0) evenCount--;
-                start++;
-            }
-            if (end - start + 1 === k && evenCount === k / 2) result++;
-            end++;
-        }
-        return result;
-    }
-}
-
-const sol = new Solution();
-console.log(sol.countEqualEvenOddWindows([2, 3, 4, 5, 6], 4));
-console.log(sol.countEqualEvenOddWindows([1, 2, 3, 4], 2));
-console.log(sol.countEqualEvenOddWindows([1, 1, 1], 2));
-console.log(sol.countEqualEvenOddWindows([2, 4, 6, 8], 2));
-console.log(sol.countEqualEvenOddWindows([1, 2, 3, 4, 5], 3));
-console.log(sol.countEqualEvenOddWindows([1, 2], 2));
-```
-
 ```typescript,editable
 class Solution {
     countEqualEvenOddWindows(arr: number[], k: number): number {
@@ -3403,38 +3147,6 @@ func main() {
     fmt.Println(countEqualEvenOddWindows([]int{2, 4, 6, 8}, 2))
     fmt.Println(countEqualEvenOddWindows([]int{1, 2, 3, 4, 5}, 3))
     fmt.Println(countEqualEvenOddWindows([]int{1, 2}, 2))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun countEqualEvenOddWindows(arr: IntArray, k: Int): Int {
-        if (k % 2 != 0) return 0
-        var start = 0
-        var end = 0
-        var evenCount = 0
-        var result = 0
-        while (end < arr.size) {
-            if (arr[end] % 2 == 0) evenCount++
-            if (end - start + 1 > k) {
-                if (arr[start] % 2 == 0) evenCount--
-                start++
-            }
-            if (end - start + 1 == k && evenCount == k / 2) result++
-            end++
-        }
-        return result
-    }
-}
-
-fun main() {
-    val sol = Solution()
-    println(sol.countEqualEvenOddWindows(intArrayOf(2, 3, 4, 5, 6), 4))
-    println(sol.countEqualEvenOddWindows(intArrayOf(1, 2, 3, 4), 2))
-    println(sol.countEqualEvenOddWindows(intArrayOf(1, 1, 1), 2))
-    println(sol.countEqualEvenOddWindows(intArrayOf(2, 4, 6, 8), 2))
-    println(sol.countEqualEvenOddWindows(intArrayOf(1, 2, 3, 4, 5), 3))
-    println(sol.countEqualEvenOddWindows(intArrayOf(1, 2), 2))
 }
 ```
 

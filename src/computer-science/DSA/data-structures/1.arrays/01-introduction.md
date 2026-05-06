@@ -463,6 +463,17 @@ Higher-level languages like Python inherently provide a **list** instead of a ra
 
 <div class="lang-tabs">
 
+```pseudocode
+# Four common ways to allocate / initialise an array.
+numbers  ← list of 5 zeros                                   # fixed size, default values
+numbers2 ← [1, 2, 3, 4, 5]                                   # literal initialiser
+sizeN    ← 5
+numbers3 ← list of sizeN zeros                               # length determined at runtime
+numbers4 ← [i for i from 0 to 4]                             # comprehension form
+
+print numbers, numbers2, numbers3, numbers4
+```
+
 ```python,editable
 from typing import List
 
@@ -588,25 +599,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-// JavaScript arrays are dynamic — closer to Python lists than to fixed-size C arrays.
-
-// Fixed-length pre-fill with a default value.
-const numbers = new Array(5).fill(0);
-
-// Array literal — declare and initialise in one go.
-const numbers2 = [1, 2, 3, 4, 5];
-
-// Size known at runtime.
-const sizeN = 5;
-const numbers3 = new Array(sizeN).fill(0);
-
-// Comprehension-style: Array.from with a generator function.
-const numbers4 = Array.from({ length: 5 }, (_, i) => i);
-
-console.log(numbers, numbers2, numbers3, numbers4);
-```
-
 ```typescript,editable
 // TypeScript adds type annotations on top of JavaScript's dynamic arrays.
 
@@ -651,30 +643,6 @@ func main() {
     }
 
     fmt.Println(numbers, numbers2, numbers3, numbers4)
-}
-```
-
-```kotlin,editable
-fun main() {
-    // Kotlin distinguishes IntArray (primitive) from Array<Int> (boxed).
-
-    // Fixed size with default values (IntArray defaults to 0).
-    val numbers = IntArray(5)
-
-    // Declare and initialise.
-    val numbers2 = intArrayOf(1, 2, 3, 4, 5)
-
-    // Size known at runtime.
-    val sizeN = 5
-    val numbers3 = IntArray(sizeN)
-
-    // Comprehension-style: IntArray(size) { initializer-by-index }.
-    val numbers4 = IntArray(5) { i -> i }
-
-    println(numbers.toList())
-    println(numbers2.toList())
-    println(numbers3.toList())
-    println(numbers4.toList())
 }
 ```
 
@@ -736,6 +704,13 @@ arr: array {
 Different languages have different syntax, but the underlying access mechanism is the same for all.
 
 <div class="lang-tabs">
+
+```pseudocode
+numbers ← [1, 2, 3, 4, 5]
+print numbers[0]                                # O(1) direct access — the 1st value
+print numbers[4]                                # the 5th value
+print numbers[length(numbers) − 1]              # the last value
+```
 
 ```python,editable
 from typing import List
@@ -811,17 +786,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const numbers = [1, 2, 3, 4, 5];
-
-// Subscript [] — direct O(1) access by index.
-console.log("1st value:", numbers[0]);   // → 1
-console.log("5th value:", numbers[4]);   // → 5
-
-// JS has no negative indexing on arrays — use .at(-1) (modern) or length - 1.
-console.log("Last value:", numbers.at(-1));
-```
-
 ```typescript,editable
 const numbers: number[] = [1, 2, 3, 4, 5];
 
@@ -847,19 +811,6 @@ func main() {
 
     // No negative indexing in Go — len() - 1 is the idiom.
     fmt.Println("Last value:", numbers[len(numbers)-1])
-}
-```
-
-```kotlin,editable
-fun main() {
-    val numbers = intArrayOf(1, 2, 3, 4, 5)
-
-    // Subscript [] — direct O(1) access by index.
-    println("1st value: ${numbers[0]}")   // → 1
-    println("5th value: ${numbers[4]}")   // → 5
-
-    // .last() returns the final element; or numbers[numbers.size - 1].
-    println("Last value: ${numbers.last()}")
 }
 ```
 
@@ -907,6 +858,14 @@ arr: array {
 <p align="center"><strong>Array elements can be modified via their indices (highlighted = being updated).</strong></p>
 
 <div class="lang-tabs">
+
+```pseudocode
+numbers ← [1, 2, 3, 4, 5]
+# Subscript on the left of ← overwrites the slot in place.
+numbers[0] ← 10
+numbers[2] ← 30
+numbers[4] ← 50
+```
 
 ```python,editable
 from typing import List
@@ -991,19 +950,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const numbers = [1, 2, 3, 4, 5];
-
-// Subscript [] on the LHS overwrites the slot in place.
-numbers[0] = 10;
-numbers[2] = 30;
-numbers[4] = 50;
-
-console.log("1st value:", numbers[0]);   // → 10
-console.log("3rd value:", numbers[2]);   // → 30
-console.log("5th value:", numbers[4]);   // → 50
-```
-
 ```typescript,editable
 const numbers: number[] = [1, 2, 3, 4, 5];
 
@@ -1033,21 +979,6 @@ func main() {
     fmt.Println("1st value:", numbers[0])   // → 10
     fmt.Println("3rd value:", numbers[2])   // → 30
     fmt.Println("5th value:", numbers[4])   // → 50
-}
-```
-
-```kotlin,editable
-fun main() {
-    val numbers = intArrayOf(1, 2, 3, 4, 5)
-
-    // arr[i] = x — IntArray is mutable even when the reference is `val`.
-    numbers[0] = 10
-    numbers[2] = 30
-    numbers[4] = 50
-
-    println("1st value: ${numbers[0]}")   // → 10
-    println("3rd value: ${numbers[2]}")   // → 30
-    println("5th value: ${numbers[4]}")   // → 50
 }
 ```
 
@@ -1086,6 +1017,24 @@ The pointer starts at index `0` and steps forward one cell at a time until it re
 Higher-level languages have built-in functions to get the array's length. For lower-level languages like C/C++, the programmer needs to track the array's size manually.
 
 <div class="lang-tabs">
+
+```pseudocode
+numbers ← [1, 2, 3, 4, 5]
+
+# 1. Index-based for — when the index itself matters.
+for index from 0 to length(numbers) − 1:
+    print numbers[index]
+
+# 2. For-each — when only the value matters.
+for each value in numbers:
+    print value
+
+# 3. While loop — explicit step / skip / early exit.
+index ← 0
+while index < length(numbers):
+    print numbers[index]
+    index ← index + 1
+```
 
 ```python,editable
 from typing import List
@@ -1226,32 +1175,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const numbers = [1, 2, 3, 4, 5];
-
-// 1. Index-based for.
-for (let index = 0; index < numbers.length; index++) {
-    console.log(numbers[index]);
-}
-
-// 2. for...of — direct values.
-for (const value of numbers) {
-    console.log(value);
-}
-
-// 3. .entries() yields [index, value] pairs — JS's enumerate.
-for (const [index, value] of numbers.entries()) {
-    console.log(index, value);
-}
-
-// 4. While loop.
-let i = 0;
-while (i < numbers.length) {
-    console.log(numbers[i]);
-    i++;
-}
-```
-
 ```typescript,editable
 const numbers: number[] = [1, 2, 3, 4, 5];
 
@@ -1305,28 +1228,6 @@ func main() {
     i := 0
     for i < len(numbers) {
         fmt.Println(numbers[i])
-        i++
-    }
-}
-```
-
-```kotlin,editable
-fun main() {
-    val numbers = intArrayOf(1, 2, 3, 4, 5)
-
-    // 1. Index-based for — `indices` is a built-in IntRange.
-    for (index in numbers.indices) println(numbers[index])
-
-    // 2. For-each — direct value iteration.
-    for (value in numbers) println(value)
-
-    // 3. .withIndex() pairs each value with its position.
-    for ((index, value) in numbers.withIndex()) println("$index $value")
-
-    // 4. While loop.
-    var i = 0
-    while (i < numbers.size) {
-        println(numbers[i])
         i++
     }
 }
@@ -1509,6 +1410,18 @@ The power of arrays comes from this formula. Once you know the base address and 
 
 <div class="lang-tabs">
 
+```pseudocode
+# Simulate the subscript operator's address arithmetic for an int array of length 5.
+baseAddress ← 2
+sizeOfInt ← 4                                       # bytes per element
+
+function addressOf(index):
+    return baseAddress + sizeOfInt × index          # the formula every CPU evaluates
+
+for i from 0 to 4:
+    print "value" + (i + 1) + " at index " + i + " → address " + addressOf(i)
+```
+
 ```python,editable
 # Simulate the subscript-operator's address arithmetic for an int array of length 5.
 base_address = 2
@@ -1587,19 +1500,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const BASE_ADDRESS = 2;
-const SIZE_OF_INT  = 4;
-
-function addressOf(index) {
-    return BASE_ADDRESS + SIZE_OF_INT * index;
-}
-
-for (let i = 0; i < 5; i++) {
-    console.log(`value${i + 1} at index ${i} → address ${addressOf(i)}`);
-}
-```
-
 ```typescript,editable
 const BASE_ADDRESS: number = 2;
 const SIZE_OF_INT: number  = 4;
@@ -1628,19 +1528,6 @@ func addressOf(index int) int {
 func main() {
     for i := 0; i < 5; i++ {
         fmt.Printf("value%d at index %d → address %d\n", i+1, i, addressOf(i))
-    }
-}
-```
-
-```kotlin,editable
-const val BASE_ADDRESS = 2
-const val SIZE_OF_INT  = 4
-
-fun addressOf(index: Int): Int = BASE_ADDRESS + SIZE_OF_INT * index
-
-fun main() {
-    for (i in 0 until 5) {
-        println("value${i + 1} at index $i → address ${addressOf(i)}")
     }
 }
 ```
@@ -1835,6 +1722,19 @@ The subscript operator `array[i]` is not magic — it's one multiplication, one 
 
 <div class="lang-tabs">
 
+```pseudocode
+# Full subscript pipeline: address = base + size × index, then read 4 bytes there.
+baseAddress ← 2
+sizeOfInt ← 4
+
+function access(index):
+    addr ← baseAddress + sizeOfInt × index
+    return "array[" + index + "] → address " + addr + " → value" + (index + 1)
+
+for i from 0 to 4:
+    print access(i)
+```
+
 ```python,editable
 # Full subscript pipeline: address = base + size × index, then read 4 bytes.
 base_address = 2
@@ -1913,18 +1813,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const BASE = 2;
-const SIZE = 4;
-
-function access(index) {
-    const addr = BASE + SIZE * index;
-    return `array[${index}] → address ${addr} → value${index + 1}`;
-}
-
-for (let i = 0; i < 5; i++) console.log(access(i));
-```
-
 ```typescript,editable
 const BASE: number = 2;
 const SIZE: number = 4;
@@ -1954,20 +1842,6 @@ func main() {
     for i := 0; i < 5; i++ {
         fmt.Println(access(i))
     }
-}
-```
-
-```kotlin,editable
-const val BASE = 2
-const val SIZE = 4
-
-fun access(index: Int): String {
-    val addr = BASE + SIZE * index
-    return "array[$index] → address $addr → value${index + 1}"
-}
-
-fun main() {
-    for (i in 0 until 5) println(access(i))
 }
 ```
 

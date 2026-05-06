@@ -123,6 +123,21 @@ The cleanup loops are what separate simultaneous traversal from the two-pointer 
 
 <div class="lang-tabs">
 
+```pseudocode
+# Generic simultaneous-traversal template. Customise the two advance hooks per problem.
+function simultaneousTraversal(arr1, arr2):
+    index1 ← 0; index2 ← 0
+    while index1 < length(arr1) AND index2 < length(arr2):
+        if shouldAdvanceArr1(arr1[index1], arr2[index2]):
+            index1 ← index1 + 1
+        if shouldAdvanceArr2(arr1[index1], arr2[index2]):
+            index2 ← index2 + 1
+
+    # Drain leftover — at most one of these two loops actually runs.
+    while index1 < length(arr1): index1 ← index1 + 1
+    while index2 < length(arr2): index2 ← index2 + 1
+```
+
 ```python,editable
 from typing import List
 
@@ -242,25 +257,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function shouldAdvanceArr1(a, b) { return true; }
-function shouldAdvanceArr2(a, b) { return true; }
-
-function simultaneousTraversal(arr1, arr2) {
-    let i1 = 0, i2 = 0;
-    while (i1 < arr1.length && i2 < arr2.length) {
-        if (shouldAdvanceArr1(arr1[i1], arr2[i2])) i1++;
-        if (i1 < arr1.length && i2 < arr2.length
-            && shouldAdvanceArr2(arr1[i1], arr2[i2])) i2++;
-    }
-    while (i1 < arr1.length) i1++;
-    while (i2 < arr2.length) i2++;
-}
-
-simultaneousTraversal([1, 2, 3], [4, 5, 6]);
-console.log("Template ran.");
-```
-
 ```typescript,editable
 function shouldAdvanceArr1(a: number, b: number): boolean { return true; }
 function shouldAdvanceArr2(a: number, b: number): boolean { return true; }
@@ -310,28 +306,6 @@ func simultaneousTraversal(arr1, arr2 []int) {
 func main() {
     simultaneousTraversal([]int{1, 2, 3}, []int{4, 5, 6})
     fmt.Println("Template ran.")
-}
-```
-
-```kotlin,editable
-fun shouldAdvanceArr1(a: Int, b: Int) = true
-fun shouldAdvanceArr2(a: Int, b: Int) = true
-
-fun simultaneousTraversal(arr1: IntArray, arr2: IntArray) {
-    var i1 = 0
-    var i2 = 0
-    while (i1 < arr1.size && i2 < arr2.size) {
-        if (shouldAdvanceArr1(arr1[i1], arr2[i2])) i1++
-        if (i1 < arr1.size && i2 < arr2.size
-            && shouldAdvanceArr2(arr1[i1], arr2[i2])) i2++
-    }
-    while (i1 < arr1.size) i1++
-    while (i2 < arr2.size) i2++
-}
-
-fun main() {
-    simultaneousTraversal(intArrayOf(1, 2, 3), intArrayOf(4, 5, 6))
-    println("Template ran.")
 }
 ```
 
@@ -566,6 +540,21 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+# Brute-force subsequence check via nested loops.
+function isSubsequenceBrute(s, t):
+    j ← 0
+    for i from 0 to length(s) − 1:
+        if j = length(t):
+            return false
+        while j < length(t):
+            if s[i] = t[j]:
+                j ← j + 1
+                break
+            j ← j + 1
+    return true
+```
+
 ```python,editable
 def is_subsequence_brute(s: str, t: str) -> bool:
     j = 0
@@ -674,23 +663,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function isSubsequenceBrute(s, t) {
-    let j = 0;
-    for (let i = 0; i < s.length; i++) {
-        if (j === t.length) return false;
-        while (j < t.length) {
-            if (s[i] === t[j]) { j++; break; }
-            j++;
-        }
-    }
-    return true;
-}
-
-console.log(isSubsequenceBrute("ace", "abcde"));
-console.log(isSubsequenceBrute("aec", "abcde"));
-```
-
 ```typescript,editable
 function isSubsequenceBrute(s: string, t: string): boolean {
     let j = 0;
@@ -733,25 +705,6 @@ func isSubsequenceBrute(s, t string) bool {
 func main() {
     fmt.Println(isSubsequenceBrute("ace", "abcde"))
     fmt.Println(isSubsequenceBrute("aec", "abcde"))
-}
-```
-
-```kotlin,editable
-fun isSubsequenceBrute(s: String, t: String): Boolean {
-    var j = 0
-    for (i in s.indices) {
-        if (j == t.length) return false
-        while (j < t.length) {
-            if (s[i] == t[j]) { j++; break }
-            j++
-        }
-    }
-    return true
-}
-
-fun main() {
-    println(isSubsequenceBrute("ace", "abcde"))
-    println(isSubsequenceBrute("aec", "abcde"))
 }
 ```
 
@@ -851,6 +804,17 @@ flowchart LR
 <p align="center"><strong>Simultaneous traversal — <code>index2</code> always advances; <code>index1</code> only advances on a match. The two-pointer structure makes the logic explicit and easy to follow.</strong></p>
 
 <div class="lang-tabs">
+
+```pseudocode
+# Two-pointer subsequence check. Advance s only on a match; advance t every iteration.
+function subsequenceChecker(s, t):
+    index1 ← 0; index2 ← 0
+    while index1 < length(s) AND index2 < length(t):
+        if s[index1] = t[index2]:
+            index1 ← index1 + 1
+        index2 ← index2 + 1
+    return index1 = length(s)                     # all of s consumed → s is a subsequence
+```
 
 ```python,editable
 class Solution:
@@ -964,25 +928,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    subsequenceChecker(s, t) {
-        let i1 = 0, i2 = 0;
-        while (i1 < s.length && i2 < t.length) {
-            if (s[i1] === t[i2]) i1++;
-            i2++;
-        }
-        return i1 === s.length;
-    }
-}
-
-const sol = new Solution();
-console.log(sol.subsequenceChecker("ace", "abcde"));
-console.log(sol.subsequenceChecker("aec", "abcde"));
-console.log(sol.subsequenceChecker("", "abcde"));
-console.log(sol.subsequenceChecker("abc", ""));
-```
-
 ```typescript,editable
 class Solution {
     subsequenceChecker(s: string, t: string): boolean {
@@ -1023,28 +968,6 @@ func main() {
     fmt.Println(subsequenceChecker("aec", "abcde"))
     fmt.Println(subsequenceChecker("", "abcde"))
     fmt.Println(subsequenceChecker("abc", ""))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun subsequenceChecker(s: String, t: String): Boolean {
-        var i1 = 0
-        var i2 = 0
-        while (i1 < s.length && i2 < t.length) {
-            if (s[i1] == t[i2]) i1++
-            i2++
-        }
-        return i1 == s.length
-    }
-}
-
-fun main() {
-    val sol = Solution()
-    println(sol.subsequenceChecker("ace", "abcde"))
-    println(sol.subsequenceChecker("aec", "abcde"))
-    println(sol.subsequenceChecker("", "abcde"))
-    println(sol.subsequenceChecker("abc", ""))
 }
 ```
 
@@ -1208,6 +1131,17 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+# Same algorithm as `subsequenceChecker` — re-listed under the standard name.
+function isSubsequence(s, t):
+    index1 ← 0; index2 ← 0
+    while index1 < length(s) AND index2 < length(t):
+        if s[index1] = t[index2]:
+            index1 ← index1 + 1
+        index2 ← index2 + 1
+    return index1 = length(s)
+```
+
 ```python,editable
 class Solution:
     def is_subsequence(self, s: str, t: str) -> bool:
@@ -1326,26 +1260,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    isSubsequence(s, t) {
-        let i1 = 0, i2 = 0;
-        while (i1 < s.length && i2 < t.length) {
-            if (s[i1] === t[i2]) i1++;
-            i2++;
-        }
-        return i1 === s.length;
-    }
-}
-
-const sol = new Solution();
-console.log(sol.isSubsequence("ace", "abcde"));
-console.log(sol.isSubsequence("aec", "abcde"));
-console.log(sol.isSubsequence("", "abc"));
-console.log(sol.isSubsequence("abc", ""));
-console.log(sol.isSubsequence("abc", "abc"));
-```
-
 ```typescript,editable
 class Solution {
     isSubsequence(s: string, t: string): boolean {
@@ -1388,29 +1302,6 @@ func main() {
     fmt.Println(isSubsequence("", "abc"))
     fmt.Println(isSubsequence("abc", ""))
     fmt.Println(isSubsequence("abc", "abc"))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun isSubsequence(s: String, t: String): Boolean {
-        var i1 = 0
-        var i2 = 0
-        while (i1 < s.length && i2 < t.length) {
-            if (s[i1] == t[i2]) i1++
-            i2++
-        }
-        return i1 == s.length
-    }
-}
-
-fun main() {
-    val sol = Solution()
-    println(sol.isSubsequence("ace", "abcde"))
-    println(sol.isSubsequence("aec", "abcde"))
-    println(sol.isSubsequence("", "abc"))
-    println(sol.isSubsequence("abc", ""))
-    println(sol.isSubsequence("abc", "abc"))
 }
 ```
 
@@ -1687,6 +1578,25 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+# Merge arr2 into arr1 in-place. arr1 has m real elements + n trailing zeros.
+# Backward fill: write from the back so we never overwrite unread data.
+function mergeSortedArrays(arr1, m, arr2, n):
+    i1 ← m − 1; i2 ← n − 1; i3 ← m + n − 1
+    while i1 ≥ 0 AND i2 ≥ 0:
+        if arr1[i1] > arr2[i2]:
+            arr1[i3] ← arr1[i1]
+            i1 ← i1 − 1
+        else:
+            arr1[i3] ← arr2[i2]
+            i2 ← i2 − 1
+        i3 ← i3 − 1
+    while i2 ≥ 0:                                 # leftover arr2 elements (smaller than all placed)
+        arr1[i3] ← arr2[i2]
+        i2 ← i2 − 1
+        i3 ← i3 − 1
+```
+
 ```python,editable
 from typing import List
 
@@ -1864,27 +1774,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    mergeSortedArrays(arr1, m, arr2, n) {
-        let i1 = m - 1, i2 = n - 1, i3 = m + n - 1;
-        while (i1 >= 0 && i2 >= 0) {
-            if (arr1[i1] > arr2[i2]) { arr1[i3] = arr1[i1]; i1--; }
-            else                     { arr1[i3] = arr2[i2]; i2--; }
-            i3--;
-        }
-        while (i2 >= 0) { arr1[i3] = arr2[i2]; i2--; i3--; }
-    }
-}
-
-const sol = new Solution();
-
-let a1 = [1, 2, 3, 0, 0]; sol.mergeSortedArrays(a1, 3, [4, 5], 2); console.log(a1);
-let a2 = [1, 2, 5, 0, 0]; sol.mergeSortedArrays(a2, 3, [3, 4], 2); console.log(a2);
-let a3 = [1];             sol.mergeSortedArrays(a3, 1, [], 0);     console.log(a3);
-let a4 = [0];             sol.mergeSortedArrays(a4, 0, [1], 1);    console.log(a4);
-```
-
 ```typescript,editable
 class Solution {
     mergeSortedArrays(arr1: number[], m: number, arr2: number[], n: number): void {
@@ -1935,31 +1824,6 @@ func main() {
     a2 := []int{1, 2, 5, 0, 0}; mergeSortedArrays(a2, 3, []int{3, 4}, 2); fmt.Println(a2)
     a3 := []int{1};             mergeSortedArrays(a3, 1, []int{}, 0);     fmt.Println(a3)
     a4 := []int{0};             mergeSortedArrays(a4, 0, []int{1}, 1);    fmt.Println(a4)
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun mergeSortedArrays(arr1: IntArray, m: Int, arr2: IntArray, n: Int) {
-        var i1 = m - 1
-        var i2 = n - 1
-        var i3 = m + n - 1
-        while (i1 >= 0 && i2 >= 0) {
-            if (arr1[i1] > arr2[i2]) { arr1[i3] = arr1[i1]; i1-- }
-            else                     { arr1[i3] = arr2[i2]; i2-- }
-            i3--
-        }
-        while (i2 >= 0) { arr1[i3] = arr2[i2]; i2--; i3-- }
-    }
-}
-
-fun main() {
-    val sol = Solution()
-
-    val a1 = intArrayOf(1, 2, 3, 0, 0); sol.mergeSortedArrays(a1, 3, intArrayOf(4, 5), 2); println(a1.toList())
-    val a2 = intArrayOf(1, 2, 5, 0, 0); sol.mergeSortedArrays(a2, 3, intArrayOf(3, 4), 2); println(a2.toList())
-    val a3 = intArrayOf(1);             sol.mergeSortedArrays(a3, 1, intArrayOf(), 0);    println(a3.toList())
-    val a4 = intArrayOf(0);             sol.mergeSortedArrays(a4, 0, intArrayOf(1), 1);   println(a4.toList())
 }
 ```
 
@@ -2163,6 +2027,20 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+# Brute-force unique intersections — O(n × m) nested loops + Set for de-duplication.
+function uniqueIntersectionsBrute(arr1, arr2):
+    seen ← empty Set
+    result ← empty list
+    for each x in arr1:
+        for each y in arr2:
+            if x = y AND x is not in seen:
+                append x to result
+                add x to seen
+                break
+    return result
+```
+
 ```python,editable
 from typing import List
 
@@ -2284,25 +2162,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function uniqueIntersectionsBrute(arr1, arr2) {
-    const seen = new Set();
-    const result = [];
-    for (const x of arr1) {
-        for (const y of arr2) {
-            if (x === y && !seen.has(x)) {
-                result.push(x);
-                seen.add(x);
-                break;
-            }
-        }
-    }
-    return result;
-}
-
-console.log(uniqueIntersectionsBrute([1, 2, 2, 3, 4], [2, 2, 3, 5]));
-```
-
 ```typescript,editable
 function uniqueIntersectionsBrute(arr1: number[], arr2: number[]): number[] {
     const seen = new Set<number>();
@@ -2347,27 +2206,6 @@ func main() {
 }
 ```
 
-```kotlin,editable
-fun uniqueIntersectionsBrute(arr1: IntArray, arr2: IntArray): List<Int> {
-    val seen = mutableSetOf<Int>()
-    val result = mutableListOf<Int>()
-    for (x in arr1) {
-        for (y in arr2) {
-            if (x == y && x !in seen) {
-                result.add(x)
-                seen.add(x)
-                break
-            }
-        }
-    }
-    return result
-}
-
-fun main() {
-    println(uniqueIntersectionsBrute(intArrayOf(1, 2, 2, 3, 4), intArrayOf(2, 2, 3, 5)))
-}
-```
-
 ```rust,editable
 use std::collections::HashSet;
 
@@ -2400,6 +2238,26 @@ Works, but rescans `arr2` for every element in `arr1` — O(N × M) and easy to 
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Sort both, walk simultaneously. Skip duplicates by comparing against the last recorded result.
+function uniqueIntersections(arr1, arr2):
+    sort arr1 in place
+    sort arr2 in place
+    result ← empty list
+    i ← 0; j ← 0
+    while i < length(arr1) AND j < length(arr2):
+        if arr1[i] = arr2[j]:
+            if result is empty OR last(result) ≠ arr1[i]:
+                append arr1[i] to result          # de-dup against previous record
+            i ← i + 1
+            j ← j + 1
+        else if arr1[i] < arr2[j]:
+            i ← i + 1
+        else:
+            j ← j + 1
+    return result
+```
 
 ```python,editable
 from typing import List
@@ -2580,36 +2438,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    uniqueIntersections(arr1, arr2) {
-        arr1.sort((a, b) => a - b);
-        arr2.sort((a, b) => a - b);
-        const result = [];
-        let i = 0, j = 0;
-        while (i < arr1.length && j < arr2.length) {
-            if (arr1[i] === arr2[j]) {
-                if (result.length === 0 || result[result.length - 1] !== arr1[i])
-                    result.push(arr1[i]);
-                i++; j++;
-            } else if (arr1[i] < arr2[j]) {
-                i++;
-            } else {
-                j++;
-            }
-        }
-        return result;
-    }
-}
-
-const sol = new Solution();
-console.log(sol.uniqueIntersections([1, 2, 2, 3, 4], [2, 2, 3, 5]));
-console.log(sol.uniqueIntersections([1, 3, 5], [2, 4, 6]));
-console.log(sol.uniqueIntersections([2, 2, 2], [2, 2]));
-console.log(sol.uniqueIntersections([1, 2, 3, 4, 5], [1, 3, 5, 7]));
-console.log(sol.uniqueIntersections([], [1, 2, 3]));
-```
-
 ```typescript,editable
 class Solution {
     uniqueIntersections(arr1: number[], arr2: number[]): number[] {
@@ -2676,38 +2504,6 @@ func main() {
     fmt.Println(uniqueIntersections([]int{2, 2, 2}, []int{2, 2}))
     fmt.Println(uniqueIntersections([]int{1, 2, 3, 4, 5}, []int{1, 3, 5, 7}))
     fmt.Println(uniqueIntersections([]int{}, []int{1, 2, 3}))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun uniqueIntersections(arr1: IntArray, arr2: IntArray): List<Int> {
-        arr1.sort()
-        arr2.sort()
-        val result = mutableListOf<Int>()
-        var i = 0
-        var j = 0
-        while (i < arr1.size && j < arr2.size) {
-            when {
-                arr1[i] == arr2[j] -> {
-                    if (result.isEmpty() || result.last() != arr1[i]) result.add(arr1[i])
-                    i++; j++
-                }
-                arr1[i] < arr2[j] -> i++
-                else              -> j++
-            }
-        }
-        return result
-    }
-}
-
-fun main() {
-    val sol = Solution()
-    println(sol.uniqueIntersections(intArrayOf(1, 2, 2, 3, 4), intArrayOf(2, 2, 3, 5)))
-    println(sol.uniqueIntersections(intArrayOf(1, 3, 5), intArrayOf(2, 4, 6)))
-    println(sol.uniqueIntersections(intArrayOf(2, 2, 2), intArrayOf(2, 2)))
-    println(sol.uniqueIntersections(intArrayOf(1, 2, 3, 4, 5), intArrayOf(1, 3, 5, 7)))
-    println(sol.uniqueIntersections(intArrayOf(), intArrayOf(1, 2, 3)))
 }
 ```
 
@@ -2906,6 +2702,25 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+# Same as uniqueIntersections, but record EVERY match — duplicates included.
+function repeatedIntersections(arr1, arr2):
+    sort arr1 in place
+    sort arr2 in place
+    result ← empty list
+    i ← 0; j ← 0
+    while i < length(arr1) AND j < length(arr2):
+        if arr1[i] = arr2[j]:
+            append arr1[i] to result              # always record
+            i ← i + 1
+            j ← j + 1
+        else if arr1[i] < arr2[j]:
+            i ← i + 1
+        else:
+            j ← j + 1
+    return result
+```
+
 ```python,editable
 from typing import List
 
@@ -3077,35 +2892,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    repeatedIntersections(arr1, arr2) {
-        arr1.sort((a, b) => a - b);
-        arr2.sort((a, b) => a - b);
-        const result = [];
-        let i = 0, j = 0;
-        while (i < arr1.length && j < arr2.length) {
-            if (arr1[i] === arr2[j]) {
-                result.push(arr1[i]);
-                i++; j++;
-            } else if (arr1[i] < arr2[j]) {
-                i++;
-            } else {
-                j++;
-            }
-        }
-        return result;
-    }
-}
-
-const sol = new Solution();
-console.log(sol.repeatedIntersections([1, 2, 2, 3], [2, 2, 3, 3]));
-console.log(sol.repeatedIntersections([2, 2, 2], [2, 2]));
-console.log(sol.repeatedIntersections([1, 3, 5], [2, 4, 6]));
-console.log(sol.repeatedIntersections([1, 2, 3], [1, 2, 3]));
-console.log(sol.repeatedIntersections([], [1, 2]));
-```
-
 ```typescript,editable
 class Solution {
     repeatedIntersections(arr1: number[], arr2: number[]): number[] {
@@ -3169,38 +2955,6 @@ func main() {
     fmt.Println(repeatedIntersections([]int{1, 3, 5}, []int{2, 4, 6}))
     fmt.Println(repeatedIntersections([]int{1, 2, 3}, []int{1, 2, 3}))
     fmt.Println(repeatedIntersections([]int{}, []int{1, 2}))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun repeatedIntersections(arr1: IntArray, arr2: IntArray): List<Int> {
-        arr1.sort()
-        arr2.sort()
-        val result = mutableListOf<Int>()
-        var i = 0
-        var j = 0
-        while (i < arr1.size && j < arr2.size) {
-            when {
-                arr1[i] == arr2[j] -> {
-                    result.add(arr1[i])
-                    i++; j++
-                }
-                arr1[i] < arr2[j] -> i++
-                else              -> j++
-            }
-        }
-        return result
-    }
-}
-
-fun main() {
-    val sol = Solution()
-    println(sol.repeatedIntersections(intArrayOf(1, 2, 2, 3), intArrayOf(2, 2, 3, 3)))
-    println(sol.repeatedIntersections(intArrayOf(2, 2, 2), intArrayOf(2, 2)))
-    println(sol.repeatedIntersections(intArrayOf(1, 3, 5), intArrayOf(2, 4, 6)))
-    println(sol.repeatedIntersections(intArrayOf(1, 2, 3), intArrayOf(1, 2, 3)))
-    println(sol.repeatedIntersections(intArrayOf(), intArrayOf(1, 2)))
 }
 ```
 

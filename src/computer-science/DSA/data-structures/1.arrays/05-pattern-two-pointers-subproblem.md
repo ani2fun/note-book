@@ -134,6 +134,18 @@ temp -> copy: "pass 2: copy back"
 
 <div class="lang-tabs">
 
+```pseudocode
+# Brute-force left rotation by k. Build a rotated copy in temp, then write it back.
+function kRotate(arr, k):
+    n ← length(arr)
+    k ← k mod n                                   # k > n is just (k mod n) rotations
+    temp ← list of n zeros
+    for i from 0 to n − 1:
+        temp[i] ← arr[(i + k) mod n]              # source index wraps with mod n
+    for i from 0 to n − 1:
+        arr[i] ← temp[i]
+```
+
 ```python,editable
 from typing import List
 
@@ -230,20 +242,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function kRotate(arr, k) {
-    const n = arr.length;
-    k = k % n;
-    const temp = new Array(n);
-    for (let i = 0; i < n; i++) temp[i] = arr[(i + k) % n];
-    for (let i = 0; i < n; i++) arr[i]  = temp[i];
-}
-
-const arr = [1, 2, 3, 4, 5, 6, 7, 8];
-kRotate(arr, 4);
-console.log(arr);
-```
-
 ```typescript,editable
 function kRotate(arr: number[], k: number): void {
     const n = arr.length;
@@ -279,22 +277,6 @@ func main() {
     arr := []int{1, 2, 3, 4, 5, 6, 7, 8}
     kRotate(arr, 4)
     fmt.Println(arr)
-}
-```
-
-```kotlin,editable
-fun kRotate(arr: IntArray, k0: Int) {
-    val n = arr.size
-    val k = k0 % n
-    val temp = IntArray(n)
-    for (i in 0 until n) temp[i] = arr[(i + k) % n]
-    for (i in 0 until n) arr[i]  = temp[i]
-}
-
-fun main() {
-    val arr = intArrayOf(1, 2, 3, 4, 5, 6, 7, 8)
-    kRotate(arr, 4)
-    println(arr.toList())
 }
 ```
 
@@ -471,6 +453,23 @@ Each reversal is a direct two-pointer application (`left++`, `right--`, swap unt
 
 <div class="lang-tabs">
 
+```pseudocode
+# Three-reversal trick — left rotation by k with O(1) extra space.
+# Reverse left half, reverse right half, reverse the whole thing.
+function reverse(arr, start, end):
+    while start < end:
+        swap arr[start] and arr[end]
+        start ← start + 1
+        end ← end − 1
+
+function kRotations(arr, k):
+    n ← length(arr)
+    k ← k mod n
+    reverse(arr, 0, k − 1)                        # reverse left half
+    reverse(arr, k, n − 1)                        # reverse right half
+    reverse(arr, 0, n − 1)                        # reverse the whole array
+```
+
 ```python,editable
 from typing import List
 
@@ -619,29 +618,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    reverse(arr, start, end) {
-        while (start < end) {
-            [arr[start], arr[end]] = [arr[end], arr[start]];
-            start++;
-            end--;
-        }
-    }
-    kRotations(arr, k) {
-        const n = arr.length;
-        k %= n;
-        this.reverse(arr, 0, k - 1);
-        this.reverse(arr, k, n - 1);
-        this.reverse(arr, 0, n - 1);
-    }
-}
-
-const arr = [1, 2, 3, 4, 5, 6, 7, 8];
-new Solution().kRotations(arr, 4);
-console.log(arr);
-```
-
 ```typescript,editable
 class Solution {
     reverse(arr: number[], start: number, end: number): void {
@@ -690,36 +666,6 @@ func main() {
     arr := []int{1, 2, 3, 4, 5, 6, 7, 8}
     kRotations(arr, 4)
     fmt.Println(arr)
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun reverse(arr: IntArray, s0: Int, e0: Int) {
-        var start = s0
-        var end = e0
-        while (start < end) {
-            val tmp = arr[start]
-            arr[start] = arr[end]
-            arr[end]   = tmp
-            start++
-            end--
-        }
-    }
-
-    fun kRotations(arr: IntArray, k0: Int) {
-        val n = arr.size
-        val k = k0 % n
-        reverse(arr, 0, k - 1)
-        reverse(arr, k, n - 1)
-        reverse(arr, 0, n - 1)
-    }
-}
-
-fun main() {
-    val arr = intArrayOf(1, 2, 3, 4, 5, 6, 7, 8)
-    Solution().kRotations(arr, 4)
-    println(arr.toList())
 }
 ```
 
@@ -959,6 +905,23 @@ s2 -> s3: "reverse arr[0..4]"
 
 <div class="lang-tabs">
 
+```pseudocode
+# Three-reversal for RIGHT rotation. HEAD = arr[0..n−k−1], TAIL = arr[n−k..n−1].
+# Want [TAIL | HEAD]: reverse each half, then reverse the whole thing.
+function reverse(arr, start, end):
+    while start < end:
+        swap arr[start] and arr[end]
+        start ← start + 1; end ← end − 1
+
+function rotateRight(arr, k):
+    n ← length(arr)
+    k ← k mod n
+    if k = 0: return
+    reverse(arr, n − k, n − 1)                    # reverse the tail
+    reverse(arr, 0, n − k − 1)                    # reverse the head
+    reverse(arr, 0, n − 1)                        # reverse the whole array
+```
+
 ```python,editable
 from typing import List
 
@@ -1112,30 +1075,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    reverse(arr, start, end) {
-        while (start < end) {
-            [arr[start], arr[end]] = [arr[end], arr[start]];
-            start++;
-            end--;
-        }
-    }
-    rotateRight(arr, k) {
-        const n = arr.length;
-        k %= n;
-        if (k === 0) return;
-        this.reverse(arr, n - k, n - 1);
-        this.reverse(arr, 0, n - k - 1);
-        this.reverse(arr, 0, n - 1);
-    }
-}
-
-const arr = [1, 2, 3, 4, 5];
-new Solution().rotateRight(arr, 3);
-console.log(arr);
-```
-
 ```typescript,editable
 class Solution {
     reverse(arr: number[], start: number, end: number): void {
@@ -1188,37 +1127,6 @@ func main() {
     arr := []int{1, 2, 3, 4, 5}
     rotateRight(arr, 3)
     fmt.Println(arr)
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun reverse(arr: IntArray, s0: Int, e0: Int) {
-        var start = s0
-        var end = e0
-        while (start < end) {
-            val tmp = arr[start]
-            arr[start] = arr[end]
-            arr[end]   = tmp
-            start++
-            end--
-        }
-    }
-
-    fun rotateRight(arr: IntArray, k0: Int) {
-        val n = arr.size
-        val k = k0 % n
-        if (k == 0) return
-        reverse(arr, n - k, n - 1)
-        reverse(arr, 0, n - k - 1)
-        reverse(arr, 0, n - 1)
-    }
-}
-
-fun main() {
-    val arr = intArrayOf(1, 2, 3, 4, 5)
-    Solution().rotateRight(arr, 3)
-    println(arr.toList())
 }
 ```
 
@@ -1468,6 +1376,31 @@ Since the array is sorted, if `arr[i] > 0`, then `arr[left] ≥ arr[i] > 0` and 
 
 <div class="lang-tabs">
 
+```pseudocode
+# Three-sum: triplets summing to 0. Fix one element, then two-sum the rest.
+function threeSum(arr):
+    sort arr in place
+    n ← length(arr)
+    result ← empty list
+    for i from 0 to n − 3:
+        if arr[i] > 0: break                      # all remaining are positive — impossible
+        if i > 0 AND arr[i] = arr[i − 1]: continue   # skip duplicate fixed elements
+        left ← i + 1; right ← n − 1
+        target ← −arr[i]
+        while left < right:
+            total ← arr[left] + arr[right]
+            if total = target:
+                append [arr[i], arr[left], arr[right]] to result
+                while left < right AND arr[left]  = arr[left + 1]:  left  ← left + 1
+                while left < right AND arr[right] = arr[right − 1]: right ← right − 1
+                left ← left + 1; right ← right − 1
+            else if total < target:
+                left ← left + 1
+            else:
+                right ← right − 1
+    return result
+```
+
 ```python,editable
 from typing import List
 
@@ -1685,44 +1618,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    threeSum(arr) {
-        arr.sort((a, b) => a - b);
-        const n = arr.length;
-        const result = [];
-
-        for (let i = 0; i < n - 2; i++) {
-            if (arr[i] > 0) break;
-            if (i > 0 && arr[i] === arr[i - 1]) continue;
-            let left = i + 1, right = n - 1;
-            const target = -arr[i];
-            while (left < right) {
-                const total = arr[left] + arr[right];
-                if (total === target) {
-                    result.push([arr[i], arr[left], arr[right]]);
-                    while (left < right && arr[left]  === arr[left + 1])  left++;
-                    while (left < right && arr[right] === arr[right - 1]) right--;
-                    left++;
-                    right--;
-                } else if (total < target) {
-                    left++;
-                } else {
-                    right--;
-                }
-            }
-        }
-        return result;
-    }
-}
-
-const sol = new Solution();
-console.log(sol.threeSum([-1, 0, 1, 2, -1, -4]));
-console.log(sol.threeSum([0, 0, 0, 0]));
-console.log(sol.threeSum([1, 2, 3]));
-console.log(sol.threeSum([-2, 0, 0, 2, 2]));
-```
-
 ```typescript,editable
 class Solution {
     threeSum(arr: number[]): number[][] {
@@ -1810,47 +1705,6 @@ func main() {
     fmt.Println(threeSum([]int{0, 0, 0, 0}))
     fmt.Println(threeSum([]int{1, 2, 3}))
     fmt.Println(threeSum([]int{-2, 0, 0, 2, 2}))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun threeSum(arr: IntArray): List<List<Int>> {
-        arr.sort()
-        val n = arr.size
-        val result = mutableListOf<List<Int>>()
-
-        for (i in 0 until n - 2) {
-            if (arr[i] > 0) break
-            if (i > 0 && arr[i] == arr[i - 1]) continue
-            var left = i + 1
-            var right = n - 1
-            val target = -arr[i]
-            while (left < right) {
-                val total = arr[left] + arr[right]
-                when {
-                    total == target -> {
-                        result.add(listOf(arr[i], arr[left], arr[right]))
-                        while (left < right && arr[left]  == arr[left + 1])  left++
-                        while (left < right && arr[right] == arr[right - 1]) right--
-                        left++
-                        right--
-                    }
-                    total < target -> left++
-                    else           -> right--
-                }
-            }
-        }
-        return result
-    }
-}
-
-fun main() {
-    val sol = Solution()
-    println(sol.threeSum(intArrayOf(-1, 0, 1, 2, -1, -4)))
-    println(sol.threeSum(intArrayOf(0, 0, 0, 0)))
-    println(sol.threeSum(intArrayOf(1, 2, 3)))
-    println(sol.threeSum(intArrayOf(-2, 0, 0, 2, 2)))
 }
 ```
 
@@ -2101,6 +1955,27 @@ At every step we moved purposefully toward a larger sum because the current tota
 
 <div class="lang-tabs">
 
+```pseudocode
+# Three-sum-closest: find the triplet whose sum is nearest `target`.
+function threeSumClosest(arr, target):
+    sort arr in place
+    n ← length(arr)
+    closest ← arr[0] + arr[1] + arr[2]            # seed with any valid triplet
+    for i from 0 to n − 3:
+        left ← i + 1; right ← n − 1
+        while left < right:
+            total ← arr[i] + arr[left] + arr[right]
+            if |total − target| < |closest − target|:
+                closest ← total
+            if total = target:
+                return total                      # distance 0 — can't beat that
+            else if total < target:
+                left ← left + 1
+            else:
+                right ← right − 1
+    return closest
+```
+
 ```python,editable
 from typing import List
 
@@ -2262,33 +2137,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    threeSumClosest(arr, target) {
-        arr.sort((a, b) => a - b);
-        const n = arr.length;
-        let closest = arr[0] + arr[1] + arr[2];
-
-        for (let i = 0; i < n - 2; i++) {
-            let left = i + 1, right = n - 1;
-            while (left < right) {
-                const total = arr[i] + arr[left] + arr[right];
-                if (Math.abs(total - target) < Math.abs(closest - target)) closest = total;
-                if (total === target) return total;
-                else if (total < target) left++;
-                else                     right--;
-            }
-        }
-        return closest;
-    }
-}
-
-const sol = new Solution();
-console.log(sol.threeSumClosest([2, 7, 11, 15], 3));
-console.log(sol.threeSumClosest([-1, 2, 1, -4], 1));
-console.log(sol.threeSumClosest([0, 0, 0], 1));
-```
-
 ```typescript,editable
 class Solution {
     threeSumClosest(arr: number[], target: number): number {
@@ -2355,40 +2203,6 @@ func main() {
     fmt.Println(threeSumClosest([]int{2, 7, 11, 15}, 3))
     fmt.Println(threeSumClosest([]int{-1, 2, 1, -4}, 1))
     fmt.Println(threeSumClosest([]int{0, 0, 0}, 1))
-}
-```
-
-```kotlin,editable
-import kotlin.math.abs
-
-class Solution {
-    fun threeSumClosest(arr: IntArray, target: Int): Int {
-        arr.sort()
-        val n = arr.size
-        var closest = arr[0] + arr[1] + arr[2]
-
-        for (i in 0 until n - 2) {
-            var left = i + 1
-            var right = n - 1
-            while (left < right) {
-                val total = arr[i] + arr[left] + arr[right]
-                if (abs(total - target) < abs(closest - target)) closest = total
-                when {
-                    total == target -> return total
-                    total < target  -> left++
-                    else            -> right--
-                }
-            }
-        }
-        return closest
-    }
-}
-
-fun main() {
-    val sol = Solution()
-    println(sol.threeSumClosest(intArrayOf(2, 7, 11, 15), 3))
-    println(sol.threeSumClosest(intArrayOf(-1, 2, 1, -4), 1))
-    println(sol.threeSumClosest(intArrayOf(0, 0, 0), 1))
 }
 ```
 
@@ -2679,6 +2493,32 @@ The `j > i+1` guard for the inner skip is important — without it, `j = i+1` wo
 
 <div class="lang-tabs">
 
+```pseudocode
+# Four-sum: quadruples summing to target. Fix two elements (i, j), then two-sum the rest.
+function fourSum(arr, target):
+    sort arr in place
+    n ← length(arr)
+    result ← empty list
+    for i from 0 to n − 4:
+        if i > 0 AND arr[i] = arr[i − 1]: continue   # skip duplicate i
+        for j from i + 1 to n − 3:
+            if j > i + 1 AND arr[j] = arr[j − 1]: continue   # skip duplicate j (relative to fixed i)
+            left ← j + 1; right ← n − 1
+            need ← target − arr[i] − arr[j]
+            while left < right:
+                total ← arr[left] + arr[right]
+                if total = need:
+                    append [arr[i], arr[j], arr[left], arr[right]] to result
+                    while left < right AND arr[left]  = arr[left + 1]:  left  ← left + 1
+                    while left < right AND arr[right] = arr[right − 1]: right ← right − 1
+                    left ← left + 1; right ← right − 1
+                else if total < need:
+                    left ← left + 1
+                else:
+                    right ← right − 1
+    return result
+```
+
 ```python,editable
 from typing import List
 
@@ -2911,46 +2751,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    fourSum(arr, target) {
-        arr.sort((a, b) => a - b);
-        const n = arr.length;
-        const result = [];
-
-        for (let i = 0; i < n - 3; i++) {
-            if (i > 0 && arr[i] === arr[i - 1]) continue;
-            for (let j = i + 1; j < n - 2; j++) {
-                if (j > i + 1 && arr[j] === arr[j - 1]) continue;
-                let left = j + 1, right = n - 1;
-                const need = target - arr[i] - arr[j];
-                while (left < right) {
-                    const total = arr[left] + arr[right];
-                    if (total === need) {
-                        result.push([arr[i], arr[j], arr[left], arr[right]]);
-                        while (left < right && arr[left]  === arr[left + 1])  left++;
-                        while (left < right && arr[right] === arr[right - 1]) right--;
-                        left++;
-                        right--;
-                    } else if (total < need) {
-                        left++;
-                    } else {
-                        right--;
-                    }
-                }
-            }
-        }
-        return result;
-    }
-}
-
-const sol = new Solution();
-console.log(sol.fourSum([1, 0, -1, 0, -2, 2], 0));
-console.log(sol.fourSum([2, 2, 2, 2, 2], 8));
-console.log(sol.fourSum([1, 2, 3, 4], 100));
-console.log(sol.fourSum([0, 0, 0, 0], 0));
-```
-
 ```typescript,editable
 class Solution {
     fourSum(arr: number[], target: number): number[][] {
@@ -3043,49 +2843,6 @@ func main() {
     fmt.Println(fourSum([]int{2, 2, 2, 2, 2}, 8))
     fmt.Println(fourSum([]int{1, 2, 3, 4}, 100))
     fmt.Println(fourSum([]int{0, 0, 0, 0}, 0))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun fourSum(arr: IntArray, target: Int): List<List<Int>> {
-        arr.sort()
-        val n = arr.size
-        val result = mutableListOf<List<Int>>()
-
-        for (i in 0 until n - 3) {
-            if (i > 0 && arr[i] == arr[i - 1]) continue
-            for (j in (i + 1) until (n - 2)) {
-                if (j > i + 1 && arr[j] == arr[j - 1]) continue
-                var left = j + 1
-                var right = n - 1
-                val need = target - arr[i] - arr[j]
-                while (left < right) {
-                    val total = arr[left] + arr[right]
-                    when {
-                        total == need -> {
-                            result.add(listOf(arr[i], arr[j], arr[left], arr[right]))
-                            while (left < right && arr[left]  == arr[left + 1])  left++
-                            while (left < right && arr[right] == arr[right - 1]) right--
-                            left++
-                            right--
-                        }
-                        total < need -> left++
-                        else         -> right--
-                    }
-                }
-            }
-        }
-        return result
-    }
-}
-
-fun main() {
-    val sol = Solution()
-    println(sol.fourSum(intArrayOf(1, 0, -1, 0, -2, 2), 0))
-    println(sol.fourSum(intArrayOf(2, 2, 2, 2, 2), 8))
-    println(sol.fourSum(intArrayOf(1, 2, 3, 4), 100))
-    println(sol.fourSum(intArrayOf(0, 0, 0, 0), 0))
 }
 ```
 
