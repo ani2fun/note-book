@@ -337,6 +337,18 @@ As we already learned, the node of a doubly linked list is just an extension of 
 
 <div class="lang-tabs">
 
+```pseudocode
+class ListNode:
+    field val
+    field prev                                         # null if head
+    field next                                         # null if tail
+
+a ← new ListNode(5)
+b ← new ListNode(7)
+a.next ← b                                              # forward link a → b
+b.prev ← a                                              # MUST mirror the forward link
+```
+
 ```python,editable
 class ListNode:
     def __init__(self, val=0, prev=None, next=None):
@@ -444,22 +456,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode {
-    constructor(val = 0, prev = null, next = null) {
-        this.val  = val;    // The data this node holds
-        this.prev = prev;   // Reference to the previous node; null if head
-        this.next = next;   // Reference to the next     node; null if tail
-    }
-}
-
-const a = new ListNode(5);
-const b = new ListNode(7);
-a.next = b;   // Forward link
-b.prev = a;   // Backward link — keep both sides in sync
-console.log(a.val + " <-> " + b.val);  // 5 <-> 7
-```
-
 ```typescript,editable
 class ListNode {
     val:  number;
@@ -501,22 +497,6 @@ func main() {
     a.Next = b   // Forward
     b.Prev = a   // Backward — mirror the forward link
     fmt.Printf("%d <-> %d\n", a.Val, b.Val)  // 5 <-> 7
-}
-```
-
-```kotlin,editable
-class ListNode(
-    var `val`: Int       = 0,
-    var prev:  ListNode? = null,   // Predecessor; null if head
-    var next:  ListNode? = null,   // Successor;   null if tail
-)
-
-fun main() {
-    val a = ListNode(5)
-    val b = ListNode(7)
-    a.next = b   // Forward
-    b.prev = a   // Backward
-    println("${a.`val`} <-> ${b.`val`}")  // 5 <-> 7
 }
 ```
 

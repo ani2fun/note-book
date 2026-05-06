@@ -137,6 +137,37 @@ Below is the generic implementation that splits a DLL into two using `f1` and me
 
 <div class="lang-tabs">
 
+```pseudocode
+function reorder_nodes(head, f1, f2):
+    # Phase 1 — split by classifier f1
+    dummyA ← new node; tailA ← dummyA
+    dummyB ← new node; tailB ← dummyB
+    current ← head
+    while current ≠ null:
+        if f1(current):
+            tailA.next ← current; current.prev ← tailA; tailA ← tailA.next
+        else:
+            tailB.next ← current; current.prev ← tailB; tailB ← tailB.next
+        current ← current.next
+    tailA.next ← null; tailB.next ← null
+    currentA ← dummyA.next; currentB ← dummyB.next
+    if currentA ≠ null: currentA.prev ← null
+    if currentB ≠ null: currentB.prev ← null
+    # Phase 2 — merge by selector f2
+    dummy ← new node; tail ← dummy
+    while currentA ≠ null AND currentB ≠ null:
+        if f2(currentA, currentB):
+            tail.next ← currentA; currentA.prev ← tail; currentA ← currentA.next
+        else:
+            tail.next ← currentB; currentB.prev ← tail; currentB ← currentB.next
+        tail ← tail.next
+    if currentA ≠ null: tail.next ← currentA; currentA.prev ← tail
+    if currentB ≠ null: tail.next ← currentB; currentB.prev ← tail
+    new_head ← dummy.next
+    if new_head ≠ null: new_head.prev ← null
+    return new_head
+```
+
 ```python,editable
 """
 Definition for doubly-linked list.
@@ -358,38 +389,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function reorderNodes(head, f1, f2) {
-    const dummyA = new ListNode(0); let tailA = dummyA;
-    const dummyB = new ListNode(0); let tailB = dummyB;
-    let c = head;
-    while (c !== null) {
-        const nxt = c.next;
-        if (f1(c)) { tailA.next = c; c.prev = tailA; tailA = c; }
-        else        { tailB.next = c; c.prev = tailB; tailB = c; }
-        c = nxt;
-    }
-    tailA.next = null; tailB.next = null;
-
-    let ca = dummyA.next, cb = dummyB.next;
-    if (ca) ca.prev = null;
-    if (cb) cb.prev = null;
-
-    const dummy = new ListNode(0); let tail = dummy;
-    while (ca !== null && cb !== null) {
-        if (f2(ca, cb)) { tail.next = ca; ca.prev = tail; ca = ca.next; }
-        else             { tail.next = cb; cb.prev = tail; cb = cb.next; }
-        tail = tail.next;
-    }
-    if (ca) { tail.next = ca; ca.prev = tail; }
-    if (cb) { tail.next = cb; cb.prev = tail; }
-
-    const newHead = dummy.next;
-    if (newHead) newHead.prev = null;
-    return newHead;
-}
-```
-
 ```typescript,editable
 function reorderNodes(head: ListNode | null,
                       f1: (n: ListNode) => boolean,
@@ -460,42 +459,6 @@ func reorderNodes(head *ListNode,
     newHead := dummy.Next
     if newHead != nil { newHead.Prev = nil }
     return newHead
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun reorderNodes(head: ListNode?,
-                     f1: (ListNode) -> Boolean,
-                     f2: (ListNode, ListNode) -> Boolean): ListNode? {
-        val dummyA = ListNode(0); var tailA: ListNode = dummyA
-        val dummyB = ListNode(0); var tailB: ListNode = dummyB
-        var c = head
-        while (c != null) {
-            val nxt = c.next
-            if (f1(c)) { tailA.next = c; c.prev = tailA; tailA = c }
-            else        { tailB.next = c; c.prev = tailB; tailB = c }
-            c = nxt
-        }
-        tailA.next = null; tailB.next = null
-
-        var ca = dummyA.next; var cb = dummyB.next
-        ca?.prev = null
-        cb?.prev = null
-
-        val dummy = ListNode(0); var tail: ListNode = dummy
-        while (ca != null && cb != null) {
-            if (f2(ca!!, cb!!)) { tail.next = ca; ca!!.prev = tail; ca = ca!!.next }
-            else                 { tail.next = cb; cb!!.prev = tail; cb = cb!!.next }
-            tail = tail.next!!
-        }
-        if (ca != null) { tail.next = ca; ca!!.prev = tail }
-        if (cb != null) { tail.next = cb; cb!!.prev = tail }
-
-        val newHead = dummy.next
-        newHead?.prev = null
-        return newHead
-    }
 }
 ```
 
@@ -609,6 +572,38 @@ flowchart LR
 The implementation of the solution using the reorder technique is given below. Notice that this is the *same* code we'll re-use as the standalone "Value partition" problem later in the lesson.
 
 <div class="lang-tabs">
+
+```pseudocode
+function split_list_by_value(head, X):
+    lessDummy ← new node; lessTail ← lessDummy
+    greaterDummy ← new node; greaterTail ← greaterDummy
+    current ← head
+    while current ≠ null:
+        nxt ← current.next
+        if current.val < X:
+            lessTail.next ← current; current.prev ← lessTail; lessTail ← lessTail.next
+        else:
+            greaterTail.next ← current; current.prev ← greaterTail; greaterTail ← greaterTail.next
+        current ← nxt
+    if lessDummy.next ≠ null: lessDummy.next.prev ← null
+    lessTail.next ← null
+    if greaterDummy.next ≠ null: greaterDummy.next.prev ← null
+    greaterTail.next ← null
+    return [lessDummy.next, greaterDummy.next]
+
+function merge_less_and_greater_lists(less_head, greater_head):
+    if less_head = null: return greater_head
+    if greater_head = null: return less_head
+    current ← less_head
+    while current.next ≠ null: current ← current.next
+    current.next ← greater_head; greater_head.prev ← current
+    return less_head
+
+function value_partition(head, X):
+    if head = null OR head.next = null: return head
+    less_head, greater_head ← split_list_by_value(head, X)
+    return merge_less_and_greater_lists(less_head, greater_head)
+```
 
 ```python,editable
 """
@@ -820,41 +815,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    splitListByValue(head, X) {
-        const lessDummy    = new ListNode(0); let lessTail    = lessDummy;
-        const greaterDummy = new ListNode(0); let greaterTail = greaterDummy;
-        let c = head;
-        while (c !== null) {
-            const nxt = c.next;
-            if (c.val < X) { lessTail.next = c; c.prev = lessTail; lessTail = c; }
-            else            { greaterTail.next = c; c.prev = greaterTail; greaterTail = c; }
-            c = nxt;
-        }
-        if (lessDummy.next)    lessDummy.next.prev    = null; lessTail.next    = null;
-        if (greaterDummy.next) greaterDummy.next.prev = null; greaterTail.next = null;
-        return [lessDummy.next, greaterDummy.next];
-    }
-
-    mergeLessAndGreaterLists(lessHead, greaterHead) {
-        if (lessHead    === null) return greaterHead;
-        if (greaterHead === null) return lessHead;
-        let current = lessHead;
-        while (current.next !== null) current = current.next;
-        current.next     = greaterHead;
-        greaterHead.prev = current;
-        return lessHead;
-    }
-
-    valuePartition(head, X) {
-        if (head === null || head.next === null) return head;
-        const [lh, gh] = this.splitListByValue(head, X);
-        return this.mergeLessAndGreaterLists(lh, gh);
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     splitListByValue(head: ListNode | null, X: number): [ListNode | null, ListNode | null] {
@@ -920,41 +880,6 @@ func valuePartition(head *ListNode, X int) *ListNode {
     if head == nil || head.Next == nil { return head }
     lh, gh := splitListByValue(head, X)
     return mergeLessAndGreaterLists(lh, gh)
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun splitListByValue(head: ListNode?, X: Int): Pair<ListNode?, ListNode?> {
-        val lessDummy    = ListNode(0); var lessTail: ListNode    = lessDummy
-        val greaterDummy = ListNode(0); var greaterTail: ListNode = greaterDummy
-        var c = head
-        while (c != null) {
-            val nxt = c.next
-            if (c.value < X) { lessTail.next = c; c.prev = lessTail; lessTail = c }
-            else              { greaterTail.next = c; c.prev = greaterTail; greaterTail = c }
-            c = nxt
-        }
-        lessDummy.next?.prev    = null; lessTail.next    = null
-        greaterDummy.next?.prev = null; greaterTail.next = null
-        return Pair(lessDummy.next, greaterDummy.next)
-    }
-
-    fun mergeLessAndGreaterLists(lessHead: ListNode?, greaterHead: ListNode?): ListNode? {
-        if (lessHead    == null) return greaterHead
-        if (greaterHead == null) return lessHead
-        var current = lessHead
-        while (current!!.next != null) current = current.next
-        current.next     = greaterHead
-        greaterHead.prev = current
-        return lessHead
-    }
-
-    fun valuePartition(head: ListNode?, X: Int): ListNode? {
-        if (head == null || head.next == null) return head
-        val (lh, gh) = splitListByValue(head, X)
-        return mergeLessAndGreaterLists(lh, gh)
-    }
 }
 ```
 
@@ -1050,6 +975,27 @@ Reorder skeleton: `f1` selects the last node into bucket B and everything else i
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function split_last_node(head):
+    current ← head; previous ← null
+    while current.next ≠ null:
+        previous ← current; current ← current.next
+    if previous ≠ null: previous.next ← null
+    current.prev ← null
+    return [head, current]
+
+function merge_last_node(last_node, first_node):
+    if last_node = null: return first_node
+    last_node.next ← first_node
+    if first_node ≠ null: first_node.prev ← last_node
+    return last_node
+
+function relocate_node(head):
+    if head = null OR head.next = null: return head
+    first_node, last_node ← split_last_node(head)
+    return merge_last_node(last_node, first_node)
+```
 
 ```python,editable
 """
@@ -1181,21 +1127,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    relocateNode(head) {
-        if (head === null || head.next === null) return head;
-        let current = head, previous = null;
-        while (current.next !== null) { previous = current; current = current.next; }
-        if (previous) previous.next = null;
-        current.prev = null;
-        current.next = head;
-        head.prev    = current;
-        return current;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     relocateNode(head: ListNode | null): ListNode | null {
@@ -1221,22 +1152,6 @@ func relocateNode(head *ListNode) *ListNode {
     current.Next = head
     head.Prev    = current
     return current
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun relocateNode(head: ListNode?): ListNode? {
-        if (head == null || head.next == null) return head
-        var current = head
-        var previous: ListNode? = null
-        while (current!!.next != null) { previous = current; current = current.next }
-        previous?.next = null
-        current.prev = null
-        current.next = head
-        head.prev    = current
-        return current
-    }
 }
 ```
 
@@ -1350,6 +1265,38 @@ This is the canonical reorder skeleton. `f1(node) = (counter % 2 == 1)`. `f2` is
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function split_by_parity(head):
+    oddDummy ← new node; oddTail ← oddDummy
+    evenDummy ← new node; evenTail ← evenDummy
+    current ← head; counter ← 1
+    while current ≠ null:
+        nxt ← current.next
+        if counter mod 2 = 1:
+            oddTail.next ← current; current.prev ← oddTail; oddTail ← oddTail.next
+        else:
+            evenTail.next ← current; current.prev ← evenTail; evenTail ← evenTail.next
+        current ← nxt; counter ← counter + 1
+    if oddDummy.next ≠ null: oddDummy.next.prev ← null
+    oddTail.next ← null
+    if evenDummy.next ≠ null: evenDummy.next.prev ← null
+    evenTail.next ← null
+    return [oddDummy.next, evenDummy.next]
+
+function merge_odd_and_even_lists(odd_head, even_head):
+    if odd_head = null: return even_head
+    if even_head = null: return odd_head
+    current ← odd_head
+    while current.next ≠ null: current ← current.next
+    current.next ← even_head; even_head.prev ← current
+    return odd_head
+
+function parity_order(head):
+    if head = null OR head.next = null: return head
+    odd_head, even_head ← split_by_parity(head)
+    return merge_odd_and_even_lists(odd_head, even_head)
+```
 
 ```python,editable
 """
@@ -1542,34 +1489,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    parityOrder(head) {
-        if (head === null || head.next === null) return head;
-        const oddDummy  = new ListNode(0); let oddTail  = oddDummy;
-        const evenDummy = new ListNode(0); let evenTail = evenDummy;
-        let current = head, counter = 1;
-        while (current !== null) {
-            const nxt = current.next;
-            if (counter % 2 === 1) { oddTail.next  = current; current.prev = oddTail;  oddTail  = current; }
-            else                    { evenTail.next = current; current.prev = evenTail; evenTail = current; }
-            current = nxt; counter++;
-        }
-        if (oddDummy.next)  oddDummy.next.prev  = null; oddTail.next  = null;
-        if (evenDummy.next) evenDummy.next.prev = null; evenTail.next = null;
-
-        const oddHead = oddDummy.next, evenHead = evenDummy.next;
-        if (!oddHead)  return evenHead;
-        if (!evenHead) return oddHead;
-        let c = oddHead;
-        while (c.next !== null) c = c.next;
-        c.next         = evenHead;
-        evenHead.prev  = c;
-        return oddHead;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     parityOrder(head: ListNode | null): ListNode | null {
@@ -1621,35 +1540,6 @@ func parityOrder(head *ListNode) *ListNode {
     c.Next        = evenHead
     evenHead.Prev = c
     return oddHead
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun parityOrder(head: ListNode?): ListNode? {
-        if (head == null || head.next == null) return head
-        val oddDummy  = ListNode(0); var oddTail: ListNode  = oddDummy
-        val evenDummy = ListNode(0); var evenTail: ListNode = evenDummy
-        var current = head
-        var counter = 1
-        while (current != null) {
-            val nxt = current.next
-            if (counter % 2 == 1) { oddTail.next  = current; current.prev = oddTail;  oddTail  = current }
-            else                   { evenTail.next = current; current.prev = evenTail; evenTail = current }
-            current = nxt; counter++
-        }
-        oddDummy.next?.prev  = null; oddTail.next  = null
-        evenDummy.next?.prev = null; evenTail.next = null
-
-        val oddHead = oddDummy.next; val evenHead = evenDummy.next
-        if (oddHead  == null) return evenHead
-        if (evenHead == null) return oddHead
-        var c = oddHead
-        while (c!!.next != null) c = c.next
-        c.next        = evenHead
-        evenHead.prev = c
-        return oddHead
-    }
 }
 ```
 
@@ -1768,6 +1658,38 @@ This is the same template you saw at the top of the lesson. `f1(node) = (node.va
 This is the same code we showed in the **Identifying the reorder pattern** section earlier — re-presented here as the dedicated problem solution.
 
 <div class="lang-tabs">
+
+```pseudocode
+function split_list_by_value(head, X):
+    lessDummy ← new node; lessTail ← lessDummy
+    greaterDummy ← new node; greaterTail ← greaterDummy
+    current ← head
+    while current ≠ null:
+        nxt ← current.next
+        if current.val < X:
+            lessTail.next ← current; current.prev ← lessTail; lessTail ← lessTail.next
+        else:
+            greaterTail.next ← current; current.prev ← greaterTail; greaterTail ← greaterTail.next
+        current ← nxt
+    if lessDummy.next ≠ null: lessDummy.next.prev ← null
+    lessTail.next ← null
+    if greaterDummy.next ≠ null: greaterDummy.next.prev ← null
+    greaterTail.next ← null
+    return [lessDummy.next, greaterDummy.next]
+
+function merge_less_and_greater_lists(less_head, greater_head):
+    if less_head = null: return greater_head
+    if greater_head = null: return less_head
+    current ← less_head
+    while current.next ≠ null: current ← current.next
+    current.next ← greater_head; greater_head.prev ← current
+    return less_head
+
+function value_partition(head, X):
+    if head = null OR head.next = null: return head
+    less_head, greater_head ← split_list_by_value(head, X)
+    return merge_less_and_greater_lists(less_head, greater_head)
+```
 
 ```python,editable
 """
@@ -1949,34 +1871,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    valuePartition(head, X) {
-        if (head === null || head.next === null) return head;
-        const lessDummy    = new ListNode(0); let lessTail    = lessDummy;
-        const greaterDummy = new ListNode(0); let greaterTail = greaterDummy;
-        let c = head;
-        while (c !== null) {
-            const nxt = c.next;
-            if (c.val < X) { lessTail.next = c; c.prev = lessTail; lessTail = c; }
-            else            { greaterTail.next = c; c.prev = greaterTail; greaterTail = c; }
-            c = nxt;
-        }
-        if (lessDummy.next)    lessDummy.next.prev    = null; lessTail.next    = null;
-        if (greaterDummy.next) greaterDummy.next.prev = null; greaterTail.next = null;
-
-        const lh = lessDummy.next, gh = greaterDummy.next;
-        if (!lh) return gh;
-        if (!gh) return lh;
-        let t = lh;
-        while (t.next !== null) t = t.next;
-        t.next  = gh;
-        gh.prev = t;
-        return lh;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     valuePartition(head: ListNode | null, X: number): ListNode | null {
@@ -2028,34 +1922,6 @@ func valuePartition(head *ListNode, X int) *ListNode {
     t.Next  = gh
     gh.Prev = t
     return lh
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun valuePartition(head: ListNode?, X: Int): ListNode? {
-        if (head == null || head.next == null) return head
-        val lessDummy    = ListNode(0); var lessTail: ListNode    = lessDummy
-        val greaterDummy = ListNode(0); var greaterTail: ListNode = greaterDummy
-        var c = head
-        while (c != null) {
-            val nxt = c.next
-            if (c.value < X) { lessTail.next = c; c.prev = lessTail; lessTail = c }
-            else              { greaterTail.next = c; c.prev = greaterTail; greaterTail = c }
-            c = nxt
-        }
-        lessDummy.next?.prev    = null; lessTail.next    = null
-        greaterDummy.next?.prev = null; greaterTail.next = null
-
-        val lh = lessDummy.next; val gh = greaterDummy.next
-        if (lh == null) return gh
-        if (gh == null) return lh
-        var t = lh
-        while (t.next != null) t = t.next
-        t.next  = gh
-        gh.prev = t
-        return lh
-    }
 }
 ```
 
@@ -2166,6 +2032,47 @@ This is the *boss fight* of the lesson. The reorder skeleton handles split (via 
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function reverse(head):
+    current ← head; previous ← null
+    while current ≠ null:
+        nxt ← current.next
+        swap current.next and current.prev
+        previous ← current; current ← nxt
+    return previous
+
+function split_list_in_half(head):
+    slow ← head; fast ← head
+    while fast ≠ null AND fast.next ≠ null:
+        slow ← slow.next; fast ← fast.next.next
+    if fast = null:                      # even length: split AT slow
+        second_half ← slow
+        slow.prev.next ← null; slow.prev ← null
+    else:                                # odd length: split AFTER slow
+        second_half ← slow.next
+        slow.next.prev ← null; slow.next ← null
+    return [head, second_half]
+
+function merge_alternate_nodes(first_half, second_half):
+    dummy ← new node; tail ← dummy; take_first ← true
+    while first_half ≠ null AND second_half ≠ null:
+        if take_first:
+            tail.next ← first_half; first_half.prev ← tail; first_half ← first_half.next
+        else:
+            tail.next ← second_half; second_half.prev ← tail; second_half ← second_half.next
+        tail ← tail.next; take_first ← NOT take_first
+    if first_half ≠ null: tail.next ← first_half; first_half.prev ← tail
+    if second_half ≠ null: tail.next ← second_half; second_half.prev ← tail
+    if dummy.next ≠ null: dummy.next.prev ← null
+    return dummy.next
+
+function shuffle_list(head):
+    if head = null OR head.next = null: return
+    first_half, second_half ← split_list_in_half(head)
+    reversed_second ← reverse(second_half)
+    merge_alternate_nodes(first_half, reversed_second)
+```
 
 ```python,editable
 """
@@ -2449,50 +2356,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    reverse(head) {
-        let current = head, previous = null;
-        while (current !== null) {
-            const nxt = current.next;
-            [current.prev, current.next] = [current.next, current.prev];
-            previous = current; current = nxt;
-        }
-        return previous;
-    }
-
-    splitListInHalf(head) {
-        let slow = head, fast = head;
-        while (fast !== null && fast.next !== null) { slow = slow.next; fast = fast.next.next; }
-        let second;
-        if (fast === null) { second = slow;      slow.prev.next = null; slow.prev = null; }
-        else                { second = slow.next; slow.next.prev = null; slow.next = null; }
-        return [head, second];
-    }
-
-    mergeAlternateNodes(a, b) {
-        const dummy = new ListNode(0); let tail = dummy;
-        let mergeFirst = true;
-        while (a !== null && b !== null) {
-            if (mergeFirst) { tail.next = a; a.prev = tail; a = a.next; }
-            else             { tail.next = b; b.prev = tail; b = b.next; }
-            tail = tail.next; mergeFirst = !mergeFirst;
-        }
-        if (a) { tail.next = a; a.prev = tail; }
-        if (b) { tail.next = b; b.prev = tail; }
-        if (dummy.next) dummy.next.prev = null;
-        return dummy.next;
-    }
-
-    shuffleList(head) {
-        if (head === null || head.next === null) return;
-        const [first, second] = this.splitListInHalf(head);
-        const rev = this.reverse(second);
-        this.mergeAlternateNodes(first, rev);
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     reverse(head: ListNode | null): ListNode | null {
@@ -2577,54 +2440,6 @@ func shuffleList(head *ListNode) {
     first, second := splitListInHalf(head)
     rev := reverse(second)
     mergeAlternateNodes(first, rev)
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun reverse(head: ListNode?): ListNode? {
-        var current = head; var previous: ListNode? = null
-        while (current != null) {
-            val nxt = current.next
-            val tmp = current.prev; current.prev = current.next; current.next = tmp
-            previous = current; current = nxt
-        }
-        return previous
-    }
-
-    fun splitListInHalf(head: ListNode): Pair<ListNode, ListNode> {
-        var slow: ListNode = head
-        var fast: ListNode? = head
-        while (fast != null && fast.next != null) { slow = slow.next!!; fast = fast.next!!.next }
-        val second: ListNode = if (fast == null) {
-            val s = slow; slow.prev!!.next = null; slow.prev = null; s
-        } else {
-            val s = slow.next!!; slow.next!!.prev = null; slow.next = null; s
-        }
-        return Pair(head, second)
-    }
-
-    fun mergeAlternateNodes(aIn: ListNode?, bIn: ListNode?): ListNode? {
-        var a = aIn; var b = bIn
-        val dummy = ListNode(0); var tail: ListNode = dummy
-        var mergeFirst = true
-        while (a != null && b != null) {
-            if (mergeFirst) { tail.next = a; a.prev = tail; a = a.next }
-            else             { tail.next = b; b.prev = tail; b = b.next }
-            tail = tail.next!!; mergeFirst = !mergeFirst
-        }
-        if (a != null) { tail.next = a; a.prev = tail }
-        if (b != null) { tail.next = b; b.prev = tail }
-        dummy.next?.prev = null
-        return dummy.next
-    }
-
-    fun shuffleList(head: ListNode?) {
-        if (head == null || head.next == null) return
-        val (first, second) = splitListInHalf(head)
-        val rev = reverse(second)
-        mergeAlternateNodes(first, rev)
-    }
 }
 ```
 

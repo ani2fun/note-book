@@ -122,6 +122,58 @@ The implementation below mirrors the algorithms from lessons 02-04 (traversal, i
 
 <div class="lang-tabs">
 
+```pseudocode
+class DoublyLinkedList:
+    head ← null; tail ← null; size ← 0
+
+    function empty(): return head = null
+    function size(): return size
+
+    function prepend(val):
+        node ← new ListNode(val)
+        if empty(): head ← node; tail ← node
+        else: node.next ← head; head.prev ← node; head ← node
+        size ← size + 1
+
+    function append(val):
+        node ← new ListNode(val)
+        if empty(): head ← node; tail ← node
+        else: node.prev ← tail; tail.next ← node; tail ← node
+        size ← size + 1
+
+    function insert(position, val):
+        if position ≤ 0: prepend(val); return
+        if position ≥ size: append(val); return
+        node ← new ListNode(val); current ← head; idx ← 0
+        while idx < position: current ← current.next; idx ← idx + 1
+        node.prev ← current.prev; node.next ← current
+        current.prev.next ← node; current.prev ← node
+        size ← size + 1
+
+    function remove(val):
+        current ← head
+        while current ≠ null:
+            if current.val = val:
+                if current = head:
+                    head ← current.next
+                    if head ≠ null: head.prev ← null else: tail ← null
+                else if current = tail:
+                    tail ← current.prev; tail.next ← null
+                else:
+                    current.prev.next ← current.next
+                    current.next.prev ← current.prev
+                size ← size − 1; return true
+            current ← current.next
+        return false
+
+    function search(val):
+        current ← head
+        while current ≠ null:
+            if current.val = val: return true
+            current ← current.next
+        return false
+```
+
 ```python,editable
 class DoublyLinkedList:
     def __init__(self):
@@ -543,92 +595,6 @@ class DoublyLinkedList {
 }
 ```
 
-```javascript,editable
-class DoublyLinkedList {
-    constructor() {
-        this.head        = null;
-        this.tail        = null;
-        this.currentSize = 0;
-    }
-
-    empty() { return this.head === null; }
-    size()  { return this.currentSize; }
-
-    prepend(val) {
-        const n = new ListNode(val);
-        if (this.empty()) {
-            this.head = n;
-            this.tail = n;
-        } else {
-            n.next         = this.head;
-            this.head.prev = n;
-            this.head      = n;
-        }
-        this.currentSize++;
-    }
-
-    append(val) {
-        const n = new ListNode(val);
-        if (this.empty()) {
-            this.head = n;
-            this.tail = n;
-        } else {
-            n.prev         = this.tail;
-            this.tail.next = n;
-            this.tail      = n;
-        }
-        this.currentSize++;
-    }
-
-    insert(position, val) {
-        if (position <= 0)                  { this.prepend(val); return; }
-        if (position >= this.currentSize)   { this.append(val);  return; }
-        const n = new ListNode(val);
-        let current = this.head;
-        let idx     = 0;
-        while (current !== null && idx < position) { current = current.next; idx++; }
-        n.prev              = current.prev;
-        n.next              = current;
-        current.prev.next   = n;
-        current.prev        = n;
-        this.currentSize++;
-    }
-
-    remove(val) {
-        if (this.empty()) return false;
-        let current = this.head;
-        while (current !== null) {
-            if (current.val === val) {
-                if (current === this.head) {
-                    this.head = current.next;
-                    if (this.head !== null) this.head.prev = null;
-                    else                    this.tail      = null;
-                } else if (current === this.tail) {
-                    this.tail       = current.prev;
-                    this.tail.next  = null;
-                } else {
-                    current.prev.next = current.next;
-                    current.next.prev = current.prev;
-                }
-                this.currentSize--;
-                return true;
-            }
-            current = current.next;
-        }
-        return false;
-    }
-
-    search(val) {
-        let current = this.head;
-        while (current !== null) {
-            if (current.val === val) return true;
-            current = current.next;
-        }
-        return false;
-    }
-}
-```
-
 ```typescript,editable
 class DoublyLinkedList {
     head: ListNode | null = null;
@@ -796,90 +762,6 @@ func (l *DoublyLinkedList) Search(val int) bool {
         current = current.Next
     }
     return false
-}
-```
-
-```kotlin,editable
-class DoublyLinkedList {
-    var head: ListNode? = null
-    var tail: ListNode? = null
-    var currentSize: Int = 0
-
-    fun empty(): Boolean = head == null
-    fun size():  Int     = currentSize
-
-    fun prepend(v: Int) {
-        val n = ListNode(v)
-        if (empty()) { head = n; tail = n }
-        else {
-            n.next     = head
-            head!!.prev = n
-            head       = n
-        }
-        currentSize++
-    }
-
-    fun append(v: Int) {
-        val n = ListNode(v)
-        if (empty()) { head = n; tail = n }
-        else {
-            n.prev      = tail
-            tail!!.next = n
-            tail        = n
-        }
-        currentSize++
-    }
-
-    fun insert(position: Int, v: Int) {
-        if (position <= 0)             { prepend(v); return }
-        if (position >= currentSize)   { append(v);  return }
-        val n = ListNode(v)
-        var current = head
-        var idx = 0
-        while (current != null && idx < position) { current = current.next; idx++ }
-        n.prev               = current!!.prev
-        n.next               = current
-        current.prev!!.next  = n
-        current.prev         = n
-        currentSize++
-    }
-
-    fun remove(v: Int): Boolean {
-        if (empty()) return false
-        var current = head
-        while (current != null) {
-            if (current.`val` == v) {
-                when {
-                    current === head -> {
-                        head = current.next
-                        if (head != null) head!!.prev = null
-                        else              tail       = null
-                    }
-                    current === tail -> {
-                        tail        = current.prev
-                        tail!!.next = null
-                    }
-                    else -> {
-                        current.prev!!.next = current.next
-                        current.next!!.prev = current.prev
-                    }
-                }
-                currentSize--
-                return true
-            }
-            current = current.next
-        }
-        return false
-    }
-
-    fun search(v: Int): Boolean {
-        var current = head
-        while (current != null) {
-            if (current.`val` == v) return true
-            current = current.next
-        }
-        return false
-    }
 }
 ```
 

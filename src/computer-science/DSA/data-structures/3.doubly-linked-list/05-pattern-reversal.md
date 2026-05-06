@@ -120,6 +120,21 @@ The code implementation to reverse the entire list is given below.
 
 <div class="lang-tabs">
 
+```pseudocode
+# DLL reversal — swap prev/next on every node. After the swap, the original "next" lives in `prev`,
+# so we walk forward through the original list by moving via `prev`.
+function reverse(head):
+    if head is null OR head.next is null: return head
+    current ← head
+    newHead ← null
+    while current is not null:
+        swap current.prev and current.next                 # the entire reversal
+        if current.prev is null:                           # original tail — became the new head
+            newHead ← current
+        current ← current.prev                             # advance via the old `next`
+    return newHead
+```
+
 ```python,editable
 class Solution:
     def reverse(self, head):
@@ -246,32 +261,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    reverse(head) {
-        // Empty list or single node — already its own reverse
-        if (head === null || head.next === null) return head;
-
-        let current = head;       // Walk pointer
-        let newHead = null;       // Will land on the original tail
-
-        while (current !== null) {
-            // Swap prev and next on this node — the entire reversal
-            const temp   = current.prev;
-            current.prev = current.next;
-            current.next = temp;
-
-            // If prev is null now, this node was the original tail
-            if (current.prev === null) newHead = current;
-
-            // Walk forward in original order — old next now lives in prev
-            current = current.prev;
-        }
-        return newHead;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     reverse(head: ListNode | null): ListNode | null {
@@ -319,32 +308,6 @@ func reverse(head *ListNode) *ListNode {
         current = current.Prev
     }
     return newHead
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun reverse(head: ListNode?): ListNode? {
-        // Empty list or single node — already its own reverse
-        if (head == null || head.next == null) return head
-
-        var current: ListNode? = head
-        var newHead: ListNode? = null
-
-        while (current != null) {
-            // Swap prev and next on this node — the entire reversal
-            val temp = current.prev
-            current.prev = current.next
-            current.next = temp
-
-            // If prev is null after the swap, this node was the original tail
-            if (current.prev == null) newHead = current
-
-            // Walk forward in original order — old next now lives in prev
-            current = current.prev
-        }
-        return newHead
-    }
 }
 ```
 
@@ -518,6 +481,26 @@ Given below is the code implementation to reverse a doubly linked list segment b
 
 <div class="lang-tabs">
 
+```pseudocode
+# Segment reversal in place. Capture left/right boundaries BEFORE the swap (they get clobbered),
+# then re-stitch the reversed segment to the parent list at both ends.
+function reverse(start, end):
+    if start = end: return                                 # single-node segment
+    leftBound  ← start.prev                                # may be null (segment touches head)
+    rightBound ← end.next                                  # may be null (segment touches tail)
+
+    current ← start
+    while current ≠ rightBound:
+        swap current.prev and current.next                 # the swap IS the reversal
+        current ← current.prev                             # advance via old `next`
+
+    # Re-stitch — `start` is now the segment's tail, `end` is its head.
+    start.next ← rightBound
+    if rightBound is not null: rightBound.prev ← start
+    end.prev ← leftBound
+    if leftBound is not null: leftBound.next ← end
+```
+
 ```python,editable
 class Solution:
     def reverse(self, start, end):
@@ -667,36 +650,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    reverse(start, end) {
-        // Single-node segment — nothing to reverse
-        if (start === end) return;
-
-        // Capture boundary refs BEFORE any swap
-        const leftBound  = start.prev;   // may be null
-        const rightBound = end.next;     // may be null
-
-        // Phase 1 — swap prev/next on every node from start up to rightBound
-        let current = start;
-        while (current !== rightBound) {
-            const temp   = current.prev;
-            current.prev = current.next;
-            current.next = temp;
-            // Original next is now in prev — that's our walk direction
-            current = current.prev;
-        }
-
-        // Phase 2 — stitch reversed segment back into the parent list
-        start.next = rightBound;
-        if (rightBound !== null) rightBound.prev = start;
-
-        end.prev = leftBound;
-        if (leftBound !== null) leftBound.next = end;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     reverse(start: ListNode, end: ListNode): void {
@@ -752,36 +705,6 @@ func reverseSegment(start, end *ListNode) {
 
     end.Prev = leftBound
     if leftBound != nil { leftBound.Next = end }
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun reverse(start: ListNode, end: ListNode) {
-        // Single-node segment — nothing to reverse
-        if (start === end) return
-
-        // Capture boundary refs BEFORE any swap
-        val leftBound  = start.prev   // may be null
-        val rightBound = end.next     // may be null
-
-        // Phase 1 — swap prev/next on every node from start up to rightBound
-        var current: ListNode? = start
-        while (current !== rightBound) {
-            val temp = current!!.prev
-            current.prev = current.next
-            current.next = temp
-            // Original next is now in prev — that's our walk direction
-            current = current.prev
-        }
-
-        // Phase 2 — stitch reversed segment back into the parent list
-        start.next = rightBound
-        if (rightBound != null) rightBound.prev = start
-
-        end.prev = leftBound
-        if (leftBound != null) leftBound.next = end
-    }
 }
 ```
 
@@ -877,6 +800,18 @@ Below is the implementation we built earlier, restated.
 
 <div class="lang-tabs">
 
+```pseudocode
+# Compact form of the full-list reversal — same algorithm.
+function reverse(head):
+    if head is null OR head.next is null: return head
+    current ← head; newHead ← null
+    while current is not null:
+        swap current.prev and current.next
+        if current.prev is null: newHead ← current
+        current ← current.prev
+    return newHead
+```
+
 ```python,editable
 class Solution:
     def reverse(self, head):
@@ -956,23 +891,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    reverse(head) {
-        if (head === null || head.next === null) return head;
-        let current = head, newHead = null;
-        while (current !== null) {
-            const temp = current.prev;
-            current.prev = current.next;
-            current.next = temp;
-            if (current.prev === null) newHead = current;
-            current = current.prev;
-        }
-        return newHead;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     reverse(head: ListNode | null): ListNode | null {
@@ -1003,22 +921,6 @@ func reverse(head *ListNode) *ListNode {
         current = current.Prev
     }
     return newHead
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun reverse(head: ListNode?): ListNode? {
-        if (head == null || head.next == null) return head
-        var current: ListNode? = head
-        var newHead: ListNode? = null
-        while (current != null) {
-            val temp = current.prev; current.prev = current.next; current.next = temp
-            if (current.prev == null) newHead = current
-            current = current.prev
-        }
-        return newHead
-    }
 }
 ```
 
@@ -1057,6 +959,19 @@ Output: [3, 10, 3, 7, 5]
 This is the whole-list special case. Walk every node, swap its `prev`/`next`, and remember the node whose `prev` becomes `null` after a swap — that's the new head.
 
 <div class="lang-tabs">
+
+```pseudocode
+# Variant: track `previous` instead of detecting the original tail.
+function reverseAList(head):
+    if head is null OR (head.prev is null AND head.next is null): return head
+    current ← head; previous ← null
+    while current is not null:
+        nxt ← current.next                                 # save before clobber
+        swap current.prev and current.next                 # the reversal
+        previous ← current
+        current ← nxt
+    return previous                                         # original tail is the new head
+```
 
 ```python,editable
 class Solution:
@@ -1161,27 +1076,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    reverseAList(head) {
-        if (head === null || (head.prev === null && head.next === null)) return head;
-
-        let current  = head;
-        let previous = null;
-
-        while (current !== null) {
-            const next = current.next;            // Save before swap
-            const temp = current.prev;
-            current.prev = current.next;
-            current.next = temp;
-            previous = current;
-            current  = next;
-        }
-        return previous;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     reverseAList(head: ListNode | null): ListNode | null {
@@ -1218,27 +1112,6 @@ func reverseAList(head *ListNode) *ListNode {
         current  = next
     }
     return previous
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun reverseAList(head: ListNode?): ListNode? {
-        if (head == null || (head.prev == null && head.next == null)) return head
-
-        var current: ListNode?  = head
-        var previous: ListNode? = null
-
-        while (current != null) {
-            val next = current.next
-            val tmp  = current.prev
-            current.prev = current.next
-            current.next = tmp
-            previous = current
-            current  = next
-        }
-        return previous
-    }
 }
 ```
 
@@ -1296,6 +1169,25 @@ Walk K steps, swap as we go, and stop. After the loop:
 We then re-stitch: the original head's `next` becomes `current` (suffix start), `current.prev` becomes the original head (mirror), and the new head's `prev` is set to `null` (it's the head now).
 
 <div class="lang-tabs">
+
+```pseudocode
+# Reverse the first k nodes; stitch the prefix's new tail to the unreversed suffix.
+function reverseFirstKNodes(head, k):
+    if head is null OR k ≤ 0: return head
+    current ← head; previous ← null; count ← 0
+    while current is not null AND count < k:
+        nxt ← current.next
+        swap current.prev and current.next
+        previous ← current
+        current ← nxt
+        count ← count + 1
+
+    # `previous` = new head of the reversed prefix; `head` = new tail; `current` = suffix start.
+    if head is not null: head.next ← current
+    if current is not null: current.prev ← head
+    if previous is not null: previous.prev ← null
+    return previous
+```
 
 ```python,editable
 class Solution:
@@ -1445,34 +1337,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    reverseFirstKNodes(head, k) {
-        if (head === null || k <= 0) return head;
-
-        let current  = head;
-        let previous = null;
-        let count    = 0;
-
-        while (current !== null && count < k) {
-            const next = current.next;             // Save before swap
-            const temp = current.prev;
-            current.prev = current.next;
-            current.next = temp;
-            previous = current;
-            current  = next;
-            count++;
-        }
-
-        if (head)     head.next     = current;
-        if (current)  current.prev  = head;
-        if (previous) previous.prev = null;
-
-        return previous;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     reverseFirstKNodes(head: ListNode | null, k: number): ListNode | null {
@@ -1523,34 +1387,6 @@ func reverseFirstKNodes(head *ListNode, k int) *ListNode {
     if previous != nil { previous.Prev = nil }
 
     return previous
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun reverseFirstKNodes(head: ListNode?, k: Int): ListNode? {
-        if (head == null || k <= 0) return head
-
-        var current:  ListNode? = head
-        var previous: ListNode? = null
-        var count = 0
-
-        while (current != null && count < k) {
-            val next = current.next
-            val tmp  = current.prev
-            current.prev = current.next
-            current.next = tmp
-            previous = current
-            current  = next
-            count++
-        }
-
-        if (head != null)     head.next     = current
-        if (current != null)  current.prev  = head
-        if (previous != null) previous.prev = null
-
-        return previous
-    }
 }
 ```
 
@@ -1606,6 +1442,42 @@ The "snip and reverse" trick is the cleanest way to reuse the whole-list reversa
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Reverse the LAST k nodes by walking to the (n − k)-th node, snipping, reversing the suffix, restitching.
+function lengthOfList(head):
+    n ← 0
+    while head is not null: n ← n + 1; head ← head.next
+    return n
+
+function reverseAList(head):
+    if head is null: return head
+    current ← head; previous ← null
+    while current is not null:
+        nxt ← current.next
+        swap current.prev and current.next
+        previous ← current
+        current ← nxt
+    return previous
+
+function reverseLastKNodes(head, k):
+    if k ≤ 0 OR head is null: return head
+    n ← lengthOfList(head)
+    if k ≥ n: return reverseAList(head)
+
+    current ← head
+    for i from 1 to n − k − 1:                              # walk (n − k − 1) steps
+        current ← current.next
+
+    suffixHeadOld ← current.next                            # snip the suffix off
+    if suffixHeadOld is not null: suffixHeadOld.prev ← null
+    current.next ← null
+
+    newSuffixHead ← reverseAList(suffixHeadOld)             # reverse the suffix in isolation
+    current.next ← newSuffixHead                            # restitch
+    if newSuffixHead is not null: newSuffixHead.prev ← current
+    return head
+```
 
 ```python,editable
 class Solution:
@@ -1842,46 +1714,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    lengthOfList(head) { let n = 0; while (head) { n++; head = head.next; } return n; }
-
-    reverseAList(head) {
-        if (head === null) return head;
-        let current = head, previous = null;
-        while (current !== null) {
-            const next = current.next;
-            const temp = current.prev;
-            current.prev = current.next;
-            current.next = temp;
-            previous = current;
-            current  = next;
-        }
-        return previous;
-    }
-
-    reverseLastKNodes(head, k) {
-        if (k <= 0 || head === null) return head;
-
-        const n = this.lengthOfList(head);
-        if (k >= n) return this.reverseAList(head);
-
-        let current = head;
-        for (let i = 1; i < n - k; i++) current = current.next;
-
-        const suffixOld = current.next;
-        if (suffixOld) suffixOld.prev = null;
-        current.next = null;
-
-        const newSuffixHead = this.reverseAList(suffixOld);
-        current.next = newSuffixHead;
-        if (newSuffixHead) newSuffixHead.prev = current;
-
-        return head;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     lengthOfList(head: ListNode | null): number {
@@ -1967,51 +1799,6 @@ func reverseLastKNodes(head *ListNode, k int) *ListNode {
 }
 ```
 
-```kotlin,editable
-class Solution {
-    fun lengthOfList(headIn: ListNode?): Int {
-        var n = 0; var h = headIn
-        while (h != null) { n++; h = h.next }
-        return n
-    }
-
-    fun reverseAList(head: ListNode?): ListNode? {
-        if (head == null) return head
-        var current: ListNode? = head
-        var previous: ListNode? = null
-        while (current != null) {
-            val next = current.next
-            val tmp  = current.prev
-            current.prev = current.next
-            current.next = tmp
-            previous = current
-            current  = next
-        }
-        return previous
-    }
-
-    fun reverseLastKNodes(head: ListNode?, k: Int): ListNode? {
-        if (k <= 0 || head == null) return head
-
-        val n = lengthOfList(head)
-        if (k >= n) return reverseAList(head)
-
-        var current: ListNode? = head
-        for (i in 1 until n - k) current = current!!.next
-
-        val suffixOld = current!!.next
-        if (suffixOld != null) suffixOld.prev = null
-        current.next = null
-
-        val newSuffixHead = reverseAList(suffixOld)
-        current.next = newSuffixHead
-        if (newSuffixHead != null) newSuffixHead.prev = current
-
-        return head
-    }
-}
-```
-
 ```rust,editable
 // See lesson 09 for a complete Rc<RefCell<...>> implementation.
 ```
@@ -2084,6 +1871,36 @@ The fourth step is the only spot where the head reference can shift, so it's the
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Reverse the segment between left and right (1-indexed positions).
+function getNodeAtPosition(head, position):
+    current ← head
+    for i from 1 to position − 1:
+        current ← current.next
+    return current
+
+function reverse(start, end):
+    if start is null OR start = end: return
+    leftBound ← start.prev
+    rightBound ← end.next
+    current ← start
+    while current ≠ rightBound:
+        swap current.prev and current.next
+        current ← current.prev
+    start.next ← rightBound
+    if rightBound is not null: rightBound.prev ← start
+    end.prev ← leftBound
+    if leftBound is not null: leftBound.next ← end
+
+function reverseTheGivenSegment(head, left, right):
+    if head is null OR left ≥ right: return head
+    leftNode ← getNodeAtPosition(head, left)
+    rightNode ← getNodeAtPosition(head, right)
+    reverse(leftNode, rightNode)
+    if leftNode = head: return rightNode                    # segment included old head
+    return head
+```
 
 ```python,editable
 class Solution:
@@ -2287,41 +2104,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    getNodeAtPosition(head, position) {
-        let current = head;
-        for (let i = 1; i < position; i++) current = current.next;
-        return current;
-    }
-
-    reverse(start, end) {
-        if (start === null || start === end) return;
-        const leftBound  = start.prev;
-        const rightBound = end.next;
-        let current = start;
-        while (current !== rightBound) {
-            const temp = current.prev;
-            current.prev = current.next;
-            current.next = temp;
-            current = current.prev;
-        }
-        start.next = rightBound;
-        if (rightBound) rightBound.prev = start;
-        end.prev = leftBound;
-        if (leftBound) leftBound.next = end;
-    }
-
-    reverseTheGivenSegment(head, left, right) {
-        if (head === null || head.next === null || left === right) return head;
-        const start = this.getNodeAtPosition(head, left);
-        const end   = this.getNodeAtPosition(head, right);
-        this.reverse(start, end);
-        return left === 1 ? end : head;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     getNodeAtPosition(head: ListNode | null, position: number): ListNode | null {
@@ -2388,41 +2170,6 @@ func reverseTheGivenSegment(head *ListNode, left, right int) *ListNode {
     reverseSeg(start, end)
     if left == 1 { return end }
     return head
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun getNodeAtPosition(head: ListNode, position: Int): ListNode {
-        var current = head
-        for (i in 1 until position) current = current.next!!
-        return current
-    }
-
-    fun reverse(start: ListNode, end: ListNode) {
-        if (start === end) return
-        val leftBound  = start.prev
-        val rightBound = end.next
-        var current: ListNode? = start
-        while (current !== rightBound) {
-            val tmp = current!!.prev
-            current.prev = current.next
-            current.next = tmp
-            current = current.prev
-        }
-        start.next = rightBound
-        if (rightBound != null) rightBound.prev = start
-        end.prev = leftBound
-        if (leftBound != null) leftBound.next = end
-    }
-
-    fun reverseTheGivenSegment(head: ListNode?, left: Int, right: Int): ListNode? {
-        if (head == null || head.next == null || left == right) return head
-        val start = getNodeAtPosition(head, left)
-        val end   = getNodeAtPosition(head, right)
-        reverse(start, end)
-        return if (left == 1) end else head
-    }
 }
 ```
 

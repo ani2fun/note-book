@@ -106,6 +106,18 @@ When implementing the logic for the insert-at-beginning operation, we consider b
 
 <div class="lang-tabs">
 
+```pseudocode
+function insertAtBeginning(head, data):
+    newNode ← new ListNode(data)
+    if head is null:
+        newNode.next ← null; newNode.prev ← null      # lone node — both ends
+        return newNode
+    newNode.next ← head                                # forward link
+    newNode.prev ← null                                # new head has no predecessor
+    head.prev ← newNode                                # mirror — old head's prev points back
+    return newNode
+```
+
 ```python,editable
 class Solution:
     def insert_at_beginning(self, head, data):
@@ -187,23 +199,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    insertAtBeginning(head, data) {
-        const newNode = new ListNode(data);
-        if (head === null) {              // Case A: list is empty
-            newNode.next = null;
-            newNode.prev = null;
-            return newNode;
-        }
-        newNode.next = head;              // 2. New node's next = old head
-        newNode.prev = null;              // 3. New head has no predecessor
-        head.prev    = newNode;           // 4. Mirror
-        return newNode;                   // 5. Return the new head
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     insertAtBeginning(head: ListNode | null, data: number): ListNode | null {
@@ -233,23 +228,6 @@ func insertAtBeginning(head *ListNode, data int) *ListNode {
     newNode.Prev = nil                    // 3. New head has no predecessor
     head.Prev    = newNode                // 4. Mirror
     return newNode                        // 5. Return the new head
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun insertAtBeginning(head: ListNode?, data: Int): ListNode {
-        val newNode = ListNode(data)
-        if (head == null) {               // Case A: empty list
-            newNode.next = null
-            newNode.prev = null
-            return newNode
-        }
-        newNode.next = head               // 2. New node's next = old head
-        newNode.prev = null               // 3. New head has no predecessor
-        head.prev    = newNode            // 4. Mirror
-        return newNode                    // 5. Return the new head
-    }
 }
 ```
 
@@ -321,6 +299,16 @@ Output: [6, 5, 7, 3, 10]
 
 <div class="lang-tabs">
 
+```pseudocode
+# Compact form — `prev` defaults to null on a fresh node.
+function insertAtBeginning(head, data):
+    newNode ← new ListNode(data)
+    if head is null: return newNode
+    newNode.next ← head
+    head.prev ← newNode                                # mirror the forward link
+    return newNode
+```
+
 ```python,editable
 class Solution:
     def insert_at_beginning(self, head, data):
@@ -379,18 +367,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    insertAtBeginning(head, data) {
-        const n = new ListNode(data);
-        if (head === null) return n;
-        n.next    = head;
-        head.prev = n;
-        return n;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     insertAtBeginning(head: ListNode | null, data: number): ListNode {
@@ -410,18 +386,6 @@ func insertAtBeginning(head *ListNode, data int) *ListNode {
     n.Next    = head
     head.Prev = n
     return n
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun insertAtBeginning(head: ListNode?, data: Int): ListNode {
-        val n = ListNode(data)
-        if (head == null) return n
-        n.next    = head
-        head.prev = n
-        return n
-    }
 }
 ```
 
@@ -530,6 +494,18 @@ We consider both cases and handle them in conditional blocks.
 
 <div class="lang-tabs">
 
+```pseudocode
+function insertAtEnd(tail, data):
+    newNode ← new ListNode(data)
+    if tail is null:
+        newNode.next ← null; newNode.prev ← null      # lone node
+        return newNode
+    tail.next ← newNode                                # old tail points forward
+    newNode.prev ← tail                                # mirror — new points back
+    newNode.next ← null                                # new tail has no successor
+    return newNode
+```
+
 ```python,editable
 class Solution:
     def insert_at_end(self, tail, data):
@@ -607,19 +583,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    insertAtEnd(tail, data) {
-        const n = new ListNode(data);
-        if (tail === null) { n.next = null; n.prev = null; return n; }
-        tail.next = n;                           // 2. Old tail → new
-        n.prev    = tail;                        // 3. Mirror
-        n.next    = null;                        // 4. New tail terminator
-        return n;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     insertAtEnd(tail: ListNode | null, data: number): ListNode {
@@ -641,19 +604,6 @@ func insertAtEnd(tail *ListNode, data int) *ListNode {
     n.Prev    = tail
     n.Next    = nil
     return n
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun insertAtEnd(tail: ListNode?, data: Int): ListNode {
-        val n = ListNode(data)
-        if (tail == null) return n
-        tail.next = n
-        n.prev    = tail
-        n.next    = null
-        return n
-    }
 }
 ```
 
@@ -709,6 +659,16 @@ Output: [5, 7, 3, 10, 6]
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Compact form — `next` defaults to null on a fresh node.
+function insertAtEnd(tail, data):
+    newNode ← new ListNode(data)
+    if tail is null: return newNode
+    tail.next ← newNode
+    newNode.prev ← tail
+    return newNode
+```
 
 ```python,editable
 class Solution:
@@ -768,18 +728,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    insertAtEnd(tail, data) {
-        const n = new ListNode(data);
-        if (tail === null) return n;
-        tail.next = n;
-        n.prev    = tail;
-        return n;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     insertAtEnd(tail: ListNode | null, data: number): ListNode {
@@ -799,18 +747,6 @@ func insertAtEnd(tail *ListNode, data int) *ListNode {
     tail.Next = n
     n.Prev    = tail
     return n
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun insertAtEnd(tail: ListNode?, data: Int): ListNode {
-        val n = ListNode(data)
-        if (tail == null) return n
-        tail.next = n
-        n.prev    = tail
-        return n
-    }
 }
 ```
 
@@ -897,6 +833,17 @@ We will be given the node, **after** which we will perform the insertion.
 
 <div class="lang-tabs">
 
+```pseudocode
+function insertAfterTheGivenNode(node, data):
+    if node is null: return
+    newNode ← new ListNode(data)
+    newNode.next ← node.next                           # save before we clobber
+    newNode.prev ← node
+    node.next ← newNode
+    if newNode.next is not null:                       # `node` may have been the tail
+        newNode.next.prev ← newNode                    # mirror — successor's prev = new
+```
+
 ```python,editable
 class Solution:
     def insert_after_the_given_node(self, node, data):
@@ -967,21 +914,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    insertAfterTheGivenNode(node, data) {
-        if (node === null) return;
-        const n = new ListNode(data);
-        n.next    = node.next;                       // 2. New's next = given's old next
-        n.prev    = node;                            // 3. New's prev = given
-        node.next = n;                               // 4. Given's next = new
-        if (n.next !== null) {                       // 5. Conditional mirror
-            n.next.prev = n;
-        }
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     insertAfterTheGivenNode(node: ListNode | null, data: number): void {
@@ -1004,19 +936,6 @@ func insertAfterTheGivenNode(node *ListNode, data int) {
     node.Next = n
     if n.Next != nil {
         n.Next.Prev = n
-    }
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun insertAfterTheGivenNode(node: ListNode?, data: Int) {
-        if (node == null) return
-        val n = ListNode(data)
-        n.next    = node.next
-        n.prev    = node
-        node.next = n
-        if (n.next != null) n.next!!.prev = n
     }
 }
 ```
@@ -1080,6 +999,18 @@ Output: [5, 7, 6, 3, 10]
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Same algorithm — re-listed for the second test case.
+function insertAfterTheGivenNode(node, data):
+    if node is null: return
+    newNode ← new ListNode(data)
+    newNode.next ← node.next
+    newNode.prev ← node
+    node.next ← newNode
+    if newNode.next is not null:
+        newNode.next.prev ← newNode
+```
 
 ```python,editable
 class Solution:
@@ -1145,19 +1076,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    insertAfterTheGivenNode(node, data) {
-        if (node === null) return;
-        const n = new ListNode(data);
-        n.next    = node.next;
-        n.prev    = node;
-        node.next = n;
-        if (n.next !== null) n.next.prev = n;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     insertAfterTheGivenNode(node: ListNode | null, data: number): void {
@@ -1179,19 +1097,6 @@ func insertAfterTheGivenNode(node *ListNode, data int) {
     n.Prev    = node
     node.Next = n
     if n.Next != nil { n.Next.Prev = n }
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun insertAfterTheGivenNode(node: ListNode?, data: Int) {
-        if (node == null) return
-        val n = ListNode(data)
-        n.next    = node.next
-        n.prev    = node
-        node.next = n
-        if (n.next != null) n.next!!.prev = n
-    }
 }
 ```
 
@@ -1331,6 +1236,24 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+# In a DLL, `node.prev` gives O(1) access to the predecessor — no traversal needed.
+function insertBeforeTheGivenNode(head, node, data):
+    if head is null OR node is null: return head
+    newNode ← new ListNode(data)
+    if node = head:                                    # special case — insert at head
+        newNode.next ← head
+        newNode.prev ← null
+        head.prev ← newNode
+        return newNode
+    newNode.next ← node
+    newNode.prev ← node.prev                           # O(1) access — DLL's payoff
+    if newNode.prev is not null:
+        newNode.prev.next ← newNode                    # predecessor → new
+    node.prev ← newNode                                # given.prev = new
+    return head
+```
+
 ```python,editable
 class Solution:
     def insert_before_the_given_node(self, head, node, data):
@@ -1434,26 +1357,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    insertBeforeTheGivenNode(head, node, data) {
-        if (head === null || node === null) return head;
-        const n = new ListNode(data);
-        if (node === head) {                          // Given is the head
-            n.next    = head;
-            n.prev    = null;
-            head.prev = n;
-            return n;
-        }
-        n.next = node;
-        n.prev = node.prev;                           // O(1) thanks to the prev pointer!
-        if (n.prev) n.prev.next = n;
-        node.prev = n;
-        return head;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     insertBeforeTheGivenNode(head: ListNode | null, node: ListNode | null, data: number): ListNode | null {
@@ -1489,26 +1392,6 @@ func insertBeforeTheGivenNode(head, node *ListNode, data int) *ListNode {
     if n.Prev != nil { n.Prev.Next = n }
     node.Prev = n
     return head
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun insertBeforeTheGivenNode(head: ListNode?, node: ListNode?, data: Int): ListNode? {
-        if (head == null || node == null) return head
-        val n = ListNode(data)
-        if (node === head) {
-            n.next    = head
-            n.prev    = null
-            head.prev = n
-            return n
-        }
-        n.next = node
-        n.prev = node.prev
-        if (n.prev != null) n.prev!!.next = n
-        node.prev = n
-        return head
-    }
 }
 ```
 
@@ -1569,6 +1452,22 @@ Output: [5, 6, 7, 3, 10]
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Compact form — assumes node.prev is non-null when node ≠ head.
+function insertBeforeTheGivenNode(head, node, data):
+    if head is null OR node is null: return head
+    newNode ← new ListNode(data)
+    if node = head:
+        newNode.next ← head
+        head.prev ← newNode
+        return newNode
+    newNode.next ← node
+    newNode.prev ← node.prev
+    newNode.prev.next ← newNode
+    node.prev ← newNode
+    return head
+```
 
 ```python,editable
 class Solution:
@@ -1658,21 +1557,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    insertBeforeTheGivenNode(head, node, data) {
-        if (head === null || node === null) return head;
-        const n = new ListNode(data);
-        if (node === head) { n.next = head; head.prev = n; return n; }
-        n.next        = node;
-        n.prev        = node.prev;
-        n.prev.next   = n;
-        node.prev     = n;
-        return head;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     insertBeforeTheGivenNode(head: ListNode | null, node: ListNode | null, data: number): ListNode | null {
@@ -1698,21 +1582,6 @@ func insertBeforeTheGivenNode(head, node *ListNode, data int) *ListNode {
     n.Prev.Next = n
     node.Prev   = n
     return head
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun insertBeforeTheGivenNode(head: ListNode?, node: ListNode?, data: Int): ListNode? {
-        if (head == null || node == null) return head
-        val n = ListNode(data)
-        if (node === head) { n.next = head; head.prev = n; return n }
-        n.next         = node
-        n.prev         = node.prev
-        n.prev!!.next  = n
-        node.prev      = n
-        return head
-    }
 }
 ```
 
@@ -1879,6 +1748,32 @@ When implementing the logic for insert at a distance `X`, we keep all the possib
 
 <div class="lang-tabs">
 
+```pseudocode
+function insertAtGivenDistance(head, X, data):
+    if head is null AND X > 0: return null
+    newNode ← new ListNode(data)
+    if X = 0:                                          # insert at beginning
+        newNode.next ← head
+        newNode.prev ← null
+        if head is not null: head.prev ← newNode
+        return newNode
+
+    # Walk forward to position X − 1.
+    current ← head; counter ← 0
+    while current is not null AND counter < X − 1:
+        current ← current.next
+        counter ← counter + 1
+    if current is null: return head                    # X exceeds list size
+
+    # Splice newNode after `current`. Update both directions.
+    newNode.next ← current.next
+    newNode.prev ← current
+    current.next ← newNode
+    if newNode.next is not null:
+        newNode.next.prev ← newNode
+    return head
+```
+
 ```python,editable
 class Solution:
     def insert_at_given_distance(self, head, X, data):
@@ -2015,33 +1910,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    insertAtGivenDistance(head, X, data) {
-        if (head === null && X > 0) return null;
-        const n = new ListNode(data);
-        if (X === 0) {
-            n.next = head;
-            n.prev = null;
-            if (head !== null) head.prev = n;
-            return n;
-        }
-        let current = head;
-        let counter = 0;
-        while (current !== null && counter < X - 1) {
-            current = current.next;
-            counter++;
-        }
-        if (current === null) return head;
-        n.next        = current.next;
-        n.prev        = current;
-        current.next  = n;
-        if (n.next !== null) n.next.prev = n;
-        return head;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     insertAtGivenDistance(head: ListNode | null, X: number, data: number): ListNode | null {
@@ -2091,33 +1959,6 @@ func insertAtGivenDistance(head *ListNode, X, data int) *ListNode {
     current.Next = n
     if n.Next != nil { n.Next.Prev = n }
     return head
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun insertAtGivenDistance(head: ListNode?, X: Int, data: Int): ListNode? {
-        if (head == null && X > 0) return null
-        val n = ListNode(data)
-        if (X == 0) {
-            n.next = head
-            n.prev = null
-            if (head != null) head.prev = n
-            return n
-        }
-        var current = head
-        var counter = 0
-        while (current != null && counter < X - 1) {
-            current = current.next
-            counter++
-        }
-        if (current == null) return head
-        n.next        = current.next
-        n.prev        = current
-        current.next  = n
-        if (n.next != null) n.next!!.prev = n
-        return head
-    }
 }
 ```
 
@@ -2203,6 +2044,26 @@ Output: [5, 6, 7, 3, 10]
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Compact form — same algorithm.
+function insertAtGivenDistance(head, X, data):
+    if head is null AND X > 0: return null
+    newNode ← new ListNode(data)
+    if X = 0:
+        newNode.next ← head
+        if head is not null: head.prev ← newNode
+        return newNode
+    current ← head; counter ← 0
+    while current is not null AND counter < X − 1:
+        current ← current.next; counter ← counter + 1
+    if current is null: return head
+    newNode.next ← current.next
+    newNode.prev ← current
+    current.next ← newNode
+    if newNode.next is not null: newNode.next.prev ← newNode
+    return head
+```
 
 ```python,editable
 class Solution:
@@ -2333,31 +2194,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    insertAtGivenDistance(head, X, data) {
-        if (head === null && X > 0) return null;
-        const n = new ListNode(data);
-        if (X === 0) {
-            n.next = head;
-            if (head !== null) head.prev = n;
-            return n;
-        }
-        let current = head, counter = 0;
-        while (current !== null && counter < X - 1) {
-            current = current.next;
-            counter++;
-        }
-        if (current === null) return head;
-        n.next       = current.next;
-        n.prev       = current;
-        current.next = n;
-        if (n.next !== null) n.next.prev = n;
-        return head;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     insertAtGivenDistance(head: ListNode | null, X: number, data: number): ListNode | null {
@@ -2405,32 +2241,6 @@ func insertAtGivenDistance(head *ListNode, X, data int) *ListNode {
     current.Next = n
     if n.Next != nil { n.Next.Prev = n }
     return head
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun insertAtGivenDistance(head: ListNode?, X: Int, data: Int): ListNode? {
-        if (head == null && X > 0) return null
-        val n = ListNode(data)
-        if (X == 0) {
-            n.next = head
-            if (head != null) head.prev = n
-            return n
-        }
-        var current = head
-        var counter = 0
-        while (current != null && counter < X - 1) {
-            current = current.next
-            counter++
-        }
-        if (current == null) return head
-        n.next       = current.next
-        n.prev       = current
-        current.next = n
-        if (n.next != null) n.next!!.prev = n
-        return head
-    }
 }
 ```
 
