@@ -265,6 +265,15 @@ Here's the same algorithm in ten languages. Pick whichever you read most fluentl
 
 <div class="lang-tabs">
 
+```pseudocode
+function createGraph(nodes, edges):
+    adj ← N×N matrix of false
+    for each (u, v) in edges:
+        adj[u][v] ← true
+        adj[v][u] ← true   # undirected: set both directions
+    return adj
+```
+
 ```python,editable
 from typing import List
 
@@ -395,25 +404,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function createGraph(nodes, edges) {
-    // Array.from with a length and a factory builds N independent rows
-    // (writing Array(n).fill(Array(n).fill(false)) shares one row object — same Python footgun).
-    const adj = Array.from({length: nodes}, () => Array(nodes).fill(false));
-
-    for (const [u, v] of edges) {
-        // Symmetric assignment for undirected edges.
-        adj[u][v] = true;
-        adj[v][u] = true;
-    }
-    return adj;
-}
-
-const edges = [[0, 1], [0, 2], [1, 2], [1, 3], [2, 4], [3, 4]];
-const matrix = createGraph(5, edges);
-matrix.forEach(row => console.log(row.join(" ")));
-```
-
 ```typescript,editable
 function createGraph(nodes: number, edges: number[][]): boolean[][] {
     // Same fresh-row trick as JS — must use a factory so each row is its own array.
@@ -458,27 +448,6 @@ func main() {
     for _, row := range matrix {
         fmt.Println(row)
     }
-}
-```
-
-```kotlin,editable
-fun createGraph(nodes: Int, edges: Array<IntArray>): Array<BooleanArray> {
-    // Kotlin BooleanArray defaults to false; Array(n) {...} builds N fresh rows.
-    val adj = Array(nodes) { BooleanArray(nodes) }
-
-    for (edge in edges) {
-        // Symmetric assignment for undirected edges.
-        adj[edge[0]][edge[1]] = true
-        adj[edge[1]][edge[0]] = true
-    }
-    return adj
-}
-
-fun main() {
-    val edges = arrayOf(intArrayOf(0, 1), intArrayOf(0, 2), intArrayOf(1, 2),
-                        intArrayOf(1, 3), intArrayOf(2, 4), intArrayOf(3, 4))
-    val matrix = createGraph(5, edges)
-    matrix.forEach { row -> println(row.toList()) }
 }
 ```
 
@@ -595,6 +564,15 @@ matrix: "Weighted adjacency matrix (sentinel = -1)" {
 The implementation is almost identical to the boolean version — swap `bool` for `int` and the sentinel for `-1`.
 
 <div class="lang-tabs">
+
+```pseudocode
+function createWeightedGraph(nodes, edges):
+    adj ← N×N matrix filled with NO_EDGE   # NO_EDGE sentinel = -1
+    for each (u, v, w) in edges:
+        adj[u][v] ← w
+        adj[v][u] ← w   # undirected: set both directions
+    return adj
+```
 
 ```python,editable
 from typing import List
@@ -731,25 +709,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const NO_EDGE = -1;
-
-function createWeightedGraph(nodes, edges) {
-    // Independent rows via factory — see the boolean implementation for why.
-    const adj = Array.from({length: nodes}, () => Array(nodes).fill(NO_EDGE));
-
-    for (const [u, v, w] of edges) {
-        adj[u][v] = w;
-        adj[v][u] = w;
-    }
-    return adj;
-}
-
-const edges = [[0,1,5],[0,2,2],[1,2,1],[1,3,7],[2,4,4],[3,4,3]];
-const matrix = createWeightedGraph(5, edges);
-matrix.forEach(row => console.log(row.join(" ")));
-```
-
 ```typescript,editable
 const NO_EDGE = -1;
 
@@ -797,28 +756,6 @@ func main() {
     for _, row := range matrix {
         fmt.Println(row)
     }
-}
-```
-
-```kotlin,editable
-const val NO_EDGE = -1
-
-fun createWeightedGraph(nodes: Int, edges: Array<IntArray>): Array<IntArray> {
-    // IntArray defaults to 0; we want NO_EDGE — fill explicitly.
-    val adj = Array(nodes) { IntArray(nodes) { NO_EDGE } }
-
-    for (e in edges) {
-        adj[e[0]][e[1]] = e[2]
-        adj[e[1]][e[0]] = e[2]
-    }
-    return adj
-}
-
-fun main() {
-    val edges = arrayOf(intArrayOf(0,1,5), intArrayOf(0,2,2), intArrayOf(1,2,1),
-                        intArrayOf(1,3,7), intArrayOf(2,4,4), intArrayOf(3,4,3))
-    val matrix = createWeightedGraph(5, edges)
-    matrix.forEach { row -> println(row.toList()) }
 }
 ```
 
@@ -930,6 +867,16 @@ The two-array trick is the standard pattern. Storing node data inside the matrix
 Here's a small example that builds both arrays together.
 
 <div class="lang-tabs">
+
+```pseudocode
+function createGraph(nodeData, edges):
+    n ← length of nodeData
+    adj ← N×N matrix filled with NO_EDGE
+    for each (u, v, w) in edges:
+        adj[u][v] ← w
+        adj[v][u] ← w   # undirected: both directions
+    return nodeData, adj  # parallel arrays: nodeData[i] and adj[i][j]
+```
 
 ```python,editable
 from typing import List, Tuple
@@ -1086,26 +1033,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const NO_EDGE = -1;
-
-function createGraph(nodeData, edges) {
-    const n = nodeData.length;
-    const adj = Array.from({length: n}, () => Array(n).fill(NO_EDGE));
-    for (const [u, v, w] of edges) {
-        adj[u][v] = w;
-        adj[v][u] = w;
-    }
-    return {nodeData, adj};
-}
-
-const cities = ["Bangalore", "Tokyo", "Paris", "NYC", "London"];
-const edges  = [[0,1,5],[0,2,2],[1,2,1],[1,3,7],[2,4,4],[3,4,3]];
-const g = createGraph(cities, edges);
-console.log("Node 1:", g.nodeData[1]);
-console.log("Edge 1-2:", g.adj[1][2]);
-```
-
 ```typescript,editable
 const NO_EDGE = -1;
 
@@ -1162,31 +1089,6 @@ func main() {
     g := createGraph(cities, edges)
     fmt.Println("Node 1:", g.NodeData[1])
     fmt.Println("Edge 1-2:", g.Adj[1][2])
-}
-```
-
-```kotlin,editable
-const val NO_EDGE = -1
-
-data class Graph(val nodeData: Array<String>, val adj: Array<IntArray>)
-
-fun createGraph(nodeData: Array<String>, edges: Array<IntArray>): Graph {
-    val n = nodeData.size
-    val adj = Array(n) { IntArray(n) { NO_EDGE } }
-    for (e in edges) {
-        adj[e[0]][e[1]] = e[2]
-        adj[e[1]][e[0]] = e[2]
-    }
-    return Graph(nodeData, adj)
-}
-
-fun main() {
-    val cities = arrayOf("Bangalore", "Tokyo", "Paris", "NYC", "London")
-    val edges = arrayOf(intArrayOf(0,1,5), intArrayOf(0,2,2), intArrayOf(1,2,1),
-                        intArrayOf(1,3,7), intArrayOf(2,4,4), intArrayOf(3,4,3))
-    val g = createGraph(cities, edges)
-    println("Node 1: ${g.nodeData[1]}")
-    println("Edge 1-2: ${g.adj[1][2]}")
 }
 ```
 

@@ -141,6 +141,26 @@ That's the whole proof. The key insight: **the parent check is the precise filte
 
 <div class="lang-tabs">
 
+```pseudocode
+function hasCycle(graph, node, parent, visited):
+    add node to visited
+    for neighbor in graph[node]:
+        if neighbor is not in visited:
+            if hasCycle(graph, neighbor, node, visited):
+                return true
+        else if neighbor ≠ parent:
+            return true   # visited AND not our parent → cycle found
+    return false
+
+function detectCycleUndirected(graph):
+    visited ← empty set
+    for node from 0 to N−1:
+        if node is not in visited:
+            if hasCycle(graph, node, −1, visited):
+                return true
+    return false
+```
+
 ```python,editable
 from typing import List, Set
 
@@ -319,35 +339,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    hasCycle(graph, node, parent, visited) {
-        visited.add(node);
-        for (const neighbour of graph[node]) {
-            if (!visited.has(neighbour)) {
-                if (this.hasCycle(graph, neighbour, node, visited)) return true;
-            } else if (neighbour !== parent) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    detectCycleUndirected(graph) {
-        const visited = new Set();
-        for (let node = 0; node < graph.length; node++) {
-            if (!visited.has(node)) {
-                if (this.hasCycle(graph, node, -1, visited)) return true;
-            }
-        }
-        return false;
-    }
-}
-
-const graph = [[1, 2], [0, 2], [0, 1, 3], [2]];
-console.log(new Solution().detectCycleUndirected(graph));
-```
-
 ```typescript,editable
 class Solution {
     hasCycle(graph: number[][], node: number, parent: number, visited: Set<number>): boolean {
@@ -411,37 +402,6 @@ func detectCycleUndirected(graph [][]int) bool {
 func main() {
     graph := [][]int{{1, 2}, {0, 2}, {0, 1, 3}, {2}}
     fmt.Println(detectCycleUndirected(graph))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun hasCycle(graph: List<List<Int>>, node: Int, parent: Int, visited: MutableSet<Int>): Boolean {
-        visited.add(node)
-        for (neighbour in graph[node]) {
-            if (neighbour !in visited) {
-                if (hasCycle(graph, neighbour, node, visited)) return true
-            } else if (neighbour != parent) {
-                return true
-            }
-        }
-        return false
-    }
-
-    fun detectCycleUndirected(graph: List<List<Int>>): Boolean {
-        val visited = mutableSetOf<Int>()
-        for (node in graph.indices) {
-            if (node !in visited) {
-                if (hasCycle(graph, node, -1, visited)) return true
-            }
-        }
-        return false
-    }
-}
-
-fun main() {
-    val graph = listOf(listOf(1, 2), listOf(0, 2), listOf(0, 1, 3), listOf(2))
-    println(Solution().detectCycleUndirected(graph))
 }
 ```
 
@@ -611,6 +571,29 @@ The crucial line is `nodesInPath.remove(node)` at step 4 — the **back-tracking
 # Directed — Implementation
 
 <div class="lang-tabs">
+
+```pseudocode
+function hasCycle(graph, node, visited, inPath):
+    add node to visited
+    add node to inPath          # mark grey: on current DFS stack
+    for neighbor in graph[node]:
+        if neighbor is in inPath:
+            return true         # back-edge → cycle
+        if neighbor is not in visited:
+            if hasCycle(graph, neighbor, visited, inPath):
+                return true
+    remove node from inPath     # back-track: grey → black
+    return false
+
+function detectCycleDirected(graph):
+    visited ← empty set
+    inPath ← empty set
+    for node from 0 to N−1:
+        if node is not in visited:
+            if hasCycle(graph, node, visited, inPath):
+                return true
+    return false
+```
 
 ```python,editable
 from typing import List, Set
@@ -814,37 +797,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    hasCycle(graph, node, visited, inPath) {
-        visited.add(node);
-        inPath.add(node);
-        for (const neighbour of graph[node]) {
-            if (inPath.has(neighbour)) return true;
-            if (!visited.has(neighbour)) {
-                if (this.hasCycle(graph, neighbour, visited, inPath)) return true;
-            }
-        }
-        inPath.delete(node);
-        return false;
-    }
-
-    detectCycleDirected(graph) {
-        const visited = new Set();
-        const inPath = new Set();
-        for (let node = 0; node < graph.length; node++) {
-            if (!visited.has(node)) {
-                if (this.hasCycle(graph, node, visited, inPath)) return true;
-            }
-        }
-        return false;
-    }
-}
-
-console.log(new Solution().detectCycleDirected([[1, 2], [3], [3], []]));
-console.log(new Solution().detectCycleDirected([[1], [2], [0]]));
-```
-
 ```typescript,editable
 class Solution {
     hasCycle(graph: number[][], node: number, visited: Set<number>, inPath: Set<number>): boolean {
@@ -911,35 +863,6 @@ func detectCycleDirected(graph [][]int) bool {
 func main() {
     fmt.Println(detectCycleDirected([][]int{{1, 2}, {3}, {3}, {}}))
     fmt.Println(detectCycleDirected([][]int{{1}, {2}, {0}}))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun hasCycle(graph: List<List<Int>>, node: Int,
-                 visited: MutableSet<Int>, inPath: MutableSet<Int>): Boolean {
-        visited.add(node); inPath.add(node)
-        for (neighbour in graph[node]) {
-            if (neighbour in inPath) return true
-            if (neighbour !in visited && hasCycle(graph, neighbour, visited, inPath)) return true
-        }
-        inPath.remove(node)
-        return false
-    }
-
-    fun detectCycleDirected(graph: List<List<Int>>): Boolean {
-        val visited = mutableSetOf<Int>()
-        val inPath  = mutableSetOf<Int>()
-        for (node in graph.indices) {
-            if (node !in visited && hasCycle(graph, node, visited, inPath)) return true
-        }
-        return false
-    }
-}
-
-fun main() {
-    println(Solution().detectCycleDirected(listOf(listOf(1, 2), listOf(3), listOf(3), listOf())))
-    println(Solution().detectCycleDirected(listOf(listOf(1), listOf(2), listOf(0))))
 }
 ```
 

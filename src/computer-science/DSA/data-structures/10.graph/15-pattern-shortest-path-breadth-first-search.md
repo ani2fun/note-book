@@ -122,6 +122,24 @@ The grid is a graph with implicit edges. BFS from `(0,0)`. As soon as the dequeu
 
 <div class="lang-tabs">
 
+```pseudocode
+function minimumStepsInAGrid(grid):
+    if start or end is a wall: return −1
+    visited ← rows×cols matrix of false
+    queue ← empty queue
+    enqueue (0, 0, 0) to queue     # (row, col, steps)
+    visited[0][0] ← true
+    while queue is not empty:
+        (r, c, steps) ← dequeue from queue
+        if r = rows−1 AND c = cols−1: return steps
+        for each (dr, dc) in DIRS:
+            nr, nc ← r+dr, c+dc
+            if isValid(grid, nr, nc) AND NOT visited[nr][nc]:
+                visited[nr][nc] ← true
+                enqueue (nr, nc, steps+1) to queue
+    return −1
+```
+
 ```python,editable
 from typing import List
 from collections import deque
@@ -323,39 +341,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const DIRS = [[-1, 0], [0, 1], [1, 0], [0, -1]];
-
-class Solution {
-    isValid(grid, r, c) {
-        return r >= 0 && r < grid.length && c >= 0 && c < grid[0].length && grid[r][c] === 1;
-    }
-
-    minimumStepsInAGrid(grid) {
-        const rows = grid.length, cols = grid[0].length;
-        if (grid[0][0] === 0 || grid[rows-1][cols-1] === 0) return -1;
-        const visited = Array.from({length: rows}, () => Array(cols).fill(false));
-        const queue = [[0, 0, 0]];
-        visited[0][0] = true;
-        let head = 0;
-        while (head < queue.length) {
-            const [r, c, steps] = queue[head++];
-            if (r === rows - 1 && c === cols - 1) return steps;
-            for (const [dr, dc] of DIRS) {
-                const nr = r + dr, nc = c + dc;
-                if (this.isValid(grid, nr, nc) && !visited[nr][nc]) {
-                    visited[nr][nc] = true;
-                    queue.push([nr, nc, steps + 1]);
-                }
-            }
-        }
-        return -1;
-    }
-}
-
-console.log(new Solution().minimumStepsInAGrid([[1, 0, 1, 1], [1, 1, 1, 1], [0, 1, 0, 1]]));
-```
-
 ```typescript,editable
 const DIRS: [number, number][] = [[-1, 0], [0, 1], [1, 0], [0, -1]];
 
@@ -429,43 +414,6 @@ func minimumStepsInAGrid(grid [][]int) int {
 func main() {
     grid := [][]int{{1, 0, 1, 1}, {1, 1, 1, 1}, {0, 1, 0, 1}}
     fmt.Println(minimumStepsInAGrid(grid))
-}
-```
-
-```kotlin,editable
-import java.util.ArrayDeque
-
-val DIRS = arrayOf(intArrayOf(-1, 0), intArrayOf(0, 1), intArrayOf(1, 0), intArrayOf(0, -1))
-
-class Solution {
-    fun isValid(grid: Array<IntArray>, r: Int, c: Int): Boolean =
-        r in grid.indices && c in grid[0].indices && grid[r][c] == 1
-
-    fun minimumStepsInAGrid(grid: Array<IntArray>): Int {
-        val rows = grid.size; val cols = grid[0].size
-        if (grid[0][0] == 0 || grid[rows-1][cols-1] == 0) return -1
-        val visited = Array(rows) { BooleanArray(cols) }
-        val q = ArrayDeque<IntArray>()
-        q.add(intArrayOf(0, 0, 0))
-        visited[0][0] = true
-        while (q.isNotEmpty()) {
-            val (r, c, steps) = q.poll()
-            if (r == rows - 1 && c == cols - 1) return steps
-            for (d in DIRS) {
-                val nr = r + d[0]; val nc = c + d[1]
-                if (isValid(grid, nr, nc) && !visited[nr][nc]) {
-                    visited[nr][nc] = true
-                    q.add(intArrayOf(nr, nc, steps + 1))
-                }
-            }
-        }
-        return -1
-    }
-}
-
-fun main() {
-    val grid = arrayOf(intArrayOf(1, 0, 1, 1), intArrayOf(1, 1, 1, 1), intArrayOf(0, 1, 0, 1))
-    println(Solution().minimumStepsInAGrid(grid))
 }
 ```
 
@@ -562,6 +510,23 @@ Because BFS is **breadth-first** — it dequeues all distance-0 nodes before any
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function nearestDistance(grid):
+    result ← rows×cols matrix of ∞
+    queue ← empty queue
+    for each cell (r, c) where grid[r][c] = 1:
+        result[r][c] ← 0
+        enqueue (r, c, 0) to queue   # multi-source: all 1s start at distance 0
+    while queue is not empty:
+        (r, c, d) ← dequeue from queue
+        for each (dr, dc) in DIRS:
+            nr, nc ← r+dr, c+dc
+            if in bounds AND d+1 < result[nr][nc]:
+                result[nr][nc] ← d+1
+                enqueue (nr, nc, d+1) to queue
+    return result
+```
 
 ```python,editable
 from typing import List
@@ -760,36 +725,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const DIRS = [[-1, 0], [0, 1], [1, 0], [0, -1]];
-
-class Solution {
-    nearestDistance(grid) {
-        const rows = grid.length, cols = grid[0].length;
-        const result = Array.from({length: rows}, () => Array(cols).fill(Infinity));
-        const queue = [];
-        for (let r = 0; r < rows; r++)
-            for (let c = 0; c < cols; c++)
-                if (grid[r][c] === 1) { result[r][c] = 0; queue.push([r, c, 0]); }
-        let head = 0;
-        while (head < queue.length) {
-            const [r, c, d] = queue[head++];
-            for (const [dr, dc] of DIRS) {
-                const nr = r + dr, nc = c + dc;
-                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && d + 1 < result[nr][nc]) {
-                    result[nr][nc] = d + 1;
-                    queue.push([nr, nc, d + 1]);
-                }
-            }
-        }
-        return result;
-    }
-}
-
-const grid = [[0, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 0], [0, 0, 0, 0]];
-console.log(new Solution().nearestDistance(grid));
-```
-
 ```typescript,editable
 const DIRS: [number, number][] = [[-1, 0], [0, 1], [1, 0], [0, -1]];
 
@@ -867,40 +802,6 @@ func main() {
     for _, r := range nearestDistance(grid) {
         fmt.Println(r)
     }
-}
-```
-
-```kotlin,editable
-import java.util.ArrayDeque
-
-val DIRS_ND = arrayOf(intArrayOf(-1, 0), intArrayOf(0, 1), intArrayOf(1, 0), intArrayOf(0, -1))
-
-class Solution {
-    fun nearestDistance(grid: Array<IntArray>): Array<IntArray> {
-        val rows = grid.size; val cols = grid[0].size
-        val result = Array(rows) { IntArray(cols) { Int.MAX_VALUE } }
-        val q = ArrayDeque<IntArray>()
-        for (r in 0 until rows) for (c in 0 until cols) {
-            if (grid[r][c] == 1) { result[r][c] = 0; q.add(intArrayOf(r, c, 0)) }
-        }
-        while (q.isNotEmpty()) {
-            val (r, c, d) = q.poll()
-            for (dir in DIRS_ND) {
-                val nr = r + dir[0]; val nc = c + dir[1]
-                if (nr in 0 until rows && nc in 0 until cols && d + 1 < result[nr][nc]) {
-                    result[nr][nc] = d + 1
-                    q.add(intArrayOf(nr, nc, d + 1))
-                }
-            }
-        }
-        return result
-    }
-}
-
-fun main() {
-    val grid = arrayOf(intArrayOf(0, 0, 0, 0), intArrayOf(0, 0, 1, 0),
-                       intArrayOf(0, 0, 0, 0), intArrayOf(0, 0, 0, 0))
-    for (r in Solution().nearestDistance(grid)) println(r.toList())
 }
 ```
 
@@ -982,6 +883,26 @@ We'll use approach 1 — simpler to code, still fast for typical inputs. The imp
 ## The Solution (per-position substitution)
 
 <div class="lang-tabs">
+
+```pseudocode
+function shortestWordTransformation(source, target, wordList):
+    wordSet ← set of wordList
+    if target is not in wordSet: return 0
+    queue ← empty queue
+    enqueue (source, 1) to queue
+    visited ← empty set
+    add source to visited
+    while queue is not empty:
+        (word, level) ← dequeue from queue
+        if word = target: return level
+        for i from 0 to length(word)−1:
+            for each letter c in 'a' to 'z':
+                candidate ← word with position i replaced by c
+                if candidate is in wordSet AND candidate is not in visited:
+                    add candidate to visited
+                    enqueue (candidate, level+1) to queue
+    return 0
+```
 
 ```python,editable
 from typing import List
@@ -1195,41 +1116,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    shortestWordTransformation(source, target, wordList) {
-        const wordSet = new Set(wordList);
-        if (!wordSet.has(target)) return 0;
-        const queue = [[source, 1]];
-        const visited = new Set([source]);
-        let head = 0;
-        while (head < queue.length) {
-            const [word, level] = queue[head++];
-            if (word === target) return level;
-            const arr = word.split("");
-            for (let i = 0; i < arr.length; i++) {
-                const orig = arr[i];
-                for (let c = 97; c <= 122; c++) {
-                    const ch = String.fromCharCode(c);
-                    if (ch === orig) continue;
-                    arr[i] = ch;
-                    const cand = arr.join("");
-                    if (wordSet.has(cand) && !visited.has(cand)) {
-                        visited.add(cand);
-                        queue.push([cand, level + 1]);
-                    }
-                }
-                arr[i] = orig;
-            }
-        }
-        return 0;
-    }
-}
-
-console.log(new Solution().shortestWordTransformation(
-    "hit", "cog", ["hot", "dot", "dog", "lot", "log", "cog"]));
-```
-
 ```typescript,editable
 class Solution {
     shortestWordTransformation(source: string, target: string, wordList: string[]): number {
@@ -1301,43 +1187,6 @@ func shortestWordTransformation(source, target string, wordList []string) int {
 func main() {
     fmt.Println(shortestWordTransformation("hit", "cog",
         []string{"hot", "dot", "dog", "lot", "log", "cog"}))
-}
-```
-
-```kotlin,editable
-import java.util.ArrayDeque
-
-class Solution {
-    fun shortestWordTransformation(source: String, target: String, wordList: List<String>): Int {
-        val wordSet = wordList.toHashSet()
-        if (target !in wordSet) return 0
-        val queue = ArrayDeque<Pair<String, Int>>()
-        queue.add(source to 1)
-        val visited = mutableSetOf(source)
-        while (queue.isNotEmpty()) {
-            val (word, level) = queue.poll()
-            if (word == target) return level
-            val arr = word.toCharArray()
-            for (i in arr.indices) {
-                val orig = arr[i]
-                for (c in 'a'..'z') {
-                    if (c == orig) continue
-                    arr[i] = c
-                    val cand = String(arr)
-                    if (cand in wordSet && cand !in visited) {
-                        visited.add(cand); queue.add(cand to level + 1)
-                    }
-                }
-                arr[i] = orig
-            }
-        }
-        return 0
-    }
-}
-
-fun main() {
-    println(Solution().shortestWordTransformation(
-        "hit", "cog", listOf("hot", "dot", "dog", "lot", "log", "cog")))
 }
 ```
 

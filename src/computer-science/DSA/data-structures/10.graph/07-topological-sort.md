@@ -226,6 +226,24 @@ We assume the input is a DAG; if you can't make that assumption, jump to the nex
 
 <div class="lang-tabs">
 
+```pseudocode
+function dfs(graph, node, visited, result):
+    add node to visited
+    for neighbor in graph[node]:
+        if neighbor is not in visited:
+            dfs(graph, neighbor, visited, result)
+    append node to result   # append on EXIT → builds reverse topo order
+
+function topologicalSort(graph):
+    visited ← empty set
+    result ← empty list
+    for node from 0 to N−1:
+        if node is not in visited:
+            dfs(graph, node, visited, result)
+    reverse result
+    return result
+```
+
 ```python,editable
 from typing import List, Set
 
@@ -401,32 +419,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    dfs(graph, node, visited, result) {
-        visited.add(node);
-        for (const neighbour of graph[node]) {
-            if (!visited.has(neighbour)) this.dfs(graph, neighbour, visited, result);
-        }
-        result.push(node);
-    }
-
-    topologicalSort(graph) {
-        if (graph.length === 0) return [];
-        const visited = new Set();
-        const result = [];
-        for (let node = 0; node < graph.length; node++) {
-            if (!visited.has(node)) this.dfs(graph, node, visited, result);
-        }
-        result.reverse();
-        return result;
-    }
-}
-
-const graph = [[1], [], [3], [], [1]];
-console.log(new Solution().topologicalSort(graph));
-```
-
 ```typescript,editable
 class Solution {
     dfs(graph: number[][], node: number, visited: Set<number>, result: number[]): void {
@@ -490,34 +482,6 @@ func topologicalSort(graph [][]int) []int {
 func main() {
     graph := [][]int{{1}, {}, {3}, {}, {1}}
     fmt.Println(topologicalSort(graph))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun dfs(graph: List<List<Int>>, node: Int,
-            visited: MutableSet<Int>, result: MutableList<Int>) {
-        visited.add(node)
-        for (neighbour in graph[node]) {
-            if (neighbour !in visited) dfs(graph, neighbour, visited, result)
-        }
-        result.add(node)
-    }
-
-    fun topologicalSort(graph: List<List<Int>>): List<Int> {
-        if (graph.isEmpty()) return emptyList()
-        val visited = mutableSetOf<Int>()
-        val result = mutableListOf<Int>()
-        for (node in graph.indices) {
-            if (node !in visited) dfs(graph, node, visited, result)
-        }
-        return result.asReversed()
-    }
-}
-
-fun main() {
-    val graph = listOf(listOf(1), emptyList(), listOf(3), emptyList(), listOf(1))
-    println(Solution().topologicalSort(graph))
 }
 ```
 
@@ -606,6 +570,32 @@ The fix is mechanical: **fuse last lesson's directed-cycle check into the DFS**.
 The integration is clean: the same single DFS does both jobs in one pass — detects the cycle *and* builds the (potential) topological order. If a cycle is found, throw the partial result away.
 
 <div class="lang-tabs">
+
+```pseudocode
+function dfsSafe(graph, node, visited, inPath, result):
+    add node to visited
+    add node to inPath
+    for neighbor in graph[node]:
+        if neighbor is in inPath:
+            return true   # cycle found
+        if neighbor is not in visited:
+            if dfsSafe(graph, neighbor, visited, inPath, result):
+                return true
+    remove node from inPath
+    append node to result   # append on exit, same as cycle-free version
+    return false
+
+function topologicalSortSafe(graph):
+    visited ← empty set
+    inPath ← empty set
+    result ← empty list
+    for node from 0 to N−1:
+        if node is not in visited:
+            if dfsSafe(graph, node, visited, inPath, result):
+                return empty list   # cycle detected
+    reverse result
+    return result
+```
 
 ```python,editable
 from typing import List, Set
@@ -824,38 +814,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    hasCycle(graph, node, visited, inPath, result) {
-        visited.add(node); inPath.add(node);
-        for (const neighbour of graph[node]) {
-            if (inPath.has(neighbour)) return true;
-            if (!visited.has(neighbour))
-                if (this.hasCycle(graph, neighbour, visited, inPath, result)) return true;
-        }
-        inPath.delete(node);
-        result.push(node);
-        return false;
-    }
-
-    topologicalSortSafe(graph) {
-        if (graph.length === 0) return [];
-        const visited = new Set(), inPath = new Set();
-        const result = [];
-        for (let node = 0; node < graph.length; node++) {
-            if (!visited.has(node)) {
-                if (this.hasCycle(graph, node, visited, inPath, result)) return [];
-            }
-        }
-        result.reverse();
-        return result;
-    }
-}
-
-console.log(new Solution().topologicalSortSafe([[1], [], [3], [], [1]]));
-console.log(new Solution().topologicalSortSafe([[1], [2], [0, 3], [], [1]]));
-```
-
 ```typescript,editable
 class Solution {
     hasCycle(graph: number[][], node: number,
@@ -934,40 +892,6 @@ func topologicalSortSafe(graph [][]int) []int {
 func main() {
     fmt.Println(topologicalSortSafe([][]int{{1}, {}, {3}, {}, {1}}))
     fmt.Println(topologicalSortSafe([][]int{{1}, {2}, {0, 3}, {}, {1}}))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun hasCycle(graph: List<List<Int>>, node: Int,
-                 visited: MutableSet<Int>, inPath: MutableSet<Int>,
-                 result: MutableList<Int>): Boolean {
-        visited.add(node); inPath.add(node)
-        for (neighbour in graph[node]) {
-            if (neighbour in inPath) return true
-            if (neighbour !in visited && hasCycle(graph, neighbour, visited, inPath, result)) return true
-        }
-        inPath.remove(node)
-        result.add(node)
-        return false
-    }
-
-    fun topologicalSortSafe(graph: List<List<Int>>): List<Int> {
-        if (graph.isEmpty()) return emptyList()
-        val visited = mutableSetOf<Int>(); val inPath = mutableSetOf<Int>()
-        val result = mutableListOf<Int>()
-        for (node in graph.indices) {
-            if (node !in visited) {
-                if (hasCycle(graph, node, visited, inPath, result)) return emptyList()
-            }
-        }
-        return result.asReversed()
-    }
-}
-
-fun main() {
-    println(Solution().topologicalSortSafe(listOf(listOf(1), emptyList(), listOf(3), emptyList(), listOf(1))))
-    println(Solution().topologicalSortSafe(listOf(listOf(1), listOf(2), listOf(0, 3), emptyList(), listOf(1))))
 }
 ```
 

@@ -214,6 +214,33 @@ We add 2 new nodes (source and sink) and wire them up.
 
 <div class="lang-tabs">
 
+```pseudocode
+function fordFulkerson(residual, source, sink):
+    total ← 0
+    while true:
+        visited ← empty set
+        path ← empty list
+        if NOT dfs(residual, visited, path, source, sink): break
+        bottleneck ← min residual[path[i]][path[i+1]] for consecutive pairs
+        for each consecutive (u, v) in path:
+            residual[u][v] ← residual[u][v] − bottleneck
+            residual[v][u] ← residual[v][u] + bottleneck
+        total ← total + bottleneck
+    return total
+
+function maximumBipartiteMatching(graph, left, right):
+    source ← N,  sink ← N+1
+    residual ← (N+2)×(N+2) matrix of 0
+    for u in graph:
+        for v in graph[u]:
+            residual[u][v] ← 1        # L → R edges, capacity 1
+    for u in left:
+        residual[source][u] ← 1       # source → L, capacity 1
+    for v in right:
+        residual[v][sink] ← 1         # R → sink, capacity 1
+    return fordFulkerson(residual, source, sink)
+```
+
 ```python,editable
 from typing import List
 
@@ -532,55 +559,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    dfs(r, visited, path, node, sink) {
-        visited.add(node); path.push(node);
-        if (node === sink) return true;
-        for (let v = 0; v < r.length; v++) {
-            if (!visited.has(v) && r[node][v] > 0) {
-                if (this.dfs(r, visited, path, v, sink)) return true;
-            }
-        }
-        path.pop();
-        return false;
-    }
-
-    fordFulkerson(r, source, sink) {
-        let total = 0;
-        while (true) {
-            const visited = new Set();
-            const path = [];
-            if (!this.dfs(r, visited, path, source, sink)) break;
-            let pf = Infinity;
-            for (let i = 0; i < path.length - 1; i++)
-                pf = Math.min(pf, r[path[i]][path[i+1]]);
-            for (let i = 0; i < path.length - 1; i++) {
-                r[path[i]][path[i+1]] -= pf;
-                r[path[i+1]][path[i]] += pf;
-            }
-            total += pf;
-        }
-        return total;
-    }
-
-    maximumBipartiteMatching(graph, left, right) {
-        const n = graph.length;
-        const size = n + 2, source = n, sink = n + 1;
-        const r = Array.from({length: size}, () => Array(size).fill(0));
-        for (let u = 0; u < n; u++) for (const v of graph[u]) r[u][v] = 1;
-        for (const u of left) r[source][u] = 1;
-        for (const v of right) r[v][sink] = 1;
-        return this.fordFulkerson(r, source, sink);
-    }
-}
-
-const graph = [[5,6],[5,7],[6,8],[7,9],[9,10],[],[],[],[],[],[]];
-const left = [0,1,2,3,4];
-const right = [5,6,7,8,9,10];
-console.log(new Solution().maximumBipartiteMatching(graph, left, right));
-```
-
 ```typescript,editable
 class Solution {
     dfs(r: number[][], visited: Set<number>, path: number[], node: number, sink: number): boolean {
@@ -696,58 +674,6 @@ func maximumBipartiteMatching(graph [][]int, left, right []int) int {
 func main() {
     g := [][]int{{5,6},{5,7},{6,8},{7,9},{9,10},{},{},{},{},{},{}}
     fmt.Println(maximumBipartiteMatching(g, []int{0,1,2,3,4}, []int{5,6,7,8,9,10}))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun dfs(r: Array<IntArray>, visited: MutableSet<Int>,
-            path: MutableList<Int>, node: Int, sink: Int): Boolean {
-        visited.add(node); path.add(node)
-        if (node == sink) return true
-        for (v in r.indices) {
-            if (v !in visited && r[node][v] > 0) {
-                if (dfs(r, visited, path, v, sink)) return true
-            }
-        }
-        path.removeAt(path.size - 1)
-        return false
-    }
-
-    fun fordFulkerson(r: Array<IntArray>, source: Int, sink: Int): Int {
-        var total = 0
-        while (true) {
-            val visited = mutableSetOf<Int>()
-            val path = mutableListOf<Int>()
-            if (!dfs(r, visited, path, source, sink)) break
-            var pf = Int.MAX_VALUE
-            for (i in 0 until path.size - 1)
-                pf = minOf(pf, r[path[i]][path[i + 1]])
-            for (i in 0 until path.size - 1) {
-                r[path[i]][path[i + 1]] -= pf
-                r[path[i + 1]][path[i]] += pf
-            }
-            total += pf
-        }
-        return total
-    }
-
-    fun maximumBipartiteMatching(graph: List<List<Int>>, left: IntArray, right: IntArray): Int {
-        val n = graph.size
-        val size = n + 2; val source = n; val sink = n + 1
-        val r = Array(size) { IntArray(size) }
-        for (u in 0 until n) for (v in graph[u]) r[u][v] = 1
-        for (u in left) r[source][u] = 1
-        for (v in right) r[v][sink] = 1
-        return fordFulkerson(r, source, sink)
-    }
-}
-
-fun main() {
-    val g = listOf(
-        listOf(5, 6), listOf(5, 7), listOf(6, 8), listOf(7, 9), listOf(9, 10),
-        listOf(), listOf(), listOf(), listOf(), listOf(), listOf())
-    println(Solution().maximumBipartiteMatching(g, intArrayOf(0,1,2,3,4), intArrayOf(5,6,7,8,9,10)))
 }
 ```
 

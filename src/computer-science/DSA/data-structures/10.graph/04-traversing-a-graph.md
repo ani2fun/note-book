@@ -203,6 +203,23 @@ We assume the graph is given as an adjacency list `graph` where `graph[i]` is th
 
 <div class="lang-tabs">
 
+```pseudocode
+function dfs(graph, node, visited, result):
+    add node to visited
+    append node to result
+    for neighbor in graph[node]:
+        if neighbor is not in visited:
+            dfs(graph, neighbor, visited, result)
+
+function depthFirstTraversal(graph):
+    visited ← empty set
+    result ← empty list
+    for node from 0 to N−1:
+        if node is not in visited:
+            dfs(graph, node, visited, result)
+    return result
+```
+
 ```python,editable
 from typing import List, Set
 
@@ -381,32 +398,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    dfs(graph, node, visited, result) {
-        visited.add(node);
-        result.push(node);
-        for (const neighbour of graph[node]) {
-            if (!visited.has(neighbour)) this.dfs(graph, neighbour, visited, result);
-        }
-    }
-
-    depthFirstTraversal(graph) {
-        const n = graph.length;
-        if (n === 0) return [];
-        const visited = new Set();
-        const result = [];
-        for (let node = 0; node < n; node++) {
-            if (!visited.has(node)) this.dfs(graph, node, visited, result);
-        }
-        return result;
-    }
-}
-
-const graph = [[1], [4], [3], [0], [2, 3]];
-console.log(new Solution().depthFirstTraversal(graph));
-```
-
 ```typescript,editable
 class Solution {
     dfs(graph: number[][], node: number, visited: Set<number>, result: number[]): void {
@@ -466,35 +457,6 @@ func depthFirstTraversal(graph [][]int) []int {
 func main() {
     graph := [][]int{{1}, {4}, {3}, {0}, {2, 3}}
     fmt.Println(depthFirstTraversal(graph))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun dfs(graph: List<List<Int>>, node: Int,
-            visited: MutableSet<Int>, result: MutableList<Int>) {
-        visited.add(node)
-        result.add(node)
-        for (neighbour in graph[node]) {
-            if (neighbour !in visited) dfs(graph, neighbour, visited, result)
-        }
-    }
-
-    fun depthFirstTraversal(graph: List<List<Int>>): List<Int> {
-        val n = graph.size
-        if (n == 0) return emptyList()
-        val visited = mutableSetOf<Int>()
-        val result = mutableListOf<Int>()
-        for (node in 0 until n) {
-            if (node !in visited) dfs(graph, node, visited, result)
-        }
-        return result
-    }
-}
-
-fun main() {
-    val graph = listOf(listOf(1), listOf(4), listOf(3), listOf(0), listOf(2, 3))
-    println(Solution().depthFirstTraversal(graph))
 }
 ```
 
@@ -692,6 +654,28 @@ For *this* graph, DFS and BFS happen to agree because each node has at most one 
 # BFS Implementation
 
 <div class="lang-tabs">
+
+```pseudocode
+function bfs(graph, source, visited, result):
+    queue ← empty queue
+    enqueue source to queue
+    add source to visited       # mark at push, not pop
+    while queue is not empty:
+        node ← dequeue from queue
+        append node to result
+        for neighbor in graph[node]:
+            if neighbor is not in visited:
+                add neighbor to visited
+                enqueue neighbor to queue
+
+function breadthFirstTraversal(graph):
+    visited ← empty set
+    result ← empty list
+    for node from 0 to N−1:
+        if node is not in visited:
+            bfs(graph, node, visited, result)
+    return result
+```
 
 ```python,editable
 from typing import List, Set
@@ -901,40 +885,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    bfs(graph, source, visited, result) {
-        const queue = [source];
-        visited.add(source);
-        let head = 0;       // index-based head avoids O(n) shift on plain array.
-        while (head < queue.length) {
-            const node = queue[head++];
-            result.push(node);
-            for (const n of graph[node]) {
-                if (!visited.has(n)) {
-                    visited.add(n);
-                    queue.push(n);
-                }
-            }
-        }
-    }
-
-    breadthFirstTraversal(graph) {
-        const n = graph.length;
-        if (n === 0) return [];
-        const visited = new Set();
-        const result = [];
-        for (let node = 0; node < n; node++) {
-            if (!visited.has(node)) this.bfs(graph, node, visited, result);
-        }
-        return result;
-    }
-}
-
-const graph = [[1], [4], [3], [0], [2, 3]];
-console.log(new Solution().breadthFirstTraversal(graph));
-```
-
 ```typescript,editable
 class Solution {
     bfs(graph: number[][], source: number, visited: Set<number>, result: number[]): void {
@@ -1008,45 +958,6 @@ func breadthFirstTraversal(graph [][]int) []int {
 func main() {
     graph := [][]int{{1}, {4}, {3}, {0}, {2, 3}}
     fmt.Println(breadthFirstTraversal(graph))
-}
-```
-
-```kotlin,editable
-import java.util.ArrayDeque
-
-class Solution {
-    fun bfs(graph: List<List<Int>>, source: Int,
-            visited: MutableSet<Int>, result: MutableList<Int>) {
-        val queue = ArrayDeque<Int>()
-        queue.add(source)
-        visited.add(source)
-        while (queue.isNotEmpty()) {
-            val node = queue.poll()
-            result.add(node)
-            for (n in graph[node]) {
-                if (n !in visited) {
-                    visited.add(n)
-                    queue.add(n)
-                }
-            }
-        }
-    }
-
-    fun breadthFirstTraversal(graph: List<List<Int>>): List<Int> {
-        val n = graph.size
-        if (n == 0) return emptyList()
-        val visited = mutableSetOf<Int>()
-        val result = mutableListOf<Int>()
-        for (node in 0 until n) {
-            if (node !in visited) bfs(graph, node, visited, result)
-        }
-        return result
-    }
-}
-
-fun main() {
-    val graph = listOf(listOf(1), listOf(4), listOf(3), listOf(0), listOf(2, 3))
-    println(Solution().breadthFirstTraversal(graph))
 }
 ```
 

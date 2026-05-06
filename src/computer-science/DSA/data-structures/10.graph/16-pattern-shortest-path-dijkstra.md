@@ -134,6 +134,26 @@ Standard Dijkstra from `(0, 0)`. Return `distance[N-1][M-1]`.
 
 <div class="lang-tabs">
 
+```pseudocode
+function minimumCostPath(grid):
+    minCost ← rows×cols matrix of ∞
+    minCost[0][0] ← grid[0][0]
+    pq ← empty min-heap
+    push (grid[0][0], 0, 0) to pq
+    while pq is not empty:
+        (cost, r, c) ← pop (cost, r, c) from pq
+        if cost > minCost[r][c]: continue   # stale entry
+        if r = rows−1 AND c = cols−1: return cost
+        for each (dr, dc) in DIRS:
+            nr, nc ← r+dr, c+dc
+            if in bounds:
+                newCost ← cost + grid[nr][nc]
+                if newCost < minCost[nr][nc]:
+                    minCost[nr][nc] ← newCost
+                    push (newCost, nr, nc) to pq
+    return minCost[rows−1][cols−1]
+```
+
 ```python,editable
 from typing import List
 import heapq
@@ -373,64 +393,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class MinHeap {
-    constructor() { this.h = []; }
-    push(x) { this.h.push(x); this._up(this.h.length - 1); }
-    pop() {
-        const top = this.h[0]; const last = this.h.pop();
-        if (this.h.length) { this.h[0] = last; this._down(0); }
-        return top;
-    }
-    get size() { return this.h.length; }
-    _up(i) { while (i > 0) {
-        const p = (i - 1) >> 1;
-        if (this.h[p][0] <= this.h[i][0]) break;
-        [this.h[p], this.h[i]] = [this.h[i], this.h[p]]; i = p;
-    }}
-    _down(i) {
-        while (true) {
-            const l = i*2+1, r = i*2+2; let best = i;
-            if (l < this.h.length && this.h[l][0] < this.h[best][0]) best = l;
-            if (r < this.h.length && this.h[r][0] < this.h[best][0]) best = r;
-            if (best === i) break;
-            [this.h[i], this.h[best]] = [this.h[best], this.h[i]]; i = best;
-        }
-    }
-}
-
-const DIRS = [[-1, 0], [0, 1], [1, 0], [0, -1]];
-
-class Solution {
-    minimumCostPath(grid) {
-        const rows = grid.length, cols = grid[0].length;
-        const minCost = Array.from({length: rows}, () => Array(cols).fill(Infinity));
-        minCost[0][0] = grid[0][0];
-        const heap = new MinHeap();
-        heap.push([grid[0][0], 0, 0]);
-        while (heap.size) {
-            const [cost, r, c] = heap.pop();
-            if (cost > minCost[r][c]) continue;
-            if (r === rows - 1 && c === cols - 1) return cost;
-            for (const [dr, dc] of DIRS) {
-                const nr = r + dr, nc = c + dc;
-                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
-                    const newCost = cost + grid[nr][nc];
-                    if (newCost < minCost[nr][nc]) {
-                        minCost[nr][nc] = newCost;
-                        heap.push([newCost, nr, nc]);
-                    }
-                }
-            }
-        }
-        return minCost[rows - 1][cols - 1];
-    }
-}
-
-const grid = [[9, 4, 9, 9], [6, 7, 6, 4], [8, 3, 3, 7], [7, 4, 9, 10]];
-console.log(new Solution().minimumCostPath(grid));
-```
-
 ```typescript,editable
 class MinHeap<T extends [number, ...any[]]> {
     private h: T[] = [];
@@ -545,44 +507,6 @@ func main() {
 }
 ```
 
-```kotlin,editable
-import java.util.PriorityQueue
-
-val DIRS_MCP = arrayOf(intArrayOf(-1, 0), intArrayOf(0, 1), intArrayOf(1, 0), intArrayOf(0, -1))
-
-class Solution {
-    fun minimumCostPath(grid: Array<IntArray>): Int {
-        val rows = grid.size; val cols = grid[0].size
-        val minCost = Array(rows) { IntArray(cols) { Int.MAX_VALUE } }
-        minCost[0][0] = grid[0][0]
-        val pq = PriorityQueue<IntArray>(compareBy { it[0] })
-        pq.offer(intArrayOf(grid[0][0], 0, 0))
-        while (pq.isNotEmpty()) {
-            val (cost, r, c) = pq.poll()
-            if (cost > minCost[r][c]) continue
-            if (r == rows - 1 && c == cols - 1) return cost
-            for (d in DIRS_MCP) {
-                val nr = r + d[0]; val nc = c + d[1]
-                if (nr in 0 until rows && nc in 0 until cols) {
-                    val newCost = cost + grid[nr][nc]
-                    if (newCost < minCost[nr][nc]) {
-                        minCost[nr][nc] = newCost
-                        pq.offer(intArrayOf(newCost, nr, nc))
-                    }
-                }
-            }
-        }
-        return minCost[rows - 1][cols - 1]
-    }
-}
-
-fun main() {
-    val grid = arrayOf(intArrayOf(9, 4, 9, 9), intArrayOf(6, 7, 6, 4),
-                       intArrayOf(8, 3, 3, 7), intArrayOf(7, 4, 9, 10))
-    println(Solution().minimumCostPath(grid))
-}
-```
-
 ```rust,editable
 use std::collections::BinaryHeap;
 use std::cmp::Reverse;
@@ -650,6 +574,26 @@ The standard Dijkstra finalises a city's distance the first time it's popped. Bu
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function cheapestFlights(flights, source, dest, K):
+    # 2D state: minCost[city][flightsUsed]
+    minCost ← N×(K+2) matrix of ∞
+    minCost[source][0] ← 0
+    pq ← empty min-heap
+    push (0, source, 0) to pq    # (cost, city, flightsUsed)
+    while pq is not empty:
+        (cost, city, used) ← pop from pq
+        if city = dest: return cost
+        if used > K+1 OR cost > minCost[city][used]: continue
+        for (nextCity, weight) in flights[city]:
+            newCost ← cost + weight
+            nextUsed ← used + 1
+            if nextUsed ≤ K+1 AND newCost < minCost[nextCity][nextUsed]:
+                minCost[nextCity][nextUsed] ← newCost
+                push (newCost, nextCity, nextUsed) to pq
+    return −1
+```
 
 ```python,editable
 from typing import List
@@ -883,59 +827,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class MinHeap {
-    constructor() { this.h = []; }
-    push(x) { this.h.push(x); this._up(this.h.length - 1); }
-    pop() {
-        const top = this.h[0]; const last = this.h.pop();
-        if (this.h.length) { this.h[0] = last; this._down(0); }
-        return top;
-    }
-    get size() { return this.h.length; }
-    _up(i) { while (i > 0) {
-        const p = (i - 1) >> 1;
-        if (this.h[p][0] <= this.h[i][0]) break;
-        [this.h[p], this.h[i]] = [this.h[i], this.h[p]]; i = p;
-    }}
-    _down(i) {
-        while (true) {
-            const l = i*2+1, r = i*2+2; let best = i;
-            if (l < this.h.length && this.h[l][0] < this.h[best][0]) best = l;
-            if (r < this.h.length && this.h[r][0] < this.h[best][0]) best = r;
-            if (best === i) break;
-            [this.h[i], this.h[best]] = [this.h[best], this.h[i]]; i = best;
-        }
-    }
-}
-
-class Solution {
-    cheapestFlights(flights, source, destination, K) {
-        const n = flights.length;
-        const minCost = Array.from({length: n}, () => Array(K + 2).fill(Infinity));
-        minCost[source][0] = 0;
-        const heap = new MinHeap();
-        heap.push([0, source, 0]);
-        while (heap.size) {
-            const [cost, city, used] = heap.pop();
-            if (city === destination) return cost;
-            if (used > K + 1 || cost > minCost[city][used]) continue;
-            for (const [nc, w] of flights[city]) {
-                const newCost = cost + w, nextUsed = used + 1;
-                if (nextUsed <= K + 1 && newCost < minCost[nc][nextUsed]) {
-                    minCost[nc][nextUsed] = newCost;
-                    heap.push([newCost, nc, nextUsed]);
-                }
-            }
-        }
-        return -1;
-    }
-}
-
-const flights = [[[1, 2], [3, 1]], [[4, 4]], [[4, 1]], [[2, 2], [4, 5]], []];
-console.log(new Solution().cheapestFlights(flights, 0, 4, 2));
-```
-
 ```typescript,editable
 class MinHeap<T extends [number, ...any[]]> {
     private h: T[] = [];
@@ -1041,43 +932,6 @@ func main() {
 }
 ```
 
-```kotlin,editable
-import java.util.PriorityQueue
-
-class Solution {
-    fun cheapestFlights(flights: List<List<IntArray>>, source: Int, destination: Int, K: Int): Int {
-        val n = flights.size
-        val minCost = Array(n) { IntArray(K + 2) { Int.MAX_VALUE } }
-        minCost[source][0] = 0
-        val pq = PriorityQueue<IntArray>(compareBy { it[0] })
-        pq.offer(intArrayOf(0, source, 0))
-        while (pq.isNotEmpty()) {
-            val (cost, city, used) = pq.poll()
-            if (city == destination) return cost
-            if (used > K + 1 || cost > minCost[city][used]) continue
-            for (f in flights[city]) {
-                val newCost = cost + f[1]; val nextUsed = used + 1
-                if (nextUsed <= K + 1 && newCost < minCost[f[0]][nextUsed]) {
-                    minCost[f[0]][nextUsed] = newCost
-                    pq.offer(intArrayOf(newCost, f[0], nextUsed))
-                }
-            }
-        }
-        return -1
-    }
-}
-
-fun main() {
-    val flights = listOf(
-        listOf(intArrayOf(1, 2), intArrayOf(3, 1)),
-        listOf(intArrayOf(4, 4)),
-        listOf(intArrayOf(4, 1)),
-        listOf(intArrayOf(2, 2), intArrayOf(4, 5)),
-        listOf())
-    println(Solution().cheapestFlights(flights, 0, 4, 2))
-}
-```
-
 ```rust,editable
 use std::collections::BinaryHeap;
 use std::cmp::Reverse;
@@ -1145,6 +999,25 @@ That tiny addition handles the parity rule cleanly within the standard pattern.
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function minimumTravelTime(routes, source, dest):
+    minArrival ← array of ∞, size N
+    minArrival[source] ← 0
+    pq ← empty min-heap
+    push (0, source) to pq
+    while pq is not empty:
+        (time, city) ← pop from pq
+        if city = dest: return time
+        if time > minArrival[city]: continue   # stale
+        wait ← 1 if time is odd else 0         # parity-based waiting rule
+        for (nextCity, travel) in routes[city]:
+            newTime ← time + wait + travel
+            if newTime < minArrival[nextCity]:
+                minArrival[nextCity] ← newTime
+                push (newTime, nextCity) to pq
+    return −1
+```
 
 ```python,editable
 from typing import List
@@ -1374,53 +1247,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    minimumTravelTime(routes, source, destination) {
-        const n = routes.length;
-        const minArrival = Array(n).fill(Infinity);
-        minArrival[source] = 0;
-        // Tiny inline min-heap.
-        const h = [[0, source]];
-        const up = (i) => { while (i > 0) {
-            const p = (i - 1) >> 1;
-            if (h[p][0] <= h[i][0]) break;
-            [h[p], h[i]] = [h[i], h[p]]; i = p;
-        }};
-        const down = (i) => { while (true) {
-            const l = i*2+1, r = i*2+2; let best = i;
-            if (l < h.length && h[l][0] < h[best][0]) best = l;
-            if (r < h.length && h[r][0] < h[best][0]) best = r;
-            if (best === i) break;
-            [h[i], h[best]] = [h[best], h[i]]; i = best;
-        }};
-        const pop = () => {
-            const t = h[0]; const last = h.pop();
-            if (h.length) { h[0] = last; down(0); }
-            return t;
-        };
-        const push = (x) => { h.push(x); up(h.length - 1); };
-        while (h.length) {
-            const [time, city] = pop();
-            if (city === destination) return time;
-            if (time > minArrival[city]) continue;
-            const wait = time % 2 === 1 ? 1 : 0;
-            for (const [next, travel] of routes[city]) {
-                const newTime = time + wait + travel;
-                if (newTime < minArrival[next]) {
-                    minArrival[next] = newTime;
-                    push([newTime, next]);
-                }
-            }
-        }
-        return -1;
-    }
-}
-
-const graph = [[[1, 1], [2, 4]], [[2, 2], [3, 2]], [[3, 1]], []];
-console.log(new Solution().minimumTravelTime(graph, 0, 3));
-```
-
 ```typescript,editable
 class Solution {
     minimumTravelTime(routes: [number, number][][], source: number, destination: number): number {
@@ -1512,43 +1338,6 @@ func minimumTravelTime(routes [][][2]int, source, destination int) int {
 func main() {
     graph := [][][2]int{{{1, 1}, {2, 4}}, {{2, 2}, {3, 2}}, {{3, 1}}, {}}
     fmt.Println(minimumTravelTime(graph, 0, 3))
-}
-```
-
-```kotlin,editable
-import java.util.PriorityQueue
-
-class Solution {
-    fun minimumTravelTime(routes: List<List<IntArray>>, source: Int, destination: Int): Int {
-        val n = routes.size
-        val minArrival = IntArray(n) { Int.MAX_VALUE }
-        minArrival[source] = 0
-        val pq = PriorityQueue<IntArray>(compareBy { it[0] })
-        pq.offer(intArrayOf(0, source))
-        while (pq.isNotEmpty()) {
-            val (time, city) = pq.poll()
-            if (city == destination) return time
-            if (time > minArrival[city]) continue
-            val wait = if (time % 2 == 1) 1 else 0
-            for (r in routes[city]) {
-                val newTime = time + wait + r[1]
-                if (newTime < minArrival[r[0]]) {
-                    minArrival[r[0]] = newTime
-                    pq.offer(intArrayOf(newTime, r[0]))
-                }
-            }
-        }
-        return -1
-    }
-}
-
-fun main() {
-    val graph = listOf(
-        listOf(intArrayOf(1, 1), intArrayOf(2, 4)),
-        listOf(intArrayOf(2, 2), intArrayOf(3, 2)),
-        listOf(intArrayOf(3, 1)),
-        listOf())
-    println(Solution().minimumTravelTime(graph, 0, 3))
 }
 ```
 

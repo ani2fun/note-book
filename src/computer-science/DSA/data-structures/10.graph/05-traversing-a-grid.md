@@ -232,6 +232,28 @@ The full algorithm in 10 languages.
 
 <div class="lang-tabs">
 
+```pseudocode
+function isValid(grid, r, c):
+    return r ≥ 0 AND r < rows AND c ≥ 0 AND c < cols AND grid[r][c] = 1
+
+function dfs(grid, r, c, visited, result):
+    visited[r][c] ← true
+    append (r, c) to result
+    for each (dr, dc) in DIRS:   # DIRS = [(-1,0),(0,1),(1,0),(0,-1)]
+        nr, nc ← r+dr, c+dc
+        if isValid(grid, nr, nc) AND NOT visited[nr][nc]:
+            dfs(grid, nr, nc, visited, result)
+
+function depthFirstTraversalGrid(grid):
+    visited ← rows×cols matrix of false
+    result ← empty list
+    for r from 0 to rows−1:
+        for c from 0 to cols−1:
+            if grid[r][c] = 1 AND NOT visited[r][c]:
+                dfs(grid, r, c, visited, result)
+    return result
+```
+
 ```python,editable
 from typing import List, Tuple
 
@@ -451,39 +473,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const DIRS = [[-1, 0], [0, 1], [1, 0], [0, -1]];
-
-class Solution {
-    isValid(grid, r, c) {
-        return r >= 0 && r < grid.length && c >= 0 && c < grid[0].length && grid[r][c] === 1;
-    }
-
-    dfs(grid, r, c, visited, result) {
-        visited[r][c] = true;
-        result.push([r, c]);
-        for (const [dr, dc] of DIRS) {
-            const nr = r + dr, nc = c + dc;
-            if (this.isValid(grid, nr, nc) && !visited[nr][nc]) this.dfs(grid, nr, nc, visited, result);
-        }
-    }
-
-    depthFirstTraversalGrid(grid) {
-        if (grid.length === 0) return [];
-        const rows = grid.length, cols = grid[0].length;
-        const visited = Array.from({length: rows}, () => Array(cols).fill(false));
-        const result = [];
-        for (let r = 0; r < rows; r++)
-            for (let c = 0; c < cols; c++)
-                if (grid[r][c] === 1 && !visited[r][c]) this.dfs(grid, r, c, visited, result);
-        return result;
-    }
-}
-
-const grid = [[1,1,0,1,0],[1,1,0,0,0],[0,0,0,1,1],[0,0,1,1,0]];
-console.log(new Solution().depthFirstTraversalGrid(grid));
-```
-
 ```typescript,editable
 const DIRS: [number, number][] = [[-1, 0], [0, 1], [1, 0], [0, -1]];
 
@@ -563,42 +552,6 @@ func depthFirstTraversalGrid(grid [][]int) [][2]int {
 func main() {
     grid := [][]int{{1,1,0,1,0},{1,1,0,0,0},{0,0,0,1,1},{0,0,1,1,0}}
     fmt.Println(depthFirstTraversalGrid(grid))
-}
-```
-
-```kotlin,editable
-val DIRS = arrayOf(intArrayOf(-1, 0), intArrayOf(0, 1), intArrayOf(1, 0), intArrayOf(0, -1))
-
-class Solution {
-    fun isValid(grid: Array<IntArray>, r: Int, c: Int): Boolean =
-        r in grid.indices && c in grid[0].indices && grid[r][c] == 1
-
-    fun dfs(grid: Array<IntArray>, r: Int, c: Int,
-            visited: Array<BooleanArray>, result: MutableList<Pair<Int, Int>>) {
-        visited[r][c] = true
-        result.add(r to c)
-        for (d in DIRS) {
-            val nr = r + d[0]; val nc = c + d[1]
-            if (isValid(grid, nr, nc) && !visited[nr][nc]) dfs(grid, nr, nc, visited, result)
-        }
-    }
-
-    fun depthFirstTraversalGrid(grid: Array<IntArray>): List<Pair<Int, Int>> {
-        if (grid.isEmpty()) return emptyList()
-        val rows = grid.size; val cols = grid[0].size
-        val visited = Array(rows) { BooleanArray(cols) }
-        val result = mutableListOf<Pair<Int, Int>>()
-        for (r in 0 until rows)
-            for (c in 0 until cols)
-                if (grid[r][c] == 1 && !visited[r][c]) dfs(grid, r, c, visited, result)
-        return result
-    }
-}
-
-fun main() {
-    val grid = arrayOf(intArrayOf(1,1,0,1,0), intArrayOf(1,1,0,0,0),
-                       intArrayOf(0,0,0,1,1), intArrayOf(0,0,1,1,0))
-    println(Solution().depthFirstTraversalGrid(grid))
 }
 ```
 
@@ -735,6 +688,30 @@ flowchart LR
 # BFS Implementation
 
 <div class="lang-tabs">
+
+```pseudocode
+function bfs(grid, startR, startC, visited, result):
+    queue ← empty queue
+    enqueue (startR, startC) to queue
+    visited[startR][startC] ← true   # mark at push
+    while queue is not empty:
+        (r, c) ← dequeue from queue
+        append (r, c) to result
+        for each (dr, dc) in DIRS:
+            nr, nc ← r+dr, c+dc
+            if isValid(grid, nr, nc) AND NOT visited[nr][nc]:
+                visited[nr][nc] ← true
+                enqueue (nr, nc) to queue
+
+function breadthFirstTraversalGrid(grid):
+    visited ← rows×cols matrix of false
+    result ← empty list
+    for r from 0 to rows−1:
+        for c from 0 to cols−1:
+            if grid[r][c] = 1 AND NOT visited[r][c]:
+                bfs(grid, r, c, visited, result)
+    return result
+```
 
 ```python,editable
 from typing import List, Tuple
@@ -985,47 +962,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const DIRS = [[-1, 0], [0, 1], [1, 0], [0, -1]];
-
-class Solution {
-    isValid(grid, r, c) {
-        return r >= 0 && r < grid.length && c >= 0 && c < grid[0].length && grid[r][c] === 1;
-    }
-
-    bfs(grid, sr, sc, visited, result) {
-        const queue = [[sr, sc]];
-        visited[sr][sc] = true;
-        let head = 0;
-        while (head < queue.length) {
-            const [r, c] = queue[head++];
-            result.push([r, c]);
-            for (const [dr, dc] of DIRS) {
-                const nr = r + dr, nc = c + dc;
-                if (this.isValid(grid, nr, nc) && !visited[nr][nc]) {
-                    visited[nr][nc] = true;
-                    queue.push([nr, nc]);
-                }
-            }
-        }
-    }
-
-    breadthFirstTraversalGrid(grid) {
-        if (grid.length === 0) return [];
-        const rows = grid.length, cols = grid[0].length;
-        const visited = Array.from({length: rows}, () => Array(cols).fill(false));
-        const result = [];
-        for (let r = 0; r < rows; r++)
-            for (let c = 0; c < cols; c++)
-                if (grid[r][c] === 1 && !visited[r][c]) this.bfs(grid, r, c, visited, result);
-        return result;
-    }
-}
-
-const grid = [[1,1,0,1,0],[1,1,0,0,0],[0,0,0,1,1],[0,0,1,1,0]];
-console.log(new Solution().breadthFirstTraversalGrid(grid));
-```
-
 ```typescript,editable
 const DIRS: [number, number][] = [[-1, 0], [0, 1], [1, 0], [0, -1]];
 
@@ -1118,52 +1054,6 @@ func breadthFirstTraversalGrid(grid [][]int) [][2]int {
 func main() {
     grid := [][]int{{1,1,0,1,0},{1,1,0,0,0},{0,0,0,1,1},{0,0,1,1,0}}
     fmt.Println(breadthFirstTraversalGrid(grid))
-}
-```
-
-```kotlin,editable
-import java.util.ArrayDeque
-
-val DIRS = arrayOf(intArrayOf(-1, 0), intArrayOf(0, 1), intArrayOf(1, 0), intArrayOf(0, -1))
-
-class Solution {
-    fun isValid(grid: Array<IntArray>, r: Int, c: Int): Boolean =
-        r in grid.indices && c in grid[0].indices && grid[r][c] == 1
-
-    fun bfs(grid: Array<IntArray>, sr: Int, sc: Int,
-            visited: Array<BooleanArray>, result: MutableList<Pair<Int, Int>>) {
-        val queue = ArrayDeque<Pair<Int, Int>>()
-        queue.add(sr to sc)
-        visited[sr][sc] = true
-        while (queue.isNotEmpty()) {
-            val (r, c) = queue.poll()
-            result.add(r to c)
-            for (d in DIRS) {
-                val nr = r + d[0]; val nc = c + d[1]
-                if (isValid(grid, nr, nc) && !visited[nr][nc]) {
-                    visited[nr][nc] = true
-                    queue.add(nr to nc)
-                }
-            }
-        }
-    }
-
-    fun breadthFirstTraversalGrid(grid: Array<IntArray>): List<Pair<Int, Int>> {
-        if (grid.isEmpty()) return emptyList()
-        val rows = grid.size; val cols = grid[0].size
-        val visited = Array(rows) { BooleanArray(cols) }
-        val result = mutableListOf<Pair<Int, Int>>()
-        for (r in 0 until rows)
-            for (c in 0 until cols)
-                if (grid[r][c] == 1 && !visited[r][c]) bfs(grid, r, c, visited, result)
-        return result
-    }
-}
-
-fun main() {
-    val grid = arrayOf(intArrayOf(1,1,0,1,0), intArrayOf(1,1,0,0,0),
-                       intArrayOf(0,0,0,1,1), intArrayOf(0,0,1,1,0))
-    println(Solution().breadthFirstTraversalGrid(grid))
 }
 ```
 

@@ -115,6 +115,26 @@ We'll use DFS — it's slightly more compact recursively. Colour values are 0 an
 
 <div class="lang-tabs">
 
+```pseudocode
+function colourGraph(graph, node, colour, colourValue):
+    colour[node] ← colourValue
+    for neighbor in graph[node]:
+        if neighbor is not in colour:
+            if NOT colourGraph(graph, neighbor, colour, 1 − colourValue):
+                return false
+        else if colour[neighbor] = colourValue:
+            return false   # same colour on both endpoints → not bipartite
+    return true
+
+function isTwoColourable(graph):
+    colour ← empty map
+    for node from 0 to N−1:
+        if node is not in colour:
+            if NOT colourGraph(graph, node, colour, 0):
+                return false
+    return true
+```
+
 ```python,editable
 from typing import List, Dict
 
@@ -302,34 +322,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    colourGraph(graph, node, colour, value) {
-        colour.set(node, value);
-        for (const n of graph[node]) {
-            if (!colour.has(n)) {
-                if (!this.colourGraph(graph, n, colour, 1 - value)) return false;
-            } else if (colour.get(n) === value) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    isTwoColourable(graph) {
-        const colour = new Map();
-        for (let node = 0; node < graph.length; node++) {
-            if (!colour.has(node))
-                if (!this.colourGraph(graph, node, colour, 0)) return false;
-        }
-        return true;
-    }
-}
-
-console.log(new Solution().isTwoColourable([[1, 3], [0, 2], [1, 3], [0, 2]]));
-console.log(new Solution().isTwoColourable([[1, 2], [0, 2], [0, 1]]));
-```
-
 ```typescript,editable
 class Solution {
     colourGraph(graph: number[][], node: number, colour: Map<number, number>, value: number): boolean {
@@ -392,37 +384,6 @@ func isTwoColourable(graph [][]int) bool {
 func main() {
     fmt.Println(isTwoColourable([][]int{{1, 3}, {0, 2}, {1, 3}, {0, 2}}))
     fmt.Println(isTwoColourable([][]int{{1, 2}, {0, 2}, {0, 1}}))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun colourGraph(graph: List<List<Int>>, node: Int,
-                    colour: MutableMap<Int, Int>, value: Int): Boolean {
-        colour[node] = value
-        for (n in graph[node]) {
-            if (n !in colour) {
-                if (!colourGraph(graph, n, colour, 1 - value)) return false
-            } else if (colour[n] == value) {
-                return false
-            }
-        }
-        return true
-    }
-
-    fun isTwoColourable(graph: List<List<Int>>): Boolean {
-        val colour = mutableMapOf<Int, Int>()
-        for (node in graph.indices) {
-            if (node !in colour)
-                if (!colourGraph(graph, node, colour, 0)) return false
-        }
-        return true
-    }
-}
-
-fun main() {
-    println(Solution().isTwoColourable(listOf(listOf(1, 3), listOf(0, 2), listOf(1, 3), listOf(0, 2))))
-    println(Solution().isTwoColourable(listOf(listOf(1, 2), listOf(0, 2), listOf(0, 1))))
 }
 ```
 
@@ -510,6 +471,20 @@ Dislikes here are mutual: if A dislikes B, the conflict is the same as if B disl
 The implementation just adds an edge-list-to-adjacency-list build step in front of the colouring code:
 
 <div class="lang-tabs">
+
+```pseudocode
+function dislikePairs(n, dislikes):
+    graph ← array of N empty lists
+    for each (a, b) in dislikes:
+        append b to graph[a]
+        append a to graph[b]   # undirected
+    colour ← empty map
+    for node from 0 to N−1:
+        if node is not in colour:
+            if NOT colourGraph(graph, node, colour, 0):
+                return false
+    return true
+```
 
 ```python,editable
 from typing import List
@@ -710,34 +685,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    colourGraph(g, node, colour, value) {
-        colour.set(node, value);
-        for (const n of g[node]) {
-            if (!colour.has(n)) {
-                if (!this.colourGraph(g, n, colour, 1 - value)) return false;
-            } else if (colour.get(n) === value) return false;
-        }
-        return true;
-    }
-
-    dislikePairs(n, dislikes) {
-        const g = Array.from({length: n}, () => []);
-        for (const [a, b] of dislikes) { g[a].push(b); g[b].push(a); }
-        const colour = new Map();
-        for (let node = 0; node < n; node++) {
-            if (!colour.has(node))
-                if (!this.colourGraph(g, node, colour, 0)) return false;
-        }
-        return true;
-    }
-}
-
-console.log(new Solution().dislikePairs(4, [[1, 3], [0, 2], [1, 3], [0, 2]]));
-console.log(new Solution().dislikePairs(3, [[0, 1], [1, 2], [2, 0]]));
-```
-
 ```typescript,editable
 class Solution {
     colourGraph(g: number[][], node: number, colour: Map<number, number>, value: number): boolean {
@@ -808,38 +755,6 @@ func main() {
 }
 ```
 
-```kotlin,editable
-class Solution {
-    fun colourGraph(g: Array<MutableList<Int>>, node: Int,
-                    colour: MutableMap<Int, Int>, value: Int): Boolean {
-        colour[node] = value
-        for (n in g[node]) {
-            if (n !in colour) {
-                if (!colourGraph(g, n, colour, 1 - value)) return false
-            } else if (colour[n] == value) return false
-        }
-        return true
-    }
-
-    fun dislikePairs(n: Int, dislikes: Array<IntArray>): Boolean {
-        val g = Array(n) { mutableListOf<Int>() }
-        for (d in dislikes) { g[d[0]].add(d[1]); g[d[1]].add(d[0]) }
-        val colour = mutableMapOf<Int, Int>()
-        for (node in 0 until n) {
-            if (node !in colour) if (!colourGraph(g, node, colour, 0)) return false
-        }
-        return true
-    }
-}
-
-fun main() {
-    println(Solution().dislikePairs(4, arrayOf(intArrayOf(1, 3), intArrayOf(0, 2),
-                                                intArrayOf(1, 3), intArrayOf(0, 2))))
-    println(Solution().dislikePairs(3, arrayOf(intArrayOf(0, 1), intArrayOf(1, 2),
-                                                intArrayOf(2, 0))))
-}
-```
-
 ```rust,editable
 use std::collections::HashMap;
 
@@ -902,6 +817,24 @@ Because the graph is undirected, each conflict edge gets recorded twice (once fr
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function colourGraphCR(graph, node, colour, value, conflicts):
+    colour[node] ← value
+    for neighbor in graph[node]:
+        if neighbor is not in colour:
+            colourGraphCR(graph, neighbor, colour, 1 − value, conflicts)
+        else if colour[neighbor] = value:
+            append (node, neighbor) to conflicts   # don't bail — keep colouring
+
+function colourRepair(graph):
+    colour ← empty map
+    conflicts ← empty list
+    for node from 0 to N−1:
+        if node is not in colour:
+            colourGraphCR(graph, node, colour, 0, conflicts)
+    return length of conflicts / 2 ≤ 1   # each edge recorded twice in undirected graph
+```
 
 ```python,editable
 from typing import List, Tuple
@@ -1065,28 +998,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    colourGraph(g, node, colour, value, conflicts) {
-        colour.set(node, value);
-        for (const n of g[node]) {
-            if (!colour.has(n)) this.colourGraph(g, n, colour, 1 - value, conflicts);
-            else if (colour.get(n) === value) conflicts.push([node, n]);
-        }
-    }
-
-    colourRepair(g) {
-        const colour = new Map();
-        const conflicts = [];
-        for (let node = 0; node < g.length; node++)
-            if (!colour.has(node)) this.colourGraph(g, node, colour, 0, conflicts);
-        return Math.floor(conflicts.length / 2) <= 1;
-    }
-}
-
-console.log(new Solution().colourRepair([[1, 3], [0, 2, 3], [1, 3], [0, 1, 2]]));
-```
-
 ```typescript,editable
 class Solution {
     colourGraph(g: number[][], node: number, colour: Map<number, number>,
@@ -1139,32 +1050,6 @@ func colourRepair(g [][]int) bool {
 
 func main() {
     fmt.Println(colourRepair([][]int{{1, 3}, {0, 2, 3}, {1, 3}, {0, 1, 2}}))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun colourGraph(g: List<List<Int>>, node: Int,
-                    colour: MutableMap<Int, Int>, value: Int,
-                    conflicts: MutableList<Pair<Int, Int>>) {
-        colour[node] = value
-        for (n in g[node]) {
-            if (n !in colour) colourGraph(g, n, colour, 1 - value, conflicts)
-            else if (colour[n] == value) conflicts.add(node to n)
-        }
-    }
-
-    fun colourRepair(g: List<List<Int>>): Boolean {
-        val colour = mutableMapOf<Int, Int>()
-        val conflicts = mutableListOf<Pair<Int, Int>>()
-        for (node in g.indices)
-            if (node !in colour) colourGraph(g, node, colour, 0, conflicts)
-        return conflicts.size / 2 <= 1
-    }
-}
-
-fun main() {
-    println(Solution().colourRepair(listOf(listOf(1, 3), listOf(0, 2, 3), listOf(1, 3), listOf(0, 1, 2))))
 }
 ```
 

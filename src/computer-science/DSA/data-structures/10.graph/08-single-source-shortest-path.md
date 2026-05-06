@@ -168,6 +168,24 @@ The graph is given as an adjacency list of `(neighbour, weight)` pairs. We use t
 
 <div class="lang-tabs">
 
+```pseudocode
+function dijkstra(graph, source):
+    dist ← array of ∞, size N
+    dist[source] ← 0
+    pq ← empty min-heap
+    push (0, source) to pq
+    while pq is not empty:
+        (d, node) ← pop (dist, node) from pq
+        if d > dist[node]:
+            continue             # stale entry — a better path was already found
+        for (neighbor, weight) in graph[node]:
+            newDist ← d + weight
+            if newDist < dist[neighbor]:
+                dist[neighbor] ← newDist
+                push (newDist, neighbor) to pq
+    return dist
+```
+
 ```python,editable
 import heapq
 from typing import List, Tuple
@@ -403,59 +421,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-// Minimal binary min-heap of [distance, node] pairs.
-class MinHeap {
-    constructor() { this.h = []; }
-    push(x) { this.h.push(x); this._up(this.h.length - 1); }
-    pop() {
-        const top = this.h[0]; const last = this.h.pop();
-        if (this.h.length) { this.h[0] = last; this._down(0); }
-        return top;
-    }
-    get size() { return this.h.length; }
-    _up(i) { while (i > 0) {
-        const p = (i - 1) >> 1;
-        if (this.h[p][0] <= this.h[i][0]) break;
-        [this.h[p], this.h[i]] = [this.h[i], this.h[p]]; i = p;
-    }}
-    _down(i) {
-        const n = this.h.length;
-        while (true) {
-            const l = i*2+1, r = i*2+2; let best = i;
-            if (l < n && this.h[l][0] < this.h[best][0]) best = l;
-            if (r < n && this.h[r][0] < this.h[best][0]) best = r;
-            if (best === i) break;
-            [this.h[i], this.h[best]] = [this.h[best], this.h[i]]; i = best;
-        }
-    }
-}
-
-function dijkstra(graph, source) {
-    const n = graph.length;
-    const distance = Array(n).fill(Infinity);
-    distance[source] = 0;
-    const heap = new MinHeap();
-    heap.push([0, source]);
-
-    while (heap.size) {
-        const [d, node] = heap.pop();
-        if (d > distance[node]) continue;
-        for (const [neighbour, weight] of graph[node]) {
-            const nd = d + weight;
-            if (nd < distance[neighbour]) {
-                distance[neighbour] = nd;
-                heap.push([nd, neighbour]);
-            }
-        }
-    }
-    return distance;
-}
-
-const graph = [[[1,4],[2,1]], [[0,4],[2,2],[3,1]], [[0,1],[1,2],[3,5]], [[1,1],[2,5]]];
-console.log(dijkstra(graph, 0));
-```
-
 ```typescript,editable
 class MinHeap {
     private h: [number, number][] = [];
@@ -554,41 +519,6 @@ func main() {
         {{1, 4}, {2, 1}}, {{0, 4}, {2, 2}, {3, 1}},
         {{0, 1}, {1, 2}, {3, 5}}, {{1, 1}, {2, 5}}}
     fmt.Println(dijkstra(g, 0))
-}
-```
-
-```kotlin,editable
-import java.util.PriorityQueue
-
-fun dijkstra(graph: List<List<IntArray>>, source: Int): IntArray {
-    val n = graph.size
-    val distance = IntArray(n) { Int.MAX_VALUE }
-    distance[source] = 0
-
-    val pq = PriorityQueue<IntArray>(compareBy { it[0] })
-    pq.offer(intArrayOf(0, source))
-
-    while (pq.isNotEmpty()) {
-        val (d, node) = pq.poll()
-        if (d > distance[node]) continue
-        for (e in graph[node]) {
-            val nd = d + e[1]
-            if (nd < distance[e[0]]) {
-                distance[e[0]] = nd
-                pq.offer(intArrayOf(nd, e[0]))
-            }
-        }
-    }
-    return distance
-}
-
-fun main() {
-    val g = listOf(
-        listOf(intArrayOf(1, 4), intArrayOf(2, 1)),
-        listOf(intArrayOf(0, 4), intArrayOf(2, 2), intArrayOf(3, 1)),
-        listOf(intArrayOf(0, 1), intArrayOf(1, 2), intArrayOf(3, 5)),
-        listOf(intArrayOf(1, 1), intArrayOf(2, 5)))
-    println(dijkstra(g, 0).toList())
 }
 ```
 
@@ -814,6 +744,28 @@ With that edge, every round of Bellman-Ford would lower `distance[0]` by 2 (the 
 
 <div class="lang-tabs">
 
+```pseudocode
+function bellmanFord(graph, source):
+    dist ← array of ∞, size N
+    dist[source] ← 0
+    for round from 1 to N−1:   # at most N−1 edges in any shortest path
+        updated ← false
+        for u from 0 to N−1:
+            if dist[u] = ∞: continue
+            for (v, w) in graph[u]:
+                if dist[u] + w < dist[v]:
+                    dist[v] ← dist[u] + w
+                    updated ← true
+        if NOT updated: break   # converged early
+    # extra round: any relaxation here means a negative cycle
+    for u from 0 to N−1:
+        if dist[u] = ∞: continue
+        for (v, w) in graph[u]:
+            if dist[u] + w < dist[v]:
+                return empty list   # negative cycle detected
+    return dist
+```
+
 ```python,editable
 from typing import List, Tuple
 
@@ -1034,38 +986,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function bellmanFord(graph, source) {
-    const n = graph.length;
-    const distance = Array(n).fill(Infinity);
-    distance[source] = 0;
-
-    for (let i = 0; i < n - 1; i++) {
-        let updated = false;
-        for (let u = 0; u < n; u++) {
-            if (distance[u] === Infinity) continue;
-            for (const [v, w] of graph[u]) {
-                if (distance[u] + w < distance[v]) {
-                    distance[v] = distance[u] + w;
-                    updated = true;
-                }
-            }
-        }
-        if (!updated) break;
-    }
-    for (let u = 0; u < n; u++) {
-        if (distance[u] === Infinity) continue;
-        for (const [v, w] of graph[u]) {
-            if (distance[u] + w < distance[v]) return [];
-        }
-    }
-    return distance;
-}
-
-const graph = [[[1,4],[2,5]], [[2,-3],[3,6]], [[3,4]], []];
-console.log(bellmanFord(graph, 0));
-```
-
 ```typescript,editable
 function bellmanFord(graph: [number, number][][], source: number): number[] {
     const n = graph.length;
@@ -1141,44 +1061,6 @@ func main() {
     g := [][][2]int{
         {{1, 4}, {2, 5}}, {{2, -3}, {3, 6}}, {{3, 4}}, {}}
     fmt.Println(bellmanFord(g, 0))
-}
-```
-
-```kotlin,editable
-fun bellmanFord(graph: List<List<IntArray>>, source: Int): IntArray {
-    val n = graph.size
-    val distance = IntArray(n) { Int.MAX_VALUE }
-    distance[source] = 0
-
-    repeat(n - 1) {
-        var updated = false
-        for (u in 0 until n) {
-            if (distance[u] == Int.MAX_VALUE) continue
-            for (e in graph[u]) {
-                if (distance[u] + e[1] < distance[e[0]]) {
-                    distance[e[0]] = distance[u] + e[1]
-                    updated = true
-                }
-            }
-        }
-        if (!updated) return@repeat
-    }
-    for (u in 0 until n) {
-        if (distance[u] == Int.MAX_VALUE) continue
-        for (e in graph[u]) {
-            if (distance[u] + e[1] < distance[e[0]]) return IntArray(0)
-        }
-    }
-    return distance
-}
-
-fun main() {
-    val g = listOf(
-        listOf(intArrayOf(1, 4), intArrayOf(2, 5)),
-        listOf(intArrayOf(2, -3), intArrayOf(3, 6)),
-        listOf(intArrayOf(3, 4)),
-        listOf())
-    println(bellmanFord(g, 0).toList())
 }
 ```
 
