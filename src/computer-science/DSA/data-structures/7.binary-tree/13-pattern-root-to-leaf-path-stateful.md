@@ -77,6 +77,22 @@ The "collect all root-to-leaf paths" template — the simplest member of the fam
 
 <div class="lang-tabs">
 
+```pseudocode
+function allRootToLeafPaths(root):
+    out  ← empty list
+    path ← empty list
+    function go(n):
+        if n = null: return
+        push n.val to path                        # enter
+        if n.left = null AND n.right = null:
+            append copy of path to out            # leaf: snapshot the path
+        else:
+            go(n.left); go(n.right)
+        pop from path                             # exit: restore for parent
+    go(root)
+    return out
+```
+
 ```python,editable
 from typing import List, Optional
 
@@ -169,21 +185,6 @@ def allRootToLeafPaths(root: TreeNode): List[List[Int]] = {
 }
 ```
 
-```javascript,editable
-function allRootToLeafPaths(root) {
-    const out = [], path = [];
-    function go(n) {
-        if (!n) return;
-        path.push(n.val);
-        if (!n.left && !n.right) out.push([...path]);
-        else { go(n.left); go(n.right); }
-        path.pop();
-    }
-    go(root);
-    return out;
-}
-```
-
 ```typescript,editable
 function allRootToLeafPaths(root: TreeNode | null): number[][] {
     const out: number[][] = []; const path: number[] = [];
@@ -214,20 +215,6 @@ func allRootToLeafPaths(root *TreeNode) [][]int {
         path = path[:len(path)-1]
     }
     go_(root); return out
-}
-```
-
-```kotlin,editable
-fun allRootToLeafPaths(root: TreeNode?): List<List<Int>> {
-    val out = mutableListOf<List<Int>>(); val path = mutableListOf<Int>()
-    fun go(n: TreeNode?) {
-        if (n == null) return
-        path += n.value
-        if (n.left == null && n.right == null) out += path.toList()
-        else { go(n.left); go(n.right) }
-        path.removeAt(path.size - 1)
-    }
-    go(root); return out
 }
 ```
 
@@ -285,6 +272,23 @@ The accumulator is *the path so far* (push-pop) plus *the running sum* (passed b
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function rootToLeafPaths(root, target):
+    out  ← empty list
+    path ← empty list
+    function go(n, remaining):
+        if n = null: return
+        push n.val to path
+        remaining ← remaining − n.val
+        if n.left = null AND n.right = null:
+            if remaining = 0: append copy of path to out
+        else:
+            go(n.left, remaining); go(n.right, remaining)
+        pop from path
+    go(root, target)
+    return out
+```
 
 ```python,editable
 def root_to_leaf_paths(root, target):
@@ -380,23 +384,6 @@ def rootToLeafPaths(root: TreeNode, target: Int): List[List[Int]] = {
 }
 ```
 
-```javascript,editable
-function rootToLeafPaths(root, target) {
-    const out = [], path = [];
-    function go(n, remaining) {
-        if (!n) return;
-        path.push(n.val);
-        remaining -= n.val;
-        if (!n.left && !n.right) {
-            if (remaining === 0) out.push([...path]);
-        } else { go(n.left, remaining); go(n.right, remaining); }
-        path.pop();
-    }
-    go(root, target);
-    return out;
-}
-```
-
 ```typescript,editable
 function rootToLeafPaths(root: TreeNode | null, target: number): number[][] {
     const out: number[][] = []; const path: number[] = [];
@@ -434,22 +421,6 @@ func rootToLeafPaths(root *TreeNode, target int) [][]int {
 }
 ```
 
-```kotlin,editable
-fun rootToLeafPaths(root: TreeNode?, target: Int): List<List<Int>> {
-    val out = mutableListOf<List<Int>>(); val path = mutableListOf<Int>()
-    fun go(n: TreeNode?, remaining: Int) {
-        if (n == null) return
-        path += n.value
-        val rem = remaining - n.value
-        if (n.left == null && n.right == null) {
-            if (rem == 0) out += path.toList()
-        } else { go(n.left, rem); go(n.right, rem) }
-        path.removeAt(path.size - 1)
-    }
-    go(root, target); return out
-}
-```
-
 ```rust,editable
 fn rtlp_go(node: &Option<Box<TreeNode>>, remaining: i32, path: &mut Vec<i32>, out: &mut Vec<Vec<i32>>) {
     if let Some(n) = node {
@@ -484,6 +455,24 @@ Same shape as Problem 1, but the per-path bookkeeping is *two counters* (`evenCo
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function equalPaths(root):
+    out  ← empty list
+    path ← empty list
+    function go(n, even, odd):
+        if n = null: return
+        push n.val to path
+        if n.val mod 2 = 0: even ← even + 1
+        else:                odd  ← odd  + 1
+        if n.left = null AND n.right = null:
+            if even = odd: append copy of path to out
+        else:
+            go(n.left, even, odd); go(n.right, even, odd)
+        pop from path
+    go(root, 0, 0)
+    return out
+```
 
 ```python,editable
 def equal_paths(root):
@@ -568,22 +557,6 @@ def equalPaths(root: TreeNode): List[List[Int]] = {
 }
 ```
 
-```javascript,editable
-function equalPaths(root) {
-    const out = [], path = [];
-    function go(n, even, odd) {
-        if (!n) return;
-        path.push(n.val);
-        if (n.val % 2 === 0) even++; else odd++;
-        if (!n.left && !n.right) {
-            if (even === odd) out.push([...path]);
-        } else { go(n.left, even, odd); go(n.right, even, odd); }
-        path.pop();
-    }
-    go(root, 0, 0); return out;
-}
-```
-
 ```typescript,editable
 function equalPaths(root: TreeNode | null): number[][] {
     const out: number[][] = []; const path: number[] = [];
@@ -617,22 +590,6 @@ func equalPaths(root *TreeNode) [][]int {
         path = path[:len(path)-1]
     }
     go_(root, 0, 0); return out
-}
-```
-
-```kotlin,editable
-fun equalPaths(root: TreeNode?): List<List<Int>> {
-    val out = mutableListOf<List<Int>>(); val path = mutableListOf<Int>()
-    fun go(n: TreeNode?, even: Int, odd: Int) {
-        if (n == null) return
-        path += n.value
-        val (e, o) = if (n.value % 2 == 0) (even + 1) to odd else even to (odd + 1)
-        if (n.left == null && n.right == null) {
-            if (e == o) out += path.toList()
-        } else { go(n.left, e, o); go(n.right, e, o) }
-        path.removeAt(path.size - 1)
-    }
-    go(root, 0, 0); return out
 }
 ```
 
@@ -670,6 +627,25 @@ Two ingredients: the push-pop path discipline, plus a **hash map of path-string 
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function duplicatePaths(root):
+    out  ← empty list
+    path ← empty list
+    seen ← empty Map: key → count
+    function go(n):
+        if n = null: return
+        push n.val to path
+        if n.left = null AND n.right = null:
+            key ← string representation of path
+            seen[key] ← seen[key] + 1
+            if seen[key] = 2: append copy of path to out   # second occurrence
+        else:
+            go(n.left); go(n.right)
+        pop from path
+    go(root)
+    return out
+```
 
 ```python,editable
 def duplicate_paths(root):
@@ -755,24 +731,6 @@ def duplicatePaths(root: TreeNode): List[List[Int]] = {
 }
 ```
 
-```javascript,editable
-function duplicatePaths(root) {
-    const out = [], path = [], seen = new Map();
-    function go(n) {
-        if (!n) return;
-        path.push(n.val);
-        if (!n.left && !n.right) {
-            const key = path.join(",");
-            const c = (seen.get(key) || 0) + 1;
-            seen.set(key, c);
-            if (c === 2) out.push([...path]);
-        } else { go(n.left); go(n.right); }
-        path.pop();
-    }
-    go(root); return out;
-}
-```
-
 ```typescript,editable
 function duplicatePaths(root: TreeNode | null): number[][] {
     const out: number[][] = []; const path: number[] = [];
@@ -822,25 +780,6 @@ func duplicatePaths(root *TreeNode) [][]int {
 }
 ```
 
-```kotlin,editable
-fun duplicatePaths(root: TreeNode?): List<List<Int>> {
-    val out = mutableListOf<List<Int>>(); val path = mutableListOf<Int>()
-    val seen = HashMap<String, Int>()
-    fun go(n: TreeNode?) {
-        if (n == null) return
-        path += n.value
-        if (n.left == null && n.right == null) {
-            val key = path.joinToString(",")
-            val c = (seen[key] ?: 0) + 1
-            seen[key] = c
-            if (c == 2) out += path.toList()
-        } else { go(n.left); go(n.right) }
-        path.removeAt(path.size - 1)
-    }
-    go(root); return out
-}
-```
-
 ```rust,editable
 use std::collections::HashMap;
 fn dp_go(node: &Option<Box<TreeNode>>, path: &mut Vec<i32>, seen: &mut HashMap<String, i32>, out: &mut Vec<Vec<i32>>) {
@@ -879,6 +818,27 @@ Combine the path discipline with a **prefix-sum frequency map**. As we descend, 
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function prefixPaths(root):
+    out  ← empty list
+    path ← empty list
+    freq ← empty Map: sum → count
+    function go(n, run):
+        if n = null: return
+        push n.val to path
+        run ← run + n.val
+        freq[run] ← freq.get(run, 0) + 1
+        if n.left = null AND n.right = null:
+            if freq[run] > 1: append copy of path to out   # same prefix sum seen before
+        else:
+            go(n.left, run); go(n.right, run)
+        freq[run] ← freq[run] − 1
+        if freq[run] = 0: remove run from freq
+        pop from path
+    go(root, 0)
+    return out
+```
 
 ```python,editable
 def prefix_paths(root):
@@ -964,26 +924,6 @@ def prefixPaths(root: TreeNode): List[List[Int]] = {
 }
 ```
 
-```javascript,editable
-function prefixPaths(root) {
-    const out = [], path = [], freq = new Map();
-    function go(n, run) {
-        if (!n) return;
-        path.push(n.val);
-        run += n.val;
-        const c = (freq.get(run) || 0) + 1;
-        freq.set(run, c);
-        if (!n.left && !n.right) {
-            if (c > 1) out.push([...path]);
-        } else { go(n.left, run); go(n.right, run); }
-        const newC = freq.get(run) - 1;
-        if (newC === 0) freq.delete(run); else freq.set(run, newC);
-        path.pop();
-    }
-    go(root, 0); return out;
-}
-```
-
 ```typescript,editable
 function prefixPaths(root: TreeNode | null): number[][] {
     const out: number[][] = []; const path: number[] = [];
@@ -1026,27 +966,6 @@ func prefixPaths(root *TreeNode) [][]int {
         path = path[:len(path)-1]
     }
     go_(root, 0); return out
-}
-```
-
-```kotlin,editable
-fun prefixPaths(root: TreeNode?): List<List<Int>> {
-    val out = mutableListOf<List<Int>>(); val path = mutableListOf<Int>()
-    val freq = HashMap<Int, Int>()
-    fun go(n: TreeNode?, run: Int) {
-        if (n == null) return
-        path += n.value
-        val newRun = run + n.value
-        val c = (freq[newRun] ?: 0) + 1
-        freq[newRun] = c
-        if (n.left == null && n.right == null) {
-            if (c > 1) out += path.toList()
-        } else { go(n.left, newRun); go(n.right, newRun) }
-        val newC = freq[newRun]!! - 1
-        if (newC == 0) freq.remove(newRun) else freq[newRun] = newC
-        path.removeAt(path.size - 1)
-    }
-    go(root, 0); return out
 }
 ```
 

@@ -160,6 +160,37 @@ A single pass requires four helpers and one driver — about 30 lines per langua
 
 <div class="lang-tabs">
 
+```pseudocode
+function isLeaf(n): return n ≠ null AND n.left = null AND n.right = null
+
+function leftBoundary(n, out):
+    if n = null OR isLeaf(n): return
+    append n.val to out
+    if n.left ≠ null: leftBoundary(n.left,  out)
+    else:             leftBoundary(n.right, out)   # hug the edge even when strict left runs out
+
+function leaves(n, out):
+    if n = null: return
+    if isLeaf(n): append n.val to out; return
+    leaves(n.left,  out)
+    leaves(n.right, out)
+
+function rightBoundary(n, out):
+    if n = null OR isLeaf(n): return
+    if n.right ≠ null: rightBoundary(n.right, out)
+    else:              rightBoundary(n.left,  out)
+    append n.val to out                            # postorder: visit on the way back up (= reverse)
+
+function boundaryTraversal(root):
+    if root = null: return empty list
+    out ← [root.val]
+    leftBoundary (root.left,  out)
+    leaves       (root.left,  out)
+    leaves       (root.right, out)
+    rightBoundary(root.right, out)
+    return out
+```
+
 ```python,editable
 from typing import List, Optional
 
@@ -325,37 +356,6 @@ def boundaryTraversal(root: TreeNode): List[Int] = {
 }
 ```
 
-```javascript,editable
-function boundaryTraversal(root) {
-    const out = [];
-    if (!root) return out;
-    const isLeaf = n => n && !n.left && !n.right;
-    function leftB(n) {
-        if (!n || isLeaf(n)) return;
-        out.push(n.val);
-        if (n.left) leftB(n.left);
-        else        leftB(n.right);
-    }
-    function leaves(n) {
-        if (!n) return;
-        if (isLeaf(n)) { out.push(n.val); return; }
-        leaves(n.left); leaves(n.right);
-    }
-    function rightB(n) {
-        if (!n || isLeaf(n)) return;
-        if (n.right) rightB(n.right);
-        else         rightB(n.left);
-        out.push(n.val);
-    }
-    out.push(root.val);
-    leftB (root.left);
-    leaves(root.left);
-    leaves(root.right);
-    rightB(root.right);
-    return out;
-}
-```
-
 ```typescript,editable
 function boundaryTraversal(root: TreeNode | null): number[] {
     const out: number[] = [];
@@ -416,34 +416,6 @@ func boundaryTraversal(root *TreeNode) []int {
     leftB (root.Left)
     leaves(root.Left); leaves(root.Right)
     rightB(root.Right)
-    return out
-}
-```
-
-```kotlin,editable
-fun boundaryTraversal(root: TreeNode?): List<Int> {
-    val out = mutableListOf<Int>()
-    if (root == null) return out
-    fun isLeaf(n: TreeNode?) = n != null && n.left == null && n.right == null
-    fun leftB(n: TreeNode?) {
-        if (n == null || isLeaf(n)) return
-        out += n.value
-        if (n.left != null) leftB(n.left) else leftB(n.right)
-    }
-    fun leaves(n: TreeNode?) {
-        if (n == null) return
-        if (isLeaf(n)) { out += n.value; return }
-        leaves(n.left); leaves(n.right)
-    }
-    fun rightB(n: TreeNode?) {
-        if (n == null || isLeaf(n)) return
-        if (n.right != null) rightB(n.right) else rightB(n.left)
-        out += n.value
-    }
-    out += root.value
-    leftB (root.left)
-    leaves(root.left); leaves(root.right)
-    rightB(root.right)
     return out
 }
 ```

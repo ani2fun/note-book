@@ -86,6 +86,21 @@ The trick: when we visit a node and its column is **not yet** in the map, record
 
 <div class="lang-tabs">
 
+```pseudocode
+function topView(root):
+    if root = null: return empty list
+    cols ← empty sorted Map: column → value
+    q    ← empty queue; enqueue (root, 0) to q
+    minC ← 0; maxC ← 0
+    while q is not empty:
+        (n, c) ← dequeue from q
+        if c not in cols: cols[c] ← n.val      # first arrival = topmost node in this column
+        minC ← min(minC, c); maxC ← max(maxC, c)
+        if n.left  ≠ null: enqueue (n.left,  c − 1) to q
+        if n.right ≠ null: enqueue (n.right, c + 1) to q
+    return [cols[c] for c from minC to maxC]
+```
+
 ```python,editable
 from collections import deque
 from typing import List, Optional
@@ -183,26 +198,6 @@ def topView(root: TreeNode): List[Int] = {
 }
 ```
 
-```javascript,editable
-function topView(root) {
-    if (!root) return [];
-    const cols = new Map();      // c -> val (insertion order ≠ column order)
-    let minC = 0, maxC = 0;
-    const q = [[root, 0]];
-    while (q.length) {
-        const [n, c] = q.shift();
-        if (!cols.has(c)) cols.set(c, n.val);
-        if (c < minC) minC = c;
-        if (c > maxC) maxC = c;
-        if (n.left)  q.push([n.left,  c - 1]);
-        if (n.right) q.push([n.right, c + 1]);
-    }
-    const out = [];
-    for (let c = minC; c <= maxC; c++) if (cols.has(c)) out.push(cols.get(c));
-    return out;
-}
-```
-
 ```typescript,editable
 function topView(root: TreeNode | null): number[] {
     if (!root) return [];
@@ -246,21 +241,6 @@ func topView(root *TreeNode) []int {
 }
 ```
 
-```kotlin,editable
-fun topView(root: TreeNode?): List<Int> {
-    if (root == null) return emptyList()
-    val cols = sortedMapOf<Int, Int>()
-    val q = ArrayDeque<Pair<TreeNode, Int>>(); q.addLast(root to 0)
-    while (q.isNotEmpty()) {
-        val (n, c) = q.removeFirst()
-        if (c !in cols) cols[c] = n.value
-        n.left ?.let { q.addLast(it to c - 1) }
-        n.right?.let { q.addLast(it to c + 1) }
-    }
-    return cols.values.toList()
-}
-```
-
 ```rust,editable
 use std::collections::{BTreeMap, VecDeque};
 
@@ -300,6 +280,21 @@ The implementation is *one line* different from top view: replace the `if c not 
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function bottomView(root):
+    if root = null: return empty list
+    cols ← empty sorted Map: column → value
+    q    ← empty queue; enqueue (root, 0) to q
+    minC ← 0; maxC ← 0
+    while q is not empty:
+        (n, c) ← dequeue from q
+        cols[c] ← n.val                           # unconditional overwrite: last = bottommost
+        minC ← min(minC, c); maxC ← max(maxC, c)
+        if n.left  ≠ null: enqueue (n.left,  c − 1) to q
+        if n.right ≠ null: enqueue (n.right, c + 1) to q
+    return [cols[c] for c from minC to maxC]
+```
 
 ```python,editable
 def bottom_view(root):
@@ -383,25 +378,6 @@ def bottomView(root: TreeNode): List[Int] = {
 }
 ```
 
-```javascript,editable
-function bottomView(root) {
-    if (!root) return [];
-    const cols = new Map(); let minC = 0, maxC = 0;
-    const q = [[root, 0]];
-    while (q.length) {
-        const [n, c] = q.shift();
-        cols.set(c, n.val);                            // overwrite
-        if (c < minC) minC = c;
-        if (c > maxC) maxC = c;
-        if (n.left)  q.push([n.left,  c - 1]);
-        if (n.right) q.push([n.right, c + 1]);
-    }
-    const out = [];
-    for (let c = minC; c <= maxC; c++) if (cols.has(c)) out.push(cols.get(c));
-    return out;
-}
-```
-
 ```typescript,editable
 function bottomView(root: TreeNode | null): number[] {
     if (!root) return [];
@@ -442,21 +418,6 @@ func bottomView(root *TreeNode) []int {
 }
 ```
 
-```kotlin,editable
-fun bottomView(root: TreeNode?): List<Int> {
-    if (root == null) return emptyList()
-    val cols = sortedMapOf<Int, Int>()
-    val q = ArrayDeque<Pair<TreeNode, Int>>(); q.addLast(root to 0)
-    while (q.isNotEmpty()) {
-        val (n, c) = q.removeFirst()
-        cols[c] = n.value
-        n.left ?.let { q.addLast(it to c - 1) }
-        n.right?.let { q.addLast(it to c + 1) }
-    }
-    return cols.values.toList()
-}
-```
-
 ```rust,editable
 pub fn bottom_view(root: &Option<Box<TreeNode>>) -> Vec<i32> {
     if root.is_none() { return Vec::new(); }
@@ -485,6 +446,21 @@ Trick: instead of storing one value per column (top or bottom view), *append* to
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function verticalTraversal(root):
+    if root = null: return empty list
+    cols ← empty sorted Map: column → list
+    q    ← empty queue; enqueue (root, 0) to q
+    minC ← 0; maxC ← 0
+    while q is not empty:
+        (n, c) ← dequeue from q
+        append n.val to cols[c]                   # collect all nodes per column
+        minC ← min(minC, c); maxC ← max(maxC, c)
+        if n.left  ≠ null: enqueue (n.left,  c − 1) to q
+        if n.right ≠ null: enqueue (n.right, c + 1) to q
+    return [cols[c] for c from minC to maxC]
+```
 
 ```python,editable
 def vertical_traversal(root):
@@ -553,26 +529,6 @@ def verticalTraversal(root: TreeNode): List[List[Int]] = {
 }
 ```
 
-```javascript,editable
-function verticalTraversal(root) {
-    if (!root) return [];
-    const cols = new Map(); let minC = 0, maxC = 0;
-    const q = [[root, 0]];
-    while (q.length) {
-        const [n, c] = q.shift();
-        if (!cols.has(c)) cols.set(c, []);
-        cols.get(c).push(n.val);
-        if (c < minC) minC = c;
-        if (c > maxC) maxC = c;
-        if (n.left)  q.push([n.left,  c - 1]);
-        if (n.right) q.push([n.right, c + 1]);
-    }
-    const out = [];
-    for (let c = minC; c <= maxC; c++) if (cols.has(c)) out.push(cols.get(c));
-    return out;
-}
-```
-
 ```typescript,editable
 function verticalTraversal(root: TreeNode | null): number[][] {
     if (!root) return [];
@@ -611,21 +567,6 @@ func verticalTraversal(root *TreeNode) [][]int {
     out := make([][]int, 0, len(keys))
     for _, k := range keys { out = append(out, cols[k]) }
     return out
-}
-```
-
-```kotlin,editable
-fun verticalTraversal(root: TreeNode?): List<List<Int>> {
-    if (root == null) return emptyList()
-    val cols = sortedMapOf<Int, MutableList<Int>>()
-    val q = ArrayDeque<Pair<TreeNode, Int>>(); q.addLast(root to 0)
-    while (q.isNotEmpty()) {
-        val (n, c) = q.removeFirst()
-        cols.getOrPut(c) { mutableListOf() } += n.value
-        n.left ?.let { q.addLast(it to c - 1) }
-        n.right?.let { q.addLast(it to c + 1) }
-    }
-    return cols.values.map { it.toList() }
 }
 ```
 
@@ -688,6 +629,21 @@ flowchart TB
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function diagonalTraversal(root):
+    if root = null: return empty list
+    diags ← empty sorted Map: diagonal → list
+    q     ← empty queue; enqueue (root, 0) to q
+    maxD  ← 0
+    while q is not empty:
+        (n, d) ← dequeue from q
+        append n.val to diags[d]
+        maxD ← max(maxD, d)
+        if n.left  ≠ null: enqueue (n.left,  d + 1) to q   # left edge → new diagonal
+        if n.right ≠ null: enqueue (n.right, d)     to q   # right edge → same diagonal
+    return [diags[d] for d from 0 to maxD]
+```
 
 ```python,editable
 def diagonal_traversal(root):
@@ -757,25 +713,6 @@ def diagonalTraversal(root: TreeNode): List[List[Int]] = {
 }
 ```
 
-```javascript,editable
-function diagonalTraversal(root) {
-    if (!root) return [];
-    const diags = new Map(); let maxD = 0;
-    const q = [[root, 0]];
-    while (q.length) {
-        const [n, d] = q.shift();
-        if (!diags.has(d)) diags.set(d, []);
-        diags.get(d).push(n.val);
-        if (d > maxD) maxD = d;
-        if (n.left)  q.push([n.left,  d + 1]);
-        if (n.right) q.push([n.right, d]);
-    }
-    const out = [];
-    for (let d = 0; d <= maxD; d++) if (diags.has(d)) out.push(diags.get(d));
-    return out;
-}
-```
-
 ```typescript,editable
 function diagonalTraversal(root: TreeNode | null): number[][] {
     if (!root) return [];
@@ -813,21 +750,6 @@ func diagonalTraversal(root *TreeNode) [][]int {
     out := make([][]int, 0, len(keys))
     for _, k := range keys { out = append(out, diags[k]) }
     return out
-}
-```
-
-```kotlin,editable
-fun diagonalTraversal(root: TreeNode?): List<List<Int>> {
-    if (root == null) return emptyList()
-    val diags = sortedMapOf<Int, MutableList<Int>>()
-    val q = ArrayDeque<Pair<TreeNode, Int>>(); q.addLast(root to 0)
-    while (q.isNotEmpty()) {
-        val (n, d) = q.removeFirst()
-        diags.getOrPut(d) { mutableListOf() } += n.value
-        n.left ?.let { q.addLast(it to d + 1) }
-        n.right?.let { q.addLast(it to d) }
-    }
-    return diags.values.map { it.toList() }
 }
 ```
 

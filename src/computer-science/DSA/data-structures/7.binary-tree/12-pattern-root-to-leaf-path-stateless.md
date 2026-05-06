@@ -85,6 +85,16 @@ We'll show "does any root-to-leaf path sum to target?" as the canonical generic 
 
 <div class="lang-tabs">
 
+```pseudocode
+function hasPathSum(root, target):
+    function go(n, remaining):
+        if n = null: return false
+        remaining ← remaining − n.val
+        if n.left = null AND n.right = null: return remaining = 0   # leaf verdict
+        return go(n.left, remaining) OR go(n.right, remaining)
+    return go(root, target)
+```
+
 ```python,editable
 from typing import Optional
 
@@ -138,15 +148,6 @@ def hasPathSum(root: TreeNode, target: Int): Boolean = {
 }
 ```
 
-```javascript,editable
-function hasPathSum(root, target) {
-    if (!root) return false;
-    target -= root.val;
-    if (!root.left && !root.right) return target === 0;
-    return hasPathSum(root.left, target) || hasPathSum(root.right, target);
-}
-```
-
 ```typescript,editable
 function hasPathSum(root: TreeNode | null, target: number): boolean {
     if (!root) return false;
@@ -162,15 +163,6 @@ func hasPathSum(root *TreeNode, target int) bool {
     target -= root.Val
     if root.Left == nil && root.Right == nil { return target == 0 }
     return hasPathSum(root.Left, target) || hasPathSum(root.Right, target)
-}
-```
-
-```kotlin,editable
-fun hasPathSum(root: TreeNode?, target: Int): Boolean {
-    if (root == null) return false
-    val rem = target - root.value
-    if (root.left == null && root.right == null) return rem == 0
-    return hasPathSum(root.left, rem) || hasPathSum(root.right, rem)
 }
 ```
 
@@ -248,6 +240,16 @@ The accumulator is the *binary number so far* — at each node, shift left and O
 
 <div class="lang-tabs">
 
+```pseudocode
+function binarySummationOfTree(root):
+    function go(n, acc):
+        if n = null: return 0
+        acc ← (acc << 1) | n.val   # shift existing bits left, append this bit
+        if n.left = null AND n.right = null: return acc   # leaf: return path number
+        return go(n.left, acc) + go(n.right, acc)
+    return go(root, 0)
+```
+
 ```python,editable
 def binary_summation_of_tree(root):
     def go(n, acc):
@@ -300,18 +302,6 @@ def binarySummationOfTree(root: TreeNode): Int = {
 }
 ```
 
-```javascript,editable
-function binarySummationOfTree(root) {
-    function go(n, acc) {
-        if (!n) return 0;
-        acc = (acc << 1) | n.val;
-        if (!n.left && !n.right) return acc;
-        return go(n.left, acc) + go(n.right, acc);
-    }
-    return go(root, 0);
-}
-```
-
 ```typescript,editable
 function binarySummationOfTree(root: TreeNode | null): number {
     function go(n: TreeNode | null, acc: number): number {
@@ -334,18 +324,6 @@ func binarySummationOfTree(root *TreeNode) int {
         return go_(n.Left, acc) + go_(n.Right, acc)
     }
     return go_(root, 0)
-}
-```
-
-```kotlin,editable
-fun binarySummationOfTree(root: TreeNode?): Int {
-    fun go(n: TreeNode?, acc: Int): Int {
-        if (n == null) return 0
-        val a = (acc shl 1) or n.value
-        if (n.left == null && n.right == null) return a
-        return go(n.left, a) + go(n.right, a)
-    }
-    return go(root, 0)
 }
 ```
 
@@ -376,6 +354,17 @@ The accumulator is a *boolean*: "has the path so far been all-even?". Update at 
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function evenPath(root):
+    if root = null: return false
+    function go(n, ok):
+        if n = null: return false
+        ok ← ok AND (n.val mod 2 = 0)
+        if n.left = null AND n.right = null: return ok   # leaf verdict
+        return go(n.left, ok) OR go(n.right, ok)
+    return go(root, true)
+```
 
 ```python,editable
 def even_path(root):
@@ -437,19 +426,6 @@ def evenPath(root: TreeNode): Boolean = {
 }
 ```
 
-```javascript,editable
-function evenPath(root) {
-    if (!root) return false;
-    function go(n, ok) {
-        if (!n) return false;
-        ok = ok && (n.val % 2 === 0);
-        if (!n.left && !n.right) return ok;
-        return go(n.left, ok) || go(n.right, ok);
-    }
-    return go(root, true);
-}
-```
-
 ```typescript,editable
 function evenPath(root: TreeNode | null): boolean {
     if (!root) return false;
@@ -474,19 +450,6 @@ func evenPath(root *TreeNode) bool {
         return go_(n.Left, ok) || go_(n.Right, ok)
     }
     return go_(root, true)
-}
-```
-
-```kotlin,editable
-fun evenPath(root: TreeNode?): Boolean {
-    if (root == null) return false
-    fun go(n: TreeNode?, ok: Boolean): Boolean {
-        if (n == null) return false
-        val ok2 = ok && (n.value % 2 == 0)
-        if (n.left == null && n.right == null) return ok2
-        return go(n.left, ok2) || go(n.right, ok2)
-    }
-    return go(root, true)
 }
 ```
 
@@ -549,6 +512,17 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+function oddCount(root):
+    function go(n, length):
+        if n = null: return 0
+        length ← length + 1
+        if n.left = null AND n.right = null:
+            return 1 if length mod 2 = 1 else 0   # leaf: odd-length path?
+        return go(n.left, length) + go(n.right, length)
+    return go(root, 0)
+```
+
 ```python,editable
 def odd_count(root):
     def go(n, length):
@@ -602,18 +576,6 @@ def oddCount(root: TreeNode): Int = {
 }
 ```
 
-```javascript,editable
-function oddCount(root) {
-    function go(n, length) {
-        if (!n) return 0;
-        length++;
-        if (!n.left && !n.right) return length % 2 === 1 ? 1 : 0;
-        return go(n.left, length) + go(n.right, length);
-    }
-    return go(root, 0);
-}
-```
-
 ```typescript,editable
 function oddCount(root: TreeNode | null): number {
     function go(n: TreeNode | null, length: number): number {
@@ -639,18 +601,6 @@ func oddCount(root *TreeNode) int {
         return go_(n.Left, length) + go_(n.Right, length)
     }
     return go_(root, 0)
-}
-```
-
-```kotlin,editable
-fun oddCount(root: TreeNode?): Int {
-    fun go(n: TreeNode?, length: Int): Int {
-        if (n == null) return 0
-        val l2 = length + 1
-        if (n.left == null && n.right == null) return if (l2 % 2 == 1) 1 else 0
-        return go(n.left, l2) + go(n.right, l2)
-    }
-    return go(root, 0)
 }
 ```
 

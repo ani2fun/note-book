@@ -71,6 +71,18 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+function f(acc, val):
+    return acc + val               # replace with the real combiner for each problem
+
+function statelessPreorder(node, acc):
+    if node = null: return
+    # use acc to process node here if needed
+    newAcc ← f(acc, node.val)      # fold this node's value into the accumulator
+    statelessPreorder(node.left,  newAcc)
+    statelessPreorder(node.right, newAcc)
+```
+
 ```python,editable
 from typing import Optional
 
@@ -130,16 +142,6 @@ def statelessPreorder(node: TreeNode, acc: Int): Unit = {
 }
 ```
 
-```javascript,editable
-const f = (acc, val) => acc + val;
-function statelessPreorder(node, acc = 0) {
-    if (!node) return;
-    const newAcc = f(acc, node.val);
-    statelessPreorder(node.left,  newAcc);
-    statelessPreorder(node.right, newAcc);
-}
-```
-
 ```typescript,editable
 const f = (acc: number, val: number): number => acc + val;
 function statelessPreorder(node: TreeNode | null, acc: number = 0): void {
@@ -157,16 +159,6 @@ func statelessPreorder(node *TreeNode, acc int) {
     newAcc := f(acc, node.Val)
     statelessPreorder(node.Left,  newAcc)
     statelessPreorder(node.Right, newAcc)
-}
-```
-
-```kotlin,editable
-fun f(acc: Int, value: Int): Int = acc + value
-fun statelessPreorder(node: TreeNode?, acc: Int = 0) {
-    if (node == null) return
-    val newAcc = f(acc, node.value)
-    statelessPreorder(node.left,  newAcc)
-    statelessPreorder(node.right, newAcc)
 }
 ```
 
@@ -242,6 +234,16 @@ The accumulator here is the **path sum so far** (excluding the current node). At
 
 <div class="lang-tabs">
 
+```pseudocode
+function sumOfPath(root):
+    function go(node, acc):
+        if node = null: return
+        node.val ← node.val + acc   # replace value with running path sum
+        go(node.left,  node.val)
+        go(node.right, node.val)
+    go(root, 0)
+```
+
 ```python,editable
 def sum_of_path(root):
     def go(node, acc):
@@ -296,18 +298,6 @@ def sumOfPath(root: TreeNode): Unit = {
 }
 ```
 
-```javascript,editable
-function sumOfPath(root) {
-    function go(n, acc) {
-        if (!n) return;
-        n.val += acc;
-        go(n.left,  n.val);
-        go(n.right, n.val);
-    }
-    go(root, 0);
-}
-```
-
 ```typescript,editable
 function sumOfPath(root: TreeNode | null): void {
     function go(n: TreeNode | null, acc: number): void {
@@ -328,18 +318,6 @@ func sumOfPathHelper(n *TreeNode, acc int) {
     sumOfPathHelper(n.Right, n.Val)
 }
 func sumOfPath(root *TreeNode) { sumOfPathHelper(root, 0) }
-```
-
-```kotlin,editable
-fun sumOfPath(root: TreeNode?) {
-    fun go(n: TreeNode?, acc: Int) {
-        if (n == null) return
-        n.value += acc
-        go(n.left,  n.value)
-        go(n.right, n.value)
-    }
-    go(root, 0)
-}
 ```
 
 ```rust,editable
@@ -371,6 +349,16 @@ The accumulator is just the **current depth**. The root starts at 0; every recur
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function depthAssignment(root):
+    function go(node, depth):
+        if node = null: return
+        node.val ← depth            # overwrite value with this node's depth
+        go(node.left,  depth + 1)
+        go(node.right, depth + 1)
+    go(root, 0)
+```
 
 ```python,editable
 def depth_assignment(root):
@@ -426,18 +414,6 @@ def depthAssignment(root: TreeNode): Unit = {
 }
 ```
 
-```javascript,editable
-function depthAssignment(root) {
-    function go(n, d) {
-        if (!n) return;
-        n.val = d;
-        go(n.left,  d + 1);
-        go(n.right, d + 1);
-    }
-    go(root, 0);
-}
-```
-
 ```typescript,editable
 function depthAssignment(root: TreeNode | null): void {
     function go(n: TreeNode | null, d: number): void {
@@ -458,18 +434,6 @@ func depthAssignmentHelper(n *TreeNode, d int) {
     depthAssignmentHelper(n.Right, d + 1)
 }
 func depthAssignment(root *TreeNode) { depthAssignmentHelper(root, 0) }
-```
-
-```kotlin,editable
-fun depthAssignment(root: TreeNode?) {
-    fun go(n: TreeNode?, d: Int) {
-        if (n == null) return
-        n.value = d
-        go(n.left,  d + 1)
-        go(n.right, d + 1)
-    }
-    go(root, 0)
-}
 ```
 
 ```rust,editable
@@ -528,6 +492,22 @@ flowchart TB
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function concatenatedPath(root):
+    function digits(x):                           # count decimal digits of x
+        if x = 0: return 1
+        d ← 0
+        while x > 0: d ← d + 1; x ← x / 10
+        return d
+    function go(node, acc):
+        if node = null: return
+        # shift acc left by the digit-width of node.val, then append node.val
+        node.val ← acc * 10^digits(node.val) + node.val
+        go(node.left,  node.val)
+        go(node.right, node.val)
+    go(root, 0)
+```
 
 ```python,editable
 def concatenated_path(root):
@@ -599,19 +579,6 @@ def concatenatedPath(root: TreeNode): Unit = {
 }
 ```
 
-```javascript,editable
-function concatenatedPath(root) {
-    const digits = x => x === 0 ? 1 : Math.floor(Math.log10(Math.abs(x))) + 1;
-    function go(n, acc) {
-        if (!n) return;
-        n.val = acc * Math.pow(10, digits(n.val)) + n.val;
-        go(n.left,  n.val);
-        go(n.right, n.val);
-    }
-    go(root, 0);
-}
-```
-
 ```typescript,editable
 function concatenatedPath(root: TreeNode | null): void {
     const digits = (x: number) => x === 0 ? 1 : Math.floor(Math.log10(Math.abs(x))) + 1;
@@ -640,20 +607,6 @@ func concatenatedPathHelper(n *TreeNode, acc int) {
     concatenatedPathHelper(n.Right, n.Val)
 }
 func concatenatedPath(root *TreeNode) { concatenatedPathHelper(root, 0) }
-```
-
-```kotlin,editable
-fun concatenatedPath(root: TreeNode?) {
-    fun digits(x: Int): Int { if (x == 0) return 1; var d = 0; var v = x; while (v > 0) { d++; v /= 10 }; return d }
-    fun pow10(e: Int): Int { var p = 1; repeat(e) { p *= 10 }; return p }
-    fun go(n: TreeNode?, acc: Int) {
-        if (n == null) return
-        n.value = acc * pow10(digits(n.value)) + n.value
-        go(n.left,  n.value)
-        go(n.right, n.value)
-    }
-    go(root, 0)
-}
 ```
 
 ```rust,editable
@@ -716,6 +669,22 @@ flowchart TB
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function increasingPath(root):
+    function go(node, prev, ok):
+        if node = null: return
+        cur ← node.val
+        ok  ← ok AND (prev < cur)
+        node.val ← 1 if ok else 0
+        go(node.left,  cur, ok)
+        go(node.right, cur, ok)
+    if root = null: return
+    cur ← root.val
+    root.val ← 1                   # root is trivially "increasing" by itself
+    go(root.left,  cur, true)
+    go(root.right, cur, true)
+```
 
 ```python,editable
 def increasing_path(root):
@@ -804,23 +773,6 @@ def increasingPath(root: TreeNode): Unit = {
 }
 ```
 
-```javascript,editable
-function increasingPath(root) {
-    function go(n, prev, ok) {
-        if (!n) return;
-        const cur = n.val;
-        ok = ok && (prev < cur);
-        n.val = ok ? 1 : 0;
-        go(n.left,  cur, ok);
-        go(n.right, cur, ok);
-    }
-    if (!root) return;
-    const cur = root.val; root.val = 1;
-    go(root.left,  cur, true);
-    go(root.right, cur, true);
-}
-```
-
 ```typescript,editable
 function increasingPath(root: TreeNode | null): void {
     function go(n: TreeNode | null, prev: number, ok: boolean): void {
@@ -853,24 +805,6 @@ func increasingPath(root *TreeNode) {
     root.Val = 1
     incHelper(root.Left,  cur, true)
     incHelper(root.Right, cur, true)
-}
-```
-
-```kotlin,editable
-fun increasingPath(root: TreeNode?) {
-    fun go(n: TreeNode?, prev: Int, ok: Boolean) {
-        if (n == null) return
-        val cur = n.value
-        val ok2 = ok && (prev < cur)
-        n.value = if (ok2) 1 else 0
-        go(n.left,  cur, ok2)
-        go(n.right, cur, ok2)
-    }
-    if (root == null) return
-    val cur = root.value
-    root.value = 1
-    go(root.left,  cur, true)
-    go(root.right, cur, true)
 }
 ```
 

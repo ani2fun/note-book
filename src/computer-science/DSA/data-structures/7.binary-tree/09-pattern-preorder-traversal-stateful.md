@@ -88,6 +88,19 @@ We'll show the **push-pop** flavour as the canonical generic — it's the strict
 
 <div class="lang-tabs">
 
+```pseudocode
+function statefulPreorder(root):
+    state ← empty list                  # shared, mutable path state
+    function go(node):
+        if node = null: return
+        push node.val to state           # enter: extend the current path
+        # use state to process node ...
+        go(node.left)
+        go(node.right)
+        pop from state                   # exit: restore path for the parent
+    go(root)
+```
+
 ```python,editable
 from typing import List, Optional
 
@@ -159,19 +172,6 @@ def statefulPreorder(node: TreeNode): Unit = {
 }
 ```
 
-```javascript,editable
-function statefulPreorder(root) {
-    const state = [];
-    function go(n) {
-        if (!n) return;
-        state.push(n.val);                       // push
-        go(n.left); go(n.right);
-        state.pop();                              // pop
-    }
-    go(root);
-}
-```
-
 ```typescript,editable
 function statefulPreorder(root: TreeNode | null): void {
     const state: number[] = [];
@@ -196,19 +196,6 @@ func statefulPreorder(root *TreeNode) {
         state = state[:len(state)-1]             // pop
     }
     go_(root)
-}
-```
-
-```kotlin,editable
-fun statefulPreorder(root: TreeNode?) {
-    val state = mutableListOf<Int>()
-    fun go(n: TreeNode?) {
-        if (n == null) return
-        state += n.value                          // push
-        go(n.left); go(n.right)
-        state.removeAt(state.size - 1)            // pop
-    }
-    go(root)
 }
 ```
 
@@ -293,6 +280,21 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+function duplicatesInPath(root):
+    freq   ← empty Map: value → count
+    result ← 0
+    function go(n):
+        if n = null: return
+        if freq[n.val] > 0: result ← result + 1   # n.val already on current path
+        freq[n.val] ← freq[n.val] + 1
+        go(n.left); go(n.right)
+        freq[n.val] ← freq[n.val] − 1             # undo on backtrack
+        if freq[n.val] = 0: remove n.val from freq
+    go(root)
+    return result
+```
+
 ```python,editable
 def duplicates_in_path(root):
     freq, result = {}, [0]
@@ -375,21 +377,6 @@ def duplicatesInPath(root: TreeNode): Int = {
 }
 ```
 
-```javascript,editable
-function duplicatesInPath(root) {
-    const freq = new Map(); let dup = 0;
-    function go(n) {
-        if (!n) return;
-        if ((freq.get(n.val) || 0) > 0) dup++;
-        freq.set(n.val, (freq.get(n.val) || 0) + 1);
-        go(n.left); go(n.right);
-        const c = freq.get(n.val) - 1;
-        if (c === 0) freq.delete(n.val); else freq.set(n.val, c);
-    }
-    go(root); return dup;
-}
-```
-
 ```typescript,editable
 function duplicatesInPath(root: TreeNode | null): number {
     const freq = new Map<number, number>(); let dup = 0;
@@ -418,21 +405,6 @@ func duplicatesInPath(root *TreeNode) int {
         if freq[n.Val] == 0 { delete(freq, n.Val) }
     }
     go_(root); return dup
-}
-```
-
-```kotlin,editable
-fun duplicatesInPath(root: TreeNode?): Int {
-    val freq = HashMap<Int, Int>(); var dup = 0
-    fun go(n: TreeNode?) {
-        if (n == null) return
-        if ((freq[n.value] ?: 0) > 0) dup++
-        freq[n.value] = (freq[n.value] ?: 0) + 1
-        go(n.left); go(n.right)
-        val c = freq[n.value]!! - 1
-        if (c == 0) freq.remove(n.value) else freq[n.value] = c
-    }
-    go(root); return dup
 }
 ```
 
@@ -469,6 +441,22 @@ This is the **monotone witnesses** flavour. The state is two integers, `min` and
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function findSecondMinimum(root):
+    if root = null: return −1
+    min ← root.val; secondMin ← −1
+    function go(n):
+        if n = null: return
+        v ← n.val
+        if v < min:
+            secondMin ← min; min ← v
+        else if v > min AND (secondMin = −1 OR v < secondMin):
+            secondMin ← v
+        go(n.left); go(n.right)
+    go(root)
+    return secondMin
+```
 
 ```python,editable
 def find_second_minimum(root):
@@ -551,21 +539,6 @@ def findSecondMinimum(root: TreeNode): Int = {
 }
 ```
 
-```javascript,editable
-function findSecondMinimum(root) {
-    if (!root) return -1;
-    let minV = root.val, secV = -1;
-    function go(n) {
-        if (!n) return;
-        const v = n.val;
-        if (v < minV)        { secV = minV; minV = v; }
-        else if (v > minV && (secV === -1 || v < secV)) secV = v;
-        go(n.left); go(n.right);
-    }
-    go(root); return secV;
-}
-```
-
 ```typescript,editable
 function findSecondMinimum(root: TreeNode | null): number {
     if (!root) return -1;
@@ -594,21 +567,6 @@ func findSecondMinimum(root *TreeNode) int {
         go_(n.Left); go_(n.Right)
     }
     go_(root); return secV
-}
-```
-
-```kotlin,editable
-fun findSecondMinimum(root: TreeNode?): Int {
-    if (root == null) return -1
-    var minV = root.value; var secV = -1
-    fun go(n: TreeNode?) {
-        if (n == null) return
-        val v = n.value
-        if (v < minV)         { secV = minV; minV = v }
-        else if (v > minV && (secV == -1 || v < secV)) secV = v
-        go(n.left); go(n.right)
-    }
-    go(root); return secV
 }
 ```
 
@@ -678,6 +636,18 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+function leftView(root):
+    out ← empty list
+    function go(n, level):
+        if n = null: return
+        if level = length(out): append n.val to out   # first node at this depth
+        go(n.left,  level + 1)                        # left-first ensures leftmost wins
+        go(n.right, level + 1)
+    go(root, 0)
+    return out
+```
+
 ```python,editable
 def left_view(root):
     out = []
@@ -745,19 +715,6 @@ def leftView(root: TreeNode): List[Int] = {
 }
 ```
 
-```javascript,editable
-function leftView(root) {
-    const out = [];
-    function go(n, level) {
-        if (!n) return;
-        if (level === out.length) out.push(n.val);
-        go(n.left,  level + 1);
-        go(n.right, level + 1);
-    }
-    go(root, 0); return out;
-}
-```
-
 ```typescript,editable
 function leftView(root: TreeNode | null): number[] {
     const out: number[] = [];
@@ -782,19 +739,6 @@ func leftView(root *TreeNode) []int {
         go_(n.Right, level + 1)
     }
     go_(root, 0); return out
-}
-```
-
-```kotlin,editable
-fun leftView(root: TreeNode?): List<Int> {
-    val out = mutableListOf<Int>()
-    fun go(n: TreeNode?, level: Int) {
-        if (n == null) return
-        if (level == out.size) out += n.value
-        go(n.left,  level + 1)
-        go(n.right, level + 1)
-    }
-    go(root, 0); return out
 }
 ```
 
@@ -826,6 +770,18 @@ The trick is *identical* to the left view, with one swap: recurse **right before
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function rightView(root):
+    out ← empty list
+    function go(n, level):
+        if n = null: return
+        if level = length(out): append n.val to out   # first node at this depth
+        go(n.right, level + 1)                        # right-first ensures rightmost wins
+        go(n.left,  level + 1)
+    go(root, 0)
+    return out
+```
 
 ```python,editable
 def right_view(root):
@@ -890,19 +846,6 @@ def rightView(root: TreeNode): List[Int] = {
 }
 ```
 
-```javascript,editable
-function rightView(root) {
-    const out = [];
-    function go(n, level) {
-        if (!n) return;
-        if (level === out.length) out.push(n.val);
-        go(n.right, level + 1);
-        go(n.left,  level + 1);
-    }
-    go(root, 0); return out;
-}
-```
-
 ```typescript,editable
 function rightView(root: TreeNode | null): number[] {
     const out: number[] = [];
@@ -927,19 +870,6 @@ func rightView(root *TreeNode) []int {
         go_(n.Left,  level + 1)
     }
     go_(root, 0); return out
-}
-```
-
-```kotlin,editable
-fun rightView(root: TreeNode?): List<Int> {
-    val out = mutableListOf<Int>()
-    fun go(n: TreeNode?, level: Int) {
-        if (n == null) return
-        if (level == out.size) out += n.value
-        go(n.right, level + 1)
-        go(n.left,  level + 1)
-    }
-    go(root, 0); return out
 }
 ```
 

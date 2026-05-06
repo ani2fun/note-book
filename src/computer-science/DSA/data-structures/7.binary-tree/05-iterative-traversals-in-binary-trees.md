@@ -136,6 +136,20 @@ push 5, push 4     stack=[3,5,4]"]
 
 <div class="lang-tabs">
 
+```pseudocode
+function preorderIter(root):
+    if root = null: return empty list
+    out ← empty list
+    stack ← empty stack
+    push root to stack
+    while stack is not empty:
+        n ← pop from stack
+        append n.val to out
+        if n.right ≠ null: push n.right to stack   # right first
+        if n.left  ≠ null: push n.left  to stack   # so left pops next
+    return out
+```
+
 ```python,editable
 from typing import List, Optional
 
@@ -273,28 +287,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class TreeNode {
-    constructor(val = 0, left = null, right = null) { this.val = val; this.left = left; this.right = right; }
-}
-
-function preorderIter(root) {
-    const out = [];
-    if (!root) return out;
-    const stk = [root];
-    while (stk.length) {
-        const n = stk.pop();
-        out.push(n.val);
-        if (n.right) stk.push(n.right);
-        if (n.left)  stk.push(n.left);
-    }
-    return out;
-}
-
-const root = new TreeNode(1, new TreeNode(2, new TreeNode(4), new TreeNode(5)), new TreeNode(3));
-console.log(preorderIter(root));
-```
-
 ```typescript,editable
 class TreeNode {
     val: number;
@@ -350,29 +342,6 @@ func main() {
         Left:  &TreeNode{Val: 2, Left: &TreeNode{Val: 4}, Right: &TreeNode{Val: 5}},
         Right: &TreeNode{Val: 3}}
     fmt.Println(preorderIter(root))
-}
-```
-
-```kotlin,editable
-class TreeNode(var value: Int, var left: TreeNode? = null, var right: TreeNode? = null)
-
-fun preorderIter(root: TreeNode?): List<Int> {
-    val out = mutableListOf<Int>()
-    if (root == null) return out
-    val stk = ArrayDeque<TreeNode>()
-    stk.addLast(root)
-    while (stk.isNotEmpty()) {
-        val n = stk.removeLast()
-        out += n.value
-        n.right?.let { stk.addLast(it) }
-        n.left ?.let { stk.addLast(it) }
-    }
-    return out
-}
-
-fun main() {
-    val root = TreeNode(1, TreeNode(2, TreeNode(4), TreeNode(5)), TreeNode(3))
-    println(preorderIter(root))
 }
 ```
 
@@ -485,6 +454,21 @@ current=null    stack=[3]"]
 
 <div class="lang-tabs">
 
+```pseudocode
+function inorderIter(root):
+    out ← empty list
+    stk ← empty stack
+    cur ← root
+    while cur ≠ null OR stk is not empty:
+        while cur ≠ null:       # descend left, stacking each node
+            push cur to stk
+            cur ← cur.left
+        cur ← pop from stk      # process leftmost unvisited node
+        append cur.val to out
+        cur ← cur.right         # pivot to right subtree
+    return out
+```
+
 ```python,editable
 def inorder_iter(root):
     out, stk, cur = [], [], root
@@ -572,23 +556,6 @@ def inorderIter(root: TreeNode): List[Int] = {
 }
 ```
 
-```javascript,editable
-function inorderIter(root) {
-    const out = [], stk = [];
-    let cur = root;
-    while (cur || stk.length) {
-        while (cur) {
-            stk.push(cur);
-            cur = cur.left;
-        }
-        cur = stk.pop();
-        out.push(cur.val);
-        cur = cur.right;
-    }
-    return out;
-}
-```
-
 ```typescript,editable
 function inorderIter(root: TreeNode | null): number[] {
     const out: number[] = [];
@@ -621,24 +588,6 @@ func inorderIter(root *TreeNode) []int {
         stk  = stk[:len(stk)-1]
         out  = append(out, cur.Val)
         cur  = cur.Right
-    }
-    return out
-}
-```
-
-```kotlin,editable
-fun inorderIter(root: TreeNode?): List<Int> {
-    val out = mutableListOf<Int>()
-    val stk = ArrayDeque<TreeNode>()
-    var cur = root
-    while (cur != null || stk.isNotEmpty()) {
-        while (cur != null) {
-            stk.addLast(cur)
-            cur = cur.left
-        }
-        cur = stk.removeLast()
-        out += cur.value
-        cur = cur.right
     }
     return out
 }
@@ -752,6 +701,20 @@ We'll push the values onto the output and reverse once at the end — *appending
 
 <div class="lang-tabs">
 
+```pseudocode
+function postorderIter(root):
+    if root = null: return empty list
+    out ← empty deque
+    stk ← empty stack
+    push root to stk
+    while stk is not empty:
+        n ← pop from stk
+        prepend n.val to out        # V R L order reversed → L R V
+        if n.left  ≠ null: push n.left  to stk
+        if n.right ≠ null: push n.right to stk
+    return out as list
+```
+
 ```python,editable
 from collections import deque
 
@@ -837,21 +800,6 @@ def postorderIter(root: TreeNode): List[Int] = {
 }
 ```
 
-```javascript,editable
-function postorderIter(root) {
-    const out = [];
-    if (!root) return out;
-    const stk = [root];
-    while (stk.length) {
-        const n = stk.pop();
-        out.push(n.val);
-        if (n.left)  stk.push(n.left);
-        if (n.right) stk.push(n.right);
-    }
-    return out.reverse();
-}
-```
-
 ```typescript,editable
 function postorderIter(root: TreeNode | null): number[] {
     const out: number[] = [];
@@ -883,23 +831,6 @@ func postorderIter(root *TreeNode) []int {
     for i, j := 0, len(out)-1; i < j; i, j = i+1, j-1 {
         out[i], out[j] = out[j], out[i]
     }
-    return out
-}
-```
-
-```kotlin,editable
-fun postorderIter(root: TreeNode?): List<Int> {
-    val out = mutableListOf<Int>()
-    if (root == null) return out
-    val stk = ArrayDeque<TreeNode>()
-    stk.addLast(root)
-    while (stk.isNotEmpty()) {
-        val n = stk.removeLast()
-        out += n.value
-        n.left ?.let { stk.addLast(it) }
-        n.right?.let { stk.addLast(it) }
-    }
-    out.reverse()
     return out
 }
 ```
@@ -1007,6 +938,20 @@ enqueue 7 → q=[4, 5, 7]"]
 
 <div class="lang-tabs">
 
+```pseudocode
+function levelOrder(root):
+    if root = null: return empty list
+    out ← empty list
+    q   ← empty queue
+    enqueue root to q
+    while q is not empty:
+        n ← dequeue from q
+        append n.val to out
+        if n.left  ≠ null: enqueue n.left  to q
+        if n.right ≠ null: enqueue n.right to q
+    return out
+```
+
 ```python,editable
 from collections import deque
 
@@ -1096,21 +1041,6 @@ def levelOrder(root: TreeNode): List[Int] = {
 }
 ```
 
-```javascript,editable
-function levelOrder(root) {
-    const out = [];
-    if (!root) return out;
-    const q = [root];
-    while (q.length) {
-        const n = q.shift();
-        out.push(n.val);
-        if (n.left)  q.push(n.left);
-        if (n.right) q.push(n.right);
-    }
-    return out;
-}
-```
-
 ```typescript,editable
 function levelOrder(root: TreeNode | null): number[] {
     const out: number[] = [];
@@ -1137,22 +1067,6 @@ func levelOrder(root *TreeNode) []int {
         out  = append(out, n.Val)
         if n.Left  != nil { q = append(q, n.Left) }
         if n.Right != nil { q = append(q, n.Right) }
-    }
-    return out
-}
-```
-
-```kotlin,editable
-fun levelOrder(root: TreeNode?): List<Int> {
-    val out = mutableListOf<Int>()
-    if (root == null) return out
-    val q = ArrayDeque<TreeNode>()
-    q.addLast(root)
-    while (q.isNotEmpty()) {
-        val n = q.removeFirst()
-        out += n.value
-        n.left ?.let { q.addLast(it) }
-        n.right?.let { q.addLast(it) }
     }
     return out
 }

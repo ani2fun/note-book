@@ -80,6 +80,13 @@ flowchart LR
 
 <div class="lang-tabs">
 
+```pseudocode
+function insertRoot(root, value):
+    newRoot ← TreeNode(value)
+    newRoot.left ← root       # old tree becomes left subtree
+    return newRoot
+```
+
 ```python,editable
 class TreeNode:
     def __init__(self, val=0, left=None, right=None):
@@ -133,14 +140,6 @@ def insertRoot(root: TreeNode, value: Int): TreeNode = {
 }
 ```
 
-```javascript,editable
-function insertRoot(root, value) {
-    const newRoot = new TreeNode(value);
-    newRoot.left = root;
-    return newRoot;
-}
-```
-
 ```typescript,editable
 function insertRoot(root: TreeNode | null, value: number): TreeNode {
     const newRoot = new TreeNode(value);
@@ -152,14 +151,6 @@ function insertRoot(root: TreeNode | null, value: number): TreeNode {
 ```go,editable
 func insertRoot(root *TreeNode, value int) *TreeNode {
     return &TreeNode{Val: value, Left: root}
-}
-```
-
-```kotlin,editable
-fun insertRoot(root: TreeNode?, value: Int): TreeNode {
-    val newRoot = TreeNode(value)
-    newRoot.left = root
-    return newRoot
 }
 ```
 
@@ -235,6 +226,16 @@ flowchart LR
 
 <div class="lang-tabs">
 
+```pseudocode
+function insertLeafRec(node, value):
+    if node = null: return TreeNode(value)
+    if node.left = null:
+        node.left ← TreeNode(value)
+    else:
+        node.left ← insertLeafRec(node.left, value)   # keep descending left
+    return node
+```
+
 ```python,editable
 def insert_leaf_rec(node, value):
     if node is None:
@@ -282,15 +283,6 @@ def insertLeafRec(node: TreeNode, value: Int): TreeNode = {
 }
 ```
 
-```javascript,editable
-function insertLeafRec(node, value) {
-    if (!node)       return new TreeNode(value);
-    if (!node.left) { node.left = new TreeNode(value); return node; }
-    node.left = insertLeafRec(node.left, value);
-    return node;
-}
-```
-
 ```typescript,editable
 function insertLeafRec(node: TreeNode | null, value: number): TreeNode {
     if (!node)       return new TreeNode(value);
@@ -305,15 +297,6 @@ func insertLeafRec(node *TreeNode, value int) *TreeNode {
     if node == nil       { return &TreeNode{Val: value} }
     if node.Left == nil  { node.Left = &TreeNode{Val: value}; return node }
     node.Left = insertLeafRec(node.Left, value)
-    return node
-}
-```
-
-```kotlin,editable
-fun insertLeafRec(node: TreeNode?, value: Int): TreeNode {
-    if (node == null)       return TreeNode(value)
-    if (node.left == null) { node.left = TreeNode(value); return node }
-    node.left = insertLeafRec(node.left, value)
     return node
 }
 ```
@@ -404,6 +387,22 @@ flowchart LR
 
 <div class="lang-tabs">
 
+```pseudocode
+function insertLeafIter(root, value):
+    if root = null: return TreeNode(value)
+    q ← empty queue
+    enqueue root to q
+    while q is not empty:
+        n ← dequeue from q
+        if n.left = null:
+            n.left ← TreeNode(value); return root
+        enqueue n.left to q
+        if n.right = null:
+            n.right ← TreeNode(value); return root
+        enqueue n.right to q
+    return root
+```
+
 ```python,editable
 from collections import deque
 
@@ -489,21 +488,6 @@ def insertLeafIter(root: TreeNode, value: Int): TreeNode = {
 }
 ```
 
-```javascript,editable
-function insertLeafIter(root, value) {
-    if (!root) return new TreeNode(value);
-    const q = [root];
-    while (q.length) {
-        const n = q.shift();
-        if (!n.left)  { n.left  = new TreeNode(value); return root; }
-        q.push(n.left);
-        if (!n.right) { n.right = new TreeNode(value); return root; }
-        q.push(n.right);
-    }
-    return root;
-}
-```
-
 ```typescript,editable
 function insertLeafIter(root: TreeNode | null, value: number): TreeNode {
     if (!root) return new TreeNode(value);
@@ -529,22 +513,6 @@ func insertLeafIter(root *TreeNode, value int) *TreeNode {
         q = append(q, n.Left)
         if n.Right == nil { n.Right = &TreeNode{Val: value}; return root }
         q = append(q, n.Right)
-    }
-    return root
-}
-```
-
-```kotlin,editable
-fun insertLeafIter(root: TreeNode?, value: Int): TreeNode {
-    if (root == null) return TreeNode(value)
-    val q = ArrayDeque<TreeNode>()
-    q.addLast(root)
-    while (q.isNotEmpty()) {
-        val n = q.removeFirst()
-        if (n.left  == null) { n.left  = TreeNode(value); return root }
-        q.addLast(n.left!!)
-        if (n.right == null) { n.right = TreeNode(value); return root }
-        q.addLast(n.right!!)
     }
     return root
 }
@@ -658,6 +626,19 @@ flowchart LR
 
 <div class="lang-tabs">
 
+```pseudocode
+function insertChild(root, parent, value):
+    function go(node):
+        if node = null: return false
+        if node.val = parent:
+            if   node.left  = null: node.left  ← TreeNode(value); return true
+            else if node.right = null: node.right ← TreeNode(value); return true
+            else: return false           # parent already has two children
+        return go(node.left) OR go(node.right)
+    go(root)
+    return root
+```
+
 ```python,editable
 def insert_child(root, parent, value):
     def go(node):
@@ -736,22 +717,6 @@ def insertChild(root: TreeNode, parent: Int, value: Int): TreeNode = {
 }
 ```
 
-```javascript,editable
-function insertChild(root, parent, value) {
-    function go(n) {
-        if (!n) return false;
-        if (n.val === parent) {
-            if      (!n.left)  { n.left  = new TreeNode(value); return true; }
-            else if (!n.right) { n.right = new TreeNode(value); return true; }
-            else                return false;
-        }
-        return go(n.left) || go(n.right);
-    }
-    go(root);
-    return root;
-}
-```
-
 ```typescript,editable
 function insertChild(root: TreeNode | null, parent: number, value: number): TreeNode | null {
     function go(n: TreeNode | null): boolean {
@@ -780,21 +745,6 @@ func insertChildHelper(n *TreeNode, parent, value int) bool {
 }
 func insertChild(root *TreeNode, parent, value int) *TreeNode {
     insertChildHelper(root, parent, value); return root
-}
-```
-
-```kotlin,editable
-fun insertChild(root: TreeNode?, parent: Int, value: Int): TreeNode? {
-    fun go(n: TreeNode?): Boolean {
-        if (n == null) return false
-        if (n.value == parent) {
-            if      (n.left  == null) { n.left  = TreeNode(value); return true }
-            else if (n.right == null) { n.right = TreeNode(value); return true }
-            else                       return false
-        }
-        return go(n.left) || go(n.right)
-    }
-    go(root); return root
 }
 ```
 
@@ -897,6 +847,22 @@ flowchart LR
 ## Implementation
 
 <div class="lang-tabs">
+
+```pseudocode
+function insertParent(root, target, value):
+    if root = null: return null
+    if root.val = target:
+        new ← TreeNode(value); new.left ← root; return new
+    function go(node):
+        if node = null: return
+        if node.left ≠ null AND node.left.val = target:
+            new ← TreeNode(value); new.left ← node.left; node.left ← new; return
+        if node.right ≠ null AND node.right.val = target:
+            new ← TreeNode(value); new.left ← node.right; node.right ← new; return
+        go(node.left); go(node.right)
+    go(root)
+    return root
+```
 
 ```python,editable
 def insert_parent(root, target, value):
@@ -1008,27 +974,6 @@ def insertParent(root: TreeNode, target: Int, value: Int): TreeNode = {
 }
 ```
 
-```javascript,editable
-function insertParent(root, target, value) {
-    if (!root) return null;
-    if (root.val === target) {
-        const w = new TreeNode(value); w.left = root; return w;
-    }
-    function go(n) {
-        if (!n) return;
-        if (n.left  && n.left.val  === target) {
-            const w = new TreeNode(value); w.left = n.left; n.left  = w; return;
-        }
-        if (n.right && n.right.val === target) {
-            const w = new TreeNode(value); w.left = n.right; n.right = w; return;
-        }
-        go(n.left); go(n.right);
-    }
-    go(root);
-    return root;
-}
-```
-
 ```typescript,editable
 function insertParent(root: TreeNode | null, target: number, value: number): TreeNode | null {
     if (!root) return null;
@@ -1069,26 +1014,6 @@ func insertParent(root *TreeNode, target, value int) *TreeNode {
     }
     insertParentHelper(root, target, value)
     return root
-}
-```
-
-```kotlin,editable
-fun insertParent(root: TreeNode?, target: Int, value: Int): TreeNode? {
-    if (root == null) return null
-    if (root.value == target) {
-        val w = TreeNode(value); w.left = root; return w
-    }
-    fun go(n: TreeNode?) {
-        if (n == null) return
-        if (n.left  != null && n.left!!.value  == target) {
-            val w = TreeNode(value); w.left = n.left; n.left = w; return
-        }
-        if (n.right != null && n.right!!.value == target) {
-            val w = TreeNode(value); w.left = n.right; n.right = w; return
-        }
-        go(n.left); go(n.right)
-    }
-    go(root); return root
 }
 ```
 
