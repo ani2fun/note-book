@@ -116,6 +116,16 @@ When implementing the logic for the insert at the beginning operation, we consid
 
 <div class="lang-tabs">
 
+```pseudocode
+function insertAtBeginning(head, data):
+    newNode ← new ListNode(data)
+    if head is null:
+        newNode.next ← null                            # only node — also the tail
+        return newNode
+    newNode.next ← head                                # new node points to old head
+    return newNode                                     # new node is now the head
+```
+
 ```python,editable
 from typing import Optional
 
@@ -229,22 +239,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode { constructor(val,next=null){this.val=val;this.next=next;} }
-
-function insertAtBeginning(head, data) {
-    const newNode = new ListNode(data);
-    if (head === null) { newNode.next = null; return newNode; }
-    newNode.next = head;  // New node points to old head
-    return newNode;       // New node is now the head
-}
-
-const n3=new ListNode(3),n2=new ListNode(7,n3),n1=new ListNode(5,n2);
-let head = insertAtBeginning(n1, 6);
-const vals=[]; for(let c=head;c;c=c.next) vals.push(c.val);
-console.log(vals);  // [6, 5, 7, 3]
-```
-
 ```typescript,editable
 class ListNode { constructor(public val:number, public next:ListNode|null=null){} }
 
@@ -279,23 +273,6 @@ func main() {
     n3:=&ListNode{Val:3}; n2:=&ListNode{Val:7,Next:n3}; n1:=&ListNode{Val:5,Next:n2}
     head := insertAtBeginning(n1, 6)
     for c:=head; c!=nil; c=c.Next { fmt.Print(c.Val," ") }  // 6 5 7 3
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun insertAtBeginning(head: ListNode?, data: Int): ListNode {
-    val newNode = ListNode(data)
-    if (head == null) return newNode
-    newNode.next = head  // New node points to old head
-    return newNode       // New node is now the head
-}
-
-fun main() {
-    val n3=ListNode(3); val n2=ListNode(7,n3); val n1=ListNode(5,n2)
-    var head: ListNode? = insertAtBeginning(n1, 6)
-    while (head!=null) { print("${head.`val`} "); head=head.next }  // 6 5 7 3
 }
 ```
 
@@ -377,6 +354,14 @@ Given the **head** of a singly linked list and a **data** value, write a functio
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Compact form — `head = null` makes newNode.next = null automatically.
+function insertAtBeginning(head, data):
+    newNode ← new ListNode(data)
+    newNode.next ← head                                # works whether head is null or not
+    return newNode
+```
 
 ```python,editable
 class ListNode:
@@ -480,22 +465,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode { constructor(val,next=null){this.val=val;this.next=next;} }
-
-function insertAtBeginning(head, data) {
-    const newNode = new ListNode(data);
-    newNode.next = head;  // Works for both null and non-null head
-    return newNode;
-}
-
-const n4=new ListNode(10),n3=new ListNode(3,n4),
-      n2=new ListNode(7,n3),n1=new ListNode(5,n2);
-let head = insertAtBeginning(n1, 6);
-const vals=[]; for(let c=head;c;c=c.next) vals.push(c.val);
-console.log(vals);  // [6, 5, 7, 3, 10]
-```
-
 ```typescript,editable
 class ListNode { constructor(public val:number, public next:ListNode|null=null){} }
 
@@ -528,21 +497,6 @@ func main() {
     n2:=&ListNode{Val:7,Next:n3}; n1:=&ListNode{Val:5,Next:n2}
     head := insertAtBeginning(n1, 6)
     for c:=head;c!=nil;c=c.Next { fmt.Print(c.Val," ") }  // 6 5 7 3 10
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun insertAtBeginning(head: ListNode?, data: Int): ListNode {
-    return ListNode(data, head)  // Works for both null and non-null head
-}
-
-fun main() {
-    val n4=ListNode(10); val n3=ListNode(3,n4)
-    val n2=ListNode(7,n3); val n1=ListNode(5,n2)
-    var head: ListNode? = insertAtBeginning(n1, 6)
-    while (head!=null) { print("${head.`val`} "); head=head.next }  // 6 5 7 3 10
 }
 ```
 
@@ -660,6 +614,18 @@ before -> after: "traverse to tail,\ntail.next = newNode"
 ## Implementation
 
 <div class="lang-tabs">
+
+```pseudocode
+function insertAtEnd(head, data):
+    newNode ← new ListNode(data)
+    if head is null:
+        return newNode                                 # empty list → new node is the head
+    current ← head
+    while current.next is not null:                    # walk to the tail
+        current ← current.next
+    current.next ← newNode                             # attach after tail
+    return head
+```
 
 ```python,editable
 class ListNode:
@@ -782,25 +748,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode { constructor(val,next=null){this.val=val;this.next=next;} }
-
-function insertAtEnd(head, data) {
-    const newNode = new ListNode(data);
-    if (head === null) return newNode;
-
-    let current = head;
-    while (current.next !== null) current = current.next;  // Walk to tail
-    current.next = newNode;  // Attach after tail
-    return head;
-}
-
-const n3=new ListNode(3),n2=new ListNode(7,n3),n1=new ListNode(5,n2);
-let head = insertAtEnd(n1, 6);
-const vals=[]; for(let c=head;c;c=c.next) vals.push(c.val);
-console.log(vals);  // [5, 7, 3, 6]
-```
-
 ```typescript,editable
 class ListNode { constructor(public val:number, public next:ListNode|null=null){} }
 
@@ -841,26 +788,6 @@ func main() {
     n3:=&ListNode{Val:3}; n2:=&ListNode{Val:7,Next:n3}; n1:=&ListNode{Val:5,Next:n2}
     head := insertAtEnd(n1, 6)
     for c:=head;c!=nil;c=c.Next { fmt.Print(c.Val," ") }  // 5 7 3 6
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun insertAtEnd(head: ListNode?, data: Int): ListNode {
-    val newNode = ListNode(data)
-    if (head == null) return newNode
-
-    var current = head
-    while (current.next != null) current = current.next!!  // Walk to tail
-    current.next = newNode
-    return head
-}
-
-fun main() {
-    val n3=ListNode(3); val n2=ListNode(7,n3); val n1=ListNode(5,n2)
-    var head: ListNode? = insertAtEnd(n1, 6)
-    while (head!=null) { print("${head.`val`} "); head=head.next }  // 5 7 3 6
 }
 ```
 
@@ -951,6 +878,18 @@ Given the **head** of a singly linked list and a **data** value, write a functio
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Compact form — same algorithm.
+function insertAtEnd(head, data):
+    newNode ← new ListNode(data)
+    if head is null: return newNode
+    current ← head
+    while current.next is not null:
+        current ← current.next
+    current.next ← newNode
+    return head
+```
 
 ```python,editable
 class ListNode:
@@ -1070,25 +1009,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode { constructor(val,next=null){this.val=val;this.next=next;} }
-
-function insertAtEnd(head, data) {
-    const newNode = new ListNode(data);
-    if (!head) return newNode;
-    let cur = head;
-    while (cur.next) cur = cur.next;
-    cur.next = newNode;
-    return head;
-}
-
-const n4=new ListNode(10),n3=new ListNode(3,n4),
-      n2=new ListNode(7,n3),n1=new ListNode(5,n2);
-let head = insertAtEnd(n1, 6);
-const vals=[]; for(let c=head;c;c=c.next) vals.push(c.val);
-console.log(vals);  // [5, 7, 3, 10, 6]
-```
-
 ```typescript,editable
 class ListNode { constructor(public val:number, public next:ListNode|null=null){} }
 
@@ -1129,26 +1049,6 @@ func main() {
     n2:=&ListNode{Val:7,Next:n3}; n1:=&ListNode{Val:5,Next:n2}
     head := insertAtEnd(n1, 6)
     for c:=head;c!=nil;c=c.Next { fmt.Print(c.Val," ") }  // 5 7 3 10 6
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun insertAtEnd(head: ListNode?, data: Int): ListNode {
-    val newNode = ListNode(data)
-    if (head == null) return newNode
-    var cur = head
-    while (cur.next != null) cur = cur.next!!
-    cur.next = newNode
-    return head
-}
-
-fun main() {
-    val n4=ListNode(10); val n3=ListNode(3,n4)
-    val n2=ListNode(7,n3); val n1=ListNode(5,n2)
-    var head: ListNode? = insertAtEnd(n1, 6)
-    while (head!=null) { print("${head.`val`} "); head=head.next }  // 5 7 3 10 6
 }
 ```
 
@@ -1260,6 +1160,16 @@ flowchart TB
 We will be given the node, after which we will perform the insertion. When implementing the logic for the operation, we consider both possible cases and write the code for each in conditional blocks.
 
 <div class="lang-tabs">
+
+```pseudocode
+# Splice newNode between `node` and `node.next` — O(1), no traversal needed.
+function insertAfterTheGivenNode(node, data):
+    if node is null:
+        return                                         # no reference point — nothing to do
+    newNode ← new ListNode(data)
+    newNode.next ← node.next                           # bridge: new node points to what came after
+    node.next ← newNode                                # given node now points to new node
+```
 
 ```python,editable
 class ListNode:
@@ -1375,24 +1285,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode { constructor(val,next=null){this.val=val;this.next=next;} }
-
-function insertAfterTheGivenNode(node, data) {
-    if (!node) return;  // No reference point — nothing to do
-
-    const newNode = new ListNode(data);
-    newNode.next = node.next;  // Bridge: new node points to what came after given
-    node.next = newNode;       // Given node now points to new node
-}
-
-const n4=new ListNode(10),n3=new ListNode(3,n4),
-      n2=new ListNode(7,n3),n1=new ListNode(5,n2);
-insertAfterTheGivenNode(n2, 6);  // Insert 6 after node(7)
-const vals=[]; for(let c=n1;c;c=c.next) vals.push(c.val);
-console.log(vals);  // [5, 7, 6, 3, 10]
-```
-
 ```typescript,editable
 class ListNode { constructor(public val:number, public next:ListNode|null=null){} }
 
@@ -1431,26 +1323,6 @@ func main() {
     n2:=&ListNode{Val:7,Next:n3}; n1:=&ListNode{Val:5,Next:n2}
     insertAfterTheGivenNode(n2, 6)  // Insert 6 after node(7)
     for c:=n1;c!=nil;c=c.Next { fmt.Print(c.Val," ") }  // 5 7 6 3 10
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun insertAfterTheGivenNode(node: ListNode?, data: Int) {
-    if (node == null) return  // No reference point — nothing to do
-
-    val newNode = ListNode(data)
-    newNode.next = node.next  // Bridge: new node points to what came after given
-    node.next = newNode       // Given node now points to new node
-}
-
-fun main() {
-    val n4=ListNode(10); val n3=ListNode(3,n4)
-    val n2=ListNode(7,n3); val n1=ListNode(5,n2)
-    insertAfterTheGivenNode(n2, 6)  // Insert 6 after node(7)
-    var cur: ListNode? = n1
-    while (cur!=null) { print("${cur.`val`} "); cur=cur.next }  // 5 7 6 3 10
 }
 ```
 
@@ -1543,6 +1415,15 @@ Given a reference to a **random node** in a singly linked list and a **data** va
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Compact form of the same algorithm.
+function insertAfterTheGivenNode(node, data):
+    if node is null: return
+    newNode ← new ListNode(data)
+    newNode.next ← node.next
+    node.next ← newNode
+```
 
 ```python,editable
 class ListNode:
@@ -1652,23 +1533,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode { constructor(val,next=null){this.val=val;this.next=next;} }
-
-function insertAfterTheGivenNode(node, data) {
-    if (!node) return;  // No reference point — nothing to do
-    const newNode = new ListNode(data);
-    newNode.next = node.next;  // Bridge new node to what came after given
-    node.next = newNode;       // Given node now points to new node
-}
-
-const n4=new ListNode(10),n3=new ListNode(3,n4),
-      n2=new ListNode(7,n3),n1=new ListNode(5,n2);
-insertAfterTheGivenNode(n2, 6);
-const vals=[]; for(let c=n1;c;c=c.next) vals.push(c.val);
-console.log(vals);  // [5, 7, 6, 3, 10]
-```
-
 ```typescript,editable
 class ListNode { constructor(public val:number, public next:ListNode|null=null){} }
 
@@ -1705,25 +1569,6 @@ func main() {
     n2:=&ListNode{Val:7,Next:n3}; n1:=&ListNode{Val:5,Next:n2}
     insertAfterTheGivenNode(n2, 6)
     for c:=n1;c!=nil;c=c.Next { fmt.Print(c.Val," ") }  // 5 7 6 3 10
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun insertAfterTheGivenNode(node: ListNode?, data: Int) {
-    if (node == null) return  // No reference point — nothing to do
-    val newNode = ListNode(data)
-    newNode.next = node.next  // Bridge new node to what came after given
-    node.next = newNode       // Given node now points to new node
-}
-
-fun main() {
-    val n4=ListNode(10); val n3=ListNode(3,n4)
-    val n2=ListNode(7,n3); val n1=ListNode(5,n2)
-    insertAfterTheGivenNode(n2, 6)
-    var cur: ListNode? = n1
-    while (cur!=null) { print("${cur.`val`} "); cur=cur.next }  // 5 7 6 3 10
 }
 ```
 
@@ -1934,6 +1779,27 @@ before -> after: "newNode.next = current\nprevious.next = newNode"
 
 <div class="lang-tabs">
 
+```pseudocode
+# Walk from head to find the predecessor of `node`, then splice.
+function insertBeforeTheGivenNode(head, node, data):
+    if head is null OR node is null:
+        return head
+    newNode ← new ListNode(data)
+    if node = head:                                    # special case — insert at beginning
+        newNode.next ← head
+        return newNode
+    current ← head
+    previous ← null
+    while current is not null AND current ≠ node:
+        previous ← current
+        current ← current.next
+    if current is null:                                # node not found in list
+        return head
+    newNode.next ← current
+    previous.next ← newNode                            # predecessor → new node → node
+    return head
+```
+
 ```python,editable
 class ListNode:
     def __init__(self, val=0, next=None):
@@ -2124,39 +1990,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode { constructor(val,next=null){this.val=val;this.next=next;} }
-
-function insertBeforeTheGivenNode(head, node, data) {
-    if (!head || !node) return head;
-
-    const newNode = new ListNode(data);
-
-    if (node === head) {       // Given node is the head — insert at beginning
-        newNode.next = head;
-        return newNode;
-    }
-
-    let current = head, previous = null;
-    while (current !== null && current !== node) {
-        previous = current;    // Track the predecessor before advancing
-        current = current.next;
-    }
-
-    if (current === null) return head;  // Given node not found
-
-    newNode.next = current;    // New node points to the given node
-    previous.next = newNode;   // Predecessor now points to new node
-    return head;
-}
-
-const n4=new ListNode(10),n3=new ListNode(3,n4),
-      n2=new ListNode(7,n3),n1=new ListNode(5,n2);
-let head = insertBeforeTheGivenNode(n1, n3, 6);
-const vals=[]; for(let c=head;c;c=c.next) vals.push(c.val);
-console.log(vals);  // [5, 7, 6, 3, 10]
-```
-
 ```typescript,editable
 class ListNode { constructor(public val:number, public next:ListNode|null=null){} }
 
@@ -2227,41 +2060,6 @@ func main() {
     n2:=&ListNode{Val:7,Next:n3}; n1:=&ListNode{Val:5,Next:n2}
     head := insertBeforeTheGivenNode(n1, n3, 6)
     for c:=head;c!=nil;c=c.Next { fmt.Print(c.Val," ") }  // 5 7 6 3 10
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun insertBeforeTheGivenNode(head: ListNode?, node: ListNode?, data: Int): ListNode? {
-    if (head == null || node == null) return head
-
-    val newNode = ListNode(data)
-
-    if (node === head) {        // Given node is the head — insert at beginning
-        newNode.next = head
-        return newNode
-    }
-
-    var current = head
-    var previous: ListNode? = null
-    while (current != null && current !== node) {
-        previous = current      // Track the predecessor before advancing
-        current = current.next
-    }
-
-    if (current == null) return head  // Given node not found
-
-    newNode.next = current      // New node points to the given node
-    previous!!.next = newNode   // Predecessor now points to new node
-    return head
-}
-
-fun main() {
-    val n4=ListNode(10); val n3=ListNode(3,n4)
-    val n2=ListNode(7,n3); val n1=ListNode(5,n2)
-    var head: ListNode? = insertBeforeTheGivenNode(n1, n3, 6)
-    while (head!=null) { print("${head.`val`} "); head=head.next }  // 5 7 6 3 10
 }
 ```
 
@@ -2408,6 +2206,25 @@ Given the **head** of a singly linked list, a reference to a **random node** in 
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Same algorithm — re-listed for the second test case.
+function insertBeforeTheGivenNode(head, node, data):
+    if head is null OR node is null: return head
+    newNode ← new ListNode(data)
+    if node = head:
+        newNode.next ← head
+        return newNode
+    current ← head
+    previous ← null
+    while current is not null AND current ≠ node:
+        previous ← current
+        current ← current.next
+    if current is null: return head
+    newNode.next ← current
+    previous.next ← newNode
+    return head
+```
 
 ```python,editable
 class ListNode:
@@ -2598,39 +2415,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode { constructor(val,next=null){this.val=val;this.next=next;} }
-
-function insertBeforeTheGivenNode(head, node, data) {
-    if (!head || !node) return head;
-
-    const newNode = new ListNode(data);
-
-    if (node === head) {        // Given node is head — insert at beginning
-        newNode.next = head;
-        return newNode;
-    }
-
-    let current = head, previous = null;
-    while (current !== null && current !== node) {
-        previous = current;     // Track predecessor before advancing
-        current = current.next;
-    }
-
-    if (current === null) return head;  // Given node not found
-
-    newNode.next = current;     // New node points to the given node
-    previous.next = newNode;    // Predecessor now points to new node
-    return head;
-}
-
-const n4=new ListNode(10),n3=new ListNode(3,n4),
-      n2=new ListNode(7,n3),n1=new ListNode(5,n2);
-let head = insertBeforeTheGivenNode(n1, n2, 6);
-const vals=[]; for(let c=head;c;c=c.next) vals.push(c.val);
-console.log(vals);  // [5, 6, 7, 3, 10]
-```
-
 ```typescript,editable
 class ListNode { constructor(public val:number, public next:ListNode|null=null){} }
 
@@ -2701,41 +2485,6 @@ func main() {
     n2:=&ListNode{Val:7,Next:n3}; n1:=&ListNode{Val:5,Next:n2}
     head := insertBeforeTheGivenNode(n1, n2, 6)
     for c:=head;c!=nil;c=c.Next { fmt.Print(c.Val," ") }  // 5 6 7 3 10
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun insertBeforeTheGivenNode(head: ListNode?, node: ListNode?, data: Int): ListNode? {
-    if (head == null || node == null) return head
-
-    val newNode = ListNode(data)
-
-    if (node === head) {        // Given node is head — insert at beginning
-        newNode.next = head
-        return newNode
-    }
-
-    var current = head
-    var previous: ListNode? = null
-    while (current != null && current !== node) {
-        previous = current      // Track predecessor before advancing
-        current = current.next
-    }
-
-    if (current == null) return head  // Given node not found
-
-    newNode.next = current      // New node points to the given node
-    previous!!.next = newNode   // Predecessor now points to new node
-    return head
-}
-
-fun main() {
-    val n4=ListNode(10); val n3=ListNode(3,n4)
-    val n2=ListNode(7,n3); val n1=ListNode(5,n2)
-    var head: ListNode? = insertBeforeTheGivenNode(n1, n2, 6)
-    while (head!=null) { print("${head.`val`} "); head=head.next }  // 5 6 7 3 10
 }
 ```
 
@@ -2932,6 +2681,27 @@ oob -> n4: "" {style.stroke-dash: 3}
 
 <div class="lang-tabs">
 
+```pseudocode
+# Walk to position X − 1 (the predecessor), then splice.
+function insertAtGivenDistance(head, X, data):
+    if head is null AND X > 0:
+        return null                                    # can't insert past position 0 in empty list
+    newNode ← new ListNode(data)
+    if X = 0:                                          # insert at beginning
+        newNode.next ← head
+        return newNode
+    current ← head
+    counter ← 0
+    while current is not null AND counter < X − 1:
+        current ← current.next
+        counter ← counter + 1
+    if current is null:                                # X exceeds list length
+        return head
+    newNode.next ← current.next
+    current.next ← newNode                             # predecessor → new node
+    return head
+```
+
 ```python,editable
 class ListNode:
     def __init__(self, val=0, next=None):
@@ -3124,39 +2894,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode { constructor(val,next=null){this.val=val;this.next=next;} }
-
-function insertAtGivenDistance(head, X, data) {
-    if (!head && X > 0) return null;
-
-    const newNode = new ListNode(data);
-
-    if (X === 0) {              // Insert at beginning
-        newNode.next = head;
-        return newNode;
-    }
-
-    let current = head, counter = 0;
-    while (current !== null && counter < X - 1) {
-        current = current.next; // Advance toward position X−1
-        counter++;
-    }
-
-    if (current === null) return head;  // X exceeds list size
-
-    newNode.next = current.next;  // Splice: new node takes what followed current
-    current.next = newNode;       // Current now points to new node
-    return head;
-}
-
-const n4=new ListNode(10),n3=new ListNode(3,n4),
-      n2=new ListNode(7,n3),n1=new ListNode(5,n2);
-let head = insertAtGivenDistance(n1, 2, 6);
-const vals=[]; for(let c=head;c;c=c.next) vals.push(c.val);
-console.log(vals);  // [5, 7, 6, 3, 10]
-```
-
 ```typescript,editable
 class ListNode { constructor(public val:number, public next:ListNode|null=null){} }
 
@@ -3227,41 +2964,6 @@ func main() {
     n2:=&ListNode{Val:7,Next:n3}; n1:=&ListNode{Val:5,Next:n2}
     head := insertAtGivenDistance(n1, 2, 6)
     for c:=head;c!=nil;c=c.Next { fmt.Print(c.Val," ") }  // 5 7 6 3 10
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun insertAtGivenDistance(head: ListNode?, X: Int, data: Int): ListNode? {
-    if (head == null && X > 0) return null
-
-    val newNode = ListNode(data)
-
-    if (X == 0) {               // Insert at beginning
-        newNode.next = head
-        return newNode
-    }
-
-    var current = head
-    var counter = 0
-    while (current != null && counter < X - 1) {
-        current = current.next  // Advance toward position X−1
-        counter++
-    }
-
-    if (current == null) return head  // X exceeds list size
-
-    newNode.next = current.next  // Splice: new node takes what followed current
-    current.next = newNode       // Current now points to new node
-    return head
-}
-
-fun main() {
-    val n4=ListNode(10); val n3=ListNode(3,n4)
-    val n2=ListNode(7,n3); val n1=ListNode(5,n2)
-    var head: ListNode? = insertAtGivenDistance(n1, 2, 6)
-    while (head!=null) { print("${head.`val`} "); head=head.next }  // 5 7 6 3 10
 }
 ```
 
@@ -3388,6 +3090,25 @@ Given the **head** of a singly linked list, a distance **X**, and a **data** val
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Same algorithm — re-listed for a second test case.
+function insertAtGivenDistance(head, X, data):
+    if head is null AND X > 0: return null
+    newNode ← new ListNode(data)
+    if X = 0:
+        newNode.next ← head
+        return newNode
+    current ← head
+    counter ← 0
+    while current is not null AND counter < X − 1:
+        current ← current.next
+        counter ← counter + 1
+    if current is null: return head
+    newNode.next ← current.next
+    current.next ← newNode
+    return head
+```
 
 ```python,editable
 class ListNode:
@@ -3581,39 +3302,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode { constructor(val,next=null){this.val=val;this.next=next;} }
-
-function insertAtGivenDistance(head, X, data) {
-    if (!head && X > 0) return null;
-
-    const newNode = new ListNode(data);
-
-    if (X === 0) {              // Insert at beginning
-        newNode.next = head;
-        return newNode;
-    }
-
-    let current = head, counter = 0;
-    while (current !== null && counter < X - 1) {
-        current = current.next; // Advance to position X−1 (the predecessor)
-        counter++;
-    }
-
-    if (current === null) return head;  // X exceeds list size
-
-    newNode.next = current.next;  // New node inherits what came after predecessor
-    current.next = newNode;       // Predecessor now points to new node
-    return head;
-}
-
-const n4=new ListNode(10),n3=new ListNode(3,n4),
-      n2=new ListNode(7,n3),n1=new ListNode(5,n2);
-let head = insertAtGivenDistance(n1, 1, 6);
-const vals=[]; for(let c=head;c;c=c.next) vals.push(c.val);
-console.log(vals);  // [5, 6, 7, 3, 10]
-```
-
 ```typescript,editable
 class ListNode { constructor(public val:number, public next:ListNode|null=null){} }
 
@@ -3684,41 +3372,6 @@ func main() {
     n2:=&ListNode{Val:7,Next:n3}; n1:=&ListNode{Val:5,Next:n2}
     head := insertAtGivenDistance(n1, 1, 6)
     for c:=head;c!=nil;c=c.Next { fmt.Print(c.Val," ") }  // 5 6 7 3 10
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun insertAtGivenDistance(head: ListNode?, X: Int, data: Int): ListNode? {
-    if (head == null && X > 0) return null
-
-    val newNode = ListNode(data)
-
-    if (X == 0) {               // Insert at beginning
-        newNode.next = head
-        return newNode
-    }
-
-    var current = head
-    var counter = 0
-    while (current != null && counter < X - 1) {
-        current = current.next  // Advance to position X−1 (the predecessor)
-        counter++
-    }
-
-    if (current == null) return head  // X exceeds list size
-
-    newNode.next = current.next  // New node inherits what came after predecessor
-    current.next = newNode       // Predecessor now points to new node
-    return head
-}
-
-fun main() {
-    val n4=ListNode(10); val n3=ListNode(3,n4)
-    val n2=ListNode(7,n3); val n1=ListNode(5,n2)
-    var head: ListNode? = insertAtGivenDistance(n1, 1, 6)
-    while (head!=null) { print("${head.`val`} "); head=head.next }  // 5 6 7 3 10
 }
 ```
 

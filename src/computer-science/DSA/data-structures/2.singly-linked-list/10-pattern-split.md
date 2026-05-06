@@ -171,6 +171,22 @@ Given below is the generic code implementation to split a given linked list into
 
 <div class="lang-tabs">
 
+```pseudocode
+# Generic split. k dummy heads + k tails. Each node is routed to bucket `classify(node)`.
+function splitLists(head, k, classify):
+    dummies ← list of k new ListNodes
+    tails ← copy of dummies
+    current ← head
+    while current is not null:
+        idx ← classify(current)                       # route to bucket idx
+        tails[idx].next ← current
+        tails[idx] ← current
+        current ← current.next
+    for each t in tails:
+        t.next ← null                                  # seal each output list
+    return [d.next for each d in dummies]
+```
+
 ```python,editable
 from typing import Callable, List, Optional
 
@@ -316,28 +332,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function splitLists(head, k, classify) {
-    const dummies = Array.from({length: k}, () => new ListNode(0));
-    const tails   = dummies.slice();
-
-    let current = head;
-    while (current !== null) {
-        const idx = classify(current);
-        tails[idx].next = current;
-        tails[idx]      = current;
-        current         = current.next;
-    }
-
-    const heads = new Array(k);
-    for (let i = 0; i < k; i++) {
-        tails[i].next = null;
-        heads[i] = dummies[i].next;
-    }
-    return heads;
-}
-```
-
 ```typescript,editable
 function splitLists(head: ListNode | null, k: number, classify: (n: ListNode) => number): (ListNode | null)[] {
     const dummies: ListNode[] = Array.from({length: k}, () => new ListNode(0));
@@ -386,30 +380,6 @@ func splitLists(head *ListNode, k int, classify func(*ListNode) int) []*ListNode
         heads[i] = dummies[i].Next
     }
     return heads
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun splitLists(head: ListNode?, k: Int, classify: (ListNode) -> Int): Array<ListNode?> {
-        val dummies = Array(k) { ListNode(0) }
-        val tails   = dummies.copyOf()
-
-        var current = head
-        while (current != null) {
-            val idx = classify(current)
-            tails[idx]!!.next = current
-            tails[idx]        = current
-            current           = current.next
-        }
-
-        val heads = arrayOfNulls<ListNode>(k)
-        for (i in 0 until k) {
-            tails[i]!!.next = null
-            heads[i] = dummies[i]!!.next
-        }
-        return heads
-    }
 }
 ```
 
@@ -608,6 +578,31 @@ The implementation of the split list solution is given as follows.
 
 <div class="lang-tabs">
 
+```pseudocode
+# Split into k roughly-equal contiguous parts. The first (length mod k) parts are 1 node bigger.
+function kWaySplit(head, k):
+    length ← 0; cur ← head
+    while cur is not null: length ← length + 1; cur ← cur.next
+    baseSize ← length ÷ k
+    bigLists ← length mod k
+
+    dummies ← list of k new ListNodes
+    tails ← copy of dummies
+    current ← head; idx ← 0; count ← 0
+    while current is not null:
+        tails[idx].next ← current
+        tails[idx] ← current
+        current ← current.next
+        count ← count + 1
+        target ← (baseSize + 1) if bigLists > 0 else baseSize
+        if count = target:
+            count ← 0
+            idx ← idx + 1
+            if bigLists > 0: bigLists ← bigLists − 1
+    for each t in tails: t.next ← null
+    return [d.next for each d in dummies]
+```
+
 ```python,editable
 from typing import List, Optional
 
@@ -798,40 +793,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function kWayListSplit(head, k) {
-    let length = 0;
-    for (let c = head; c !== null; c = c.next) length++;
-    const baseSize = Math.floor(length / k);
-    let   bigLists = length % k;
-
-    const dummies = Array.from({length: k}, () => new ListNode(0));
-    const tails   = dummies.slice();
-
-    let current = head;
-    let idx = 0, count = 0;
-    while (current !== null) {
-        tails[idx].next = current;
-        tails[idx]      = current;
-        current         = current.next;
-        count++;
-
-        const target = (bigLists > 0) ? baseSize + 1 : baseSize;
-        if (count === target) {
-            count = 0; idx++;
-            if (bigLists > 0) bigLists--;
-        }
-    }
-
-    const heads = new Array(k);
-    for (let i = 0; i < k; i++) {
-        if (tails[i] !== null) tails[i].next = null;
-        heads[i] = dummies[i].next;
-    }
-    return heads;
-}
-```
-
 ```typescript,editable
 function kWayListSplit(head: ListNode | null, k: number): (ListNode | null)[] {
     let length = 0;
@@ -902,44 +863,6 @@ func kWayListSplit(head *ListNode, k int) []*ListNode {
         heads[i] = dummies[i].Next
     }
     return heads
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun kWayListSplit(head: ListNode?, k: Int): Array<ListNode?> {
-        var length = 0
-        var cur: ListNode? = head
-        while (cur != null) { length++; cur = cur.next }
-        val baseSize = length / k
-        var bigLists = length % k
-
-        val dummies = Array(k) { ListNode(0) }
-        val tails   = dummies.copyOf()
-
-        var current: ListNode? = head
-        var idx = 0
-        var count = 0
-        while (current != null) {
-            tails[idx]!!.next = current
-            tails[idx]        = current
-            current           = current.next
-            count++
-
-            val target = if (bigLists > 0) baseSize + 1 else baseSize
-            if (count == target) {
-                count = 0; idx++
-                if (bigLists > 0) bigLists--
-            }
-        }
-
-        val heads = arrayOfNulls<ListNode>(k)
-        for (i in 0 until k) {
-            if (tails[i] != null) tails[i]!!.next = null
-            heads[i] = dummies[i]!!.next
-        }
-        return heads
-    }
 }
 ```
 
@@ -1019,6 +942,23 @@ Given the **head** of a singly linked list, write a function to split the list
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Route each node into one of two buckets based on parity.
+function evenOddSplit(head):
+    evenDummy ← new ListNode; oddDummy ← new ListNode
+    evenTail ← evenDummy; oddTail ← oddDummy
+    current ← head
+    while current is not null:
+        if current.val mod 2 = 0:
+            evenTail.next ← current; evenTail ← current
+        else:
+            oddTail.next ← current; oddTail ← current
+        current ← current.next
+    evenTail.next ← null
+    oddTail.next ← null
+    return [evenDummy.next, oddDummy.next]
+```
 
 ```python,editable
 from typing import List, Optional
@@ -1119,21 +1059,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function evenOddSplit(head) {
-    const evenDummy = new ListNode(), oddDummy = new ListNode();
-    let evenTail = evenDummy, oddTail = oddDummy;
-
-    for (let current = head; current !== null; current = current.next) {
-        if (current.val % 2 === 0) { evenTail.next = current; evenTail = current; }
-        else                        { oddTail.next  = current; oddTail  = current; }
-    }
-    evenTail.next = null;
-    oddTail.next  = null;
-    return [evenDummy.next, oddDummy.next];
-}
-```
-
 ```typescript,editable
 function evenOddSplit(head: ListNode | null): (ListNode | null)[] {
     const evenDummy = new ListNode(0), oddDummy = new ListNode(0);
@@ -1160,27 +1085,6 @@ func evenOddSplit(head *ListNode) [2]*ListNode {
     evenTail.Next = nil
     oddTail.Next  = nil
     return [2]*ListNode{evenDummy.Next, oddDummy.Next}
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun evenOddSplit(head: ListNode?): Array<ListNode?> {
-        val evenDummy = ListNode(0)
-        val oddDummy  = ListNode(0)
-        var evenTail: ListNode = evenDummy
-        var oddTail:  ListNode = oddDummy
-
-        var current = head
-        while (current != null) {
-            if (current.`val` % 2 == 0) { evenTail.next = current; evenTail = current }
-            else                         { oddTail.next  = current; oddTail  = current }
-            current = current.next
-        }
-        evenTail.next = null
-        oddTail.next  = null
-        return arrayOf(evenDummy.next, oddDummy.next)
-    }
 }
 ```
 
@@ -1234,6 +1138,29 @@ If the remaining nodes at the end are fewer than k, include all of them in the r
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Take k nodes for bucket A, next k for bucket B, alternate.
+function splitAlternateGroups(head, k):
+    firstDummy ← new ListNode; secondDummy ← new ListNode
+    firstTail ← firstDummy; secondTail ← secondDummy
+    current ← head
+    addToFirst ← true
+    while current is not null:
+        chunkStart ← current
+        prev ← null
+        for i from 1 to k:                            # walk up to k nodes
+            if current is null: break
+            prev ← current
+            current ← current.next
+        prev.next ← null                              # detach the chunk
+        if addToFirst:
+            firstTail.next ← chunkStart; firstTail ← prev
+        else:
+            secondTail.next ← chunkStart; secondTail ← prev
+        addToFirst ← NOT addToFirst
+    return [firstDummy.next, secondDummy.next]
+```
 
 ```python,editable
 from typing import List, Optional
@@ -1378,30 +1305,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function splitAlternateGroups(head, k) {
-    const firstDummy = new ListNode(), secondDummy = new ListNode();
-    let firstTail = firstDummy, secondTail = secondDummy;
-
-    let current = head;
-    let addToFirst = true;
-    while (current !== null) {
-        const chunkStart = current;
-        let prev = null;
-        for (let i = 0; i < k && current !== null; i++) {
-            prev    = current;
-            current = current.next;
-        }
-        prev.next = null;
-
-        if (addToFirst) { firstTail.next  = chunkStart; firstTail  = prev; }
-        else             { secondTail.next = chunkStart; secondTail = prev; }
-        addToFirst = !addToFirst;
-    }
-    return [firstDummy.next, secondDummy.next];
-}
-```
-
 ```typescript,editable
 function splitAlternateGroups(head: ListNode | null, k: number): (ListNode | null)[] {
     const firstDummy = new ListNode(0), secondDummy = new ListNode(0);
@@ -1446,35 +1349,6 @@ func splitAlternateGroups(head *ListNode, k int) [2]*ListNode {
         addToFirst = !addToFirst
     }
     return [2]*ListNode{firstDummy.Next, secondDummy.Next}
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun splitAlternateGroups(head: ListNode?, k: Int): Array<ListNode?> {
-        val firstDummy = ListNode(0); val secondDummy = ListNode(0)
-        var firstTail:  ListNode = firstDummy
-        var secondTail: ListNode = secondDummy
-
-        var current = head
-        var addToFirst = true
-        while (current != null) {
-            val chunkStart: ListNode = current
-            var prev: ListNode? = null
-            var i = 0
-            while (i < k && current != null) {
-                prev    = current
-                current = current.next
-                i++
-            }
-            prev!!.next = null
-
-            if (addToFirst) { firstTail.next  = chunkStart; firstTail  = prev }
-            else             { secondTail.next = chunkStart; secondTail = prev }
-            addToFirst = !addToFirst
-        }
-        return arrayOf(firstDummy.next, secondDummy.next)
-    }
 }
 ```
 
@@ -1539,6 +1413,21 @@ Given the **head** of a singly linked list and a positive integer `**k**`, write
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Hash each node into bucket (val mod k).
+function splitByModulo(head, k):
+    dummies ← list of k new ListNodes
+    tails ← copy of dummies
+    current ← head
+    while current is not null:
+        group ← current.val mod k
+        tails[group].next ← current
+        tails[group] ← current
+        current ← current.next
+    for each t in tails: t.next ← null
+    return [d.next for each d in dummies]
+```
 
 ```python,editable
 from typing import List, Optional
@@ -1657,26 +1546,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function splitByModulo(head, k) {
-    const dummies = Array.from({length: k}, () => new ListNode());
-    const tails   = dummies.slice();
-
-    for (let c = head; c !== null; c = c.next) {
-        const g = ((c.val % k) + k) % k;
-        tails[g].next = c;
-        tails[g]      = c;
-    }
-
-    const heads = new Array(k);
-    for (let i = 0; i < k; i++) {
-        tails[i].next = null;
-        heads[i] = dummies[i].next;
-    }
-    return heads;
-}
-```
-
 ```typescript,editable
 function splitByModulo(head: ListNode | null, k: number): (ListNode | null)[] {
     const dummies: ListNode[] = Array.from({length: k}, () => new ListNode(0));
@@ -1718,30 +1587,6 @@ func splitByModulo(head *ListNode, k int) []*ListNode {
         heads[i] = dummies[i].Next
     }
     return heads
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun splitByModulo(head: ListNode?, k: Int): Array<ListNode?> {
-        val dummies = Array(k) { ListNode(0) }
-        val tails   = dummies.copyOf()
-
-        var c = head
-        while (c != null) {
-            val g = ((c.`val` % k) + k) % k
-            tails[g]!!.next = c
-            tails[g]        = c
-            c               = c.next
-        }
-
-        val heads = arrayOfNulls<ListNode>(k)
-        for (i in 0 until k) {
-            tails[i]!!.next = null
-            heads[i] = dummies[i]!!.next
-        }
-        return heads
-    }
 }
 ```
 
@@ -1793,6 +1638,29 @@ Given the **head** of a singly linked list and an integer **k**, write a funct
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Split into k contiguous parts in place by walking and severing — no dummies.
+function kWayListSplit(head, k):
+    length ← 0; cur ← head
+    while cur is not null: length ← length + 1; cur ← cur.next
+    baseSize ← length ÷ k
+    extra ← length mod k
+
+    parts ← list of k null entries
+    current ← head
+    for i from 0 to k − 1:
+        if current is null: break
+        parts[i] ← current
+        size ← baseSize + (1 if extra > 0 else 0)
+        for j from 1 to size − 1:                     # walk size − 1 nodes
+            current ← current.next
+        nxt ← current.next
+        current.next ← null                           # detach this part
+        current ← nxt
+        if extra > 0: extra ← extra − 1
+    return parts
+```
 
 ```python,editable
 from typing import List, Optional
@@ -1923,28 +1791,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function kWayListSplit(head, k) {
-    let length = 0;
-    for (let c = head; c !== null; c = c.next) length++;
-    const baseSize = Math.floor(length / k);
-    let   extra    = length % k;
-
-    const parts = new Array(k).fill(null);
-    let current = head;
-    for (let i = 0; i < k && current !== null; i++) {
-        parts[i] = current;
-        const size = baseSize + (extra > 0 ? 1 : 0);
-        for (let j = 1; j < size; j++) current = current.next;
-        const next   = current.next;
-        current.next = null;
-        current      = next;
-        if (extra > 0) extra--;
-    }
-    return parts;
-}
-```
-
 ```typescript,editable
 function kWayListSplit(head: ListNode | null, k: number): (ListNode | null)[] {
     let length = 0;
@@ -1987,34 +1833,6 @@ func kWayListSplit(head *ListNode, k int) []*ListNode {
         if extra > 0 { extra-- }
     }
     return parts
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun kWayListSplit(head: ListNode?, k: Int): Array<ListNode?> {
-        var length = 0
-        var c: ListNode? = head
-        while (c != null) { length++; c = c.next }
-        val baseSize = length / k
-        var extra    = length % k
-
-        val parts = arrayOfNulls<ListNode>(k)
-        var current: ListNode? = head
-        var i = 0
-        while (i < k && current != null) {
-            parts[i] = current
-            val size = baseSize + (if (extra > 0) 1 else 0)
-            var j = 1
-            while (j < size) { current = current!!.next; j++ }
-            val next = current!!.next
-            current.next = null
-            current      = next
-            if (extra > 0) extra--
-            i++
-        }
-        return parts
-    }
 }
 ```
 

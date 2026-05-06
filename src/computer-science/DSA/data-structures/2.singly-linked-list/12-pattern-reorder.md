@@ -120,6 +120,34 @@ Given below is the generic code implementation to split a list in **two** using 
 
 <div class="lang-tabs">
 
+```pseudocode
+# Generic reorder = SPLIT (by f1) + MERGE (by f2). Two phases, two helpers.
+function reorderNodes(head, f1, f2):
+    # Phase 1 — split.
+    dummyA ← new ListNode; tailA ← dummyA
+    dummyB ← new ListNode; tailB ← dummyB
+    current ← head
+    while current is not null:
+        if f1(current):
+            tailA.next ← current; tailA ← current
+        else:
+            tailB.next ← current; tailB ← current
+        current ← current.next
+    tailA.next ← null; tailB.next ← null
+
+    # Phase 2 — merge.
+    dummy ← new ListNode; tail ← dummy
+    ca ← dummyA.next; cb ← dummyB.next
+    while ca is not null AND cb is not null:
+        if f2(ca, cb):
+            tail.next ← ca; ca ← ca.next
+        else:
+            tail.next ← cb; cb ← cb.next
+        tail ← tail.next
+    tail.next ← ca if ca is not null else cb
+    return dummy.next
+```
+
 ```python,editable
 from typing import Callable, Optional
 
@@ -270,28 +298,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function reorderNodes(head, f1, f2) {
-    const dummyA = new ListNode(); let tailA = dummyA;
-    const dummyB = new ListNode(); let tailB = dummyB;
-    for (let c = head; c !== null; c = c.next) {
-        if (f1(c)) { tailA.next = c; tailA = c; }
-        else        { tailB.next = c; tailB = c; }
-    }
-    tailA.next = null; tailB.next = null;
-
-    const dummy = new ListNode(); let tail = dummy;
-    let ca = dummyA.next, cb = dummyB.next;
-    while (ca !== null && cb !== null) {
-        if (f2(ca, cb)) { tail.next = ca; ca = ca.next; }
-        else             { tail.next = cb; cb = cb.next; }
-        tail = tail.next;
-    }
-    tail.next = (ca !== null) ? ca : cb;
-    return dummy.next;
-}
-```
-
 ```typescript,editable
 function reorderNodes(head: ListNode | null,
                       f1: (n: ListNode) => boolean,
@@ -338,34 +344,6 @@ func reorderNodes(head *ListNode, f1 func(*ListNode) bool, f2 func(*ListNode, *L
     }
     if ca != nil { tail.Next = ca } else { tail.Next = cb }
     return dummy.Next
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun reorderNodes(head: ListNode?,
-                     f1: (ListNode) -> Boolean,
-                     f2: (ListNode, ListNode) -> Boolean): ListNode? {
-        val dummyA = ListNode(0); var tailA: ListNode = dummyA
-        val dummyB = ListNode(0); var tailB: ListNode = dummyB
-        var c = head
-        while (c != null) {
-            if (f1(c)) { tailA.next = c; tailA = c }
-            else        { tailB.next = c; tailB = c }
-            c = c.next
-        }
-        tailA.next = null; tailB.next = null
-
-        val dummy = ListNode(0); var tail: ListNode = dummy
-        var ca = dummyA.next; var cb = dummyB.next
-        while (ca != null && cb != null) {
-            if (f2(ca, cb)) { tail.next = ca; ca = ca.next }
-            else             { tail.next = cb; cb = cb.next }
-            tail = tail.next!!
-        }
-        tail.next = ca ?: cb
-        return dummy.next
-    }
 }
 ```
 
@@ -555,6 +533,25 @@ The implementation of the split list solution is given as follows.
 
 <div class="lang-tabs">
 
+```pseudocode
+# Group odd-INDEXED nodes first, then even-indexed nodes, preserving relative order.
+function evenOddList(head):
+    if head is null OR head.next is null: return head
+    oddDummy ← new ListNode; evenDummy ← new ListNode
+    oddTail ← oddDummy; evenTail ← evenDummy
+    current ← head; counter ← 1
+    while current is not null:
+        if counter mod 2 = 1:
+            oddTail.next ← current; oddTail ← current
+        else:
+            evenTail.next ← current; evenTail ← current
+        current ← current.next
+        counter ← counter + 1
+    oddTail.next ← null; evenTail.next ← null
+    oddTail.next ← evenDummy.next                      # concatenate odd → even
+    return oddDummy.next
+```
+
 ```python,editable
 from typing import Optional
 
@@ -667,25 +664,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function evenOddList(head) {
-    if (head === null || head.next === null) return head;
-
-    const oddDummy = new ListNode(), evenDummy = new ListNode();
-    let oddTail = oddDummy, evenTail = evenDummy;
-    let current = head, counter = 1;
-    while (current !== null) {
-        if (counter % 2 === 1) { oddTail.next = current;  oddTail = current; }
-        else                    { evenTail.next = current; evenTail = current; }
-        current = current.next;
-        counter++;
-    }
-    evenTail.next = null;
-    oddTail.next  = evenDummy.next;
-    return oddDummy.next;
-}
-```
-
 ```typescript,editable
 function evenOddList(head: ListNode | null): ListNode | null {
     if (head === null || head.next === null) return head;
@@ -721,27 +699,6 @@ func evenOddList(head *ListNode) *ListNode {
     evenTail.Next = nil
     oddTail.Next  = evenDummy.Next
     return oddDummy.Next
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun evenOddList(head: ListNode?): ListNode? {
-        if (head == null || head.next == null) return head
-
-        val oddDummy  = ListNode(0); var oddTail:  ListNode = oddDummy
-        val evenDummy = ListNode(0); var evenTail: ListNode = evenDummy
-        var current = head; var counter = 1
-        while (current != null) {
-            if (counter % 2 == 1) { oddTail.next = current;  oddTail = current }
-            else                   { evenTail.next = current; evenTail = current }
-            current = current.next
-            counter++
-        }
-        evenTail.next = null
-        oddTail.next  = evenDummy.next
-        return oddDummy.next
-    }
 }
 ```
 
@@ -819,6 +776,18 @@ Given the **head** of a singly linked list, write a function to move the last 
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Move the last node to the front.
+function relocateNode(head):
+    if head is null OR head.next is null: return head
+    prev ← null; cur ← head
+    while cur.next is not null:
+        prev ← cur; cur ← cur.next
+    prev.next ← null                                   # detach the tail
+    cur.next ← head                                    # prepend it
+    return cur
+```
 
 ```python,editable
 from typing import Optional
@@ -898,19 +867,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function relocateNode(head) {
-    if (head === null || head.next === null) return head;
-
-    let prev = null, cur = head;
-    while (cur.next !== null) { prev = cur; cur = cur.next; }
-
-    prev.next = null;
-    cur.next  = head;
-    return cur;
-}
-```
-
 ```typescript,editable
 function relocateNode(head: ListNode | null): ListNode | null {
     if (head === null || head.next === null) return head;
@@ -936,22 +892,6 @@ func relocateNode(head *ListNode) *ListNode {
     prev.Next = nil
     cur.Next  = head
     return cur
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun relocateNode(head: ListNode?): ListNode? {
-        if (head == null || head.next == null) return head
-
-        var prev: ListNode? = null
-        var cur: ListNode = head
-        while (cur.next != null) { prev = cur; cur = cur.next!! }
-
-        prev!!.next = null
-        cur.next    = head
-        return cur
-    }
 }
 ```
 
@@ -999,6 +939,25 @@ The indices start with `1`.
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Identical to evenOddList — different problem framing, same algorithm.
+function parityOrder(head):
+    if head is null OR head.next is null: return head
+    oddDummy ← new ListNode; evenDummy ← new ListNode
+    oddTail ← oddDummy; evenTail ← evenDummy
+    current ← head; counter ← 1
+    while current is not null:
+        if counter mod 2 = 1:
+            oddTail.next ← current; oddTail ← current
+        else:
+            evenTail.next ← current; evenTail ← current
+        current ← current.next
+        counter ← counter + 1
+    evenTail.next ← null
+    oddTail.next ← evenDummy.next
+    return oddDummy.next
+```
 
 ```python,editable
 from typing import Optional
@@ -1102,24 +1061,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function parityOrder(head) {
-    if (head === null || head.next === null) return head;
-
-    const oddDummy = new ListNode(), evenDummy = new ListNode();
-    let oddTail = oddDummy, evenTail = evenDummy;
-    let counter = 1;
-    for (let c = head; c !== null; c = c.next) {
-        if (counter % 2 === 1) { oddTail.next = c;  oddTail = c; }
-        else                    { evenTail.next = c; evenTail = c; }
-        counter++;
-    }
-    evenTail.next = null;
-    oddTail.next  = evenDummy.next;
-    return oddDummy.next;
-}
-```
-
 ```typescript,editable
 function parityOrder(head: ListNode | null): ListNode | null {
     if (head === null || head.next === null) return head;
@@ -1152,27 +1093,6 @@ func parityOrder(head *ListNode) *ListNode {
     evenTail.Next = nil
     oddTail.Next  = evenDummy.Next
     return oddDummy.Next
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun parityOrder(head: ListNode?): ListNode? {
-        if (head == null || head.next == null) return head
-
-        val oddDummy = ListNode(0); var oddTail: ListNode = oddDummy
-        val evenDummy = ListNode(0); var evenTail: ListNode = evenDummy
-        var counter = 1
-        var c: ListNode? = head
-        while (c != null) {
-            if (counter % 2 == 1) { oddTail.next = c;  oddTail = c }
-            else                   { evenTail.next = c; evenTail = c }
-            c = c.next; counter++
-        }
-        evenTail.next = null
-        oddTail.next  = evenDummy.next
-        return oddDummy.next
-    }
 }
 ```
 
@@ -1228,6 +1148,23 @@ Given the **head** of a singly linked list and a value **X**, write a function
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Partition: nodes with val < x first, then nodes with val ≥ x. Preserve relative order.
+function valuePartition(head, x):
+    lessDummy ← new ListNode; greaterDummy ← new ListNode
+    lessTail ← lessDummy; greaterTail ← greaterDummy
+    current ← head
+    while current is not null:
+        if current.val < x:
+            lessTail.next ← current; lessTail ← current
+        else:
+            greaterTail.next ← current; greaterTail ← current
+        current ← current.next
+    greaterTail.next ← null
+    lessTail.next ← greaterDummy.next                  # concatenate
+    return lessDummy.next
+```
 
 ```python,editable
 from typing import Optional
@@ -1313,20 +1250,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function valuePartition(head, x) {
-    const lessDummy = new ListNode(), greaterDummy = new ListNode();
-    let lessTail = lessDummy, greaterTail = greaterDummy;
-    for (let c = head; c !== null; c = c.next) {
-        if (c.val < x) { lessTail.next    = c; lessTail    = c; }
-        else            { greaterTail.next = c; greaterTail = c; }
-    }
-    greaterTail.next = null;
-    lessTail.next    = greaterDummy.next;
-    return lessDummy.next;
-}
-```
-
 ```typescript,editable
 function valuePartition(head: ListNode | null, x: number): ListNode | null {
     const lessDummy = new ListNode(0), greaterDummy = new ListNode(0);
@@ -1351,24 +1274,6 @@ func valuePartition(head *ListNode, x int) *ListNode {
     greaterTail.Next = nil
     lessTail.Next    = greaterDummy.Next
     return lessDummy.Next
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun valuePartition(head: ListNode?, x: Int): ListNode? {
-        val lessDummy = ListNode(0); var lessTail: ListNode = lessDummy
-        val greaterDummy = ListNode(0); var greaterTail: ListNode = greaterDummy
-        var c = head
-        while (c != null) {
-            if (c.`val` < x) { lessTail.next    = c; lessTail    = c }
-            else              { greaterTail.next = c; greaterTail = c }
-            c = c.next
-        }
-        greaterTail.next = null
-        lessTail.next    = greaterDummy.next
-        return lessDummy.next
-    }
 }
 ```
 
@@ -1424,6 +1329,46 @@ Given the **head** of a singly linked list that can be represented as **L0 ->
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Reorder L0 → Ln → L1 → Ln−1 → ... using split + reverse + alternate-merge.
+function splitInHalf(head):
+    slow ← head; fast ← head; prevToSlow ← null
+    while fast is not null AND fast.next is not null:
+        prevToSlow ← slow
+        slow ← slow.next
+        fast ← fast.next.next
+    if fast is null:
+        second ← prevToSlow.next
+        prevToSlow.next ← null
+    else:
+        second ← slow.next
+        slow.next ← null
+    return (head, second)
+
+function reverse(head):
+    prev ← null; cur ← head
+    while cur is not null:
+        nxt ← cur.next
+        cur.next ← prev
+        prev ← cur; cur ← nxt
+    return prev
+
+function shuffleList(head):
+    if head is null OR head.next is null: return head
+    (first, second) ← splitInHalf(head)
+    second ← reverse(second)
+
+    dummy ← new ListNode; tail ← dummy
+    takeFirst ← true
+    while first is not null AND second is not null:
+        if takeFirst: tail.next ← first;  first  ← first.next
+        else:         tail.next ← second; second ← second.next
+        tail ← tail.next
+        takeFirst ← NOT takeFirst
+    tail.next ← first if first is not null else second
+    return dummy.next
+```
 
 ```python,editable
 from typing import Optional
@@ -1626,40 +1571,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function shuffleList(head) {
-    if (head === null || head.next === null) return head;
-
-    const reverse = h => {
-        let prev = null, cur = h;
-        while (cur !== null) { const nxt = cur.next; cur.next = prev; prev = cur; cur = nxt; }
-        return prev;
-    };
-
-    let slow = head, fast = head, prevToSlow = null;
-    while (fast !== null && fast.next !== null) {
-        prevToSlow = slow;
-        slow = slow.next;
-        fast = fast.next.next;
-    }
-    let second;
-    if (fast === null) { second = prevToSlow.next; prevToSlow.next = null; }
-    else                { second = slow.next; slow.next = null; }
-    second = reverse(second);
-
-    const dummy = new ListNode();
-    let tail = dummy, first = head, takeFirst = true;
-    while (first !== null && second !== null) {
-        if (takeFirst) { tail.next = first;  first  = first.next; }
-        else            { tail.next = second; second = second.next; }
-        tail      = tail.next;
-        takeFirst = !takeFirst;
-    }
-    tail.next = (first !== null) ? first : second;
-    return dummy.next;
-}
-```
-
 ```typescript,editable
 function shuffleList(head: ListNode | null): ListNode | null {
     if (head === null || head.next === null) return head;
@@ -1726,47 +1637,6 @@ func shuffleList(head *ListNode) *ListNode {
     }
     if first != nil { tail.Next = first } else { tail.Next = second }
     return dummy.Next
-}
-```
-
-```kotlin,editable
-class Solution {
-    private fun reverse(h: ListNode?): ListNode? {
-        var prev: ListNode? = null; var cur = h
-        while (cur != null) { val nxt = cur.next; cur.next = prev; prev = cur; cur = nxt }
-        return prev
-    }
-
-    fun shuffleList(head: ListNode?): ListNode? {
-        if (head == null || head.next == null) return head
-
-        var slow: ListNode? = head
-        var fast: ListNode? = head
-        var prevToSlow: ListNode? = null
-        while (fast != null && fast.next != null) {
-            prevToSlow = slow
-            slow = slow!!.next
-            fast = fast.next!!.next
-        }
-        var second: ListNode? = if (fast == null) {
-            val s = prevToSlow!!.next; prevToSlow.next = null; s
-        } else {
-            val s = slow!!.next; slow.next = null; s
-        }
-        second = reverse(second)
-
-        val dummy = ListNode(0); var tail: ListNode = dummy
-        var first: ListNode? = head
-        var takeFirst = true
-        while (first != null && second != null) {
-            if (takeFirst) { tail.next = first;  first  = first.next }
-            else            { tail.next = second; second = second.next }
-            tail      = tail.next!!
-            takeFirst = !takeFirst
-        }
-        tail.next = first ?: second
-        return dummy.next
-    }
 }
 ```
 

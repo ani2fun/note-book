@@ -253,6 +253,25 @@ The implementation of the reversal algorithm solution is given below, where we c
 
 <div class="lang-tabs">
 
+```pseudocode
+# Reverse the list in groups of k. Walk the list, reverse each k-segment, stitch them together.
+function reverseKSegments(head, k):
+    if head is null OR head.next is null OR k = 1: return head
+    start ← head
+    leftBound ← null
+    totalSegments ← length(head) ÷ k                   # only reverse complete k-groups
+    for i from 1 to totalSegments:
+        end ← advance(start, k)
+        reversedHead ← reverseSegment(start, end)
+        if leftBound is null:
+            head ← reversedHead                        # first segment becomes the new head
+        else:
+            leftBound.next ← reversedHead              # stitch previous tail to new head
+        leftBound ← start                              # `start` is now the tail of the reversed group
+        start ← leftBound.next                         # advance past this group
+    return head
+```
+
 ```python,editable
 from typing import Optional
 
@@ -492,40 +511,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function reverseKSegments(head, k) {
-    if (head === null || head.next === null || k === 1) return head;
-
-    const length = h => { let n = 0; while (h) { n++; h = h.next; } return n; };
-    const advance = (start, steps) => { for (let i = 1; i < steps; i++) start = start.next; return start; };
-    const reverseSegment = (start, end) => {
-        const rightBound = end.next;
-        let prev = rightBound, cur = start;
-        while (cur !== rightBound) {
-            const nxt = cur.next;
-            cur.next = prev;
-            prev = cur; cur = nxt;
-        }
-        return prev;
-    };
-
-    let start = head, leftBound = null;
-    const totalSegments = Math.floor(length(head) / k);
-
-    for (let i = 0; i < totalSegments; i++) {
-        const end = advance(start, k);
-        const reversedHead = reverseSegment(start, end);
-
-        if (leftBound === null) head = reversedHead;
-        else                    leftBound.next = reversedHead;
-
-        leftBound = start;
-        start = leftBound.next;
-    }
-    return head;
-}
-```
-
 ```typescript,editable
 function reverseKSegments(head: ListNode | null, k: number): ListNode | null {
     if (head === null || head.next === null || k === 1) return head;
@@ -617,53 +602,6 @@ func reverseKSegments(head *ListNode, k int) *ListNode {
         start = leftBound.Next
     }
     return head
-}
-```
-
-```kotlin,editable
-class Solution {
-    private fun length(h: ListNode?): Int {
-        var n = 0; var cur = h
-        while (cur != null) { n++; cur = cur.next }
-        return n
-    }
-    private fun advance(start: ListNode, steps: Int): ListNode {
-        var cur = start
-        for (i in 1 until steps) cur = cur.next!!
-        return cur
-    }
-    private fun reverseSegment(start: ListNode, end: ListNode): ListNode {
-        val rightBound = end.next
-        var prev: ListNode? = rightBound
-        var cur:  ListNode? = start
-        while (cur !== rightBound) {
-            val nxt = cur!!.next
-            cur.next = prev
-            prev = cur; cur = nxt
-        }
-        return prev!!
-    }
-
-    fun reverseKSegments(headIn: ListNode?, k: Int): ListNode? {
-        if (headIn == null || headIn.next == null || k == 1) return headIn
-
-        var head = headIn
-        var start: ListNode? = head
-        var leftBound: ListNode? = null
-        val totalSegments = length(head) / k
-
-        for (i in 0 until totalSegments) {
-            val end = advance(start!!, k)
-            val reversedHead = reverseSegment(start, end)
-
-            if (leftBound == null) head = reversedHead
-            else                    leftBound.next = reversedHead
-
-            leftBound = start
-            start = leftBound.next
-        }
-        return head
-    }
 }
 ```
 
@@ -760,6 +698,33 @@ The problem needs to be solved without modifying the values in the list's nodes.
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Reverse-k-segments specialised to k = 2 → swap consecutive pairs.
+function reverse(start, end):
+    rightBound ← end.next
+    previous ← rightBound; current ← start
+    while current ≠ rightBound:
+        nxt ← current.next
+        current.next ← previous
+        previous ← current
+        current ← nxt
+    return previous
+
+function pairwiseSwap(head):
+    if head is null OR head.next is null: return head
+    start ← head; leftBound ← null
+    while start is not null AND start.next is not null:
+        end ← start.next                               # each pair is exactly 2 nodes
+        reversedHead ← reverse(start, end)
+        if leftBound is null:
+            head ← reversedHead
+        else:
+            leftBound.next ← reversedHead
+        leftBound ← start                              # `start` is the pair's tail after reversal
+        start ← start.next
+    return head
+```
 
 ```python,editable
 class ListNode:
@@ -1095,64 +1060,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-class ListNode {
-    constructor(val, next = null) { this.val = val; this.next = next; }
-}
-
-function reverse(start, end) {
-    let current = start;
-    const rightBound = end.next;  // Sentinel — stop reversing here
-    let previous = rightBound;    // New tail points past the segment
-
-    while (current !== rightBound) {
-        const nxt = current.next;
-        current.next = previous;   // Flip pointer backward
-        previous = current;
-        current = nxt;
-    }
-    return previous;  // New head of the reversed pair
-}
-
-function pairwiseSwap(head) {
-    if (!head || !head.next) return head;
-
-    let start = head;
-    let leftBound = null;
-
-    while (start !== null && start.next !== null) {
-        const end = start.next;
-        const reversedHead = reverse(start, end);
-
-        if (leftBound === null) {
-            head = reversedHead;             // First pair: update overall list head
-        } else {
-            leftBound.next = reversedHead;   // Stitch previous tail to new head
-        }
-
-        leftBound = start;       // start is now the tail of the swapped pair
-        start = start.next;      // Advance to next unprocessed pair
-    }
-    return head;
-}
-
-function build(vals) {
-    const dummy = new ListNode(0);
-    let cur = dummy;
-    for (const v of vals) { cur.next = new ListNode(v); cur = cur.next; }
-    return dummy.next;
-}
-
-function toArr(head) {
-    const res = [];
-    while (head) { res.push(head.val); head = head.next; }
-    return res;
-}
-
-const head = build([1, 2, 3, 4]);
-console.log(toArr(pairwiseSwap(head)));  // [2, 1, 4, 3]
-```
-
 ```typescript,editable
 class ListNode {
     constructor(public val: number, public next: ListNode | null = null) {}
@@ -1284,66 +1191,6 @@ func main() {
 }
 ```
 
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun reverseSegment(start: ListNode, end: ListNode): ListNode {
-    var current: ListNode? = start
-    val rightBound = end.next   // Sentinel — stop reversing here
-    var previous: ListNode? = rightBound  // New tail points past the segment
-
-    while (current != rightBound) {
-        val nxt = current!!.next
-        current.next = previous  // Flip pointer backward
-        previous = current
-        current = nxt
-    }
-    return previous!!  // New head of the reversed pair
-}
-
-fun pairwiseSwap(head: ListNode?): ListNode? {
-    if (head == null || head.next == null) return head
-
-    var start: ListNode? = head
-    var leftBound: ListNode? = null
-    var newHead: ListNode? = head
-
-    while (start != null && start.next != null) {
-        val end = start.next!!
-        val reversedHead = reverseSegment(start, end)
-
-        if (leftBound == null) {
-            newHead = reversedHead          // First pair: update overall list head
-        } else {
-            leftBound.next = reversedHead   // Stitch previous tail to new head
-        }
-
-        leftBound = start        // start is now the tail of the swapped pair
-        start = start.next       // Advance to next unprocessed pair
-    }
-    return newHead
-}
-
-fun build(vals: List<Int>): ListNode? {
-    val dummy = ListNode(0)
-    var cur = dummy
-    for (v in vals) { cur.next = ListNode(v); cur = cur.next!! }
-    return dummy.next
-}
-
-fun toList(head: ListNode?): List<Int> {
-    val res = mutableListOf<Int>()
-    var cur = head
-    while (cur != null) { res.add(cur.`val`); cur = cur.next }
-    return res
-}
-
-fun main() {
-    val head = build(listOf(1, 2, 3, 4))
-    println(toList(pairwiseSwap(head)))  // [2, 1, 4, 3]
-}
-```
-
 ```rust,editable
 #[derive(Debug)]
 struct ListNode {
@@ -1420,6 +1267,43 @@ If, at the end, the length of the remaining list is less than k, do not reverse 
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Same `reverseKSegments` algorithm — re-listed with explicit helper functions.
+function findLength(head):
+    n ← 0
+    while head is not null: n ← n + 1; head ← head.next
+    return n
+
+function getNodeAtPosition(head, pos):
+    repeat (pos − 1) times: head ← head.next
+    return head
+
+function reverse(start, end):
+    rightBound ← end.next
+    previous ← rightBound; current ← start
+    while current ≠ rightBound:
+        nxt ← current.next
+        current.next ← previous
+        previous ← current
+        current ← nxt
+    return previous
+
+function reverseKSegments(head, k):
+    if head is null OR head.next is null OR k = 1: return head
+    start ← head; leftBound ← null
+    totalSegments ← findLength(head) ÷ k
+    for i from 1 to totalSegments:
+        end ← getNodeAtPosition(start, k)
+        reversedHead ← reverse(start, end)
+        if leftBound is null:
+            head ← reversedHead
+        else:
+            leftBound.next ← reversedHead
+        leftBound ← start
+        start ← leftBound.next
+    return head
+```
 
 ```python,editable
 class ListNode:
@@ -1816,76 +1700,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-class ListNode {
-    constructor(val, next = null) { this.val = val; this.next = next; }
-}
-
-function findLength(head) {
-    let l = 0;
-    while (head) { l++; head = head.next; }
-    return l;
-}
-
-function getNodeAtPosition(head, pos) {
-    // Walk pos-1 steps to reach the pos-th node (1-indexed)
-    for (let i = 1; i < pos; i++) head = head.next;
-    return head;
-}
-
-function reverse(start, end) {
-    let current = start;
-    const rightBound = end.next;  // Sentinel: first node after the segment
-    let previous = rightBound;    // Reversed tail points back to rest of list
-
-    while (current !== rightBound) {
-        const nxt = current.next;
-        current.next = previous;   // Flip pointer backward
-        previous = current;
-        current = nxt;
-    }
-    return previous;  // New head of the reversed segment
-}
-
-function reverseKSegments(head, k) {
-    if (!head || !head.next || k === 1) return head;
-
-    let start = head;
-    let leftBound = null;
-    const totalSegments = Math.floor(findLength(head) / k);  // Only reverse complete groups
-
-    for (let i = 0; i < totalSegments; i++) {
-        const end = getNodeAtPosition(start, k);
-        const reversedHead = reverse(start, end);
-
-        if (leftBound === null) {
-            head = reversedHead;              // First segment: update overall list head
-        } else {
-            leftBound.next = reversedHead;    // Stitch previous tail to new head
-        }
-
-        leftBound = start;          // start is now the tail of the reversed segment
-        start = leftBound.next;     // Advance to the next unprocessed segment
-    }
-    return head;
-}
-
-function build(vals) {
-    const dummy = new ListNode(0); let cur = dummy;
-    for (const v of vals) { cur.next = new ListNode(v); cur = cur.next; }
-    return dummy.next;
-}
-
-function toArr(head) {
-    const res = [];
-    while (head) { res.push(head.val); head = head.next; }
-    return res;
-}
-
-const head = build([5, 7, 3, 10, 6, 8]);
-console.log(toArr(reverseKSegments(head, 3)));  // [3, 7, 5, 8, 6, 10]
-```
-
 ```typescript,editable
 class ListNode {
     constructor(public val: number, public next: ListNode | null = null) {}
@@ -2035,78 +1849,6 @@ func main() {
 }
 ```
 
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun findLength(head: ListNode?): Int {
-    var l = 0; var cur = head
-    while (cur != null) { l++; cur = cur.next }
-    return l
-}
-
-fun getNodeAtPosition(head: ListNode, pos: Int): ListNode {
-    // Walk pos-1 steps to reach the pos-th node (1-indexed)
-    var cur = head
-    for (i in 1 until pos) cur = cur.next!!
-    return cur
-}
-
-fun reverseSegment(start: ListNode, end: ListNode): ListNode {
-    var current: ListNode? = start
-    val rightBound = end.next   // Sentinel: first node after the segment
-    var previous: ListNode? = rightBound  // Reversed tail points back to rest of list
-
-    while (current != rightBound) {
-        val nxt = current!!.next
-        current.next = previous  // Flip pointer backward
-        previous = current
-        current = nxt
-    }
-    return previous!!  // New head of the reversed segment
-}
-
-fun reverseKSegments(head: ListNode?, k: Int): ListNode? {
-    if (head == null || head.next == null || k == 1) return head
-
-    var start: ListNode? = head
-    var leftBound: ListNode? = null
-    var newHead: ListNode? = head
-    val totalSegments = findLength(head) / k  // Only reverse complete groups
-
-    for (i in 0 until totalSegments) {
-        val end = getNodeAtPosition(start!!, k)
-        val reversedHead = reverseSegment(start, end)
-
-        if (leftBound == null) {
-            newHead = reversedHead            // First segment: update overall list head
-        } else {
-            leftBound.next = reversedHead     // Stitch previous tail to new head
-        }
-
-        leftBound = start          // start is now the tail of the reversed segment
-        start = leftBound!!.next   // Advance to the next unprocessed segment
-    }
-    return newHead
-}
-
-fun build(vals: List<Int>): ListNode? {
-    val dummy = ListNode(0); var cur = dummy
-    for (v in vals) { cur.next = ListNode(v); cur = cur.next!! }
-    return dummy.next
-}
-
-fun toList(head: ListNode?): List<Int> {
-    val res = mutableListOf<Int>(); var cur = head
-    while (cur != null) { res.add(cur.`val`); cur = cur.next }
-    return res
-}
-
-fun main() {
-    val head = build(listOf(5, 7, 3, 10, 6, 8))
-    println(toList(reverseKSegments(head, 3)))  // [3, 7, 5, 8, 6, 10]
-}
-```
-
 ```rust,editable
 #[derive(Debug)]
 struct ListNode {
@@ -2180,6 +1922,27 @@ If, at the end, the length of the remaining list is less than the required group
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Reverse the first 1, then next 2, then next 3, … nodes. Stop when the list is too short for the next group.
+function reverseIncreasingGroups(head):
+    if head is null OR head.next is null: return head
+    start ← head; leftBound ← null
+    remaining ← length(head)
+    groupSize ← 1
+    while remaining ≥ groupSize:
+        end ← advance(start, groupSize)
+        reversedHead ← reverseSegment(start, end)
+        if leftBound is null:
+            head ← reversedHead
+        else:
+            leftBound.next ← reversedHead
+        leftBound ← start
+        start ← leftBound.next
+        remaining ← remaining − groupSize
+        groupSize ← groupSize + 1
+    return head
+```
 
 ```python,editable
 from typing import Optional
@@ -2381,43 +2144,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function reverseIncreasingGroups(head) {
-    if (head === null || head.next === null) return head;
-
-    const length = h => { let n = 0; while (h) { n++; h = h.next; } return n; };
-    const advance = (s, steps) => { for (let i = 1; i < steps; i++) s = s.next; return s; };
-    const reverseSegment = (start, end) => {
-        const rightBound = end.next;
-        let prev = rightBound, cur = start;
-        while (cur !== rightBound) {
-            const nxt = cur.next;
-            cur.next = prev;
-            prev = cur; cur = nxt;
-        }
-        return prev;
-    };
-
-    let start = head, leftBound = null;
-    let remaining = length(head), groupSize = 1;
-
-    while (remaining >= groupSize) {
-        const end = advance(start, groupSize);
-        const reversedHead = reverseSegment(start, end);
-
-        if (leftBound === null) head = reversedHead;
-        else                    leftBound.next = reversedHead;
-
-        leftBound = start;
-        start = leftBound.next;
-
-        remaining -= groupSize;
-        groupSize++;
-    }
-    return head;
-}
-```
-
 ```typescript,editable
 function reverseIncreasingGroups(head: ListNode | null): ListNode | null {
     if (head === null || head.next === null) return head;
@@ -2503,50 +2229,6 @@ func reverseIncreasingGroups(head *ListNode) *ListNode {
         groupSize++
     }
     return head
-}
-```
-
-```kotlin,editable
-class Solution {
-    private fun length(h: ListNode?): Int { var n=0; var c=h; while(c!=null){n++; c=c.next}; return n }
-    private fun advance(s: ListNode, steps: Int): ListNode {
-        var c = s; for (i in 1 until steps) c = c.next!!; return c
-    }
-    private fun reverseSegment(start: ListNode, end: ListNode): ListNode {
-        val rightBound = end.next
-        var prev: ListNode? = rightBound; var cur: ListNode? = start
-        while (cur !== rightBound) {
-            val nxt = cur!!.next
-            cur.next = prev
-            prev = cur; cur = nxt
-        }
-        return prev!!
-    }
-
-    fun reverseIncreasingGroups(headIn: ListNode?): ListNode? {
-        if (headIn == null || headIn.next == null) return headIn
-
-        var head = headIn
-        var start: ListNode? = head
-        var leftBound: ListNode? = null
-        var remaining = length(head)
-        var groupSize = 1
-
-        while (remaining >= groupSize) {
-            val end = advance(start!!, groupSize)
-            val reversedHead = reverseSegment(start, end)
-
-            if (leftBound == null) head = reversedHead
-            else                    leftBound.next = reversedHead
-
-            leftBound = start
-            start = leftBound.next
-
-            remaining -= groupSize
-            groupSize++
-        }
-        return head
-    }
 }
 ```
 
@@ -2636,6 +2318,30 @@ If, at the end, the length of the remaining list is less than k, do not reverse 
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Reverse only the alternate (1st, 3rd, 5th, ...) k-segments. Toggle a flag each iteration.
+function reverseAlternateSegments(head, k):
+    if head is null OR head.next is null OR k = 1: return head
+    start ← head
+    leftBound ← null
+    shouldReverse ← true
+    totalSegments ← length(head) ÷ k
+    for i from 1 to totalSegments:
+        end ← advance(start, k)
+        if shouldReverse:
+            reversedHead ← reverseSegment(start, end)
+            if leftBound is null:
+                head ← reversedHead
+            else:
+                leftBound.next ← reversedHead
+            leftBound ← start                          # old start is the new tail of this segment
+        else:
+            leftBound ← end                            # untouched segment — leftBound advances to its end
+        start ← leftBound.next
+        shouldReverse ← NOT shouldReverse              # alternate
+    return head
+```
 
 ```python,editable
 from typing import Optional
@@ -2844,44 +2550,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function reverseAlternateSegments(head, k) {
-    if (head === null || head.next === null || k === 1) return head;
-
-    const length = h => { let n = 0; while (h) { n++; h = h.next; } return n; };
-    const advance = (s, steps) => { for (let i = 1; i < steps; i++) s = s.next; return s; };
-    const reverseSegment = (start, end) => {
-        const rightBound = end.next;
-        let prev = rightBound, cur = start;
-        while (cur !== rightBound) {
-            const nxt = cur.next;
-            cur.next = prev;
-            prev = cur; cur = nxt;
-        }
-        return prev;
-    };
-
-    let start = head, leftBound = null;
-    let shouldReverse = true;
-    const totalSegments = Math.floor(length(head) / k);
-
-    for (let i = 0; i < totalSegments; i++) {
-        const end = advance(start, k);
-        if (shouldReverse) {
-            const reversedHead = reverseSegment(start, end);
-            if (leftBound === null) head = reversedHead;
-            else                     leftBound.next = reversedHead;
-            leftBound = start;
-        } else {
-            leftBound = end;
-        }
-        start = leftBound.next;
-        shouldReverse = !shouldReverse;
-    }
-    return head;
-}
-```
-
 ```typescript,editable
 function reverseAlternateSegments(head: ListNode | null, k: number): ListNode | null {
     if (head === null || head.next === null || k === 1) return head;
@@ -2967,50 +2635,6 @@ func reverseAlternateSegments(head *ListNode, k int) *ListNode {
         shouldReverse = !shouldReverse
     }
     return head
-}
-```
-
-```kotlin,editable
-class Solution {
-    private fun length(h: ListNode?): Int { var n=0; var c=h; while(c!=null){n++; c=c.next}; return n }
-    private fun advance(s: ListNode, steps: Int): ListNode {
-        var c = s; for (i in 1 until steps) c = c.next!!; return c
-    }
-    private fun reverseSegment(start: ListNode, end: ListNode): ListNode {
-        val rightBound = end.next
-        var prev: ListNode? = rightBound; var cur: ListNode? = start
-        while (cur !== rightBound) {
-            val nxt = cur!!.next
-            cur.next = prev
-            prev = cur; cur = nxt
-        }
-        return prev!!
-    }
-
-    fun reverseAlternateSegments(headIn: ListNode?, k: Int): ListNode? {
-        if (headIn == null || headIn.next == null || k == 1) return headIn
-
-        var head = headIn
-        var start: ListNode? = head
-        var leftBound: ListNode? = null
-        var shouldReverse = true
-        val totalSegments = length(head) / k
-
-        for (i in 0 until totalSegments) {
-            val end = advance(start!!, k)
-            if (shouldReverse) {
-                val reversedHead = reverseSegment(start, end)
-                if (leftBound == null) head = reversedHead
-                else                    leftBound.next = reversedHead
-                leftBound = start
-            } else {
-                leftBound = end
-            }
-            start = leftBound!!.next
-            shouldReverse = !shouldReverse
-        }
-        return head
-    }
 }
 ```
 

@@ -157,6 +157,38 @@ slow: "O(n) operations" {
 
 <div class="lang-tabs">
 
+```pseudocode
+class SinglyLinkedList:
+    field head                                          # null when the list is empty
+    field currentSize                                   # cached so size() is O(1)
+
+    constructor():
+        head ← null; currentSize ← 0
+
+    function empty(): return head is null               # O(1) existence check
+    function size(): return currentSize
+
+    function prepend(val):                              # O(1) head insertion
+        head ← new ListNode(val, head)
+        currentSize ← currentSize + 1
+
+    function append(val):
+        node ← new ListNode(val)
+        if empty():
+            head ← node
+        else:
+            cur ← head
+            while cur.next is not null: cur ← cur.next
+            cur.next ← node
+        currentSize ← currentSize + 1
+
+    function insert(position, val):
+        if position ≤ 0: prepend(val); return           # clamp negatives to head
+        if empty(): return                              # no list to insert into
+        # walk to position − 1 (the predecessor) and splice
+        ...
+```
+
 ```python,editable
 class ListNode:
     def __init__(self, val=0, nxt=None):
@@ -575,83 +607,6 @@ class SinglyLinkedList {
 }
 ```
 
-```javascript,editable
-class Node {
-    constructor(val, next = null) { this.val = val; this.next = next; }
-}
-
-class SinglyLinkedList {
-    constructor() {
-        this.head = null;
-        this.currentSize = 0;
-    }
-
-    empty() { return this.head === null; }
-    size()  { return this.currentSize; }
-
-    prepend(val) {
-        this.head = new Node(val, this.head);
-        this.currentSize++;
-    }
-
-    append(val) {
-        const n = new Node(val);
-        if (this.empty()) { this.head = n; }
-        else {
-            let cur = this.head;
-            while (cur.next !== null) cur = cur.next;   // walk to tail
-            cur.next = n;
-        }
-        this.currentSize++;
-    }
-
-    insert(position, val) {
-        if (position <= 0) { this.prepend(val); return; }
-        if (this.empty())   return;
-
-        let cur = this.head, idx = 0;
-        while (cur.next !== null && idx < position - 1) { cur = cur.next; idx++; }
-
-        cur.next = new Node(val, cur.next);
-        this.currentSize++;
-    }
-
-    remove(val) {
-        if (this.empty()) return false;
-        if (this.head.val === val) {
-            this.head = this.head.next;   // head special case
-            this.currentSize--;
-            return true;
-        }
-        let cur = this.head;
-        while (cur.next !== null) {
-            if (cur.next.val === val) {
-                cur.next = cur.next.next;
-                this.currentSize--;
-                return true;
-            }
-            cur = cur.next;
-        }
-        return false;
-    }
-
-    search(val) {
-        for (let cur = this.head; cur !== null; cur = cur.next)
-            if (cur.val === val) return true;
-        return false;
-    }
-}
-
-// driver
-const lst = new SinglyLinkedList();
-lst.prepend(2); lst.prepend(3); lst.append(1);
-console.log(lst.size());    // 3
-console.log(lst.search(5)); // false
-lst.insert(1, 8);
-console.log(lst.remove(2)); // true
-console.log(lst.empty());   // false
-```
-
 ```typescript,editable
 class Node {
     val:  number;
@@ -804,73 +759,6 @@ func main() {
     l.Insert(1, 8)
     fmt.Println(l.Remove(2))   // true
     fmt.Println(l.Empty())     // false
-}
-```
-
-```kotlin,editable
-class SinglyLinkedList {
-    private class Node(var v: Int, var next: Node? = null)
-
-    private var head: Node? = null
-    private var currentSize: Int = 0
-
-    fun empty(): Boolean = head == null
-    fun size():  Int     = currentSize
-
-    fun prepend(v: Int) {
-        head = Node(v, head)
-        currentSize++
-    }
-
-    fun append(v: Int) {
-        val n = Node(v)
-        if (empty()) { head = n }
-        else {
-            var cur = head
-            while (cur!!.next != null) cur = cur.next
-            cur.next = n
-        }
-        currentSize++
-    }
-
-    fun insert(position: Int, v: Int) {
-        if (position <= 0) { prepend(v); return }
-        if (empty())       return
-
-        var cur = head; var idx = 0
-        while (cur!!.next != null && idx < position - 1) { cur = cur.next; idx++ }
-
-        cur.next = Node(v, cur.next)
-        currentSize++
-    }
-
-    fun remove(v: Int): Boolean {
-        if (empty()) return false
-        if (head!!.v == v) {
-            head = head!!.next
-            currentSize--
-            return true
-        }
-        var cur = head
-        while (cur!!.next != null) {
-            if (cur.next!!.v == v) {
-                cur.next = cur.next!!.next
-                currentSize--
-                return true
-            }
-            cur = cur.next
-        }
-        return false
-    }
-
-    fun search(v: Int): Boolean {
-        var cur = head
-        while (cur != null) {
-            if (cur.v == v) return true
-            cur = cur.next
-        }
-        return false
-    }
 }
 ```
 

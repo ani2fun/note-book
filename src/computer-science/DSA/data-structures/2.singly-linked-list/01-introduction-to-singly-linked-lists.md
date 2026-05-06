@@ -337,6 +337,17 @@ To define a node in code, we create a Node class that encapsulates the informati
 
 <div class="lang-tabs">
 
+```pseudocode
+class ListNode:
+    field val                                          # the data this node holds
+    field next                                         # reference to the next node; null if tail
+
+node1 ← new ListNode(5)
+node2 ← new ListNode(7)
+node1.next ← node2                                     # link node1 → node2
+print node1.val, "->", node2.val
+```
+
 ```python,editable
 class ListNode:
     def __init__(self, val=0, next=None):
@@ -427,20 +438,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode {
-    constructor(val = 0, next = null) {
-        this.val  = val;   // The data this node holds
-        this.next = next;  // Reference to the next node; null if tail
-    }
-}
-
-const node1 = new ListNode(5);
-const node2 = new ListNode(7);
-node1.next = node2;  // Link node1 → node2
-console.log(node1.val + " -> " + node2.val);  // 5 -> 7
-```
-
 ```typescript,editable
 class ListNode {
     val:  number;
@@ -473,17 +470,6 @@ func main() {
     node2 := &ListNode{Val: 7}
     node1.Next = node2  // Link node1 → node2
     fmt.Printf("%d -> %d\n", node1.Val, node2.Val)  // 5 -> 7
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int = 0, var next: ListNode? = null)
-
-fun main() {
-    val node1 = ListNode(5)
-    val node2 = ListNode(7)
-    node1.next = node2  // Link node1 → node2
-    println("${node1.`val`} -> ${node2.`val`}")  // 5 -> 7
 }
 ```
 
@@ -782,6 +768,18 @@ Because the tail is the *only* node whose `next` is `null`. The given node itsel
 
 <div class="lang-tabs">
 
+```pseudocode
+function boundaryNode(head, node):
+    if head is null OR node is null:
+        return "none"
+    isHead ← (node = head)                             # node is the first node
+    isTail ← (node.next is null)                       # node has no successor
+    if isHead AND isTail: return "both"
+    if isHead:            return "first"
+    if isTail:            return "last"
+    return "none"
+```
+
 ```python,editable
 class ListNode:
     def __init__(self, val=0, next=None):
@@ -948,32 +946,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode {
-    constructor(val, next = null) { this.val = val; this.next = next; }
-}
-
-function boundaryNode(head, node) {
-    if (!head || !node) return "none";
-
-    const isHead = node === head;        // Strict reference equality
-    const isTail = node.next === null;   // No successor → tail
-
-    if (isHead && isTail) return "both";
-    if (isHead)           return "first";
-    if (isTail)           return "last";
-    return "none";
-}
-
-const n1 = new ListNode(5), n2 = new ListNode(7),
-      n3 = new ListNode(3), n4 = new ListNode(10);
-n1.next = n2; n2.next = n3; n3.next = n4;
-
-console.log(boundaryNode(n1, n1));  // first
-console.log(boundaryNode(n1, n4));  // last
-console.log(boundaryNode(n1, n3));  // none
-```
-
 ```typescript,editable
 class ListNode {
     val: number; next: ListNode | null;
@@ -1030,34 +1002,6 @@ func main() {
     fmt.Println(boundaryNode(n1, n1))  // first
     fmt.Println(boundaryNode(n1, n4))  // last
     fmt.Println(boundaryNode(n1, n3))  // none
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun boundaryNode(head: ListNode?, node: ListNode?): String {
-    if (head == null || node == null) return "none"
-
-    val isHead = node === head        // Reference equality
-    val isTail = node.next == null    // No successor → tail
-
-    return when {
-        isHead && isTail -> "both"
-        isHead           -> "first"
-        isTail           -> "last"
-        else             -> "none"
-    }
-}
-
-fun main() {
-    val n1 = ListNode(5); val n2 = ListNode(7)
-    val n3 = ListNode(3); val n4 = ListNode(10)
-    n1.next = n2; n2.next = n3; n3.next = n4
-
-    println(boundaryNode(n1, n1))  // first
-    println(boundaryNode(n1, n4))  // last
-    println(boundaryNode(n1, n3))  // none
 }
 ```
 

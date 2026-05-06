@@ -60,6 +60,18 @@ idx -> arr.a0: "arr[i]"
 
 <div class="lang-tabs">
 
+```pseudocode
+arr ← [5, 7, 3, 10]
+
+for i from 0 to length(arr) − 1:                       # for-loop traversal
+    print arr[i]
+
+i ← 0
+while i < length(arr):                                 # while-loop traversal (equivalent)
+    print arr[i]
+    i ← i + 1
+```
+
 ```python,editable
 arr = [5, 7, 3, 10]
 
@@ -159,23 +171,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const arr = [5, 7, 3, 10];
-
-// For loop — index-based traversal
-for (let i = 0; i < arr.length; i++) {
-    process.stdout.write(arr[i] + " ");  // Direct access via index
-}
-console.log();
-
-// While loop — equivalent form
-let i = 0;
-while (i < arr.length) {
-    process.stdout.write(arr[i] + " ");
-    i++;
-}
-```
-
 ```typescript,editable
 const arr: number[] = [5, 7, 3, 10];
 
@@ -211,23 +206,6 @@ func main() {
     i := 0
     for i < len(arr) {
         fmt.Print(arr[i], " ")
-        i++
-    }
-}
-```
-
-```kotlin,editable
-fun main() {
-    val arr = intArrayOf(5, 7, 3, 10)
-
-    // For loop — index-based traversal
-    for (i in arr.indices) print("${arr[i]} ")
-    println()
-
-    // While loop — equivalent form
-    var i = 0
-    while (i < arr.size) {
-        print("${arr[i]} ")
         i++
     }
 }
@@ -287,6 +265,14 @@ flowchart LR
 Given below is the code implementation of singly linked list traversal.
 
 <div class="lang-tabs">
+
+```pseudocode
+function traverse(head):
+    current ← head                                     # start at the head node
+    while current is not null:                         # stop when current falls off the end
+        print current.val
+        current ← current.next                         # advance one link
+```
 
 ```python,editable
 class ListNode:
@@ -389,22 +375,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode { constructor(val,next=null){this.val=val;this.next=next;} }
-
-function traverse(head) {
-    let current = head;              // Start at head
-    while (current !== null) {       // Stop when null is reached
-        process.stdout.write(current.val + " ");
-        current = current.next;      // Advance to next node
-    }
-}
-
-const n4=new ListNode(10), n3=new ListNode(3,n4),
-      n2=new ListNode(7,n3), n1=new ListNode(5,n2);
-traverse(n1);  // 5 7 3 10
-```
-
 ```typescript,editable
 class ListNode { constructor(public val:number, public next:ListNode|null=null){} }
 
@@ -439,26 +409,6 @@ func main() {
     n3 := &ListNode{Val: 3,  Next: n4}
     n2 := &ListNode{Val: 7,  Next: n3}
     n1 := &ListNode{Val: 5,  Next: n2}
-    traverse(n1)  // 5 7 3 10
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun traverse(head: ListNode?) {
-    var current = head
-    while (current != null) {      // Stop when null is reached
-        print("${current.`val`} ")
-        current = current.next     // Advance to next node
-    }
-}
-
-fun main() {
-    val n4 = ListNode(10)
-    val n3 = ListNode(3,  n4)
-    val n2 = ListNode(7,  n3)
-    val n1 = ListNode(5,  n2)
     traverse(n1)  // 5 7 3 10
 }
 ```
@@ -504,6 +454,18 @@ Given the **head** of a singly linked list, write a function to print a comma (`
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Print each value, separated by ", " — but only between values, not after the last.
+function nodeExpedition(head):
+    current ← head
+    while current is not null:
+        print current.val
+        if current.next is not null:
+            print ", "
+        current ← current.next
+    print newline
+```
 
 ```python,editable
 class ListNode:
@@ -623,24 +585,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode { constructor(val,next=null){this.val=val;this.next=next;} }
-
-function nodeExpedition(head) {
-    let current = head;
-    while (current !== null) {
-        process.stdout.write(String(current.val));
-        if (current.next !== null) process.stdout.write(", ");  // Comma between nodes only
-        current = current.next;
-    }
-    console.log();
-}
-
-const n4=new ListNode(10),n3=new ListNode(3,n4),
-      n2=new ListNode(7,n3),n1=new ListNode(5,n2);
-nodeExpedition(n1);  // 5, 7, 3, 10
-```
-
 ```typescript,editable
 class ListNode { constructor(public val:number, public next:ListNode|null=null){} }
 
@@ -677,26 +621,6 @@ func nodeExpedition(head *ListNode) {
 func main() {
     n4:=&ListNode{Val:10}; n3:=&ListNode{Val:3,Next:n4}
     n2:=&ListNode{Val:7,Next:n3}; n1:=&ListNode{Val:5,Next:n2}
-    nodeExpedition(n1)  // 5, 7, 3, 10
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun nodeExpedition(head: ListNode?) {
-    var current = head
-    while (current != null) {
-        print(current.`val`)
-        if (current.next != null) print(", ")  // Comma between nodes only
-        current = current.next
-    }
-    println()
-}
-
-fun main() {
-    val n4=ListNode(10); val n3=ListNode(3,n4)
-    val n2=ListNode(7,n3); val n1=ListNode(5,n2)
     nodeExpedition(n1)  // 5, 7, 3, 10
 }
 ```
@@ -758,6 +682,16 @@ Given the **head** of a singly linked list and a **data** value, write a functio
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function nodeSearch(head, data):
+    current ← head
+    while current is not null:
+        if current.val = data:
+            return current                             # found — return the node
+        current ← current.next
+    return null                                         # not in list
+```
 
 ```python,editable
 class ListNode:
@@ -880,25 +814,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode { constructor(val,next=null){this.val=val;this.next=next;} }
-
-function nodeSearch(head, data) {
-    let current = head;
-    while (current !== null) {
-        if (current.val === data) return current;  // Found — return immediately
-        current = current.next;
-    }
-    return null;  // Exhausted the list without a match
-}
-
-const n4=new ListNode(10),n3=new ListNode(3,n4),
-      n2=new ListNode(7,n3),n1=new ListNode(5,n2);
-const r = nodeSearch(n1, 3);
-console.log(r ? r.val : "null");  // 3
-console.log(nodeSearch(n1, 99));  // null
-```
-
 ```typescript,editable
 class ListNode { constructor(public val:number, public next:ListNode|null=null){} }
 
@@ -936,26 +851,6 @@ func main() {
     n2:=&ListNode{Val:7,Next:n3}; n1:=&ListNode{Val:5,Next:n2}
     r := nodeSearch(n1, 3)
     if r != nil { fmt.Println(r.Val) } else { fmt.Println("null") }  // 3
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun nodeSearch(head: ListNode?, data: Int): ListNode? {
-    var current = head
-    while (current != null) {
-        if (current.`val` == data) return current  // Found — return immediately
-        current = current.next
-    }
-    return null  // Exhausted the list without a match
-}
-
-fun main() {
-    val n4=ListNode(10); val n3=ListNode(3,n4)
-    val n2=ListNode(7,n3); val n1=ListNode(5,n2)
-    val r = nodeSearch(n1, 3)
-    println(r?.`val` ?: "null")  // 3
 }
 ```
 
@@ -1016,6 +911,16 @@ Given the **head** of a singly linked list, write a function that returns the le
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function lengthOfTheList(head):
+    count ← 0
+    current ← head
+    while current is not null:
+        count ← count + 1
+        current ← current.next
+    return count
+```
 
 ```python,editable
 class ListNode:
@@ -1127,22 +1032,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode { constructor(val,next=null){this.val=val;this.next=next;} }
-
-function lengthOfTheList(head) {
-    let count = 0;
-    for (let cur = head; cur !== null; cur = cur.next)
-        count++;  // Count this node
-    return count;
-}
-
-const n4=new ListNode(10),n3=new ListNode(3,n4),
-      n2=new ListNode(7,n3),n1=new ListNode(5,n2);
-console.log(lengthOfTheList(n1));    // 4
-console.log(lengthOfTheList(null));  // 0
-```
-
 ```typescript,editable
 class ListNode { constructor(public val:number, public next:ListNode|null=null){} }
 
@@ -1179,24 +1068,6 @@ func main() {
     n2:=&ListNode{Val:7,Next:n3}; n1:=&ListNode{Val:5,Next:n2}
     fmt.Println(lengthOfTheList(n1))   // 4
     fmt.Println(lengthOfTheList(nil))  // 0
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun lengthOfTheList(head: ListNode?): Int {
-    var count = 0
-    var cur = head
-    while (cur != null) { count++; cur = cur.next }
-    return count
-}
-
-fun main() {
-    val n4=ListNode(10); val n3=ListNode(3,n4)
-    val n2=ListNode(7,n3); val n1=ListNode(5,n2)
-    println(lengthOfTheList(n1))    // 4
-    println(lengthOfTheList(null))  // 0
 }
 ```
 

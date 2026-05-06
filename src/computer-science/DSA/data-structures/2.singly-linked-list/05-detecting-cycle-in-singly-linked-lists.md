@@ -138,6 +138,23 @@ The implementation is relatively straightforward: we use the `slow` and `fast` p
 
 <div class="lang-tabs">
 
+```pseudocode
+# Floyd's tortoise-and-hare. Phase 1 detects a cycle (collision).
+# Phase 2 finds the entry point: reset one pointer to head, walk both at speed 1, they meet at the start.
+function findCycle(head):
+    slow ← head; fast ← head
+    while fast is not null AND fast.next is not null:
+        slow ← slow.next                               # speed 1
+        fast ← fast.next.next                          # speed 2
+        if slow = fast:                                # collision inside the cycle
+            fast ← head
+            while slow ≠ fast:                         # math: they re-meet at the cycle entry
+                slow ← slow.next
+                fast ← fast.next
+            return slow
+    return null                                         # no cycle
+```
+
 ```python,editable
 from typing import Optional
 
@@ -265,28 +282,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function findCycle(head) {
-    let slow = head, fast = head;
-
-    // Phase 1 — detect
-    while (fast !== null && fast.next !== null) {
-        slow = slow.next;
-        fast = fast.next.next;
-        if (slow === fast) {                        // collision inside cycle
-            // Phase 2 — locate start
-            fast = head;
-            while (slow !== fast) {
-                slow = slow.next;
-                fast = fast.next;
-            }
-            return slow;
-        }
-    }
-    return null;                                    // no cycle
-}
-```
-
 ```typescript,editable
 function findCycle(head: ListNode | null): ListNode | null {
     let slow: ListNode | null = head;
@@ -334,31 +329,6 @@ func findCycle(head *ListNode) *ListNode {
         }
     }
     return nil                                      // no cycle
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun findCycle(head: ListNode?): ListNode? {
-        var slow = head
-        var fast = head
-
-        // Phase 1 — detect
-        while (fast != null && fast.next != null) {
-            slow = slow!!.next
-            fast = fast.next!!.next
-            if (slow === fast) {                    // collision inside cycle
-                // Phase 2 — locate start
-                fast = head
-                while (slow !== fast) {
-                    slow = slow!!.next
-                    fast = fast!!.next
-                }
-                return slow
-            }
-        }
-        return null                                 // no cycle
-    }
 }
 ```
 
@@ -596,6 +566,18 @@ Given the **head** of a linked list, write a function to detect if there is a c
 
 <div class="lang-tabs">
 
+```pseudocode
+# Boolean version of Floyd's algorithm — return true on collision, false if fast falls off.
+function detectCycle(head):
+    slow ← head; fast ← head
+    while fast is not null AND fast.next is not null:
+        slow ← slow.next
+        fast ← fast.next.next
+        if slow = fast:
+            return true
+    return false                                       # finite list — no cycle
+```
+
 ```python,editable
 class ListNode:
     def __init__(self, val=0, next=None):
@@ -781,39 +763,6 @@ object DetectCycle {
 }
 ```
 
-```javascript,editable
-class ListNode {
-  constructor(val, next = null) {
-    this.val = val;
-    this.next = next;
-  }
-}
-
-function detectCycle(head) {
-  let slow = head;
-  let fast = head;
-
-  while (fast !== null && fast.next !== null) {
-    slow = slow.next;        // Move slow one step
-    fast = fast.next.next;   // Move fast two steps
-
-    // Strict reference equality — same object means same node → cycle
-    if (slow === fast) return true;
-  }
-
-  return false; // fast exited — no cycle
-}
-
-// Non-cyclic list [5, 7, 3, 10]
-const n1 = new ListNode(5);
-const n2 = new ListNode(7);
-const n3 = new ListNode(3);
-const n4 = new ListNode(10);
-n1.next = n2; n2.next = n3; n3.next = n4;
-
-console.log(detectCycle(n1)); // false
-```
-
 ```typescript,editable
 class ListNode {
   constructor(public val: number, public next: ListNode | null = null) {}
@@ -880,36 +829,6 @@ func main() {
 	n1.Next = n2; n2.Next = n3; n3.Next = n4
 
 	fmt.Println(detectCycle(n1)) // false
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun detectCycle(head: ListNode?): Boolean {
-    var slow = head
-    var fast = head
-
-    while (fast != null && fast.next != null) {
-        slow = slow!!.next        // Move slow one step
-        fast = fast.next!!.next   // Move fast two steps
-
-        // Referential equality (===) — same object means cycle confirmed
-        if (slow === fast) return true
-    }
-
-    return false // fast exited — no cycle
-}
-
-fun main() {
-    // Non-cyclic list [5, 7, 3, 10]
-    val n1 = ListNode(5)
-    val n2 = ListNode(7)
-    val n3 = ListNode(3)
-    val n4 = ListNode(10)
-    n1.next = n2; n2.next = n3; n3.next = n4
-
-    println(detectCycle(n1)) // false
 }
 ```
 
@@ -993,6 +912,37 @@ n3.next -> n2.value: "loop back (X=2)"
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Floyd Phase 1 to detect the loop. Then walk to the loop's tail and null its next pointer.
+function removeLoop(head):
+    if head is null OR head.next is null: return
+
+    slow ← head; fast ← head
+    hasLoop ← false
+    while fast is not null AND fast.next is not null:
+        slow ← slow.next
+        fast ← fast.next.next
+        if slow = fast:
+            hasLoop ← true
+            break
+    if NOT hasLoop: return
+
+    # Find the tail of the loop.
+    if slow = head:
+        # Special case — loop entry is the head itself.
+        while slow.next ≠ head:
+            slow ← slow.next
+    else:
+        # General case — reset fast to head; walk both at speed 1.
+        # They meet at the node JUST BEFORE the loop entry.
+        fast ← head
+        while slow.next ≠ fast.next:
+            slow ← slow.next
+            fast ← fast.next
+
+    slow.next ← null                                   # cut the loop
+```
 
 ```python,editable
 class ListNode:
@@ -1305,61 +1255,6 @@ object RemoveLoop {
 }
 ```
 
-```javascript,editable
-class ListNode {
-  constructor(val, next = null) {
-    this.val = val;
-    this.next = next;
-  }
-}
-
-function removeLoop(head) {
-  if (!head || !head.next) return;
-
-  let slow = head;
-  let fast = head;
-  let hasLoop = false;
-
-  // Phase 1: Floyd's detection
-  while (fast !== null && fast.next !== null) {
-    slow = slow.next;
-    fast = fast.next.next;
-    if (slow === fast) { hasLoop = true; break; }
-  }
-
-  if (!hasLoop) return;
-
-  // Phase 2: find the tail of the loop
-  if (slow === head) {
-    while (slow.next !== head) slow = slow.next;
-  } else {
-    fast = head;
-    while (slow.next !== fast.next) {
-      slow = slow.next;
-      fast = fast.next;
-    }
-  }
-
-  slow.next = null; // Sever the loop
-}
-
-function printList(head) {
-  const parts = [];
-  while (head) { parts.push(head.val); head = head.next; }
-  console.log(parts.join(" -> "));
-}
-
-// List [1, 3, 4] with loop: 4 -> 3 (X=2)
-const n1 = new ListNode(1);
-const n2 = new ListNode(3);
-const n3 = new ListNode(4);
-n1.next = n2; n2.next = n3;
-n3.next = n2; // Create the loop
-
-removeLoop(n1);
-printList(n1); // 1 -> 3 -> 4
-```
-
 ```typescript,editable
 class ListNode {
   constructor(public val: number, public next: ListNode | null = null) {}
@@ -1482,59 +1377,6 @@ func main() {
 
 	removeLoop(n1)
 	printList(n1) // 1 -> 3 -> 4
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun removeLoop(head: ListNode?) {
-    if (head == null || head.next == null) return
-
-    var slow: ListNode? = head
-    var fast: ListNode? = head
-    var hasLoop = false
-
-    // Phase 1: Floyd's detection
-    while (fast != null && fast.next != null) {
-        slow = slow!!.next
-        fast = fast.next!!.next
-        if (slow === fast) { hasLoop = true; break }
-    }
-
-    if (!hasLoop) return
-
-    // Phase 2: find loop tail
-    if (slow === head) {
-        while (slow!!.next !== head) slow = slow.next
-    } else {
-        fast = head
-        while (slow!!.next !== fast!!.next) {
-            slow = slow.next
-            fast = fast.next
-        }
-    }
-
-    slow!!.next = null // Cut the loop
-}
-
-fun printList(head: ListNode?) {
-    var cur = head
-    val parts = mutableListOf<String>()
-    while (cur != null) { parts.add(cur.`val`.toString()); cur = cur.next }
-    println(parts.joinToString(" -> "))
-}
-
-fun main() {
-    // List [1, 3, 4] with loop: 4 -> 3 (X=2)
-    val n1 = ListNode(1)
-    val n2 = ListNode(3)
-    val n3 = ListNode(4)
-    n1.next = n2; n2.next = n3
-    n3.next = n2 // Create the loop
-
-    removeLoop(n1)
-    printList(n1) // 1 -> 3 -> 4
 }
 ```
 

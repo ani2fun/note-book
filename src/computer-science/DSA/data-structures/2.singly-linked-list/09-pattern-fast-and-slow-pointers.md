@@ -130,6 +130,19 @@ Given below is the generic code implementation of the fast and slow pointer trav
 
 <div class="lang-tabs">
 
+```pseudocode
+# Generic fast-and-slow template. slow moves 1, fast moves (n + 1). When fast reaches `end`,
+# slow is parked at the (length / (n + 1))-th node — the "1-out-of-(n+1)" position.
+function findTheSolutionNode(start, end, n):
+    slow ← start; fast ← start
+    while fast is not null AND fast ≠ end AND fast.next is not null:
+        slow ← slow.next                               # 1 step
+        for i from 1 to n + 1:                         # n + 1 steps
+            if fast is null OR fast = end: break
+            fast ← fast.next
+    return slow
+```
+
 ```python,editable
 from typing import Optional
 
@@ -220,20 +233,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function findTheSolutionNode(start, end, n) {
-    let slow = start, fast = start;
-    while (fast !== null && fast !== end && fast.next !== null) {
-        slow = slow.next;
-        for (let i = 0; i < n + 1; i++) {
-            if (fast === null || fast === end) break;
-            fast = fast.next;
-        }
-    }
-    return slow;
-}
-```
-
 ```typescript,editable
 function findTheSolutionNode(start: ListNode | null, end: ListNode | null, n: number): ListNode | null {
     let slow: ListNode | null = start;
@@ -265,24 +264,6 @@ func findTheSolutionNode(start, end *ListNode, n int) *ListNode {
         }
     }
     return slow
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun findTheSolutionNode(start: ListNode?, end: ListNode?, n: Int): ListNode? {
-        var slow = start
-        var fast = start
-        while (fast != null && fast !== end && fast.next != null) {
-            slow = slow!!.next
-            var i = 0
-            while (i < n + 1 && fast != null && fast !== end) {
-                fast = fast.next
-                i++
-            }
-        }
-        return slow
-    }
 }
 ```
 
@@ -424,6 +405,17 @@ The implementation of the fast and slow pointer solution is given as follows.
 
 <div class="lang-tabs">
 
+```pseudocode
+# Find the middle node. Fast = 2 × slow → when fast hits the end, slow is at the midpoint.
+# Even length: returns the SECOND middle.
+function middleNodeSearch(head):
+    slow ← head; fast ← head
+    while fast is not null AND fast.next is not null:
+        slow ← slow.next
+        fast ← fast.next.next
+    return slow
+```
+
 ```python,editable
 from typing import Optional
 
@@ -488,17 +480,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function middleNodeSearch(head) {
-    let slow = head, fast = head;
-    while (fast !== null && fast.next !== null) {
-        slow = slow.next;
-        fast = fast.next.next;
-    }
-    return slow;
-}
-```
-
 ```typescript,editable
 function middleNodeSearch(head: ListNode | null): ListNode | null {
     let slow: ListNode | null = head;
@@ -519,19 +500,6 @@ func middleNodeSearch(head *ListNode) *ListNode {
         fast = fast.Next.Next
     }
     return slow
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun middleNodeSearch(head: ListNode?): ListNode? {
-        var slow = head; var fast = head
-        while (fast != null && fast.next != null) {
-            slow = slow!!.next
-            fast = fast.next!!.next
-        }
-        return slow
-    }
 }
 ```
 
@@ -592,6 +560,16 @@ If there are two middle nodes, return the reference of the second one.
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Same algorithm with explicit step-by-two annotation.
+function middleNodeSearch(head):
+    slow ← head; fast ← head
+    while fast is not null AND fast.next is not null:
+        slow ← slow.next                               # advance slow by one
+        fast ← fast.next.next                          # advance fast by two
+    return slow
+```
 
 ```python,editable
 class ListNode:
@@ -781,37 +759,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-class ListNode {
-  constructor(val, next = null) { this.val = val; this.next = next; }
-}
-
-function middleNodeSearch(head) {
-  let slow = head;
-  let fast = head;
-
-  // fast moves 2 steps per iteration, slow moves 1 —
-  // when fast reaches the end, slow is at the midpoint
-  while (fast !== null && fast.next !== null) {
-    slow = slow.next;        // advance slow by one
-    fast = fast.next.next;   // advance fast by two
-  }
-
-  // slow now sits at the middle (second middle for even-length lists)
-  return slow;
-}
-
-function build(vals) {
-  const dummy = new ListNode(0);
-  let cur = dummy;
-  for (const v of vals) { cur.next = new ListNode(v); cur = cur.next; }
-  return dummy.next;
-}
-
-const head = build([5, 7, 3, 10, 6]);
-console.log(middleNodeSearch(head).val); // expected: 3
-```
-
 ```typescript,editable
 class ListNode {
   constructor(public val: number, public next: ListNode | null = null) {}
@@ -881,37 +828,6 @@ func build(vals []int) *ListNode {
 func main() {
 	head := build([]int{5, 7, 3, 10, 6})
 	fmt.Println(middleNodeSearch(head).Val) // expected: 3
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun middleNodeSearch(head: ListNode?): ListNode? {
-    var slow = head
-    var fast = head
-
-    // fast moves 2 steps per iteration, slow moves 1 —
-    // when fast reaches the end, slow is at the midpoint
-    while (fast != null && fast.next != null) {
-        slow = slow?.next        // advance slow by one
-        fast = fast.next?.next   // advance fast by two
-    }
-
-    // slow now sits at the middle (second middle for even-length lists)
-    return slow
-}
-
-fun build(vararg vals: Int): ListNode? {
-    val dummy = ListNode(0)
-    var cur = dummy
-    for (v in vals) { cur.next = ListNode(v); cur = cur.next!! }
-    return dummy.next
-}
-
-fun main() {
-    val head = build(5, 7, 3, 10, 6)
-    println(middleNodeSearch(head)?.`val`) // expected: 3
 }
 ```
 
@@ -990,6 +906,25 @@ If there is only one middle node, that node should be part of the first half. 
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Split a list into two halves. prevToSlow lets us cut cleanly even on even-length lists.
+function splitListInHalf(head):
+    if head is null OR head.next is null:
+        return [head, null]
+    slow ← head; fast ← head; prevToSlow ← null
+    while fast is not null AND fast.next is not null:
+        prevToSlow ← slow
+        slow ← slow.next
+        fast ← fast.next.next
+    if fast is null:                                  # even length — slow is the 2nd middle
+        secondHalf ← prevToSlow.next
+        prevToSlow.next ← null
+    else:                                              # odd length — slow is the unique middle
+        secondHalf ← slow.next
+        slow.next ← null
+    return [head, secondHalf]
+```
 
 ```python,editable
 from typing import Optional, List
@@ -1125,29 +1060,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function splitListInHalf(head) {
-    if (!head || !head.next) return [head, null];
-
-    let slow = head, fast = head, prevToSlow = null;
-    while (fast !== null && fast.next !== null) {
-        prevToSlow = slow;
-        slow = slow.next;
-        fast = fast.next.next;
-    }
-
-    let secondHalf;
-    if (fast === null) {
-        secondHalf = prevToSlow.next;
-        prevToSlow.next = null;
-    } else {
-        secondHalf = slow.next;
-        slow.next = null;
-    }
-    return [head, secondHalf];
-}
-```
-
 ```typescript,editable
 function splitListInHalf(head: ListNode | null): (ListNode | null)[] {
     if (!head || !head.next) return [head, null];
@@ -1192,33 +1104,6 @@ func splitListInHalf(head *ListNode) [2]*ListNode {
         slow.Next = nil
     }
     return [2]*ListNode{head, secondHalf}
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun splitListInHalf(head: ListNode?): Array<ListNode?> {
-        if (head == null || head.next == null) return arrayOf(head, null)
-
-        var slow: ListNode? = head
-        var fast: ListNode? = head
-        var prevToSlow: ListNode? = null
-        while (fast != null && fast.next != null) {
-            prevToSlow = slow
-            slow = slow!!.next
-            fast = fast.next!!.next
-        }
-
-        val secondHalf: ListNode?
-        if (fast == null) {
-            secondHalf = prevToSlow!!.next
-            prevToSlow.next = null
-        } else {
-            secondHalf = slow!!.next
-            slow.next = null
-        }
-        return arrayOf(head, secondHalf)
-    }
 }
 ```
 
@@ -1303,6 +1188,27 @@ even: "Even length — [1, 2, 3, 4], middles = 2 and 3" {
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Check whether the two halves of the list have equal sum.
+function sumRange(start, end):
+    s ← 0; cur ← start
+    while cur ≠ end:
+        s ← s + cur.val
+        cur ← cur.next
+    return s
+
+function equalHalves(head):
+    if head is null OR head.next is null: return true
+    slow ← head; fast ← head
+    while fast is not null AND fast.next is not null:
+        slow ← slow.next
+        fast ← fast.next.next
+    # Odd length: middle belongs to first half (start second half one past slow).
+    # Even length: slow already marks the start of the second half.
+    secondStart ← slow.next if fast is not null else slow
+    return sumRange(head, secondStart) = sumRange(secondStart, null)
+```
 
 ```python,editable
 from typing import Optional
@@ -1421,27 +1327,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function equalHalves(head) {
-    if (!head || !head.next) return true;
-
-    const sumRange = (start, end) => {
-        let s = 0;
-        for (let cur = start; cur !== end; cur = cur.next) s += cur.val;
-        return s;
-    };
-
-    let slow = head, fast = head;
-    while (fast !== null && fast.next !== null) {
-        slow = slow.next;
-        fast = fast.next.next;
-    }
-
-    const secondStart = (fast !== null) ? slow.next : slow;
-    return sumRange(head, secondStart) === sumRange(secondStart, null);
-}
-```
-
 ```typescript,editable
 function equalHalves(head: ListNode | null): boolean {
     if (!head || !head.next) return true;
@@ -1482,30 +1367,6 @@ func equalHalves(head *ListNode) bool {
     var secondStart *ListNode
     if fast != nil { secondStart = slow.Next } else { secondStart = slow }
     return sumRange(head, secondStart) == sumRange(secondStart, nil)
-}
-```
-
-```kotlin,editable
-class Solution {
-    private fun sumRange(start: ListNode?, end: ListNode?): Int {
-        var s = 0; var cur = start
-        while (cur !== end) { s += cur!!.`val`; cur = cur.next }
-        return s
-    }
-
-    fun equalHalves(head: ListNode?): Boolean {
-        if (head == null || head.next == null) return true
-
-        var slow: ListNode? = head
-        var fast: ListNode? = head
-        while (fast != null && fast.next != null) {
-            slow = slow!!.next
-            fast = fast.next!!.next
-        }
-
-        val secondStart: ListNode? = if (fast != null) slow!!.next else slow
-        return sumRange(head, secondStart) == sumRange(secondStart, null)
-    }
 }
 ```
 
@@ -1558,6 +1419,36 @@ Given the **head** of a singly linked list, write a function to check if the g
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Palindrome check. Find middle, reverse second half in place, compare element-by-element.
+function reverse(head):
+    previous ← null; current ← head
+    while current is not null:
+        nxt ← current.next
+        current.next ← previous
+        previous ← current
+        current ← nxt
+    return previous
+
+function findMiddle(head):
+    slow ← head; fast ← head
+    while fast is not null AND fast.next is not null:
+        slow ← slow.next
+        fast ← fast.next.next
+    return slow
+
+function palindromeChecker(head):
+    if head is null OR head.next is null: return true
+    middle ← findMiddle(head)
+    reversedSecond ← reverse(middle)
+    a ← head; b ← reversedSecond
+    while b is not null:
+        if a.val ≠ b.val: return false
+        a ← a.next
+        b ← b.next
+    return true
+```
 
 ```python,editable
 from typing import Optional
@@ -1724,32 +1615,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function palindromeChecker(head) {
-    if (!head || !head.next) return true;
-
-    const reverse = h => {
-        let prev = null, cur = h;
-        while (cur) { const nxt = cur.next; cur.next = prev; prev = cur; cur = nxt; }
-        return prev;
-    };
-    const findMiddle = h => {
-        let slow = h, fast = h;
-        while (fast !== null && fast.next !== null) { slow = slow.next; fast = fast.next.next; }
-        return slow;
-    };
-
-    const mid = findMiddle(head);
-    const rev = reverse(mid);
-    let a = head, b = rev;
-    while (b !== null) {
-        if (a.val !== b.val) return false;
-        a = a.next; b = b.next;
-    }
-    return true;
-}
-```
-
 ```typescript,editable
 function palindromeChecker(head: ListNode | null): boolean {
     if (!head || !head.next) return true;
@@ -1804,37 +1669,6 @@ func palindromeChecker(head *ListNode) bool {
         a = a.Next; b = b.Next
     }
     return true
-}
-```
-
-```kotlin,editable
-class Solution {
-    private fun reverse(headIn: ListNode?): ListNode? {
-        var prev: ListNode? = null; var cur = headIn
-        while (cur != null) {
-            val nxt = cur.next
-            cur.next = prev
-            prev = cur; cur = nxt
-        }
-        return prev
-    }
-    private fun findMiddle(head: ListNode?): ListNode? {
-        var slow = head; var fast = head
-        while (fast != null && fast.next != null) { slow = slow!!.next; fast = fast.next!!.next }
-        return slow
-    }
-
-    fun palindromeChecker(head: ListNode?): Boolean {
-        if (head == null || head.next == null) return true
-        val mid = findMiddle(head)
-        val rev = reverse(mid)
-        var a: ListNode? = head; var b: ListNode? = rev
-        while (b != null) {
-            if (a!!.`val` != b.`val`) return false
-            a = a.next; b = b.next
-        }
-        return true
-    }
 }
 ```
 

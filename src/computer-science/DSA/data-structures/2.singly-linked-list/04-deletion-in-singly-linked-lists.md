@@ -114,6 +114,13 @@ before -> after: "head = head.next; free old head"
 
 <div class="lang-tabs">
 
+```pseudocode
+function deleteFirstNode(head):
+    if head is null:
+        return null
+    return head.next                                   # advance head; GC reclaims the old head
+```
+
 ```python,editable
 class ListNode:
     def __init__(self, val=0, next=None):
@@ -218,21 +225,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode { constructor(val,next=null){this.val=val;this.next=next;} }
-
-function deleteFirstNode(head) {
-    if (!head) return null;  // Empty list — nothing to delete
-    return head.next;        // Advance head; GC reclaims the old node
-}
-
-const n4=new ListNode(10),n3=new ListNode(3,n4),
-      n2=new ListNode(7,n3),n1=new ListNode(5,n2);
-let head = deleteFirstNode(n1);
-const vals=[]; for(let c=head;c;c=c.next) vals.push(c.val);
-console.log(vals);  // [7, 3, 10]
-```
-
 ```typescript,editable
 class ListNode { constructor(public val:number, public next:ListNode|null=null){} }
 
@@ -265,22 +257,6 @@ func main() {
     n2:=&ListNode{Val:7,Next:n3}; n1:=&ListNode{Val:5,Next:n2}
     head := deleteFirstNode(n1)
     for c:=head;c!=nil;c=c.Next { fmt.Print(c.Val," ") }  // 7 3 10
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun deleteFirstNode(head: ListNode?): ListNode? {
-    if (head == null) return null  // Empty list — nothing to delete
-    return head.next               // Advance head; GC reclaims the old node
-}
-
-fun main() {
-    val n4=ListNode(10); val n3=ListNode(3,n4)
-    val n2=ListNode(7,n3); val n1=ListNode(5,n2)
-    var head: ListNode? = deleteFirstNode(n1)
-    while (head!=null) { print("${head.`val`} "); head=head.next }  // 7 3 10
 }
 ```
 
@@ -333,6 +309,14 @@ Given the **head** of a singly linked list, write a function to delete the first
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Same algorithm — variable rebinding form.
+function deleteFirstNode(head):
+    if head is null: return null
+    head ← head.next                                   # old head unreachable → GC
+    return head
+```
 
 ```python,editable
 class ListNode:
@@ -537,36 +521,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode {
-  constructor(val, next = null) { this.val = val; this.next = next; }
-}
-
-function deleteFirstNode(head) {
-  // If the list is empty, nothing to delete
-  if (head === null) return null;
-  // Advance head — old head is GC'd automatically
-  return head.next;
-}
-
-function build(vals) {
-  const dummy = new ListNode(0);
-  let cur = dummy;
-  for (const v of vals) { cur.next = new ListNode(v); cur = cur.next; }
-  return dummy.next;
-}
-
-function toArr(head) {
-  const res = [];
-  while (head) { res.push(head.val); head = head.next; }
-  return res;
-}
-
-let head = build([5, 7, 3, 10]);
-head = deleteFirstNode(head);
-console.log(toArr(head)); // [7, 3, 10]
-```
-
 ```typescript,editable
 class ListNode {
   constructor(public val: number, public next: ListNode | null = null) {}
@@ -639,36 +593,6 @@ func main() {
 	head := build([]int{5, 7, 3, 10})
 	head = deleteFirstNode(head)
 	fmt.Println(toSlice(head)) // [7 3 10]
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun deleteFirstNode(head: ListNode?): ListNode? {
-    // If the list is empty, nothing to delete
-    if (head == null) return null
-    // Advance head — old head is GC'd automatically
-    return head.next
-}
-
-fun build(vararg vals: Int): ListNode? {
-    val dummy = ListNode(0)
-    var cur = dummy
-    for (v in vals) { cur.next = ListNode(v); cur = cur.next!! }
-    return dummy.next
-}
-
-fun toList(head: ListNode?): List<Int> {
-    val res = mutableListOf<Int>()
-    var cur = head
-    while (cur != null) { res.add(cur.`val`); cur = cur.next }
-    return res
-}
-
-fun main() {
-    val head = deleteFirstNode(build(5, 7, 3, 10))
-    println(toList(head)) // [7, 3, 10]
 }
 ```
 
@@ -1139,6 +1063,20 @@ Given the **head** of a singly linked list, write a function to delete the last 
 
 <div class="lang-tabs">
 
+```pseudocode
+# Walk until current is the tail; previous trails one step behind. Unlink the tail.
+function deleteLastNode(head):
+    if head is null: return null
+    if head.next is null: return null                  # single node → empty after delete
+    current ← head
+    previous ← null
+    while current.next is not null:
+        previous ← current
+        current ← current.next
+    previous.next ← null                               # detach the tail (GC reclaims it)
+    return head
+```
+
 ```python,editable
 class ListNode:
     def __init__(self, val=0, next=None):
@@ -1395,47 +1333,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode {
-  constructor(val, next = null) { this.val = val; this.next = next; }
-}
-
-function deleteLastNode(head) {
-  // Empty list — nothing to delete
-  if (head === null) return null;
-
-  // Single node — deleting it empties the list
-  if (head.next === null) return null;
-
-  let current = head;
-  let previous = null;
-
-  // Walk until current is the last node
-  while (current.next !== null) {
-    previous = current;
-    current = current.next;
-  }
-
-  // Unlink the last node — GC reclaims it
-  previous.next = null;
-  return head;
-}
-
-function build(vals) {
-  const dummy = new ListNode(0); let cur = dummy;
-  for (const v of vals) { cur.next = new ListNode(v); cur = cur.next; }
-  return dummy.next;
-}
-
-function toArr(head) {
-  const res = []; while (head) { res.push(head.val); head = head.next; } return res;
-}
-
-let head = build([5, 7, 3, 10]);
-head = deleteLastNode(head);
-console.log(toArr(head)); // [5, 7, 3]
-```
-
 ```typescript,editable
 class ListNode {
   constructor(public val: number, public next: ListNode | null = null) {}
@@ -1529,48 +1426,6 @@ func main() {
 	head := build([]int{5, 7, 3, 10})
 	head = deleteLastNode(head)
 	fmt.Println(toSlice(head)) // [5 7 3]
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun deleteLastNode(head: ListNode?): ListNode? {
-    // Empty list — nothing to delete
-    if (head == null) return null
-
-    // Single node — deleting it empties the list
-    if (head.next == null) return null
-
-    var current: ListNode = head
-    var previous: ListNode? = null
-
-    // Walk until current is the last node
-    while (current.next != null) {
-        previous = current
-        current = current.next!!
-    }
-
-    // Unlink the last node — GC reclaims it
-    previous?.next = null
-    return head
-}
-
-fun build(vararg vals: Int): ListNode? {
-    val dummy = ListNode(0); var cur = dummy
-    for (v in vals) { cur.next = ListNode(v); cur = cur.next!! }
-    return dummy.next
-}
-
-fun toList(head: ListNode?): List<Int> {
-    val res = mutableListOf<Int>(); var cur = head
-    while (cur != null) { res.add(cur.`val`); cur = cur.next }
-    return res
-}
-
-fun main() {
-    val head = deleteLastNode(build(5, 7, 3, 10))
-    println(toList(head)) // [5, 7, 3]
 }
 ```
 
@@ -2294,6 +2149,22 @@ Given the **head** of a singly linked list and a **data** value, write a functio
 
 <div class="lang-tabs">
 
+```pseudocode
+# Delete the first node matching `data`. Special-case the head; otherwise track predecessor.
+function deleteNodeWithGivenData(head, data):
+    if head is null: return null
+    if head.val = data:                                # head itself matches
+        return head.next
+    current ← head
+    previous ← null
+    while current is not null AND current.val ≠ data:
+        previous ← current
+        current ← current.next
+    if current is null: return head                    # not found — list unchanged
+    previous.next ← current.next                       # bypass the matched node
+    return head
+```
+
 ```python,editable
 class ListNode:
     def __init__(self, val=0, next=None):
@@ -2556,50 +2427,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode {
-  constructor(val, next = null) { this.val = val; this.next = next; }
-}
-
-function deleteNodeWithGivenData(head, data) {
-  // Empty list — nothing to delete
-  if (head === null) return null;
-
-  // Head itself matches — return next; GC reclaims old head
-  if (head.val === data) return head.next;
-
-  let current = head;
-  let previous = null;
-
-  // Search for the first node whose value equals data
-  while (current !== null && current.val !== data) {
-    previous = current;
-    current = current.next;
-  }
-
-  // Data not found — return list unchanged
-  if (current === null) return head;
-
-  // Bypass the matched node
-  previous.next = current.next;
-  return head;
-}
-
-function build(vals) {
-  const dummy = new ListNode(0); let cur = dummy;
-  for (const v of vals) { cur.next = new ListNode(v); cur = cur.next; }
-  return dummy.next;
-}
-
-function toArr(head) {
-  const res = []; while (head) { res.push(head.val); head = head.next; } return res;
-}
-
-let head = build([5, 7, 3, 10]);
-head = deleteNodeWithGivenData(head, 3);
-console.log(toArr(head)); // [5, 7, 10]
-```
-
 ```typescript,editable
 class ListNode {
   constructor(public val: number, public next: ListNode | null = null) {}
@@ -2703,51 +2530,6 @@ func main() {
 }
 ```
 
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun deleteNodeWithGivenData(head: ListNode?, data: Int): ListNode? {
-    // Empty list — nothing to delete
-    if (head == null) return null
-
-    // Head itself matches — return next; GC reclaims old head
-    if (head.`val` == data) return head.next
-
-    var current: ListNode? = head
-    var previous: ListNode? = null
-
-    // Search for the first node whose value equals data
-    while (current != null && current.`val` != data) {
-        previous = current
-        current = current.next
-    }
-
-    // Data not found — return list unchanged
-    if (current == null) return head
-
-    // Bypass the matched node
-    previous?.next = current.next
-    return head
-}
-
-fun build(vararg vals: Int): ListNode? {
-    val dummy = ListNode(0); var cur = dummy
-    for (v in vals) { cur.next = ListNode(v); cur = cur.next!! }
-    return dummy.next
-}
-
-fun toList(head: ListNode?): List<Int> {
-    val res = mutableListOf<Int>(); var cur = head
-    while (cur != null) { res.add(cur.`val`); cur = cur.next }
-    return res
-}
-
-fun main() {
-    val head = deleteNodeWithGivenData(build(5, 7, 3, 10), 3)
-    println(toList(head)) // [5, 7, 10]
-}
-```
-
 ```rust,editable
 #[derive(Debug)]
 struct ListNode {
@@ -2821,6 +2603,25 @@ Given the **head** of a singly linked list and a **data** value, write a functio
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Delete EVERY node matching `data`. First strip the head, then bypass interior runs.
+function deleteNodesWithGivenData(head, data):
+    while head is not null AND head.val = data:        # strip leading matches
+        head ← head.next
+    if head is null: return null
+
+    previous ← head
+    current ← head.next
+    while current is not null:
+        while current is not null AND current.val = data:
+            current ← current.next                     # skip over a run of matches
+        previous.next ← current                        # reconnect predecessor → first keeper
+        previous ← current
+        if current is not null:
+            current ← current.next
+    return head
+```
 
 ```python,editable
 class ListNode:
@@ -3071,45 +2872,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode {
-  constructor(val, next = null) { this.val = val; this.next = next; }
-}
-
-function deleteNodesWithGivenData(head, data) {
-  // Strip matching nodes from the front
-  while (head !== null && head.val === data) head = head.next;
-  if (head === null) return null;
-
-  let previous = head;
-  let current = head.next;
-
-  while (current !== null) {
-    // Skip consecutive matching nodes
-    while (current !== null && current.val === data) current = current.next;
-    previous.next = current;
-    previous = current;
-    if (current !== null) current = current.next;
-  }
-
-  return head;
-}
-
-function build(vals) {
-  const dummy = new ListNode(0); let cur = dummy;
-  for (const v of vals) { cur.next = new ListNode(v); cur = cur.next; }
-  return dummy.next;
-}
-
-function toArr(head) {
-  const res = []; while (head) { res.push(head.val); head = head.next; } return res;
-}
-
-let head = build([5, 7, 3, 10, 3, 12]);
-head = deleteNodesWithGivenData(head, 3);
-console.log(toArr(head)); // [5, 7, 10, 12]
-```
-
 ```typescript,editable
 class ListNode {
   constructor(public val: number, public next: ListNode | null = null) {}
@@ -3202,47 +2964,6 @@ func main() {
 	head := build([]int{5, 7, 3, 10, 3, 12})
 	head = deleteNodesWithGivenData(head, 3)
 	fmt.Println(toSlice(head)) // [5 7 10 12]
-}
-```
-
-```kotlin,editable
-class ListNode(var `val`: Int, var next: ListNode? = null)
-
-fun deleteNodesWithGivenData(head: ListNode?, data: Int): ListNode? {
-    // Strip matching nodes from the front
-    var h = head
-    while (h != null && h.`val` == data) h = h.next
-    if (h == null) return null
-
-    var previous: ListNode = h
-    var current: ListNode? = h.next
-
-    while (current != null) {
-        // Skip consecutive matching nodes
-        while (current != null && current.`val` == data) current = current.next
-        previous.next = current
-        previous = current ?: previous
-        if (current != null) current = current.next
-    }
-
-    return h
-}
-
-fun build(vararg vals: Int): ListNode? {
-    val dummy = ListNode(0); var cur = dummy
-    for (v in vals) { cur.next = ListNode(v); cur = cur.next!! }
-    return dummy.next
-}
-
-fun toList(head: ListNode?): List<Int> {
-    val res = mutableListOf<Int>(); var cur = head
-    while (cur != null) { res.add(cur.`val`); cur = cur.next }
-    return res
-}
-
-fun main() {
-    val head = deleteNodesWithGivenData(build(5, 7, 3, 10, 3, 12), 3)
-    println(toList(head)) // [5, 7, 10, 12]
 }
 ```
 
