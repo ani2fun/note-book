@@ -124,6 +124,37 @@ A clean, language-agnostic skeleton illustrating the search recipe with explicit
 
 <div class="lang-tabs">
 
+```pseudocode
+DIRS ← [(1, 0), (0, 1), (−1, 0), (0, −1)]      # down, right, up, left
+
+function findPath(maze):
+    if maze is empty OR maze[0] is empty:
+        return false
+    return search(maze, 0, 0)
+
+function search(maze, row, col):
+    rows ← length(maze)
+    cols ← length(maze[0])
+
+    # Boundary, obstacle, or already-visited cell.
+    if NOT (0 ≤ row < rows AND 0 ≤ col < cols) OR maze[row][col] ≠ 0:
+        return false
+
+    # Goal cell — bottom-right.
+    if row = rows − 1 AND col = cols − 1:
+        return true
+
+    maze[row][col] ← −1                         # apply: mark visited
+
+    for each (dr, dc) in DIRS:
+        if search(maze, row + dr, col + dc):
+            maze[row][col] ← 0                  # restore on success
+            return true
+
+    maze[row][col] ← 0                          # undo on failure
+    return false
+```
+
 ```python,editable
 from typing import List
 
@@ -288,31 +319,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    findPath(maze) {
-        if (!maze.length || !maze[0].length) return false;
-        return this._search(maze, 0, 0);
-    }
-    _search(maze, row, col) {
-        const rows = maze.length, cols = maze[0].length;
-        if (row < 0 || row >= rows || col < 0 || col >= cols || maze[row][col] !== 0) return false;
-        if (row === rows - 1 && col === cols - 1) return true;
-        maze[row][col] = -1;
-        for (const [dr, dc] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
-            if (this._search(maze, row + dr, col + dc)) {
-                maze[row][col] = 0;
-                return true;
-            }
-        }
-        maze[row][col] = 0;
-        return false;
-    }
-}
-
-console.log(new Solution().findPath([[0, 1, 0], [0, 0, 0], [1, 0, 0]]));
-```
-
 ```typescript,editable
 class Solution {
     findPath(maze: number[][]): boolean {
@@ -373,37 +379,6 @@ func findPath(maze [][]int) bool {
 
 func main() {
     fmt.Println(findPath([][]int{{0, 1, 0}, {0, 0, 0}, {1, 0, 0}}))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun findPath(maze: Array<IntArray>): Boolean {
-        if (maze.isEmpty() || maze[0].isEmpty()) return false
-        return search(maze, 0, 0)
-    }
-
-    private fun search(maze: Array<IntArray>, row: Int, col: Int): Boolean {
-        val rows = maze.size
-        val cols = maze[0].size
-        if (row < 0 || row >= rows || col < 0 || col >= cols || maze[row][col] != 0) return false
-        if (row == rows - 1 && col == cols - 1) return true
-        maze[row][col] = -1
-        val dirs = arrayOf(intArrayOf(1, 0), intArrayOf(0, 1), intArrayOf(-1, 0), intArrayOf(0, -1))
-        for (d in dirs) {
-            if (search(maze, row + d[0], col + d[1])) {
-                maze[row][col] = 0
-                return true
-            }
-        }
-        maze[row][col] = 0
-        return false
-    }
-}
-
-fun main() {
-    val maze = arrayOf(intArrayOf(0, 1, 0), intArrayOf(0, 0, 0), intArrayOf(1, 0, 0))
-    println(Solution().findPath(maze))
 }
 ```
 
@@ -643,6 +618,42 @@ state: "Continue exploring; eventual success → 'DDRDRR'" {
 
 <div class="lang-tabs">
 
+```pseudocode
+DIRS ← [('D', 1, 0), ('R', 0, 1), ('U', −1, 0), ('L', 0, −1)]
+
+function ratInAMaze(maze):
+    if maze is empty OR maze[0] is empty OR maze[0][0] ≠ 0:
+        return ""
+    path ← empty list of characters
+    if search(maze, 0, 0, path):
+        return join(path)
+    return ""
+
+function search(maze, row, col, path):
+    rows ← length(maze)
+    cols ← length(maze[0])
+
+    # Goal reached — bottom-right cell.
+    if row = rows − 1 AND col = cols − 1:
+        return true
+
+    original ← maze[row][col]
+    maze[row][col] ← −1                          # apply: mark visited
+
+    for each (dirChar, dr, dc) in DIRS:
+        nr ← row + dr
+        nc ← col + dc
+        if 0 ≤ nr < rows AND 0 ≤ nc < cols AND maze[nr][nc] = 0:
+            append dirChar to path
+            if search(maze, nr, nc, path):
+                maze[row][col] ← original       # restore on success
+                return true
+            remove last element of path         # undo path step
+
+    maze[row][col] ← original                    # undo visit mark
+    return false
+```
+
 ```python,editable
 from typing import List
 
@@ -844,42 +855,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    constructor() {
-        this.DIRS = [[1, 0, 'D'], [0, 1, 'R'], [-1, 0, 'U'], [0, -1, 'L']];
-    }
-
-    ratInAMaze(maze) {
-        if (!maze.length || !maze[0].length || maze[0][0] !== 0) return "";
-        const path = [];
-        return this._search(maze, 0, 0, path) ? path.join("") : "";
-    }
-
-    _search(maze, row, col, path) {
-        const rows = maze.length, cols = maze[0].length;
-        if (row === rows - 1 && col === cols - 1) return true;
-        const orig = maze[row][col];
-        maze[row][col] = -1;
-        for (const [dr, dc, ch] of this.DIRS) {
-            const nr = row + dr, nc = col + dc;
-            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && maze[nr][nc] === 0) {
-                path.push(ch);
-                if (this._search(maze, nr, nc, path)) {
-                    maze[row][col] = orig;
-                    return true;
-                }
-                path.pop();
-            }
-        }
-        maze[row][col] = orig;
-        return false;
-    }
-}
-
-console.log(new Solution().ratInAMaze([[0,1,1,1],[0,0,1,0],[0,0,1,1],[1,0,0,0]]));
-```
-
 ```typescript,editable
 class Solution {
     private DIRS: [number, number, string][] = [[1, 0, 'D'], [0, 1, 'R'], [-1, 0, 'U'], [0, -1, 'L']];
@@ -956,44 +931,6 @@ func ratInAMaze(maze [][]int) string {
 
 func main() {
     fmt.Println(ratInAMaze([][]int{{0,1,1,1},{0,0,1,0},{0,0,1,1},{1,0,0,0}}))
-}
-```
-
-```kotlin,editable
-class Solution {
-    private val dirs = arrayOf(intArrayOf(1, 0, 'D'.code), intArrayOf(0, 1, 'R'.code),
-                                intArrayOf(-1, 0, 'U'.code), intArrayOf(0, -1, 'L'.code))
-
-    fun ratInAMaze(maze: Array<IntArray>): String {
-        if (maze.isEmpty() || maze[0].isEmpty() || maze[0][0] != 0) return ""
-        val path = StringBuilder()
-        return if (search(maze, 0, 0, path)) path.toString() else ""
-    }
-
-    private fun search(maze: Array<IntArray>, row: Int, col: Int, path: StringBuilder): Boolean {
-        val rows = maze.size; val cols = maze[0].size
-        if (row == rows - 1 && col == cols - 1) return true
-        val orig = maze[row][col]
-        maze[row][col] = -1
-        for (d in dirs) {
-            val nr = row + d[0]; val nc = col + d[1]
-            if (nr in 0 until rows && nc in 0 until cols && maze[nr][nc] == 0) {
-                path.append(d[2].toChar())
-                if (search(maze, nr, nc, path)) {
-                    maze[row][col] = orig
-                    return true
-                }
-                path.deleteCharAt(path.length - 1)
-            }
-        }
-        maze[row][col] = orig
-        return false
-    }
-}
-
-fun main() {
-    val maze = arrayOf(intArrayOf(0,1,1,1), intArrayOf(0,0,1,0), intArrayOf(0,0,1,1), intArrayOf(1,0,0,0))
-    println(Solution().ratInAMaze(maze))
 }
 ```
 
@@ -1145,6 +1082,39 @@ Different starting cells should each get a clean view of the board. If we forget
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+DIRS ← [(1, 0), (−1, 0), (0, 1), (0, −1)]
+
+function wordQuest(board, word):
+    rows ← length(board)
+    cols ← length(board[0])
+    for r from 0 to rows − 1:
+        for c from 0 to cols − 1:
+            if board[r][c] = word[0] AND search(board, word, 1, r, c):
+                return true
+    return false
+
+function search(board, word, index, row, col):
+    if index = length(word):
+        return true                              # entire word matched
+
+    rows ← length(board)
+    cols ← length(board[0])
+    original ← board[row][col]
+    board[row][col] ← '#'                        # mark visited (sentinel)
+
+    for each (dr, dc) in DIRS:
+        nr ← row + dr
+        nc ← col + dc
+        if 0 ≤ nr < rows AND 0 ≤ nc < cols AND board[nr][nc] = word[index]:
+            if search(board, word, index + 1, nr, nc):
+                board[row][col] ← original      # restore on success
+                return true
+
+    board[row][col] ← original                   # undo on failure
+    return false
+```
 
 ```python,editable
 from typing import List
@@ -1344,42 +1314,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    constructor() { this.DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]]; }
-
-    wordQuest(board, word) {
-        const rows = board.length, cols = board[0].length;
-        for (let r = 0; r < rows; r++) {
-            for (let c = 0; c < cols; c++) {
-                if (board[r][c] === word[0] && this._search(board, word, 1, r, c)) return true;
-            }
-        }
-        return false;
-    }
-
-    _search(board, word, index, row, col) {
-        if (index === word.length) return true;
-        const orig = board[row][col];
-        board[row][col] = "#";
-        for (const [dr, dc] of this.DIRS) {
-            const nr = row + dr, nc = col + dc;
-            if (nr >= 0 && nr < board.length && nc >= 0 && nc < board[0].length && board[nr][nc] === word[index]) {
-                if (this._search(board, word, index + 1, nr, nc)) {
-                    board[row][col] = orig;
-                    return true;
-                }
-            }
-        }
-        board[row][col] = orig;
-        return false;
-    }
-}
-
-const board = [['A','B','C','E'], ['S','F','C','S'], ['A','D','E','E']];
-console.log(new Solution().wordQuest(board, "ABCCED"));
-```
-
 ```typescript,editable
 class Solution {
     private DIRS: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -1456,43 +1390,6 @@ func wordQuest(board [][]byte, word string) bool {
 func main() {
     board := [][]byte{{'A','B','C','E'}, {'S','F','C','S'}, {'A','D','E','E'}}
     fmt.Println(wordQuest(board, "ABCCED"))
-}
-```
-
-```kotlin,editable
-class Solution {
-    private val dirs = arrayOf(intArrayOf(1, 0), intArrayOf(-1, 0), intArrayOf(0, 1), intArrayOf(0, -1))
-
-    fun wordQuest(board: Array<CharArray>, word: String): Boolean {
-        for (r in board.indices) {
-            for (c in board[0].indices) {
-                if (board[r][c] == word[0] && search(board, word, 1, r, c)) return true
-            }
-        }
-        return false
-    }
-
-    private fun search(board: Array<CharArray>, word: String, index: Int, row: Int, col: Int): Boolean {
-        if (index == word.length) return true
-        val orig = board[row][col]
-        board[row][col] = '#'
-        for (d in dirs) {
-            val nr = row + d[0]; val nc = col + d[1]
-            if (nr in board.indices && nc in board[0].indices && board[nr][nc] == word[index]) {
-                if (search(board, word, index + 1, nr, nc)) {
-                    board[row][col] = orig
-                    return true
-                }
-            }
-        }
-        board[row][col] = orig
-        return false
-    }
-}
-
-fun main() {
-    val board = arrayOf(charArrayOf('A','B','C','E'), charArrayOf('S','F','C','S'), charArrayOf('A','D','E','E'))
-    println(Solution().wordQuest(board, "ABCCED"))
 }
 ```
 
@@ -1629,6 +1526,41 @@ After fully exploring "what configurations exist with the queen for row 0 in col
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function solveNQueens(n):
+    positions ← list of n entries, each set to −1   # positions[r] = column of queen in row r
+    results ← empty list
+    search(positions, 0, n, results)
+    return results
+
+function search(positions, row, n, results):
+    if row = n:
+        append makeBoard(positions, n) to results
+        return
+    for col from 0 to n − 1:
+        if canPlace(positions, row, col):
+            positions[row] ← col                    # apply
+            search(positions, row + 1, n, results)
+            positions[row] ← −1                     # undo
+
+function canPlace(positions, row, col):
+    # Check every previously-placed queen in rows 0..row-1.
+    for r from 0 to row − 1:
+        if positions[r] = col:
+            return false                            # same column
+        if |positions[r] − col| = row − r:
+            return false                            # same diagonal (Δcol = Δrow)
+    return true
+
+function makeBoard(positions, n):
+    board ← empty list of strings
+    for r from 0 to n − 1:
+        rowStr ← string of n '.' characters
+        rowStr[positions[r]] ← 'Q'
+        append rowStr to board
+    return board
+```
 
 ```python,editable
 from typing import List
@@ -1866,48 +1798,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    solveNQueens(n) {
-        const positions = new Array(n).fill(-1);
-        const results = [];
-        this._search(positions, 0, n, results);
-        return results;
-    }
-
-    _search(positions, row, n, results) {
-        if (row === n) { results.push(this._makeBoard(positions, n)); return; }
-        for (let col = 0; col < n; col++) {
-            if (this._canPlace(positions, row, col)) {
-                positions[row] = col;
-                this._search(positions, row + 1, n, results);
-                positions[row] = -1;
-            }
-        }
-    }
-
-    _canPlace(positions, row, col) {
-        for (let r = 0; r < row; r++) {
-            if (positions[r] === col) return false;
-            if (Math.abs(positions[r] - col) === row - r) return false;
-        }
-        return true;
-    }
-
-    _makeBoard(positions, n) {
-        const board = [];
-        for (let r = 0; r < n; r++) {
-            const row = new Array(n).fill('.');
-            row[positions[r]] = 'Q';
-            board.push(row.join(""));
-        }
-        return board;
-    }
-}
-
-console.log(new Solution().solveNQueens(4));
-```
-
 ```typescript,editable
 class Solution {
     solveNQueens(n: number): string[][] {
@@ -2009,46 +1899,6 @@ func solveNQueens(n int) [][]string {
 
 func main() {
     fmt.Println(solveNQueens(4))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun solveNQueens(n: Int): List<List<String>> {
-        val positions = IntArray(n) { -1 }
-        val results = mutableListOf<List<String>>()
-        search(positions, 0, n, results)
-        return results
-    }
-
-    private fun search(positions: IntArray, row: Int, n: Int, results: MutableList<List<String>>) {
-        if (row == n) { results.add(makeBoard(positions, n)); return }
-        for (col in 0 until n) {
-            if (canPlace(positions, row, col)) {
-                positions[row] = col
-                search(positions, row + 1, n, results)
-                positions[row] = -1
-            }
-        }
-    }
-
-    private fun canPlace(positions: IntArray, row: Int, col: Int): Boolean {
-        for (r in 0 until row) {
-            if (positions[r] == col) return false
-            if (kotlin.math.abs(positions[r] - col) == row - r) return false
-        }
-        return true
-    }
-
-    private fun makeBoard(positions: IntArray, n: Int): List<String> {
-        return (0 until n).map { r ->
-            (0 until n).joinToString("") { c -> if (positions[r] == c) "Q" else "." }
-        }
-    }
-}
-
-fun main() {
-    println(Solution().solveNQueens(4))
 }
 ```
 
@@ -2194,6 +2044,34 @@ If a digit doesn't lead to a solution, we have to clear that cell so we can try 
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function solveSudoku(board):
+    search(board)                                    # mutates board in place
+
+function search(board):
+    for row from 0 to 8:
+        for col from 0 to 8:
+            if board[row][col] = 'X':                # 'X' marks an empty cell
+                for each digit in "123456789":
+                    if isValid(board, row, col, digit):
+                        board[row][col] ← digit      # apply
+                        if search(board):
+                            return true              # propagate success
+                        board[row][col] ← 'X'        # undo
+                return false                         # tried all digits, none worked
+    return true                                       # no empty cell remains → solved
+
+function isValid(board, row, col, digit):
+    # Check row, column, and 3×3 sub-grid for an existing copy of digit.
+    for i from 0 to 8:
+        if board[row][i] = digit: return false      # row clash
+        if board[i][col] = digit: return false      # column clash
+        br ← (row ÷ 3) × 3 + i ÷ 3                  # top-left of the 3×3 sub-grid
+        bc ← (col ÷ 3) × 3 + i mod 3
+        if board[br][bc] = digit: return false      # sub-grid clash
+    return true
+```
 
 ```python,editable
 from typing import List
@@ -2398,41 +2276,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    solveSudoku(board) { this._search(board); }
-
-    _search(board) {
-        for (let row = 0; row < 9; row++) {
-            for (let col = 0; col < 9; col++) {
-                if (board[row][col] === 'X') {
-                    for (const d of "123456789") {
-                        if (this._isValid(board, row, col, d)) {
-                            board[row][col] = d;
-                            if (this._search(board)) return true;
-                            board[row][col] = 'X';
-                        }
-                    }
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    _isValid(board, row, col, d) {
-        for (let i = 0; i < 9; i++) {
-            if (board[row][i] === d) return false;
-            if (board[i][col] === d) return false;
-            const br = ((row / 3) | 0) * 3 + ((i / 3) | 0);
-            const bc = ((col / 3) | 0) * 3 + (i % 3);
-            if (board[br][bc] === d) return false;
-        }
-        return true;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     solveSudoku(board: string[][]): void { this._search(board); }
@@ -2501,41 +2344,6 @@ func searchSudoku(board [][]byte) bool {
 }
 
 func solveSudoku(board [][]byte) { searchSudoku(board) }
-```
-
-```kotlin,editable
-class Solution {
-    fun solveSudoku(board: Array<CharArray>) { search(board) }
-
-    private fun search(board: Array<CharArray>): Boolean {
-        for (row in 0 until 9) {
-            for (col in 0 until 9) {
-                if (board[row][col] == 'X') {
-                    for (d in '1'..'9') {
-                        if (isValid(board, row, col, d)) {
-                            board[row][col] = d
-                            if (search(board)) return true
-                            board[row][col] = 'X'
-                        }
-                    }
-                    return false
-                }
-            }
-        }
-        return true
-    }
-
-    private fun isValid(board: Array<CharArray>, row: Int, col: Int, d: Char): Boolean {
-        for (i in 0 until 9) {
-            if (board[row][i] == d) return false
-            if (board[i][col] == d) return false
-            val br = (row / 3) * 3 + i / 3
-            val bc = (col / 3) * 3 + i % 3
-            if (board[br][bc] == d) return false
-        }
-        return true
-    }
-}
 ```
 
 ```rust,editable

@@ -154,6 +154,31 @@ A clean, language-agnostic implementation showing both pruning styles. We'll use
 
 <div class="lang-tabs">
 
+```pseudocode
+function generateBalanced(n):
+    results ← empty list
+    current ← empty list of characters
+    helper(n, 0, 0, current, results)
+    return results
+
+function helper(n, opens, closes, current, results):
+    # Leaf check: 2n characters means a complete candidate.
+    # Pruning guarantees every reached leaf is balanced.
+    if length(current) = 2 × n:
+        append join(current) to results
+        return
+
+    # Choice-bounded pruning: emit only choices that keep the prefix valid.
+    if opens < n:                           # can still open
+        append "(" to current
+        helper(n, opens + 1, closes, current, results)
+        remove last element of current
+    if closes < opens:                      # can close only if an open is unmatched
+        append ")" to current
+        helper(n, opens, closes + 1, current, results)
+        remove last element of current
+```
+
 ```python,editable
 from typing import List
 
@@ -328,36 +353,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    generateBalanced(n) {
-        const results = [];
-        const current = [];
-        this._helper(n, 0, 0, current, results);
-        return results;
-    }
-
-    _helper(n, opens, closes, current, results) {
-        if (current.length === 2 * n) {
-            results.push(current.join(""));
-            return;
-        }
-        if (opens < n) {
-            current.push("(");
-            this._helper(n, opens + 1, closes, current, results);
-            current.pop();
-        }
-        if (closes < opens) {
-            current.push(")");
-            this._helper(n, opens, closes + 1, current, results);
-            current.pop();
-        }
-    }
-}
-
-console.log(new Solution().generateBalanced(3));
-```
-
 ```typescript,editable
 class Solution {
     generateBalanced(n: number): string[] {
@@ -418,38 +413,6 @@ func generateBalanced(n int) []string {
 
 func main() {
     fmt.Println(generateBalanced(3))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun generateBalanced(n: Int): List<String> {
-        val results = mutableListOf<String>()
-        val current = StringBuilder()
-        helper(n, 0, 0, current, results)
-        return results
-    }
-
-    private fun helper(n: Int, opens: Int, closes: Int, current: StringBuilder, results: MutableList<String>) {
-        if (current.length == 2 * n) {
-            results.add(current.toString())
-            return
-        }
-        if (opens < n) {
-            current.append('(')
-            helper(n, opens + 1, closes, current, results)
-            current.deleteCharAt(current.length - 1)
-        }
-        if (closes < opens) {
-            current.append(')')
-            helper(n, opens, closes + 1, current, results)
-            current.deleteCharAt(current.length - 1)
-        }
-    }
-}
-
-fun main() {
-    println(Solution().generateBalanced(3))
 }
 ```
 
@@ -866,6 +829,27 @@ The recursion's three branches:
 
 <div class="lang-tabs">
 
+```pseudocode
+function targetSumCombinations(arr, target):
+    arr ← sort(arr)                     # canonical order makes the prune-on-overshoot work
+    results ← empty list
+    current ← empty list
+    helper(arr, target, 0, current, results)
+    return results
+
+function helper(arr, remaining, start, current, results):
+    if remaining = 0:                   # leaf — exact sum found
+        append a copy of current to results
+        return
+
+    for i from start to length(arr) − 1:
+        if arr[i] > remaining:
+            break                       # sorted: every larger element also overshoots
+        append arr[i] to current
+        helper(arr, remaining − arr[i], i, current, results)   # i (not i+1): reuse allowed
+        remove last element of current
+```
+
 ```python,editable
 from typing import List
 
@@ -1038,33 +1022,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    targetSumCombinations(arr, target) {
-        arr = [...arr].sort((a, b) => a - b);
-        const results = [];
-        const current = [];
-        this._helper(arr, target, 0, current, results);
-        return results;
-    }
-
-    _helper(arr, remaining, start, current, results) {
-        if (remaining === 0) {
-            results.push([...current]);
-            return;
-        }
-        for (let i = start; i < arr.length; i++) {
-            if (arr[i] > remaining) break;
-            current.push(arr[i]);
-            this._helper(arr, remaining - arr[i], i, current, results);
-            current.pop();
-        }
-    }
-}
-
-console.log(new Solution().targetSumCombinations([2, 3, 5], 8));
-```
-
 ```typescript,editable
 class Solution {
     targetSumCombinations(arr: number[], target: number): number[][] {
@@ -1127,35 +1084,6 @@ func targetSumCombinations(arr []int, target int) [][]int {
 
 func main() {
     fmt.Println(targetSumCombinations([]int{2, 3, 5}, 8))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun targetSumCombinations(arr: IntArray, target: Int): List<List<Int>> {
-        val sorted = arr.sortedArray()
-        val results = mutableListOf<List<Int>>()
-        val current = mutableListOf<Int>()
-        helper(sorted, target, 0, current, results)
-        return results
-    }
-
-    private fun helper(arr: IntArray, remaining: Int, start: Int, current: MutableList<Int>, results: MutableList<List<Int>>) {
-        if (remaining == 0) {
-            results.add(current.toList())
-            return
-        }
-        for (i in start until arr.size) {
-            if (arr[i] > remaining) break
-            current.add(arr[i])
-            helper(arr, remaining - arr[i], i, current, results)
-            current.removeAt(current.size - 1)
-        }
-    }
-}
-
-fun main() {
-    println(Solution().targetSumCombinations(intArrayOf(2, 3, 5), 8))
 }
 ```
 
@@ -1338,6 +1266,36 @@ Each recursion picks one more segment. ✓
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function generateIpAddresses(s):
+    results ← empty list
+    segments ← empty list
+    helper(s, 0, segments, results)
+    return results
+
+function helper(s, index, segments, results):
+    # Leaf — 4 segments built; they must consume *all* of s.
+    if length(segments) = 4:
+        if index = length(s):
+            append join(segments, ".") to results
+        return                                     # constraint-bounded prune
+
+    # Try every viable next segment length (1, 2, or 3).
+    for length from 1 to 3:
+        if index + length > length(s):
+            break                                  # ran off the end
+        part ← substring of s from index to index + length
+        if isValidPart(part):                      # choice-bounded prune
+            append part to segments
+            helper(s, index + length, segments, results)
+            remove last element of segments
+
+function isValidPart(part):
+    if length(part) > 1 AND part[0] = '0':
+        return false                               # leading zero is illegal
+    return 0 ≤ toInteger(part) ≤ 255
+```
 
 ```python,editable
 from typing import List
@@ -1552,41 +1510,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    generateIPAddresses(s) {
-        const results = [];
-        const segments = [];
-        this._helper(s, 0, segments, results);
-        return results;
-    }
-
-    _helper(s, index, segments, results) {
-        if (segments.length === 4) {
-            if (index === s.length) results.push(segments.join("."));
-            return;
-        }
-        for (let length = 1; length <= 3; length++) {
-            if (index + length > s.length) break;
-            const part = s.substring(index, index + length);
-            if (this._isValidPart(part)) {
-                segments.push(part);
-                this._helper(s, index + length, segments, results);
-                segments.pop();
-            }
-        }
-    }
-
-    _isValidPart(part) {
-        if (part.length > 1 && part[0] === "0") return false;
-        const v = parseInt(part, 10);
-        return v >= 0 && v <= 255;
-    }
-}
-
-console.log(new Solution().generateIPAddresses("25525512235"));
-```
-
 ```typescript,editable
 class Solution {
     generateIPAddresses(s: string): string[] {
@@ -1668,43 +1591,6 @@ func generateIPAddresses(s string) []string {
 
 func main() {
     fmt.Println(generateIPAddresses("25525512235"))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun generateIPAddresses(s: String): List<String> {
-        val results = mutableListOf<String>()
-        val segments = mutableListOf<String>()
-        helper(s, 0, segments, results)
-        return results
-    }
-
-    private fun helper(s: String, index: Int, segments: MutableList<String>, results: MutableList<String>) {
-        if (segments.size == 4) {
-            if (index == s.length) results.add(segments.joinToString("."))
-            return
-        }
-        for (length in 1..3) {
-            if (index + length > s.length) break
-            val part = s.substring(index, index + length)
-            if (isValidPart(part)) {
-                segments.add(part)
-                helper(s, index + length, segments, results)
-                segments.removeAt(segments.size - 1)
-            }
-        }
-    }
-
-    private fun isValidPart(part: String): Boolean {
-        if (part.length > 1 && part[0] == '0') return false
-        val v = part.toInt()
-        return v in 0..255
-    }
-}
-
-fun main() {
-    println(Solution().generateIPAddresses("25525512235"))
 }
 ```
 
@@ -1867,6 +1753,24 @@ This is technically *unconditional* — every leaf is a valid permutation. We in
 
 <div class="lang-tabs">
 
+```pseudocode
+function stringPermutations(s):
+    chars ← list of characters of s          # mutable working copy
+    results ← empty list
+    helper(chars, 0, results)
+    return results
+
+function helper(chars, index, results):
+    if index = length(chars):
+        append join(chars) to results
+        return
+
+    for i from index to length(chars) − 1:
+        swap chars[index] and chars[i]       # choose: pin chars[i] at position index
+        helper(chars, index + 1, results)
+        swap chars[index] and chars[i]       # undo: restore order for the next iteration
+```
+
 ```python,editable
 from typing import List
 
@@ -2013,31 +1917,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    stringPermutations(s) {
-        const chars = [...s];
-        const results = [];
-        this._helper(chars, 0, results);
-        return results;
-    }
-
-    _helper(chars, index, results) {
-        if (index === chars.length) {
-            results.push(chars.join(""));
-            return;
-        }
-        for (let i = index; i < chars.length; i++) {
-            [chars[index], chars[i]] = [chars[i], chars[index]];
-            this._helper(chars, index + 1, results);
-            [chars[index], chars[i]] = [chars[i], chars[index]];
-        }
-    }
-}
-
-console.log(new Solution().stringPermutations("abc"));
-```
-
 ```typescript,editable
 class Solution {
     stringPermutations(s: string): string[] {
@@ -2089,33 +1968,6 @@ func stringPermutations(s string) []string {
 
 func main() {
     fmt.Println(stringPermutations("abc"))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun stringPermutations(s: String): List<String> {
-        val chars = s.toCharArray()
-        val results = mutableListOf<String>()
-        helper(chars, 0, results)
-        return results
-    }
-
-    private fun helper(chars: CharArray, index: Int, results: MutableList<String>) {
-        if (index == chars.size) {
-            results.add(String(chars))
-            return
-        }
-        for (i in index until chars.size) {
-            val tmp = chars[index]; chars[index] = chars[i]; chars[i] = tmp
-            helper(chars, index + 1, results)
-            val tmp2 = chars[index]; chars[index] = chars[i]; chars[i] = tmp2
-        }
-    }
-}
-
-fun main() {
-    println(Solution().stringPermutations("abc"))
 }
 ```
 

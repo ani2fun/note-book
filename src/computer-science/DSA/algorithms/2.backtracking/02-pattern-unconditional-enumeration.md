@@ -164,6 +164,24 @@ A clean, language-agnostic implementation of the generic enumeration template �
 
 <div class="lang-tabs">
 
+```pseudocode
+function enumerateAll(n, k):
+    results ← empty list
+    state ← empty list
+    helper(n, k, state, results)
+    return results
+
+function helper(n, k, state, results):
+    if length(state) = n:                # leaf — every complete state is a solution
+        append a copy of state to results
+        return
+
+    for choice from 1 to k:
+        append choice to state           # extend
+        helper(n, k, state, results)     # recurse
+        remove last element of state     # undo
+```
+
 ```python,editable
 from typing import List
 
@@ -319,31 +337,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    enumerateAll(n, k) {
-        const results = [];
-        const state = [];
-        this._helper(n, k, state, results);
-        return results;
-    }
-
-    _helper(n, k, state, results) {
-        if (state.length === n) {
-            results.push([...state]);                       // copy
-            return;
-        }
-        for (let choice = 1; choice <= k; choice++) {
-            state.push(choice);                             // extend
-            this._helper(n, k, state, results);             // recurse
-            state.pop();                                    // undo
-        }
-    }
-}
-
-console.log(new Solution().enumerateAll(2, 2));
-```
-
 ```typescript,editable
 class Solution {
     enumerateAll(n: number, k: number): number[][] {
@@ -397,33 +390,6 @@ func enumerateAll(n, k int) [][]int {
 
 func main() {
     fmt.Println(enumerateAll(2, 2))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun enumerateAll(n: Int, k: Int): List<List<Int>> {
-        val results = mutableListOf<List<Int>>()
-        val state = mutableListOf<Int>()
-        helper(n, k, state, results)
-        return results
-    }
-
-    private fun helper(n: Int, k: Int, state: MutableList<Int>, results: MutableList<List<Int>>) {
-        if (state.size == n) {
-            results.add(state.toList())                    // copy
-            return
-        }
-        for (choice in 1..k) {
-            state.add(choice)                              // extend
-            helper(n, k, state, results)                   // recurse
-            state.removeAt(state.size - 1)                 // undo
-        }
-    }
-}
-
-fun main() {
-    println(Solution().enumerateAll(2, 2))
 }
 ```
 
@@ -679,6 +645,28 @@ state: "...backtrack further, eventually visit all 8 leaves" {
 
 <div class="lang-tabs">
 
+```pseudocode
+function uniqueSubsets(arr):
+    results ← empty list
+    current ← empty list
+    helper(arr, 0, current, results)
+    return results
+
+function helper(arr, index, current, results):
+    # Leaf: every subset is valid; record a copy.
+    if index = length(arr):
+        append a copy of current to results
+        return
+
+    # Choice 1 — include arr[index].
+    append arr[index] to current
+    helper(arr, index + 1, current, results)
+    remove last element of current        # undo
+
+    # Choice 2 — skip arr[index].
+    helper(arr, index + 1, current, results)
+```
+
 ```python,editable
 from typing import List
 
@@ -838,30 +826,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    uniqueSubsets(arr) {
-        const results = [];
-        const current = [];
-        this._helper(arr, 0, current, results);
-        return results;
-    }
-
-    _helper(arr, index, current, results) {
-        if (index === arr.length) {
-            results.push([...current]);
-            return;
-        }
-        current.push(arr[index]);
-        this._helper(arr, index + 1, current, results);
-        current.pop();
-        this._helper(arr, index + 1, current, results);
-    }
-}
-
-console.log(new Solution().uniqueSubsets([1, 2, 3]));
-```
-
 ```typescript,editable
 class Solution {
     uniqueSubsets(arr: number[]): number[][] {
@@ -913,32 +877,6 @@ func uniqueSubsets(arr []int) [][]int {
 
 func main() {
     fmt.Println(uniqueSubsets([]int{1, 2, 3}))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun uniqueSubsets(arr: IntArray): List<List<Int>> {
-        val results = mutableListOf<List<Int>>()
-        val current = mutableListOf<Int>()
-        helper(arr, 0, current, results)
-        return results
-    }
-
-    private fun helper(arr: IntArray, index: Int, current: MutableList<Int>, results: MutableList<List<Int>>) {
-        if (index == arr.size) {
-            results.add(current.toList())
-            return
-        }
-        current.add(arr[index])
-        helper(arr, index + 1, current, results)
-        current.removeAt(current.size - 1)
-        helper(arr, index + 1, current, results)
-    }
-}
-
-fun main() {
-    println(Solution().uniqueSubsets(intArrayOf(1, 2, 3)))
 }
 ```
 
@@ -1111,6 +1049,32 @@ Per-slot branching is either 1 or 2 — bounded by 2. The tree is finite and wal
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function caseTransformations(s):
+    results ← empty list
+    current ← empty list of characters
+    helper(s, 0, current, results)
+    return results
+
+function helper(s, index, current, results):
+    if index = length(s):
+        append join(current) to results
+        return
+
+    ch ← s[index]
+
+    # Always: keep the original character.
+    append ch to current
+    helper(s, index + 1, current, results)
+    remove last element of current
+
+    # Letters branch a second time with toggled case.
+    if ch is a letter:
+        append toggleCase(ch) to current
+        helper(s, index + 1, current, results)
+        remove last element of current
+```
 
 ```python,editable
 from typing import List
@@ -1296,37 +1260,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    caseTransformations(s) {
-        const results = [];
-        const current = [];
-        this._helper(s, 0, current, results);
-        return results;
-    }
-
-    _helper(s, index, current, results) {
-        if (index === s.length) {
-            results.push(current.join(""));
-            return;
-        }
-        const ch = s[index];
-        current.push(ch);
-        this._helper(s, index + 1, current, results);
-        current.pop();
-
-        if (/[a-zA-Z]/.test(ch)) {
-            const toggled = ch === ch.toLowerCase() ? ch.toUpperCase() : ch.toLowerCase();
-            current.push(toggled);
-            this._helper(s, index + 1, current, results);
-            current.pop();
-        }
-    }
-}
-
-console.log(new Solution().caseTransformations("a1b2"));
-```
-
 ```typescript,editable
 class Solution {
     caseTransformations(s: string): string[] {
@@ -1396,39 +1329,6 @@ func caseTransformations(s string) []string {
 
 func main() {
     fmt.Println(caseTransformations("a1b2"))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun caseTransformations(s: String): List<String> {
-        val results = mutableListOf<String>()
-        val current = StringBuilder()
-        helper(s, 0, current, results)
-        return results
-    }
-
-    private fun helper(s: String, index: Int, current: StringBuilder, results: MutableList<String>) {
-        if (index == s.length) {
-            results.add(current.toString())
-            return
-        }
-        val ch = s[index]
-        current.append(ch)
-        helper(s, index + 1, current, results)
-        current.deleteCharAt(current.length - 1)
-
-        if (ch.isLetter()) {
-            val toggled = if (ch.isLowerCase()) ch.uppercaseChar() else ch.lowercaseChar()
-            current.append(toggled)
-            helper(s, index + 1, current, results)
-            current.deleteCharAt(current.length - 1)
-        }
-    }
-}
-
-fun main() {
-    println(Solution().caseTransformations("a1b2"))
 }
 ```
 
@@ -1550,6 +1450,23 @@ Depth `n`, branching factor `k`, every leaf valid. `k^n` total leaves — exactl
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function numberSequence(n, k):
+    results ← empty list
+    current ← empty list
+    helper(n, k, current, results)
+    return results
+
+function helper(n, k, current, results):
+    if length(current) = n:
+        append a copy of current to results
+        return
+    for choice from 1 to k:
+        append choice to current
+        helper(n, k, current, results)
+        remove last element of current
+```
 
 ```python,editable
 from typing import List
@@ -1702,31 +1619,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    numberSequence(n, k) {
-        const results = [];
-        const current = [];
-        this._helper(n, k, current, results);
-        return results;
-    }
-
-    _helper(n, k, current, results) {
-        if (current.length === n) {
-            results.push([...current]);
-            return;
-        }
-        for (let choice = 1; choice <= k; choice++) {
-            current.push(choice);
-            this._helper(n, k, current, results);
-            current.pop();
-        }
-    }
-}
-
-console.log(new Solution().numberSequence(2, 2));
-```
-
 ```typescript,editable
 class Solution {
     numberSequence(n: number, k: number): number[][] {
@@ -1780,33 +1672,6 @@ func numberSequence(n, k int) [][]int {
 
 func main() {
     fmt.Println(numberSequence(2, 2))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun numberSequence(n: Int, k: Int): List<List<Int>> {
-        val results = mutableListOf<List<Int>>()
-        val current = mutableListOf<Int>()
-        helper(n, k, current, results)
-        return results
-    }
-
-    private fun helper(n: Int, k: Int, current: MutableList<Int>, results: MutableList<List<Int>>) {
-        if (current.size == n) {
-            results.add(current.toList())
-            return
-        }
-        for (choice in 1..k) {
-            current.add(choice)
-            helper(n, k, current, results)
-            current.removeAt(current.size - 1)
-        }
-    }
-}
-
-fun main() {
-    println(Solution().numberSequence(2, 2))
 }
 ```
 
@@ -1941,6 +1806,27 @@ flowchart TB
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+PHONE_MAP ← ["", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"]
+
+function phoneCombinations(digits):
+    if digits is empty:
+        return empty list
+    results ← empty list
+    current ← empty list of characters
+    helper(digits, 0, current, results)
+    return results
+
+function helper(digits, index, current, results):
+    if index = length(digits):
+        append join(current) to results
+        return
+    for each letter in PHONE_MAP[digits[index]]:
+        append letter to current
+        helper(digits, index + 1, current, results)
+        remove last element of current
+```
 
 ```python,editable
 from typing import List
@@ -2107,34 +1993,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-const PHONE_MAP = ["", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"];
-
-class Solution {
-    phoneCombinations(digits) {
-        if (!digits) return [];
-        const results = [];
-        const current = [];
-        this._helper(digits, 0, current, results);
-        return results;
-    }
-
-    _helper(digits, index, current, results) {
-        if (index === digits.length) {
-            results.push(current.join(""));
-            return;
-        }
-        for (const letter of PHONE_MAP[+digits[index]]) {
-            current.push(letter);
-            this._helper(digits, index + 1, current, results);
-            current.pop();
-        }
-    }
-}
-
-console.log(new Solution().phoneCombinations("46"));
-```
-
 ```typescript,editable
 const PHONE_MAP: string[] = ["", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"];
 
@@ -2194,36 +2052,6 @@ func phoneCombinations(digits string) []string {
 
 func main() {
     fmt.Println(phoneCombinations("46"))
-}
-```
-
-```kotlin,editable
-val PHONE_MAP = listOf("", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz")
-
-class Solution {
-    fun phoneCombinations(digits: String): List<String> {
-        if (digits.isEmpty()) return emptyList()
-        val results = mutableListOf<String>()
-        val current = StringBuilder()
-        helper(digits, 0, current, results)
-        return results
-    }
-
-    private fun helper(digits: String, index: Int, current: StringBuilder, results: MutableList<String>) {
-        if (index == digits.length) {
-            results.add(current.toString())
-            return
-        }
-        for (letter in PHONE_MAP[digits[index] - '0']) {
-            current.append(letter)
-            helper(digits, index + 1, current, results)
-            current.deleteCharAt(current.length - 1)
-        }
-    }
-}
-
-fun main() {
-    println(Solution().phoneCombinations("46"))
 }
 ```
 

@@ -461,6 +461,20 @@ Here's the full implementation across all 10 languages of this course.
 
 <div class="lang-tabs">
 
+```pseudocode
+PASSWORD ← "0101"
+
+function crackPassword(state):
+    if length(state) = 4:                   # leaf — complete candidate
+        if state = PASSWORD:
+            print "Password cracked:", state
+        return                              # this leaf is done either way
+
+    for digit from 0 to 1:                  # binary PIN — two choices per slot
+        newState ← state + digit
+        crackPassword(newState)             # implicit backtrack on return
+```
+
 ```python,editable
 class Solution:
     PASSWORD: str = "0101"
@@ -586,28 +600,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    constructor() { this.PASSWORD = "0101"; }
-
-    crackPassword(state) {
-        if (state.length === 4) {
-            if (state === this.PASSWORD) {
-                console.log("Password cracked:", state);
-            }
-            return;
-        }
-
-        for (let digit = 0; digit <= 1; digit++) {
-            const newState = state + digit;
-            this.crackPassword(newState);
-        }
-    }
-}
-
-new Solution().crackPassword("");
-```
-
 ```typescript,editable
 class Solution {
     private readonly PASSWORD: string = "0101";
@@ -652,27 +644,6 @@ func crackPassword(state string) {
 
 func main() {
     crackPassword("")
-}
-```
-
-```kotlin,editable
-class Solution {
-    private val password = "0101"
-
-    fun crackPassword(state: String) {
-        if (state.length == 4) {
-            if (state == password) println("Password cracked: $state")
-            return
-        }
-        for (digit in 0..1) {
-            val newState = state + digit
-            crackPassword(newState)
-        }
-    }
-}
-
-fun main() {
-    Solution().crackPassword("")
 }
 ```
 
