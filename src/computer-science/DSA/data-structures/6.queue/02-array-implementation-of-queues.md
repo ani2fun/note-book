@@ -340,6 +340,22 @@ cls: "Queue class" {
 
 <div class="lang-tabs">
 
+```pseudocode
+function Queue(capacity):
+    arr         ← array of size capacity
+    frontIndex  ← 0       # 0 by convention when empty
+    backIndex   ← −1      # −1 by convention when empty
+    currentSize ← 0
+    cap         ← capacity
+
+function size(queue):    stub
+function empty(queue):   stub
+function front(queue):   stub
+function back(queue):    stub
+function enqueue(queue, val): stub
+function dequeue(queue): stub
+```
+
 ```python,editable
 class Queue:
     def __init__(self, capacity: int):
@@ -468,27 +484,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Queue {
-    constructor(capacity) {
-        this.capacity     = capacity;
-        this.arr          = new Array(capacity).fill(0);
-        this.frontIndex   = 0;
-        this.backIndex    = -1;
-        this.currentSize  = 0;
-    }
-    size()        { return 0; }
-    empty()       { return true; }
-    front()       { return -1; }
-    back()        { return -1; }
-    enqueue(val)  { return false; }
-    dequeue()     { return -1; }
-}
-
-const q = new Queue(4);
-console.log("created queue with capacity 4");
-```
-
 ```typescript,editable
 class Queue {
     private capacity:    number;
@@ -537,27 +532,6 @@ func main() {
 }
 ```
 
-```kotlin,editable
-class Queue(private val capacity: Int) {
-    private val arr         = IntArray(capacity)
-    private var frontIndex  = 0
-    private var backIndex   = -1
-    private var currentSize = 0
-
-    fun size():    Int     = 0
-    fun empty():   Boolean = true
-    fun front():   Int     = -1
-    fun back():    Int     = -1
-    fun enqueue(v: Int): Boolean = false
-    fun dequeue(): Int     = -1
-}
-
-fun main() {
-    val q = Queue(4)
-    println("created queue with capacity 4")
-}
-```
-
 ```rust,editable
 pub struct Queue {
     arr:          Vec<i32>,
@@ -603,6 +577,11 @@ The size operation reports the current number of items in the queue. We've alrea
 
 <div class="lang-tabs">
 
+```pseudocode
+function size(queue):
+    return queue.currentSize
+```
+
 ```python,editable
 def size(self):
     return self.current_size
@@ -624,20 +603,12 @@ int size() { return currentSize; }
 def size: Int = currSize
 ```
 
-```javascript,editable
-size() { return this.currentSize; }
-```
-
 ```typescript,editable
 size(): number { return this.currentSize; }
 ```
 
 ```go,editable
 func (q *Queue) Size() int { return q.currSize }
-```
-
-```kotlin,editable
-fun size(): Int = currentSize
 ```
 
 ```rust,editable
@@ -674,6 +645,11 @@ A single field read.
 
 <div class="lang-tabs">
 
+```pseudocode
+function empty(queue):
+    return size(queue) = 0
+```
+
 ```python,editable
 def empty(self):
     return self.size() == 0
@@ -695,20 +671,12 @@ bool empty() { return size() == 0; }
 def empty: Boolean = size == 0
 ```
 
-```javascript,editable
-empty() { return this.size() === 0; }
-```
-
 ```typescript,editable
 empty(): boolean { return this.size() === 0; }
 ```
 
 ```go,editable
 func (q *Queue) Empty() bool { return q.Size() == 0 }
-```
-
-```kotlin,editable
-fun empty(): Boolean = size() == 0
 ```
 
 ```rust,editable
@@ -793,6 +761,12 @@ note -> arr.e1
 
 <div class="lang-tabs">
 
+```pseudocode
+function front(queue):
+    if empty(queue): return −1
+    return queue.arr[queue.frontIndex]
+```
+
 ```python,editable
 def front(self):
     if self.empty(): return -1
@@ -817,10 +791,6 @@ int front() { return empty() ? -1 : arr[frontIndex]; }
 def front: Int = if (empty) -1 else arr(frontIdx)
 ```
 
-```javascript,editable
-front() { return this.empty() ? -1 : this.arr[this.frontIndex]; }
-```
-
 ```typescript,editable
 front(): number { return this.empty() ? -1 : this.arr[this.frontIndex]; }
 ```
@@ -830,10 +800,6 @@ func (q *Queue) Front() int {
     if q.Empty() { return -1 }
     return q.arr[q.frontIndex]
 }
-```
-
-```kotlin,editable
-fun front(): Int = if (empty()) -1 else arr[frontIndex]
 ```
 
 ```rust,editable
@@ -917,6 +883,12 @@ note -> arr.e3
 
 <div class="lang-tabs">
 
+```pseudocode
+function back(queue):
+    if empty(queue): return −1
+    return queue.arr[queue.backIndex]
+```
+
 ```python,editable
 def back(self):
     if self.empty(): return -1
@@ -941,10 +913,6 @@ int back() { return empty() ? -1 : arr[backIndex]; }
 def back: Int = if (empty) -1 else arr(backIdx)
 ```
 
-```javascript,editable
-back() { return this.empty() ? -1 : this.arr[this.backIndex]; }
-```
-
 ```typescript,editable
 back(): number { return this.empty() ? -1 : this.arr[this.backIndex]; }
 ```
@@ -954,10 +922,6 @@ func (q *Queue) Back() int {
     if q.Empty() { return -1 }
     return q.arr[q.backIndex]
 }
-```
-
-```kotlin,editable
-fun back(): Int = if (empty()) -1 else arr[backIndex]
 ```
 
 ```rust,editable
@@ -1038,6 +1002,15 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+function enqueue(queue, val):
+    if queue.currentSize = queue.capacity: return false
+    queue.backIndex           ← (queue.backIndex + 1) % queue.capacity
+    queue.arr[queue.backIndex] ← val
+    queue.currentSize ← queue.currentSize + 1
+    return true
+```
+
 ```python,editable
 def enqueue(self, val):
     if self.current_size == self.capacity: return False
@@ -1087,16 +1060,6 @@ def enqueue(v: Int): Boolean = {
 }
 ```
 
-```javascript,editable
-enqueue(val) {
-    if (this.currentSize === this.capacity) return false;
-    this.backIndex            = (this.backIndex + 1) % this.capacity;
-    this.arr[this.backIndex]  = val;
-    this.currentSize++;
-    return true;
-}
-```
-
 ```typescript,editable
 enqueue(val: number): boolean {
     if (this.currentSize === this.capacity) return false;
@@ -1113,16 +1076,6 @@ func (q *Queue) Enqueue(val int) bool {
     q.backIndex         = (q.backIndex + 1) % q.capacity
     q.arr[q.backIndex]  = val
     q.currSize++
-    return true
-}
-```
-
-```kotlin,editable
-fun enqueue(v: Int): Boolean {
-    if (currentSize == capacity) return false
-    backIndex       = (backIndex + 1) % capacity
-    arr[backIndex]  = v
-    currentSize++
     return true
 }
 ```
@@ -1209,6 +1162,15 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+function dequeue(queue):
+    if empty(queue): return −1
+    val              ← queue.arr[queue.frontIndex]
+    queue.frontIndex ← (queue.frontIndex + 1) % queue.capacity
+    queue.currentSize ← queue.currentSize − 1
+    return val
+```
+
 ```python,editable
 def dequeue(self):
     if self.empty(): return -1
@@ -1258,16 +1220,6 @@ def dequeue: Int = {
 }
 ```
 
-```javascript,editable
-dequeue() {
-    if (this.empty()) return -1;
-    const val        = this.arr[this.frontIndex];
-    this.frontIndex  = (this.frontIndex + 1) % this.capacity;
-    this.currentSize--;
-    return val;
-}
-```
-
 ```typescript,editable
 dequeue(): number {
     if (this.empty()) return -1;
@@ -1285,16 +1237,6 @@ func (q *Queue) Dequeue() int {
     q.frontIndex    = (q.frontIndex + 1) % q.capacity
     q.currSize--
     return val
-}
-```
-
-```kotlin,editable
-fun dequeue(): Int {
-    if (empty()) return -1
-    val v       = arr[frontIndex]
-    frontIndex  = (frontIndex + 1) % capacity
-    currentSize--
-    return v
 }
 ```
 
@@ -1418,6 +1360,30 @@ ring.s5 -> ring.s0: wrap
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function Queue(capacity):
+    arr ← array of size capacity; frontIndex ← 0; backIndex ← −1; currentSize ← 0; cap ← capacity
+
+function size(queue):    return queue.currentSize
+function empty(queue):   return queue.currentSize = 0
+function front(queue):   if empty(queue): return −1  else return queue.arr[queue.frontIndex]
+function back(queue):    if empty(queue): return −1  else return queue.arr[queue.backIndex]
+
+function enqueue(queue, val):
+    if queue.currentSize = queue.capacity: return false
+    queue.backIndex            ← (queue.backIndex + 1) % queue.capacity
+    queue.arr[queue.backIndex] ← val
+    queue.currentSize ← queue.currentSize + 1
+    return true
+
+function dequeue(queue):
+    if empty(queue): return −1
+    val              ← queue.arr[queue.frontIndex]
+    queue.frontIndex ← (queue.frontIndex + 1) % queue.capacity
+    queue.currentSize ← queue.currentSize − 1
+    return val
+```
 
 ```python,editable
 class Queue:
@@ -1621,44 +1587,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Queue {
-    constructor(capacity) {
-        this.capacity     = capacity;
-        this.arr          = new Array(capacity).fill(0);
-        this.frontIndex   = 0;
-        this.backIndex    = -1;
-        this.currentSize  = 0;
-    }
-    size()  { return this.currentSize; }
-    empty() { return this.currentSize === 0; }
-    front() { return this.empty() ? -1 : this.arr[this.frontIndex]; }
-    back()  { return this.empty() ? -1 : this.arr[this.backIndex]; }
-    enqueue(v) {
-        if (this.currentSize === this.capacity) return false;
-        this.backIndex             = (this.backIndex + 1) % this.capacity;
-        this.arr[this.backIndex]   = v;
-        this.currentSize++;
-        return true;
-    }
-    dequeue() {
-        if (this.empty()) return -1;
-        const v          = this.arr[this.frontIndex];
-        this.frontIndex  = (this.frontIndex + 1) % this.capacity;
-        this.currentSize--;
-        return v;
-    }
-}
-
-const q = new Queue(2);
-console.log(q.enqueue(2), q.back());
-console.log(q.enqueue(3), q.front());
-console.log(q.empty());
-console.log(q.dequeue(), q.front());
-console.log(q.enqueue(8), q.enqueue(9));
-console.log(q.empty());
-```
-
 ```typescript,editable
 class Queue {
     private capacity:    number;
@@ -1738,44 +1666,6 @@ func main() {
     fmt.Println(q.Dequeue(), q.Front())
     fmt.Println(q.Enqueue(8), q.Enqueue(9))
     fmt.Println(q.Empty())
-}
-```
-
-```kotlin,editable
-class Queue(private val capacity: Int) {
-    private val arr         = IntArray(capacity)
-    private var frontIndex  = 0
-    private var backIndex   = -1
-    private var currentSize = 0
-
-    fun size():  Int     = currentSize
-    fun empty(): Boolean = currentSize == 0
-    fun front(): Int     = if (empty()) -1 else arr[frontIndex]
-    fun back():  Int     = if (empty()) -1 else arr[backIndex]
-    fun enqueue(v: Int): Boolean {
-        if (currentSize == capacity) return false
-        backIndex       = (backIndex + 1) % capacity
-        arr[backIndex]  = v
-        currentSize++
-        return true
-    }
-    fun dequeue(): Int {
-        if (empty()) return -1
-        val v       = arr[frontIndex]
-        frontIndex  = (frontIndex + 1) % capacity
-        currentSize--
-        return v
-    }
-}
-
-fun main() {
-    val q = Queue(2)
-    println("${q.enqueue(2)} ${q.back()}")
-    println("${q.enqueue(3)} ${q.front()}")
-    println(q.empty())
-    println("${q.dequeue()} ${q.front()}")
-    println("${q.enqueue(8)} ${q.enqueue(9)}")
-    println(q.empty())
 }
 ```
 
