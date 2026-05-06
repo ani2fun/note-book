@@ -138,6 +138,26 @@ Top-right (or bottom-left) is the only valid starting corner. The corner's cell 
 
 <div class="lang-tabs">
 
+```pseudocode
+# Each row sorted ascending, each column sorted ascending. Start at the top-right
+# corner: every move (down or left) eliminates an entire row or column.
+function staircaseSearch(matrix, target):
+    if matrix is empty OR matrix[0] is empty:
+        return false
+    rows ← length(matrix)
+    cols ← length(matrix[0])
+    row ← 0
+    col ← cols − 1                              # start top-right
+    while row < rows AND col ≥ 0:
+        if matrix[row][col] = target:
+            return true
+        if matrix[row][col] < target:
+            row ← row + 1                       # too small — current row's max ruled out
+        else:
+            col ← col − 1                       # too big — current column's min ruled out
+    return false
+```
+
 ```python,editable
 from typing import List
 
@@ -252,25 +272,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    staircaseSearch(matrix, target) {
-        if (!matrix.length || !matrix[0].length) return false;
-        const rows = matrix.length, cols = matrix[0].length;
-        let row = 0, col = cols - 1;
-        while (row < rows && col >= 0) {
-            if (matrix[row][col] === target) return true;
-            if (matrix[row][col] < target) row++;
-            else col--;
-        }
-        return false;
-    }
-}
-
-const m = [[1, 4, 7, 11], [2, 5, 8, 12], [3, 6, 9, 16], [10, 13, 14, 17]];
-console.log(new Solution().staircaseSearch(m, 5));
-```
-
 ```typescript,editable
 class Solution {
     staircaseSearch(matrix: number[][], target: number): boolean {
@@ -317,26 +318,6 @@ func staircaseSearch(matrix [][]int, target int) bool {
 func main() {
     m := [][]int{{1, 4, 7, 11}, {2, 5, 8, 12}, {3, 6, 9, 16}, {10, 13, 14, 17}}
     fmt.Println(staircaseSearch(m, 5))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun staircaseSearch(matrix: Array<IntArray>, target: Int): Boolean {
-        if (matrix.isEmpty() || matrix[0].isEmpty()) return false
-        val rows = matrix.size; val cols = matrix[0].size
-        var row = 0; var col = cols - 1
-        while (row < rows && col >= 0) {
-            if (matrix[row][col] == target) return true
-            if (matrix[row][col] < target) row++ else col--
-        }
-        return false
-    }
-}
-
-fun main() {
-    val m = arrayOf(intArrayOf(1, 4, 7, 11), intArrayOf(2, 5, 8, 12), intArrayOf(3, 6, 9, 16), intArrayOf(10, 13, 14, 17))
-    println(Solution().staircaseSearch(m, 5))
 }
 ```
 

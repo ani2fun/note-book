@@ -123,6 +123,21 @@ Binary search halves the search range until the target is found or the range is 
 
 <div class="lang-tabs">
 
+```pseudocode
+function binarySearch(arr, target):
+    low ← 0
+    high ← length(arr) − 1
+    while low ≤ high:                            # search range is non-empty
+        mid ← low + (high − low) ÷ 2             # avoids overflow on large ranges
+        if arr[mid] = target:
+            return mid
+        if arr[mid] < target:
+            low ← mid + 1                        # target lies in the right half
+        else:
+            high ← mid − 1                       # target lies in the left half
+    return −1                                     # range empty → target absent
+```
+
 ```python,editable
 from typing import List
 
@@ -228,23 +243,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    binarySearch(arr, target) {
-        let low = 0, high = arr.length - 1;
-        while (low <= high) {
-            const mid = low + ((high - low) >> 1);
-            if (arr[mid] === target) return mid;
-            if (arr[mid] < target) low = mid + 1;
-            else high = mid - 1;
-        }
-        return -1;
-    }
-}
-
-console.log(new Solution().binarySearch([1, 3, 5, 7, 9, 11, 13], 9));
-```
-
 ```typescript,editable
 class Solution {
     binarySearch(arr: number[], target: number): number {
@@ -285,24 +283,6 @@ func binarySearch(arr []int, target int) int {
 
 func main() {
     fmt.Println(binarySearch([]int{1, 3, 5, 7, 9, 11, 13}, 9))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun binarySearch(arr: IntArray, target: Int): Int {
-        var low = 0; var high = arr.size - 1
-        while (low <= high) {
-            val mid = low + (high - low) / 2
-            if (arr[mid] == target) return mid
-            if (arr[mid] < target) low = mid + 1 else high = mid - 1
-        }
-        return -1
-    }
-}
-
-fun main() {
-    println(Solution().binarySearch(intArrayOf(1, 3, 5, 7, 9, 11, 13), 9))
 }
 ```
 

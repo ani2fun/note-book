@@ -104,6 +104,19 @@ Comparing with `arr[high]` is unambiguous. If `arr[mid] > arr[high]`, the second
 
 <div class="lang-tabs">
 
+```pseudocode
+function rotatedArrayMinimum(arr):
+    low ← 0
+    high ← length(arr) − 1
+    while low < high:
+        mid ← low + (high − low) ÷ 2
+        if arr[mid] > arr[high]:
+            low ← mid + 1                       # min lies strictly to the right
+        else:
+            high ← mid                          # min is at mid or to the left
+    return low                                   # low = high = index of minimum
+```
+
 ```python,editable
 from typing import List
 
@@ -203,22 +216,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    rotatedArrayMinimum(arr) {
-        let low = 0, high = arr.length - 1;
-        while (low < high) {
-            const mid = low + ((high - low) >> 1);
-            if (arr[mid] > arr[high]) low = mid + 1;
-            else high = mid;
-        }
-        return low;
-    }
-}
-
-console.log(new Solution().rotatedArrayMinimum([4, 5, 6, 1, 2, 3]));
-```
-
 ```typescript,editable
 class Solution {
     rotatedArrayMinimum(arr: number[]): number {
@@ -255,23 +252,6 @@ func rotatedArrayMinimum(arr []int) int {
 
 func main() {
     fmt.Println(rotatedArrayMinimum([]int{4, 5, 6, 1, 2, 3}))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun rotatedArrayMinimum(arr: IntArray): Int {
-        var low = 0; var high = arr.size - 1
-        while (low < high) {
-            val mid = low + (high - low) / 2
-            if (arr[mid] > arr[high]) low = mid + 1 else high = mid
-        }
-        return low
-    }
-}
-
-fun main() {
-    println(Solution().rotatedArrayMinimum(intArrayOf(4, 5, 6, 1, 2, 3)))
 }
 ```
 
@@ -338,6 +318,29 @@ Two iterations to find the target on a 6-element array.
 ## Implementation
 
 <div class="lang-tabs">
+
+```pseudocode
+# Binary-search a rotated sorted array. At each mid, exactly one half is normally sorted;
+# decide which by comparing arr[mid] with arr[low].
+function rotatedArraySearch(arr, target):
+    low ← 0
+    high ← length(arr) − 1
+    while low ≤ high:
+        mid ← low + (high − low) ÷ 2
+        if arr[mid] = target:
+            return mid
+        if arr[mid] ≥ arr[low]:                 # left half [low..mid] is sorted
+            if arr[low] ≤ target < arr[mid]:
+                high ← mid − 1                  # target lies in the sorted left half
+            else:
+                low ← mid + 1
+        else:                                    # right half [mid..high] is sorted
+            if arr[mid] < target ≤ arr[high]:
+                low ← mid + 1
+            else:
+                high ← mid − 1
+    return −1
+```
 
 ```python,editable
 from typing import List
@@ -469,28 +472,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    rotatedArraySearch(arr, target) {
-        let low = 0, high = arr.length - 1;
-        while (low <= high) {
-            const mid = low + ((high - low) >> 1);
-            if (arr[mid] === target) return mid;
-            if (arr[mid] >= arr[low]) {
-                if (arr[low] <= target && target < arr[mid]) high = mid - 1;
-                else low = mid + 1;
-            } else {
-                if (arr[mid] < target && target <= arr[high]) low = mid + 1;
-                else high = mid - 1;
-            }
-        }
-        return -1;
-    }
-}
-
-console.log(new Solution().rotatedArraySearch([4, 5, 6, 1, 2, 3], 2));
-```
-
 ```typescript,editable
 class Solution {
     rotatedArraySearch(arr: number[], target: number): number {
@@ -544,28 +525,6 @@ func rotatedArraySearch(arr []int, target int) int {
 
 func main() {
     fmt.Println(rotatedArraySearch([]int{4, 5, 6, 1, 2, 3}, 2))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun rotatedArraySearch(arr: IntArray, target: Int): Int {
-        var low = 0; var high = arr.size - 1
-        while (low <= high) {
-            val mid = low + (high - low) / 2
-            if (arr[mid] == target) return mid
-            if (arr[mid] >= arr[low]) {
-                if (arr[low] <= target && target < arr[mid]) high = mid - 1 else low = mid + 1
-            } else {
-                if (arr[mid] < target && target <= arr[high]) low = mid + 1 else high = mid - 1
-            }
-        }
-        return -1
-    }
-}
-
-fun main() {
-    println(Solution().rotatedArraySearch(intArrayOf(4, 5, 6, 1, 2, 3), 2))
 }
 ```
 

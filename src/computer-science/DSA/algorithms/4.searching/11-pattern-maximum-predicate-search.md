@@ -68,6 +68,21 @@ Binary-search `x` in `[1, num]`. Predicate: `x * x <= num` (use `x <= num / x` t
 
 <div class="lang-tabs">
 
+```pseudocode
+# Largest integer x such that x² ≤ num. Note the (high − low + 1) ÷ 2 — that's the
+# upper-mid that prevents an infinite loop when low and high are adjacent.
+function calculateSquareRoot(num):
+    if num = 0: return 0
+    low ← 1; high ← num
+    while low < high:
+        mid ← low + (high − low + 1) ÷ 2
+        if mid ≤ num ÷ mid:                     # equivalent to mid² ≤ num, without overflow
+            low ← mid
+        else:
+            high ← mid − 1
+    return low
+```
+
 ```python,editable
 class Solution:
     def calculate_square_root(self, num: int) -> int:
@@ -144,21 +159,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    calculateSquareRoot(num) {
-        if (num === 0) return 0;
-        let low = 1, high = num;
-        while (low < high) {
-            const mid = Math.floor(low + (high - low + 1) / 2);
-            if (mid <= Math.floor(num / mid)) low = mid;
-            else high = mid - 1;
-        }
-        return low;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     calculateSquareRoot(num: number): number {
@@ -185,20 +185,6 @@ func calculateSquareRoot(num int) int {
         if mid <= num/mid { low = mid } else { high = mid - 1 }
     }
     return low
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun calculateSquareRoot(num: Int): Int {
-        if (num == 0) return 0
-        var low = 1; var high = num
-        while (low < high) {
-            val mid = low + (high - low + 1) / 2
-            if (mid <= num / mid) low = mid else high = mid - 1
-        }
-        return low
-    }
 }
 ```
 
@@ -240,6 +226,19 @@ Output: 3   (1 + 2 + 3 = 6; 1 coin left over, not enough for 4th)
 Binary-search `k` in `[0, n]`. Predicate: `k(k+1)/2 <= n`.
 
 <div class="lang-tabs">
+
+```pseudocode
+# Largest k such that 1 + 2 + … + k = k(k+1)/2 ≤ n.
+function buildStaircase(n):
+    low ← 0; high ← n
+    while low < high:
+        mid ← low + (high − low + 1) ÷ 2
+        if mid × (mid + 1) ÷ 2 ≤ n:
+            low ← mid
+        else:
+            high ← mid − 1
+    return low
+```
 
 ```python,editable
 class Solution:
@@ -312,20 +311,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    buildStaircase(n) {
-        let low = 0, high = n;
-        while (low < high) {
-            const mid = Math.floor(low + (high - low + 1) / 2);
-            if (mid * (mid + 1) / 2 <= n) low = mid;
-            else high = mid - 1;
-        }
-        return low;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     buildStaircase(n: number): number {
@@ -350,19 +335,6 @@ func buildStaircase(n int) int {
         if mid*(mid+1)/2 <= n { low = mid } else { high = mid - 1 }
     }
     return low
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun buildStaircase(n: Int): Int {
-        var low = 0; var high = n
-        while (low < high) {
-            val mid = low + (high - low + 1) / 2
-            if (mid.toLong() * (mid + 1) / 2 <= n) low = mid else high = mid - 1
-        }
-        return low
-    }
 }
 ```
 
@@ -403,6 +375,23 @@ Output: 0
 Predicate: "can we cut at least `k` ribbons of length `length`?" — sum of `r // length` for each ribbon. Binary-search `length` in `[1, max(ribbons)]`.
 
 <div class="lang-tabs">
+
+```pseudocode
+# Largest cut length that yields ≥ k ribbons of that length.
+function kRibbons(ribbons, k):
+    low ← 1; high ← max(ribbons)
+    while low < high:
+        mid ← low + (high − low + 1) ÷ 2
+        if canCut(ribbons, mid, k):
+            low ← mid
+        else:
+            high ← mid − 1
+    if canCut(ribbons, low, k): return low
+    return 0
+
+function canCut(ribbons, length, k):
+    return sum over r in ribbons of (r ÷ length) ≥ k
+```
 
 ```python,editable
 from typing import List
@@ -508,25 +497,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    kRibbons(ribbons, k) {
-        let low = 1, high = Math.max(...ribbons);
-        while (low < high) {
-            const mid = Math.floor(low + (high - low + 1) / 2);
-            if (this._canCut(ribbons, mid, k)) low = mid;
-            else high = mid - 1;
-        }
-        return this._canCut(ribbons, low, k) ? low : 0;
-    }
-    _canCut(ribbons, length, k) {
-        let count = 0;
-        for (const r of ribbons) count += Math.floor(r / length);
-        return count >= k;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     kRibbons(ribbons: number[], k: number): number {
@@ -564,24 +534,6 @@ func kRibbons(ribbons []int, k int) int {
     }
     if canCut(ribbons, low, k) { return low }
     return 0
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun kRibbons(ribbons: IntArray, k: Int): Int {
-        var low = 1; var high = ribbons.max()!!
-        while (low < high) {
-            val mid = low + (high - low + 1) / 2
-            if (canCut(ribbons, mid, k)) low = mid else high = mid - 1
-        }
-        return if (canCut(ribbons, low, k)) low else 0
-    }
-    private fun canCut(ribbons: IntArray, length: Int, k: Int): Boolean {
-        var count = 0L
-        for (r in ribbons) count += r / length
-        return count >= k
-    }
 }
 ```
 
@@ -628,6 +580,33 @@ Output: 10.00000
 Binary-search the target water level (scaled to avoid floating-point precision). Predicate: total available excess (after loss) ≥ total deficit. Use integer arithmetic with a scale factor of `1e5`.
 
 <div class="lang-tabs">
+
+```pseudocode
+# Highest target water level achievable when (loss)% is lost on each transfer.
+# We work in scaled integers (× 10⁵) to avoid float comparison in the binary search.
+SCALE ← 10⁵
+
+function equaliseWater(buckets, loss):
+    lossInt ← integer part of loss
+    low ← 0; high ← max(buckets) × SCALE
+    while low < high:
+        mid ← low + (high − low + 1) ÷ 2
+        if canAchieve(buckets, lossInt, mid):
+            low ← mid
+        else:
+            high ← mid − 1
+    return low / SCALE
+
+function canAchieve(buckets, loss, target):
+    excess ← 0; deficit ← 0
+    for each w in buckets:
+        water ← w × SCALE
+        if water > target:
+            excess  ← excess + (water − target) × (100 − loss) ÷ 100   # apply loss on transfer
+        else:
+            deficit ← deficit + (target − water)
+    return excess ≥ deficit
+```
 
 ```python,editable
 from typing import List
@@ -775,37 +754,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    constructor() { this.SCALE = 100000n; }
-
-    equaliseWater(buckets, loss) {
-        const lossInt = BigInt(Math.floor(loss));
-        let low = 0n, high = 0n;
-        for (const b of buckets) {
-            const v = BigInt(b) * this.SCALE;
-            if (v > high) high = v;
-        }
-        while (low < high) {
-            const mid = low + (high - low + 1n) / 2n;
-            if (this._canAchieve(buckets, lossInt, mid)) low = mid;
-            else high = mid - 1n;
-        }
-        return Number(low) / 100000;
-    }
-
-    _canAchieve(buckets, loss, target) {
-        let excess = 0n, deficit = 0n;
-        for (const b of buckets) {
-            const water = BigInt(b) * this.SCALE;
-            if (water > target) excess += (water - target) * (100n - loss) / 100n;
-            else deficit += target - water;
-        }
-        return excess >= deficit;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     private SCALE = 100000n;
@@ -864,32 +812,6 @@ func equaliseWater(buckets []int, loss float64) float64 {
         if canAchieve(buckets, lossInt, mid) { low = mid } else { high = mid - 1 }
     }
     return float64(low) / float64(SCALE)
-}
-```
-
-```kotlin,editable
-class Solution {
-    private val SCALE = 100000L
-
-    fun equaliseWater(buckets: IntArray, loss: Double): Double {
-        val lossInt = loss.toLong()
-        var low = 0L; var high = buckets.map { it.toLong() * SCALE }.max()!!
-        while (low < high) {
-            val mid = low + (high - low + 1) / 2
-            if (canAchieve(buckets, lossInt, mid)) low = mid else high = mid - 1
-        }
-        return low.toDouble() / SCALE
-    }
-
-    private fun canAchieve(buckets: IntArray, loss: Long, target: Long): Boolean {
-        var excess = 0L; var deficit = 0L
-        for (b in buckets) {
-            val water = b.toLong() * SCALE
-            if (water > target) excess += (water - target) * (100 - loss) / 100
-            else deficit += target - water
-        }
-        return excess >= deficit
-    }
 }
 ```
 

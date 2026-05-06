@@ -66,6 +66,19 @@ Just lower bound.
 
 <div class="lang-tabs">
 
+```pseudocode
+# Index where target would be inserted to keep arr sorted = lower bound.
+function searchInsertPosition(arr, target):
+    low ← 0; high ← length(arr)
+    while low < high:
+        mid ← low + (high − low) ÷ 2
+        if arr[mid] < target:
+            low ← mid + 1
+        else:
+            high ← mid
+    return low
+```
+
 ```python,editable
 from typing import List
 
@@ -136,19 +149,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    searchInsertPosition(arr, target) {
-        let low = 0, high = arr.length;
-        while (low < high) {
-            const mid = low + ((high - low) >> 1);
-            if (arr[mid] < target) low = mid + 1; else high = mid;
-        }
-        return low;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     searchInsertPosition(arr: number[], target: number): number {
@@ -172,19 +172,6 @@ func searchInsertPosition(arr []int, target int) int {
         if arr[mid] < target { low = mid + 1 } else { high = mid }
     }
     return low
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun searchInsertPosition(arr: IntArray, target: Int): Int {
-        var low = 0; var high = arr.size
-        while (low < high) {
-            val mid = low + (high - low) / 2
-            if (arr[mid] < target) low = mid + 1 else high = mid
-        }
-        return low
-    }
 }
 ```
 
@@ -229,6 +216,16 @@ Output: [-1, -1]
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# First position = lowerBound(target). Last position = lowerBound(target + 1) − 1.
+function firstAndLastPosition(arr, target):
+    first ← lowerBound(arr, target)
+    if first = length(arr) OR arr[first] ≠ target:
+        return [−1, −1]                         # target absent
+    last ← lowerBound(arr, target + 1) − 1
+    return [first, last]
+```
 
 ```python,editable
 from typing import List
@@ -336,24 +333,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    firstAndLastPosition(arr, target) {
-        const first = this._lowerBound(arr, target);
-        if (first === arr.length || arr[first] !== target) return [-1, -1];
-        return [first, this._lowerBound(arr, target + 1) - 1];
-    }
-    _lowerBound(arr, target) {
-        let low = 0, high = arr.length;
-        while (low < high) {
-            const mid = low + ((high - low) >> 1);
-            if (arr[mid] < target) low = mid + 1; else high = mid;
-        }
-        return low;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     firstAndLastPosition(arr: number[], target: number): number[] {
@@ -388,24 +367,6 @@ func firstAndLastPosition(arr []int, target int) []int {
     first := lowerBound(arr, target)
     if first == len(arr) || arr[first] != target { return []int{-1, -1} }
     return []int{first, lowerBound(arr, target+1) - 1}
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun firstAndLastPosition(arr: IntArray, target: Int): IntArray {
-        val first = lowerBound(arr, target)
-        if (first == arr.size || arr[first] != target) return intArrayOf(-1, -1)
-        return intArrayOf(first, lowerBound(arr, target + 1) - 1)
-    }
-    private fun lowerBound(arr: IntArray, target: Int): Int {
-        var low = 0; var high = arr.size
-        while (low < high) {
-            val mid = low + (high - low) / 2
-            if (arr[mid] < target) low = mid + 1 else high = mid
-        }
-        return low
-    }
 }
 ```
 
@@ -457,6 +418,20 @@ Output: 10
 `lower_bound(target)` gives the smallest index `i` with `arr[i] >= target`. The closest element is either `arr[i]` or `arr[i - 1]` — compare distances.
 
 <div class="lang-tabs">
+
+```pseudocode
+# Closest element to target. The closest must be at lowerBound(target) or just before it.
+function closestElement(arr, target):
+    if arr is empty: return −1
+    idx ← lowerBound(arr, target)
+    if idx = 0:               return arr[0]
+    if idx = length(arr):     return arr[length(arr) − 1]
+    lower ← arr[idx − 1]
+    upper ← arr[idx]
+    if target − lower ≤ upper − target:         # tie → smaller value wins
+        return lower
+    return upper
+```
 
 ```python,editable
 from typing import List
@@ -571,27 +546,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    closestElement(arr, target) {
-        if (!arr.length) return -1;
-        const idx = this._lowerBound(arr, target);
-        if (idx === 0) return arr[0];
-        if (idx === arr.length) return arr[arr.length - 1];
-        const lower = arr[idx - 1], upper = arr[idx];
-        return (target - lower <= upper - target) ? lower : upper;
-    }
-    _lowerBound(arr, target) {
-        let low = 0, high = arr.length;
-        while (low < high) {
-            const mid = low + ((high - low) >> 1);
-            if (arr[mid] < target) low = mid + 1; else high = mid;
-        }
-        return low;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     closestElement(arr: number[], target: number): number {
@@ -633,27 +587,6 @@ func closestElement(arr []int, target int) int {
     lower, upper := arr[idx-1], arr[idx]
     if target-lower <= upper-target { return lower }
     return upper
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun closestElement(arr: IntArray, target: Int): Int {
-        if (arr.isEmpty()) return -1
-        val idx = lowerBound(arr, target)
-        if (idx == 0) return arr[0]
-        if (idx == arr.size) return arr.last()
-        val lower = arr[idx - 1]; val upper = arr[idx]
-        return if (target - lower <= upper - target) lower else upper
-    }
-    private fun lowerBound(arr: IntArray, target: Int): Int {
-        var low = 0; var high = arr.size
-        while (low < high) {
-            val mid = low + (high - low) / 2
-            if (arr[mid] < target) low = mid + 1 else high = mid
-        }
-        return low
-    }
 }
 ```
 
@@ -707,6 +640,25 @@ Output: [8, 10, 12]
 Find lower bound (call it `right`); set `left = right - 1`. Expand outward k times: each step, take whichever side has the closer element.
 
 <div class="lang-tabs">
+
+```pseudocode
+# Two-pointer expansion outward from lowerBound(target).
+function kClosestElements(arr, k, target):
+    if arr is empty OR k ≤ 0:
+        return empty list
+    right ← lowerBound(arr, target)             # first index with arr[i] ≥ target
+    left  ← right − 1
+    repeat k times:
+        if left < 0:
+            right ← right + 1                   # only the right side has elements left
+        else if right ≥ length(arr):
+            left ← left − 1                     # only the left side has elements left
+        else if target − arr[left] ≤ arr[right] − target:
+            left ← left − 1                     # left element is closer (or tied)
+        else:
+            right ← right + 1
+    return arr[left + 1 .. right − 1]           # the k elements just inside the pointers
+```
 
 ```python,editable
 from typing import List
@@ -853,31 +805,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    kClosestElements(arr, k, target) {
-        if (!arr.length || k <= 0) return [];
-        let right = this._lowerBound(arr, target);
-        let left = right - 1;
-        for (let i = 0; i < k; i++) {
-            if (left < 0) right++;
-            else if (right >= arr.length) left--;
-            else if (target - arr[left] <= arr[right] - target) left--;
-            else right++;
-        }
-        return arr.slice(left + 1, right);
-    }
-    _lowerBound(arr, target) {
-        let low = 0, high = arr.length;
-        while (low < high) {
-            const mid = low + ((high - low) >> 1);
-            if (arr[mid] < target) low = mid + 1; else high = mid;
-        }
-        return low;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     kClosestElements(arr: number[], k: number, target: number): number[] {
@@ -923,31 +850,6 @@ func kClosestElements(arr []int, k, target int) []int {
         if left < 0 { right++ } else if right >= len(arr) { left-- } else if target-arr[left] <= arr[right]-target { left-- } else { right++ }
     }
     return append([]int{}, arr[left+1:right]...)
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun kClosestElements(arr: IntArray, k: Int, target: Int): List<Int> {
-        if (arr.isEmpty() || k <= 0) return emptyList()
-        var right = lowerBound(arr, target)
-        var left = right - 1
-        for (i in 0 until k) {
-            if (left < 0) right++
-            else if (right >= arr.size) left--
-            else if (target - arr[left] <= arr[right] - target) left--
-            else right++
-        }
-        return arr.slice((left + 1) until right)
-    }
-    private fun lowerBound(arr: IntArray, target: Int): Int {
-        var low = 0; var high = arr.size
-        while (low < high) {
-            val mid = low + (high - low) / 2
-            if (arr[mid] < target) low = mid + 1 else high = mid
-        }
-        return low
-    }
 }
 ```
 

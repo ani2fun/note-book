@@ -160,6 +160,28 @@ The flattened-index trick: `mid → (mid / M, mid % M)`. Binary search the index
 
 <div class="lang-tabs">
 
+```pseudocode
+# Treat the matrix as one virtual flat array of (rows × cols) sorted elements.
+function binarySearch2D(matrix, target):
+    if matrix is empty OR matrix[0] is empty:
+        return false
+    rows ← length(matrix)
+    cols ← length(matrix[0])
+    low ← 0
+    high ← rows × cols − 1
+    while low ≤ high:
+        mid ← low + (high − low) ÷ 2
+        r ← mid ÷ cols                          # decode flat index → 2D
+        c ← mid mod cols
+        if matrix[r][c] = target:
+            return true
+        if matrix[r][c] < target:
+            low ← mid + 1
+        else:
+            high ← mid − 1
+    return false
+```
+
 ```python,editable
 from typing import List
 
@@ -284,26 +306,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    binarySearch2D(matrix, target) {
-        if (!matrix.length || !matrix[0].length) return false;
-        const rows = matrix.length, cols = matrix[0].length;
-        let low = 0, high = rows * cols - 1;
-        while (low <= high) {
-            const mid = low + ((high - low) >> 1);
-            const r = Math.floor(mid / cols), c = mid % cols;
-            if (matrix[r][c] === target) return true;
-            if (matrix[r][c] < target) low = mid + 1;
-            else high = mid - 1;
-        }
-        return false;
-    }
-}
-
-console.log(new Solution().binarySearch2D([[1, 2, 2, 4], [5, 5, 5, 5], [9, 10, 11, 12]], 11));
-```
-
 ```typescript,editable
 class Solution {
     binarySearch2D(matrix: number[][], target: number): boolean {
@@ -353,28 +355,6 @@ func binarySearch2D(matrix [][]int, target int) bool {
 func main() {
     m := [][]int{{1, 2, 2, 4}, {5, 5, 5, 5}, {9, 10, 11, 12}}
     fmt.Println(binarySearch2D(m, 11))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun binarySearch2D(matrix: Array<IntArray>, target: Int): Boolean {
-        if (matrix.isEmpty() || matrix[0].isEmpty()) return false
-        val rows = matrix.size; val cols = matrix[0].size
-        var low = 0; var high = rows * cols - 1
-        while (low <= high) {
-            val mid = low + (high - low) / 2
-            val r = mid / cols; val c = mid % cols
-            if (matrix[r][c] == target) return true
-            if (matrix[r][c] < target) low = mid + 1 else high = mid - 1
-        }
-        return false
-    }
-}
-
-fun main() {
-    val m = arrayOf(intArrayOf(1, 2, 2, 4), intArrayOf(5, 5, 5, 5), intArrayOf(9, 10, 11, 12))
-    println(Solution().binarySearch2D(m, 11))
 }
 ```
 

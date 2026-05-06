@@ -51,6 +51,12 @@ The count of elements `≤ k` is exactly `upper_bound(arr, k)` — that's the fi
 
 <div class="lang-tabs">
 
+```pseudocode
+# Number of elements ≤ k = upperBound(k) (returns the count, not the index).
+function limitCount(arr, k):
+    return upperBound(arr, k)
+```
+
 ```python,editable
 from typing import List
 
@@ -129,20 +135,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    limitCount(arr, k) { return this._upperBound(arr, k); }
-    _upperBound(arr, target) {
-        let low = 0, high = arr.length;
-        while (low < high) {
-            const mid = low + ((high - low) >> 1);
-            if (arr[mid] <= target) low = mid + 1; else high = mid;
-        }
-        return low;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     limitCount(arr: number[], k: number): number { return this._upperBound(arr, k); }
@@ -170,20 +162,6 @@ func upperBound(arr []int, target int) int {
 }
 
 func limitCount(arr []int, k int) int { return upperBound(arr, k) }
-```
-
-```kotlin,editable
-class Solution {
-    fun limitCount(arr: IntArray, k: Int): Int = upperBound(arr, k)
-    private fun upperBound(arr: IntArray, target: Int): Int {
-        var low = 0; var high = arr.size
-        while (low < high) {
-            val mid = low + (high - low) / 2
-            if (arr[mid] <= target) low = mid + 1 else high = mid
-        }
-        return low
-    }
-}
 ```
 
 ```rust,editable
@@ -225,6 +203,15 @@ Output: -1
 `upper_bound(arr, 0)` returns the first index where `arr[i] > 0` — exactly the first positive element. Return `-1` if it's `n`.
 
 <div class="lang-tabs">
+
+```pseudocode
+# First index with arr[i] > 0 = upperBound(0). Returns −1 if no positive element.
+function positiveIndex(arr):
+    idx ← upperBound(arr, 0)
+    if idx < length(arr):
+        return idx
+    return −1
+```
 
 ```python,editable
 from typing import List
@@ -317,23 +304,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    positiveIndex(arr) {
-        const idx = this._upperBound(arr, 0);
-        return idx < arr.length ? idx : -1;
-    }
-    _upperBound(arr, target) {
-        let low = 0, high = arr.length;
-        while (low < high) {
-            const mid = low + ((high - low) >> 1);
-            if (arr[mid] <= target) low = mid + 1; else high = mid;
-        }
-        return low;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     positiveIndex(arr: number[]): number {
@@ -367,23 +337,6 @@ func positiveIndex(arr []int) int {
     idx := ub(arr, 0)
     if idx < len(arr) { return idx }
     return -1
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun positiveIndex(arr: IntArray): Int {
-        val idx = upperBound(arr, 0)
-        return if (idx < arr.size) idx else -1
-    }
-    private fun upperBound(arr: IntArray, target: Int): Int {
-        var low = 0; var high = arr.size
-        while (low < high) {
-            val mid = low + (high - low) / 2
-            if (arr[mid] <= target) low = mid + 1 else high = mid
-        }
-        return low
-    }
 }
 ```
 
@@ -429,6 +382,19 @@ Output: [-1]
 Run `upper_bound` for each query. Return `-1` if the result is `n`.
 
 <div class="lang-tabs">
+
+```pseudocode
+# For each query q, the strict ceiling of q in arr = upperBound(q). −1 if past the end.
+function ceilingIndex(arr, queries):
+    result ← empty list
+    for each q in queries:
+        idx ← upperBound(arr, q)
+        if idx < length(arr):
+            append idx to result
+        else:
+            append −1 to result
+    return result
+```
 
 ```python,editable
 from typing import List
@@ -539,25 +505,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    ceilingIndex(arr, queries) {
-        return queries.map(q => {
-            const idx = this._upperBound(arr, q);
-            return idx < arr.length ? idx : -1;
-        });
-    }
-    _upperBound(arr, target) {
-        let low = 0, high = arr.length;
-        while (low < high) {
-            const mid = low + ((high - low) >> 1);
-            if (arr[mid] <= target) low = mid + 1; else high = mid;
-        }
-        return low;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     ceilingIndex(arr: number[], queries: number[]): number[] {
@@ -596,25 +543,6 @@ func ceilingIndex(arr, queries []int) []int {
         if idx < len(arr) { result[i] = idx } else { result[i] = -1 }
     }
     return result
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun ceilingIndex(arr: IntArray, queries: IntArray): List<Int> {
-        return queries.map { q ->
-            val idx = upperBound(arr, q)
-            if (idx < arr.size) idx else -1
-        }
-    }
-    private fun upperBound(arr: IntArray, target: Int): Int {
-        var low = 0; var high = arr.size
-        while (low < high) {
-            val mid = low + (high - low) / 2
-            if (arr[mid] <= target) low = mid + 1 else high = mid
-        }
-        return low
-    }
 }
 ```
 
@@ -662,6 +590,17 @@ Output: -1
 The condition `arr[i] - arr[0] > delta` is `arr[i] > arr[0] + delta`. So `upper_bound(arr, arr[0] + delta)` gives the answer.
 
 <div class="lang-tabs">
+
+```pseudocode
+# First index whose value exceeds arr[0] + delta = upperBound(arr[0] + delta).
+function breakingIndex(arr, delta):
+    if arr is empty: return −1
+    target ← arr[0] + delta
+    idx ← upperBound(arr, target)
+    if idx < length(arr):
+        return idx
+    return −1
+```
 
 ```python,editable
 from typing import List
@@ -764,25 +703,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    breakingIndex(arr, delta) {
-        if (!arr.length) return -1;
-        const target = arr[0] + delta;
-        const idx = this._upperBound(arr, target);
-        return idx < arr.length ? idx : -1;
-    }
-    _upperBound(arr, target) {
-        let low = 0, high = arr.length;
-        while (low < high) {
-            const mid = low + ((high - low) >> 1);
-            if (arr[mid] <= target) low = mid + 1; else high = mid;
-        }
-        return low;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     breakingIndex(arr: number[], delta: number): number {
@@ -820,25 +740,6 @@ func breakingIndex(arr []int, delta int) int {
     idx := ub3(arr, target)
     if idx < len(arr) { return idx }
     return -1
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun breakingIndex(arr: IntArray, delta: Int): Int {
-        if (arr.isEmpty()) return -1
-        val target = arr[0] + delta
-        val idx = upperBound(arr, target)
-        return if (idx < arr.size) idx else -1
-    }
-    private fun upperBound(arr: IntArray, target: Int): Int {
-        var low = 0; var high = arr.size
-        while (low < high) {
-            val mid = low + (high - low) / 2
-            if (arr[mid] <= target) low = mid + 1 else high = mid
-        }
-        return low
-    }
 }
 ```
 

@@ -75,6 +75,30 @@ Predicate `can_reach(speed)`: simulate the rides; for the last leg, partial time
 
 <div class="lang-tabs">
 
+```pseudocode
+# Smallest integer speed s such that the trip can be finished within `hour` hours.
+function punctualArrivalSpeed(distance, hour):
+    low ← 1; high ← 10⁷
+    while low < high:
+        mid ← low + (high − low) ÷ 2
+        if canReach(distance, hour, mid):
+            high ← mid                          # mid works → look for smaller
+        else:
+            low ← mid + 1
+    if canReach(distance, hour, low): return low
+    return −1                                    # impossible
+
+function canReach(distance, hour, speed):
+    total ← 0
+    for i from 0 to length(distance) − 1:
+        t ← distance[i] / speed
+        if i < length(distance) − 1:
+            total ← total + ceil(t)             # all but last leg waste fractional hour
+        else:
+            total ← total + t
+    return total ≤ hour
+```
+
 ```python,editable
 import math
 from typing import List
@@ -198,28 +222,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    punctualArrivalSpeed(distance, hour) {
-        let low = 1, high = 1e7;
-        while (low < high) {
-            const mid = Math.floor(low + (high - low) / 2);
-            if (this._canReach(distance, hour, mid)) high = mid;
-            else low = mid + 1;
-        }
-        return this._canReach(distance, hour, low) ? low : -1;
-    }
-    _canReach(distance, hour, speed) {
-        let total = 0;
-        for (let i = 0; i < distance.length; i++) {
-            const t = distance[i] / speed;
-            total += (i < distance.length - 1) ? Math.ceil(t) : t;
-        }
-        return total <= hour;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     punctualArrivalSpeed(distance: number[], hour: number): number {
@@ -264,29 +266,6 @@ func punctualArrivalSpeed(distance []int, hour float64) int {
     }
     if canReach(distance, hour, low) { return low }
     return -1
-}
-```
-
-```kotlin,editable
-import kotlin.math.ceil
-
-class Solution {
-    fun punctualArrivalSpeed(distance: IntArray, hour: Double): Int {
-        var low = 1; var high = 10_000_000
-        while (low < high) {
-            val mid = low + (high - low) / 2
-            if (canReach(distance, hour, mid)) high = mid else low = mid + 1
-        }
-        return if (canReach(distance, hour, low)) low else -1
-    }
-    private fun canReach(distance: IntArray, hour: Double, speed: Int): Boolean {
-        var total = 0.0
-        for (i in distance.indices) {
-            val t = distance[i].toDouble() / speed
-            total += if (i < distance.size - 1) ceil(t) else t
-        }
-        return total <= hour
-    }
 }
 ```
 
@@ -337,6 +316,26 @@ Output: 1
 Predicate: "can we achieve max-bag-size = penalty?" — a bag of size `b > penalty` needs `(b - 1) // penalty` splits. Sum and check against `maxOperations`. Binary-search penalty in `[1, max(bags)]`.
 
 <div class="lang-tabs">
+
+```pseudocode
+# Smallest penalty p such that splitting every bag into pieces of size ≤ p uses ≤ maxOps splits.
+function penaltyWithBalls(bags, maxOperations):
+    low ← 1; high ← max(bags)
+    while low < high:
+        mid ← low + (high − low) ÷ 2
+        if canAchieve(bags, maxOperations, mid):
+            high ← mid
+        else:
+            low ← mid + 1
+    return low
+
+function canAchieve(bags, maxOps, penalty):
+    ops ← 0
+    for each b in bags:
+        if b > penalty:
+            ops ← ops + (b − 1) ÷ penalty       # number of cuts needed for this bag
+    return ops ≤ maxOps
+```
 
 ```python,editable
 from typing import List
@@ -446,25 +445,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    penaltyWithBalls(bags, maxOperations) {
-        let low = 1, high = Math.max(...bags);
-        while (low < high) {
-            const mid = low + ((high - low) >> 1);
-            if (this._canAchieve(bags, maxOperations, mid)) high = mid;
-            else low = mid + 1;
-        }
-        return low;
-    }
-    _canAchieve(bags, maxOps, penalty) {
-        let ops = 0;
-        for (const b of bags) if (b > penalty) ops += Math.floor((b - 1) / penalty);
-        return ops <= maxOps;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     penaltyWithBalls(bags: number[], maxOperations: number): number {
@@ -501,24 +481,6 @@ func penaltyWithBalls(bags []int, maxOperations int) int {
         if canAchieve(bags, maxOperations, mid) { high = mid } else { low = mid + 1 }
     }
     return low
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun penaltyWithBalls(bags: IntArray, maxOperations: Int): Int {
-        var low = 1; var high = bags.max()!!
-        while (low < high) {
-            val mid = low + (high - low) / 2
-            if (canAchieve(bags, maxOperations, mid)) high = mid else low = mid + 1
-        }
-        return low
-    }
-    private fun canAchieve(bags: IntArray, maxOps: Int, penalty: Int): Boolean {
-        var ops = 0
-        for (b in bags) if (b > penalty) ops += (b - 1) / penalty
-        return ops <= maxOps
-    }
 }
 ```
 
@@ -565,6 +527,29 @@ Output: 18
 Predicate: "can we ship within `days` days at capacity `cap`?" — greedy: sum weights into a bucket; when adding next would exceed `cap`, start a new day. Count days. Binary-search `cap` in `[max(weights), sum(weights)]`.
 
 <div class="lang-tabs">
+
+```pseudocode
+# Smallest capacity that lets the cargo ship in ≤ `days` days.
+function minimumShippingCapacity(weights, days):
+    low ← max(weights)                          # capacity must hold the heaviest single package
+    high ← sum(weights)                          # one-day extreme: ship everything at once
+    while low < high:
+        mid ← low + (high − low) ÷ 2
+        if canShip(weights, days, mid):
+            high ← mid
+        else:
+            low ← mid + 1
+    return low
+
+function canShip(weights, days, cap):
+    d ← 1; current ← 0
+    for each w in weights:
+        if current + w > cap:                   # this package starts a new day
+            d ← d + 1
+            current ← 0
+        current ← current + w
+    return d ≤ days
+```
 
 ```python,editable
 from typing import List
@@ -688,28 +673,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    minimumShippingCapacity(weights, days) {
-        let low = Math.max(...weights), high = weights.reduce((a, b) => a + b, 0);
-        while (low < high) {
-            const mid = low + ((high - low) >> 1);
-            if (this._canShip(weights, days, mid)) high = mid;
-            else low = mid + 1;
-        }
-        return low;
-    }
-    _canShip(weights, days, cap) {
-        let d = 1, cur = 0;
-        for (const w of weights) {
-            if (cur + w > cap) { d++; cur = 0; }
-            cur += w;
-        }
-        return d <= days;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     minimumShippingCapacity(weights: number[], days: number): number {
@@ -752,27 +715,6 @@ func minimumShippingCapacity(weights []int, days int) int {
         if canShip(weights, days, mid) { high = mid } else { low = mid + 1 }
     }
     return low
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun minimumShippingCapacity(weights: IntArray, days: Int): Int {
-        var low = weights.max()!!; var high = weights.sum()
-        while (low < high) {
-            val mid = low + (high - low) / 2
-            if (canShip(weights, days, mid)) high = mid else low = mid + 1
-        }
-        return low
-    }
-    private fun canShip(weights: IntArray, days: Int, cap: Int): Boolean {
-        var d = 1; var cur = 0
-        for (w in weights) {
-            if (cur + w > cap) { d++; cur = 0 }
-            cur += w
-        }
-        return d <= days
-    }
 }
 ```
 
@@ -823,6 +765,22 @@ Output: 5
 Predicate: "in time `t`, can we complete `totalTrips`?" — each plane finishes `t / times[i]` trips. Sum and check ≥ totalTrips. Binary-search `t` in `[0, min(times) * totalTrips]`.
 
 <div class="lang-tabs">
+
+```pseudocode
+# Smallest time t such that the buses (with periods `times`) collectively run ≥ totalTrips trips.
+function tripCompletionFrenzy(times, totalTrips):
+    low ← 0; high ← max(times) × totalTrips     # upper bound: slowest bus alone
+    while low < high:
+        mid ← low + (high − low) ÷ 2
+        if canComplete(times, totalTrips, mid):
+            high ← mid
+        else:
+            low ← mid + 1
+    return low
+
+function canComplete(times, totalTrips, time):
+    return sum over t in times of (time ÷ t) ≥ totalTrips
+```
 
 ```python,editable
 from typing import List
@@ -930,25 +888,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    tripCompletionFrenzy(times, totalTrips) {
-        let low = 0n, high = BigInt(Math.max(...times)) * BigInt(totalTrips);
-        while (low < high) {
-            const mid = low + (high - low) / 2n;
-            if (this._canComplete(times, totalTrips, mid)) high = mid;
-            else low = mid + 1n;
-        }
-        return Number(low);
-    }
-    _canComplete(times, totalTrips, time) {
-        let completed = 0n;
-        for (const t of times) completed += time / BigInt(t);
-        return completed >= BigInt(totalTrips);
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     tripCompletionFrenzy(times: number[], totalTrips: number): number {
@@ -987,24 +926,6 @@ func tripCompletionFrenzy(times []int, totalTrips int) int64 {
         if canComplete(times, totalTrips, mid) { high = mid } else { low = mid + 1 }
     }
     return low
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun tripCompletionFrenzy(times: IntArray, totalTrips: Int): Long {
-        var low = 0L; var high = times.max()!!.toLong() * totalTrips
-        while (low < high) {
-            val mid = low + (high - low) / 2
-            if (canComplete(times, totalTrips, mid)) high = mid else low = mid + 1
-        }
-        return low
-    }
-    private fun canComplete(times: IntArray, totalTrips: Int, time: Long): Boolean {
-        var completed = 0L
-        for (t in times) completed += time / t
-        return completed >= totalTrips
-    }
 }
 ```
 

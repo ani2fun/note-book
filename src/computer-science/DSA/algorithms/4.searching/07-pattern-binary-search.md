@@ -81,6 +81,23 @@ Linear scan over `attempts`; binary-search each one against `recoveryCodes`. Tot
 
 <div class="lang-tabs">
 
+```pseudocode
+function recoveryValidation(recoveryCodes, attempts):
+    for each attempt in attempts:
+        if binarySearch(recoveryCodes, attempt) ≠ −1:
+            return true                         # any single match unlocks
+    return false
+
+function binarySearch(arr, target):
+    low ← 0; high ← length(arr) − 1
+    while low ≤ high:
+        mid ← low + (high − low) ÷ 2
+        if arr[mid] = target: return mid
+        if arr[mid] < target: low ← mid + 1
+        else: high ← mid − 1
+    return −1
+```
+
 ```python,editable
 from typing import List
 
@@ -181,23 +198,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    recoveryValidation(codes, attempts) {
-        return attempts.some(a => this._binarySearch(codes, a) !== -1);
-    }
-    _binarySearch(arr, target) {
-        let low = 0, high = arr.length - 1;
-        while (low <= high) {
-            const mid = low + ((high - low) >> 1);
-            if (arr[mid] === target) return mid;
-            if (arr[mid] < target) low = mid + 1; else high = mid - 1;
-        }
-        return -1;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     recoveryValidation(codes: number[], attempts: number[]): boolean {
@@ -231,23 +231,6 @@ func binarySearch(arr []int, target int) int {
 func recoveryValidation(codes, attempts []int) bool {
     for _, a := range attempts { if binarySearch(codes, a) != -1 { return true } }
     return false
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun recoveryValidation(codes: IntArray, attempts: IntArray): Boolean =
-        attempts.any { binarySearch(codes, it) != -1 }
-
-    private fun binarySearch(arr: IntArray, target: Int): Int {
-        var low = 0; var high = arr.size - 1
-        while (low <= high) {
-            val mid = low + (high - low) / 2
-            if (arr[mid] == target) return mid
-            if (arr[mid] < target) low = mid + 1 else high = mid - 1
-        }
-        return -1
-    }
 }
 ```
 
@@ -301,6 +284,18 @@ Output: -1
 The skeleton is identical to plain binary search — only the comparison logic flips. In ascending order: `arr[mid] < target` means "look right." In descending order: `arr[mid] < target` means "look *left*" (because larger values are on the left).
 
 <div class="lang-tabs">
+
+```pseudocode
+# Binary search on a descending array — flip the comparisons.
+function reverseBinarySearch(arr, target):
+    low ← 0; high ← length(arr) − 1
+    while low ≤ high:
+        mid ← low + (high − low) ÷ 2
+        if arr[mid] = target: return mid
+        if arr[mid] < target: high ← mid − 1   # smaller value → larger ones lie LEFT
+        else: low ← mid + 1                     # larger value → smaller ones lie RIGHT
+    return −1
+```
 
 ```python,editable
 from typing import List
@@ -382,20 +377,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    reverseBinarySearch(arr, target) {
-        let low = 0, high = arr.length - 1;
-        while (low <= high) {
-            const mid = low + ((high - low) >> 1);
-            if (arr[mid] === target) return mid;
-            if (arr[mid] < target) high = mid - 1; else low = mid + 1;
-        }
-        return -1;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     reverseBinarySearch(arr: number[], target: number): number {
@@ -421,20 +402,6 @@ func reverseBinarySearch(arr []int, target int) int {
         if arr[mid] < target { high = mid - 1 } else { low = mid + 1 }
     }
     return -1
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun reverseBinarySearch(arr: IntArray, target: Int): Int {
-        var low = 0; var high = arr.size - 1
-        while (low <= high) {
-            val mid = low + (high - low) / 2
-            if (arr[mid] == target) return mid
-            if (arr[mid] < target) high = mid - 1 else low = mid + 1
-        }
-        return -1
-    }
 }
 ```
 
@@ -484,6 +451,17 @@ Output: -1   (no shared element)
 Iterate over the elements of the first row (left to right, ascending). For each, binary-search every other row. The first element that's found in all rows is the answer (smallest because the first row is sorted).
 
 <div class="lang-tabs">
+
+```pseudocode
+# For each candidate from the first row (in ascending order), binary-search every other row.
+function minimumSharedElement(matrix):
+    if matrix is empty:
+        return −1
+    for each target in matrix[0]:
+        if every row in matrix[1..end] contains target (via binarySearch):
+            return target                       # first row is sorted → first match is the smallest
+    return −1
+```
 
 ```python,editable
 from typing import List
@@ -610,27 +588,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    minimumSharedElement(matrix) {
-        if (!matrix.length) return -1;
-        for (const target of matrix[0]) {
-            if (matrix.slice(1).every(row => this._binarySearch(row, target) !== -1)) return target;
-        }
-        return -1;
-    }
-    _binarySearch(arr, target) {
-        let low = 0, high = arr.length - 1;
-        while (low <= high) {
-            const mid = low + ((high - low) >> 1);
-            if (arr[mid] === target) return mid;
-            if (arr[mid] < target) low = mid + 1; else high = mid - 1;
-        }
-        return -1;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     minimumSharedElement(matrix: number[][]): number {
@@ -675,31 +632,6 @@ func minimumSharedElement(matrix [][]int) int {
         if ok { return target }
     }
     return -1
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun minimumSharedElement(matrix: Array<IntArray>): Int {
-        if (matrix.isEmpty()) return -1
-        for (target in matrix[0]) {
-            var ok = true
-            for (r in 1 until matrix.size) {
-                if (binarySearch(matrix[r], target) == -1) { ok = false; break }
-            }
-            if (ok) return target
-        }
-        return -1
-    }
-    private fun binarySearch(arr: IntArray, target: Int): Int {
-        var low = 0; var high = arr.size - 1
-        while (low <= high) {
-            val mid = low + (high - low) / 2
-            if (arr[mid] == target) return mid
-            if (arr[mid] < target) low = mid + 1 else high = mid - 1
-        }
-        return -1
-    }
 }
 ```
 
@@ -758,6 +690,17 @@ Output: []
 Same as the previous problem but accumulate matches into a result list instead of returning the first.
 
 <div class="lang-tabs">
+
+```pseudocode
+function intersectingElements(matrix):
+    if matrix is empty:
+        return empty list
+    result ← empty list
+    for each target in matrix[0]:
+        if every row in matrix[1..end] contains target (via binarySearch):
+            append target to result
+    return result
+```
 
 ```python,editable
 from typing import List
@@ -890,26 +833,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    intersectingElements(matrix) {
-        if (!matrix.length) return [];
-        return matrix[0].filter(target =>
-            matrix.slice(1).every(row => this._binarySearch(row, target) !== -1)
-        );
-    }
-    _binarySearch(arr, target) {
-        let low = 0, high = arr.length - 1;
-        while (low <= high) {
-            const mid = low + ((high - low) >> 1);
-            if (arr[mid] === target) return mid;
-            if (arr[mid] < target) low = mid + 1; else high = mid - 1;
-        }
-        return -1;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     intersectingElements(matrix: number[][]): number[] {
@@ -954,26 +877,6 @@ func intersectingElements(matrix [][]int) []int {
         if ok { result = append(result, target) }
     }
     return result
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun intersectingElements(matrix: Array<IntArray>): List<Int> {
-        if (matrix.isEmpty()) return emptyList()
-        return matrix[0].filter { target ->
-            (1 until matrix.size).all { r -> binarySearch(matrix[r], target) != -1 }
-        }
-    }
-    private fun binarySearch(arr: IntArray, target: Int): Int {
-        var low = 0; var high = arr.size - 1
-        while (low <= high) {
-            val mid = low + (high - low) / 2
-            if (arr[mid] == target) return mid
-            if (arr[mid] < target) low = mid + 1 else high = mid - 1
-        }
-        return -1
-    }
 }
 ```
 

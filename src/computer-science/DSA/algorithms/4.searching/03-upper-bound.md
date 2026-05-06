@@ -184,6 +184,20 @@ Lower and upper bound are the same algorithm with one comparison changed. Their 
 
 <div class="lang-tabs">
 
+```pseudocode
+# Smallest index i with arr[i] > target. Equality goes right (vs lower bound's <).
+function upperBound(arr, target):
+    low ← 0
+    high ← length(arr)
+    while low < high:
+        mid ← low + (high − low) ÷ 2
+        if arr[mid] ≤ target:
+            low ← mid + 1               # mid not strictly greater — discard
+        else:
+            high ← mid                  # mid is a candidate — keep
+    return low
+```
+
 ```python,editable
 from typing import List
 
@@ -284,22 +298,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    upperBound(arr, target) {
-        let low = 0, high = arr.length;
-        while (low < high) {
-            const mid = low + ((high - low) >> 1);
-            if (arr[mid] <= target) low = mid + 1;
-            else high = mid;
-        }
-        return low;
-    }
-}
-
-console.log(new Solution().upperBound([1, 5, 10, 15, 20, 25], 10));
-```
-
 ```typescript,editable
 class Solution {
     upperBound(arr: number[], target: number): number {
@@ -336,23 +334,6 @@ func upperBound(arr []int, target int) int {
 
 func main() {
     fmt.Println(upperBound([]int{1, 5, 10, 15, 20, 25}, 10))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun upperBound(arr: IntArray, target: Int): Int {
-        var low = 0; var high = arr.size
-        while (low < high) {
-            val mid = low + (high - low) / 2
-            if (arr[mid] <= target) low = mid + 1 else high = mid
-        }
-        return low
-    }
-}
-
-fun main() {
-    println(Solution().upperBound(intArrayOf(1, 5, 10, 15, 20, 25), 10))
 }
 ```
 

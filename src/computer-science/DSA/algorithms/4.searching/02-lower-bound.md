@@ -177,6 +177,20 @@ Three changes — `high = n`, `low < high`, `high = mid` on equality — convert
 
 <div class="lang-tabs">
 
+```pseudocode
+# Smallest index i with arr[i] ≥ target. Returns length(arr) if no such index exists.
+function lowerBound(arr, target):
+    low ← 0
+    high ← length(arr)                  # exclusive — converges when low = high
+    while low < high:
+        mid ← low + (high − low) ÷ 2
+        if arr[mid] < target:
+            low ← mid + 1               # mid is too small — discard it
+        else:
+            high ← mid                  # mid still a candidate — keep it
+    return low
+```
+
 ```python,editable
 from typing import List
 
@@ -277,22 +291,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    lowerBound(arr, target) {
-        let low = 0, high = arr.length;
-        while (low < high) {
-            const mid = low + ((high - low) >> 1);
-            if (arr[mid] < target) low = mid + 1;
-            else high = mid;
-        }
-        return low;
-    }
-}
-
-console.log(new Solution().lowerBound([1, 5, 10, 15, 20, 25], 17));
-```
-
 ```typescript,editable
 class Solution {
     lowerBound(arr: number[], target: number): number {
@@ -329,23 +327,6 @@ func lowerBound(arr []int, target int) int {
 
 func main() {
     fmt.Println(lowerBound([]int{1, 5, 10, 15, 20, 25}, 17))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun lowerBound(arr: IntArray, target: Int): Int {
-        var low = 0; var high = arr.size
-        while (low < high) {
-            val mid = low + (high - low) / 2
-            if (arr[mid] < target) low = mid + 1 else high = mid
-        }
-        return low
-    }
-}
-
-fun main() {
-    println(Solution().lowerBound(intArrayOf(1, 5, 10, 15, 20, 25), 17))
 }
 ```
 
