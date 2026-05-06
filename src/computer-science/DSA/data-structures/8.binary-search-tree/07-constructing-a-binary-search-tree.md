@@ -185,6 +185,19 @@ Given a sorted array `arr`, construct a height-balanced binary search tree from 
 
 <div class="lang-tabs">
 
+```pseudocode
+function buildTree(arr, st, en):
+    if st > en: return null          # empty range — no node to create
+    mid ← (st + en) / 2
+    node ← new TreeNode(arr[mid])    # middle element becomes the subtree root
+    node.left  ← buildTree(arr, st, mid − 1)
+    node.right ← buildTree(arr, mid + 1, en)
+    return node
+
+function sortedArrayToBST(arr):
+    return buildTree(arr, 0, length(arr) − 1)
+```
+
 ```python,editable
 class Solution:
     def build_tree(self, arr, st, en):
@@ -271,21 +284,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function buildTree(arr, st, en) {
-  if (st > en) return null;                                                              // empty range
-  const mid = Math.floor((st + en) / 2);                                                 // middle
-  const node = new TreeNode(arr[mid]);
-  node.left  = buildTree(arr, st, mid - 1);
-  node.right = buildTree(arr, mid + 1, en);
-  return node;
-}
-
-function sortedArrayToBST(arr) {
-  return buildTree(arr, 0, arr.length - 1);
-}
-```
-
 ```typescript,editable
 function buildTree(arr: number[], st: number, en: number): TreeNode | null {
   if (st > en) return null;                                                                // empty range
@@ -315,21 +313,6 @@ func buildTree(arr []int, st, en int) *TreeNode {
 
 func sortedArrayToBST(arr []int) *TreeNode {
     return buildTree(arr, 0, len(arr)-1)
-}
-```
-
-```kotlin,editable
-class Solution {
-    private fun buildTree(arr: IntArray, st: Int, en: Int): TreeNode? {
-        if (st > en) return null                                                              // empty range
-        val mid = (st + en) / 2                                                                // middle
-        val node = TreeNode(arr[mid])
-        node.left  = buildTree(arr, st, mid - 1)
-        node.right = buildTree(arr, mid + 1, en)
-        return node
-    }
-
-    fun sortedArrayToBST(arr: IntArray): TreeNode? = buildTree(arr, 0, arr.size - 1)
 }
 ```
 
@@ -464,6 +447,20 @@ Given an unsorted array `arr`, construct a binary search tree by inserting nodes
 
 <div class="lang-tabs">
 
+```pseudocode
+function insertBST(root, data):
+    if root is null: return new TreeNode(data)
+    if data < root.val: root.left  ← insertBST(root.left,  data)
+    else:               root.right ← insertBST(root.right, data)
+    return root
+
+function unsortedArrayToBST(arr):
+    root ← null
+    for each v in arr:
+        root ← insertBST(root, v)  # insertion order determines tree shape
+    return root
+```
+
 ```python,editable
 class Solution:
     def insert(self, root, data):
@@ -557,21 +554,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function insertNode(root, data) {
-  if (root === null) return new TreeNode(data);
-  if (data < root.val) root.left  = insertNode(root.left,  data);
-  else                 root.right = insertNode(root.right, data);
-  return root;
-}
-
-function unsortedArrayToBST(arr) {
-  let root = null;
-  for (const v of arr) root = insertNode(root, v);                                            // grow one at a time
-  return root;
-}
-```
-
 ```typescript,editable
 function insertNode(root: TreeNode | null, data: number): TreeNode {
   if (root === null) return new TreeNode(data);
@@ -603,23 +585,6 @@ func unsortedArrayToBST(arr []int) *TreeNode {
         root = insertNode(root, v)                                                              // grow one at a time
     }
     return root
-}
-```
-
-```kotlin,editable
-class Solution {
-    private fun insert(root: TreeNode?, data: Int): TreeNode {
-        if (root == null) return TreeNode(data)
-        if (data < root.`val`) root.left  = insert(root.left,  data)
-        else                   root.right = insert(root.right, data)
-        return root
-    }
-
-    fun unsortedArrayToBST(arr: IntArray): TreeNode? {
-        var root: TreeNode? = null
-        for (v in arr) root = insert(root, v)                                                    // grow one at a time
-        return root
-    }
 }
 ```
 
@@ -718,6 +683,28 @@ The total work per recursion level is O(n) (the slow/fast walk over n nodes), an
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function findMiddleAndSplit(head):
+    slow ← head
+    fast ← head
+    prev ← null
+    while fast is NOT null AND fast.next is NOT null:
+        prev ← slow
+        slow ← slow.next
+        fast ← fast.next.next
+    if prev is NOT null: prev.next ← null   # cut the list just before slow
+    return slow                             # slow is the middle node
+
+function sortedLinkedListToBST(head):
+    if head is null: return null
+    middle ← findMiddleAndSplit(head)
+    root ← new TreeNode(middle.val)
+    if head = middle: return root           # single-element list
+    root.left  ← sortedLinkedListToBST(head)         # left half
+    root.right ← sortedLinkedListToBST(middle.next)  # right half
+    return root
+```
 
 ```python,editable
 class Solution:
@@ -853,29 +840,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function findMiddleAndSplit(head) {
-  let slow = head, fast = head, previous = null;
-  while (fast !== null && fast.next !== null) {
-    previous = slow;
-    slow = slow.next;
-    fast = fast.next.next;
-  }
-  if (previous !== null) previous.next = null;                                                            // split
-  return slow;
-}
-
-function sortedLinkedListToBST(head) {
-  if (head === null) return null;
-  const middle = findMiddleAndSplit(head);
-  const root = new TreeNode(middle.val);
-  if (head === middle) return root;                                                                       // single element
-  root.left  = sortedLinkedListToBST(head);
-  root.right = sortedLinkedListToBST(middle.next);
-  return root;
-}
-```
-
 ```typescript,editable
 function findMiddleAndSplit(head: ListNode | null): ListNode {
   let slow: ListNode = head!, fast: ListNode | null = head, previous: ListNode | null = null;
@@ -920,33 +884,6 @@ func sortedLinkedListToBST(head *ListNode) *TreeNode {
     root.Left  = sortedLinkedListToBST(head)
     root.Right = sortedLinkedListToBST(middle.Next)
     return root
-}
-```
-
-```kotlin,editable
-class Solution {
-    private fun findMiddleAndSplit(head: ListNode): ListNode {
-        var slow: ListNode = head
-        var fast: ListNode? = head
-        var previous: ListNode? = null
-        while (fast != null && fast.next != null) {
-            previous = slow
-            slow = slow.next!!
-            fast = fast.next!!.next
-        }
-        if (previous != null) previous.next = null                                                              // split
-        return slow
-    }
-
-    fun sortedLinkedListToBST(head: ListNode?): TreeNode? {
-        if (head == null) return null
-        val middle = findMiddleAndSplit(head)
-        val root = TreeNode(middle.`val`)
-        if (head === middle) return root                                                                        // single element
-        root.left  = sortedLinkedListToBST(head)
-        root.right = sortedLinkedListToBST(middle.next)
-        return root
-    }
 }
 ```
 

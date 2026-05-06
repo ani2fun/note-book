@@ -313,6 +313,18 @@ flowchart LR
 
 <div class="lang-tabs">
 
+```pseudocode
+function inorderSuccessor(root, node):
+    successor ← null
+    while root is NOT null:
+        if root.val > node.val:
+            successor ← root      # root is a valid candidate (strictly greater)
+            root ← root.left      # look for an even smaller candidate
+        else:
+            root ← root.right     # root ≤ node — answer must be to the right
+    return successor
+```
+
 ```python,editable
 class Solution:
     def inorder_successor(self, root, node):
@@ -396,21 +408,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function inorderSuccessor(root, node) {
-  let successor = null;
-  while (root !== null) {
-    if (root.val > node.val) {                                                      // candidate
-      successor = root;                                                             //   record
-      root = root.left;                                                             //   tighten
-    } else {                                                                        // ≤ node
-      root = root.right;                                                            //   go right
-    }
-  }
-  return successor;
-}
-```
-
 ```typescript,editable
 function inorderSuccessor(root: TreeNode | null, node: TreeNode): TreeNode | null {
   let successor: TreeNode | null = null;
@@ -438,22 +435,6 @@ func inorderSuccessor(root, node *TreeNode) *TreeNode {
         }
     }
     return successor
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun inorderSuccessor(root: TreeNode?, node: TreeNode): TreeNode? {
-        var cur = root
-        var successor: TreeNode? = null
-        while (cur != null) {
-            if (cur.`val` > node.`val`) {                                              // candidate
-                successor = cur                                                        //   record
-                cur = cur.left                                                         //   tighten
-            } else cur = cur.right                                                     // ≤ node
-        }
-        return successor
-    }
 }
 ```
 
@@ -506,6 +487,32 @@ You must do this **recursively**.
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function findMin(node):
+    while node.left is NOT null:
+        node ← node.left
+    return node
+
+function recursiveDelete(root, key):
+    if root is null:
+        return null
+    if key < root.val:
+        root.left ← recursiveDelete(root.left, key)
+    else if key > root.val:
+        root.right ← recursiveDelete(root.right, key)
+    else:                                    # match
+        if root.left is null:
+            return root.right                # Case 1/2a — promote right
+        if root.right is null:
+            return root.left                 # Case 2b  — promote left
+        # Case 3 — two children: replace value with in-order successor, then
+        # delete the successor from the right subtree (it has ≤ 1 child).
+        successor ← findMin(root.right)
+        root.val ← successor.val
+        root.right ← recursiveDelete(root.right, successor.val)
+    return root
+```
 
 ```python,editable
 class Solution:
@@ -634,27 +641,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function findMin(node) {
-  while (node.left !== null) node = node.left;
-  return node;
-}
-
-function recursiveDeletion(root, key) {
-  if (root === null) return null;
-  if (key < root.val)      root.left  = recursiveDeletion(root.left,  key);
-  else if (key > root.val) root.right = recursiveDeletion(root.right, key);
-  else {                                                                                      // match
-    if (root.left  === null) return root.right;                                                // Case 1/2a
-    if (root.right === null) return root.left;                                                 // Case 2b
-    const successor = findMin(root.right);                                                     // Case 3
-    root.val = successor.val;
-    root.right = recursiveDeletion(root.right, successor.val);
-  }
-  return root;
-}
-```
-
 ```typescript,editable
 function findMin(node: TreeNode): TreeNode {
   while (node.left !== null) node = node.left;
@@ -700,32 +686,6 @@ func recursiveDeletion(root *TreeNode, key int) *TreeNode {
         root.Right = recursiveDeletion(root.Right, successor.Val)
     }
     return root
-}
-```
-
-```kotlin,editable
-class Solution {
-    private fun findMin(node: TreeNode): TreeNode {
-        var n = node
-        while (n.left != null) n = n.left!!
-        return n
-    }
-
-    fun recursiveDeletion(root: TreeNode?, key: Int): TreeNode? {
-        if (root == null) return null
-        when {
-            key < root.`val` -> root.left  = recursiveDeletion(root.left,  key)
-            key > root.`val` -> root.right = recursiveDeletion(root.right, key)
-            else -> {                                                                                  // match
-                if (root.left  == null) return root.right                                              // Case 1/2a
-                if (root.right == null) return root.left                                               // Case 2b
-                val successor = findMin(root.right!!)                                                  // Case 3
-                root.`val` = successor.`val`
-                root.right = recursiveDeletion(root.right, successor.`val`)
-            }
-        }
-        return root
-    }
 }
 ```
 
@@ -908,6 +868,36 @@ Given the **root** of a binary search tree and an integer **key**, delete the no
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function iterativeDelete(root, key):
+    if root is null: return null
+    parent ← null
+    cur ← root
+    while cur is NOT null AND cur.val ≠ key:   # search for the node
+        parent ← cur
+        if key < cur.val: cur ← cur.left
+        else:             cur ← cur.right
+    if cur is null: return root                # key not in tree
+
+    if cur.left is null OR cur.right is null:  # Case 1/2 — zero or one child
+        child ← cur.right if cur.left is null else cur.left
+        if parent is null: return child        # deleted node was the root
+        if cur = parent.left: parent.left ← child
+        else:                 parent.right ← child
+        return root
+
+    # Case 3 — two children: find in-order successor
+    inParent ← cur
+    successor ← cur.right
+    while successor.left is NOT null:
+        inParent ← successor
+        successor ← successor.left
+    if inParent ≠ cur: inParent.left ← successor.right   # sub-case 3.2
+    else:              cur.right ← successor.right        # sub-case 3.1
+    cur.val ← successor.val
+    return root
+```
 
 ```python,editable
 class Solution:
@@ -1094,37 +1084,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function iterativeDeletion(root, key) {
-  if (root === null) return null;
-  let parent = null, current = root;
-  while (current !== null && current.val !== key) {
-    parent = current;
-    current = (key < current.val) ? current.left : current.right;
-  }
-  if (current === null) return root;
-
-  if (current.left === null || current.right === null) {                                              // Case 1/2
-    const newCurrent = (current.left === null) ? current.right : current.left;
-    if (parent === null) return newCurrent;
-    if (current === parent.left) parent.left  = newCurrent;
-    else                          parent.right = newCurrent;
-    return root;
-  }
-
-  let inParent = current;                                                                              // Case 3
-  let successor = current.right;
-  while (successor.left !== null) {
-    inParent  = successor;
-    successor = successor.left;
-  }
-  if (inParent !== current) inParent.left = successor.right;                                           // 3.2
-  else                       current.right = successor.right;                                          // 3.1
-  current.val = successor.val;
-  return root;
-}
-```
-
 ```typescript,editable
 function iterativeDeletion(root: TreeNode | null, key: number): TreeNode | null {
   if (root === null) return null;
@@ -1185,40 +1144,6 @@ func iterativeDeletion(root *TreeNode, key int) *TreeNode {
     if inParent != current { inParent.Left = successor.Right } else { current.Right = successor.Right }     // 3.1 vs 3.2
     current.Val = successor.Val
     return root
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun iterativeDeletion(root: TreeNode?, key: Int): TreeNode? {
-        if (root == null) return null
-        var parent: TreeNode? = null
-        var current: TreeNode? = root
-        while (current != null && current.`val` != key) {
-            parent = current
-            current = if (key < current.`val`) current.left else current.right
-        }
-        if (current == null) return root                                                                        // not found
-
-        if (current.left == null || current.right == null) {                                                    // Case 1/2
-            val newCurrent: TreeNode? = if (current.left == null) current.right else current.left
-            if (parent == null) return newCurrent
-            if (current === parent.left) parent.left  = newCurrent
-            else                          parent.right = newCurrent
-            return root
-        }
-
-        var inParent: TreeNode = current                                                                         // Case 3
-        var successor: TreeNode = current.right!!
-        while (successor.left != null) {
-            inParent  = successor
-            successor = successor.left!!
-        }
-        if (inParent !== current) inParent.left = successor.right                                                // 3.2
-        else                       current.right = successor.right                                                // 3.1
-        current.`val` = successor.`val`
-        return root
-    }
 }
 ```
 

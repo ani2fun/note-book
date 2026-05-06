@@ -174,6 +174,17 @@ Given the **root** of a binary search tree and two random nodes, `nodeA` and `no
 
 <div class="lang-tabs">
 
+```pseudocode
+function lowestCommonAncestor(root, nodeA, nodeB):
+    if root is null OR root = nodeA OR root = nodeB:
+        return root                                        # base case — or A/B is its own ancestor
+    if root.val > nodeA.val AND root.val > nodeB.val:
+        return lowestCommonAncestor(root.left, nodeA, nodeB)   # both targets in left subtree
+    if root.val < nodeA.val AND root.val < nodeB.val:
+        return lowestCommonAncestor(root.right, nodeA, nodeB)  # both targets in right subtree
+    return root                                            # targets straddle this node — LCA found
+```
+
 ```python,editable
 class Solution:
     def lowest_common_ancestor(self, root, node_a, node_b):
@@ -244,17 +255,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function lowestCommonAncestor(root, nodeA, nodeB) {
-  if (root === null || root === nodeA || root === nodeB) return root;                            // base case
-  if (root.val > nodeA.val && root.val > nodeB.val)
-    return lowestCommonAncestor(root.left,  nodeA, nodeB);                                       // both on the left
-  if (root.val < nodeA.val && root.val < nodeB.val)
-    return lowestCommonAncestor(root.right, nodeA, nodeB);                                       // both on the right
-  return root;                                                                                    // split point
-}
-```
-
 ```typescript,editable
 function lowestCommonAncestor(
   root: TreeNode | null,
@@ -280,21 +280,6 @@ func lowestCommonAncestor(root, nodeA, nodeB *TreeNode) *TreeNode {
         return lowestCommonAncestor(root.Right, nodeA, nodeB)                                       // both on the right
     }
     return root                                                                                      // split point
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun lowestCommonAncestor(root: TreeNode?, nodeA: TreeNode, nodeB: TreeNode): TreeNode? {
-        if (root == null || root === nodeA || root === nodeB) return root                              // base case
-        return when {
-            root.`val` > nodeA.`val` && root.`val` > nodeB.`val` ->
-                lowestCommonAncestor(root.left,  nodeA, nodeB)                                          // both on the left
-            root.`val` < nodeA.`val` && root.`val` < nodeB.`val` ->
-                lowestCommonAncestor(root.right, nodeA, nodeB)                                          // both on the right
-            else -> root                                                                                // split point
-        }
-    }
 }
 ```
 

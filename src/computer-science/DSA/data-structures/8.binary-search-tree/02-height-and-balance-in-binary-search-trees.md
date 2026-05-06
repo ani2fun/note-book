@@ -531,6 +531,20 @@ flowchart LR
 
 <div class="lang-tabs">
 
+```pseudocode
+function findHeight(root):
+    if root is null:
+        return 0
+    leftH ← findHeight(root.left)
+    rightH ← findHeight(root.right)
+    return max(leftH, rightH) + 1
+
+function balanceFactor(root):
+    if root is null:
+        return 0
+    return findHeight(root.left) − findHeight(root.right)
+```
+
 ```python,editable
 # Definition for a binary tree node.
 # class TreeNode:
@@ -664,27 +678,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-/**
- * function TreeNode(val, left, right) {
- *     this.val = (val === undefined ? 0 : val);
- *     this.left = (left === undefined ? null : left);
- *     this.right = (right === undefined ? null : right);
- * }
- */
-function findHeight(root) {
-  if (root === null) return 0;                          // empty subtree
-  const leftHeight  = findHeight(root.left);
-  const rightHeight = findHeight(root.right);
-  return Math.max(leftHeight, rightHeight) + 1;         // +1 for current node
-}
-
-function balanceFactor(root) {
-  if (root === null) return 0;
-  return findHeight(root.left) - findHeight(root.right); // signed difference
-}
-```
-
 ```typescript,editable
 // class TreeNode {
 //     val: number; left: TreeNode | null; right: TreeNode | null;
@@ -732,28 +725,6 @@ func balanceFactor(root *TreeNode) int {
         return 0
     }
     return findHeight(root.Left) - findHeight(root.Right)
-}
-```
-
-```kotlin,editable
-/**
- * class TreeNode(var `val`: Int) {
- *     var left:  TreeNode? = null
- *     var right: TreeNode? = null
- * }
- */
-class Solution {
-    private fun findHeight(root: TreeNode?): Int {
-        if (root == null) return 0                        // empty subtree
-        val l = findHeight(root.left)
-        val r = findHeight(root.right)
-        return maxOf(l, r) + 1                            // +1 for current node
-    }
-
-    fun balanceFactor(root: TreeNode?): Int {
-        if (root == null) return 0
-        return findHeight(root.left) - findHeight(root.right)
-    }
 }
 ```
 
@@ -836,6 +807,22 @@ If the value isn't in the tree, the find returns `null`/`None`, and we return `0
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function findNode(root, value):
+    if root is null OR root.val = value:
+        return root
+    found ← findNode(root.left, value)
+    if found is NOT null:
+        return found
+    return findNode(root.right, value)
+
+function balanceOfSubtree(root, value):
+    node ← findNode(root, value)
+    if node is null:
+        return 0
+    return findHeight(node.left) − findHeight(node.right)
+```
 
 ```python,editable
 class Solution:
@@ -954,26 +941,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function findNode(root, value) {
-  if (root === null || root.val === value) return root;            // base cases
-  const left = findNode(root.left, value);
-  if (left !== null) return left;                                  // hit
-  return findNode(root.right, value);
-}
-
-function findHeight(root) {
-  if (root === null) return 0;
-  return Math.max(findHeight(root.left), findHeight(root.right)) + 1;
-}
-
-function balanceOfSubtree(root, value) {
-  const node = findNode(root, value);
-  if (node === null) return 0;
-  return findHeight(node.left) - findHeight(node.right);
-}
-```
-
 ```typescript,editable
 function findNode(root: TreeNode | null, value: number): TreeNode | null {
   if (root === null || root.val === value) return root;            // base cases
@@ -1023,25 +990,6 @@ func balanceOfSubtree(root *TreeNode, value int) int {
         return 0
     }
     return findHeight(node.Left) - findHeight(node.Right)
-}
-```
-
-```kotlin,editable
-class Solution {
-    private fun findNode(root: TreeNode?, value: Int): TreeNode? {
-        if (root == null || root.`val` == value) return root        // base cases
-        return findNode(root.left, value) ?: findNode(root.right, value)
-    }
-
-    private fun findHeight(root: TreeNode?): Int {
-        if (root == null) return 0
-        return maxOf(findHeight(root.left), findHeight(root.right)) + 1
-    }
-
-    fun balanceOfSubtree(root: TreeNode?, value: Int): Int {
-        val node = findNode(root, value) ?: return 0                // not present
-        return findHeight(node.left) - findHeight(node.right)
-    }
 }
 ```
 
@@ -1499,6 +1447,17 @@ The answer is **O(n²)** in the worst case (a skew tree), because `findHeight` r
 
 <div class="lang-tabs">
 
+```pseudocode
+function heightBalancedTree(root):
+    if root is null:
+        return true
+    lh ← findHeight(root.left)
+    rh ← findHeight(root.right)
+    if |lh − rh| > 1:
+        return false
+    return heightBalancedTree(root.left) AND heightBalancedTree(root.right)
+```
+
 ```python,editable
 class Solution:
     def find_height(self, root):
@@ -1611,25 +1570,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function findHeight(root) {
-  if (root === null) return 0;
-  return Math.max(findHeight(root.left), findHeight(root.right)) + 1;
-}
-
-function heightBalancedTree(root) {
-  if (root === null) return true;                                              // empty → balanced
-  const leftHeight  = findHeight(root.left);
-  const rightHeight = findHeight(root.right);
-
-  if (Math.abs(leftHeight - rightHeight) <= 1) {                               // local rule holds
-    return heightBalancedTree(root.left)
-        && heightBalancedTree(root.right);                                     // recurse both
-  }
-  return false;
-}
-```
-
 ```typescript,editable
 function findHeight(root: TreeNode | null): number {
   if (root === null) return 0;
@@ -1676,24 +1616,6 @@ func heightBalancedTree(root *TreeNode) bool {
         return heightBalancedTree(root.Left) && heightBalancedTree(root.Right)
     }
     return false
-}
-```
-
-```kotlin,editable
-class Solution {
-    private fun findHeight(root: TreeNode?): Int {
-        if (root == null) return 0
-        return maxOf(findHeight(root.left), findHeight(root.right)) + 1
-    }
-
-    fun heightBalancedTree(root: TreeNode?): Boolean {
-        if (root == null) return true                                            // empty → balanced
-        val l = findHeight(root.left)
-        val r = findHeight(root.right)
-        return if (kotlin.math.abs(l - r) <= 1)
-            heightBalancedTree(root.left) && heightBalancedTree(root.right)      // recurse
-        else false                                                               // rule failed
-    }
 }
 ```
 

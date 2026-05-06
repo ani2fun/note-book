@@ -163,6 +163,17 @@ You must do this **recursively**.
 
 <div class="lang-tabs">
 
+```pseudocode
+function recursiveSearch(root, target):
+    if root is null:
+        return null
+    if root.val = target:
+        return root
+    if target < root.val:
+        return recursiveSearch(root.left, target)
+    return recursiveSearch(root.right, target)
+```
+
 ```python,editable
 class Solution:
     def recursive_search(self, root, target):
@@ -225,15 +236,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function recursiveSearch(root, target) {
-  if (root === null) return null;                                     // empty subtree
-  if (root.val === target) return root;                               // match
-  if (target < root.val) return recursiveSearch(root.left,  target);  // BST rule: left
-  return                       recursiveSearch(root.right, target);   //          right
-}
-```
-
 ```typescript,editable
 function recursiveSearch(root: TreeNode | null, target: number): TreeNode | null {
   if (root === null) return null;                                     // empty subtree
@@ -255,19 +257,6 @@ func recursiveSearch(root *TreeNode, target int) *TreeNode {
         return recursiveSearch(root.Left, target)                      //   go left
     }
     return recursiveSearch(root.Right, target)                         //   go right
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun recursiveSearch(root: TreeNode?, target: Int): TreeNode? {
-        if (root == null) return null                                   // empty subtree
-        if (root.`val` == target) return root                           // match
-        return if (target < root.`val`)                                 // BST rule
-            recursiveSearch(root.left,  target)                         //   left
-        else
-            recursiveSearch(root.right, target)                         //   right
-    }
 }
 ```
 
@@ -414,6 +403,15 @@ You must do this **recursively**.
 
 <div class="lang-tabs">
 
+```pseudocode
+function recursivelyFindMinimum(root):
+    if root is null:
+        return null
+    if root.left is null:
+        return root
+    return recursivelyFindMinimum(root.left)
+```
+
 ```python,editable
 class Solution:
     def recursively_find_minimum(self, root):
@@ -466,14 +464,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function recursivelyFindMinimum(root) {
-  if (root === null)         return null;                             // empty tree
-  if (root.left === null)    return root;                             // leftmost reached
-  return recursivelyFindMinimum(root.left);                           // keep going left
-}
-```
-
 ```typescript,editable
 function recursivelyFindMinimum(root: TreeNode | null): TreeNode | null {
   if (root === null)        return null;                              // empty tree
@@ -487,16 +477,6 @@ func recursivelyFindMinimum(root *TreeNode) *TreeNode {
     if root == nil       { return nil  }                              // empty tree
     if root.Left == nil  { return root }                              // leftmost reached
     return recursivelyFindMinimum(root.Left)                          // keep going left
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun recursivelyFindMinimum(root: TreeNode?): TreeNode? {
-        if (root == null)      return null                              // empty tree
-        if (root.left == null) return root                              // leftmost reached
-        return recursivelyFindMinimum(root.left)                        // keep going left
-    }
 }
 ```
 
@@ -625,6 +605,15 @@ You must do this **recursively**.
 
 <div class="lang-tabs">
 
+```pseudocode
+function recursivelyFindMaximum(root):
+    if root is null:
+        return null
+    if root.right is null:
+        return root
+    return recursivelyFindMaximum(root.right)
+```
+
 ```python,editable
 class Solution:
     def recursively_find_maximum(self, root):
@@ -677,14 +666,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function recursivelyFindMaximum(root) {
-  if (root === null)        return null;                                 // empty tree
-  if (root.right === null)  return root;                                 // rightmost reached
-  return recursivelyFindMaximum(root.right);                             // keep going right
-}
-```
-
 ```typescript,editable
 function recursivelyFindMaximum(root: TreeNode | null): TreeNode | null {
   if (root === null)        return null;                                 // empty tree
@@ -698,16 +679,6 @@ func recursivelyFindMaximum(root *TreeNode) *TreeNode {
     if root == nil        { return nil  }                                 // empty tree
     if root.Right == nil  { return root }                                 // rightmost reached
     return recursivelyFindMaximum(root.Right)                             // keep going right
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun recursivelyFindMaximum(root: TreeNode?): TreeNode? {
-        if (root == null)        return null                                // empty tree
-        if (root.right == null)  return root                                // rightmost reached
-        return recursivelyFindMaximum(root.right)                           // keep going right
-    }
 }
 ```
 
@@ -880,6 +851,23 @@ Given the **root** of a binary search tree and a **target**, return the node tha
 
 <div class="lang-tabs">
 
+```pseudocode
+# lbNode is module-level state reset before each call
+function lbHelper(root, target):
+    if root is null:
+        return
+    if target ≤ root.val:
+        lbNode ← root           # candidate: root.val ≥ target
+        lbHelper(root.left, target)
+    else:
+        lbHelper(root.right, target)
+
+function recursivelyFindLowerBound(root, target):
+    lbNode ← null
+    lbHelper(root, target)
+    return lbNode
+```
+
 ```python,editable
 class Solution:
     def __init__(self):
@@ -1006,31 +994,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-  constructor() { this.lowerBoundNode = null; }                                  // shared state
-
-  helper(root, target) {
-    if (root === null) return;                                                   // walked off
-    if (target < root.val) {                                                     // node ≥ target
-      this.lowerBoundNode = root;                                                //   candidate
-      this.helper(root.left, target);                                            //   tighten left
-    } else if (root.val === target) {                                            // exact match
-      this.lowerBoundNode = root;
-      return;
-    } else {                                                                     // node < target
-      this.helper(root.right, target);                                           //   search right
-    }
-  }
-
-  recursivelyFindLowerBound(root, target) {
-    this.lowerBoundNode = null;                                                  // reset
-    this.helper(root, target);
-    return this.lowerBoundNode;
-  }
-}
-```
-
 ```typescript,editable
 class Solution {
   lowerBoundNode: TreeNode | null = null;                                         // shared state
@@ -1076,32 +1039,6 @@ func recursivelyFindLowerBound(root *TreeNode, target int) *TreeNode {
     s := &lowerBoundState{node: nil}                                               // fresh state
     s.helper(root, target)
     return s.node
-}
-```
-
-```kotlin,editable
-class Solution {
-    private var lowerBoundNode: TreeNode? = null                                    // shared state
-
-    private fun helper(root: TreeNode?, target: Int) {
-        if (root == null) return                                                    // walked off
-        when {
-            target < root.`val` -> {                                                // node ≥ target
-                lowerBoundNode = root                                               //   candidate
-                helper(root.left, target)                                           //   tighten left
-            }
-            root.`val` == target -> {                                               // exact match
-                lowerBoundNode = root
-            }
-            else -> helper(root.right, target)                                      // node < target
-        }
-    }
-
-    fun recursivelyFindLowerBound(root: TreeNode?, target: Int): TreeNode? {
-        lowerBoundNode = null                                                       // reset
-        helper(root, target)
-        return lowerBoundNode
-    }
 }
 ```
 
@@ -1248,6 +1185,23 @@ Given the **root** of a binary search tree and a **target**, return the node tha
 
 <div class="lang-tabs">
 
+```pseudocode
+# ubNode is module-level state reset before each call
+function ubHelper(root, target):
+    if root is null:
+        return
+    if target < root.val:
+        ubNode ← root           # candidate: root.val > target
+        ubHelper(root.left, target)
+    else:
+        ubHelper(root.right, target)   # equality not a candidate for upper bound
+
+function recursivelyFindUpperBound(root, target):
+    ubNode ← null
+    ubHelper(root, target)
+    return ubNode
+```
+
 ```python,editable
 class Solution:
     def __init__(self):
@@ -1357,28 +1311,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-  constructor() { this.upperBoundNode = null; }
-
-  helper(root, target) {
-    if (root === null) return;                                                       // walked off
-    if (target < root.val) {                                                         // node > target
-      this.upperBoundNode = root;                                                    //   candidate
-      this.helper(root.left, target);                                                //   tighten left
-    } else {                                                                         // node ≤ target
-      this.helper(root.right, target);                                               //   search right
-    }
-  }
-
-  recursivelyFindUpperBound(root, target) {
-    this.upperBoundNode = null;                                                      // reset
-    this.helper(root, target);
-    return this.upperBoundNode;
-  }
-}
-```
-
 ```typescript,editable
 class Solution {
   upperBoundNode: TreeNode | null = null;
@@ -1418,28 +1350,6 @@ func recursivelyFindUpperBound(root *TreeNode, target int) *TreeNode {
     s := &upperBoundState{}
     s.helper(root, target)
     return s.node
-}
-```
-
-```kotlin,editable
-class Solution {
-    private var upperBoundNode: TreeNode? = null
-
-    private fun helper(root: TreeNode?, target: Int) {
-        if (root == null) return                                                         // walked off
-        if (target < root.`val`) {                                                       // node > target
-            upperBoundNode = root                                                        //   candidate
-            helper(root.left, target)                                                    //   tighten left
-        } else {                                                                         // node ≤ target
-            helper(root.right, target)                                                   //   search right
-        }
-    }
-
-    fun recursivelyFindUpperBound(root: TreeNode?, target: Int): TreeNode? {
-        upperBoundNode = null                                                            // reset
-        helper(root, target)
-        return upperBoundNode
-    }
 }
 ```
 

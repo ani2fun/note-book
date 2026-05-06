@@ -147,6 +147,25 @@ Given the **root** of a BST and an integer **target**, return `true` if some pai
 
 <div class="lang-tabs">
 
+```pseudocode
+# ForwardBstIterator and ReverseBstIterator — same as lesson 9.
+# left  = ForwardBstIterator(root)   → ascending order
+# right = ReverseBstIterator(root)   → descending order
+
+function twoSumOnBST(root, target):
+    if root is null: return false
+    left  ← ForwardBstIterator(root)
+    right ← ReverseBstIterator(root)
+    l ← left.next()
+    r ← right.next()
+    while l is NOT null AND r is NOT null AND l.val < r.val:
+        s ← l.val + r.val
+        if s = target: return true
+        if s < target: l ← left.next()     # sum too small — advance smaller pointer
+        else:          r ← right.next()    # sum too large — advance larger pointer
+    return false
+```
+
 ```python,editable
 class ForwardBstIterator:
     def __init__(self, root):
@@ -353,34 +372,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-class ForwardBstIterator {
-  constructor(root) { this.stack = []; this._left(root); }
-  _left(n)  { while (n) { this.stack.push(n); n = n.left;  } }
-  hasNext() { return this.stack.length > 0; }
-  next()    { const n = this.stack.pop(); this._left(n.right);  return n; }
-}
-class ReverseBstIterator {
-  constructor(root) { this.stack = []; this._right(root); }
-  _right(n) { while (n) { this.stack.push(n); n = n.right; } }
-  hasNext() { return this.stack.length > 0; }
-  next()    { const n = this.stack.pop(); this._right(n.left); return n; }
-}
-
-function twoSumOnBST(root, target) {
-  if (root === null) return false;
-  const left = new ForwardBstIterator(root), right = new ReverseBstIterator(root);
-  let l = left.next(), r = right.next();
-  while (l && r && l.val < r.val) {
-    const s = l.val + r.val;
-    if (s === target) return true;
-    if (s < target) l = left.next();                                                                                                              // grow
-    else            r = right.next();                                                                                                             // shrink
-  }
-  return false;
-}
-```
-
 ```typescript,editable
 class ForwardBstIterator {
   private stack: TreeNode[] = [];
@@ -455,43 +446,6 @@ func twoSumOnBST(root *TreeNode, target int) bool {
         if s < target  { l = left.next()  } else { r = right.next() }
     }
     return false
-}
-```
-
-```kotlin,editable
-class ForwardBstIterator(root: TreeNode?) {
-    private val stack = ArrayDeque<TreeNode>()
-    init { pushLeft(root) }
-    private fun pushLeft(start: TreeNode?) { var n = start; while (n != null) { stack.addLast(n); n = n.left } }
-    fun hasNext() = stack.isNotEmpty()
-    fun next(): TreeNode { val n = stack.removeLast(); pushLeft(n.right); return n }
-}
-
-class ReverseBstIterator(root: TreeNode?) {
-    private val stack = ArrayDeque<TreeNode>()
-    init { pushRight(root) }
-    private fun pushRight(start: TreeNode?) { var n = start; while (n != null) { stack.addLast(n); n = n.right } }
-    fun hasNext() = stack.isNotEmpty()
-    fun next(): TreeNode { val n = stack.removeLast(); pushRight(n.left); return n }
-}
-
-class Solution {
-    fun twoSumOnBST(root: TreeNode?, target: Int): Boolean {
-        if (root == null) return false
-        val left  = ForwardBstIterator(root)
-        val right = ReverseBstIterator(root)
-        var l: TreeNode? = left.next()
-        var r: TreeNode? = right.next()
-        while (l != null && r != null && l.`val` < r.`val`) {
-            val s = l.`val` + r.`val`
-            when {
-                s == target -> return true
-                s <  target -> l = if (left.hasNext())  left.next()  else null                                                                          // grow
-                else        -> r = if (right.hasNext()) right.next() else null                                                                          // shrink
-            }
-        }
-        return false
-    }
 }
 ```
 
@@ -596,6 +550,20 @@ Same shape as two-sum, but the predicate is "right.val % left.val == 0", and we 
 
 <div class="lang-tabs">
 
+```pseudocode
+function multipleTree(root):
+    if root is null: return false
+    left  ← ForwardBstIterator(root)
+    right ← ReverseBstIterator(root)
+    l ← left.next()
+    r ← right.next()
+    while l is NOT null AND r is NOT null AND l.val < r.val:
+        if r.val mod l.val ≠ 0: return false  # i-th largest must be a multiple of i-th smallest
+        l ← left.next()
+        r ← right.next()
+    return true
+```
+
 ```python,editable
 # Reuse the iterator classes defined in the previous problem.
 class Solution:
@@ -679,20 +647,6 @@ object MultipleSolution {
 }
 ```
 
-```javascript,editable
-function multipleTree(root) {
-  if (root === null) return false;
-  const left  = new ForwardBstIterator(root);
-  const right = new ReverseBstIterator(root);
-  let l = left.next(), r = right.next();
-  while (l && r && l.val < r.val) {
-    if (r.val % l.val !== 0) return false;                                                                                                                          // failure
-    l = left.next(); r = right.next();                                                                                                                              // advance both
-  }
-  return true;
-}
-```
-
 ```typescript,editable
 function multipleTree(root: TreeNode | null): boolean {
   if (root === null) return false;
@@ -720,24 +674,6 @@ func multipleTree(root *TreeNode) bool {
         l = left.next(); r = right.next()
     }
     return true
-}
-```
-
-```kotlin,editable
-class MultipleSolution {
-    fun multipleTree(root: TreeNode?): Boolean {
-        if (root == null) return false
-        val left  = ForwardBstIterator(root)
-        val right = ReverseBstIterator(root)
-        var l: TreeNode? = left.next()
-        var r: TreeNode? = right.next()
-        while (l != null && r != null && l.`val` < r.`val`) {
-            if (r.`val` % l.`val` != 0) return false                                                                                                                     // failure
-            l = if (left.hasNext())  left.next()  else null
-            r = if (right.hasNext()) right.next() else null
-        }
-        return true
-    }
 }
 ```
 
@@ -790,6 +726,22 @@ The two-pointer pattern *naturally* finds the median: walk both iterators forwar
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function medianInBST(root):
+    if root is null: return −1
+    left  ← ForwardBstIterator(root)
+    right ← ReverseBstIterator(root)
+    l ← left.next()
+    r ← right.next()
+    median ← −1
+    while l is NOT null AND r is NOT null AND l.val < r.val:
+        median ← (l.val + r.val) / 2   # straddle pair — last one wins for even count
+        l ← left.next()
+        r ← right.next()
+    if l = r AND l is NOT null: return l.val  # pointers met — odd count, exact middle
+    return median
+```
 
 ```python,editable
 class Solution:
@@ -882,22 +834,6 @@ object MedianSolution {
 }
 ```
 
-```javascript,editable
-function medianInBst(root) {
-  if (root === null) return -1;
-  const left  = new ForwardBstIterator(root);
-  const right = new ReverseBstIterator(root);
-  let l = left.next(), r = right.next();
-  let median = -1;
-  while (l && r && l.val < r.val) {
-    median = Math.floor((l.val + r.val) / 2);                                                                                                                                     // straddle pair
-    l = left.next(); r = right.next();
-  }
-  if (l === r && l !== null) return l.val;                                                                                                                                        // odd count
-  return median;
-}
-```
-
 ```typescript,editable
 function medianInBst(root: TreeNode | null): number {
   if (root === null) return -1;
@@ -928,25 +864,6 @@ func medianInBst(root *TreeNode) int {
     }
     if l == r && l != nil { return l.Val }                                                                                                                                            // odd count
     return median
-}
-```
-
-```kotlin,editable
-class MedianSolution {
-    fun medianInBst(root: TreeNode?): Int {
-        if (root == null) return -1
-        val left  = ForwardBstIterator(root)
-        val right = ReverseBstIterator(root)
-        var l: TreeNode? = left.next()
-        var r: TreeNode? = right.next()
-        var median = -1
-        while (l != null && r != null && l.`val` < r.`val`) {
-            median = (l.`val` + r.`val`) / 2
-            l = if (left.hasNext())  left.next()  else null
-            r = if (right.hasNext()) right.next() else null
-        }
-        return if (l === r && l != null) l.`val` else median                                                                                                                            // odd count vs even count
-    }
 }
 ```
 
@@ -1015,6 +932,21 @@ This is the multi-tree generalisation of "two sum on BST". Run the **forward ite
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function bstPairSum(rootA, rootB, target):
+    if rootA is null OR rootB is null: return false
+    left  ← ForwardBstIterator(rootA)   # ascending across tree A
+    right ← ReverseBstIterator(rootB)   # descending across tree B
+    l ← left.next()
+    r ← right.next()
+    while l is NOT null AND r is NOT null:
+        s ← l.val + r.val
+        if s = target: return true
+        if s < target: l ← left.next() if left.hasNext() else null   # grow from A
+        else:          r ← right.next() if right.hasNext() else null  # shrink from B
+    return false
+```
 
 ```python,editable
 class Solution:
@@ -1110,22 +1042,6 @@ object PairSumSolution {
 }
 ```
 
-```javascript,editable
-function bstPairSum(rootA, rootB, target) {
-  if (rootA === null || rootB === null) return false;
-  const left  = new ForwardBstIterator(rootA);
-  const right = new ReverseBstIterator(rootB);
-  let l = left.next(), r = right.next();
-  while (l && r) {
-    const s = l.val + r.val;
-    if (s === target) return true;
-    if (s < target) l = left.next();                                                                                                                                                            // grow
-    else            r = right.next();                                                                                                                                                           // shrink
-  }
-  return false;
-}
-```
-
 ```typescript,editable
 function bstPairSum(rootA: TreeNode | null, rootB: TreeNode | null, target: number): boolean {
   if (rootA === null || rootB === null) return false;
@@ -1154,27 +1070,6 @@ func bstPairSum(rootA, rootB *TreeNode, target int) bool {
         if s < target  { l = left.next()  } else { r = right.next() }
     }
     return false
-}
-```
-
-```kotlin,editable
-class PairSumSolution {
-    fun bstPairSum(rootA: TreeNode?, rootB: TreeNode?, target: Int): Boolean {
-        if (rootA == null || rootB == null) return false
-        val left  = ForwardBstIterator(rootA)
-        val right = ReverseBstIterator(rootB)
-        var l: TreeNode? = left.next()
-        var r: TreeNode? = right.next()
-        while (l != null && r != null) {
-            val s = l.`val` + r.`val`
-            when {
-                s == target -> return true
-                s <  target -> l = if (left.hasNext())  left.next()  else null                                                                                                                       // grow
-                else        -> r = if (right.hasNext()) right.next() else null                                                                                                                       // shrink
-            }
-        }
-        return false
-    }
 }
 ```
 

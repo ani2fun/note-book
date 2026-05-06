@@ -55,6 +55,21 @@ The contract we'll implement everywhere in this lesson:
 
 <div class="lang-tabs">
 
+```pseudocode
+class BSTIterator:
+    function BSTIterator(root):
+        # initialise iterator state — does NOT walk the whole tree
+        pass
+
+    function hasNext() → bool:
+        # are there any more nodes to visit?
+        pass
+
+    function next() → node:
+        # return the next node in iteration order
+        pass
+```
+
 ```python,editable
 class BSTIterator:
     def __init__(self, root):
@@ -103,14 +118,6 @@ class BSTIterator(root: TreeNode) {
 }
 ```
 
-```javascript,editable
-class BSTIterator {
-  constructor(root) { /* set up state, do NOT walk whole tree */ }
-  hasNext() { return false; }                   // any nodes left?
-  next()    { return null;  }                   // next node in order
-}
-```
-
 ```typescript,editable
 class BSTIterator {
   constructor(root: TreeNode | null) { /* set up state */ }
@@ -124,13 +131,6 @@ type BSTIterator struct{ /* internal state */ }
 func ConstructorBST(root *TreeNode) BSTIterator { return BSTIterator{} }
 func (it *BSTIterator) HasNext() bool             { return false }
 func (it *BSTIterator) Next()    *TreeNode        { return nil }
-```
-
-```kotlin,editable
-class BSTIterator(root: TreeNode?) {
-    fun hasNext(): Boolean = false                // any nodes left?
-    fun next():    TreeNode? = null               // next node in order
-}
 ```
 
 ```rust,editable
@@ -267,6 +267,27 @@ Given the skeleton of a `ForwardBstIterator` class, complete it by implementing 
 
 <div class="lang-tabs">
 
+```pseudocode
+class ForwardBstIterator:
+    function ForwardBstIterator(root):
+        stack ← empty stack
+        pushAllLeft(root)              # prime with the leftmost path
+
+    function pushAllLeft(node):
+        while node is NOT null:
+            push node onto stack
+            node ← node.left
+
+    function hasNext() → bool:
+        return stack is NOT empty
+
+    function next() → node:
+        if NOT hasNext(): return null
+        node ← pop from stack          # top of stack = next in-order value
+        pushAllLeft(node.right)        # prepare the right-spine for the next call
+        return node
+```
+
 ```python,editable
 class ForwardBstIterator:
     def __init__(self, root):
@@ -401,28 +422,6 @@ class ForwardBstIterator(root: TreeNode) {
 }
 ```
 
-```javascript,editable
-class ForwardBstIterator {
-  constructor(root) {
-    this.stack = [];                                                                                  // ancestor path
-    this.pushAllLeft(root);                                                                            // prime
-  }
-
-  pushAllLeft(node) {
-    while (node !== null) { this.stack.push(node); node = node.left; }                                 // walk left-spine
-  }
-
-  hasNext() { return this.stack.length > 0; }
-
-  next() {
-    if (!this.hasNext()) return null;
-    const node = this.stack.pop();                                                                     // top = next
-    this.pushAllLeft(node.right);                                                                      // queue right
-    return node;
-  }
-}
-```
-
 ```typescript,editable
 class ForwardBstIterator {
   private stack: TreeNode[] = [];                                                                       // ancestor path
@@ -473,31 +472,6 @@ func (it *ForwardBstIterator) Next() *TreeNode {
     it.stack = it.stack[:n]
     it.pushAllLeft(node.Right)
     return node
-}
-```
-
-```kotlin,editable
-class ForwardBstIterator(root: TreeNode?) {
-    private val stack = ArrayDeque<TreeNode>()
-
-    init { pushAllLeft(root) }
-
-    private fun pushAllLeft(start: TreeNode?) {
-        var node = start
-        while (node != null) {
-            stack.addLast(node)
-            node = node.left
-        }
-    }
-
-    fun hasNext(): Boolean = stack.isNotEmpty()
-
-    fun next(): TreeNode? {
-        if (!hasNext()) return null
-        val node = stack.removeLast()
-        pushAllLeft(node.right)
-        return node
-    }
 }
 ```
 
@@ -629,6 +603,27 @@ Given the skeleton of a `ReverseBstIterator` class, complete it. Same surface as
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+class ReverseBstIterator:
+    function ReverseBstIterator(root):
+        stack ← empty stack
+        pushAllRight(root)             # prime with the rightmost path
+
+    function pushAllRight(node):
+        while node is NOT null:
+            push node onto stack
+            node ← node.right
+
+    function hasNext() → bool:
+        return stack is NOT empty
+
+    function next() → node:
+        if NOT hasNext(): return null
+        node ← pop from stack          # top of stack = next in reverse-order
+        pushAllRight(node.left)        # mirror of forward: push the left-spine
+        return node
+```
 
 ```python,editable
 class ReverseBstIterator:
@@ -762,28 +757,6 @@ class ReverseBstIterator(root: TreeNode) {
 }
 ```
 
-```javascript,editable
-class ReverseBstIterator {
-  constructor(root) {
-    this.stack = [];
-    this.pushAllRight(root);
-  }
-
-  pushAllRight(node) {
-    while (node !== null) { this.stack.push(node); node = node.right; }
-  }
-
-  hasNext() { return this.stack.length > 0; }
-
-  next() {
-    if (!this.hasNext()) return null;
-    const node = this.stack.pop();
-    this.pushAllRight(node.left);                                                                              // mirror
-    return node;
-  }
-}
-```
-
 ```typescript,editable
 class ReverseBstIterator {
   private stack: TreeNode[] = [];
@@ -834,31 +807,6 @@ func (it *ReverseBstIterator) Next() *TreeNode {
     it.stack = it.stack[:n]
     it.pushAllRight(node.Left)
     return node
-}
-```
-
-```kotlin,editable
-class ReverseBstIterator(root: TreeNode?) {
-    private val stack = ArrayDeque<TreeNode>()
-
-    init { pushAllRight(root) }
-
-    private fun pushAllRight(start: TreeNode?) {
-        var node = start
-        while (node != null) {
-            stack.addLast(node)
-            node = node.right
-        }
-    }
-
-    fun hasNext(): Boolean = stack.isNotEmpty()
-
-    fun next(): TreeNode? {
-        if (!hasNext()) return null
-        val node = stack.removeLast()
-        pushAllRight(node.left)
-        return node
-    }
 }
 ```
 
