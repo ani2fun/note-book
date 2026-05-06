@@ -63,6 +63,40 @@ This is exactly the implementation we built in lesson 2, packaged as a class. Th
 
 <div class="lang-tabs">
 
+```pseudocode
+class MaxHeap:
+    heap ← []
+
+    function upHeapify(index):
+        parent ← (index − 1) / 2
+        while index > 0 AND heap[parent] < heap[index]:
+            swap heap[index] and heap[parent]
+            index ← parent; parent ← (index − 1) / 2
+
+    function downHeapify(index):
+        n ← length(heap)
+        while true:
+            largest ← index; left ← 2*index+1; right ← 2*index+2
+            if left  < n AND heap[left]  > heap[largest]: largest ← left
+            if right < n AND heap[right] > heap[largest]: largest ← right
+            if largest = index: return
+            swap heap[index] and heap[largest]; index ← largest
+
+    function insert(val):
+        append val to heap; upHeapify(length(heap) − 1)
+
+    function remove(index):
+        last ← pop last element from heap
+        if index < length(heap):
+            heap[index] ← last; downHeapify(index)
+
+    function getMax(): return heap[0] if heap is NOT empty else −1
+
+    function extractMax():
+        if heap is empty: return −1
+        top ← heap[0]; remove(0); return top
+```
+
 ```python,editable
 from typing import List
 
@@ -308,49 +342,6 @@ class MaxHeap {
 }
 ```
 
-```javascript,editable
-class MaxHeap {
-  constructor() { this.heap = []; }
-
-  swap(i, j) { [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]]; }
-
-  upHeapify(index) {
-    let parent = Math.floor((index - 1) / 2);
-    while (index > 0 && this.heap[parent] < this.heap[index]) {
-      this.swap(index, parent); index = parent; parent = Math.floor((index - 1) / 2);
-    }
-  }
-
-  downHeapify(index) {
-    const n = this.heap.length;
-    while (true) {
-      let largest = index;
-      const left = 2 * index + 1, right = 2 * index + 2;
-      if (left  < n && this.heap[left]  > this.heap[largest]) largest = left;
-      if (right < n && this.heap[right] > this.heap[largest]) largest = right;
-      if (largest === index) return;
-      this.swap(index, largest); index = largest;
-    }
-  }
-
-  insert(val) { this.heap.push(val); this.upHeapify(this.heap.length - 1); }
-
-  remove(index) {
-    const last = this.heap.pop();
-    if (index < this.heap.length) { this.heap[index] = last; this.downHeapify(index); }
-  }
-
-  getMax() { return this.heap.length === 0 ? -1 : this.heap[0]; }
-
-  extractMax() {
-    if (this.heap.length === 0) return -1;
-    const top = this.heap[0];
-    this.remove(0);
-    return top;
-  }
-}
-```
-
 ```typescript,editable
 class MaxHeap {
   private heap: number[] = [];
@@ -445,45 +436,6 @@ func (h *MaxHeap) ExtractMax() int {
 }
 ```
 
-```kotlin,editable
-class MaxHeap {
-    private val heap = mutableListOf<Int>()
-
-    private fun swap(i: Int, j: Int) { val t = heap[i]; heap[i] = heap[j]; heap[j] = t }
-
-    private fun upHeapify(start: Int) {
-        var index = start; var parent = (index - 1) / 2
-        while (index > 0 && heap[parent] < heap[index]) { swap(index, parent); index = parent; parent = (index - 1) / 2 }
-    }
-
-    private fun downHeapify(start: Int) {
-        var index = start; val n = heap.size
-        while (true) {
-            var largest = index
-            val left = 2 * index + 1; val right = 2 * index + 2
-            if (left  < n && heap[left]  > heap[largest]) largest = left
-            if (right < n && heap[right] > heap[largest]) largest = right
-            if (largest == index) return
-            swap(index, largest); index = largest
-        }
-    }
-
-    fun insert(v: Int) { heap.add(v); upHeapify(heap.size - 1) }
-
-    fun remove(index: Int) {
-        val last = heap.removeAt(heap.size - 1)
-        if (index < heap.size) { heap[index] = last; downHeapify(index) }
-    }
-
-    fun getMax(): Int = if (heap.isEmpty()) -1 else heap[0]
-
-    fun extractMax(): Int {
-        if (heap.isEmpty()) return -1
-        val top = heap[0]; remove(0); return top
-    }
-}
-```
-
 ```rust,editable
 pub struct MaxHeap { data: Vec<i32> }
 
@@ -568,6 +520,40 @@ Identical to the max-heap, with `<` swapped for `>`. We name the helper "smalles
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+class MinHeap:
+    heap ← []
+
+    function upHeapify(index):
+        parent ← (index − 1) / 2
+        while index > 0 AND heap[parent] > heap[index]:   # > for min-heap
+            swap heap[index] and heap[parent]
+            index ← parent; parent ← (index − 1) / 2
+
+    function downHeapify(index):
+        n ← length(heap)
+        while true:
+            smallest ← index; left ← 2*index+1; right ← 2*index+2
+            if left  < n AND heap[left]  < heap[smallest]: smallest ← left
+            if right < n AND heap[right] < heap[smallest]: smallest ← right
+            if smallest = index: return
+            swap heap[index] and heap[smallest]; index ← smallest
+
+    function insert(val):
+        append val to heap; upHeapify(length(heap) − 1)
+
+    function remove(index):
+        last ← pop last element from heap
+        if index < length(heap):
+            heap[index] ← last; downHeapify(index)
+
+    function getMin(): return heap[0] if heap is NOT empty else −1
+
+    function extractMin():
+        if heap is empty: return −1
+        top ← heap[0]; remove(0); return top
+```
 
 ```python,editable
 from typing import List
@@ -794,47 +780,6 @@ class MinHeap {
 }
 ```
 
-```javascript,editable
-class MinHeap {
-  constructor() { this.heap = []; }
-
-  swap(i, j) { [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]]; }
-
-  upHeapify(index) {
-    let parent = Math.floor((index - 1) / 2);
-    while (index > 0 && this.heap[parent] > this.heap[index]) {
-      this.swap(index, parent); index = parent; parent = Math.floor((index - 1) / 2);
-    }
-  }
-
-  downHeapify(index) {
-    const n = this.heap.length;
-    while (true) {
-      let smallest = index;
-      const left = 2 * index + 1, right = 2 * index + 2;
-      if (left  < n && this.heap[left]  < this.heap[smallest]) smallest = left;
-      if (right < n && this.heap[right] < this.heap[smallest]) smallest = right;
-      if (smallest === index) return;
-      this.swap(index, smallest); index = smallest;
-    }
-  }
-
-  insert(val) { this.heap.push(val); this.upHeapify(this.heap.length - 1); }
-
-  remove(index) {
-    const last = this.heap.pop();
-    if (index < this.heap.length) { this.heap[index] = last; this.downHeapify(index); }
-  }
-
-  getMin() { return this.heap.length === 0 ? -1 : this.heap[0]; }
-
-  extractMin() {
-    if (this.heap.length === 0) return -1;
-    const top = this.heap[0]; this.remove(0); return top;
-  }
-}
-```
-
 ```typescript,editable
 class MinHeap {
   private heap: number[] = [];
@@ -921,45 +866,6 @@ func (h *MinHeap) ExtractMin() int {
     top := h.data[0]
     h.Remove(0)
     return top
-}
-```
-
-```kotlin,editable
-class MinHeap {
-    private val heap = mutableListOf<Int>()
-
-    private fun swap(i: Int, j: Int) { val t = heap[i]; heap[i] = heap[j]; heap[j] = t }
-
-    private fun upHeapify(start: Int) {
-        var index = start; var parent = (index - 1) / 2
-        while (index > 0 && heap[parent] > heap[index]) { swap(index, parent); index = parent; parent = (index - 1) / 2 }
-    }
-
-    private fun downHeapify(start: Int) {
-        var index = start; val n = heap.size
-        while (true) {
-            var smallest = index
-            val left = 2 * index + 1; val right = 2 * index + 2
-            if (left  < n && heap[left]  < heap[smallest]) smallest = left
-            if (right < n && heap[right] < heap[smallest]) smallest = right
-            if (smallest == index) return
-            swap(index, smallest); index = smallest
-        }
-    }
-
-    fun insert(v: Int) { heap.add(v); upHeapify(heap.size - 1) }
-
-    fun remove(index: Int) {
-        val last = heap.removeAt(heap.size - 1)
-        if (index < heap.size) { heap[index] = last; downHeapify(index) }
-    }
-
-    fun getMin(): Int = if (heap.isEmpty()) -1 else heap[0]
-
-    fun extractMin(): Int {
-        if (heap.isEmpty()) return -1
-        val top = heap[0]; remove(0); return top
-    }
 }
 ```
 
@@ -1136,6 +1042,26 @@ If `lower.size > upper.size`, the median is `lower.top()` (count is odd). Otherw
 
 <div class="lang-tabs">
 
+```pseudocode
+class MedianFinder:
+    lower ← empty max-heap   # holds the smaller half
+    upper ← empty min-heap   # holds the larger half
+
+    function addNum(num):
+        push num onto lower                                    # 1. always push to the lower half first
+        if upper is NOT empty AND peek(lower) > peek(upper):  # 2. order rebalance: tops crossed
+            a ← pop from lower; b ← pop from upper
+            push b onto lower; push a onto upper
+        if size(lower) > size(upper) + 1:                     # 3. size rebalance: lower overfull
+            push (pop from lower) onto upper
+        else if size(upper) > size(lower):                     #    or upper overfull
+            push (pop from upper) onto lower
+
+    function findMedian():
+        if size(lower) > size(upper): return peek(lower)       # odd count → exact middle
+        return (peek(lower) + peek(upper)) / 2.0               # even count → average of two middles
+```
+
 ```python,editable
 import heapq
 
@@ -1281,37 +1207,6 @@ class MedianFinder {
 }
 ```
 
-```javascript,editable
-// Uses MinHeap/MaxHeap classes (constructors taking comparators) from earlier lessons,
-// or the dedicated MaxHeap and MinHeap classes from earlier in this file.
-class MedianFinder {
-  constructor() {
-    this.lower = new MaxHeap();      // smaller half
-    this.upper = new MinHeap();      // larger half
-  }
-
-  addNum(num) {
-    this.lower.insert(num);
-    if (this.upper.heap.length > 0 && this.lower.heap[0] > this.upper.heap[0]) {                              // order rebalance
-      const a = this.lower.extractMax();
-      const b = this.upper.extractMin();
-      this.lower.insert(b);
-      this.upper.insert(a);
-    }
-    if (this.lower.heap.length > this.upper.heap.length + 1) {                                                  // size rebalance
-      this.upper.insert(this.lower.extractMax());
-    } else if (this.upper.heap.length > this.lower.heap.length) {
-      this.lower.insert(this.upper.extractMin());
-    }
-  }
-
-  findMedian() {
-    if (this.lower.heap.length > this.upper.heap.length) return this.lower.heap[0];
-    return (this.lower.heap[0] + this.upper.heap[0]) / 2.0;
-  }
-}
-```
-
 ```typescript,editable
 class MedianFinder {
   private lower = new MaxHeap();
@@ -1373,30 +1268,6 @@ func (m *MedianFinder) FindMedian() float64 {
         return float64(m.lower.GetMax())
     }
     return float64(m.lower.GetMax() + m.upper.GetMin()) / 2.0
-}
-```
-
-```kotlin,editable
-import java.util.PriorityQueue
-
-class MedianFinder {
-    private val lower = PriorityQueue<Int>(compareByDescending { it })            // max-heap
-    private val upper = PriorityQueue<Int>()                                       // min-heap
-
-    fun addNum(num: Int) {
-        lower.add(num)
-        if (upper.isNotEmpty() && lower.peek() > upper.peek()) {                   // order rebalance
-            val a = lower.poll(); val b = upper.poll()
-            lower.add(b); upper.add(a)
-        }
-        if (lower.size > upper.size + 1) upper.add(lower.poll())                    // size rebalance
-        else if (upper.size > lower.size) lower.add(upper.poll())
-    }
-
-    fun findMedian(): Double {
-        if (lower.size > upper.size) return lower.peek().toDouble()
-        return (lower.peek() + upper.peek()) / 2.0
-    }
 }
 ```
 

@@ -190,6 +190,16 @@ This is the rawest form of the pattern. After running the loop, the heap's *top*
 
 <div class="lang-tabs">
 
+```pseudocode
+function kthLargestElement(arr, k):
+    minHeap ← empty min-heap
+    for each v in arr:
+        push v onto minHeap
+        if size(minHeap) > k:
+            pop from minHeap       # evict the smallest — keeps only the K largest
+    return peek(minHeap)           # smallest of the K largest = K-th largest overall
+```
+
 ```python,editable
 import heapq
 from typing import List
@@ -297,49 +307,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-// Tiny inline min-heap (no library dependency; works in the browser sandbox).
-class MinHeap {
-  constructor() { this.h = []; }
-  size() { return this.h.length; }
-  peek() { return this.h[0]; }
-  push(v) {
-    this.h.push(v);
-    let i = this.h.length - 1;
-    while (i > 0) {
-      const p = (i - 1) >> 1;
-      if (this.h[p] > this.h[i]) { [this.h[p], this.h[i]] = [this.h[i], this.h[p]]; i = p; }
-      else break;
-    }
-  }
-  pop() {
-    const top = this.h[0], last = this.h.pop();
-    if (this.h.length) {
-      this.h[0] = last;
-      let i = 0, n = this.h.length;
-      while (true) {
-        const l = 2*i+1, r = 2*i+2; let s = i;
-        if (l < n && this.h[l] < this.h[s]) s = l;
-        if (r < n && this.h[r] < this.h[s]) s = r;
-        if (s === i) break;
-        [this.h[i], this.h[s]] = [this.h[s], this.h[i]];
-        i = s;
-      }
-    }
-    return top;
-  }
-}
-
-function kthLargestElement(arr, k) {
-  const heap = new MinHeap();
-  for (const v of arr) {
-    heap.push(v);
-    if (heap.size() > k) heap.pop();
-  }
-  return heap.peek();
-}
-```
-
 ```typescript,editable
 class MinHeap {
   h: number[] = [];
@@ -404,21 +371,6 @@ func kthLargestElement(arr []int, k int) int {
         }
     }
     return (*h)[0]                                                                                // K-th largest
-}
-```
-
-```kotlin,editable
-import java.util.PriorityQueue
-
-class Solution {
-    fun kthLargestElement(arr: IntArray, k: Int): Int {
-        val minHeap = PriorityQueue<Int>()                                                          // min-heap by default
-        for (v in arr) {
-            minHeap.add(v)
-            if (minHeap.size > k) minHeap.poll()
-        }
-        return minHeap.peek()                                                                        // K-th largest
-    }
 }
 ```
 
@@ -489,6 +441,16 @@ The mirror image of the previous problem. To track the K *smallest* values, use 
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function kthSmallestElement(arr, k):
+    maxHeap ← empty max-heap
+    for each v in arr:
+        push v onto maxHeap
+        if size(maxHeap) > k:
+            pop from maxHeap       # evict the largest — keeps only the K smallest
+    return peek(maxHeap)           # largest of the K smallest = K-th smallest overall
+```
 
 ```python,editable
 import heapq
@@ -595,47 +557,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-class MaxHeap {
-  constructor() { this.h = []; }
-  size() { return this.h.length; }
-  peek() { return this.h[0]; }
-  push(v) {
-    this.h.push(v);
-    let i = this.h.length - 1;
-    while (i > 0) {
-      const p = (i - 1) >> 1;
-      if (this.h[p] < this.h[i]) { [this.h[p], this.h[i]] = [this.h[i], this.h[p]]; i = p; } else break;
-    }
-  }
-  pop() {
-    const top = this.h[0]; const last = this.h.pop();
-    if (this.h.length) {
-      this.h[0] = last;
-      let i = 0; const n = this.h.length;
-      while (true) {
-        const l = 2*i+1, r = 2*i+2; let s = i;
-        if (l < n && this.h[l] > this.h[s]) s = l;
-        if (r < n && this.h[r] > this.h[s]) s = r;
-        if (s === i) break;
-        [this.h[i], this.h[s]] = [this.h[s], this.h[i]];
-        i = s;
-      }
-    }
-    return top;
-  }
-}
-
-function kthSmallestElement(arr, k) {
-  const heap = new MaxHeap();
-  for (const v of arr) {
-    heap.push(v);
-    if (heap.size() > k) heap.pop();
-  }
-  return heap.peek();
-}
-```
-
 ```typescript,editable
 class MaxHeap {
   h: number[] = [];
@@ -702,21 +623,6 @@ func kthSmallestElement(arr []int, k int) int {
 }
 ```
 
-```kotlin,editable
-import java.util.PriorityQueue
-
-class Solution {
-    fun kthSmallestElement(arr: IntArray, k: Int): Int {
-        val maxHeap = PriorityQueue<Int>(compareByDescending { it })                                              // max-heap
-        for (v in arr) {
-            maxHeap.add(v)
-            if (maxHeap.size > k) maxHeap.poll()
-        }
-        return maxHeap.peek()                                                                                      // K-th smallest
-    }
-}
-```
-
 ```rust,editable
 use std::collections::BinaryHeap;
 
@@ -771,6 +677,18 @@ This is *two* independent top-K queries followed by a linear sum:
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function kRangeSum(arr, k1, k2):
+    a ← kthLargestElement(arr, k1)  # k1-th largest (upper boundary)
+    b ← kthSmallestElement(arr, k2) # k2-th smallest (lower boundary)
+    lo ← min(a, b)
+    hi ← max(a, b)
+    total ← 0
+    for each v in arr:
+        if lo ≤ v ≤ hi: total ← total + v
+    return total
+```
 
 ```python,editable
 import heapq
@@ -921,30 +839,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-// Re-uses MinHeap and MaxHeap classes defined earlier in this lesson.
-function kthLargestK(arr, k) {
-  const h = new MinHeap();
-  for (const v of arr) { h.push(v); if (h.size() > k) h.pop(); }
-  return h.peek();
-}
-function kthSmallestK(arr, k) {
-  const h = new MaxHeap();
-  for (const v of arr) { h.push(v); if (h.size() > k) h.pop(); }
-  return h.peek();
-}
-function kRangeSum(arr, k1, k2) {
-  const n = arr.length;
-  if (n === 0 || k1 > n || k2 > n) return 0;
-  const a = kthLargestK(arr, k1);
-  const b = kthSmallestK(arr, k2);
-  const lo = Math.min(a, b), hi = Math.max(a, b);
-  let sum = 0;
-  for (const v of arr) if (v >= lo && v <= hi) sum += v;
-  return sum;
-}
-```
-
 ```typescript,editable
 function kthLargestK2(arr: number[], k: number): number {
   const h = new MinHeap();
@@ -991,31 +885,6 @@ func kRangeSum(arr []int, k1, k2 int) int {
     sum := 0
     for _, v := range arr { if v >= lo && v <= hi { sum += v } }
     return sum
-}
-```
-
-```kotlin,editable
-import java.util.PriorityQueue
-
-class Solution {
-    private fun kthLargest(arr: IntArray, k: Int): Int {
-        val h = PriorityQueue<Int>()
-        for (v in arr) { h.add(v); if (h.size > k) h.poll() }
-        return h.peek()
-    }
-    private fun kthSmallest(arr: IntArray, k: Int): Int {
-        val h = PriorityQueue<Int>(compareByDescending { it })
-        for (v in arr) { h.add(v); if (h.size > k) h.poll() }
-        return h.peek()
-    }
-    fun kRangeSum(arr: IntArray, k1: Int, k2: Int): Int {
-        val n = arr.size
-        if (n == 0 || k1 > n || k2 > n) return 0
-        val a = kthLargest(arr, k1)
-        val b = kthSmallest(arr, k2)
-        val lo = minOf(a, b); val hi = maxOf(a, b)
-        return arr.filter { it in lo..hi }.sum()
-    }
 }
 ```
 
@@ -1115,6 +984,21 @@ Total work: `n + 1` pushes, `n` pops, all on a heap of size at most `K+1` → **
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function kSortedArraySorting(arr, k):
+    if arr is empty OR k = 0: return
+    # Load first K+1 elements — the true arr[0] must be among them.
+    heap ← min-heap of arr[0 .. k]
+    outIdx ← 0
+    for i from k+1 to length(arr) − 1:
+        arr[outIdx] ← pop from heap   # smallest of the window → correct output slot
+        push arr[i] onto heap         # slide window right by one
+        outIdx ← outIdx + 1
+    while heap is NOT empty:          # drain remaining elements
+        arr[outIdx] ← pop from heap
+        outIdx ← outIdx + 1
+```
 
 ```python,editable
 import heapq
@@ -1224,21 +1108,6 @@ object Solution {
 }
 ```
 
-```javascript,editable
-function kSortedArraySorting(arr, k) {
-  const n = arr.length;
-  if (n === 0 || k === 0) return;
-  const heap = new MinHeap();
-  for (let i = 0; i <= k && i < n; i++) heap.push(arr[i]);
-  let outIdx = 0;
-  for (let i = k + 1; i < n; i++) {
-    arr[outIdx++] = heap.pop();
-    heap.push(arr[i]);
-  }
-  while (heap.size() > 0) arr[outIdx++] = heap.pop();
-}
-```
-
 ```typescript,editable
 function kSortedArraySorting(arr: number[], k: number): void {
   const n = arr.length;
@@ -1270,26 +1139,6 @@ func kSortedArraySorting(arr []int, k int) {
     }
     for h.Len() > 0 {
         arr[outIdx] = heap.Pop(h).(int); outIdx++
-    }
-}
-```
-
-```kotlin,editable
-import java.util.PriorityQueue
-
-class Solution {
-    fun kSortedArraySorting(arr: IntArray, k: Int) {
-        val n = arr.size
-        if (n == 0 || k == 0) return
-        val heap = PriorityQueue<Int>()
-        var i = 0
-        while (i <= k && i < n) { heap.add(arr[i]); i++ }
-        var outIdx = 0
-        while (i < n) {
-            arr[outIdx++] = heap.poll()
-            heap.add(arr[i]); i++
-        }
-        while (heap.isNotEmpty()) arr[outIdx++] = heap.poll()
     }
 }
 ```
