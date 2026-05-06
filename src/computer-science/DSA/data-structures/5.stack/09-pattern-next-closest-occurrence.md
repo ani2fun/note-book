@@ -116,6 +116,17 @@ For **next smaller**, swap the comparison: `arr[stack.top()] > arr[i]`.
 
 <div class="lang-tabs">
 
+```pseudocode
+function nextGreater(arr):
+    nge   ← array of −1, length n
+    stack ← empty stack of indices
+    for i from 0 to n − 1:
+        while stack not empty AND arr[top] < arr[i]:
+            nge[pop()] ← arr[i]   # retroactive resolution
+        push i
+    return nge
+```
+
 ```python,editable
 def next_greater(arr: list) -> list:
     n = len(arr)
@@ -200,20 +211,6 @@ def nextGreater(arr: Array[Int]): Array[Int] = {
 object Main extends App { println(nextGreater(Array(3,5,1,6,8,7)).mkString(", ")) }
 ```
 
-```javascript,editable
-function nextGreater(arr) {
-    const n = arr.length;
-    const nge = new Array(n).fill(-1);
-    const st = [];
-    for (let i = 0; i < n; i++) {
-        while (st.length && arr[st[st.length-1]] < arr[i]) nge[st.pop()] = arr[i];
-        st.push(i);
-    }
-    return nge;
-}
-console.log(nextGreater([3,5,1,6,8,7]));
-```
-
 ```typescript,editable
 function nextGreater(arr: number[]): number[] {
     const n = arr.length;
@@ -243,19 +240,6 @@ func nextGreater(arr []int) []int {
     return nge
 }
 func main() { fmt.Println(nextGreater([]int{3,5,1,6,8,7})) }
-```
-
-```kotlin,editable
-fun nextGreater(arr: IntArray): IntArray {
-    val nge = IntArray(arr.size) { -1 }
-    val st = ArrayDeque<Int>()
-    for (i in arr.indices) {
-        while (st.isNotEmpty() && arr[st.last()] < arr[i]) nge[st.removeLast()] = arr[i]
-        st.addLast(i)
-    }
-    return nge
-}
-fun main() { println(nextGreater(intArrayOf(3,5,1,6,8,7)).toList()) }
 ```
 
 ```rust,editable
@@ -308,6 +292,15 @@ Given two arrays `arr1` and `arr2` (where `arr2` is a subset of `arr1` and all e
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function succeedingSuperiorElement(arr1, arr2):
+    nge ← array of −1; stack ← empty; idx ← empty Map
+    for i from 0 to n − 1:
+        while stack not empty AND arr1[top] < arr1[i]: nge[pop()] ← arr1[i]
+        push i; idx[arr1[i]] ← i
+    return [nge[idx[v]] if v is in idx else −1  for v in arr2]
+```
 
 ```python,editable
 def succeeding_superior_element(arr1: list, arr2: list) -> list:
@@ -421,21 +414,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function succeedingSuperiorElement(arr1, arr2) {
-    const n = arr1.length;
-    const nge = new Array(n).fill(-1);
-    const st = []; const idx = new Map();
-    for (let i = 0; i < n; i++) {
-        while (st.length && arr1[st[st.length-1]] < arr1[i]) nge[st.pop()] = arr1[i];
-        st.push(i); idx.set(arr1[i], i);
-    }
-    return arr2.map(v => idx.has(v) ? nge[idx.get(v)] : -1);
-}
-console.log(succeedingSuperiorElement([3,5,1,6,8,7], [3,1,8,7]));
-console.log(succeedingSuperiorElement([5,9,7,8,1], [5,9,7]));
-```
-
 ```typescript,editable
 function succeedingSuperiorElement(arr1: number[], arr2: number[]): number[] {
     const n = arr1.length;
@@ -467,22 +445,6 @@ func succeedingSuperiorElement(arr1, arr2 []int) []int {
 func main() {
     fmt.Println(succeedingSuperiorElement([]int{3,5,1,6,8,7}, []int{3,1,8,7}))
     fmt.Println(succeedingSuperiorElement([]int{5,9,7,8,1}, []int{5,9,7}))
-}
-```
-
-```kotlin,editable
-fun succeedingSuperiorElement(arr1: IntArray, arr2: IntArray): IntArray {
-    val nge = IntArray(arr1.size) { -1 }
-    val st = ArrayDeque<Int>(); val idx = HashMap<Int, Int>()
-    for (i in arr1.indices) {
-        while (st.isNotEmpty() && arr1[st.last()] < arr1[i]) nge[st.removeLast()] = arr1[i]
-        st.addLast(i); idx[arr1[i]] = i
-    }
-    return IntArray(arr2.size) { j -> idx[arr2[j]]?.let { nge[it] } ?: -1 }
-}
-fun main() {
-    println(succeedingSuperiorElement(intArrayOf(3,5,1,6,8,7), intArrayOf(3,1,8,7)).toList())
-    println(succeedingSuperiorElement(intArrayOf(5,9,7,8,1), intArrayOf(5,9,7)).toList())
 }
 ```
 
@@ -526,6 +488,15 @@ Same as above but **strictly smaller**. Maintain an *increasing* monotonic stack
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function succeedingInferiorElement(arr1, arr2):
+    nse ← array of −1; stack ← empty; idx ← empty Map
+    for i from 0 to n − 1:
+        while stack not empty AND arr1[top] > arr1[i]: nse[pop()] ← arr1[i]
+        push i; idx[arr1[i]] ← i
+    return [nse[idx[v]] if v is in idx else −1  for v in arr2]
+```
 
 ```python,editable
 def succeeding_inferior_element(arr1: list, arr2: list) -> list:
@@ -639,21 +610,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function succeedingInferiorElement(arr1, arr2) {
-    const n = arr1.length;
-    const nse = new Array(n).fill(-1);
-    const st = []; const idx = new Map();
-    for (let i = 0; i < n; i++) {
-        while (st.length && arr1[st[st.length-1]] > arr1[i]) nse[st.pop()] = arr1[i];
-        st.push(i); idx.set(arr1[i], i);
-    }
-    return arr2.map(v => idx.has(v) ? nse[idx.get(v)] : -1);
-}
-console.log(succeedingInferiorElement([3,5,1,6,8,2], [3,1,8,2]));
-console.log(succeedingInferiorElement([5,9,7,8,1], [5,9,7]));
-```
-
 ```typescript,editable
 function succeedingInferiorElement(arr1: number[], arr2: number[]): number[] {
     const n = arr1.length;
@@ -685,22 +641,6 @@ func succeedingInferiorElement(arr1, arr2 []int) []int {
 func main() {
     fmt.Println(succeedingInferiorElement([]int{3,5,1,6,8,2}, []int{3,1,8,2}))
     fmt.Println(succeedingInferiorElement([]int{5,9,7,8,1}, []int{5,9,7}))
-}
-```
-
-```kotlin,editable
-fun succeedingInferiorElement(arr1: IntArray, arr2: IntArray): IntArray {
-    val nse = IntArray(arr1.size) { -1 }
-    val st = ArrayDeque<Int>(); val idx = HashMap<Int, Int>()
-    for (i in arr1.indices) {
-        while (st.isNotEmpty() && arr1[st.last()] > arr1[i]) nse[st.removeLast()] = arr1[i]
-        st.addLast(i); idx[arr1[i]] = i
-    }
-    return IntArray(arr2.size) { j -> idx[arr2[j]]?.let { nse[it] } ?: -1 }
-}
-fun main() {
-    println(succeedingInferiorElement(intArrayOf(3,5,1,6,8,2), intArrayOf(3,1,8,2)).toList())
-    println(succeedingInferiorElement(intArrayOf(5,9,7,8,1), intArrayOf(5,9,7)).toList())
 }
 ```
 
@@ -746,6 +686,16 @@ Same doubled-array trick from the previous lesson — iterate `2n` indices using
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function succeedingSuperiorElementII(arr):
+    n ← length(arr); res ← array of −1; stack ← empty
+    for i from 0 to 2n − 1:
+        idx ← i mod n
+        while stack not empty AND arr[top] < arr[idx]: res[pop()] ← arr[idx]
+        if i < n: push idx              # only push in first pass
+    return res
+```
 
 ```python,editable
 def succeeding_superior_element_ii(arr: list) -> list:
@@ -842,22 +792,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function succeedingSuperiorElementII(arr) {
-    const n = arr.length;
-    const res = new Array(n).fill(-1);
-    const st = [];
-    for (let i = 0; i < 2 * n; i++) {
-        const idx = i % n;
-        while (st.length && arr[st[st.length-1]] < arr[idx]) res[st.pop()] = arr[idx];
-        if (i < n) st.push(idx);
-    }
-    return res;
-}
-console.log(succeedingSuperiorElementII([2,5,1,6,10,3]));
-console.log(succeedingSuperiorElementII([6,7,8,9,8]));
-```
-
 ```typescript,editable
 function succeedingSuperiorElementII(arr: number[]): number[] {
     const n = arr.length;
@@ -889,24 +823,6 @@ func succeedingSuperiorElementII(arr []int) []int {
 func main() {
     fmt.Println(succeedingSuperiorElementII([]int{2,5,1,6,10,3}))
     fmt.Println(succeedingSuperiorElementII([]int{6,7,8,9,8}))
-}
-```
-
-```kotlin,editable
-fun succeedingSuperiorElementII(arr: IntArray): IntArray {
-    val n = arr.size
-    val res = IntArray(n) { -1 }
-    val st = ArrayDeque<Int>()
-    for (i in 0 until 2 * n) {
-        val idx = i % n
-        while (st.isNotEmpty() && arr[st.last()] < arr[idx]) res[st.removeLast()] = arr[idx]
-        if (i < n) st.addLast(idx)
-    }
-    return res
-}
-fun main() {
-    println(succeedingSuperiorElementII(intArrayOf(2,5,1,6,10,3)).toList())
-    println(succeedingSuperiorElementII(intArrayOf(6,7,8,9,8)).toList())
 }
 ```
 
@@ -947,6 +863,16 @@ Circular next-smaller. Mirror of the previous problem with the comparison flippe
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function succeedingInferiorElementII(arr):
+    n ← length(arr); res ← array of −1; stack ← empty
+    for i from 0 to 2n − 1:
+        idx ← i mod n
+        while stack not empty AND arr[top] > arr[idx]: res[pop()] ← arr[idx]
+        if i < n: push idx
+    return res
+```
 
 ```python,editable
 def succeeding_inferior_element_ii(arr: list) -> list:
@@ -1043,22 +969,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function succeedingInferiorElementII(arr) {
-    const n = arr.length;
-    const res = new Array(n).fill(-1);
-    const st = [];
-    for (let i = 0; i < 2 * n; i++) {
-        const idx = i % n;
-        while (st.length && arr[st[st.length-1]] > arr[idx]) res[st.pop()] = arr[idx];
-        if (i < n) st.push(idx);
-    }
-    return res;
-}
-console.log(succeedingInferiorElementII([2,5,1,6,10,3]));
-console.log(succeedingInferiorElementII([6,7,8,9,8]));
-```
-
 ```typescript,editable
 function succeedingInferiorElementII(arr: number[]): number[] {
     const n = arr.length;
@@ -1090,24 +1000,6 @@ func succeedingInferiorElementII(arr []int) []int {
 func main() {
     fmt.Println(succeedingInferiorElementII([]int{2,5,1,6,10,3}))
     fmt.Println(succeedingInferiorElementII([]int{6,7,8,9,8}))
-}
-```
-
-```kotlin,editable
-fun succeedingInferiorElementII(arr: IntArray): IntArray {
-    val n = arr.size
-    val res = IntArray(n) { -1 }
-    val st = ArrayDeque<Int>()
-    for (i in 0 until 2 * n) {
-        val idx = i % n
-        while (st.isNotEmpty() && arr[st.last()] > arr[idx]) res[st.removeLast()] = arr[idx]
-        if (i < n) st.addLast(idx)
-    }
-    return res
-}
-fun main() {
-    println(succeedingInferiorElementII(intArrayOf(2,5,1,6,10,3)).toList())
-    println(succeedingInferiorElementII(intArrayOf(6,7,8,9,8)).toList())
 }
 ```
 
@@ -1152,6 +1044,19 @@ Same algorithm — but the data source is a linked list, so we walk it once with
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function succeedingSuperiorNodes(head):
+    res ← empty list; stack ← empty stack of (index, value)
+    i ← 0
+    while head ≠ null:
+        append 0 to res
+        while stack not empty AND head.val > top.value:
+            (idx, _) ← pop(); res[idx] ← head.val
+        push (i, head.val)
+        i ← i + 1; head ← head.next
+    return res
+```
 
 ```python,editable
 class _Node:
@@ -1296,29 +1201,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode { constructor(v){ this.val = v; this.next = null; } }
-
-function succeedingSuperiorNodes(head) {
-    const res = [];
-    const st = [];           // [index, value]
-    let i = 0;
-    while (head) {
-        res.push(0);
-        while (st.length && head.val > st[st.length-1][1]) {
-            const [idx] = st.pop(); res[idx] = head.val;
-        }
-        st.push([i++, head.val]);
-        head = head.next;
-    }
-    return res;
-}
-
-const h = new ListNode(2); h.next = new ListNode(7); h.next.next = new ListNode(4);
-h.next.next.next = new ListNode(3); h.next.next.next.next = new ListNode(5);
-console.log(succeedingSuperiorNodes(h));   // [7, 0, 5, 5, 0]
-```
-
 ```typescript,editable
 class ListNode { val: number; next: ListNode | null;
     constructor(v: number) { this.val = v; this.next = null; }
@@ -1367,29 +1249,6 @@ func succeedingSuperiorNodes(head *ListNode) []int {
 func main() {
     h := &ListNode{Val:2, Next:&ListNode{Val:7, Next:&ListNode{Val:4, Next:&ListNode{Val:3, Next:&ListNode{Val:5}}}}}
     fmt.Println(succeedingSuperiorNodes(h))
-}
-```
-
-```kotlin,editable
-class ListNode(var v: Int, var next: ListNode? = null)
-
-fun succeedingSuperiorNodes(head: ListNode?): List<Int> {
-    val res = mutableListOf<Int>()
-    val st = ArrayDeque<Pair<Int, Int>>()
-    var i = 0; var cur = head
-    while (cur != null) {
-        res.add(0)
-        while (st.isNotEmpty() && cur.v > st.last().second) {
-            val (idx, _) = st.removeLast(); res[idx] = cur.v
-        }
-        st.addLast(i to cur.v); i++
-        cur = cur.next
-    }
-    return res
-}
-fun main() {
-    val h = ListNode(2, ListNode(7, ListNode(4, ListNode(3, ListNode(5)))))
-    println(succeedingSuperiorNodes(h))
 }
 ```
 
@@ -1466,6 +1325,20 @@ flowchart LR
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function retainedRainwater(heights):
+    stack ← empty; water ← 0
+    for i from 0 to n − 1:
+        while stack not empty AND heights[top] < heights[i]:
+            popped ← pop()
+            if stack is empty: break
+            left ← top; width ← i − left − 1
+            height ← min(heights[i], heights[left]) − heights[popped]
+            water ← water + width * height
+        push i
+    return water
+```
 
 ```python,editable
 def retained_rainwater(heights: list) -> int:
@@ -1586,26 +1459,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function retainedRainwater(h) {
-    const st = [];
-    let water = 0;
-    for (let i = 0; i < h.length; i++) {
-        while (st.length && h[st[st.length-1]] < h[i]) {
-            const popped = st.pop();
-            if (!st.length) break;
-            const left = st[st.length-1];
-            const width = i - left - 1;
-            const height = Math.min(h[i], h[left]) - h[popped];
-            water += width * height;
-        }
-        st.push(i);
-    }
-    return water;
-}
-console.log(retainedRainwater([0,2,4,3,0,3,5,2,0,4,3,0,2]));
-```
-
 ```typescript,editable
 function retainedRainwater(h: number[]): number {
     const st: number[] = [];
@@ -1645,26 +1498,6 @@ func retainedRainwater(h []int) int {
     return water
 }
 func main() { fmt.Println(retainedRainwater([]int{0,2,4,3,0,3,5,2,0,4,3,0,2})) }
-```
-
-```kotlin,editable
-fun retainedRainwater(h: IntArray): Int {
-    val st = ArrayDeque<Int>()
-    var water = 0
-    for (i in h.indices) {
-        while (st.isNotEmpty() && h[st.last()] < h[i]) {
-            val popped = st.removeLast()
-            if (st.isEmpty()) break
-            val left = st.last()
-            val width = i - left - 1
-            val height = minOf(h[i], h[left]) - h[popped]
-            water += width * height
-        }
-        st.addLast(i)
-    }
-    return water
-}
-fun main() { println(retainedRainwater(intArrayOf(0,2,4,3,0,3,5,2,0,4,3,0,2))) }
 ```
 
 ```rust,editable
@@ -1736,6 +1569,22 @@ flowchart LR
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function largestRectangleArea(histogram):
+    n ← length(histogram); stack ← empty; maxArea ← 0
+    for i from 0 to n − 1:
+        while stack not empty AND histogram[i] < histogram[top]:
+            h     ← histogram[pop()]
+            width ← i if stack empty else i − top − 1
+            maxArea ← max(maxArea, h * width)
+        push i
+    while stack not empty:          # flush; treat index n as a 0-height bar
+        h     ← histogram[pop()]
+        width ← n if stack empty else n − top − 1
+        maxArea ← max(maxArea, h * width)
+    return maxArea
+```
 
 ```python,editable
 def largest_rectangle_area(histogram: list) -> int:
@@ -1865,27 +1714,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function largestRectangleArea(h) {
-    const n = h.length, st = []; let max = 0;
-    for (let i = 0; i < n; i++) {
-        while (st.length && h[i] < h[st[st.length-1]]) {
-            const height = h[st.pop()];
-            const width  = st.length === 0 ? i : i - st[st.length-1] - 1;
-            max = Math.max(max, height * width);
-        }
-        st.push(i);
-    }
-    while (st.length) {
-        const height = h[st.pop()];
-        const width  = st.length === 0 ? n : n - st[st.length-1] - 1;
-        max = Math.max(max, height * width);
-    }
-    return max;
-}
-console.log(largestRectangleArea([2,4,3,3,5,2,4,3,2]));
-```
-
 ```typescript,editable
 function largestRectangleArea(h: number[]): number {
     const n = h.length; const st: number[] = []; let max = 0;
@@ -1928,27 +1756,6 @@ func largestRectangleArea(h []int) int {
     return max
 }
 func main() { fmt.Println(largestRectangleArea([]int{2,4,3,3,5,2,4,3,2})) }
-```
-
-```kotlin,editable
-fun largestRectangleArea(h: IntArray): Int {
-    val n = h.size; val st = ArrayDeque<Int>(); var max = 0
-    for (i in 0 until n) {
-        while (st.isNotEmpty() && h[i] < h[st.last()]) {
-            val height = h[st.removeLast()]
-            val width  = if (st.isEmpty()) i else i - st.last() - 1
-            max = maxOf(max, height * width)
-        }
-        st.addLast(i)
-    }
-    while (st.isNotEmpty()) {
-        val height = h[st.removeLast()]
-        val width  = if (st.isEmpty()) n else n - st.last() - 1
-        max = maxOf(max, height * width)
-    }
-    return max
-}
-fun main() { println(largestRectangleArea(intArrayOf(2,4,3,3,5,2,4,3,2))) }
 ```
 
 ```rust,editable

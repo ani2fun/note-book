@@ -96,6 +96,24 @@ The input is the postfix form of `(2 + 3*1) - 9 = -4`. Walk it:
 
 <div class="lang-tabs">
 
+```pseudocode
+function perform(a, b, op):
+    if op = '+': return a + b
+    if op = '−': return a − b
+    if op = '*': return a * b
+    if op = '/': return a / b
+
+function evaluatePostfix(postfix):
+    stack ← empty stack
+    for each ch in postfix:
+        if ch is digit: push float(ch)
+        else:
+            b ← pop()   # right operand
+            a ← pop()   # left operand
+            push perform(a, b, ch)
+    return top of stack
+```
+
 ```python,editable
 def perform(a: float, b: float, op: str) -> float:
     if op == '+': return a + b
@@ -244,32 +262,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function perform(a, b, op) {
-    switch (op) {
-        case '+': return a + b;
-        case '-': return a - b;
-        case '*': return a * b;
-        case '/': return a / b;
-    }
-    return 0;
-}
-function evaluatePostfix(postfix) {
-    const st = [];
-    for (const ch of postfix) {
-        if (/\d/.test(ch)) st.push(Number(ch));
-        else {
-            const b = st.pop(), a = st.pop();
-            st.push(perform(a, b, ch));
-        }
-    }
-    return st.pop();
-}
-console.log(evaluatePostfix("231*+9-"));   // -4
-console.log(evaluatePostfix("23*"));       // 6
-console.log(evaluatePostfix("234*+"));     // 14
-```
-
 ```typescript,editable
 function perform(a: number, b: number, op: string): number {
     switch (op) {
@@ -332,32 +324,6 @@ func main() {
 }
 ```
 
-```kotlin,editable
-fun perform(a: Float, b: Float, op: Char): Float = when (op) {
-    '+' -> a + b; '-' -> a - b
-    '*' -> a * b; '/' -> a / b
-    else -> 0f
-}
-fun evaluatePostfix(postfix: String): Float {
-    val st = ArrayDeque<Float>()
-    for (ch in postfix) {
-        if (ch.isDigit()) st.addLast((ch - '0').toFloat())
-        else {
-            val b = st.removeLast()
-            val a = st.removeLast()
-            st.addLast(perform(a, b, ch))
-        }
-    }
-    return st.last()
-}
-
-fun main() {
-    println(evaluatePostfix("231*+9-"))
-    println(evaluatePostfix("23*"))
-    println(evaluatePostfix("234*+"))
-}
-```
-
 ```rust,editable
 fn perform(a: f32, b: f32, op: char) -> f32 {
     match op { '+' => a+b, '-' => a-b, '*' => a*b, '/' => a/b, _ => 0.0 }
@@ -410,6 +376,18 @@ Given a string `postfix` representing a postfix expression with single-digit ope
 The full evaluator from above, written compactly. Same code, just packaged as the answer to the problem.
 
 <div class="lang-tabs">
+
+```pseudocode
+function evaluatePostfix(postfix):
+    ops ← { '+': add, '−': sub, '*': mul, '/': div }
+    stack ← empty stack
+    for each ch in postfix:
+        if ch is digit: push float(ch)
+        else:
+            b ← pop(); a ← pop()
+            push ops[ch](a, b)
+    return top of stack
+```
 
 ```python,editable
 def evaluate_postfix(postfix: str) -> float:
@@ -521,19 +499,6 @@ def evaluatePostfix(postfix: String): Float = {
 object Main extends App { println(evaluatePostfix("231*+9-")) }
 ```
 
-```javascript,editable
-function evaluatePostfix(postfix) {
-    const st = [];
-    const ops = {'+':(a,b)=>a+b, '-':(a,b)=>a-b, '*':(a,b)=>a*b, '/':(a,b)=>a/b};
-    for (const ch of postfix) {
-        if (/\d/.test(ch)) st.push(Number(ch));
-        else { const b = st.pop(), a = st.pop(); st.push(ops[ch](a, b)); }
-    }
-    return st.pop();
-}
-console.log(evaluatePostfix("231*+9-"));
-```
-
 ```typescript,editable
 function evaluatePostfix(postfix: string): number {
     const st: number[] = [];
@@ -570,25 +535,6 @@ func evaluatePostfix(postfix string) float64 {
     return st[len(st)-1]
 }
 func main() { fmt.Println(evaluatePostfix("231*+9-")) }
-```
-
-```kotlin,editable
-fun evaluatePostfix(postfix: String): Float {
-    val st = ArrayDeque<Float>()
-    for (ch in postfix) {
-        if (ch.isDigit()) st.addLast((ch - '0').toFloat())
-        else {
-            val b = st.removeLast(); val a = st.removeLast()
-            st.addLast(when (ch) {
-                '+' -> a + b; '-' -> a - b
-                '*' -> a * b; '/' -> a / b
-                else -> 0f
-            })
-        }
-    }
-    return st.last()
-}
-fun main() { println(evaluatePostfix("231*+9-")) }
 ```
 
 ```rust,editable
@@ -675,6 +621,18 @@ Given a string `prefix` (single-digit operands, operators `+`, `-`, `*`, `/`), e
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function evaluatePrefix(prefix):
+    stack ← empty stack
+    for each ch in prefix scanned right to left:
+        if ch is digit: push float(ch)
+        else:
+            a ← pop()   # LEFT operand (first pop under R→L scan)
+            b ← pop()   # RIGHT operand
+            push perform(a, b, ch)
+    return top of stack
+```
 
 ```python,editable
 def perform(a: float, b: float, op: str) -> float:
@@ -815,31 +773,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function perform(a, b, op) {
-    switch (op) {
-        case '+': return a + b; case '-': return a - b;
-        case '*': return a * b; case '/': return a / b;
-    }
-    return 0;
-}
-function evaluatePrefix(prefix) {
-    const st = [];
-    for (let i = prefix.length - 1; i >= 0; i--) {
-        const ch = prefix[i];
-        if (/\d/.test(ch)) st.push(Number(ch));
-        else {
-            const a = st.pop(), b = st.pop();   // a = LEFT, b = RIGHT
-            st.push(perform(a, b, ch));
-        }
-    }
-    return st.pop();
-}
-console.log(evaluatePrefix("-+8/632"));
-console.log(evaluatePrefix("+23"));
-console.log(evaluatePrefix("*+23-41"));
-```
-
 ```typescript,editable
 function perform(a: number, b: number, op: string): number {
     switch (op) {
@@ -890,31 +823,6 @@ func main() {
     fmt.Println(evaluatePrefix("-+8/632"))
     fmt.Println(evaluatePrefix("+23"))
     fmt.Println(evaluatePrefix("*+23-41"))
-}
-```
-
-```kotlin,editable
-fun perform(a: Float, b: Float, op: Char): Float = when (op) {
-    '+' -> a + b; '-' -> a - b
-    '*' -> a * b; '/' -> a / b
-    else -> 0f
-}
-fun evaluatePrefix(prefix: String): Float {
-    val st = ArrayDeque<Float>()
-    for (i in prefix.length - 1 downTo 0) {
-        val ch = prefix[i]
-        if (ch.isDigit()) st.addLast((ch - '0').toFloat())
-        else {
-            val a = st.removeLast(); val b = st.removeLast()
-            st.addLast(perform(a, b, ch))
-        }
-    }
-    return st.last()
-}
-fun main() {
-    println(evaluatePrefix("-+8/632"))
-    println(evaluatePrefix("+23"))
-    println(evaluatePrefix("*+23-41"))
 }
 ```
 
@@ -998,6 +906,26 @@ flowchart LR
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function evaluateInfix(infix):
+    return evaluatePostfix(infixToPostfix(infix))
+
+function infixToPostfix(infix):
+    ops ← empty stack; out ← empty list
+    for each ch in infix:
+        if ch is alnum: append ch to out
+        else if ch = '(': push ch
+        else if ch = ')':
+            while top ≠ '(': append pop() to out
+            pop '('
+        else: # operator
+            while ops not empty AND top ≠ '(' AND prec(top) ≥ prec(ch):
+                append pop() to out
+            push ch
+    while ops not empty: append pop() to out
+    return join(out)
+```
 
 ```python,editable
 PREC = {'^': 3, '*': 2, '/': 2, '+': 1, '-': 1}
@@ -1230,43 +1158,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const PREC = { '^': 3, '*': 2, '/': 2, '+': 1, '-': 1 };
-const isOp = c => c in PREC;
-
-function infixToPostfix(infix) {
-    const st = [], out = [];
-    for (const c of infix) {
-        if (/[a-zA-Z0-9]/.test(c)) out.push(c);
-        else if (c === '(') st.push(c);
-        else if (c === ')') {
-            while (st.length && st[st.length-1] !== '(') out.push(st.pop());
-            if (st.length) st.pop();
-        } else if (isOp(c)) {
-            while (st.length && st[st.length-1] !== '(' && PREC[st[st.length-1]] >= PREC[c])
-                out.push(st.pop());
-            st.push(c);
-        }
-    }
-    while (st.length) out.push(st.pop());
-    return out.join('');
-}
-function perform(a, b, op) { switch (op) { case '+': return a+b; case '-': return a-b; case '*': return a*b; case '/': return a/b; } return 0; }
-function evaluatePostfix(postfix) {
-    const st = [];
-    for (const c of postfix) {
-        if (/\d/.test(c)) st.push(Number(c));
-        else { const b = st.pop(), a = st.pop(); st.push(perform(a, b, c)); }
-    }
-    return st.pop();
-}
-function evaluateInfix(infix) { return evaluatePostfix(infixToPostfix(infix)); }
-
-console.log(evaluateInfix("(1+2)*(3/4)"));   // 2.25
-console.log(evaluateInfix("2+3*4"));         // 14
-console.log(evaluateInfix("(2+3)*4"));       // 20
-```
-
 ```typescript,editable
 const PREC: Record<string, number> = { '^': 3, '*': 2, '/': 2, '+': 1, '-': 1 };
 const isOp = (c: string) => c in PREC;
@@ -1347,49 +1238,6 @@ func main() {
     fmt.Println(evaluateInfix("(1+2)*(3/4)"))
     fmt.Println(evaluateInfix("2+3*4"))
     fmt.Println(evaluateInfix("(2+3)*4"))
-}
-```
-
-```kotlin,editable
-fun prec(op: Char): Int = when (op) { '^' -> 3; '*', '/' -> 2; '+', '-' -> 1; else -> 0 }
-fun isOp(c: Char): Boolean = "+-*/^".contains(c)
-
-fun infixToPostfix(infix: String): String {
-    val st = ArrayDeque<Char>(); val out = StringBuilder()
-    for (c in infix) {
-        when {
-            c.isLetterOrDigit() -> out.append(c)
-            c == '(' -> st.addLast(c)
-            c == ')' -> {
-                while (st.isNotEmpty() && st.last() != '(') out.append(st.removeLast())
-                if (st.isNotEmpty()) st.removeLast()
-            }
-            isOp(c) -> {
-                while (st.isNotEmpty() && st.last() != '(' && prec(st.last()) >= prec(c))
-                    out.append(st.removeLast())
-                st.addLast(c)
-            }
-        }
-    }
-    while (st.isNotEmpty()) out.append(st.removeLast())
-    return out.toString()
-}
-fun perform(a: Float, b: Float, op: Char): Float = when (op) { '+' -> a+b; '-' -> a-b; '*' -> a*b; '/' -> a/b; else -> 0f }
-
-fun evaluatePostfix(postfix: String): Float {
-    val st = ArrayDeque<Float>()
-    for (c in postfix) {
-        if (c.isDigit()) st.addLast((c - '0').toFloat())
-        else { val b = st.removeLast(); val a = st.removeLast(); st.addLast(perform(a, b, c)) }
-    }
-    return st.last()
-}
-fun evaluateInfix(infix: String): Float = evaluatePostfix(infixToPostfix(infix))
-
-fun main() {
-    println(evaluateInfix("(1+2)*(3/4)"))
-    println(evaluateInfix("2+3*4"))
-    println(evaluateInfix("(2+3)*4"))
 }
 ```
 

@@ -121,6 +121,17 @@ For **previous smaller element (PSE)**, swap the comparison: pop while `stack.to
 
 <div class="lang-tabs">
 
+```pseudocode
+function previousGreater(arr):
+    pge   ← array of −1, length n
+    stack ← empty stack       # monotonic decreasing
+    for i from 0 to n − 1:
+        while stack not empty AND top ≤ arr[i]: pop
+        if stack not empty: pge[i] ← top
+        push arr[i]
+    return pge
+```
+
 ```python,editable
 def previous_greater(arr: list) -> list:
     """For each i, the closest earlier value > arr[i]; -1 if none."""
@@ -216,20 +227,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function previousGreater(arr) {
-    const pge = new Array(arr.length).fill(-1);
-    const st = [];
-    for (let i = 0; i < arr.length; i++) {
-        while (st.length && st[st.length-1] <= arr[i]) st.pop();
-        if (st.length) pge[i] = st[st.length-1];
-        st.push(arr[i]);
-    }
-    return pge;
-}
-console.log(previousGreater([3,5,1,6,8,7]));
-```
-
 ```typescript,editable
 function previousGreater(arr: number[]): number[] {
     const pge = new Array(arr.length).fill(-1);
@@ -258,20 +255,6 @@ func previousGreater(arr []int) []int {
     return pge
 }
 func main() { fmt.Println(previousGreater([]int{3,5,1,6,8,7})) }
-```
-
-```kotlin,editable
-fun previousGreater(arr: IntArray): IntArray {
-    val pge = IntArray(arr.size) { -1 }
-    val st = ArrayDeque<Int>()
-    for (i in arr.indices) {
-        while (st.isNotEmpty() && st.last() <= arr[i]) st.removeLast()
-        if (st.isNotEmpty()) pge[i] = st.last()
-        st.addLast(arr[i])
-    }
-    return pge
-}
-fun main() { println(previousGreater(intArrayOf(3,5,1,6,8,7)).toList()) }
 ```
 
 ```rust,editable
@@ -334,6 +317,17 @@ Total: O(N + M) time, O(N) space.
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function precedingSuperiorElement(arr1, arr2):
+    pge   ← array of −1, length n
+    stack ← empty stack; idx ← empty Map
+    for i from 0 to n − 1:
+        while stack not empty AND top ≤ arr1[i]: pop
+        if stack not empty: pge[i] ← top
+        push arr1[i]; idx[arr1[i]] ← i
+    return [pge[idx[v]] if v is in idx else −1  for v in arr2]
+```
 
 ```python,editable
 def preceding_superior_element(arr1: list, arr2: list) -> list:
@@ -458,23 +452,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function precedingSuperiorElement(arr1, arr2) {
-    const n = arr1.length;
-    const pge = new Array(n).fill(-1);
-    const st = [];
-    const idx = new Map();
-    for (let i = 0; i < n; i++) {
-        while (st.length && st[st.length-1] <= arr1[i]) st.pop();
-        if (st.length) pge[i] = st[st.length-1];
-        st.push(arr1[i]); idx.set(arr1[i], i);
-    }
-    return arr2.map(v => idx.has(v) ? pge[idx.get(v)] : -1);
-}
-console.log(precedingSuperiorElement([3,5,1,6,8,7], [3,1,8,7]));
-console.log(precedingSuperiorElement([5,9,7,8,1], [5,9,7]));
-```
-
 ```typescript,editable
 function precedingSuperiorElement(arr1: number[], arr2: number[]): number[] {
     const n = arr1.length;
@@ -512,24 +489,6 @@ func precedingSuperiorElement(arr1, arr2 []int) []int {
 func main() {
     fmt.Println(precedingSuperiorElement([]int{3,5,1,6,8,7}, []int{3,1,8,7}))
     fmt.Println(precedingSuperiorElement([]int{5,9,7,8,1}, []int{5,9,7}))
-}
-```
-
-```kotlin,editable
-fun precedingSuperiorElement(arr1: IntArray, arr2: IntArray): IntArray {
-    val pge = IntArray(arr1.size) { -1 }
-    val st = ArrayDeque<Int>()
-    val idx = HashMap<Int, Int>()
-    for (i in arr1.indices) {
-        while (st.isNotEmpty() && st.last() <= arr1[i]) st.removeLast()
-        if (st.isNotEmpty()) pge[i] = st.last()
-        st.addLast(arr1[i]); idx[arr1[i]] = i
-    }
-    return IntArray(arr2.size) { j -> idx[arr2[j]]?.let { pge[it] } ?: -1 }
-}
-fun main() {
-    println(precedingSuperiorElement(intArrayOf(3,5,1,6,8,7), intArrayOf(3,1,8,7)).toList())
-    println(precedingSuperiorElement(intArrayOf(5,9,7,8,1), intArrayOf(5,9,7)).toList())
 }
 ```
 
@@ -574,6 +533,17 @@ Same as above but **inferior** = strictly smaller. Maintain an *increasing* mono
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function precedingInferiorElement(arr1, arr2):
+    pse   ← array of −1, length n
+    stack ← empty stack; idx ← empty Map   # monotonic increasing
+    for i from 0 to n − 1:
+        while stack not empty AND top ≥ arr1[i]: pop
+        if stack not empty: pse[i] ← top
+        push arr1[i]; idx[arr1[i]] ← i
+    return [pse[idx[v]] if v is in idx else −1  for v in arr2]
+```
 
 ```python,editable
 def preceding_inferior_element(arr1: list, arr2: list) -> list:
@@ -692,22 +662,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function precedingInferiorElement(arr1, arr2) {
-    const n = arr1.length;
-    const pse = new Array(n).fill(-1);
-    const st = [], idx = new Map();
-    for (let i = 0; i < n; i++) {
-        while (st.length && st[st.length-1] >= arr1[i]) st.pop();
-        if (st.length) pse[i] = st[st.length-1];
-        st.push(arr1[i]); idx.set(arr1[i], i);
-    }
-    return arr2.map(v => idx.has(v) ? pse[idx.get(v)] : -1);
-}
-console.log(precedingInferiorElement([3,5,1,6,8,2], [3,1,8,2]));
-console.log(precedingInferiorElement([5,9,7,8,1], [5,9,7]));
-```
-
 ```typescript,editable
 function precedingInferiorElement(arr1: number[], arr2: number[]): number[] {
     const n = arr1.length;
@@ -741,23 +695,6 @@ func precedingInferiorElement(arr1, arr2 []int) []int {
 func main() {
     fmt.Println(precedingInferiorElement([]int{3,5,1,6,8,2}, []int{3,1,8,2}))
     fmt.Println(precedingInferiorElement([]int{5,9,7,8,1}, []int{5,9,7}))
-}
-```
-
-```kotlin,editable
-fun precedingInferiorElement(arr1: IntArray, arr2: IntArray): IntArray {
-    val pse = IntArray(arr1.size) { -1 }
-    val st = ArrayDeque<Int>(); val idx = HashMap<Int, Int>()
-    for (i in arr1.indices) {
-        while (st.isNotEmpty() && st.last() >= arr1[i]) st.removeLast()
-        if (st.isNotEmpty()) pse[i] = st.last()
-        st.addLast(arr1[i]); idx[arr1[i]] = i
-    }
-    return IntArray(arr2.size) { j -> idx[arr2[j]]?.let { pse[it] } ?: -1 }
-}
-fun main() {
-    println(precedingInferiorElement(intArrayOf(3,5,1,6,8,2), intArrayOf(3,1,8,2)).toList())
-    println(precedingInferiorElement(intArrayOf(5,9,7,8,1), intArrayOf(5,9,7)).toList())
 }
 ```
 
@@ -827,6 +764,17 @@ flowchart LR
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function precedingSuperiorElementII(arr):
+    n ← length(arr); res ← array of −1; stack ← empty stack
+    for i from 0 to 2n − 1:
+        idx ← i mod n
+        while stack not empty AND top ≤ arr[idx]: pop
+        if stack not empty AND res[idx] = −1: res[idx] ← top
+        push arr[idx]
+    return res
+```
 
 ```python,editable
 def preceding_superior_element_ii(arr: list) -> list:
@@ -927,23 +875,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function precedingSuperiorElementII(arr) {
-    const n = arr.length;
-    const res = new Array(n).fill(-1);
-    const st = [];
-    for (let i = 0; i < 2 * n; i++) {
-        const idx = i % n;
-        while (st.length && st[st.length-1] <= arr[idx]) st.pop();
-        if (st.length && res[idx] === -1) res[idx] = st[st.length-1];
-        st.push(arr[idx]);
-    }
-    return res;
-}
-console.log(precedingSuperiorElementII([2,5,1,6,10,3]));
-console.log(precedingSuperiorElementII([6,7,8,9,8]));
-```
-
 ```typescript,editable
 function precedingSuperiorElementII(arr: number[]): number[] {
     const n = arr.length;
@@ -977,25 +908,6 @@ func precedingSuperiorElementII(arr []int) []int {
 func main() {
     fmt.Println(precedingSuperiorElementII([]int{2,5,1,6,10,3}))
     fmt.Println(precedingSuperiorElementII([]int{6,7,8,9,8}))
-}
-```
-
-```kotlin,editable
-fun precedingSuperiorElementII(arr: IntArray): IntArray {
-    val n = arr.size
-    val res = IntArray(n) { -1 }
-    val st = ArrayDeque<Int>()
-    for (i in 0 until 2 * n) {
-        val idx = i % n
-        while (st.isNotEmpty() && st.last() <= arr[idx]) st.removeLast()
-        if (st.isNotEmpty() && res[idx] == -1) res[idx] = st.last()
-        st.addLast(arr[idx])
-    }
-    return res
-}
-fun main() {
-    println(precedingSuperiorElementII(intArrayOf(2,5,1,6,10,3)).toList())
-    println(precedingSuperiorElementII(intArrayOf(6,7,8,9,8)).toList())
 }
 ```
 
@@ -1039,6 +951,17 @@ Circular variant of preceding inferior. Same approach with the comparison flippe
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function precedingInferiorElementII(arr):
+    n ← length(arr); res ← array of −1; stack ← empty stack
+    for i from 0 to 2n − 1:
+        idx ← i mod n
+        while stack not empty AND top ≥ arr[idx]: pop
+        if stack not empty AND res[idx] = −1: res[idx] ← top
+        push arr[idx]
+    return res
+```
 
 ```python,editable
 def preceding_inferior_element_ii(arr: list) -> list:
@@ -1139,23 +1062,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function precedingInferiorElementII(arr) {
-    const n = arr.length;
-    const res = new Array(n).fill(-1);
-    const st = [];
-    for (let i = 0; i < 2 * n; i++) {
-        const idx = i % n;
-        while (st.length && st[st.length-1] >= arr[idx]) st.pop();
-        if (st.length && res[idx] === -1) res[idx] = st[st.length-1];
-        st.push(arr[idx]);
-    }
-    return res;
-}
-console.log(precedingInferiorElementII([2,5,1,6,10,3]));
-console.log(precedingInferiorElementII([6,7,8,9,8]));
-```
-
 ```typescript,editable
 function precedingInferiorElementII(arr: number[]): number[] {
     const n = arr.length;
@@ -1189,25 +1095,6 @@ func precedingInferiorElementII(arr []int) []int {
 func main() {
     fmt.Println(precedingInferiorElementII([]int{2,5,1,6,10,3}))
     fmt.Println(precedingInferiorElementII([]int{6,7,8,9,8}))
-}
-```
-
-```kotlin,editable
-fun precedingInferiorElementII(arr: IntArray): IntArray {
-    val n = arr.size
-    val res = IntArray(n) { -1 }
-    val st = ArrayDeque<Int>()
-    for (i in 0 until 2 * n) {
-        val idx = i % n
-        while (st.isNotEmpty() && st.last() >= arr[idx]) st.removeLast()
-        if (st.isNotEmpty() && res[idx] == -1) res[idx] = st.last()
-        st.addLast(arr[idx])
-    }
-    return res
-}
-fun main() {
-    println(precedingInferiorElementII(intArrayOf(2,5,1,6,10,3)).toList())
-    println(precedingInferiorElementII(intArrayOf(6,7,8,9,8)).toList())
 }
 ```
 

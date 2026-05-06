@@ -87,6 +87,24 @@ flowchart LR
 
 <div class="lang-tabs">
 
+```pseudocode
+function MinStack():
+    stack ← empty; min ← +∞
+
+function push(stack, val):
+    if val ≤ min:
+        push min          # bury old min below new min
+        min ← val
+    push val
+
+function pop(stack):
+    top ← pop()
+    if top = min: min ← pop()   # restore buried min
+
+function top(stack):   return peek()
+function getMin(stack): return min
+```
+
 ```python,editable
 import sys
 
@@ -261,34 +279,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class MinStack {
-    constructor() {
-        this.stack = [];
-        this.min   = Number.MAX_SAFE_INTEGER;
-    }
-    push(val) {
-        if (val <= this.min) { this.stack.push(this.min); this.min = val; }
-        this.stack.push(val);
-    }
-    pop() {
-        const top = this.stack.pop();
-        if (top === this.min) this.min = this.stack.pop();
-    }
-    top()    { return this.stack[this.stack.length - 1]; }
-    getMin() { return this.min; }
-}
-
-const s = new MinStack();
-s.push(2); s.push(3);
-console.log(s.top());       // 3
-console.log(s.getMin());    // 2
-s.pop();
-console.log(s.getMin());    // 2
-s.push(-1);
-console.log(s.getMin());    // -1
-```
-
 ```typescript,editable
 class MinStack {
     private stack: number[] = [];
@@ -348,34 +338,6 @@ func main() {
     fmt.Println(s.GetMin())
     s.Push(-1)
     fmt.Println(s.GetMin())
-}
-```
-
-```kotlin,editable
-class MinStack {
-    private val stack = ArrayDeque<Int>()
-    private var min   = Int.MAX_VALUE
-
-    fun push(v: Int) {
-        if (v <= min) { stack.addLast(min); min = v }
-        stack.addLast(v)
-    }
-    fun pop() {
-        val top = stack.removeLast()
-        if (top == min) min = stack.removeLast()
-    }
-    fun top():    Int = stack.last()
-    fun getMin(): Int = min
-}
-
-fun main() {
-    val s = MinStack()
-    s.push(2); s.push(3)
-    println(s.top()); println(s.getMin())
-    s.pop()
-    println(s.getMin())
-    s.push(-1)
-    println(s.getMin())
 }
 ```
 
@@ -451,6 +413,24 @@ Mirror image of MinStack. Maintain a running `max`. When a new max arrives, push
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function MaxStack():
+    stack ← empty; max ← −∞
+
+function push(stack, val):
+    if val ≥ max:
+        push max          # bury old max below new max
+        max ← val
+    push val
+
+function pop(stack):
+    top ← pop()
+    if top = max: max ← pop()   # restore buried max
+
+function top(stack):   return peek()
+function getMax(stack): return max
+```
 
 ```python,editable
 import sys
@@ -621,34 +601,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class MaxStack {
-    constructor() {
-        this.stack = [];
-        this.max   = Number.MIN_SAFE_INTEGER;
-    }
-    push(val) {
-        if (val >= this.max) { this.stack.push(this.max); this.max = val; }
-        this.stack.push(val);
-    }
-    pop() {
-        const top = this.stack.pop();
-        if (top === this.max) this.max = this.stack.pop();
-    }
-    top()    { return this.stack[this.stack.length - 1]; }
-    getMax() { return this.max; }
-}
-
-const s = new MaxStack();
-s.push(3); s.push(2);
-console.log(s.top());
-console.log(s.getMax());
-s.pop();
-console.log(s.getMax());
-s.push(5);
-console.log(s.getMax());
-```
-
 ```typescript,editable
 class MaxStack {
     private stack: number[] = [];
@@ -708,34 +660,6 @@ func main() {
     fmt.Println(s.GetMax())
     s.Push(5)
     fmt.Println(s.GetMax())
-}
-```
-
-```kotlin,editable
-class MaxStack {
-    private val stack = ArrayDeque<Int>()
-    private var max   = Int.MIN_VALUE
-
-    fun push(v: Int) {
-        if (v >= max) { stack.addLast(max); max = v }
-        stack.addLast(v)
-    }
-    fun pop() {
-        val top = stack.removeLast()
-        if (top == max) max = stack.removeLast()
-    }
-    fun top():    Int = stack.last()
-    fun getMax(): Int = max
-}
-
-fun main() {
-    val s = MaxStack()
-    s.push(3); s.push(2)
-    println(s.top()); println(s.getMax())
-    s.pop()
-    println(s.getMax())
-    s.push(5)
-    println(s.getMax())
 }
 ```
 

@@ -95,6 +95,18 @@ Given a string `s` containing only `(`, `)`, `[`, `]`, `{`, `}`, return `true` i
 
 <div class="lang-tabs">
 
+```pseudocode
+function parenthesesChecker(s):
+    pair ← { ')':'(', ']':'[', '}':'{' }
+    stack ← empty
+    for each ch in s:
+        if ch in "([{": push ch
+        else:
+            if stack empty OR top ≠ pair[ch]: return false
+            pop
+    return stack is empty
+```
+
 ```python,editable
 def parentheses_checker(s: str) -> bool:
     pair = {')': '(', ']': '[', '}': '{'}
@@ -207,24 +219,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function parenthesesChecker(s) {
-    const pair = { ')': '(', ']': '[', '}': '{' };
-    const st = [];
-    for (const ch of s) {
-        if ("([{".includes(ch)) st.push(ch);
-        else {
-            if (!st.length || st[st.length-1] !== pair[ch]) return false;
-            st.pop();
-        }
-    }
-    return !st.length;
-}
-console.log(parenthesesChecker("()"));
-console.log(parenthesesChecker("(({}))[]"));
-console.log(parenthesesChecker("({{)[]"));
-```
-
 ```typescript,editable
 function parenthesesChecker(s: string): boolean {
     const pair: Record<string, string> = { ')': '(', ']': '[', '}': '{' };
@@ -265,26 +259,6 @@ func main() {
     fmt.Println(parenthesesChecker("()"))
     fmt.Println(parenthesesChecker("(({}))[]"))
     fmt.Println(parenthesesChecker("({{)[]"))
-}
-```
-
-```kotlin,editable
-fun parenthesesChecker(s: String): Boolean {
-    val pair = mapOf(')' to '(', ']' to '[', '}' to '{')
-    val st = ArrayDeque<Char>()
-    for (ch in s) {
-        if (ch in "([{") st.addLast(ch)
-        else {
-            if (st.isEmpty() || st.last() != pair[ch]) return false
-            st.removeLast()
-        }
-    }
-    return st.isEmpty()
-}
-fun main() {
-    println(parenthesesChecker("()"))
-    println(parenthesesChecker("(({}))[]"))
-    println(parenthesesChecker("({{)[]"))
 }
 ```
 
@@ -343,6 +317,17 @@ At end of input, the stack holds every unmatched `(`. Each one needs an edit (in
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function minimumEdits(s):
+    stack ← empty; edits ← 0
+    for each c in s:
+        if c = '(': push c
+        else:
+            if stack not empty: pop   # matched pair
+            else: edits ← edits + 1  # unmatched ')'
+    return size(stack) + edits        # leftover '(' + unmatched ')'
+```
 
 ```python,editable
 def minimum_edits(s: str) -> int:
@@ -447,24 +432,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function minimumEdits(s) {
-    const st = [];
-    let edits = 0;
-    for (const c of s) {
-        if (c === '(') st.push(c);
-        else {
-            if (st.length && st[st.length-1] === '(') st.pop();
-            else edits++;
-        }
-    }
-    return st.length + edits;
-}
-console.log(minimumEdits("())"));
-console.log(minimumEdits("))"));
-console.log(minimumEdits("(((())))"));
-```
-
 ```typescript,editable
 function minimumEdits(s: string): number {
     const st: string[] = [];
@@ -497,25 +464,6 @@ func main() {
     fmt.Println(minimumEdits("())"))
     fmt.Println(minimumEdits("))"))
     fmt.Println(minimumEdits("(((())))"))
-}
-```
-
-```kotlin,editable
-fun minimumEdits(s: String): Int {
-    val st = ArrayDeque<Char>(); var edits = 0
-    for (c in s) {
-        if (c == '(') st.addLast(c)
-        else {
-            if (st.isNotEmpty() && st.last() == '(') st.removeLast()
-            else edits++
-        }
-    }
-    return st.size + edits
-}
-fun main() {
-    println(minimumEdits("())"))
-    println(minimumEdits("))"))
-    println(minimumEdits("(((())))"))
 }
 ```
 
@@ -566,6 +514,18 @@ The simpler formulation that's used in the canonical solution: when `)` arrives,
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function redundantParentheses(s):
+    stack ← empty
+    for each ch in s:
+        if ch = ')':
+            if top = '(': return true     # nothing between '(' and ')' → redundant
+            while top ≠ '(': pop          # discard inner tokens
+            pop                           # discard '('
+        else: push ch
+    return false
+```
 
 ```python,editable
 def redundant_parentheses(s: str) -> bool:
@@ -680,24 +640,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function redundantParentheses(s) {
-    if (s === "()") return false;
-    const st = [];
-    for (const ch of s) {
-        if (ch === ')') {
-            if (st.length && st[st.length-1] === '(') return true;
-            while (st.length && st[st.length-1] !== '(') st.pop();
-            if (st.length) st.pop();
-        } else st.push(ch);
-    }
-    return false;
-}
-console.log(redundantParentheses("((2+3))+7"));
-console.log(redundantParentheses("(2+3)"));
-console.log(redundantParentheses("((2+3)+7)"));
-```
-
 ```typescript,editable
 function redundantParentheses(s: string): boolean {
     if (s === "()") return false;
@@ -734,26 +676,6 @@ func main() {
     fmt.Println(redundantParentheses("((2+3))+7"))
     fmt.Println(redundantParentheses("(2+3)"))
     fmt.Println(redundantParentheses("((2+3)+7)"))
-}
-```
-
-```kotlin,editable
-fun redundantParentheses(s: String): Boolean {
-    if (s == "()") return false
-    val st = ArrayDeque<Char>()
-    for (ch in s) {
-        if (ch == ')') {
-            if (st.isNotEmpty() && st.last() == '(') return true
-            while (st.isNotEmpty() && st.last() != '(') st.removeLast()
-            if (st.isNotEmpty()) st.removeLast()
-        } else st.addLast(ch)
-    }
-    return false
-}
-fun main() {
-    println(redundantParentheses("((2+3))+7"))
-    println(redundantParentheses("(2+3)"))
-    println(redundantParentheses("((2+3)+7)"))
 }
 ```
 
@@ -829,6 +751,19 @@ flowchart LR
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function balancedSpan(s):
+    stack ← [−1]         # sentinel: "one before the first valid run"
+    maxLen ← 0
+    for i from 0 to n − 1:
+        if s[i] = '(': push i
+        else:
+            pop
+            if stack empty: push i   # new sentinel; no run crosses an unmatched ')'
+            else: maxLen ← max(maxLen, i − top)
+    return maxLen
+```
 
 ```python,editable
 def balanced_span(s: str) -> int:
@@ -946,25 +881,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function balancedSpan(s) {
-    const st = [-1];
-    let max = 0;
-    for (let i = 0; i < s.length; i++) {
-        if (s[i] === '(') st.push(i);
-        else {
-            st.pop();
-            if (!st.length) st.push(i);
-            else max = Math.max(max, i - st[st.length-1]);
-        }
-    }
-    return max;
-}
-console.log(balancedSpan("((()("));
-console.log(balancedSpan("(()())(()"));
-console.log(balancedSpan("(((("));
-```
-
 ```typescript,editable
 function balancedSpan(s: string): number {
     const st: number[] = [-1];
@@ -1003,27 +919,6 @@ func main() {
     fmt.Println(balancedSpan("((()("))
     fmt.Println(balancedSpan("(()())(()"))
     fmt.Println(balancedSpan("(((("))
-}
-```
-
-```kotlin,editable
-fun balancedSpan(s: String): Int {
-    val st = ArrayDeque<Int>(); st.addLast(-1)
-    var max = 0
-    for (i in s.indices) {
-        if (s[i] == '(') st.addLast(i)
-        else {
-            st.removeLast()
-            if (st.isEmpty()) st.addLast(i)
-            else max = maxOf(max, i - st.last())
-        }
-    }
-    return max
-}
-fun main() {
-    println(balancedSpan("((()("))
-    println(balancedSpan("(()())(()"))
-    println(balancedSpan("(((("))
 }
 ```
 

@@ -142,6 +142,16 @@ flowchart LR
 
 <div class="lang-tabs">
 
+```pseudocode
+function canonicalisePath(path):
+    stack ← empty
+    for each token in split(path, '/'):
+        if token = '' OR token = '.': continue
+        if token = '..': if stack not empty: pop
+        else: push token
+    return '/' + join(stack, '/')
+```
+
 ```python,editable
 def canonicalise_path(path: str) -> str:
     stack = []
@@ -256,21 +266,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function canonicalisePath(path) {
-    const st = [];
-    for (const tok of path.split('/')) {
-        if (tok === '' || tok === '.') continue;
-        if (tok === '..') { if (st.length) st.pop(); }
-        else st.push(tok);
-    }
-    return '/' + st.join('/');
-}
-console.log(canonicalisePath("/a/b/../c"));
-console.log(canonicalisePath("/a/./../c"));
-console.log(canonicalisePath("/a//b/c/../"));
-```
-
 ```typescript,editable
 function canonicalisePath(path: string): string {
     const st: string[] = [];
@@ -308,25 +303,6 @@ func main() {
     fmt.Println(canonicalisePath("/a/b/../c"))
     fmt.Println(canonicalisePath("/a/./../c"))
     fmt.Println(canonicalisePath("/a//b/c/../"))
-}
-```
-
-```kotlin,editable
-fun canonicalisePath(path: String): String {
-    val st = ArrayDeque<String>()
-    for (tok in path.split("/")) {
-        when (tok) {
-            "", "." -> { /* skip */ }
-            ".."    -> { if (st.isNotEmpty()) st.removeLast() }
-            else    -> st.addLast(tok)
-        }
-    }
-    return if (st.isEmpty()) "/" else "/" + st.joinToString("/")
-}
-fun main() {
-    println(canonicalisePath("/a/b/../c"))
-    println(canonicalisePath("/a/./../c"))
-    println(canonicalisePath("/a//b/c/../"))
 }
 ```
 
@@ -398,6 +374,19 @@ flowchart LR
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function bracketedReversal(s):
+    stack ← empty
+    for each ch in s:
+        if ch = ']':
+            rev ← ""
+            while top ≠ '[': rev ← rev + pop()   # popping top-first builds reversed string
+            pop                                    # discard '['
+            push rev
+        else: push ch
+    return join(stack)
+```
 
 ```python,editable
 def bracketed_reversal(s: str) -> str:
@@ -534,24 +523,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function bracketedReversal(s) {
-    const st = [];
-    for (const ch of s) {
-        if (ch === ']') {
-            let rev = "";
-            while (st.length && st[st.length-1] !== '[') rev += st.pop();
-            if (st.length) st.pop();
-            st.push(rev);
-        } else st.push(ch);
-    }
-    return st.join('');
-}
-console.log(bracketedReversal("a[bcd]e"));
-console.log(bracketedReversal("abcd[ef[gh]i]j"));
-console.log(bracketedReversal("abcdefghij"));
-```
-
 ```typescript,editable
 function bracketedReversal(s: string): string {
     const st: string[] = [];
@@ -595,26 +566,6 @@ func main() {
     fmt.Println(bracketedReversal("a[bcd]e"))
     fmt.Println(bracketedReversal("abcd[ef[gh]i]j"))
     fmt.Println(bracketedReversal("abcdefghij"))
-}
-```
-
-```kotlin,editable
-fun bracketedReversal(s: String): String {
-    val st = ArrayDeque<String>()
-    for (ch in s) {
-        if (ch == ']') {
-            val rev = StringBuilder()
-            while (st.isNotEmpty() && st.last() != "[") rev.append(st.removeLast())
-            if (st.isNotEmpty()) st.removeLast()
-            st.addLast(rev.toString())
-        } else st.addLast(ch.toString())
-    }
-    return st.joinToString("")
-}
-fun main() {
-    println(bracketedReversal("a[bcd]e"))
-    println(bracketedReversal("abcd[ef[gh]i]j"))
-    println(bracketedReversal("abcdefghij"))
 }
 ```
 
@@ -691,6 +642,21 @@ flowchart LR
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function stringExpansion(s):
+    stack ← empty; i ← 0
+    while i < length(s):
+        if s[i] is digit:
+            read full multi-digit number; push it; advance i
+        else if s[i] = ']':
+            inner ← collect tokens above '[' in original order; pop '['
+            k     ← pop()              # repeat count pushed just before '['
+            push (inner repeated k times)
+            i ← i + 1
+        else: push s[i]; i ← i + 1
+    return join(stack)
+```
 
 ```python,editable
 def string_expansion(s: str) -> str:
@@ -868,31 +834,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function stringExpansion(s) {
-    const st = [];
-    let i = 0;
-    while (i < s.length) {
-        const ch = s[i];
-        if (/\d/.test(ch)) {
-            let j = i; while (j < s.length && /\d/.test(s[j])) j++;
-            st.push(s.slice(i, j)); i = j;
-        } else if (ch === ']') {
-            let inner = "";
-            while (st.length && st[st.length-1] !== '[') inner = st.pop() + inner;
-            if (st.length) st.pop();
-            const k = parseInt(st.pop(), 10);
-            st.push(inner.repeat(k));
-            i++;
-        } else { st.push(ch); i++; }
-    }
-    return st.join('');
-}
-console.log(stringExpansion("2[ab3[c]]"));
-console.log(stringExpansion("3[a]2[bc]"));
-console.log(stringExpansion("2[abc]3[cd]ef"));
-```
-
 ```typescript,editable
 function stringExpansion(s: string): string {
     const st: string[] = [];
@@ -950,37 +891,6 @@ func main() {
     fmt.Println(stringExpansion("2[ab3[c]]"))
     fmt.Println(stringExpansion("3[a]2[bc]"))
     fmt.Println(stringExpansion("2[abc]3[cd]ef"))
-}
-```
-
-```kotlin,editable
-fun stringExpansion(s: String): String {
-    val st = ArrayDeque<String>()
-    var i = 0
-    while (i < s.length) {
-        val ch = s[i]
-        when {
-            ch.isDigit() -> {
-                var j = i; while (j < s.length && s[j].isDigit()) j++
-                st.addLast(s.substring(i, j)); i = j
-            }
-            ch == ']' -> {
-                var inner = ""
-                while (st.isNotEmpty() && st.last() != "[") inner = st.removeLast() + inner
-                if (st.isNotEmpty()) st.removeLast()
-                val k = st.removeLast().toInt()
-                st.addLast(inner.repeat(k))
-                i++
-            }
-            else -> { st.addLast(ch.toString()); i++ }
-        }
-    }
-    return st.joinToString("")
-}
-fun main() {
-    println(stringExpansion("2[ab3[c]]"))
-    println(stringExpansion("3[a]2[bc]"))
-    println(stringExpansion("2[abc]3[cd]ef"))
 }
 ```
 
@@ -1047,6 +957,24 @@ The "first appearance order" requirement is satisfied because we never re-order:
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function formulaParsing(formula):
+    stack ← empty; firstSeen ← []; i ← 0
+    while i < length(formula):
+        ch ← formula[i]
+        if ch = '(': push ('(', −1); i ← i + 1
+        else if ch = ')':
+            i ← i + 1; mult ← read multi-digit number (default 1)
+            group ← pop all entries above '(' marker; pop '('
+            for each (atom, cnt) in group: push (atom, cnt * mult)
+        else if ch is uppercase letter:
+            atom ← ch; i ← i + 1; cnt ← read multi-digit number (default 1)
+            record first-seen order; push (atom, cnt)
+        else: i ← i + 1
+    aggregate counts per atom; sort by first-seen order
+    return "A:count B:count …"
+```
 
 ```python,editable
 def formula_parsing(formula: str) -> str:
@@ -1282,43 +1210,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-function formulaParsing(f) {
-    const st = [];                // [atom_name | '(', count]
-    const order = []; const seen = new Set();
-    let i = 0, n = f.length;
-    while (i < n) {
-        const ch = f[i];
-        if (ch === '(') { st.push(['(', -1]); i++; }
-        else if (ch === ')') {
-            i++;
-            let mult = 0;
-            while (i < n && /\d/.test(f[i])) { mult = mult*10 + Number(f[i]); i++; }
-            if (mult === 0) mult = 1;
-            const grp = [];
-            while (st.length && st[st.length-1][0] !== '(') grp.push(st.pop());
-            if (st.length) st.pop();
-            for (let j = grp.length - 1; j >= 0; j--) {
-                const [a, c] = grp[j]; st.push([a, c * mult]);
-            }
-        } else if (/[A-Z]/.test(ch)) {
-            const atom = ch; i++;
-            let cnt = 0;
-            while (i < n && /\d/.test(f[i])) { cnt = cnt*10 + Number(f[i]); i++; }
-            if (cnt === 0) cnt = 1;
-            if (!seen.has(atom)) { seen.add(atom); order.push(atom); }
-            st.push([atom, cnt]);
-        } else i++;
-    }
-    const total = new Map();
-    for (const [a, c] of st) total.set(a, (total.get(a) || 0) + c);
-    return order.map(a => `${a}:${total.get(a)}`).join(' ');
-}
-console.log(formulaParsing("(HO)2"));
-console.log(formulaParsing("H(N(KO)2)3"));
-console.log(formulaParsing("KH"));
-```
-
 ```typescript,editable
 function formulaParsing(f: string): string {
     const st: [string, number][] = [];
@@ -1399,46 +1290,6 @@ func main() {
     fmt.Println(formulaParsing("(HO)2"))
     fmt.Println(formulaParsing("H(N(KO)2)3"))
     fmt.Println(formulaParsing("KH"))
-}
-```
-
-```kotlin,editable
-fun formulaParsing(f: String): String {
-    data class Entry(val name: Char, val count: Int)
-    val st = ArrayDeque<Entry>()
-    val order = mutableListOf<Char>(); val seen = mutableSetOf<Char>()
-    var i = 0; val n = f.length
-    while (i < n) {
-        val ch = f[i]
-        when {
-            ch == '(' -> { st.addLast(Entry('(', -1)); i++ }
-            ch == ')' -> {
-                i++; var mult = 0
-                while (i < n && f[i].isDigit()) { mult = mult * 10 + (f[i] - '0'); i++ }
-                if (mult == 0) mult = 1
-                val grp = mutableListOf<Entry>()
-                while (st.isNotEmpty() && st.last().name != '(') grp.add(st.removeLast())
-                if (st.isNotEmpty()) st.removeLast()
-                for (j in grp.indices.reversed()) st.addLast(Entry(grp[j].name, grp[j].count * mult))
-            }
-            ch.isUpperCase() -> {
-                val atom = ch; i++; var cnt = 0
-                while (i < n && f[i].isDigit()) { cnt = cnt * 10 + (f[i] - '0'); i++ }
-                if (cnt == 0) cnt = 1
-                if (atom !in seen) { seen.add(atom); order.add(atom) }
-                st.addLast(Entry(atom, cnt))
-            }
-            else -> i++
-        }
-    }
-    val total = HashMap<Char, Int>()
-    for (e in st) total[e.name] = (total[e.name] ?: 0) + e.count
-    return order.joinToString(" ") { "$it:${total[it]}" }
-}
-fun main() {
-    println(formulaParsing("(HO)2"))
-    println(formulaParsing("H(N(KO)2)3"))
-    println(formulaParsing("KH"))
 }
 ```
 

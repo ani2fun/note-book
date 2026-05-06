@@ -142,6 +142,32 @@ The class encapsulates `head`, `currentSize`, and `capacity`, exposing the same 
 
 <div class="lang-tabs">
 
+```pseudocode
+function Stack(capacity):
+    head        ← null      # pointer to top node
+    currentSize ← 0
+    cap         ← capacity
+
+function size(stack):    return stack.currentSize
+function empty(stack):   return stack.currentSize = 0
+function top(stack):     if empty(stack): return −1  else return stack.head.val
+
+function push(stack, val):
+    if stack.currentSize = stack.cap: return false
+    newNode      ← new ListNode(val)
+    newNode.next ← stack.head        # rewire BEFORE moving head
+    stack.head   ← newNode
+    stack.currentSize ← stack.currentSize + 1
+    return true
+
+function pop(stack):
+    if empty(stack): return −1
+    val        ← stack.head.val
+    stack.head ← stack.head.next    # advance head; old node reclaimed
+    stack.currentSize ← stack.currentSize − 1
+    return val
+```
+
 ```python,editable
 class _ListNode:
     __slots__ = ('val', 'next')
@@ -265,26 +291,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode {
-    constructor(val) { this.val = val; this.next = null; }
-}
-class Stack {
-    constructor(capacity) {
-        this.capacity    = capacity;
-        this.head        = null;
-        this.currentSize = 0;
-    }
-    size()  { return 0; }
-    empty() { return true; }
-    top()   { return -1; }
-    push(val) { return false; }
-    pop()   { return -1; }
-}
-const s = new Stack(4);
-console.log("created stack with capacity 4");
-```
-
 ```typescript,editable
 class ListNode {
     val: number; next: ListNode | null;
@@ -334,23 +340,6 @@ func main() {
 }
 ```
 
-```kotlin,editable
-class ListNode(var v: Int, var next: ListNode? = null)
-
-open class Stack(protected val capacity: Int) {
-    protected var head: ListNode? = null
-    protected var currentSize     = 0
-
-    open fun size():  Int     = 0
-    open fun empty(): Boolean = true
-    open fun top():   Int     = -1
-    open fun push(v: Int): Boolean = false
-    open fun pop():   Int     = -1
-}
-
-fun main() { val s = Stack(4); println("created stack with capacity 4") }
-```
-
 ```rust,editable
 // A pedagogical singly-linked-stack using Box for ownership.
 struct ListNode { val: i32, next: Option<Box<ListNode>> }
@@ -397,6 +386,11 @@ We maintain `currentSize` as a counter that's bumped on push and dropped on pop,
 ## Implementation
 
 <div class="lang-tabs">
+
+```pseudocode
+function size(stack):
+    return stack.currentSize
+```
 
 ```python,editable
 class _ListNode:
@@ -456,15 +450,6 @@ class Stack(val capacity: Int) {
 object Main extends App { println(new Stack(4).size) }
 ```
 
-```javascript,editable
-class ListNode { constructor(v){ this.val = v; this.next = null; } }
-class Stack {
-    constructor(c){ this.capacity = c; this.head = null; this.currentSize = 0; }
-    size(){ return this.currentSize; }
-}
-console.log(new Stack(4).size());
-```
-
 ```typescript,editable
 class ListNode { val: number; next: ListNode | null; constructor(v: number){ this.val = v; this.next = null; } }
 class Stack {
@@ -483,15 +468,6 @@ type Stack struct{ head *ListNode; capacity, currentSize int }
 func NewStack(c int) *Stack { return &Stack{capacity: c} }
 func (s *Stack) Size() int { return s.currentSize }
 func main(){ fmt.Println(NewStack(4).Size()) }
-```
-
-```kotlin,editable
-class ListNode(var v: Int, var next: ListNode? = null)
-open class Stack(protected val capacity: Int) {
-    protected var head: ListNode? = null; protected var currentSize = 0
-    open fun size() = currentSize
-}
-fun main(){ println(Stack(4).size()) }
 ```
 
 ```rust,editable
@@ -523,6 +499,11 @@ Same approach as before — directly compare against the size counter, or equiva
 ## Implementation
 
 <div class="lang-tabs">
+
+```pseudocode
+function empty(stack):
+    return stack.currentSize = 0
+```
 
 ```python,editable
 class Stack:
@@ -577,15 +558,6 @@ class Stack(val capacity: Int) {
 object Main extends App { println(new Stack(4).empty) }
 ```
 
-```javascript,editable
-class ListNode { constructor(v){ this.val=v; this.next=null; } }
-class Stack {
-    constructor(c){ this.capacity=c; this.head=null; this.currentSize=0; }
-    empty(){ return this.currentSize === 0; }
-}
-console.log(new Stack(4).empty());
-```
-
 ```typescript,editable
 class ListNode { val: number; next: ListNode | null; constructor(v: number){ this.val=v; this.next=null; } }
 class Stack {
@@ -604,15 +576,6 @@ type Stack struct{ head *ListNode; capacity, currentSize int }
 func NewStack(c int) *Stack { return &Stack{capacity: c} }
 func (s *Stack) Empty() bool { return s.currentSize == 0 }
 func main(){ fmt.Println(NewStack(4).Empty()) }
-```
-
-```kotlin,editable
-class ListNode(var v: Int, var next: ListNode? = null)
-open class Stack(protected val capacity: Int) {
-    protected var head: ListNode? = null; protected var currentSize = 0
-    open fun empty() = currentSize == 0
-}
-fun main(){ println(Stack(4).empty()) }
 ```
 
 ```rust,editable
@@ -674,6 +637,12 @@ flowchart LR
 
 <div class="lang-tabs">
 
+```pseudocode
+function top(stack):
+    if empty(stack): return −1
+    return stack.head.val
+```
+
 ```python,editable
 class Stack:
     def __init__(self, c): self.capacity, self.head, self.current_size = c, None, 0
@@ -720,15 +689,6 @@ class Stack(val capacity: Int) {
 }
 ```
 
-```javascript,editable
-class ListNode { constructor(v){ this.val=v; this.next=null; } }
-class Stack {
-    constructor(c){ this.capacity=c; this.head=null; this.currentSize=0; }
-    empty(){ return this.currentSize === 0; }
-    top(){ return this.empty() ? -1 : this.head.val; }
-}
-```
-
 ```typescript,editable
 class ListNode { val: number; next: ListNode | null; constructor(v: number){ this.val=v; this.next=null; } }
 class Stack {
@@ -745,15 +705,6 @@ type ListNode struct{ Val int; Next *ListNode }
 type Stack struct{ head *ListNode; capacity, currentSize int }
 func (s *Stack) Empty() bool { return s.currentSize == 0 }
 func (s *Stack) Top()   int  { if s.Empty() { return -1 }; return s.head.Val }
-```
-
-```kotlin,editable
-class ListNode(var v: Int, var next: ListNode? = null)
-open class Stack(protected val capacity: Int) {
-    protected var head: ListNode? = null; protected var currentSize = 0
-    open fun empty() = currentSize == 0
-    open fun top()   = if (empty()) -1 else head!!.v
-}
 ```
 
 ```rust,editable
@@ -833,6 +784,16 @@ before -> after
 ## Implementation
 
 <div class="lang-tabs">
+
+```pseudocode
+function push(stack, val):
+    if stack.currentSize = stack.cap: return false
+    newNode      ← new ListNode(val)
+    newNode.next ← stack.head        # wire next BEFORE moving head
+    stack.head   ← newNode
+    stack.currentSize ← stack.currentSize + 1
+    return true
+```
 
 ```python,editable
 class _ListNode:
@@ -944,23 +905,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode { constructor(v){ this.val = v; this.next = null; } }
-class Stack {
-    constructor(c){ this.capacity=c; this.head=null; this.currentSize=0; }
-    push(val){
-        if (this.currentSize === this.capacity) return false;
-        const n = new ListNode(val);
-        n.next     = this.head;
-        this.head  = n;
-        this.currentSize++;
-        return true;
-    }
-}
-const s = new Stack(2);
-console.log(s.push(7), s.push(9), s.push(11));
-```
-
 ```typescript,editable
 class ListNode { val: number; next: ListNode | null; constructor(v: number){ this.val=v; this.next=null; } }
 class Stack {
@@ -998,27 +942,6 @@ func (s *Stack) Push(val int) bool {
 func main() {
     s := NewStack(2)
     fmt.Println(s.Push(7), s.Push(9), s.Push(11))
-}
-```
-
-```kotlin,editable
-class ListNode(var v: Int, var next: ListNode? = null)
-
-open class Stack(protected val capacity: Int) {
-    protected var head: ListNode? = null
-    protected var currentSize     = 0
-    open fun push(v: Int): Boolean {
-        if (currentSize == capacity) return false
-        val n = ListNode(v); n.next = head
-        head  = n
-        currentSize++
-        return true
-    }
-}
-
-fun main() {
-    val s = Stack(2)
-    println("${s.push(7)} ${s.push(9)} ${s.push(11)}")
 }
 ```
 
@@ -1113,6 +1036,15 @@ before -> after
 ## Implementation
 
 <div class="lang-tabs">
+
+```pseudocode
+function pop(stack):
+    if empty(stack): return −1
+    val        ← stack.head.val
+    stack.head ← stack.head.next    # advance head; old node reclaimed
+    stack.currentSize ← stack.currentSize − 1
+    return val
+```
 
 ```python,editable
 class _ListNode:
@@ -1259,29 +1191,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode { constructor(v){ this.val = v; this.next = null; } }
-class Stack {
-    constructor(c){ this.capacity=c; this.head=null; this.currentSize=0; }
-    empty(){ return this.currentSize === 0; }
-    push(v){
-        if (this.currentSize === this.capacity) return false;
-        const n = new ListNode(v); n.next = this.head; this.head = n;
-        this.currentSize++; return true;
-    }
-    pop(){
-        if (this.empty()) return -1;
-        const v = this.head.val;
-        this.head = this.head.next;     // GC reclaims old node
-        this.currentSize--;
-        return v;
-    }
-}
-const s = new Stack(3);
-s.push(1); s.push(2); s.push(3);
-console.log(s.pop(), s.pop(), s.pop(), s.pop());
-```
-
 ```typescript,editable
 class ListNode { val: number; next: ListNode | null; constructor(v: number){ this.val=v; this.next=null; } }
 class Stack {
@@ -1333,32 +1242,6 @@ func main() {
     s := NewStack(3)
     s.Push(1); s.Push(2); s.Push(3)
     fmt.Println(s.Pop(), s.Pop(), s.Pop(), s.Pop())
-}
-```
-
-```kotlin,editable
-class ListNode(var v: Int, var next: ListNode? = null)
-open class Stack(protected val capacity: Int) {
-    protected var head: ListNode? = null
-    protected var currentSize     = 0
-    open fun empty() = currentSize == 0
-    open fun push(v: Int): Boolean {
-        if (currentSize == capacity) return false
-        val n = ListNode(v); n.next = head; head = n
-        currentSize++; return true
-    }
-    open fun pop(): Int {
-        if (empty()) return -1
-        val v = head!!.v
-        head  = head!!.next
-        currentSize--
-        return v
-    }
-}
-fun main() {
-    val s = Stack(3)
-    s.push(1); s.push(2); s.push(3)
-    println("${s.pop()} ${s.pop()} ${s.pop()} ${s.pop()}")
 }
 ```
 
@@ -1424,6 +1307,32 @@ Implement the same `Stack` class from the array-implementation lesson, but **bac
 The full implementation, in 10 languages, combining everything we built incrementally above.
 
 <div class="lang-tabs">
+
+```pseudocode
+function Stack(capacity):
+    head        ← null
+    currentSize ← 0
+    cap         ← capacity
+
+function size(stack):    return stack.currentSize
+function empty(stack):   return stack.currentSize = 0
+function top(stack):     if empty(stack): return −1  else return stack.head.val
+
+function push(stack, val):
+    if stack.currentSize = stack.cap: return false
+    newNode      ← new ListNode(val)
+    newNode.next ← stack.head        # wire next BEFORE moving head
+    stack.head   ← newNode
+    stack.currentSize ← stack.currentSize + 1
+    return true
+
+function pop(stack):
+    if empty(stack): return −1
+    val        ← stack.head.val
+    stack.head ← stack.head.next    # advance head; old node reclaimed
+    stack.currentSize ← stack.currentSize − 1
+    return val
+```
 
 ```python,editable
 class _ListNode:
@@ -1615,41 +1524,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class ListNode { constructor(v){ this.val = v; this.next = null; } }
-
-class Stack {
-    constructor(capacity) {
-        this.capacity    = capacity;
-        this.head        = null;
-        this.currentSize = 0;
-    }
-    size()  { return this.currentSize; }
-    empty() { return this.currentSize === 0; }
-    top()   { return this.empty() ? -1 : this.head.val; }
-    push(v) {
-        if (this.currentSize === this.capacity) return false;
-        const n = new ListNode(v); n.next = this.head; this.head = n;
-        this.currentSize++; return true;
-    }
-    pop()   {
-        if (this.empty()) return -1;
-        const v = this.head.val;
-        this.head = this.head.next;
-        this.currentSize--;
-        return v;
-    }
-}
-
-const s = new Stack(2);
-console.log(s.push(2), s.push(3));
-console.log(s.top(),   s.empty());
-console.log(s.pop());
-console.log(s.top());
-console.log(s.push(8), s.push(9));
-console.log(s.empty());
-```
-
 ```typescript,editable
 class ListNode {
     val: number; next: ListNode | null;
@@ -1724,41 +1598,6 @@ func main() {
     fmt.Println(s.Top())
     fmt.Println(s.Push(8), s.Push(9))
     fmt.Println(s.Empty())
-}
-```
-
-```kotlin,editable
-class ListNode(var v: Int, var next: ListNode? = null)
-
-class Stack(private val capacity: Int) {
-    private var head: ListNode? = null
-    private var currentSize     = 0
-
-    fun size():  Int     = currentSize
-    fun empty(): Boolean = currentSize == 0
-    fun top():   Int     = if (empty()) -1 else head!!.v
-    fun push(v: Int): Boolean {
-        if (currentSize == capacity) return false
-        val n = ListNode(v); n.next = head; head = n
-        currentSize++; return true
-    }
-    fun pop(): Int {
-        if (empty()) return -1
-        val v = head!!.v
-        head  = head!!.next
-        currentSize--
-        return v
-    }
-}
-
-fun main() {
-    val s = Stack(2)
-    println("${s.push(2)} ${s.push(3)}")
-    println("${s.top()} ${s.empty()}")
-    println(s.pop())
-    println(s.top())
-    println("${s.push(8)} ${s.push(9)}")
-    println(s.empty())
 }
 ```
 

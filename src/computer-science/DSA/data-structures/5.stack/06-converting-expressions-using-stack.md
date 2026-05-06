@@ -93,6 +93,17 @@ Given a postfix expression `postfix`, return the equivalent prefix expression. O
 
 <div class="lang-tabs">
 
+```pseudocode
+function postfixToPrefix(postfix):
+    stack ← empty string stack
+    for each ch in postfix:
+        if ch is operand: push ch as string
+        else:
+            b ← pop(); a ← pop()
+            push ch + a + b   # operator BEFORE operands
+    return top of stack
+```
+
 ```python,editable
 def is_op(c: str) -> bool: return c in "+-*/^"
 
@@ -211,24 +222,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const isOp = c => "+-*/^".includes(c);
-
-function postfixToPrefix(postfix) {
-    const st = [];
-    for (const ch of postfix) {
-        if (!isOp(ch)) st.push(ch);
-        else {
-            const b = st.pop(), a = st.pop();
-            st.push(ch + a + b);
-        }
-    }
-    return st.pop();
-}
-console.log(postfixToPrefix("231*+9-"));
-console.log(postfixToPrefix("ab+cd-*"));
-```
-
 ```typescript,editable
 const isOp = (c: string) => "+-*/^".includes(c);
 
@@ -267,26 +260,6 @@ func postfixToPrefix(postfix string) string {
 func main() {
     fmt.Println(postfixToPrefix("231*+9-"))
     fmt.Println(postfixToPrefix("ab+cd-*"))
-}
-```
-
-```kotlin,editable
-fun isOp(c: Char) = "+-*/^".contains(c)
-
-fun postfixToPrefix(postfix: String): String {
-    val st = ArrayDeque<String>()
-    for (ch in postfix) {
-        if (!isOp(ch)) st.addLast(ch.toString())
-        else {
-            val b = st.removeLast(); val a = st.removeLast()
-            st.addLast("$ch$a$b")
-        }
-    }
-    return st.last()
-}
-fun main() {
-    println(postfixToPrefix("231*+9-"))
-    println(postfixToPrefix("ab+cd-*"))
 }
 ```
 
@@ -362,6 +335,17 @@ flowchart LR
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function postfixToInfix(postfix):
+    stack ← empty string stack
+    for each ch in postfix:
+        if ch is operand: push ch as string
+        else:
+            b ← pop(); a ← pop()
+            push "(" + a + ch + b + ")"   # operator BETWEEN operands
+    return top of stack
+```
 
 ```python,editable
 def is_op(c): return c in "+-*/^"
@@ -469,20 +453,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const isOp = c => "+-*/^".includes(c);
-function postfixToInfix(postfix) {
-    const st = [];
-    for (const ch of postfix) {
-        if (!isOp(ch)) st.push(ch);
-        else { const b = st.pop(), a = st.pop(); st.push(`(${a}${ch}${b})`); }
-    }
-    return st.pop();
-}
-console.log(postfixToInfix("231*+9-"));
-console.log(postfixToInfix("ab+cd-*"));
-```
-
 ```typescript,editable
 const isOp = (c: string) => "+-*/^".includes(c);
 function postfixToInfix(postfix: string): string {
@@ -514,22 +484,6 @@ func postfixToInfix(postfix string) string {
 func main() {
     fmt.Println(postfixToInfix("231*+9-"))
     fmt.Println(postfixToInfix("ab+cd-*"))
-}
-```
-
-```kotlin,editable
-fun isOp(c: Char) = "+-*/^".contains(c)
-fun postfixToInfix(postfix: String): String {
-    val st = ArrayDeque<String>()
-    for (ch in postfix) {
-        if (!isOp(ch)) st.addLast(ch.toString())
-        else { val b = st.removeLast(); val a = st.removeLast(); st.addLast("($a$ch$b)") }
-    }
-    return st.last()
-}
-fun main() {
-    println(postfixToInfix("231*+9-"))
-    println(postfixToInfix("ab+cd-*"))
 }
 ```
 
@@ -599,6 +553,18 @@ flowchart LR
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function prefixToPostfix(prefix):
+    stack ← empty string stack
+    for each ch in prefix scanned right to left:
+        if ch is operand: push ch as string
+        else:
+            a ← pop()   # LEFT operand
+            b ← pop()   # RIGHT operand
+            push a + b + ch   # operator AFTER operands
+    return top of stack
+```
 
 ```python,editable
 def is_op(c): return c in "+-*/^"
@@ -705,21 +671,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const isOp = c => "+-*/^".includes(c);
-function prefixToPostfix(prefix) {
-    const st = [];
-    for (let i = prefix.length-1; i >= 0; i--) {
-        const ch = prefix[i];
-        if (!isOp(ch)) st.push(ch);
-        else { const a = st.pop(), b = st.pop(); st.push(a + b + ch); }
-    }
-    return st.pop();
-}
-console.log(prefixToPostfix("-+2*319"));
-console.log(prefixToPostfix("*+ab-cd"));
-```
-
 ```typescript,editable
 const isOp = (c: string) => "+-*/^".includes(c);
 function prefixToPostfix(prefix: string): string {
@@ -752,23 +703,6 @@ func prefixToPostfix(prefix string) string {
 func main() {
     fmt.Println(prefixToPostfix("-+2*319"))
     fmt.Println(prefixToPostfix("*+ab-cd"))
-}
-```
-
-```kotlin,editable
-fun isOp(c: Char) = "+-*/^".contains(c)
-fun prefixToPostfix(prefix: String): String {
-    val st = ArrayDeque<String>()
-    for (i in prefix.length-1 downTo 0) {
-        val ch = prefix[i]
-        if (!isOp(ch)) st.addLast(ch.toString())
-        else { val a = st.removeLast(); val b = st.removeLast(); st.addLast(a + b + ch) }
-    }
-    return st.last()
-}
-fun main() {
-    println(prefixToPostfix("-+2*319"))
-    println(prefixToPostfix("*+ab-cd"))
 }
 ```
 
@@ -814,6 +748,18 @@ Right-to-left scan, infix combine step `(a op b)`.
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function prefixToInfix(prefix):
+    stack ← empty string stack
+    for each ch in prefix scanned right to left:
+        if ch is operand: push ch as string
+        else:
+            a ← pop()   # LEFT operand
+            b ← pop()   # RIGHT operand
+            push "(" + a + ch + b + ")"
+    return top of stack
+```
 
 ```python,editable
 def is_op(c): return c in "+-*/^"
@@ -920,21 +866,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const isOp = c => "+-*/^".includes(c);
-function prefixToInfix(prefix) {
-    const st = [];
-    for (let i = prefix.length-1; i >= 0; i--) {
-        const ch = prefix[i];
-        if (!isOp(ch)) st.push(ch);
-        else { const a = st.pop(), b = st.pop(); st.push(`(${a}${ch}${b})`); }
-    }
-    return st.pop();
-}
-console.log(prefixToInfix("-+2*319"));
-console.log(prefixToInfix("*+ab-cd"));
-```
-
 ```typescript,editable
 const isOp = (c: string) => "+-*/^".includes(c);
 function prefixToInfix(prefix: string): string {
@@ -967,23 +898,6 @@ func prefixToInfix(prefix string) string {
 func main() {
     fmt.Println(prefixToInfix("-+2*319"))
     fmt.Println(prefixToInfix("*+ab-cd"))
-}
-```
-
-```kotlin,editable
-fun isOp(c: Char) = "+-*/^".contains(c)
-fun prefixToInfix(prefix: String): String {
-    val st = ArrayDeque<String>()
-    for (i in prefix.length-1 downTo 0) {
-        val ch = prefix[i]
-        if (!isOp(ch)) st.addLast(ch.toString())
-        else { val a = st.removeLast(); val b = st.removeLast(); st.addLast("($a$ch$b)") }
-    }
-    return st.last()
-}
-fun main() {
-    println(prefixToInfix("-+2*319"))
-    println(prefixToInfix("*+ab-cd"))
 }
 ```
 
@@ -1082,6 +996,25 @@ The key invariant: **at any point during the scan, the operator stack contains o
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function infixToPostfix(infix):
+    ops ← empty stack; out ← empty list
+    for each ch in infix:
+        if ch is alnum: append ch to out
+        else if ch = '(': push ch
+        else if ch = ')':
+            while top ≠ '(': append pop() to out
+            pop '('
+        else: # operator
+            while ops not empty AND top ≠ '(' AND
+                  (prec(top) > prec(ch) OR
+                   (prec(top) = prec(ch) AND ch ≠ '^')):
+                append pop() to out
+            push ch
+    while ops not empty: append pop() to out
+    return join(out)
+```
 
 ```python,editable
 PREC = {'^': 3, '*': 2, '/': 2, '+': 1, '-': 1}
@@ -1259,36 +1192,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const PREC = { '^': 3, '*': 2, '/': 2, '+': 1, '-': 1 };
-const isOp = c => c in PREC;
-const isRA = c => c === '^';
-
-function infixToPostfix(infix) {
-    const ops = [], out = [];
-    for (const c of infix) {
-        if (/[a-zA-Z0-9]/.test(c)) out.push(c);
-        else if (c === '(') ops.push(c);
-        else if (c === ')') {
-            while (ops.length && ops[ops.length-1] !== '(') out.push(ops.pop());
-            if (ops.length) ops.pop();
-        } else if (isOp(c)) {
-            while (ops.length && ops[ops.length-1] !== '(' &&
-                   (PREC[ops[ops.length-1]] > PREC[c] ||
-                    (PREC[ops[ops.length-1]] === PREC[c] && !isRA(c))))
-                out.push(ops.pop());
-            ops.push(c);
-        }
-    }
-    while (ops.length) out.push(ops.pop());
-    return out.join('');
-}
-console.log(infixToPostfix("(2+3)*4"));
-console.log(infixToPostfix("2+3*4"));
-console.log(infixToPostfix("a+b*c-d"));
-console.log(infixToPostfix("2^3^2"));
-```
-
 ```typescript,editable
 const PREC: Record<string, number> = { '^': 3, '*': 2, '/': 2, '+': 1, '-': 1 };
 const isOp = (c: string) => c in PREC;
@@ -1354,41 +1257,6 @@ func main() {
     fmt.Println(infixToPostfix("2+3*4"))
     fmt.Println(infixToPostfix("a+b*c-d"))
     fmt.Println(infixToPostfix("2^3^2"))
-}
-```
-
-```kotlin,editable
-fun prec(c: Char) = when (c) { '^' -> 3; '*', '/' -> 2; '+', '-' -> 1; else -> 0 }
-fun isOp(c: Char) = "+-*/^".contains(c)
-fun isRA(c: Char) = c == '^'
-
-fun infixToPostfix(infix: String): String {
-    val ops = ArrayDeque<Char>(); val out = StringBuilder()
-    for (c in infix) {
-        when {
-            c.isLetterOrDigit() -> out.append(c)
-            c == '(' -> ops.addLast(c)
-            c == ')' -> {
-                while (ops.isNotEmpty() && ops.last() != '(') out.append(ops.removeLast())
-                if (ops.isNotEmpty()) ops.removeLast()
-            }
-            isOp(c) -> {
-                while (ops.isNotEmpty() && ops.last() != '(' &&
-                       (prec(ops.last()) > prec(c) ||
-                        (prec(ops.last()) == prec(c) && !isRA(c))))
-                    out.append(ops.removeLast())
-                ops.addLast(c)
-            }
-        }
-    }
-    while (ops.isNotEmpty()) out.append(ops.removeLast())
-    return out.toString()
-}
-fun main() {
-    println(infixToPostfix("(2+3)*4"))
-    println(infixToPostfix("2+3*4"))
-    println(infixToPostfix("a+b*c-d"))
-    println(infixToPostfix("2^3^2"))
 }
 ```
 
@@ -1474,6 +1342,16 @@ flowchart LR
 ## Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+function infixToPrefix(infix):
+    # Step 1+2: reverse and swap brackets
+    rev ← reverse(infix); replace '(' ↔ ')' in rev
+    # Step 3: Shunting-Yard with ^ treated as left-associative
+    out ← run infixToPostfix(rev) with strict > for ^ precedence flush
+    # Step 4: reverse result
+    return reverse(out)
+```
 
 ```python,editable
 PREC = {'^': 3, '*': 2, '/': 2, '+': 1, '-': 1}
@@ -1668,35 +1546,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-const PREC = { '^': 3, '*': 2, '/': 2, '+': 1, '-': 1 };
-const isOp = c => c in PREC;
-const flip = c => c === '(' ? ')' : (c === ')' ? '(' : c);
-
-function infixToPrefix(infix) {
-    const rev = [...infix].reverse().map(flip).join('');
-    const ops = [], out = [];
-    for (const c of rev) {
-        if (/[a-zA-Z0-9]/.test(c)) out.push(c);
-        else if (c === '(') ops.push(c);
-        else if (c === ')') {
-            while (ops.length && ops[ops.length-1] !== '(') out.push(ops.pop());
-            if (ops.length) ops.pop();
-        } else if (isOp(c)) {
-            while (ops.length && ops[ops.length-1] !== '(' && PREC[ops[ops.length-1]] > PREC[c]) out.push(ops.pop());
-            while (ops.length && ops[ops.length-1] !== '(' && PREC[ops[ops.length-1]] === PREC[c] && c !== '^') out.push(ops.pop());
-            ops.push(c);
-        }
-    }
-    while (ops.length) out.push(ops.pop());
-    return out.reverse().join('');
-}
-console.log(infixToPrefix("(2+3)*4"));
-console.log(infixToPrefix("2+3*4"));
-console.log(infixToPrefix("a+b*c-d"));
-console.log(infixToPrefix("2^3^2"));
-```
-
 ```typescript,editable
 const PREC: Record<string, number> = { '^': 3, '*': 2, '/': 2, '+': 1, '-': 1 };
 const isOp = (c: string) => c in PREC;
@@ -1763,40 +1612,6 @@ func main() {
     fmt.Println(infixToPrefix("2+3*4"))
     fmt.Println(infixToPrefix("a+b*c-d"))
     fmt.Println(infixToPrefix("2^3^2"))
-}
-```
-
-```kotlin,editable
-fun prec(c: Char) = when (c) { '^' -> 3; '*', '/' -> 2; '+', '-' -> 1; else -> 0 }
-fun isOp(c: Char) = "+-*/^".contains(c)
-fun flip(c: Char) = if (c == '(') ')' else if (c == ')') '(' else c
-
-fun infixToPrefix(infix: String): String {
-    val rev = infix.reversed().map { flip(it) }.joinToString("")
-    val ops = ArrayDeque<Char>(); val out = StringBuilder()
-    for (c in rev) {
-        when {
-            c.isLetterOrDigit() -> out.append(c)
-            c == '(' -> ops.addLast(c)
-            c == ')' -> {
-                while (ops.isNotEmpty() && ops.last() != '(') out.append(ops.removeLast())
-                if (ops.isNotEmpty()) ops.removeLast()
-            }
-            isOp(c) -> {
-                while (ops.isNotEmpty() && ops.last() != '(' && prec(ops.last()) > prec(c)) out.append(ops.removeLast())
-                while (ops.isNotEmpty() && ops.last() != '(' && prec(ops.last()) == prec(c) && c != '^') out.append(ops.removeLast())
-                ops.addLast(c)
-            }
-        }
-    }
-    while (ops.isNotEmpty()) out.append(ops.removeLast())
-    return out.reverse().toString()
-}
-fun main() {
-    println(infixToPrefix("(2+3)*4"))
-    println(infixToPrefix("2+3*4"))
-    println(infixToPrefix("a+b*c-d"))
-    println(infixToPrefix("2^3^2"))
 }
 ```
 
