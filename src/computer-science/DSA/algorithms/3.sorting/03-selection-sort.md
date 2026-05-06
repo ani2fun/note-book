@@ -208,6 +208,17 @@ The loop bounds — `i < n - 1` and `j ∈ [i + 1, n - 1]` — are exactly what'
 
 <div class="lang-tabs">
 
+```pseudocode
+function selectionSort(arr):
+    n ← length(arr)
+    for i from 0 to n − 2:
+        minIndex ← i                              # assume current is the minimum
+        for j from i + 1 to n − 1:
+            if arr[j] < arr[minIndex]:
+                minIndex ← j
+        swap arr[i] and arr[minIndex]             # one swap per pass — selection sort's signature
+```
+
 ```python,editable
 from typing import List
 
@@ -328,25 +339,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    selectionSort(arr) {
-        const n = arr.length;
-        for (let i = 0; i < n - 1; i++) {
-            let minIndex = i;
-            for (let j = i + 1; j < n; j++) {
-                if (arr[j] < arr[minIndex]) minIndex = j;
-            }
-            [arr[i], arr[minIndex]] = [arr[minIndex], arr[i]];
-        }
-    }
-}
-
-const arr = [5, 3, 8, 1, 4];
-new Solution().selectionSort(arr);
-console.log(arr);
-```
-
 ```typescript,editable
 class Solution {
     selectionSort(arr: number[]): void {
@@ -388,27 +380,6 @@ func main() {
     arr := []int{5, 3, 8, 1, 4}
     selectionSort(arr)
     fmt.Println(arr)
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun selectionSort(arr: IntArray) {
-        val n = arr.size
-        for (i in 0 until n - 1) {
-            var minIndex = i
-            for (j in i + 1 until n) {
-                if (arr[j] < arr[minIndex]) minIndex = j
-            }
-            val tmp = arr[i]; arr[i] = arr[minIndex]; arr[minIndex] = tmp
-        }
-    }
-}
-
-fun main() {
-    val arr = intArrayOf(5, 3, 8, 1, 4)
-    Solution().selectionSort(arr)
-    println(arr.toList())
 }
 ```
 
@@ -621,9 +592,20 @@ Output: [1, 2, 3, 4, 5, 6]   (already sorted, but selection sort still runs all 
 
 ## The Solution
 
-The implementation is identical to the version above. Reproducing in all 10 languages so this section is self-contained.
+The implementation is identical to the version above. Reproducing in all 9 languages so this section is self-contained.
 
 <div class="lang-tabs">
+
+```pseudocode
+function selectionSort(arr):
+    n ← length(arr)
+    for i from 0 to n − 2:
+        minIndex ← i
+        for j from i + 1 to n − 1:
+            if arr[j] < arr[minIndex]:
+                minIndex ← j
+        swap arr[i] and arr[minIndex]
+```
 
 ```python,editable
 from typing import List
@@ -739,25 +721,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    selectionSort(arr) {
-        const n = arr.length;
-        for (let i = 0; i < n - 1; i++) {
-            let minIndex = i;
-            for (let j = i + 1; j < n; j++) {
-                if (arr[j] < arr[minIndex]) minIndex = j;
-            }
-            [arr[i], arr[minIndex]] = [arr[minIndex], arr[i]];
-        }
-    }
-}
-
-const arr = [2, 3, 2, 1, 5, 6];
-new Solution().selectionSort(arr);
-console.log(arr);
-```
-
 ```typescript,editable
 class Solution {
     selectionSort(arr: number[]): void {
@@ -799,27 +762,6 @@ func main() {
     arr := []int{2, 3, 2, 1, 5, 6}
     selectionSort(arr)
     fmt.Println(arr)
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun selectionSort(arr: IntArray) {
-        val n = arr.size
-        for (i in 0 until n - 1) {
-            var minIndex = i
-            for (j in i + 1 until n) {
-                if (arr[j] < arr[minIndex]) minIndex = j
-            }
-            val tmp = arr[i]; arr[i] = arr[minIndex]; arr[minIndex] = tmp
-        }
-    }
-}
-
-fun main() {
-    val arr = intArrayOf(2, 3, 2, 1, 5, 6)
-    Solution().selectionSort(arr)
-    println(arr.toList())
 }
 ```
 

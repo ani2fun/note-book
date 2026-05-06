@@ -306,6 +306,30 @@ Two functions: `partition` (the rearrangement step) and `quicksort` (the recursi
 
 <div class="lang-tabs">
 
+```pseudocode
+function quickSort(arr):
+    sort(arr, 0, length(arr) − 1)
+
+function sort(arr, left, right):
+    if left < right:
+        p ← partition(arr, left, right)
+        sort(arr, left, p − 1)                # sort the left region
+        sort(arr, p + 1, right)               # sort the right region
+
+function partition(arr, left, right):
+    pivotIdx ← random integer in [left, right]   # random pivot defeats adversarial inputs
+    pivotVal ← arr[pivotIdx]
+    swap arr[pivotIdx] and arr[right]            # park pivot at the right end
+
+    boundary ← left                              # everything < boundary is in the "small" region
+    for i from left to right − 1:
+        if arr[i] < pivotVal:
+            swap arr[boundary] and arr[i]
+            boundary ← boundary + 1
+    swap arr[boundary] and arr[right]            # drop pivot into its final slot
+    return boundary
+```
+
 ```python,editable
 import random
 from typing import List
@@ -516,41 +540,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    quickSort(arr) {
-        this._sort(arr, 0, arr.length - 1);
-    }
-
-    _sort(arr, left, right) {
-        if (left < right) {
-            const p = this._partition(arr, left, right);
-            this._sort(arr, left, p - 1);
-            this._sort(arr, p + 1, right);
-        }
-    }
-
-    _partition(arr, left, right) {
-        const pivotIdx = left + Math.floor(Math.random() * (right - left + 1));
-        const pivotVal = arr[pivotIdx];
-        [arr[pivotIdx], arr[right]] = [arr[right], arr[pivotIdx]];
-        let boundary = left;
-        for (let i = left; i < right; i++) {
-            if (arr[i] < pivotVal) {
-                [arr[boundary], arr[i]] = [arr[i], arr[boundary]];
-                boundary++;
-            }
-        }
-        [arr[boundary], arr[right]] = [arr[right], arr[boundary]];
-        return boundary;
-    }
-}
-
-const arr = [7, 2, 5, 1, 8, 4];
-new Solution().quickSort(arr);
-console.log(arr);
-```
-
 ```typescript,editable
 class Solution {
     quickSort(arr: number[]): void {
@@ -625,49 +614,6 @@ func main() {
     arr := []int{7, 2, 5, 1, 8, 4}
     quickSort(arr)
     fmt.Println(arr)
-}
-```
-
-```kotlin,editable
-import kotlin.random.Random
-
-class Solution {
-    fun quickSort(arr: IntArray) {
-        sort(arr, 0, arr.size - 1)
-    }
-
-    private fun sort(arr: IntArray, left: Int, right: Int) {
-        if (left < right) {
-            val p = partition(arr, left, right)
-            sort(arr, left, p - 1)
-            sort(arr, p + 1, right)
-        }
-    }
-
-    private fun partition(arr: IntArray, left: Int, right: Int): Int {
-        val pivotIdx = left + Random.nextInt(right - left + 1)
-        val pivotVal = arr[pivotIdx]
-        swap(arr, pivotIdx, right)
-        var boundary = left
-        for (i in left until right) {
-            if (arr[i] < pivotVal) {
-                swap(arr, boundary, i)
-                boundary++
-            }
-        }
-        swap(arr, boundary, right)
-        return boundary
-    }
-
-    private fun swap(arr: IntArray, i: Int, j: Int) {
-        val t = arr[i]; arr[i] = arr[j]; arr[j] = t
-    }
-}
-
-fun main() {
-    val arr = intArrayOf(7, 2, 5, 1, 8, 4)
-    Solution().quickSort(arr)
-    println(arr.toList())
 }
 ```
 

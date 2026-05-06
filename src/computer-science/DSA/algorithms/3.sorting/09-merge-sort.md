@@ -234,6 +234,29 @@ Two functions: `merge` (combines two sorted arrays) and `merge_sort` (the recurs
 
 <div class="lang-tabs">
 
+```pseudocode
+function mergeSort(arr):
+    if length(arr) ≤ 1:
+        return arr
+    mid ← length(arr) ÷ 2
+    left  ← mergeSort(arr[0..mid − 1])      # recursively sort each half
+    right ← mergeSort(arr[mid..end])
+    return merge(left, right)               # combine two sorted halves into one
+
+function merge(left, right):
+    result ← empty list
+    i ← 0; j ← 0
+    while i < length(left) AND j < length(right):
+        if left[i] ≤ right[j]:              # ≤ keeps the sort stable
+            append left[i] to result
+            i ← i + 1
+        else:
+            append right[j] to result
+            j ← j + 1
+    append remaining elements of left and right to result
+    return result
+```
+
 ```python,editable
 from typing import List
 
@@ -404,30 +427,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    mergeSort(arr) {
-        if (arr.length <= 1) return arr;
-        const mid = Math.floor(arr.length / 2);
-        const left = this.mergeSort(arr.slice(0, mid));
-        const right = this.mergeSort(arr.slice(mid));
-        return this._merge(left, right);
-    }
-
-    _merge(left, right) {
-        const result = [];
-        let i = 0, j = 0;
-        while (i < left.length && j < right.length) {
-            if (left[i] <= right[j]) result.push(left[i++]);
-            else result.push(right[j++]);
-        }
-        return result.concat(left.slice(i)).concat(right.slice(j));
-    }
-}
-
-console.log(new Solution().mergeSort([7, 2, 5, 1, 8, 4, 3, 6]));
-```
-
 ```typescript,editable
 class Solution {
     mergeSort(arr: number[]): number[] {
@@ -486,34 +485,6 @@ func mergeSort(arr []int) []int {
 
 func main() {
     fmt.Println(mergeSort([]int{7, 2, 5, 1, 8, 4, 3, 6}))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun mergeSort(arr: IntArray): IntArray {
-        if (arr.size <= 1) return arr
-        val mid = arr.size / 2
-        val left = mergeSort(arr.sliceArray(0 until mid))
-        val right = mergeSort(arr.sliceArray(mid until arr.size))
-        return merge(left, right)
-    }
-
-    private fun merge(left: IntArray, right: IntArray): IntArray {
-        val result = IntArray(left.size + right.size)
-        var i = 0; var j = 0; var k = 0
-        while (i < left.size && j < right.size) {
-            if (left[i] <= right[j]) result[k++] = left[i++]
-            else result[k++] = right[j++]
-        }
-        while (i < left.size) result[k++] = left[i++]
-        while (j < right.size) result[k++] = right[j++]
-        return result
-    }
-}
-
-fun main() {
-    println(Solution().mergeSort(intArrayOf(7, 2, 5, 1, 8, 4, 3, 6)).toList())
 }
 ```
 
@@ -735,6 +706,34 @@ function merge_and_count(arr, temp, left, mid, right):
 
 <div class="lang-tabs">
 
+```pseudocode
+function countInversions(arr):
+    temp ← list of length(arr) zeros
+    return sortAndCount(arr, temp, 0, length(arr) − 1)
+
+function sortAndCount(arr, temp, left, right):
+    if left ≥ right:
+        return 0
+    mid ← (left + right) ÷ 2
+    inv ← sortAndCount(arr, temp, left, mid)               # inversions inside the left half
+    inv ← inv + sortAndCount(arr, temp, mid + 1, right)    # inversions inside the right half
+    inv ← inv + mergeAndCount(arr, temp, left, mid, right) # cross-half inversions
+    return inv
+
+function mergeAndCount(arr, temp, left, mid, right):
+    i ← left; j ← mid + 1; k ← left; inv ← 0
+    while i ≤ mid AND j ≤ right:
+        if arr[i] ≤ arr[j]:
+            temp[k] ← arr[i]; i ← i + 1
+        else:
+            temp[k] ← arr[j]; j ← j + 1
+            inv ← inv + (mid − i + 1)         # arr[i..mid] all > arr[j] → that many inversions at once
+        k ← k + 1
+    copy remaining of arr[i..mid] and arr[j..right] into temp[k..]
+    copy temp[left..right] back into arr[left..right]
+    return inv
+```
+
 ```python,editable
 from typing import List
 
@@ -898,36 +897,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    countInversions(arr) {
-        const temp = new Array(arr.length);
-        return this._sortCount(arr, temp, 0, arr.length - 1);
-    }
-
-    _sortCount(arr, temp, left, right) {
-        if (left >= right) return 0;
-        const mid = (left + right) >> 1;
-        let inv = this._sortCount(arr, temp, left, mid);
-        inv += this._sortCount(arr, temp, mid + 1, right);
-        inv += this._mergeCount(arr, temp, left, mid, right);
-        return inv;
-    }
-
-    _mergeCount(arr, temp, left, mid, right) {
-        let i = left, j = mid + 1, k = left, count = 0;
-        while (i <= mid && j <= right) {
-            if (arr[i] <= arr[j]) temp[k++] = arr[i++];
-            else { temp[k++] = arr[j++]; count += mid - i + 1; }
-        }
-        while (i <= mid) temp[k++] = arr[i++];
-        while (j <= right) temp[k++] = arr[j++];
-        for (let t = left; t <= right; t++) arr[t] = temp[t];
-        return count;
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     countInversions(arr: number[]): number {
@@ -1002,36 +971,6 @@ func sortCount(arr, temp []int, left, right int) int {
 func countInversions(arr []int) int {
     temp := make([]int, len(arr))
     return sortCount(arr, temp, 0, len(arr)-1)
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun countInversions(arr: IntArray): Int {
-        val temp = IntArray(arr.size)
-        return sortCount(arr, temp, 0, arr.size - 1)
-    }
-
-    private fun sortCount(arr: IntArray, temp: IntArray, left: Int, right: Int): Int {
-        if (left >= right) return 0
-        val mid = (left + right) / 2
-        var inv = sortCount(arr, temp, left, mid)
-        inv += sortCount(arr, temp, mid + 1, right)
-        inv += mergeCount(arr, temp, left, mid, right)
-        return inv
-    }
-
-    private fun mergeCount(arr: IntArray, temp: IntArray, left: Int, mid: Int, right: Int): Int {
-        var i = left; var j = mid + 1; var k = left; var count = 0
-        while (i <= mid && j <= right) {
-            if (arr[i] <= arr[j]) { temp[k++] = arr[i++] }
-            else { temp[k++] = arr[j++]; count += mid - i + 1 }
-        }
-        while (i <= mid) { temp[k++] = arr[i++] }
-        while (j <= right) { temp[k++] = arr[j++] }
-        for (t in left..right) arr[t] = temp[t]
-        return count
-    }
 }
 ```
 

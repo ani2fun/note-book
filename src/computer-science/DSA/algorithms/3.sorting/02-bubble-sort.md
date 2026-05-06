@@ -215,6 +215,15 @@ Two versions: the basic implementation (always runs `n - 1` passes) and the opti
 
 <div class="lang-tabs">
 
+```pseudocode
+function bubbleSort(arr):
+    n ← length(arr)
+    for i from 0 to n − 2:                  # n − 1 passes
+        for j from 0 to n − i − 2:          # walk the unsorted prefix
+            if arr[j] > arr[j + 1]:         # strict > keeps it stable
+                swap arr[j] and arr[j + 1]
+```
+
 ```python,editable
 from typing import List
 
@@ -331,25 +340,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    bubbleSort(arr) {
-        const n = arr.length;
-        for (let i = 0; i < n - 1; i++) {
-            for (let j = 0; j < n - i - 1; j++) {
-                if (arr[j] > arr[j + 1]) {
-                    [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
-                }
-            }
-        }
-    }
-}
-
-const arr = [5, 3, 8, 1, 4];
-new Solution().bubbleSort(arr);
-console.log(arr);
-```
-
 ```typescript,editable
 class Solution {
     bubbleSort(arr: number[]): void {
@@ -389,27 +379,6 @@ func main() {
     arr := []int{5, 3, 8, 1, 4}
     bubbleSort(arr)
     fmt.Println(arr)
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun bubbleSort(arr: IntArray) {
-        val n = arr.size
-        for (i in 0 until n - 1) {
-            for (j in 0 until n - i - 1) {
-                if (arr[j] > arr[j + 1]) {
-                    val tmp = arr[j]; arr[j] = arr[j + 1]; arr[j + 1] = tmp
-                }
-            }
-        }
-    }
-}
-
-fun main() {
-    val arr = intArrayOf(5, 3, 8, 1, 4)
-    Solution().bubbleSort(arr)
-    println(arr.toList())
 }
 ```
 
@@ -573,6 +542,19 @@ The implementation is identical to the optimised version above. Including all 10
 
 <div class="lang-tabs">
 
+```pseudocode
+function bubbleSort(arr):
+    n ← length(arr)
+    for i from 0 to n − 2:
+        swapped ← false
+        for j from 0 to n − i − 2:
+            if arr[j] > arr[j + 1]:
+                swap arr[j] and arr[j + 1]
+                swapped ← true
+        if NOT swapped:                     # already sorted — exit early (best case O(n))
+            break
+```
+
 ```python,editable
 from typing import List
 
@@ -706,28 +688,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    bubbleSort(arr) {
-        const n = arr.length;
-        for (let i = 0; i < n - 1; i++) {
-            let swapped = false;
-            for (let j = 0; j < n - i - 1; j++) {
-                if (arr[j] > arr[j + 1]) {
-                    [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
-                    swapped = true;
-                }
-            }
-            if (!swapped) break;
-        }
-    }
-}
-
-const arr = [2, 3, 2, 1, 5, 6];
-new Solution().bubbleSort(arr);
-console.log(arr);
-```
-
 ```typescript,editable
 class Solution {
     bubbleSort(arr: number[]): void {
@@ -775,30 +735,6 @@ func main() {
     arr := []int{2, 3, 2, 1, 5, 6}
     bubbleSort(arr)
     fmt.Println(arr)
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun bubbleSort(arr: IntArray) {
-        val n = arr.size
-        for (i in 0 until n - 1) {
-            var swapped = false
-            for (j in 0 until n - i - 1) {
-                if (arr[j] > arr[j + 1]) {
-                    val tmp = arr[j]; arr[j] = arr[j + 1]; arr[j + 1] = tmp
-                    swapped = true
-                }
-            }
-            if (!swapped) break
-        }
-    }
-}
-
-fun main() {
-    val arr = intArrayOf(2, 3, 2, 1, 5, 6)
-    Solution().bubbleSort(arr)
-    println(arr.toList())
 }
 ```
 

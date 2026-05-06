@@ -300,6 +300,35 @@ We implement two functions: `partition` (three-way, returning two boundary indic
 
 <div class="lang-tabs">
 
+```pseudocode
+function threeWayQuickSort(arr):
+    sort(arr, 0, length(arr) − 1)
+
+function sort(arr, left, right):
+    if left ≥ right:
+        return
+    (lt, gt) ← partition3(arr, left, right)   # arr[lt..gt] = pivot region (locked)
+    sort(arr, left, lt − 1)                    # < pivot
+    sort(arr, gt + 1, right)                   # > pivot
+
+function partition3(arr, left, right):
+    pivot ← arr[random integer in [left, right]]
+    lt ← left                                  # arr[left..lt−1] < pivot
+    gt ← right                                 # arr[gt+1..right] > pivot
+    i ← left                                   # arr[lt..i−1] = pivot
+    while i ≤ gt:
+        if arr[i] < pivot:
+            swap arr[lt] and arr[i]
+            lt ← lt + 1
+            i ← i + 1
+        else if arr[i] > pivot:
+            swap arr[i] and arr[gt]
+            gt ← gt − 1
+        else:                                  # arr[i] = pivot
+            i ← i + 1
+    return (lt, gt)
+```
+
 ```python,editable
 import random
 from typing import List, Tuple
@@ -514,41 +543,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    threeWayQuickSort(arr) {
-        this._sort(arr, 0, arr.length - 1);
-    }
-
-    _sort(arr, left, right) {
-        if (left >= right) return;
-        const [i, j] = this._partition(arr, left, right);
-        this._sort(arr, left, i);
-        this._sort(arr, j, right);
-    }
-
-    _partition(arr, left, right) {
-        const pivotIdx = left + Math.floor(Math.random() * (right - left + 1));
-        const pivot = arr[pivotIdx];
-        let l = left, mid = left, r = right;
-        while (mid <= r) {
-            if (arr[mid] < pivot) {
-                [arr[l], arr[mid]] = [arr[mid], arr[l]]; l++; mid++;
-            } else if (arr[mid] === pivot) {
-                mid++;
-            } else {
-                [arr[mid], arr[r]] = [arr[r], arr[mid]]; r--;
-            }
-        }
-        return [l - 1, mid];
-    }
-}
-
-const arr = [7, 5, 5, 1, 5, 8, 5, 3];
-new Solution().threeWayQuickSort(arr);
-console.log(arr);
-```
-
 ```typescript,editable
 class Solution {
     threeWayQuickSort(arr: number[]): void {
@@ -628,48 +622,6 @@ func main() {
     arr := []int{7, 5, 5, 1, 5, 8, 5, 3}
     threeWayQuickSort(arr)
     fmt.Println(arr)
-}
-```
-
-```kotlin,editable
-import kotlin.random.Random
-
-class Solution {
-    fun threeWayQuickSort(arr: IntArray) {
-        sort(arr, 0, arr.size - 1)
-    }
-
-    private fun sort(arr: IntArray, left: Int, right: Int) {
-        if (left >= right) return
-        val (i, j) = partition3(arr, left, right)
-        sort(arr, left, i)
-        sort(arr, j, right)
-    }
-
-    private fun partition3(arr: IntArray, left: Int, right: Int): Pair<Int, Int> {
-        val pivot = arr[left + Random.nextInt(right - left + 1)]
-        var l = left; var mid = left; var r = right
-        while (mid <= r) {
-            when {
-                arr[mid] < pivot -> {
-                    val t = arr[l]; arr[l] = arr[mid]; arr[mid] = t
-                    l++; mid++
-                }
-                arr[mid] == pivot -> mid++
-                else -> {
-                    val t = arr[mid]; arr[mid] = arr[r]; arr[r] = t
-                    r--
-                }
-            }
-        }
-        return Pair(l - 1, mid)
-    }
-}
-
-fun main() {
-    val arr = intArrayOf(7, 5, 5, 1, 5, 8, 5, 3)
-    Solution().threeWayQuickSort(arr)
-    println(arr.toList())
 }
 ```
 

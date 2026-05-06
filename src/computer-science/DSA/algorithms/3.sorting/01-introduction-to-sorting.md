@@ -434,6 +434,14 @@ Both are vacuously sorted — there are no pairs to compare, so the loop body ne
 
 <div class="lang-tabs">
 
+```pseudocode
+function orderCheck(arr):
+    for i from 1 to length(arr) − 1:
+        if arr[i] < arr[i − 1]:        # first violation → not sorted
+            return false
+    return true                        # empty / single-element arrays are vacuously sorted
+```
+
 ```python,editable
 from typing import List
 
@@ -521,19 +529,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    orderCheck(arr) {
-        for (let i = 1; i < arr.length; i++) {
-            if (arr[i] < arr[i - 1]) return false;
-        }
-        return true;
-    }
-}
-
-console.log(new Solution().orderCheck([1, 2, 3, 4, 5]));   // true
-```
-
 ```typescript,editable
 class Solution {
     orderCheck(arr: number[]): boolean {
@@ -563,21 +558,6 @@ func orderCheck(arr []int) bool {
 
 func main() {
     fmt.Println(orderCheck([]int{1, 2, 3, 4, 5}))   // true
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun orderCheck(arr: IntArray): Boolean {
-        for (i in 1 until arr.size) {
-            if (arr[i] < arr[i - 1]) return false
-        }
-        return true
-    }
-}
-
-fun main() {
-    println(Solution().orderCheck(intArrayOf(1, 2, 3, 4, 5)))   // true
 }
 ```
 

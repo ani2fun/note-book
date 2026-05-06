@@ -280,6 +280,17 @@ Transform: `t(n) = (popcount(n), n)`. Sort by `t` ascending.
 
 <div class="lang-tabs">
 
+```pseudocode
+# Sort by popcount (number of 1-bits) ascending; tie-break by numeric value.
+function bitwiseSort(arr):
+    sort arr using compare(a, b):
+        bitsA ← popcount(a)
+        bitsB ← popcount(b)
+        if bitsA ≠ bitsB:
+            return bitsA − bitsB            # fewer bits first
+        return a − b                        # tie-break: smaller value first
+```
+
 ```python,editable
 from typing import List
 
@@ -389,23 +400,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    bitwiseSort(arr) {
-        const popcount = n => n.toString(2).split("0").join("").length;
-        arr.sort((a, b) => {
-            const pa = popcount(a), pb = popcount(b);
-            if (pa !== pb) return pa - pb;
-            return a - b;
-        });
-    }
-}
-
-const arr = [7, 10, 12, 18, 26];
-new Solution().bitwiseSort(arr);
-console.log(arr);
-```
-
 ```typescript,editable
 class Solution {
     bitwiseSort(arr: number[]): void {
@@ -447,21 +441,6 @@ func main() {
     arr := []int{7, 10, 12, 18, 26}
     bitwiseSort(arr)
     fmt.Println(arr)
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun bitwiseSort(arr: IntArray) {
-        val sorted = arr.toTypedArray().sortedWith(compareBy({ Integer.bitCount(it) }, { it })).toIntArray()
-        sorted.copyInto(arr)
-    }
-}
-
-fun main() {
-    val arr = intArrayOf(7, 10, 12, 18, 26)
-    Solution().bitwiseSort(arr)
-    println(arr.toList())
 }
 ```
 

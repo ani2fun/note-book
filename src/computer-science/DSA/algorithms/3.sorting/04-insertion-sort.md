@@ -212,6 +212,18 @@ The algorithm uses two nested loops: an outer loop that picks the next "key" fro
 
 <div class="lang-tabs">
 
+```pseudocode
+function insertionSort(arr):
+    n ← length(arr)
+    for i from 1 to n − 1:                  # arr[0] is trivially sorted
+        key ← arr[i]                         # take the next element from the unsorted suffix
+        j ← i − 1
+        while j ≥ 0 AND arr[j] > key:        # shift larger elements one slot right
+            arr[j + 1] ← arr[j]
+            j ← j − 1
+        arr[j + 1] ← key                     # drop key into the gap
+```
+
 ```python,editable
 from typing import List
 
@@ -335,27 +347,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    insertionSort(arr) {
-        const n = arr.length;
-        for (let i = 1; i < n; i++) {
-            const key = arr[i];
-            let j = i - 1;
-            while (j >= 0 && arr[j] > key) {
-                arr[j + 1] = arr[j];
-                j--;
-            }
-            arr[j + 1] = key;
-        }
-    }
-}
-
-const arr = [5, 3, 8, 1, 4];
-new Solution().insertionSort(arr);
-console.log(arr);
-```
-
 ```typescript,editable
 class Solution {
     insertionSort(arr: number[]): void {
@@ -399,29 +390,6 @@ func main() {
     arr := []int{5, 3, 8, 1, 4}
     insertionSort(arr)
     fmt.Println(arr)
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun insertionSort(arr: IntArray) {
-        val n = arr.size
-        for (i in 1 until n) {
-            val key = arr[i]
-            var j = i - 1
-            while (j >= 0 && arr[j] > key) {
-                arr[j + 1] = arr[j]
-                j--
-            }
-            arr[j + 1] = key
-        }
-    }
-}
-
-fun main() {
-    val arr = intArrayOf(5, 3, 8, 1, 4)
-    Solution().insertionSort(arr)
-    println(arr.toList())
 }
 ```
 
@@ -564,6 +532,18 @@ The implementation matches the version above; reproduced below for completeness.
 
 <div class="lang-tabs">
 
+```pseudocode
+function insertionSort(arr):
+    n ← length(arr)
+    for i from 1 to n − 1:
+        key ← arr[i]
+        j ← i − 1
+        while j ≥ 0 AND arr[j] > key:
+            arr[j + 1] ← arr[j]
+            j ← j − 1
+        arr[j + 1] ← key
+```
+
 ```python,editable
 from typing import List
 
@@ -654,22 +634,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    insertionSort(arr) {
-        for (let i = 1; i < arr.length; i++) {
-            const key = arr[i];
-            let j = i - 1;
-            while (j >= 0 && arr[j] > key) {
-                arr[j + 1] = arr[j];
-                j--;
-            }
-            arr[j + 1] = key;
-        }
-    }
-}
-```
-
 ```typescript,editable
 class Solution {
     insertionSort(arr: number[]): void {
@@ -698,22 +662,6 @@ func insertionSort(arr []int) {
             j--
         }
         arr[j+1] = key
-    }
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun insertionSort(arr: IntArray) {
-        for (i in 1 until arr.size) {
-            val key = arr[i]
-            var j = i - 1
-            while (j >= 0 && arr[j] > key) {
-                arr[j + 1] = arr[j]
-                j--
-            }
-            arr[j + 1] = key
-        }
     }
 }
 ```

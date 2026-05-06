@@ -238,6 +238,29 @@ The four-region invariant gives the algorithm its correctness proof. The loop co
 
 <div class="lang-tabs">
 
+```pseudocode
+# Three-way partition over values {0, 1, 2}.
+# Invariant during the loop:
+#   arr[0..low−1]    = 0s (locked)
+#   arr[low..mid−1]  = 1s
+#   arr[mid..high]   = unprocessed
+#   arr[high+1..n−1] = 2s (locked)
+function dutchFlagSort(arr):
+    low ← 0
+    mid ← 0
+    high ← length(arr) − 1
+    while mid ≤ high:
+        if arr[mid] = 0:
+            swap arr[low] and arr[mid]
+            low ← low + 1
+            mid ← mid + 1
+        else if arr[mid] = 2:
+            swap arr[mid] and arr[high]
+            high ← high − 1                  # don't advance mid — swapped value is unprocessed
+        else:                                # arr[mid] = 1 — already in place
+            mid ← mid + 1
+```
+
 ```python,editable
 from typing import List
 
@@ -373,29 +396,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    dutchNationalFlagSort(arr) {
-        let left = 0, mid = 0, right = arr.length - 1;
-        while (mid <= right) {
-            if (arr[mid] === 0) {
-                [arr[left], arr[mid]] = [arr[mid], arr[left]];
-                left++; mid++;
-            } else if (arr[mid] === 1) {
-                mid++;
-            } else {
-                [arr[mid], arr[right]] = [arr[right], arr[mid]];
-                right--;
-            }
-        }
-    }
-}
-
-const arr = [2, 0, 1, 0, 2, 1, 0];
-new Solution().dutchNationalFlagSort(arr);
-console.log(arr);
-```
-
 ```typescript,editable
 class Solution {
     dutchNationalFlagSort(arr: number[]): void {
@@ -445,33 +445,6 @@ func main() {
     arr := []int{2, 0, 1, 0, 2, 1, 0}
     dutchNationalFlagSort(arr)
     fmt.Println(arr)
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun dutchNationalFlagSort(arr: IntArray) {
-        var left = 0; var mid = 0; var right = arr.size - 1
-        while (mid <= right) {
-            when (arr[mid]) {
-                0 -> {
-                    val t = arr[left]; arr[left] = arr[mid]; arr[mid] = t
-                    left++; mid++
-                }
-                1 -> mid++
-                else -> {
-                    val t = arr[mid]; arr[mid] = arr[right]; arr[right] = t
-                    right--
-                }
-            }
-        }
-    }
-}
-
-fun main() {
-    val arr = intArrayOf(2, 0, 1, 0, 2, 1, 0)
-    Solution().dutchNationalFlagSort(arr)
-    println(arr.toList())
 }
 ```
 

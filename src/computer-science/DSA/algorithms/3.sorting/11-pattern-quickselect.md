@@ -209,6 +209,34 @@ Output: 9
 
 <div class="lang-tabs">
 
+```pseudocode
+# Returns the kth smallest element (k is 1-indexed).
+function quickSelect(arr, k):
+    return select(arr, 0, length(arr) − 1, k − 1)
+
+function select(arr, left, right, kIdx):
+    if left = right:
+        return arr[left]
+    p ← partition(arr, left, right)
+    if p = kIdx:
+        return arr[p]                       # pivot landed in its final sorted slot
+    if kIdx < p:
+        return select(arr, left, p − 1, kIdx)    # recurse into ONE side only — that's quickselect
+    return select(arr, p + 1, right, kIdx)
+
+function partition(arr, left, right):       # standard Lomuto partition with random pivot
+    pivotIdx ← random integer in [left, right]
+    pivotVal ← arr[pivotIdx]
+    swap arr[pivotIdx] and arr[right]
+    boundary ← left
+    for i from left to right − 1:
+        if arr[i] < pivotVal:
+            swap arr[boundary] and arr[i]
+            boundary ← boundary + 1
+    swap arr[boundary] and arr[right]
+    return boundary
+```
+
 ```python,editable
 import random
 from typing import List
@@ -399,37 +427,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    kthSmallestElement(arr, k) {
-        this._quickselect(arr, 0, arr.length - 1, k);
-        return arr[k - 1];
-    }
-
-    _quickselect(arr, left, right, k) {
-        if (left >= right) return;
-        const p = this._partition(arr, left, right);
-        if (p === k - 1) return;
-        if (p > k - 1) this._quickselect(arr, left, p - 1, k);
-        else this._quickselect(arr, p + 1, right, k);
-    }
-
-    _partition(arr, left, right) {
-        const pi = left + Math.floor(Math.random() * (right - left + 1));
-        const pv = arr[pi];
-        [arr[pi], arr[right]] = [arr[right], arr[pi]];
-        let b = left;
-        for (let i = left; i < right; i++) {
-            if (arr[i] < pv) { [arr[b], arr[i]] = [arr[i], arr[b]]; b++; }
-        }
-        [arr[b], arr[right]] = [arr[right], arr[b]];
-        return b;
-    }
-}
-
-console.log(new Solution().kthSmallestElement([5, 4, 2, 8], 2));
-```
-
 ```typescript,editable
 class Solution {
     kthSmallestElement(arr: number[], k: number): number {
@@ -498,41 +495,6 @@ func kthSmallestElement(arr []int, k int) int {
 
 func main() {
     fmt.Println(kthSmallestElement([]int{5, 4, 2, 8}, 2))
-}
-```
-
-```kotlin,editable
-import kotlin.random.Random
-
-class Solution {
-    fun kthSmallestElement(arr: IntArray, k: Int): Int {
-        quickselect(arr, 0, arr.size - 1, k)
-        return arr[k - 1]
-    }
-
-    private fun quickselect(arr: IntArray, left: Int, right: Int, k: Int) {
-        if (left >= right) return
-        val p = partition(arr, left, right)
-        if (p == k - 1) return
-        if (p > k - 1) quickselect(arr, left, p - 1, k)
-        else quickselect(arr, p + 1, right, k)
-    }
-
-    private fun partition(arr: IntArray, left: Int, right: Int): Int {
-        val pi = left + Random.nextInt(right - left + 1)
-        val pv = arr[pi]
-        val t1 = arr[pi]; arr[pi] = arr[right]; arr[right] = t1
-        var b = left
-        for (i in left until right) {
-            if (arr[i] < pv) { val t = arr[b]; arr[b] = arr[i]; arr[i] = t; b++ }
-        }
-        val t2 = arr[b]; arr[b] = arr[right]; arr[right] = t2
-        return b
-    }
-}
-
-fun main() {
-    println(Solution().kthSmallestElement(intArrayOf(5, 4, 2, 8), 2))
 }
 ```
 

@@ -308,6 +308,32 @@ Two functions: `heapify` and `heap_sort` (the two-phase driver).
 
 <div class="lang-tabs">
 
+```pseudocode
+function heapSort(arr):
+    n ← length(arr)
+    # Phase 1 — build a max-heap from the bottom up.
+    for i from n ÷ 2 − 1 down to 0:
+        siftDown(arr, i, n)
+    # Phase 2 — repeatedly swap the root (max) to the end and shrink the heap.
+    for end from n − 1 down to 1:
+        swap arr[0] and arr[end]            # max of remaining heap → final position
+        siftDown(arr, 0, end)               # restore heap property over arr[0..end−1]
+
+function siftDown(arr, root, size):
+    while true:
+        left  ← 2 × root + 1
+        right ← 2 × root + 2
+        largest ← root
+        if left < size AND arr[left] > arr[largest]:
+            largest ← left
+        if right < size AND arr[right] > arr[largest]:
+            largest ← right
+        if largest = root:                  # heap property holds — done
+            return
+        swap arr[root] and arr[largest]
+        root ← largest                       # continue sifting down the new subtree
+```
+
 ```python,editable
 from typing import List
 
@@ -470,34 +496,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    heapSort(arr) {
-        const n = arr.length;
-        for (let i = (n >> 1) - 1; i >= 0; i--) this._heapify(arr, n, i);
-        for (let i = n - 1; i > 0; i--) {
-            [arr[0], arr[i]] = [arr[i], arr[0]];
-            this._heapify(arr, i, 0);
-        }
-    }
-
-    _heapify(arr, n, i) {
-        let largest = i;
-        const left = 2 * i + 1, right = 2 * i + 2;
-        if (left < n && arr[left] > arr[largest]) largest = left;
-        if (right < n && arr[right] > arr[largest]) largest = right;
-        if (largest !== i) {
-            [arr[i], arr[largest]] = [arr[largest], arr[i]];
-            this._heapify(arr, n, largest);
-        }
-    }
-}
-
-const arr = [3, 1, 6, 5, 2, 4];
-new Solution().heapSort(arr);
-console.log(arr);
-```
-
 ```typescript,editable
 class Solution {
     heapSort(arr: number[]): void {
@@ -561,36 +559,6 @@ func main() {
     arr := []int{3, 1, 6, 5, 2, 4}
     heapSort(arr)
     fmt.Println(arr)
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun heapSort(arr: IntArray) {
-        val n = arr.size
-        for (i in (n / 2 - 1) downTo 0) heapify(arr, n, i)
-        for (i in (n - 1) downTo 1) {
-            val t = arr[0]; arr[0] = arr[i]; arr[i] = t
-            heapify(arr, i, 0)
-        }
-    }
-
-    private fun heapify(arr: IntArray, n: Int, i: Int) {
-        var largest = i
-        val left = 2 * i + 1; val right = 2 * i + 2
-        if (left < n && arr[left] > arr[largest]) largest = left
-        if (right < n && arr[right] > arr[largest]) largest = right
-        if (largest != i) {
-            val t = arr[i]; arr[i] = arr[largest]; arr[largest] = t
-            heapify(arr, n, largest)
-        }
-    }
-}
-
-fun main() {
-    val arr = intArrayOf(3, 1, 6, 5, 2, 4)
-    Solution().heapSort(arr)
-    println(arr.toList())
 }
 ```
 

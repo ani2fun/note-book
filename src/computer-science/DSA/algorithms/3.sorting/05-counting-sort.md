@@ -374,6 +374,27 @@ Counting sort is stable because phase 3 walks the input in reverse and uses post
 
 <div class="lang-tabs">
 
+```pseudocode
+function countingSort(arr, k):                # k is the max value (range 0..k)
+    n ← length(arr)
+
+    # Phase 1 — count occurrences of each value.
+    count ← list of (k + 1) zeros
+    for each v in arr:
+        count[v] ← count[v] + 1
+
+    # Phase 2 — cumulative sum: count[v] = number of elements ≤ v.
+    for i from 1 to k:
+        count[i] ← count[i] + count[i − 1]
+
+    # Phase 3 — place elements into result, scanning arr right-to-left for stability.
+    result ← list of n zeros
+    for i from n − 1 down to 0:
+        count[arr[i]] ← count[arr[i]] − 1
+        result[count[arr[i]]] ← arr[i]
+    return result
+```
+
 ```python,editable
 from typing import List
 
@@ -509,26 +530,6 @@ object Main {
 }
 ```
 
-```javascript,editable
-class Solution {
-    countingSort(arr, k) {
-        const n = arr.length;
-        const count = new Array(k + 1).fill(0);
-        for (const v of arr) count[v]++;
-        for (let i = 1; i <= k; i++) count[i] += count[i - 1];
-
-        const result = new Array(n);
-        for (let i = n - 1; i >= 0; i--) {
-            count[arr[i]]--;
-            result[count[arr[i]]] = arr[i];
-        }
-        return result;
-    }
-}
-
-console.log(new Solution().countingSort([2, 5, 3, 0, 2, 3, 0, 3], 5));
-```
-
 ```typescript,editable
 class Solution {
     countingSort(arr: number[], k: number): number[] {
@@ -573,28 +574,6 @@ func countingSort(arr []int, k int) []int {
 
 func main() {
     fmt.Println(countingSort([]int{2, 5, 3, 0, 2, 3, 0, 3}, 5))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun countingSort(arr: IntArray, k: Int): IntArray {
-        val n = arr.size
-        val count = IntArray(k + 1)
-        for (v in arr) count[v]++
-        for (i in 1..k) count[i] += count[i - 1]
-
-        val result = IntArray(n)
-        for (i in n - 1 downTo 0) {
-            count[arr[i]]--
-            result[count[arr[i]]] = arr[i]
-        }
-        return result
-    }
-}
-
-fun main() {
-    println(Solution().countingSort(intArrayOf(2, 5, 3, 0, 2, 3, 0, 3), 5).toList())
 }
 ```
 
