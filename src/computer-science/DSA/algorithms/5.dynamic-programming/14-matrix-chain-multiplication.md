@@ -220,6 +220,24 @@ Bottom-up tabulation, length-first. The dimensions array is 1-indexed in spirit 
 
 <div class="lang-tabs">
 
+```pseudocode
+# Classic interval DP. n matrices have dimensions[0..n] (length n + 1).
+# dp[i][j] = minimum scalar multiplications for the chain from matrix i to matrix j (1-indexed).
+# Try every split point k inside [i, j − 1].
+function matrixChainMultiplication(dimensions):
+    n ← length(dimensions) − 1
+    dp ← (n + 1) × (n + 1) grid of zeros          # single matrix has zero cost
+    for length from 2 to n:                       # smallest chains first
+        for i from 1 to n − length + 1:
+            j ← i + length − 1
+            dp[i][j] ← +∞
+            for k from i to j − 1:
+                cost ← dp[i][k] + dp[k + 1][j] + dimensions[i − 1] × dimensions[k] × dimensions[j]
+                if cost < dp[i][j]:
+                    dp[i][j] ← cost
+    return dp[1][n]
+```
+
 ```python,editable
 from typing import List
 import math
@@ -359,28 +377,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    matrixChainMultiplication(dimensions) {
-        const n = dimensions.length - 1;
-        const dp = Array.from({length: n + 1}, () => new Array(n + 1).fill(0));
-        for (let len = 2; len <= n; len++) {
-            for (let i = 1; i <= n - len + 1; i++) {
-                const j = i + len - 1;
-                dp[i][j] = Number.POSITIVE_INFINITY;
-                for (let k = i; k < j; k++) {
-                    const cost = dp[i][k] + dp[k + 1][j] + dimensions[i - 1] * dimensions[k] * dimensions[j];
-                    if (cost < dp[i][j]) dp[i][j] = cost;
-                }
-            }
-        }
-        return dp[1][n];
-    }
-}
-
-console.log(new Solution().matrixChainMultiplication([4, 5, 3, 2]));   // 70
-```
-
 ```typescript,editable
 class Solution {
     matrixChainMultiplication(dimensions: number[]): number {
@@ -428,30 +424,6 @@ func matrixChainMultiplication(dimensions []int) int {
 
 func main() {
     fmt.Println(matrixChainMultiplication([]int{4, 5, 3, 2}))   // 70
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun matrixChainMultiplication(dimensions: IntArray): Int {
-        val n = dimensions.size - 1
-        val dp = Array(n + 1) { IntArray(n + 1) }
-        for (len in 2..n) {
-            for (i in 1..n - len + 1) {
-                val j = i + len - 1
-                dp[i][j] = Int.MAX_VALUE
-                for (k in i until j) {
-                    val cost = dp[i][k] + dp[k + 1][j] + dimensions[i - 1] * dimensions[k] * dimensions[j]
-                    if (cost < dp[i][j]) dp[i][j] = cost
-                }
-            }
-        }
-        return dp[1][n]
-    }
-}
-
-fun main() {
-    println(Solution().matrixChainMultiplication(intArrayOf(4, 5, 3, 2)))    // 70
 }
 ```
 

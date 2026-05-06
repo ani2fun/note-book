@@ -104,6 +104,32 @@ Because every edge points to a strictly greater value, no path can revisit a cel
 
 <div class="lang-tabs">
 
+```pseudocode
+# Longest strictly increasing path on a grid. dp[r][c] memoizes the answer starting at (r, c).
+DIRS ← [(−1, 0), (1, 0), (0, −1), (0, 1)]
+
+function longestAscendingRoute(matrix):
+    if matrix is empty OR matrix[0] is empty: return 0
+    rows ← length(matrix); cols ← length(matrix[0])
+    dp ← rows × cols grid filled with −1
+    best ← 0
+    for r from 0 to rows − 1:
+        for c from 0 to cols − 1:
+            best ← max(best, dfs(matrix, r, c, dp, rows, cols))
+    return best
+
+function dfs(matrix, r, c, dp, rows, cols):
+    if dp[r][c] ≠ −1:
+        return dp[r][c]
+    best ← 1                                       # the cell itself counts as length 1
+    for each (dr, dc) in DIRS:
+        nr ← r + dr; nc ← c + dc
+        if 0 ≤ nr < rows AND 0 ≤ nc < cols AND matrix[nr][nc] > matrix[r][c]:
+            best ← max(best, 1 + dfs(matrix, nr, nc, dp, rows, cols))
+    dp[r][c] ← best
+    return best
+```
+
 ```python,editable
 from typing import List
 
@@ -289,33 +315,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    longestAscendingRoute(matrix) {
-        if (!matrix.length || !matrix[0].length) return 0;
-        const rows = matrix.length, cols = matrix[0].length;
-        const dp = Array.from({length: rows}, () => new Array(cols).fill(-1));
-        const DR = [-1, 1, 0, 0], DC = [0, 0, -1, 1];
-        const dfs = (r, c) => {
-            if (dp[r][c] !== -1) return dp[r][c];
-            let best = 1;
-            for (let i = 0; i < 4; i++) {
-                const nr = r + DR[i], nc = c + DC[i];
-                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && matrix[nr][nc] > matrix[r][c]) {
-                    best = Math.max(best, 1 + dfs(nr, nc));
-                }
-            }
-            return dp[r][c] = best;
-        };
-        let ans = 0;
-        for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) ans = Math.max(ans, dfs(r, c));
-        return ans;
-    }
-}
-
-console.log(new Solution().longestAscendingRoute([[1,2,9],[5,3,8],[4,6,7]]));   // 7
-```
-
 ```typescript,editable
 class Solution {
     longestAscendingRoute(matrix: number[][]): number {
@@ -375,36 +374,6 @@ func longestAscendingRoute(matrix [][]int) int {
 
 func main() {
     fmt.Println(longestAscendingRoute([][]int{{1,2,9},{5,3,8},{4,6,7}}))   // 7
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun longestAscendingRoute(matrix: Array<IntArray>): Int {
-        if (matrix.isEmpty() || matrix[0].isEmpty()) return 0
-        val rows = matrix.size; val cols = matrix[0].size
-        val dp = Array(rows) { IntArray(cols) { -1 } }
-        val DR = intArrayOf(-1, 1, 0, 0); val DC = intArrayOf(0, 0, -1, 1)
-        fun dfs(r: Int, c: Int): Int {
-            if (dp[r][c] != -1) return dp[r][c]
-            var best = 1
-            for (i in 0..3) {
-                val nr = r + DR[i]; val nc = c + DC[i]
-                if (nr in 0 until rows && nc in 0 until cols && matrix[nr][nc] > matrix[r][c]) {
-                    best = maxOf(best, 1 + dfs(nr, nc))
-                }
-            }
-            dp[r][c] = best
-            return best
-        }
-        var ans = 0
-        for (r in 0 until rows) for (c in 0 until cols) ans = maxOf(ans, dfs(r, c))
-        return ans
-    }
-}
-
-fun main() {
-    println(Solution().longestAscendingRoute(arrayOf(intArrayOf(1,2,9), intArrayOf(5,3,8), intArrayOf(4,6,7))))   // 7
 }
 ```
 
@@ -516,6 +485,24 @@ Min ensures the square is *fully* filled with 1s. If any of the three neighbours
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# dp[r][c] = side length of the largest all-1 square whose bottom-right is (r, c).
+function largestSquareArea(matrix):
+    if matrix is empty OR matrix[0] is empty: return 0
+    rows ← length(matrix); cols ← length(matrix[0])
+    dp ← rows × cols grid of zeros
+    maxSide ← 0
+    for r from 0 to rows − 1:
+        for c from 0 to cols − 1:
+            if matrix[r][c] = 1:
+                if r = 0 OR c = 0:
+                    dp[r][c] ← 1                  # edge cells: largest square is 1×1
+                else:
+                    dp[r][c] ← 1 + min(dp[r − 1][c − 1], dp[r − 1][c], dp[r][c − 1])
+                maxSide ← max(maxSide, dp[r][c])
+    return maxSide × maxSide
+```
 
 ```python,editable
 from typing import List
@@ -658,29 +645,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    largestSquareArea(matrix) {
-        if (!matrix.length || !matrix[0].length) return 0;
-        const rows = matrix.length, cols = matrix[0].length;
-        const dp = Array.from({length: rows}, () => new Array(cols).fill(0));
-        let maxSide = 0;
-        for (let r = 0; r < rows; r++) {
-            for (let c = 0; c < cols; c++) {
-                if (matrix[r][c] === 1) {
-                    dp[r][c] = (r === 0 || c === 0) ? 1
-                             : 1 + Math.min(dp[r-1][c-1], dp[r-1][c], dp[r][c-1]);
-                    if (dp[r][c] > maxSide) maxSide = dp[r][c];
-                }
-            }
-        }
-        return maxSide * maxSide;
-    }
-}
-
-console.log(new Solution().largestSquareArea([[1,1,0,0],[0,0,1,1],[1,0,1,1],[1,0,0,0]]));   // 4
-```
-
 ```typescript,editable
 class Solution {
     largestSquareArea(matrix: number[][]): number {
@@ -733,31 +697,6 @@ func largestSquareArea(matrix [][]int) int {
 
 func main() {
     fmt.Println(largestSquareArea([][]int{{1,1,0,0},{0,0,1,1},{1,0,1,1},{1,0,0,0}}))   // 4
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun largestSquareArea(matrix: Array<IntArray>): Int {
-        if (matrix.isEmpty() || matrix[0].isEmpty()) return 0
-        val rows = matrix.size; val cols = matrix[0].size
-        val dp = Array(rows) { IntArray(cols) }
-        var maxSide = 0
-        for (r in 0 until rows) {
-            for (c in 0 until cols) {
-                if (matrix[r][c] == 1) {
-                    dp[r][c] = if (r == 0 || c == 0) 1
-                               else 1 + minOf(dp[r-1][c-1], dp[r-1][c], dp[r][c-1])
-                    if (dp[r][c] > maxSide) maxSide = dp[r][c]
-                }
-            }
-        }
-        return maxSide * maxSide
-    }
-}
-
-fun main() {
-    println(Solution().largestSquareArea(arrayOf(intArrayOf(1,1,0,0), intArrayOf(0,0,1,1), intArrayOf(1,0,1,1), intArrayOf(1,0,0,0))))   // 4
 }
 ```
 
@@ -838,6 +777,27 @@ Because the answer at `(r, c)` depends on the *budget* still available — two d
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Count grid paths from (0, 0) to (rows−1, cols−1) (right/down only) whose cell sums equal `cost`.
+# State = (r, c, remaining). Cache it.
+function destinationPathCount(matrix, cost):
+    if matrix is empty OR matrix[0] is empty: return 0
+    rows ← length(matrix); cols ← length(matrix[0])
+    memo ← empty Map: (Integer, Integer, Integer) → Integer
+    return helper(matrix, rows − 1, cols − 1, cost, memo)
+
+function helper(matrix, r, c, remaining, memo):
+    if remaining < 0: return 0                    # overshot the budget
+    if r = 0 AND c = 0:
+        return 1 if matrix[0][0] = remaining else 0
+    if (r, c, remaining) is in memo:
+        return memo[(r, c, remaining)]
+    fromTop  ← helper(matrix, r − 1, c, remaining − matrix[r][c], memo) if r > 0 else 0
+    fromLeft ← helper(matrix, r, c − 1, remaining − matrix[r][c], memo) if c > 0 else 0
+    memo[(r, c, remaining)] ← fromTop + fromLeft
+    return memo[(r, c, remaining)]
+```
 
 ```python,editable
 from typing import List, Dict, Tuple
@@ -988,29 +948,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    destinationPathCount(matrix, cost) {
-        if (!matrix.length || !matrix[0].length) return 0;
-        const memo = new Map();
-        const helper = (r, c, rem) => {
-            if (rem < 0) return 0;
-            if (r === 0 && c === 0) return matrix[0][0] === rem ? 1 : 0;
-            const key = `${r}|${c}|${rem}`;
-            if (memo.has(key)) return memo.get(key);
-            const top  = r > 0 ? helper(r - 1, c, rem - matrix[r][c]) : 0;
-            const left = c > 0 ? helper(r, c - 1, rem - matrix[r][c]) : 0;
-            const ans = top + left;
-            memo.set(key, ans);
-            return ans;
-        };
-        return helper(matrix.length - 1, matrix[0].length - 1, cost);
-    }
-}
-
-console.log(new Solution().destinationPathCount([[1,2,9],[5,3,8],[4,6,7]], 19));   // 1
-```
-
 ```typescript,editable
 class Solution {
     destinationPathCount(matrix: number[][], cost: number): number {
@@ -1059,31 +996,6 @@ func destinationPathCount(matrix [][]int, cost int) int {
 
 func main() {
     fmt.Println(destinationPathCount([][]int{{1,2,9},{5,3,8},{4,6,7}}, 19))   // 1
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun destinationPathCount(matrix: Array<IntArray>, cost: Int): Int {
-        if (matrix.isEmpty() || matrix[0].isEmpty()) return 0
-        val memo = HashMap<Triple<Int, Int, Int>, Int>()
-        fun helper(r: Int, c: Int, rem: Int): Int {
-            if (rem < 0) return 0
-            if (r == 0 && c == 0) return if (matrix[0][0] == rem) 1 else 0
-            val key = Triple(r, c, rem)
-            memo[key]?.let { return it }
-            val top  = if (r > 0) helper(r - 1, c, rem - matrix[r][c]) else 0
-            val left = if (c > 0) helper(r, c - 1, rem - matrix[r][c]) else 0
-            val ans = top + left
-            memo[key] = ans
-            return ans
-        }
-        return helper(matrix.size - 1, matrix[0].size - 1, cost)
-    }
-}
-
-fun main() {
-    println(Solution().destinationPathCount(arrayOf(intArrayOf(1,2,9), intArrayOf(5,3,8), intArrayOf(4,6,7)), 19))   // 1
 }
 ```
 
@@ -1189,6 +1101,42 @@ Each arm of length `arm` *includes the centre*. If you sum four arms, you count 
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Compute four DP tables — left/right/up/down run lengths of 1s through each cell.
+# The plus centred at (r, c) has arm length min of all four; size = 4·arm − 3.
+function largestPlusOfOnes(matrix):
+    if matrix is empty OR matrix[0] is empty: return 0
+    rows ← length(matrix); cols ← length(matrix[0])
+    left  ← rows × cols grid of zeros
+    right ← rows × cols grid of zeros
+    up    ← rows × cols grid of zeros
+    down  ← rows × cols grid of zeros
+
+    # Forward pass — left and up run lengths (cell included).
+    for r from 0 to rows − 1:
+        for c from 0 to cols − 1:
+            if matrix[r][c] = 1:
+                left[r][c] ← 1 + (left[r][c − 1] if c > 0 else 0)
+                up[r][c]   ← 1 + (up[r − 1][c]   if r > 0 else 0)
+
+    # Backward pass — right and down run lengths.
+    for r from rows − 1 down to 0:
+        for c from cols − 1 down to 0:
+            if matrix[r][c] = 1:
+                right[r][c] ← 1 + (right[r][c + 1] if c < cols − 1 else 0)
+                down[r][c]  ← 1 + (down[r + 1][c]  if r < rows − 1 else 0)
+
+    maxSize ← 0
+    for r from 0 to rows − 1:
+        for c from 0 to cols − 1:
+            if matrix[r][c] = 1:
+                arm ← min(left[r][c], right[r][c], up[r][c], down[r][c])
+                size ← 4 × arm − 3                # plus has 1 + 4·(arm − 1) cells
+                if size > maxSize:
+                    maxSize ← size
+    return maxSize
+```
 
 ```python,editable
 from typing import List
@@ -1395,40 +1343,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    largestPlusOfOnes(matrix) {
-        if (!matrix.length || !matrix[0].length) return 0;
-        const rows = matrix.length, cols = matrix[0].length;
-        const make = () => Array.from({length: rows}, () => new Array(cols).fill(0));
-        const left = make(), right = make(), up = make(), down = make();
-        for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-            if (matrix[r][c] === 1) {
-                left[r][c] = 1 + (c > 0 ? left[r][c - 1] : 0);
-                up[r][c]   = 1 + (r > 0 ? up[r - 1][c]   : 0);
-            }
-        }
-        for (let r = rows - 1; r >= 0; r--) for (let c = cols - 1; c >= 0; c--) {
-            if (matrix[r][c] === 1) {
-                right[r][c] = 1 + (c < cols - 1 ? right[r][c + 1] : 0);
-                down[r][c]  = 1 + (r < rows - 1 ? down[r + 1][c]  : 0);
-            }
-        }
-        let maxSize = 0;
-        for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-            if (matrix[r][c] === 1) {
-                const arm = Math.min(left[r][c], right[r][c], up[r][c], down[r][c]);
-                const size = 4 * arm - 3;
-                if (size > maxSize) maxSize = size;
-            }
-        }
-        return maxSize;
-    }
-}
-
-console.log(new Solution().largestPlusOfOnes([[1,1,1,0],[0,1,1,1],[1,1,1,1],[1,0,1,0]]));   // 5
-```
-
 ```typescript,editable
 class Solution {
     largestPlusOfOnes(matrix: number[][]): number {
@@ -1506,44 +1420,6 @@ func largestPlusOfOnes(matrix [][]int) int {
 
 func main() {
     fmt.Println(largestPlusOfOnes([][]int{{1,1,1,0},{0,1,1,1},{1,1,1,1},{1,0,1,0}}))   // 5
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun largestPlusOfOnes(matrix: Array<IntArray>): Int {
-        if (matrix.isEmpty() || matrix[0].isEmpty()) return 0
-        val rows = matrix.size; val cols = matrix[0].size
-        val left  = Array(rows) { IntArray(cols) }
-        val right = Array(rows) { IntArray(cols) }
-        val up    = Array(rows) { IntArray(cols) }
-        val down  = Array(rows) { IntArray(cols) }
-        for (r in 0 until rows) for (c in 0 until cols) {
-            if (matrix[r][c] == 1) {
-                left[r][c] = 1 + (if (c > 0) left[r][c - 1] else 0)
-                up[r][c]   = 1 + (if (r > 0) up[r - 1][c]   else 0)
-            }
-        }
-        for (r in rows - 1 downTo 0) for (c in cols - 1 downTo 0) {
-            if (matrix[r][c] == 1) {
-                right[r][c] = 1 + (if (c < cols - 1) right[r][c + 1] else 0)
-                down[r][c]  = 1 + (if (r < rows - 1) down[r + 1][c]  else 0)
-            }
-        }
-        var maxSize = 0
-        for (r in 0 until rows) for (c in 0 until cols) {
-            if (matrix[r][c] == 1) {
-                val arm = minOf(left[r][c], right[r][c], up[r][c], down[r][c])
-                val size = 4 * arm - 3
-                if (size > maxSize) maxSize = size
-            }
-        }
-        return maxSize
-    }
-}
-
-fun main() {
-    println(Solution().largestPlusOfOnes(arrayOf(intArrayOf(1,1,1,0), intArrayOf(0,1,1,1), intArrayOf(1,1,1,1), intArrayOf(1,0,1,0))))   // 5
 }
 ```
 

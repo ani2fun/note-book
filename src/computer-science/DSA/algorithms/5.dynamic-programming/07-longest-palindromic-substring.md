@@ -165,6 +165,34 @@ Track the longest palindrome's length and start position as the table fills.
 
 <div class="lang-tabs">
 
+```pseudocode
+# isPalin[i][j] = true iff s[i..j] is a palindrome. Track the longest run as we fill the table.
+function longestPalindromicSubstring(s):
+    n ← length(s)
+    if n = 0: return ""
+    isPalin ← n × n grid of false
+    bestStart ← 0
+    bestLen ← 1
+
+    # Length 1 — diagonals.
+    for i from 0 to n − 1: isPalin[i][i] ← true
+    # Length 2.
+    for i from 0 to n − 2:
+        if s[i] = s[i + 1]:
+            isPalin[i][i + 1] ← true
+            if bestLen < 2:
+                bestStart ← i; bestLen ← 2
+    # Length ≥ 3 — fill in increasing-length order so the interior is ready.
+    for length from 3 to n:
+        for i from 0 to n − length:
+            j ← i + length − 1
+            if s[i] = s[j] AND isPalin[i + 1][j − 1]:
+                isPalin[i][j] ← true
+                if length > bestLen:
+                    bestStart ← i; bestLen ← length
+    return substring of s from bestStart to bestStart + bestLen − 1
+```
+
 ```python,editable
 from typing import List
 
@@ -331,34 +359,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    longestPalindromicSubstring(s) {
-        const n = s.length;
-        if (n === 0) return "";
-        const isPalin = Array.from({length: n}, () => new Array(n).fill(false));
-        let bestStart = 0, bestLen = 1;
-        for (let i = 0; i < n; i++) isPalin[i][i] = true;
-        for (let i = 0; i < n - 1; i++) if (s[i] === s[i + 1]) {
-            isPalin[i][i + 1] = true;
-            if (bestLen < 2) { bestStart = i; bestLen = 2; }
-        }
-        for (let len = 3; len <= n; len++) {
-            for (let i = 0; i <= n - len; i++) {
-                const j = i + len - 1;
-                if (s[i] === s[j] && isPalin[i + 1][j - 1]) {
-                    isPalin[i][j] = true;
-                    if (len > bestLen) { bestStart = i; bestLen = len; }
-                }
-            }
-        }
-        return s.slice(bestStart, bestStart + bestLen);
-    }
-}
-
-console.log(new Solution().longestPalindromicSubstring("forgeeksskeegfor"));
-```
-
 ```typescript,editable
 class Solution {
     longestPalindromicSubstring(s: string): string {
@@ -417,32 +417,6 @@ func longestPalindromicSubstring(s string) string {
 
 func main() {
     fmt.Println(longestPalindromicSubstring("forgeeksskeegfor"))   // geeksskeeg
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun longestPalindromicSubstring(s: String): String {
-        val n = s.length
-        if (n == 0) return ""
-        val isPalin = Array(n) { BooleanArray(n) }
-        var bestStart = 0; var bestLen = 1
-        for (i in 0 until n) isPalin[i][i] = true
-        for (i in 0 until n - 1) if (s[i] == s[i + 1]) {
-            isPalin[i][i + 1] = true
-            if (bestLen < 2) { bestStart = i; bestLen = 2 }
-        }
-        for (len in 3..n) {
-            for (i in 0..n - len) {
-                val j = i + len - 1
-                if (s[i] == s[j] && isPalin[i + 1][j - 1]) {
-                    isPalin[i][j] = true
-                    if (len > bestLen) { bestStart = i; bestLen = len }
-                }
-            }
-        }
-        return s.substring(bestStart, bestStart + bestLen)
-    }
 }
 ```
 

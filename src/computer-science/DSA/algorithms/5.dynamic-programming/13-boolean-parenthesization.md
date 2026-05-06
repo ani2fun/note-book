@@ -225,6 +225,36 @@ Bottom-up tabulation; two parallel tables. We treat operands as living at even s
 
 <div class="lang-tabs">
 
+```pseudocode
+# Count parenthesisations of s that evaluate to True. s alternates operands (T/F) and operators (&|^).
+# T[i][j] / F[i][j] = ways s[i..j] evaluates True / False. Split at each operator k inside [i..j].
+function booleanParenthesisation(s):
+    n ← length(s)
+    T ← n × n grid of zeros
+    F ← n × n grid of zeros
+    for i from 0 to n − 1 step 2:                # operand positions
+        T[i][i] ← 1 if s[i] = 'T' else 0
+        F[i][i] ← 1 if s[i] = 'F' else 0
+
+    for length from 3 to n step 2:               # only odd-length intervals contain a full sub-expression
+        for i from 0 to n − length step 2:
+            j ← i + length − 1
+            for k from i to j − 1 step 2:        # operator at index k+1
+                op ← s[k + 1]
+                tl ← T[i][k];     fl ← F[i][k]
+                tr ← T[k + 2][j]; fr ← F[k + 2][j]
+                if op = '&':
+                    T[i][j] ← T[i][j] + tl × tr
+                    F[i][j] ← F[i][j] + tl × fr + fl × tr + fl × fr
+                else if op = '|':
+                    T[i][j] ← T[i][j] + tl × tr + tl × fr + fl × tr
+                    F[i][j] ← F[i][j] + fl × fr
+                else:                            # XOR
+                    T[i][j] ← T[i][j] + tl × fr + fl × tr
+                    F[i][j] ← F[i][j] + tl × tr + fl × fr
+    return T[0][n − 1]
+```
+
 ```python,editable
 from typing import List
 
@@ -430,43 +460,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    booleanParenthesisation(s) {
-        const n = s.length;
-        const T = Array.from({length: n}, () => new Array(n).fill(0));
-        const F = Array.from({length: n}, () => new Array(n).fill(0));
-        for (let i = 0; i < n; i += 2) {
-            T[i][i] = s[i] === 'T' ? 1 : 0;
-            F[i][i] = s[i] === 'F' ? 1 : 0;
-        }
-        for (let len = 3; len <= n; len += 2) {
-            for (let i = 0; i <= n - len; i += 2) {
-                const j = i + len - 1;
-                for (let k = i; k < j; k += 2) {
-                    const op = s[k + 1];
-                    const tl = T[i][k], fl = F[i][k];
-                    const tr = T[k + 2][j], fr = F[k + 2][j];
-                    if (op === '&') {
-                        T[i][j] += tl * tr;
-                        F[i][j] += tl * fr + fl * tr + fl * fr;
-                    } else if (op === '|') {
-                        T[i][j] += tl * tr + tl * fr + fl * tr;
-                        F[i][j] += fl * fr;
-                    } else {
-                        T[i][j] += tl * fr + fl * tr;
-                        F[i][j] += tl * tr + fl * fr;
-                    }
-                }
-            }
-        }
-        return T[0][n - 1];
-    }
-}
-
-console.log(new Solution().booleanParenthesisation("T^F&T"));    // 2
-```
-
 ```typescript,editable
 class Solution {
     booleanParenthesisation(s: string): number {
@@ -541,48 +534,6 @@ func booleanParenthesisation(s string) int {
 
 func main() {
     fmt.Println(booleanParenthesisation("T^F&T"))   // 2
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun booleanParenthesisation(s: String): Int {
-        val n = s.length
-        val T = Array(n) { IntArray(n) }
-        val F = Array(n) { IntArray(n) }
-        var i = 0
-        while (i < n) {
-            if (s[i] == 'T') T[i][i] = 1
-            if (s[i] == 'F') F[i][i] = 1
-            i += 2
-        }
-        var len = 3
-        while (len <= n) {
-            var ii = 0
-            while (ii <= n - len) {
-                val j = ii + len - 1
-                var k = ii
-                while (k < j) {
-                    val op = s[k + 1]
-                    val tl = T[ii][k]; val fl = F[ii][k]
-                    val tr = T[k + 2][j]; val fr = F[k + 2][j]
-                    when (op) {
-                        '&' -> { T[ii][j] += tl * tr;                       F[ii][j] += tl * fr + fl * tr + fl * fr }
-                        '|' -> { T[ii][j] += tl * tr + tl * fr + fl * tr;   F[ii][j] += fl * fr }
-                        '^' -> { T[ii][j] += tl * fr + fl * tr;             F[ii][j] += tl * tr + fl * fr }
-                    }
-                    k += 2
-                }
-                ii += 2
-            }
-            len += 2
-        }
-        return T[0][n - 1]
-    }
-}
-
-fun main() {
-    println(Solution().booleanParenthesisation("T^F&T"))   // 2
 }
 ```
 

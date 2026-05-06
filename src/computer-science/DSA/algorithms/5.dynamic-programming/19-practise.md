@@ -48,6 +48,18 @@ With `dp[0] = 1` (one way to "stand still") and missing predecessors treated as 
 
 <div class="lang-tabs">
 
+```pseudocode
+# Number of ways to cover `distance` taking steps of 1, 2, or 3.
+function coveringDistance(distance):
+    dp ← list of (distance + 1) zeros
+    dp[0] ← 1                                     # one way to stand still — empty path
+    for i from 1 to distance:
+        dp[i] ← dp[i − 1]
+        if i ≥ 2: dp[i] ← dp[i] + dp[i − 2]
+        if i ≥ 3: dp[i] ← dp[i] + dp[i − 3]
+    return dp[distance]
+```
+
 ```python,editable
 class Solution:
     def covering_distance(self, distance: int) -> int:
@@ -147,23 +159,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    coveringDistance(distance) {
-        const dp = new Array(distance + 1).fill(0);
-        dp[0] = 1;
-        for (let i = 1; i <= distance; i++) {
-            dp[i] = dp[i - 1];
-            if (i >= 2) dp[i] += dp[i - 2];
-            if (i >= 3) dp[i] += dp[i - 3];
-        }
-        return dp[distance];
-    }
-}
-
-console.log(new Solution().coveringDistance(3));   // 4
-```
-
 ```typescript,editable
 class Solution {
     coveringDistance(distance: number): number {
@@ -197,25 +192,6 @@ func coveringDistance(distance int) int {
 
 func main() {
     fmt.Println(coveringDistance(3))   // 4
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun coveringDistance(distance: Int): Int {
-        val dp = IntArray(distance + 1)
-        dp[0] = 1
-        for (i in 1..distance) {
-            dp[i] = dp[i - 1]
-            if (i >= 2) dp[i] += dp[i - 2]
-            if (i >= 3) dp[i] += dp[i - 3]
-        }
-        return dp[distance]
-    }
-}
-
-fun main() {
-    println(Solution().coveringDistance(3))   // 4
 }
 ```
 
@@ -269,6 +245,22 @@ Output: false              Stuck at index 1 with arr[1] = 0
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Jump-game variant. dp[i] = true iff we can reach the last index from index i.
+# Walk right-to-left so dp[j] for j > i is already known.
+function reachabilityCheck(arr):
+    n ← length(arr)
+    dp ← list of n false values
+    dp[n − 1] ← true                              # last index trivially reaches itself
+    for i from n − 2 down to 0:
+        maxJump ← min(i + arr[i], n − 1)
+        for j from i + 1 to maxJump:
+            if dp[j]:
+                dp[i] ← true
+                break                              # any reachable target suffices
+    return dp[0]
+```
 
 ```python,editable
 from typing import List
@@ -382,25 +374,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    reachabilityCheck(arr) {
-        const n = arr.length;
-        const dp = new Array(n).fill(false);
-        dp[n - 1] = true;
-        for (let i = n - 2; i >= 0; i--) {
-            const maxJump = Math.min(i + arr[i], n - 1);
-            for (let j = i + 1; j <= maxJump; j++) {
-                if (dp[j]) { dp[i] = true; break; }
-            }
-        }
-        return dp[0];
-    }
-}
-
-console.log(new Solution().reachabilityCheck([1, 5, 8, 9]));   // true
-```
-
 ```typescript,editable
 class Solution {
     reachabilityCheck(arr: number[]): boolean {
@@ -439,27 +412,6 @@ func reachabilityCheck(arr []int) bool {
 
 func main() {
     fmt.Println(reachabilityCheck([]int{1, 5, 8, 9}))   // true
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun reachabilityCheck(arr: IntArray): Boolean {
-        val n = arr.size
-        val dp = BooleanArray(n)
-        dp[n - 1] = true
-        for (i in n - 2 downTo 0) {
-            val maxJump = minOf(i + arr[i], n - 1)
-            for (j in i + 1..maxJump) {
-                if (dp[j]) { dp[i] = true; break }
-            }
-        }
-        return dp[0]
-    }
-}
-
-fun main() {
-    println(Solution().reachabilityCheck(intArrayOf(1, 5, 8, 9)))   // true
 }
 ```
 
@@ -512,6 +464,27 @@ For each peak candidate `i`, the bitonic length through `i` = `LIS_ending_at(i) 
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Bitonic = strictly increasing then strictly decreasing.
+# inc[i] = LIS ending at i; dec[i] = LDS starting at i. Peak at i contributes inc[i] + dec[i] − 1.
+function longestBitonicSubsequence(arr):
+    n ← length(arr)
+    inc ← list of n ones
+    dec ← list of n ones
+
+    for i from 1 to n − 1:                        # standard LIS
+        for j from 0 to i − 1:
+            if arr[i] > arr[j] AND inc[j] + 1 > inc[i]:
+                inc[i] ← inc[j] + 1
+
+    for i from n − 2 down to 0:                   # LDS, scanning right-to-left
+        for j from n − 1 down to i + 1:
+            if arr[i] > arr[j] AND dec[j] + 1 > dec[i]:
+                dec[i] ← dec[j] + 1
+
+    return max over i of (inc[i] + dec[i] − 1)    # subtract 1 — peak is counted twice
+```
 
 ```python,editable
 from typing import List
@@ -625,26 +598,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    longestBitonicSubsequence(arr) {
-        const n = arr.length;
-        const inc = new Array(n).fill(1), dec = new Array(n).fill(1);
-        for (let i = 1; i < n; i++) for (let j = 0; j < i; j++) {
-            if (arr[i] > arr[j] && inc[j] + 1 > inc[i]) inc[i] = inc[j] + 1;
-        }
-        for (let i = n - 2; i >= 0; i--) for (let j = n - 1; j > i; j--) {
-            if (arr[i] > arr[j] && dec[j] + 1 > dec[i]) dec[i] = dec[j] + 1;
-        }
-        let best = 0;
-        for (let i = 0; i < n; i++) if (inc[i] + dec[i] - 1 > best) best = inc[i] + dec[i] - 1;
-        return best;
-    }
-}
-
-console.log(new Solution().longestBitonicSubsequence([1, 7, 3, 5, 9, 8, 6]));   // 6
-```
-
 ```typescript,editable
 class Solution {
     longestBitonicSubsequence(arr: number[]): number {
@@ -685,28 +638,6 @@ func longestBitonicSubsequence(arr []int) int {
 
 func main() {
     fmt.Println(longestBitonicSubsequence([]int{1, 7, 3, 5, 9, 8, 6}))   // 6
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun longestBitonicSubsequence(arr: IntArray): Int {
-        val n = arr.size
-        val inc = IntArray(n) { 1 }; val dec = IntArray(n) { 1 }
-        for (i in 1 until n) for (j in 0 until i) {
-            if (arr[i] > arr[j] && inc[j] + 1 > inc[i]) inc[i] = inc[j] + 1
-        }
-        for (i in n - 2 downTo 0) for (j in n - 1 downTo i + 1) {
-            if (arr[i] > arr[j] && dec[j] + 1 > dec[i]) dec[i] = dec[j] + 1
-        }
-        var best = 0
-        for (i in 0 until n) if (inc[i] + dec[i] - 1 > best) best = inc[i] + dec[i] - 1
-        return best
-    }
-}
-
-fun main() {
-    println(Solution().longestBitonicSubsequence(intArrayOf(1, 7, 3, 5, 9, 8, 6)))   // 6
 }
 ```
 
@@ -766,6 +697,24 @@ Answer: max over `i` of `max(dp[i][0], dp[i][1])`.
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# dp[i][0] = longest alt-subseq ending at i where last move was DECREASE.
+# dp[i][1] = longest alt-subseq ending at i where last move was INCREASE.
+function longestAlternatingSubsequence(arr):
+    n ← length(arr)
+    if n ≤ 1: return n
+    dp ← n × 2 grid filled with 1
+    best ← 1
+    for i from 1 to n − 1:
+        for j from 0 to i − 1:
+            if arr[j] < arr[i]:
+                dp[i][1] ← max(dp[i][1], dp[j][0] + 1)   # extend a "down" with this "up" step
+            else if arr[j] > arr[i]:
+                dp[i][0] ← max(dp[i][0], dp[j][1] + 1)
+        best ← max(best, dp[i][0], dp[i][1])
+    return best
+```
 
 ```python,editable
 from typing import List
@@ -893,27 +842,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    longestAlternatingSubsequence(arr) {
-        const n = arr.length;
-        if (n <= 1) return n;
-        const dp = Array.from({length: n}, () => [1, 1]);
-        let best = 1;
-        for (let i = 1; i < n; i++) {
-            for (let j = 0; j < i; j++) {
-                if (arr[j] < arr[i]) dp[i][1] = Math.max(dp[i][1], dp[j][0] + 1);
-                else if (arr[j] > arr[i]) dp[i][0] = Math.max(dp[i][0], dp[j][1] + 1);
-            }
-            best = Math.max(best, dp[i][0], dp[i][1]);
-        }
-        return best;
-    }
-}
-
-console.log(new Solution().longestAlternatingSubsequence([1, 7, 3, 5, 4, 8, 6]));   // 7
-```
-
 ```typescript,editable
 class Solution {
     longestAlternatingSubsequence(arr: number[]): number {
@@ -957,29 +885,6 @@ func longestAlternatingSubsequence(arr []int) int {
 
 func main() {
     fmt.Println(longestAlternatingSubsequence([]int{1, 7, 3, 5, 4, 8, 6}))   // 7
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun longestAlternatingSubsequence(arr: IntArray): Int {
-        val n = arr.size
-        if (n <= 1) return n
-        val dp = Array(n) { IntArray(2) { 1 } }
-        var best = 1
-        for (i in 1 until n) {
-            for (j in 0 until i) {
-                if (arr[j] < arr[i]) dp[i][1] = maxOf(dp[i][1], dp[j][0] + 1)
-                else if (arr[j] > arr[i]) dp[i][0] = maxOf(dp[i][0], dp[j][1] + 1)
-            }
-            best = maxOf(best, dp[i][0], dp[i][1])
-        }
-        return best
-    }
-}
-
-fun main() {
-    println(Solution().longestAlternatingSubsequence(intArrayOf(1, 7, 3, 5, 4, 8, 6)))   // 7
 }
 ```
 
@@ -1039,6 +944,22 @@ Base case: `dp[0][j] = 1` for all `j` — there's exactly one way to form the em
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Number of distinct subsequences of s that equal `pattern`.
+# dp[i][j] = ways pattern[0..i−1] appears in s[0..j−1].
+function patternAsSubsequence(s, pattern):
+    n ← length(s); m ← length(pattern)
+    dp ← (m + 1) × (n + 1) grid of zeros
+    for j from 0 to n: dp[0][j] ← 1                # empty pattern matches anywhere — one way
+    for i from 1 to m:
+        for j from 1 to n:
+            if pattern[i − 1] = s[j − 1]:
+                dp[i][j] ← dp[i − 1][j − 1] + dp[i][j − 1]   # use s[j−1] OR skip it
+            else:
+                dp[i][j] ← dp[i][j − 1]                       # mismatch → must skip s[j−1]
+    return dp[m][n]
+```
 
 ```python,editable
 from typing import List
@@ -1151,24 +1072,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    patternAsSubsequence(s, pattern) {
-        const n = s.length, m = pattern.length;
-        const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
-        for (let j = 0; j <= n; j++) dp[0][j] = 1;
-        for (let i = 1; i <= m; i++) {
-            for (let j = 1; j <= n; j++) {
-                dp[i][j] = pattern[i - 1] === s[j - 1] ? dp[i - 1][j - 1] + dp[i][j - 1] : dp[i][j - 1];
-            }
-        }
-        return dp[m][n];
-    }
-}
-
-console.log(new Solution().patternAsSubsequence("abacdebgc", "abc"));   // 4
-```
-
 ```typescript,editable
 class Solution {
     patternAsSubsequence(s: string, pattern: string): number {
@@ -1205,26 +1108,6 @@ func patternAsSubsequence(s, pattern string) int {
 
 func main() {
     fmt.Println(patternAsSubsequence("abacdebgc", "abc"))   // 4
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun patternAsSubsequence(s: String, pattern: String): Int {
-        val n = s.length; val m = pattern.length
-        val dp = Array(m + 1) { IntArray(n + 1) }
-        for (j in 0..n) dp[0][j] = 1
-        for (i in 1..m) {
-            for (j in 1..n) {
-                dp[i][j] = if (pattern[i - 1] == s[j - 1]) dp[i - 1][j - 1] + dp[i][j - 1] else dp[i][j - 1]
-            }
-        }
-        return dp[m][n]
-    }
-}
-
-fun main() {
-    println(Solution().patternAsSubsequence("abacdebgc", "abc"))   // 4
 }
 ```
 
@@ -1282,6 +1165,23 @@ Base cases: `dp[i][0] = i`, `dp[0][j] = j` (an empty side forces taking everythi
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Length of the shortest string that has both s1 and s2 as subsequences.
+# Identity: len(SCS) = len(s1) + len(s2) − len(LCS), but this DP computes it directly.
+function shortestCommonSupersequence(s1, s2):
+    n ← length(s1); m ← length(s2)
+    dp ← (n + 1) × (m + 1) grid of zeros
+    for i from 0 to n: dp[i][0] ← i
+    for j from 0 to m: dp[0][j] ← j
+    for i from 1 to n:
+        for j from 1 to m:
+            if s1[i − 1] = s2[j − 1]:
+                dp[i][j] ← dp[i − 1][j − 1] + 1
+            else:
+                dp[i][j] ← min(dp[i − 1][j], dp[i][j − 1]) + 1
+    return dp[n][m]
+```
 
 ```python,editable
 from typing import List
@@ -1391,23 +1291,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    shortestCommonSupersequence(s1, s2) {
-        const n = s1.length, m = s2.length;
-        const dp = Array.from({length: n + 1}, () => new Array(m + 1).fill(0));
-        for (let i = 0; i <= n; i++) dp[i][0] = i;
-        for (let j = 0; j <= m; j++) dp[0][j] = j;
-        for (let i = 1; i <= n; i++) for (let j = 1; j <= m; j++) {
-            dp[i][j] = s1[i - 1] === s2[j - 1] ? dp[i - 1][j - 1] + 1 : Math.min(dp[i - 1][j], dp[i][j - 1]) + 1;
-        }
-        return dp[n][m];
-    }
-}
-
-console.log(new Solution().shortestCommonSupersequence("abc", "abe"));   // 4
-```
-
 ```typescript,editable
 class Solution {
     shortestCommonSupersequence(s1: string, s2: string): number {
@@ -1443,26 +1326,6 @@ func shortestCommonSupersequence(s1, s2 string) int {
 
 func main() {
     fmt.Println(shortestCommonSupersequence("abc", "abe"))   // 4
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun shortestCommonSupersequence(s1: String, s2: String): Int {
-        val n = s1.length; val m = s2.length
-        val dp = Array(n + 1) { IntArray(m + 1) }
-        for (i in 0..n) dp[i][0] = i
-        for (j in 0..m) dp[0][j] = j
-        for (i in 1..n) for (j in 1..m) {
-            dp[i][j] = if (s1[i - 1] == s2[j - 1]) dp[i - 1][j - 1] + 1
-                       else minOf(dp[i - 1][j], dp[i][j - 1]) + 1
-        }
-        return dp[n][m]
-    }
-}
-
-fun main() {
-    println(Solution().shortestCommonSupersequence("abc", "abe"))   // 4
 }
 ```
 
@@ -1523,6 +1386,33 @@ Then backtrack to reconstruct the subsequence string.
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# LCS of s with itself — but disallow matching the same index (i ≠ j) so each char is reused once.
+# Then backtrack to reconstruct the subsequence.
+function longestRepeatedSubsequence(s):
+    n ← length(s)
+    dp ← (n + 1) × (n + 1) grid of zeros
+    for i from 1 to n:
+        for j from 1 to n:
+            if s[i − 1] = s[j − 1] AND i ≠ j:
+                dp[i][j] ← dp[i − 1][j − 1] + 1
+            else:
+                dp[i][j] ← max(dp[i − 1][j], dp[i][j − 1])
+
+    # Reconstruct the longest repeated subsequence.
+    chars ← empty list
+    i ← n; j ← n
+    while i > 0 AND j > 0:
+        if dp[i][j] = dp[i − 1][j − 1] + 1 AND s[i − 1] = s[j − 1] AND i ≠ j:
+            prepend s[i − 1] to chars
+            i ← i − 1; j ← j − 1
+        else if dp[i − 1][j] ≥ dp[i][j − 1]:
+            i ← i − 1
+        else:
+            j ← j − 1
+    return chars joined as a string
+```
 
 ```python,editable
 from typing import List
@@ -1670,30 +1560,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    longestRepeatedSubsequence(s) {
-        const n = s.length;
-        const dp = Array.from({length: n + 1}, () => new Array(n + 1).fill(0));
-        for (let i = 1; i <= n; i++) for (let j = 1; j <= n; j++) {
-            if (s[i - 1] === s[j - 1] && i !== j) dp[i][j] = dp[i - 1][j - 1] + 1;
-            else dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
-        }
-        let i = n, j = n;
-        const chars = [];
-        while (i > 0 && j > 0) {
-            if (s[i - 1] === s[j - 1] && i !== j && dp[i][j] === dp[i - 1][j - 1] + 1) {
-                chars.push(s[i - 1]); i--; j--;
-            } else if (dp[i - 1][j] >= dp[i][j - 1]) i--;
-            else j--;
-        }
-        return chars.reverse().join('');
-    }
-}
-
-console.log(new Solution().longestRepeatedSubsequence("abxcdalbc"));   // abc
-```
-
 ```typescript,editable
 class Solution {
     longestRepeatedSubsequence(s: string): string {
@@ -1742,32 +1608,6 @@ func longestRepeatedSubsequence(s string) string {
 
 func main() {
     fmt.Println(longestRepeatedSubsequence("abxcdalbc"))   // abc
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun longestRepeatedSubsequence(s: String): String {
-        val n = s.length
-        val dp = Array(n + 1) { IntArray(n + 1) }
-        for (i in 1..n) for (j in 1..n) {
-            dp[i][j] = if (s[i - 1] == s[j - 1] && i != j) dp[i - 1][j - 1] + 1
-                       else maxOf(dp[i - 1][j], dp[i][j - 1])
-        }
-        val sb = StringBuilder()
-        var i = n; var j = n
-        while (i > 0 && j > 0) {
-            if (s[i - 1] == s[j - 1] && i != j && dp[i][j] == dp[i - 1][j - 1] + 1) {
-                sb.append(s[i - 1]); i--; j--
-            } else if (dp[i - 1][j] >= dp[i][j - 1]) i--
-            else j--
-        }
-        return sb.reverse().toString()
-    }
-}
-
-fun main() {
-    println(Solution().longestRepeatedSubsequence("abxcdalbc"))   // abc
 }
 ```
 

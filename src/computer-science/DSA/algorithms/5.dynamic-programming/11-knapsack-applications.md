@@ -81,6 +81,22 @@ Two things only: **values disappeared** (we don't measure quality, only feasibil
 
 <div class="lang-tabs">
 
+```pseudocode
+# Subset sum — does any subset of arr sum to target? 0/1 knapsack with boolean dp.
+# dp[i][s] = true iff some subset of the first i items sums to s.
+function subsetSum(arr, target):
+    n ← length(arr)
+    dp ← (n + 1) × (target + 1) grid of false
+    for i from 0 to n: dp[i][0] ← true                    # empty subset hits sum 0
+    for i from 1 to n:
+        ai ← arr[i − 1]
+        for s from 1 to target:
+            dp[i][s] ← dp[i − 1][s]                       # skip item i−1
+            if ai ≤ s AND dp[i − 1][s − ai]:
+                dp[i][s] ← true                           # include item i−1
+    return dp[n][target]
+```
+
 ```python,editable
 from typing import List
 
@@ -213,26 +229,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    subsetSum(arr, target) {
-        const n = arr.length;
-        const dp = Array.from({length: n + 1}, () => new Array(target + 1).fill(false));
-        for (let i = 0; i <= n; i++) dp[i][0] = true;
-        for (let i = 1; i <= n; i++) {
-            const ai = arr[i - 1];
-            for (let s = 1; s <= target; s++) {
-                dp[i][s] = dp[i - 1][s];
-                if (ai <= s && dp[i - 1][s - ai]) dp[i][s] = true;
-            }
-        }
-        return dp[n][target];
-    }
-}
-
-console.log(new Solution().subsetSum([1, 5, 3, 10], 15));   // true
-```
-
 ```typescript,editable
 class Solution {
     subsetSum(arr: number[], target: number): boolean {
@@ -273,28 +269,6 @@ func subsetSum(arr []int, target int) bool {
 
 func main() {
     fmt.Println(subsetSum([]int{1, 5, 3, 10}, 15))   // true
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun subsetSum(arr: IntArray, target: Int): Boolean {
-        val n = arr.size
-        val dp = Array(n + 1) { BooleanArray(target + 1) }
-        for (i in 0..n) dp[i][0] = true
-        for (i in 1..n) {
-            val ai = arr[i - 1]
-            for (s in 1..target) {
-                dp[i][s] = dp[i - 1][s]
-                if (ai <= s && dp[i - 1][s - ai]) dp[i][s] = true
-            }
-        }
-        return dp[n][target]
-    }
-}
-
-fun main() {
-    println(Solution().subsetSum(intArrayOf(1, 5, 3, 10), 15))   // true
 }
 ```
 
@@ -382,6 +356,19 @@ cuts: "Length 4 rod, prices = [1, 5, 8, 9]" {
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Rod cutting — unbounded knapsack where item j has weight j and value prices[j−1].
+# dp[i] = max revenue from a rod of length i.
+function rodCutting(prices, length):
+    dp ← list of (length + 1) zeros
+    for i from 1 to length:
+        best ← prices[i − 1]                              # no-cut baseline: sell whole rod
+        for j from 1 to i − 1:
+            best ← max(best, prices[j − 1] + dp[i − j])   # cut a piece of length j, recurse on remainder
+        dp[i] ← best
+    return dp[length]
+```
 
 ```python,editable
 from typing import List
@@ -495,22 +482,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    rodCutting(prices, length) {
-        const dp = new Array(length + 1).fill(0);
-        for (let i = 1; i <= length; i++) {
-            let best = prices[i - 1];
-            for (let j = 1; j < i; j++) best = Math.max(best, prices[j - 1] + dp[i - j]);
-            dp[i] = best;
-        }
-        return dp[length];
-    }
-}
-
-console.log(new Solution().rodCutting([1, 5, 8, 9], 4));  // 10
-```
-
 ```typescript,editable
 class Solution {
     rodCutting(prices: number[], length: number): number {
@@ -546,24 +517,6 @@ func rodCutting(prices []int, length int) int {
 
 func main() {
     fmt.Println(rodCutting([]int{1, 5, 8, 9}, 4))  // 10
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun rodCutting(prices: IntArray, length: Int): Int {
-        val dp = IntArray(length + 1)
-        for (i in 1..length) {
-            var best = prices[i - 1]
-            for (j in 1 until i) best = maxOf(best, prices[j - 1] + dp[i - j])
-            dp[i] = best
-        }
-        return dp[length]
-    }
-}
-
-fun main() {
-    println(Solution().rodCutting(intArrayOf(1, 5, 8, 9), 4))  // 10
 }
 ```
 
@@ -636,6 +589,20 @@ The unreachable case is the key new wrinkle. Carry an `INF` sentinel; a final `d
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Minimum number of coins to make exactly `amount`. Returns −1 if impossible.
+function coinChange(coins, amount):
+    INF ← amount + 1                                       # sentinel > any reachable answer
+    dp ← list of (amount + 1) entries, each = INF
+    dp[0] ← 0
+    for i from 1 to amount:
+        for each c in coins:
+            if c ≤ i AND dp[i − c] + 1 < dp[i]:
+                dp[i] ← dp[i − c] + 1
+    if dp[amount] = INF: return −1
+    return dp[amount]
+```
 
 ```python,editable
 from typing import List
@@ -752,25 +719,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    coinChange(coins, amount) {
-        const INF = amount + 1;
-        const dp = new Array(amount + 1).fill(INF);
-        dp[0] = 0;
-        for (let i = 1; i <= amount; i++) {
-            for (const c of coins) {
-                if (c <= i && dp[i - c] + 1 < dp[i]) dp[i] = dp[i - c] + 1;
-            }
-        }
-        return dp[amount] === INF ? -1 : dp[amount];
-    }
-}
-
-console.log(new Solution().coinChange([1, 5, 8, 9], 4));   // 4
-console.log(new Solution().coinChange([2, 3, 4, 9], 1));   // -1
-```
-
 ```typescript,editable
 class Solution {
     coinChange(coins: number[], amount: number): number {
@@ -809,26 +757,6 @@ func coinChange(coins []int, amount int) int {
 func main() {
     fmt.Println(coinChange([]int{1, 5, 8, 9}, 4))   // 4
     fmt.Println(coinChange([]int{2, 3, 4, 9}, 1))   // -1
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun coinChange(coins: IntArray, amount: Int): Int {
-        val INF = amount + 1
-        val dp = IntArray(amount + 1) { INF }
-        dp[0] = 0
-        for (i in 1..amount) {
-            for (c in coins) {
-                if (c <= i && dp[i - c] + 1 < dp[i]) dp[i] = dp[i - c] + 1
-            }
-        }
-        return if (dp[amount] == INF) -1 else dp[amount]
-    }
-}
-
-fun main() {
-    println(Solution().coinChange(intArrayOf(1, 5, 8, 9), 4))   // 4
 }
 ```
 
@@ -925,6 +853,19 @@ Base case: `dp[0] = 1` (the empty combination is one way to make 0).
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Number of distinct combinations summing to `amount`.
+# Coins outer / amounts inner counts COMBINATIONS (order-insensitive); swapping the loops
+# would count permutations — a different problem.
+function coinChangeII(coins, amount):
+    dp ← list of (amount + 1) zeros
+    dp[0] ← 1                                              # empty combination sums to 0
+    for each c in coins:
+        for a from c to amount:
+            dp[a] ← dp[a] + dp[a − c]
+    return dp[amount]
+```
 
 ```python,editable
 from typing import List
@@ -1028,21 +969,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    coinChangeII(coins, amount) {
-        const dp = new Array(amount + 1).fill(0);
-        dp[0] = 1;
-        for (const c of coins) {
-            for (let a = c; a <= amount; a++) dp[a] += dp[a - c];
-        }
-        return dp[amount];
-    }
-}
-
-console.log(new Solution().coinChangeII([3, 4, 8, 9], 13));   // 2
-```
-
 ```typescript,editable
 class Solution {
     coinChangeII(coins: number[], amount: number): number {
@@ -1074,23 +1000,6 @@ func coinChangeII(coins []int, amount int) int {
 
 func main() {
     fmt.Println(coinChangeII([]int{3, 4, 8, 9}, 13))   // 2
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun coinChangeII(coins: IntArray, amount: Int): Int {
-        val dp = IntArray(amount + 1)
-        dp[0] = 1
-        for (c in coins) {
-            for (a in c..amount) dp[a] += dp[a - c]
-        }
-        return dp[amount]
-    }
-}
-
-fun main() {
-    println(Solution().coinChangeII(intArrayOf(3, 4, 8, 9), 13))   // 2
 }
 ```
 

@@ -215,6 +215,26 @@ flowchart TB
 
 <div class="lang-tabs">
 
+```pseudocode
+# Top-down memoized.
+function longestCommonSubsequence(s1, s2):
+    m ← length(s1); n ← length(s2)
+    if m = 0 OR n = 0: return 0
+    memo ← m × n grid filled with −1
+    return lcs(m − 1, n − 1, s1, s2, memo)
+
+function lcs(i, j, s1, s2, memo):
+    if i < 0 OR j < 0:                              # one prefix exhausted
+        return 0
+    if memo[i][j] ≠ −1:
+        return memo[i][j]
+    if s1[i] = s2[j]:                               # match — extend the diagonal
+        memo[i][j] ← 1 + lcs(i − 1, j − 1, s1, s2, memo)
+    else:                                           # mismatch — drop one side, take the better
+        memo[i][j] ← max(lcs(i − 1, j, s1, s2, memo), lcs(i, j − 1, s1, s2, memo))
+    return memo[i][j]
+```
+
 ```python,editable
 from typing import List
 
@@ -364,29 +384,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    longestCommonSubsequence(s1, s2) {
-        const m = s1.length, n = s2.length;
-        if (m === 0 || n === 0) return 0;
-        const memo = Array.from({length: m}, () => new Array(n).fill(-1));
-        return this._lcs(m - 1, n - 1, s1, s2, memo);
-    }
-    _lcs(i, j, s1, s2, memo) {
-        if (i < 0 || j < 0) return 0;
-        if (memo[i][j] !== -1) return memo[i][j];
-        if (s1[i] === s2[j]) {
-            memo[i][j] = 1 + this._lcs(i - 1, j - 1, s1, s2, memo);
-        } else {
-            memo[i][j] = Math.max(this._lcs(i - 1, j, s1, s2, memo), this._lcs(i, j - 1, s1, s2, memo));
-        }
-        return memo[i][j];
-    }
-}
-
-console.log(new Solution().longestCommonSubsequence("abcdefgh", "bxclf"));   // 3
-```
-
 ```typescript,editable
 class Solution {
     longestCommonSubsequence(s1: string, s2: string): number {
@@ -440,30 +437,6 @@ func longestCommonSubsequence(s1, s2 string) int {
 
 func main() {
     fmt.Println(longestCommonSubsequence("abcdefgh", "bxclf"))   // 3
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun longestCommonSubsequence(s1: String, s2: String): Int {
-        val m = s1.length; val n = s2.length
-        if (m == 0 || n == 0) return 0
-        val memo = Array(m) { IntArray(n) { -1 } }
-        return lcs(m - 1, n - 1, s1, s2, memo)
-    }
-
-    private fun lcs(i: Int, j: Int, s1: String, s2: String, memo: Array<IntArray>): Int {
-        if (i < 0 || j < 0) return 0
-        if (memo[i][j] != -1) return memo[i][j]
-        memo[i][j] =
-            if (s1[i] == s2[j]) 1 + lcs(i - 1, j - 1, s1, s2, memo)
-            else maxOf(lcs(i - 1, j, s1, s2, memo), lcs(i, j - 1, s1, s2, memo))
-        return memo[i][j]
-    }
-}
-
-fun main() {
-    println(Solution().longestCommonSubsequence("abcdefgh", "bxclf"))   // 3
 }
 ```
 
@@ -626,6 +599,22 @@ Output: 0                No characters in common
 
 <div class="lang-tabs">
 
+```pseudocode
+# Bottom-up tabulation. dp[i][j] = LCS length of s1[0..i−1] and s2[0..j−1].
+# Row 0 and column 0 are zero (empty prefix on one side).
+function longestCommonSubsequence(s1, s2):
+    m ← length(s1); n ← length(s2)
+    if m = 0 OR n = 0: return 0
+    dp ← (m + 1) × (n + 1) grid of zeros
+    for i from 1 to m:
+        for j from 1 to n:
+            if s1[i − 1] = s2[j − 1]:
+                dp[i][j] ← dp[i − 1][j − 1] + 1
+            else:
+                dp[i][j] ← max(dp[i − 1][j], dp[i][j − 1])
+    return dp[m][n]
+```
+
 ```python,editable
 from typing import List
 
@@ -744,25 +733,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    longestCommonSubsequence(s1, s2) {
-        const m = s1.length, n = s2.length;
-        if (m === 0 || n === 0) return 0;
-        const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
-        for (let i = 1; i <= m; i++) {
-            for (let j = 1; j <= n; j++) {
-                if (s1[i - 1] === s2[j - 1]) dp[i][j] = dp[i - 1][j - 1] + 1;
-                else dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
-            }
-        }
-        return dp[m][n];
-    }
-}
-
-console.log(new Solution().longestCommonSubsequence("abcdefgh", "bxclf"));   // 3
-```
-
 ```typescript,editable
 class Solution {
     longestCommonSubsequence(s1: string, s2: string): number {
@@ -808,25 +778,6 @@ func longestCommonSubsequence(s1, s2 string) int {
 
 func main() {
     fmt.Println(longestCommonSubsequence("abcdefgh", "bxclf"))   // 3
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun longestCommonSubsequence(s1: String, s2: String): Int {
-        val m = s1.length; val n = s2.length
-        if (m == 0 || n == 0) return 0
-        val dp = Array(m + 1) { IntArray(n + 1) }
-        for (i in 1..m) for (j in 1..n) {
-            dp[i][j] = if (s1[i - 1] == s2[j - 1]) dp[i - 1][j - 1] + 1
-                      else maxOf(dp[i - 1][j], dp[i][j - 1])
-        }
-        return dp[m][n]
-    }
-}
-
-fun main() {
-    println(Solution().longestCommonSubsequence("abcdefgh", "bxclf"))   // 3
 }
 ```
 
@@ -971,6 +922,39 @@ flowchart TB
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Build the dp table, then backtrack from dp[m][n] collecting every distinct LCS string.
+function allLongestCommonSubsequences(s1, s2):
+    m ← length(s1); n ← length(s2)
+    if m = 0 OR n = 0: return empty list
+
+    dp ← (m + 1) × (n + 1) grid of zeros
+    for i from 1 to m:
+        for j from 1 to n:
+            if s1[i − 1] = s2[j − 1]:
+                dp[i][j] ← dp[i − 1][j − 1] + 1
+            else:
+                dp[i][j] ← max(dp[i − 1][j], dp[i][j − 1])
+
+    results ← empty Set
+    backtrack(dp, s1, s2, m, n, empty list, results)
+    return list of results
+
+function backtrack(dp, s1, s2, i, j, current, results):
+    if i = 0 OR j = 0:                              # boundary — flush the path as one LCS
+        add reverse(current) joined to a string into results
+        return
+    if s1[i − 1] = s2[j − 1]:                       # match — take the char, go diagonally
+        append s1[i − 1] to current
+        backtrack(dp, s1, s2, i − 1, j − 1, current, results)
+        remove last element of current
+    else:                                           # mismatch — recurse toward each predecessor that ties the maximum
+        if dp[i − 1][j] ≥ dp[i][j − 1]:
+            backtrack(dp, s1, s2, i − 1, j, current, results)
+        if dp[i][j − 1] ≥ dp[i − 1][j]:
+            backtrack(dp, s1, s2, i, j − 1, current, results)
+```
 
 ```python,editable
 from typing import List, Set
@@ -1145,33 +1129,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    allLongestCommonSubsequences(s1, s2) {
-        const m = s1.length, n = s2.length;
-        if (m === 0 || n === 0) return [];
-        const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
-        for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) {
-            if (s1[i - 1] === s2[j - 1]) dp[i][j] = dp[i - 1][j - 1] + 1;
-            else dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
-        }
-        const results = new Set();
-        const backtrack = (i, j, cur) => {
-            if (i === 0 || j === 0) { results.add(cur.split('').reverse().join('')); return; }
-            if (s1[i - 1] === s2[j - 1]) backtrack(i - 1, j - 1, cur + s1[i - 1]);
-            else {
-                if (dp[i - 1][j] >= dp[i][j - 1]) backtrack(i - 1, j, cur);
-                if (dp[i][j - 1] >= dp[i - 1][j]) backtrack(i, j - 1, cur);
-            }
-        };
-        backtrack(m, n, "");
-        return [...results];
-    }
-}
-
-console.log(new Solution().allLongestCommonSubsequences("xyzabc", "xzlfcb").sort());
-```
-
 ```typescript,editable
 class Solution {
     allLongestCommonSubsequences(s1: string, s2: string): string[] {
@@ -1237,31 +1194,6 @@ func allLongestCommonSubsequences(s1, s2 string) []string {
 
 func main() {
     fmt.Println(allLongestCommonSubsequences("xyzabc", "xzlfcb"))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun allLongestCommonSubsequences(s1: String, s2: String): List<String> {
-        val m = s1.length; val n = s2.length
-        if (m == 0 || n == 0) return emptyList()
-        val dp = Array(m + 1) { IntArray(n + 1) }
-        for (i in 1..m) for (j in 1..n) {
-            dp[i][j] = if (s1[i - 1] == s2[j - 1]) dp[i - 1][j - 1] + 1
-                      else maxOf(dp[i - 1][j], dp[i][j - 1])
-        }
-        val results = HashSet<String>()
-        fun backtrack(i: Int, j: Int, cur: String) {
-            if (i == 0 || j == 0) { results.add(cur.reversed()); return }
-            if (s1[i - 1] == s2[j - 1]) backtrack(i - 1, j - 1, cur + s1[i - 1])
-            else {
-                if (dp[i - 1][j] >= dp[i][j - 1]) backtrack(i - 1, j, cur)
-                if (dp[i][j - 1] >= dp[i - 1][j]) backtrack(i, j - 1, cur)
-            }
-        }
-        backtrack(m, n, "")
-        return results.toList()
-    }
 }
 ```
 

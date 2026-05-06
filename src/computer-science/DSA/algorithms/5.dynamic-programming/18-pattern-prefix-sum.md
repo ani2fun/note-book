@@ -114,6 +114,25 @@ Naively: enumerate every `k × k` submatrix (there are `(n-k+1) × (m-k+1)` of t
 
 <div class="lang-tabs">
 
+```pseudocode
+# 2D prefix sum + scan over every k×k window.
+# prefix[i][j] = sum of matrix[0..i−1][0..j−1] (inclusion-exclusion build).
+function kLimitedSubmatrixSum(matrix, k):
+    rows ← length(matrix); cols ← length(matrix[0])
+    prefix ← (rows + 1) × (cols + 1) grid of zeros
+    for i from 1 to rows:
+        for j from 1 to cols:
+            prefix[i][j] ← prefix[i − 1][j] + prefix[i][j − 1] − prefix[i − 1][j − 1] + matrix[i − 1][j − 1]
+
+    maxSum ← −∞
+    for i from 0 to rows − k:
+        for j from 0 to cols − k:
+            # k×k window with top-left (i, j); corners (i, j) and (i+k, j+k) in prefix coords.
+            s ← prefix[i + k][j + k] − prefix[i][j + k] − prefix[i + k][j] + prefix[i][j]
+            maxSum ← max(maxSum, s)
+    return maxSum
+```
+
 ```python,editable
 from typing import List
 
@@ -261,30 +280,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    kLimitedSubmatrixSum(matrix, k) {
-        const rows = matrix.length, cols = matrix[0].length;
-        const prefix = Array.from({length: rows + 1}, () => new Array(cols + 1).fill(0));
-        for (let i = 1; i <= rows; i++) {
-            for (let j = 1; j <= cols; j++) {
-                prefix[i][j] = prefix[i-1][j] + prefix[i][j-1] - prefix[i-1][j-1] + matrix[i-1][j-1];
-            }
-        }
-        let maxSum = -Infinity;
-        for (let i = 0; i + k <= rows; i++) {
-            for (let j = 0; j + k <= cols; j++) {
-                const s = prefix[i+k][j+k] - prefix[i][j+k] - prefix[i+k][j] + prefix[i][j];
-                if (s > maxSum) maxSum = s;
-            }
-        }
-        return maxSum;
-    }
-}
-
-console.log(new Solution().kLimitedSubmatrixSum([[1,2,9],[5,3,8],[4,6,7]], 2));   // 24
-```
-
 ```typescript,editable
 class Solution {
     kLimitedSubmatrixSum(matrix: number[][], k: number): number {
@@ -336,32 +331,6 @@ func kLimitedSubmatrixSum(matrix [][]int, k int) int {
 
 func main() {
     fmt.Println(kLimitedSubmatrixSum([][]int{{1,2,9},{5,3,8},{4,6,7}}, 2))   // 24
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun kLimitedSubmatrixSum(matrix: Array<IntArray>, k: Int): Int {
-        val rows = matrix.size; val cols = matrix[0].size
-        val prefix = Array(rows + 1) { IntArray(cols + 1) }
-        for (i in 1..rows) {
-            for (j in 1..cols) {
-                prefix[i][j] = prefix[i-1][j] + prefix[i][j-1] - prefix[i-1][j-1] + matrix[i-1][j-1]
-            }
-        }
-        var maxSum = Int.MIN_VALUE
-        for (i in 0..rows - k) {
-            for (j in 0..cols - k) {
-                val s = prefix[i+k][j+k] - prefix[i][j+k] - prefix[i+k][j] + prefix[i][j]
-                if (s > maxSum) maxSum = s
-            }
-        }
-        return maxSum
-    }
-}
-
-fun main() {
-    println(Solution().kLimitedSubmatrixSum(arrayOf(intArrayOf(1,2,9), intArrayOf(5,3,8), intArrayOf(4,6,7)), 2))   // 24
 }
 ```
 
@@ -434,6 +403,25 @@ Without prefix sums, computing each submatrix's sum requires scanning all its ce
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Brute O(n²m²) over every (top-left, bottom-right) pair, sums via 2D prefix.
+function maximumSubmatrixSum(matrix):
+    n ← length(matrix); m ← length(matrix[0])
+    prefix ← (n + 1) × (m + 1) grid of zeros
+    for i from 1 to n:
+        for j from 1 to m:
+            prefix[i][j] ← prefix[i − 1][j] + prefix[i][j − 1] − prefix[i − 1][j − 1] + matrix[i − 1][j − 1]
+
+    maxSum ← −∞
+    for r1 from 1 to n:
+        for c1 from 1 to m:
+            for r2 from r1 to n:
+                for c2 from c1 to m:
+                    s ← prefix[r2][c2] − prefix[r1 − 1][c2] − prefix[r2][c1 − 1] + prefix[r1 − 1][c1 − 1]
+                    maxSum ← max(maxSum, s)
+    return maxSum
+```
 
 ```python,editable
 from typing import List
@@ -582,29 +570,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    maximumSubmatrixSum(matrix) {
-        const n = matrix.length, m = matrix[0].length;
-        const prefix = Array.from({length: n + 1}, () => new Array(m + 1).fill(0));
-        for (let i = 1; i <= n; i++)
-            for (let j = 1; j <= m; j++)
-                prefix[i][j] = prefix[i-1][j] + prefix[i][j-1] - prefix[i-1][j-1] + matrix[i-1][j-1];
-        let maxSum = -Infinity;
-        for (let r1 = 1; r1 <= n; r1++)
-            for (let c1 = 1; c1 <= m; c1++)
-                for (let r2 = r1; r2 <= n; r2++)
-                    for (let c2 = c1; c2 <= m; c2++) {
-                        const s = prefix[r2][c2] - prefix[r1-1][c2] - prefix[r2][c1-1] + prefix[r1-1][c1-1];
-                        if (s > maxSum) maxSum = s;
-                    }
-        return maxSum;
-    }
-}
-
-console.log(new Solution().maximumSubmatrixSum([[1,2,9],[-5,3,8],[4,6,-7]]));   // 22
-```
-
 ```typescript,editable
 class Solution {
     maximumSubmatrixSum(matrix: number[][]): number {
@@ -659,28 +624,6 @@ func maximumSubmatrixSum(matrix [][]int) int {
 
 func main() {
     fmt.Println(maximumSubmatrixSum([][]int{{1,2,9},{-5,3,8},{4,6,-7}}))   // 22
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun maximumSubmatrixSum(matrix: Array<IntArray>): Int {
-        val n = matrix.size; val m = matrix[0].size
-        val prefix = Array(n + 1) { IntArray(m + 1) }
-        for (i in 1..n) for (j in 1..m) {
-            prefix[i][j] = prefix[i-1][j] + prefix[i][j-1] - prefix[i-1][j-1] + matrix[i-1][j-1]
-        }
-        var maxSum = Int.MIN_VALUE
-        for (r1 in 1..n) for (c1 in 1..m) for (r2 in r1..n) for (c2 in c1..m) {
-            val s = prefix[r2][c2] - prefix[r1-1][c2] - prefix[r2][c1-1] + prefix[r1-1][c1-1]
-            if (s > maxSum) maxSum = s
-        }
-        return maxSum
-    }
-}
-
-fun main() {
-    println(Solution().maximumSubmatrixSum(arrayOf(intArrayOf(1,2,9), intArrayOf(-5,3,8), intArrayOf(4,6,-7))))   // 22
 }
 ```
 
@@ -755,6 +698,26 @@ Because the query rate dominates the cost. If `k` queries each take `O(n × m)` 
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Precompute the 2D prefix once at construction; every sumRegion query is O(1) via inclusion-exclusion.
+class RangeSumFinder:
+    field prefix                                       # (rows + 1) × (cols + 1) grid
+
+    constructor(matrix):
+        rows ← length(matrix)
+        cols ← length(matrix[0]) if rows > 0 else 0
+        prefix ← (rows + 1) × (cols + 1) grid of zeros
+        for i from 1 to rows:
+            for j from 1 to cols:
+                prefix[i][j] ← prefix[i − 1][j] + prefix[i][j − 1] − prefix[i − 1][j − 1] + matrix[i − 1][j − 1]
+
+    function sumRegion(row1, col1, row2, col2):
+        return prefix[row2 + 1][col2 + 1]
+                − prefix[row1][col2 + 1]
+                − prefix[row2 + 1][col1]
+                + prefix[row1][col1]
+```
 
 ```python,editable
 from typing import List
@@ -897,29 +860,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class RangeSumFinder {
-    constructor(matrix) {
-        const rows = matrix.length;
-        const cols = rows === 0 ? 0 : matrix[0].length;
-        this.prefix = Array.from({length: rows + 1}, () => new Array(cols + 1).fill(0));
-        for (let i = 1; i <= rows; i++) {
-            for (let j = 1; j <= cols; j++) {
-                this.prefix[i][j] = this.prefix[i-1][j] + this.prefix[i][j-1] - this.prefix[i-1][j-1] + matrix[i-1][j-1];
-            }
-        }
-    }
-
-    sumRegion(r1, c1, r2, c2) {
-        return this.prefix[r2+1][c2+1] - this.prefix[r1][c2+1] - this.prefix[r2+1][c1] + this.prefix[r1][c1];
-    }
-}
-
-const rsf = new RangeSumFinder([[1,2,3],[4,5,6],[7,8,9]]);
-console.log(rsf.sumRegion(1, 1, 1, 1));   // 5
-console.log(rsf.sumRegion(0, 0, 2, 2));   // 45
-```
-
 ```typescript,editable
 class RangeSumFinder {
     private prefix: number[][];
@@ -970,31 +910,6 @@ func main() {
     rsf := NewRangeSumFinder([][]int{{1,2,3},{4,5,6},{7,8,9}})
     fmt.Println(rsf.SumRegion(1, 1, 1, 1))   // 5
     fmt.Println(rsf.SumRegion(0, 0, 2, 2))   // 45
-}
-```
-
-```kotlin,editable
-class RangeSumFinder(matrix: Array<IntArray>) {
-    private val prefix: Array<IntArray>
-    init {
-        val rows = matrix.size
-        val cols = if (rows == 0) 0 else matrix[0].size
-        prefix = Array(rows + 1) { IntArray(cols + 1) }
-        for (i in 1..rows) {
-            for (j in 1..cols) {
-                prefix[i][j] = prefix[i-1][j] + prefix[i][j-1] - prefix[i-1][j-1] + matrix[i-1][j-1]
-            }
-        }
-    }
-
-    fun sumRegion(r1: Int, c1: Int, r2: Int, c2: Int): Int {
-        return prefix[r2+1][c2+1] - prefix[r1][c2+1] - prefix[r2+1][c1] + prefix[r1][c1]
-    }
-}
-
-fun main() {
-    val rsf = RangeSumFinder(arrayOf(intArrayOf(1,2,3), intArrayOf(4,5,6), intArrayOf(7,8,9)))
-    println(rsf.sumRegion(1, 1, 1, 1))   // 5
 }
 ```
 

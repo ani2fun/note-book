@@ -244,6 +244,21 @@ The implementation uses `dp[i]` for the first `i` characters. `dp[0] = true` is 
 
 <div class="lang-tabs">
 
+```pseudocode
+# dp[i] = true iff s[0..i−1] can be split into dictionary words.
+function wordBreak(s, wordDict):
+    n ← length(s)
+    wordSet ← Set built from wordDict             # O(L) lookup vs O(m·L) list scan
+    dp ← list of (n + 1) false values
+    dp[0] ← true                                   # empty prefix segments trivially
+    for i from 1 to n:
+        for j from 0 to i − 1:
+            if dp[j] AND substring of s from j to i − 1 is in wordSet:
+                dp[i] ← true
+                break                              # OR-aggregator early exit
+    return dp[n]
+```
+
 ```python,editable
 from typing import List
 
@@ -405,31 +420,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    wordBreak(s, wordDict) {
-        const n = s.length;
-        const dict = new Set(wordDict);
-        const dp = new Array(n + 1).fill(false);
-        dp[0] = true;
-        for (let i = 1; i <= n; i++) {
-            for (let j = 0; j < i; j++) {
-                if (dp[j] && dict.has(s.slice(j, i))) {
-                    dp[i] = true;
-                    break;
-                }
-            }
-        }
-        return dp[n];
-    }
-}
-
-const sol = new Solution();
-console.log(sol.wordBreak("codeintuition", ["code", "intuition"]));  // true
-console.log(sol.wordBreak("phoneisphone",  ["is", "phone"]));        // true
-console.log(sol.wordBreak("phoneisphone",  ["phone", "and"]));       // false
-```
-
 ```typescript,editable
 class Solution {
     wordBreak(s: string, wordDict: string[]): boolean {
@@ -476,33 +466,6 @@ func main() {
     fmt.Println(wordBreak("codeintuition", []string{"code", "intuition"}))   // true
     fmt.Println(wordBreak("phoneisphone",  []string{"is", "phone"}))         // true
     fmt.Println(wordBreak("phoneisphone",  []string{"phone", "and"}))        // false
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun wordBreak(s: String, wordDict: List<String>): Boolean {
-        val n = s.length
-        val dict = wordDict.toSet()
-        val dp = BooleanArray(n + 1)
-        dp[0] = true
-        for (i in 1..n) {
-            for (j in 0 until i) {
-                if (dp[j] && s.substring(j, i) in dict) {
-                    dp[i] = true
-                    break
-                }
-            }
-        }
-        return dp[n]
-    }
-}
-
-fun main() {
-    val sol = Solution()
-    println(sol.wordBreak("codeintuition", listOf("code", "intuition")))  // true
-    println(sol.wordBreak("phoneisphone",  listOf("is", "phone")))        // true
-    println(sol.wordBreak("phoneisphone",  listOf("phone", "and")))       // false
 }
 ```
 

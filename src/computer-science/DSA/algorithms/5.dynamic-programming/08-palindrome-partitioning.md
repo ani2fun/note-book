@@ -237,6 +237,30 @@ The implementation interleaves the `isPalin` table with the `cuts` array — one
 
 <div class="lang-tabs">
 
+```pseudocode
+# cuts[i] = minimum cuts needed to partition s[0..i] into palindromes.
+# isPalin[start][end] is built on the fly as `end` advances.
+function minPalindromeCuts(s):
+    n ← length(s)
+    if n ≤ 1: return 0                              # empty / single char is already palindromic
+    isPalin ← n × n grid of false
+    cuts ← list of n zeros
+
+    for end from 0 to n − 1:
+        minCuts ← end                               # worst case: cut between every char
+        for start from 0 to end:
+            # s[start..end] is palindromic iff endpoints match AND interior is palindromic
+            # (interior with ≤ 1 char doesn't need a check).
+            if s[start] = s[end] AND (end − start ≤ 2 OR isPalin[start + 1][end − 1]):
+                isPalin[start][end] ← true
+                if start = 0:
+                    minCuts ← 0                     # whole prefix is one palindrome — no cuts
+                else:
+                    minCuts ← min(minCuts, cuts[start − 1] + 1)   # cut just before `start`
+        cuts[end] ← minCuts
+    return cuts[n − 1]
+```
+
 ```python,editable
 from typing import List
 
@@ -401,33 +425,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    minPalindromeCuts(s) {
-        const n = s.length;
-        if (n <= 1) return 0;
-        const isPalin = Array.from({length: n}, () => new Array(n).fill(false));
-        const cuts = new Array(n).fill(0);
-        for (let end = 0; end < n; end++) {
-            let minCuts = end;
-            for (let start = 0; start <= end; start++) {
-                if (s[start] === s[end] && (end - start <= 2 || isPalin[start + 1][end - 1])) {
-                    isPalin[start][end] = true;
-                    if (start === 0) minCuts = 0;
-                    else minCuts = Math.min(minCuts, cuts[start - 1] + 1);
-                }
-            }
-            cuts[end] = minCuts;
-        }
-        return cuts[n - 1];
-    }
-}
-
-console.log(new Solution().minPalindromeCuts("abbbc"));   // 2
-console.log(new Solution().minPalindromeCuts("abcdef"));  // 5
-console.log(new Solution().minPalindromeCuts("aaa"));     // 0
-```
-
 ```typescript,editable
 class Solution {
     minPalindromeCuts(s: string): number {
@@ -483,35 +480,6 @@ func main() {
     fmt.Println(minPalindromeCuts("abbbc"))    // 2
     fmt.Println(minPalindromeCuts("abcdef"))   // 5
     fmt.Println(minPalindromeCuts("aaa"))      // 0
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun minPalindromeCuts(s: String): Int {
-        val n = s.length
-        if (n <= 1) return 0
-        val isPalin = Array(n) { BooleanArray(n) }
-        val cuts = IntArray(n)
-        for (end in 0 until n) {
-            var minCuts = end
-            for (start in 0..end) {
-                if (s[start] == s[end] && (end - start <= 2 || isPalin[start + 1][end - 1])) {
-                    isPalin[start][end] = true
-                    if (start == 0) minCuts = 0
-                    else minCuts = minOf(minCuts, cuts[start - 1] + 1)
-                }
-            }
-            cuts[end] = minCuts
-        }
-        return cuts[n - 1]
-    }
-}
-
-fun main() {
-    println(Solution().minPalindromeCuts("abbbc"))    // 2
-    println(Solution().minPalindromeCuts("abcdef"))   // 5
-    println(Solution().minPalindromeCuts("aaa"))      // 0
 }
 ```
 

@@ -226,6 +226,27 @@ Output: 0                    No edits needed
 
 <div class="lang-tabs">
 
+```pseudocode
+# Classic Levenshtein distance.
+# dp[i][j] = edit distance to transform s1[0..i−1] into s2[0..j−1].
+function editDistance(s1, s2):
+    m ← length(s1); n ← length(s2)
+    dp ← (m + 1) × (n + 1) grid of zeros
+    for i from 0 to m: dp[i][0] ← i              # i deletions to empty s1
+    for j from 0 to n: dp[0][j] ← j              # j insertions to grow from empty
+    for i from 1 to m:
+        for j from 1 to n:
+            if s1[i − 1] = s2[j − 1]:
+                dp[i][j] ← dp[i − 1][j − 1]      # no operation
+            else:
+                dp[i][j] ← 1 + min(
+                    dp[i − 1][j],                # delete s1[i−1]
+                    dp[i][j − 1],                # insert s2[j−1]
+                    dp[i − 1][j − 1]             # substitute s1[i−1] → s2[j−1]
+                )
+    return dp[m][n]
+```
+
 ```python,editable
 from typing import List
 
@@ -353,26 +374,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    editDistance(s1, s2) {
-        const m = s1.length, n = s2.length;
-        const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
-        for (let i = 0; i <= m; i++) dp[i][0] = i;
-        for (let j = 0; j <= n; j++) dp[0][j] = j;
-        for (let i = 1; i <= m; i++) {
-            for (let j = 1; j <= n; j++) {
-                if (s1[i - 1] === s2[j - 1]) dp[i][j] = dp[i - 1][j - 1];
-                else dp[i][j] = 1 + Math.min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]);
-            }
-        }
-        return dp[m][n];
-    }
-}
-
-console.log(new Solution().editDistance("sunday", "saturday"));   // 3
-```
-
 ```typescript,editable
 class Solution {
     editDistance(s1: string, s2: string): number {
@@ -423,27 +424,6 @@ func editDistance(s1, s2 string) int {
 
 func main() {
     fmt.Println(editDistance("sunday", "saturday"))   // 3
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun editDistance(s1: String, s2: String): Int {
-        val m = s1.length; val n = s2.length
-        val dp = Array(m + 1) { IntArray(n + 1) }
-        for (i in 0..m) dp[i][0] = i
-        for (j in 0..n) dp[0][j] = j
-        for (i in 1..m) for (j in 1..n) {
-            dp[i][j] =
-                if (s1[i - 1] == s2[j - 1]) dp[i - 1][j - 1]
-                else 1 + minOf(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1])
-        }
-        return dp[m][n]
-    }
-}
-
-fun main() {
-    println(Solution().editDistance("sunday", "saturday"))   // 3
 }
 ```
 

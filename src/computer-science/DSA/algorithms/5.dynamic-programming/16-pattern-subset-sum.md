@@ -122,6 +122,24 @@ Yes — `{4, 5}` sums to 9, leaving `{3, 3, 3}` summing to 9. So partition is po
 
 <div class="lang-tabs">
 
+```pseudocode
+# Equal-sum partition reduces to subset-sum with target = sum(arr) / 2.
+function partitionEqualSum(arr):
+    total ← sum(arr)
+    if total mod 2 ≠ 0: return false              # odd totals can't split evenly
+    target ← total ÷ 2
+    n ← length(arr)
+    dp ← (n + 1) × (target + 1) grid of false
+    for i from 0 to n: dp[i][0] ← true            # empty subset hits sum 0
+    for i from 1 to n:
+        ai ← arr[i − 1]
+        for s from 1 to target:
+            dp[i][s] ← dp[i − 1][s]               # exclude arr[i−1]
+            if ai ≤ s AND dp[i − 1][s − ai]:
+                dp[i][s] ← true                   # include arr[i−1]
+    return dp[n][target]
+```
+
 ```python,editable
 from typing import List
 
@@ -266,29 +284,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    partitionEqualSum(arr) {
-        const total = arr.reduce((a, b) => a + b, 0);
-        if (total % 2 !== 0) return false;
-        const target = total / 2;
-        const n = arr.length;
-        const dp = Array.from({length: n + 1}, () => new Array(target + 1).fill(false));
-        for (let i = 0; i <= n; i++) dp[i][0] = true;
-        for (let i = 1; i <= n; i++) {
-            const ai = arr[i - 1];
-            for (let s = 1; s <= target; s++) {
-                dp[i][s] = dp[i - 1][s];
-                if (ai <= s && dp[i - 1][s - ai]) dp[i][s] = true;
-            }
-        }
-        return dp[n][target];
-    }
-}
-
-console.log(new Solution().partitionEqualSum([1, 5, 4, 10]));   // true
-```
-
 ```typescript,editable
 class Solution {
     partitionEqualSum(arr: number[]): boolean {
@@ -336,31 +331,6 @@ func partitionEqualSum(arr []int) bool {
 
 func main() {
     fmt.Println(partitionEqualSum([]int{1, 5, 4, 10}))   // true
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun partitionEqualSum(arr: IntArray): Boolean {
-        val total = arr.sum()
-        if (total % 2 != 0) return false
-        val target = total / 2
-        val n = arr.size
-        val dp = Array(n + 1) { BooleanArray(target + 1) }
-        for (i in 0..n) dp[i][0] = true
-        for (i in 1..n) {
-            val ai = arr[i - 1]
-            for (s in 1..target) {
-                dp[i][s] = dp[i - 1][s]
-                if (ai <= s && dp[i - 1][s - ai]) dp[i][s] = true
-            }
-        }
-        return dp[n][target]
-    }
-}
-
-fun main() {
-    println(Solution().partitionEqualSum(intArrayOf(1, 5, 4, 10)))   // true
 }
 ```
 
@@ -457,6 +427,28 @@ Because we want the *largest* feasible `s ≤ total / 2`. Scanning down hits it 
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Find the partition into two subsets that minimises |sum1 − sum2|.
+# Reduce to: find largest reachable subset sum s ≤ total / 2, then answer is total − 2s.
+function smallestDiscrepancy(arr):
+    n ← length(arr)
+    total ← sum(arr)
+    dp ← (n + 1) × (total + 1) grid of false
+    for i from 0 to n: dp[i][0] ← true
+    for i from 1 to n:
+        ai ← arr[i − 1]
+        for s from 1 to total:
+            dp[i][s] ← dp[i − 1][s]
+            if ai ≤ s AND dp[i − 1][s − ai]:
+                dp[i][s] ← true
+
+    # Scan downward — first reachable s ≤ total/2 gives the smallest discrepancy.
+    for s from (total ÷ 2) down to 0:
+        if dp[n][s]:
+            return total − 2 × s
+    return total                                  # fallback (s = 0 always reachable)
+```
 
 ```python,editable
 from typing import List
@@ -605,30 +597,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    smallestDiscrepancy(arr) {
-        const n = arr.length;
-        const total = arr.reduce((a, b) => a + b, 0);
-        const dp = Array.from({length: n + 1}, () => new Array(total + 1).fill(false));
-        for (let i = 0; i <= n; i++) dp[i][0] = true;
-        for (let i = 1; i <= n; i++) {
-            const ai = arr[i - 1];
-            for (let s = 1; s <= total; s++) {
-                dp[i][s] = dp[i - 1][s];
-                if (ai <= s && dp[i - 1][s - ai]) dp[i][s] = true;
-            }
-        }
-        for (let s = Math.floor(total / 2); s >= 0; s--) {
-            if (dp[n][s]) return total - 2 * s;
-        }
-        return total;
-    }
-}
-
-console.log(new Solution().smallestDiscrepancy([1, 5, 3, 10]));    // 1
-```
-
 ```typescript,editable
 class Solution {
     smallestDiscrepancy(arr: number[]): number {
@@ -678,32 +646,6 @@ func smallestDiscrepancy(arr []int) int {
 
 func main() {
     fmt.Println(smallestDiscrepancy([]int{1, 5, 3, 10}))     // 1
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun smallestDiscrepancy(arr: IntArray): Int {
-        val n = arr.size
-        val total = arr.sum()
-        val dp = Array(n + 1) { BooleanArray(total + 1) }
-        for (i in 0..n) dp[i][0] = true
-        for (i in 1..n) {
-            val ai = arr[i - 1]
-            for (s in 1..total) {
-                dp[i][s] = dp[i - 1][s]
-                if (ai <= s && dp[i - 1][s - ai]) dp[i][s] = true
-            }
-        }
-        for (s in total / 2 downTo 0) {
-            if (dp[n][s]) return total - 2 * s
-        }
-        return total
-    }
-}
-
-fun main() {
-    println(Solution().smallestDiscrepancy(intArrayOf(1, 5, 3, 10)))     // 1
 }
 ```
 

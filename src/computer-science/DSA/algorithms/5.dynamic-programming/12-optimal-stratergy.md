@@ -197,6 +197,35 @@ Bottom-up tabulation, length-first. We use Formulation A (explicit opponent min)
 
 <div class="lang-tabs">
 
+```pseudocode
+# Two-player game: pick from either end. Both play optimally.
+# dp[i][j] = max coins the to-move player can guarantee on coins[i..j].
+# Opponent will play to MIN our next-turn payoff, hence the inner min().
+function optimalGameStrategy(coins):
+    n ← length(coins)
+    dp ← n × n grid of zeros
+    for i from 0 to n − 1:
+        dp[i][i] ← coins[i]                     # length-1: take the only coin
+
+    for length from 2 to n:
+        for i from 0 to n − length:
+            j ← i + length − 1
+
+            # We pick coins[i]. Opponent then picks from [i+1..j], leaving us
+            # with the worse of dp[i+2][j] (they took left) or dp[i+1][j−1] (they took right).
+            leftInner  ← dp[i + 2][j]     if i + 2 ≤ j     else 0
+            rightInner ← dp[i + 1][j − 1] if i + 1 ≤ j − 1 else 0
+            pickLeft  ← coins[i] + min(leftInner, rightInner)
+
+            # We pick coins[j]. Symmetric reasoning.
+            leftInner2  ← dp[i + 1][j − 1] if i + 1 ≤ j − 1 else 0
+            rightInner2 ← dp[i][j − 2]     if i ≤ j − 2     else 0
+            pickRight ← coins[j] + min(leftInner2, rightInner2)
+
+            dp[i][j] ← max(pickLeft, pickRight)
+    return dp[0][n − 1]
+```
+
 ```python,editable
 from typing import List
 
@@ -349,30 +378,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    optimalGameStrategy(coins) {
-        const n = coins.length;
-        const dp = Array.from({length: n}, () => new Array(n).fill(0));
-        for (let i = 0; i < n; i++) dp[i][i] = coins[i];
-        for (let len = 2; len <= n; len++) {
-            for (let i = 0; i <= n - len; i++) {
-                const j = i + len - 1;
-                const li1 = (i + 2 <= j)     ? dp[i + 2][j]     : 0;
-                const ri1 = (i + 1 <= j - 1) ? dp[i + 1][j - 1] : 0;
-                const ri2 = (i <= j - 2)     ? dp[i][j - 2]     : 0;
-                const pickLeft  = coins[i] + Math.min(li1, ri1);
-                const pickRight = coins[j] + Math.min(ri1, ri2);
-                dp[i][j] = Math.max(pickLeft, pickRight);
-            }
-        }
-        return dp[0][n - 1];
-    }
-}
-
-console.log(new Solution().optimalGameStrategy([10, 17, 5, 9]));   // 26
-```
-
 ```typescript,editable
 class Solution {
     optimalGameStrategy(coins: number[]): number {
@@ -425,32 +430,6 @@ func optimalGameStrategy(coins []int) int {
 
 func main() {
     fmt.Println(optimalGameStrategy([]int{10, 17, 5, 9}))  // 26
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun optimalGameStrategy(coins: IntArray): Int {
-        val n = coins.size
-        val dp = Array(n) { IntArray(n) }
-        for (i in 0 until n) dp[i][i] = coins[i]
-        for (len in 2..n) {
-            for (i in 0..n - len) {
-                val j = i + len - 1
-                val li1 = if (i + 2 <= j)     dp[i + 2][j]     else 0
-                val ri1 = if (i + 1 <= j - 1) dp[i + 1][j - 1] else 0
-                val ri2 = if (i <= j - 2)     dp[i][j - 2]     else 0
-                val pickLeft  = coins[i] + minOf(li1, ri1)
-                val pickRight = coins[j] + minOf(ri1, ri2)
-                dp[i][j] = maxOf(pickLeft, pickRight)
-            }
-        }
-        return dp[0][n - 1]
-    }
-}
-
-fun main() {
-    println(Solution().optimalGameStrategy(intArrayOf(10, 17, 5, 9)))  // 26
 }
 ```
 

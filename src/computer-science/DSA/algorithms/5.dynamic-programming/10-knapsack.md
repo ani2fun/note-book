@@ -254,6 +254,24 @@ Bottom-up tabulation. `dp[i][w]` = max value using the first `i` items with capa
 
 <div class="lang-tabs">
 
+```pseudocode
+# 0/1 Knapsack — each item used at most once.
+# dp[i][w] = max value using the first i items within capacity w.
+function zeroOneKnapsack(weights, values, capacity):
+    n ← length(weights)
+    dp ← (n + 1) × (capacity + 1) grid of zeros
+    for i from 1 to n:
+        wi ← weights[i − 1]
+        vi ← values[i − 1]
+        for w from 1 to capacity:
+            if wi ≤ w:
+                dp[i][w] ← max(dp[i − 1][w],                # exclude item i−1
+                                vi + dp[i − 1][w − wi])      # include item i−1
+            else:
+                dp[i][w] ← dp[i − 1][w]                      # too heavy → only exclude is legal
+    return dp[n][capacity]
+```
+
 ```python,editable
 from typing import List
 
@@ -392,28 +410,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    zeroOneKnapsack(weights, values, capacity) {
-        const n = weights.length;
-        const dp = Array.from({length: n + 1}, () => new Array(capacity + 1).fill(0));
-        for (let i = 1; i <= n; i++) {
-            const wi = weights[i - 1], vi = values[i - 1];
-            for (let w = 1; w <= capacity; w++) {
-                if (wi <= w) dp[i][w] = Math.max(dp[i - 1][w], vi + dp[i - 1][w - wi]);
-                else         dp[i][w] = dp[i - 1][w];
-            }
-        }
-        return dp[n][capacity];
-    }
-}
-
-const sol = new Solution();
-console.log(sol.zeroOneKnapsack([6, 4, 5, 3], [7, 3, 2, 6], 10));  // 13
-console.log(sol.zeroOneKnapsack([4, 5, 1],    [1, 2, 3],    4));   // 3
-console.log(sol.zeroOneKnapsack([4, 5, 6],    [1, 2, 3],    3));   // 0
-```
-
 ```typescript,editable
 class Solution {
     zeroOneKnapsack(weights: number[], values: number[], capacity: number): number {
@@ -455,30 +451,6 @@ func main() {
     fmt.Println(zeroOneKnapsack([]int{6, 4, 5, 3}, []int{7, 3, 2, 6}, 10))  // 13
     fmt.Println(zeroOneKnapsack([]int{4, 5, 1},    []int{1, 2, 3},    4))   // 3
     fmt.Println(zeroOneKnapsack([]int{4, 5, 6},    []int{1, 2, 3},    3))   // 0
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun zeroOneKnapsack(weights: IntArray, values: IntArray, capacity: Int): Int {
-        val n = weights.size
-        val dp = Array(n + 1) { IntArray(capacity + 1) }
-        for (i in 1..n) {
-            val wi = weights[i - 1]; val vi = values[i - 1]
-            for (w in 1..capacity) {
-                dp[i][w] = if (wi <= w) maxOf(dp[i - 1][w], vi + dp[i - 1][w - wi])
-                           else dp[i - 1][w]
-            }
-        }
-        return dp[n][capacity]
-    }
-}
-
-fun main() {
-    val sol = Solution()
-    println(sol.zeroOneKnapsack(intArrayOf(6, 4, 5, 3), intArrayOf(7, 3, 2, 6), 10))  // 13
-    println(sol.zeroOneKnapsack(intArrayOf(4, 5, 1),    intArrayOf(1, 2, 3),    4))   // 3
-    println(sol.zeroOneKnapsack(intArrayOf(4, 5, 6),    intArrayOf(1, 2, 3),    3))   // 0
 }
 ```
 
@@ -639,6 +611,30 @@ flowchart LR
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Same DP as Knapsack-I, plus reconstruction by walking the table backwards.
+function zeroOneKnapsackII(weights, values, capacity):
+    n ← length(weights)
+    dp ← (n + 1) × (capacity + 1) grid of zeros
+    for i from 1 to n:
+        wi ← weights[i − 1]; vi ← values[i − 1]
+        for w from 1 to capacity:
+            if wi ≤ w:
+                dp[i][w] ← max(dp[i − 1][w], vi + dp[i − 1][w − wi])
+            else:
+                dp[i][w] ← dp[i − 1][w]
+
+    # Backtrack — value changing across rows means item i−1 was included.
+    selected ← empty list
+    i ← n; w ← capacity
+    while i > 0 AND w > 0:
+        if dp[i][w] ≠ dp[i − 1][w]:
+            prepend (i − 1) to selected
+            w ← w − weights[i − 1]
+        i ← i − 1
+    return selected
+```
 
 ```python,editable
 from typing import List
@@ -811,31 +807,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    zeroOneKnapsackII(weights, values, capacity) {
-        const n = weights.length;
-        const dp = Array.from({length: n + 1}, () => new Array(capacity + 1).fill(0));
-        for (let i = 1; i <= n; i++) {
-            const wi = weights[i - 1], vi = values[i - 1];
-            for (let w = 1; w <= capacity; w++) {
-                if (wi <= w) dp[i][w] = Math.max(dp[i - 1][w], vi + dp[i - 1][w - wi]);
-                else         dp[i][w] = dp[i - 1][w];
-            }
-        }
-        const selected = [];
-        let i = n, w = capacity;
-        while (i > 0 && w > 0) {
-            if (dp[i][w] !== dp[i - 1][w]) { selected.push(i - 1); w -= weights[i - 1]; }
-            i--;
-        }
-        return selected.reverse();
-    }
-}
-
-console.log(new Solution().zeroOneKnapsackII([6, 4, 5, 3], [7, 3, 2, 6], 10));  // [0, 3]
-```
-
 ```typescript,editable
 class Solution {
     zeroOneKnapsackII(weights: number[], values: number[], capacity: number): number[] {
@@ -888,33 +859,6 @@ func zeroOneKnapsackII(weights, values []int, capacity int) []int {
 
 func main() {
     fmt.Println(zeroOneKnapsackII([]int{6, 4, 5, 3}, []int{7, 3, 2, 6}, 10))  // [0 3]
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun zeroOneKnapsackII(weights: IntArray, values: IntArray, capacity: Int): List<Int> {
-        val n = weights.size
-        val dp = Array(n + 1) { IntArray(capacity + 1) }
-        for (i in 1..n) {
-            val wi = weights[i - 1]; val vi = values[i - 1]
-            for (w in 1..capacity) {
-                dp[i][w] = if (wi <= w) maxOf(dp[i - 1][w], vi + dp[i - 1][w - wi])
-                           else dp[i - 1][w]
-            }
-        }
-        val selected = mutableListOf<Int>()
-        var i = n; var w = capacity
-        while (i > 0 && w > 0) {
-            if (dp[i][w] != dp[i - 1][w]) { selected.add(i - 1); w -= weights[i - 1] }
-            i--
-        }
-        return selected.reversed()
-    }
-}
-
-fun main() {
-    println(Solution().zeroOneKnapsackII(intArrayOf(6, 4, 5, 3), intArrayOf(7, 3, 2, 6), 10))  // [0, 3]
 }
 ```
 
@@ -1043,6 +987,21 @@ We use a `(n + 1) × (capacity + 1)` table, same shape as 0/1. The only differen
 
 <div class="lang-tabs">
 
+```pseudocode
+# Unbounded knapsack — each item can be used unlimited times.
+# Note the include branch: dp[i][w − wi] (same row), not dp[i − 1][w − wi].
+function unboundedKnapsack(weights, values, capacity):
+    n ← length(weights)
+    dp ← (n + 1) × (capacity + 1) grid of zeros
+    for i from 1 to n:
+        wi ← weights[i − 1]; vi ← values[i − 1]
+        for w from 1 to capacity:
+            exclude ← dp[i − 1][w]                          # don't use item i
+            include ← (vi + dp[i][w − wi]) if wi ≤ w else 0  # use item i, item still available
+            dp[i][w] ← max(exclude, include)
+    return dp[n][capacity]
+```
+
 ```python,editable
 from typing import List
 
@@ -1170,26 +1129,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    unboundedKnapsack(weights, values, capacity) {
-        const n = weights.length;
-        const dp = Array.from({length: n + 1}, () => new Array(capacity + 1).fill(0));
-        for (let i = 1; i <= n; i++) {
-            const wi = weights[i - 1], vi = values[i - 1];
-            for (let w = 1; w <= capacity; w++) {
-                const exclude = dp[i - 1][w];
-                const include = wi <= w ? vi + dp[i][w - wi] : 0;
-                dp[i][w] = Math.max(exclude, include);
-            }
-        }
-        return dp[n][capacity];
-    }
-}
-
-console.log(new Solution().unboundedKnapsack([1, 4, 3], [1, 5, 4], 8));   // 10
-```
-
 ```typescript,editable
 class Solution {
     unboundedKnapsack(weights: number[], values: number[], capacity: number): number {
@@ -1233,28 +1172,6 @@ func unboundedKnapsack(weights, values []int, capacity int) int {
 
 func main() {
     fmt.Println(unboundedKnapsack([]int{1, 4, 3}, []int{1, 5, 4}, 8))  // 10
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun unboundedKnapsack(weights: IntArray, values: IntArray, capacity: Int): Int {
-        val n = weights.size
-        val dp = Array(n + 1) { IntArray(capacity + 1) }
-        for (i in 1..n) {
-            val wi = weights[i - 1]; val vi = values[i - 1]
-            for (w in 1..capacity) {
-                val exclude = dp[i - 1][w]
-                val include = if (wi <= w) vi + dp[i][w - wi] else 0
-                dp[i][w] = maxOf(exclude, include)
-            }
-        }
-        return dp[n][capacity]
-    }
-}
-
-fun main() {
-    println(Solution().unboundedKnapsack(intArrayOf(1, 4, 3), intArrayOf(1, 5, 4), 8))  // 10
 }
 ```
 
@@ -1347,6 +1264,22 @@ If we drop `min(counts[i], ...)` from the recurrence and just iterate `k` from 0
 ## The Algorithm
 
 <div class="lang-tabs">
+
+```pseudocode
+# Bounded knapsack — each item type i has a usage cap counts[i].
+function boundedKnapsack(weights, values, counts, capacity):
+    n ← length(weights)
+    dp ← (n + 1) × (capacity + 1) grid of zeros
+    for i from 1 to n:
+        wi ← weights[i − 1]; vi ← values[i − 1]; ci ← counts[i − 1]
+        for w from 0 to capacity:
+            kMax ← min(ci, w ÷ wi)                          # most copies of item i that still fit
+            best ← 0
+            for k from 0 to kMax:
+                best ← max(best, k × vi + dp[i − 1][w − k × wi])
+            dp[i][w] ← best
+    return dp[n][capacity]
+```
 
 ```python,editable
 from typing import List
@@ -1491,29 +1424,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    boundedKnapsack(weights, values, counts, capacity) {
-        const n = weights.length;
-        const dp = Array.from({length: n + 1}, () => new Array(capacity + 1).fill(0));
-        for (let i = 1; i <= n; i++) {
-            const wi = weights[i - 1], vi = values[i - 1], ci = counts[i - 1];
-            for (let w = 0; w <= capacity; w++) {
-                const kMax = wi > 0 ? Math.min(ci, Math.floor(w / wi)) : ci;
-                let best = 0;
-                for (let k = 0; k <= kMax; k++) {
-                    best = Math.max(best, k * vi + dp[i - 1][w - k * wi]);
-                }
-                dp[i][w] = best;
-            }
-        }
-        return dp[n][capacity];
-    }
-}
-
-console.log(new Solution().boundedKnapsack([1, 2, 3], [1, 3, 4], [2, 2, 1], 5));   // 7
-```
-
 ```typescript,editable
 class Solution {
     boundedKnapsack(weights: number[], values: number[], counts: number[], capacity: number): number {
@@ -1564,31 +1474,6 @@ func boundedKnapsack(weights, values, counts []int, capacity int) int {
 
 func main() {
     fmt.Println(boundedKnapsack([]int{1, 2, 3}, []int{1, 3, 4}, []int{2, 2, 1}, 5))   // 7
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun boundedKnapsack(weights: IntArray, values: IntArray, counts: IntArray, capacity: Int): Int {
-        val n = weights.size
-        val dp = Array(n + 1) { IntArray(capacity + 1) }
-        for (i in 1..n) {
-            val wi = weights[i - 1]; val vi = values[i - 1]; val ci = counts[i - 1]
-            for (w in 0..capacity) {
-                val kMax = if (wi > 0) minOf(ci, w / wi) else ci
-                var best = 0
-                for (k in 0..kMax) {
-                    best = maxOf(best, k * vi + dp[i - 1][w - k * wi])
-                }
-                dp[i][w] = best
-            }
-        }
-        return dp[n][capacity]
-    }
-}
-
-fun main() {
-    println(Solution().boundedKnapsack(intArrayOf(1, 2, 3), intArrayOf(1, 3, 4), intArrayOf(2, 2, 1), 5))   // 7
 }
 ```
 

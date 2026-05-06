@@ -267,6 +267,15 @@ grid: "Filling dp for n = 5" {
 
 <div class="lang-tabs">
 
+```pseudocode
+function calculateFactorial(n):
+    dp ← list of (n + 1) zeros          # dp[i] = i!
+    dp[0] ← 1                            # base case: 0! = 1
+    for i from 1 to n:
+        dp[i] ← i × dp[i − 1]            # recurrence: i! = i · (i−1)!
+    return dp[n]
+```
+
 ```python,editable
 from typing import List
 
@@ -356,22 +365,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    calculateFactorial(n) {
-        // BigInt because n! overflows Number around n = 18
-        const dp = new Array(n + 1).fill(0n);
-        dp[0] = 1n;
-        for (let i = 1; i <= n; i++) {
-            dp[i] = BigInt(i) * dp[i - 1];
-        }
-        return dp[n];
-    }
-}
-
-console.log(new Solution().calculateFactorial(7).toString());   // 5040
-```
-
 ```typescript,editable
 class Solution {
     calculateFactorial(n: number): bigint {
@@ -403,21 +396,6 @@ func calculateFactorial(n int) int64 {
 
 func main() {
     fmt.Println(calculateFactorial(7))   // 5040
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun calculateFactorial(n: Int): Long {
-        val dp = LongArray(n + 1)
-        dp[0] = 1
-        for (i in 1..n) dp[i] = i.toLong() * dp[i - 1]
-        return dp[n]
-    }
-}
-
-fun main() {
-    println(Solution().calculateFactorial(7))   // 5040
 }
 ```
 
@@ -571,6 +549,18 @@ grid: "Filling dp for n = 6" {
 
 <div class="lang-tabs">
 
+```pseudocode
+# Bottom-up tabulation. O(n) time, O(n) space.
+function nthFibonacci(n):
+    if n < 2: return n
+    MOD ← 10⁹ + 7
+    dp ← list of (n + 1) zeros
+    dp[0] ← 0; dp[1] ← 1                 # two base cases
+    for i from 2 to n:
+        dp[i] ← (dp[i − 1] + dp[i − 2]) mod MOD
+    return dp[n]
+```
+
 ```python,editable
 from typing import List
 
@@ -672,23 +662,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    nthFibonacci(n) {
-        if (n < 2) return n;
-        const MOD = 1_000_000_007n;
-        const dp = new Array(n + 1).fill(0n);
-        dp[0] = 0n; dp[1] = 1n;
-        for (let i = 2; i <= n; i++) {
-            dp[i] = (dp[i - 1] + dp[i - 2]) % MOD;
-        }
-        return Number(dp[n]);
-    }
-}
-
-console.log(new Solution().nthFibonacci(6));   // 8
-```
-
 ```typescript,editable
 class Solution {
     nthFibonacci(n: number): number {
@@ -724,23 +697,6 @@ func nthFibonacci(n int) int {
 
 func main() {
     fmt.Println(nthFibonacci(6))   // 8
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun nthFibonacci(n: Int): Int {
-        if (n < 2) return n
-        val MOD = 1_000_000_007L
-        val dp = LongArray(n + 1)
-        dp[0] = 0; dp[1] = 1
-        for (i in 2..n) dp[i] = (dp[i - 1] + dp[i - 2]) % MOD
-        return dp[n].toInt()
-    }
-}
-
-fun main() {
-    println(Solution().nthFibonacci(6))   // 8
 }
 ```
 
@@ -852,6 +808,20 @@ flowchart LR
 
 <div class="lang-tabs">
 
+```pseudocode
+# Top-down: recursion + memoization. Each subproblem solved once.
+function fibTopDown(n):
+    memo ← empty Map: Integer → Integer
+    return fib(n, memo)
+
+function fib(n, memo):
+    if n < 2: return n
+    if n is in memo:                     # cache hit — already solved
+        return memo[n]
+    memo[n] ← (fib(n − 1, memo) + fib(n − 2, memo)) mod (10⁹ + 7)
+    return memo[n]
+```
+
 ```python,editable
 from typing import Dict
 
@@ -959,21 +929,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    constructor() { this.memo = new Map(); }
-    fibTopDown(n) {
-        if (n < 2) return n;
-        if (this.memo.has(n)) return this.memo.get(n);
-        const res = (this.fibTopDown(n - 1) + this.fibTopDown(n - 2)) % 1_000_000_007;
-        this.memo.set(n, res);
-        return res;
-    }
-}
-
-console.log(new Solution().fibTopDown(6));   // 8
-```
-
 ```typescript,editable
 class Solution {
     private memo: Map<number, number> = new Map();
@@ -1009,25 +964,6 @@ func fibTopDown(n int) int {
 
 func main() {
     fmt.Println(fibTopDown(6))   // 8
-}
-```
-
-```kotlin,editable
-class Solution {
-    private val memo = HashMap<Int, Int>()
-    private val MOD = 1_000_000_007
-
-    fun fibTopDown(n: Int): Int {
-        if (n < 2) return n
-        memo[n]?.let { return it }
-        val res = (fibTopDown(n - 1) + fibTopDown(n - 2)) % MOD
-        memo[n] = res
-        return res
-    }
-}
-
-fun main() {
-    println(Solution().fibTopDown(6))   // 8
 }
 ```
 
@@ -1100,6 +1036,19 @@ optim: "Space-optimised Fibonacci" {
 ## The Optimised Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Space-optimized: keep only the last two values. O(n) time, O(1) space.
+function fibOptimised(n):
+    if n < 2: return n
+    MOD ← 10⁹ + 7
+    prev2 ← 0; prev1 ← 1
+    for i from 2 to n:
+        curr ← (prev1 + prev2) mod MOD
+        prev2 ← prev1
+        prev1 ← curr                     # slide the window forward by one
+    return prev1
+```
 
 ```python,editable
 class Solution:
@@ -1191,24 +1140,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    fibOptimised(n) {
-        if (n < 2) return n;
-        const MOD = 1_000_000_007n;
-        let prev2 = 0n, prev1 = 1n;
-        for (let i = 2; i <= n; i++) {
-            const curr = (prev1 + prev2) % MOD;
-            prev2 = prev1;
-            prev1 = curr;
-        }
-        return Number(prev1);
-    }
-}
-
-console.log(new Solution().fibOptimised(6));   // 8
-```
-
 ```typescript,editable
 class Solution {
     fibOptimised(n: number): number {
@@ -1244,21 +1175,6 @@ func fibOptimised(n int) int {
 
 func main() {
     fmt.Println(fibOptimised(6))   // 8
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun fibOptimised(n: Int): Int {
-        if (n < 2) return n
-        val MOD = 1_000_000_007L
-        var prev2 = 0L; var prev1 = 1L
-        for (i in 2..n) {
-            val curr = (prev1 + prev2) % MOD
-            prev2 = prev1; prev1 = curr
-        }
-        return prev1.toInt()
-    }
 }
 ```
 

@@ -220,6 +220,29 @@ Output: 1                Just any single character
 
 <div class="lang-tabs">
 
+```pseudocode
+# dp[i][j] = LPS length on the substring s[i..j].
+# Fill by interval length to ensure (i+1, j−1) is computed before (i, j).
+function longestPalindromicSubsequence(s):
+    n ← length(s)
+    if n = 0: return 0
+    dp ← n × n grid of zeros
+    for i from 0 to n − 1:
+        dp[i][i] ← 1                             # length-1 palindromes (the diagonal)
+
+    for length from 2 to n:
+        for i from 0 to n − length:
+            j ← i + length − 1
+            if s[i] = s[j]:
+                if length = 2:
+                    dp[i][j] ← 2                 # empty interior contributes 0
+                else:
+                    dp[i][j] ← dp[i + 1][j − 1] + 2
+            else:
+                dp[i][j] ← max(dp[i + 1][j], dp[i][j − 1])
+    return dp[0][n − 1]
+```
+
 ```python,editable
 from typing import List
 
@@ -367,27 +390,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    longestPalindromicSubsequence(s) {
-        const n = s.length;
-        if (n === 0) return 0;
-        const dp = Array.from({length: n}, () => new Array(n).fill(0));
-        for (let i = 0; i < n; i++) dp[i][i] = 1;
-        for (let len = 2; len <= n; len++) {
-            for (let i = 0; i <= n - len; i++) {
-                const j = i + len - 1;
-                if (s[i] === s[j]) dp[i][j] = (len === 2) ? 2 : dp[i + 1][j - 1] + 2;
-                else dp[i][j] = Math.max(dp[i + 1][j], dp[i][j - 1]);
-            }
-        }
-        return dp[0][n - 1];
-    }
-}
-
-console.log(new Solution().longestPalindromicSubsequence("aacbbdaa"));   // 6
-```
-
 ```typescript,editable
 class Solution {
     longestPalindromicSubsequence(s: string): number {
@@ -435,33 +437,6 @@ func longestPalindromicSubsequence(s string) int {
 
 func main() {
     fmt.Println(longestPalindromicSubsequence("aacbbdaa"))   // 6
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun longestPalindromicSubsequence(s: String): Int {
-        val n = s.length
-        if (n == 0) return 0
-        val dp = Array(n) { IntArray(n) }
-        for (i in 0 until n) dp[i][i] = 1
-        for (len in 2..n) {
-            for (i in 0..n - len) {
-                val j = i + len - 1
-                dp[i][j] =
-                    if (s[i] == s[j]) {
-                        if (len == 2) 2 else dp[i + 1][j - 1] + 2
-                    } else {
-                        maxOf(dp[i + 1][j], dp[i][j - 1])
-                    }
-            }
-        }
-        return dp[0][n - 1]
-    }
-}
-
-fun main() {
-    println(Solution().longestPalindromicSubsequence("aacbbdaa"))   // 6
 }
 ```
 

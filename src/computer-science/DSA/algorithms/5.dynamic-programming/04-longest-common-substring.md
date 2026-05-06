@@ -156,6 +156,31 @@ The recursive function returns the LCSubstr ending at `(i, j)`. Because the answ
 
 <div class="lang-tabs">
 
+```pseudocode
+# Top-down memoized. lcs(i, j) = length of common SUFFIX of s1[..i] and s2[..j].
+# A common substring is any matching suffix → answer is the max over all (i, j).
+function longestCommonSubstringLength(s1, s2):
+    m ← length(s1); n ← length(s2)
+    if m = 0 OR n = 0: return 0
+    memo ← m × n grid filled with −1
+    result ← 0
+    for i from 0 to m − 1:
+        for j from 0 to n − 1:
+            result ← max(result, lcs(i, j, s1, s2, memo))
+    return result
+
+function lcs(i, j, s1, s2, memo):
+    if i < 0 OR j < 0:
+        return 0
+    if memo[i][j] ≠ −1:
+        return memo[i][j]
+    if s1[i] ≠ s2[j]:
+        memo[i][j] ← 0                          # mismatch resets — no fallback to max!
+    else:
+        memo[i][j] ← 1 + lcs(i − 1, j − 1, s1, s2, memo)
+    return memo[i][j]
+```
+
 ```python,editable
 from typing import List
 
@@ -290,27 +315,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    longestCommonSubstringLength(s1, s2) {
-        const m = s1.length, n = s2.length;
-        if (m === 0 || n === 0) return 0;
-        const memo = Array.from({length: m}, () => new Array(n).fill(-1));
-        const lcs = (i, j) => {
-            if (i < 0 || j < 0) return 0;
-            if (memo[i][j] !== -1) return memo[i][j];
-            memo[i][j] = (s1[i] !== s2[j]) ? 0 : 1 + lcs(i - 1, j - 1);
-            return memo[i][j];
-        };
-        let best = 0;
-        for (let i = 0; i < m; i++) for (let j = 0; j < n; j++) best = Math.max(best, lcs(i, j));
-        return best;
-    }
-}
-
-console.log(new Solution().longestCommonSubstringLength("abcdefgh", "bxcdelx"));   // 3
-```
-
 ```typescript,editable
 class Solution {
     longestCommonSubstringLength(s1: string, s2: string): number {
@@ -361,25 +365,6 @@ func longestCommonSubstringLength(s1, s2 string) int {
 
 func main() {
     fmt.Println(longestCommonSubstringLength("abcdefgh", "bxcdelx"))   // 3
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun longestCommonSubstringLength(s1: String, s2: String): Int {
-        val m = s1.length; val n = s2.length
-        if (m == 0 || n == 0) return 0
-        val memo = Array(m) { IntArray(n) { -1 } }
-        fun lcs(i: Int, j: Int): Int {
-            if (i < 0 || j < 0) return 0
-            if (memo[i][j] != -1) return memo[i][j]
-            memo[i][j] = if (s1[i] != s2[j]) 0 else 1 + lcs(i - 1, j - 1)
-            return memo[i][j]
-        }
-        var best = 0
-        for (i in 0 until m) for (j in 0 until n) best = maxOf(best, lcs(i, j))
-        return best
-    }
 }
 ```
 
@@ -465,6 +450,22 @@ table: "dp for s1 = 'aba', s2 = 'adab'" {
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# Bottom-up. dp[i][j] = length of longest common suffix ending at (i−1, j−1).
+function longestCommonSubstringLength(s1, s2):
+    m ← length(s1); n ← length(s2)
+    if m = 0 OR n = 0: return 0
+    dp ← (m + 1) × (n + 1) grid of zeros
+    result ← 0
+    for i from 1 to m:
+        for j from 1 to n:
+            if s1[i − 1] = s2[j − 1]:
+                dp[i][j] ← dp[i − 1][j − 1] + 1
+                result ← max(result, dp[i][j])
+            # else: dp[i][j] remains 0 (mismatch resets)
+    return result
+```
 
 ```python,editable
 from typing import List
@@ -571,26 +572,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    longestCommonSubstringLength(s1, s2) {
-        const m = s1.length, n = s2.length;
-        if (m === 0 || n === 0) return 0;
-        const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
-        let best = 0;
-        for (let i = 1; i <= m; i++)
-            for (let j = 1; j <= n; j++)
-                if (s1[i - 1] === s2[j - 1]) {
-                    dp[i][j] = dp[i - 1][j - 1] + 1;
-                    if (dp[i][j] > best) best = dp[i][j];
-                }
-        return best;
-    }
-}
-
-console.log(new Solution().longestCommonSubstringLength("abcdefgh", "bxcdelx"));   // 3
-```
-
 ```typescript,editable
 class Solution {
     longestCommonSubstringLength(s1: string, s2: string): number {
@@ -633,24 +614,6 @@ func longestCommonSubstringLength(s1, s2 string) int {
 
 func main() {
     fmt.Println(longestCommonSubstringLength("abcdefgh", "bxcdelx"))
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun longestCommonSubstringLength(s1: String, s2: String): Int {
-        val m = s1.length; val n = s2.length
-        if (m == 0 || n == 0) return 0
-        val dp = Array(m + 1) { IntArray(n + 1) }
-        var best = 0
-        for (i in 1..m) for (j in 1..n) {
-            if (s1[i - 1] == s2[j - 1]) {
-                dp[i][j] = dp[i - 1][j - 1] + 1
-                if (dp[i][j] > best) best = dp[i][j]
-            }
-        }
-        return best
-    }
 }
 ```
 
@@ -722,6 +685,26 @@ Output: "lx"
 We add two trackers: `best_length` and `best_end_index` (an index in `s1`). After the table is full, slice `s1[best_end_index - best_length + 1 .. best_end_index + 1]`.
 
 <div class="lang-tabs">
+
+```pseudocode
+# Same DP as above, plus tracking where the longest run ended in s1 so we can slice it out.
+function longestCommonSubstring(s1, s2):
+    m ← length(s1); n ← length(s2)
+    if m = 0 OR n = 0: return ""
+    dp ← (m + 1) × (n + 1) grid of zeros
+    bestLength ← 0
+    bestEndInS1 ← 0                              # 0-indexed end of the best run in s1
+    for i from 1 to m:
+        for j from 1 to n:
+            if s1[i − 1] = s2[j − 1]:
+                dp[i][j] ← dp[i − 1][j − 1] + 1
+                if dp[i][j] > bestLength:
+                    bestLength ← dp[i][j]
+                    bestEndInS1 ← i − 1
+    if bestLength = 0:
+        return ""
+    return substring of s1 from (bestEndInS1 − bestLength + 1) to bestEndInS1
+```
 
 ```python,editable
 from typing import List
@@ -851,27 +834,6 @@ class Solution {
 }
 ```
 
-```javascript,editable
-class Solution {
-    longestCommonSubstring(s1, s2) {
-        const m = s1.length, n = s2.length;
-        if (m === 0 || n === 0) return "";
-        const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
-        let bestLen = 0, bestEnd = 0;
-        for (let i = 1; i <= m; i++)
-            for (let j = 1; j <= n; j++)
-                if (s1[i - 1] === s2[j - 1]) {
-                    dp[i][j] = dp[i - 1][j - 1] + 1;
-                    if (dp[i][j] > bestLen) { bestLen = dp[i][j]; bestEnd = i - 1; }
-                }
-        if (bestLen === 0) return "";
-        return s1.slice(bestEnd - bestLen + 1, bestEnd + 1);
-    }
-}
-
-console.log(new Solution().longestCommonSubstring("abcdefgh", "bxcdelx"));   // cde
-```
-
 ```typescript,editable
 class Solution {
     longestCommonSubstring(s1: string, s2: string): string {
@@ -916,24 +878,6 @@ func longestCommonSubstring(s1, s2 string) string {
 
 func main() {
     fmt.Println(longestCommonSubstring("abcdefgh", "bxcdelx"))   // cde
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun longestCommonSubstring(s1: String, s2: String): String {
-        val m = s1.length; val n = s2.length
-        if (m == 0 || n == 0) return ""
-        val dp = Array(m + 1) { IntArray(n + 1) }
-        var bestLen = 0; var bestEnd = 0
-        for (i in 1..m) for (j in 1..n) {
-            if (s1[i - 1] == s2[j - 1]) {
-                dp[i][j] = dp[i - 1][j - 1] + 1
-                if (dp[i][j] > bestLen) { bestLen = dp[i][j]; bestEnd = i - 1 }
-            }
-        }
-        return if (bestLen == 0) "" else s1.substring(bestEnd - bestLen + 1, bestEnd + 1)
-    }
 }
 ```
 

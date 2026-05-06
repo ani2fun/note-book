@@ -117,6 +117,31 @@ Because the same `*` can keep matching more characters. After consuming one `s[i
 
 <div class="lang-tabs">
 
+```pseudocode
+# Wildcard match: '?' matches any single char, '*' matches any (possibly empty) substring.
+# dp[i][j] = true iff pattern[0..j−1] matches s[0..i−1].
+function wildcardMatch(s, pattern):
+    n ← length(s); m ← length(pattern)
+    dp ← (n + 1) × (m + 1) grid of false
+    dp[0][0] ← true
+
+    # Leading run of '*' can match the empty string.
+    for j from 1 to m:
+        if pattern[j − 1] = '*':
+            dp[0][j] ← dp[0][j − 1]
+
+    for i from 1 to n:
+        for j from 1 to m:
+            pc ← pattern[j − 1]
+            if pc = '?' OR pc = s[i − 1]:
+                dp[i][j] ← dp[i − 1][j − 1]       # consume one char on each side
+            else if pc = '*':
+                dp[i][j] ← dp[i][j − 1]            # '*' matches 0 chars
+                            OR dp[i − 1][j]        # '*' matches 1+ chars
+            # else: literal mismatch — dp[i][j] stays false
+    return dp[n][m]
+```
+
 ```python,editable
 from typing import List
 
@@ -261,29 +286,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    wildcardMatch(s, pattern) {
-        const n = s.length, m = pattern.length;
-        const dp = Array.from({length: n + 1}, () => new Array(m + 1).fill(false));
-        dp[0][0] = true;
-        for (let j = 1; j <= m; j++) {
-            if (pattern[j - 1] === '*') dp[0][j] = dp[0][j - 1];
-        }
-        for (let i = 1; i <= n; i++) {
-            for (let j = 1; j <= m; j++) {
-                const pc = pattern[j - 1];
-                if (pc === '?' || pc === s[i - 1])  dp[i][j] = dp[i - 1][j - 1];
-                else if (pc === '*')                dp[i][j] = dp[i][j - 1] || dp[i - 1][j];
-            }
-        }
-        return dp[n][m];
-    }
-}
-
-console.log(new Solution().wildcardMatch("abcdef", "abc??f"));  // true
-```
-
 ```typescript,editable
 class Solution {
     wildcardMatch(s: string, pattern: string): boolean {
@@ -334,33 +336,6 @@ func wildcardMatch(s, pattern string) bool {
 
 func main() {
     fmt.Println(wildcardMatch("abcdef", "abc??f"))   // true
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun wildcardMatch(s: String, pattern: String): Boolean {
-        val n = s.length; val m = pattern.length
-        val dp = Array(n + 1) { BooleanArray(m + 1) }
-        dp[0][0] = true
-        for (j in 1..m) {
-            if (pattern[j - 1] == '*') dp[0][j] = dp[0][j - 1]
-        }
-        for (i in 1..n) {
-            for (j in 1..m) {
-                val pc = pattern[j - 1]
-                when {
-                    pc == '?' || pc == s[i - 1] -> dp[i][j] = dp[i - 1][j - 1]
-                    pc == '*'                   -> dp[i][j] = dp[i][j - 1] || dp[i - 1][j]
-                }
-            }
-        }
-        return dp[n][m]
-    }
-}
-
-fun main() {
-    println(Solution().wildcardMatch("abcdef", "abc??f"))   // true
 }
 ```
 
@@ -458,6 +433,22 @@ Because each character of `s3` must come from *exactly one* of `s1` or `s2` — 
 ## The Solution
 
 <div class="lang-tabs">
+
+```pseudocode
+# dp[i][j] = true iff s3[0..i+j−1] is an interleaving of s1[0..i−1] and s2[0..j−1].
+function isInterleave(s1, s2, s3):
+    n ← length(s1); m ← length(s2)
+    if n + m ≠ length(s3): return false           # length mismatch — quick reject
+    dp ← (n + 1) × (m + 1) grid of false
+    dp[0][0] ← true
+    for i from 0 to n:
+        for j from 0 to m:
+            if i > 0 AND s1[i − 1] = s3[i + j − 1]:
+                dp[i][j] ← dp[i][j] OR dp[i − 1][j]   # next char came from s1
+            if j > 0 AND s2[j − 1] = s3[i + j − 1]:
+                dp[i][j] ← dp[i][j] OR dp[i][j − 1]   # next char came from s2
+    return dp[n][m]
+```
 
 ```python,editable
 from typing import List
@@ -586,26 +577,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    isInterleave(s1, s2, s3) {
-        const n = s1.length, m = s2.length;
-        if (n + m !== s3.length) return false;
-        const dp = Array.from({length: n + 1}, () => new Array(m + 1).fill(false));
-        dp[0][0] = true;
-        for (let i = 0; i <= n; i++) {
-            for (let j = 0; j <= m; j++) {
-                if (i > 0 && s1[i - 1] === s3[i + j - 1]) dp[i][j] = dp[i][j] || dp[i - 1][j];
-                if (j > 0 && s2[j - 1] === s3[i + j - 1]) dp[i][j] = dp[i][j] || dp[i][j - 1];
-            }
-        }
-        return dp[n][m];
-    }
-}
-
-console.log(new Solution().isInterleave("abc", "def", "adbecf"));   // true
-```
-
 ```typescript,editable
 class Solution {
     isInterleave(s1: string, s2: string, s3: string): boolean {
@@ -646,28 +617,6 @@ func isInterleave(s1, s2, s3 string) bool {
 
 func main() {
     fmt.Println(isInterleave("abc", "def", "adbecf"))   // true
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun isInterleave(s1: String, s2: String, s3: String): Boolean {
-        val n = s1.length; val m = s2.length
-        if (n + m != s3.length) return false
-        val dp = Array(n + 1) { BooleanArray(m + 1) }
-        dp[0][0] = true
-        for (i in 0..n) {
-            for (j in 0..m) {
-                if (i > 0 && s1[i - 1] == s3[i + j - 1]) dp[i][j] = dp[i][j] || dp[i - 1][j]
-                if (j > 0 && s2[j - 1] == s3[i + j - 1]) dp[i][j] = dp[i][j] || dp[i][j - 1]
-            }
-        }
-        return dp[n][m]
-    }
-}
-
-fun main() {
-    println(Solution().isInterleave("abc", "def", "adbecf"))   // true
 }
 ```
 

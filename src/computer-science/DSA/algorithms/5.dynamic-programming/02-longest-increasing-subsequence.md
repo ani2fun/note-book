@@ -254,6 +254,19 @@ grid: "dp for arr = [9, 5, 10, 6, 9, 7, 8]" {
 
 <div class="lang-tabs">
 
+```pseudocode
+# dp[i] = length of LIS ending at index i. Answer = max(dp).
+function longestIncreasingSubsequence(arr):
+    n ← length(arr)
+    if n = 0: return 0
+    dp ← list of n ones                          # every element alone is a length-1 LIS
+    for i from 1 to n − 1:
+        for j from 0 to i − 1:
+            if arr[j] < arr[i]:                  # arr[j] is a valid predecessor
+                dp[i] ← max(dp[i], dp[j] + 1)
+    return max(dp)                                # LIS may end anywhere
+```
+
 ```python,editable
 from typing import List
 
@@ -372,26 +385,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    longestIncreasingSubsequence(arr) {
-        const n = arr.length;
-        if (n === 0) return 0;
-        const dp = new Array(n).fill(1);
-        let best = 1;
-        for (let i = 1; i < n; i++) {
-            for (let j = 0; j < i; j++) {
-                if (arr[j] < arr[i]) dp[i] = Math.max(dp[i], dp[j] + 1);
-            }
-            best = Math.max(best, dp[i]);
-        }
-        return best;
-    }
-}
-
-console.log(new Solution().longestIncreasingSubsequence([9, 5, 10, 6, 9, 7, 8]));   // 4
-```
-
 ```typescript,editable
 class Solution {
     longestIncreasingSubsequence(arr: number[]): number {
@@ -434,28 +427,6 @@ func longestIncreasingSubsequence(arr []int) int {
 
 func main() {
     fmt.Println(longestIncreasingSubsequence([]int{9, 5, 10, 6, 9, 7, 8}))   // 4
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun longestIncreasingSubsequence(arr: IntArray): Int {
-        val n = arr.size
-        if (n == 0) return 0
-        val dp = IntArray(n) { 1 }
-        var best = 1
-        for (i in 1 until n) {
-            for (j in 0 until i) {
-                if (arr[j] < arr[i]) dp[i] = maxOf(dp[i], dp[j] + 1)
-            }
-            best = maxOf(best, dp[i])
-        }
-        return best
-    }
-}
-
-fun main() {
-    println(Solution().longestIncreasingSubsequence(intArrayOf(9, 5, 10, 6, 9, 7, 8)))   // 4
 }
 ```
 
@@ -652,6 +623,31 @@ grid: "Reconstruction via prev[]" {
 
 <div class="lang-tabs">
 
+```pseudocode
+# Same shape as LIS, but dp[i] is the maximum *sum* of an ascending subsequence ending at i.
+# `prev` records the predecessor so we can reconstruct the subsequence at the end.
+function largestSumAscending(arr):
+    n ← length(arr)
+    if n = 0: return empty list
+    dp ← copy of arr                              # dp[i] starts as arr[i] (element alone)
+    prev ← list of n entries, each set to −1
+    endIndex ← 0
+    for i from 0 to n − 1:
+        for j from 0 to i − 1:
+            if arr[j] < arr[i] AND dp[j] + arr[i] > dp[i]:
+                dp[i] ← dp[j] + arr[i]
+                prev[i] ← j
+        if dp[i] > dp[endIndex]:
+            endIndex ← i                          # track the index of the global max sum
+
+    # Reconstruct the subsequence by walking prev backwards.
+    result ← empty list
+    while endIndex ≠ −1:
+        prepend arr[endIndex] to result
+        endIndex ← prev[endIndex]
+    return result
+```
+
 ```python,editable
 from typing import List
 
@@ -817,32 +813,6 @@ object Main extends App {
 }
 ```
 
-```javascript,editable
-class Solution {
-    largestSumAscending(arr) {
-        const n = arr.length;
-        if (n === 0) return [];
-        const dp = arr.slice();
-        const prev = new Array(n).fill(-1);
-        let endIndex = 0;
-        for (let i = 0; i < n; i++) {
-            for (let j = 0; j < i; j++) {
-                if (arr[j] < arr[i] && dp[j] + arr[i] > dp[i]) {
-                    dp[i] = dp[j] + arr[i];
-                    prev[i] = j;
-                }
-            }
-            if (dp[i] > dp[endIndex]) endIndex = i;
-        }
-        const result = [];
-        while (endIndex !== -1) { result.push(arr[endIndex]); endIndex = prev[endIndex]; }
-        return result.reverse();
-    }
-}
-
-console.log(new Solution().largestSumAscending([1, 7, 3, 5, 9, 8, 6]));   // [1, 3, 5, 9]
-```
-
 ```typescript,editable
 class Solution {
     largestSumAscending(arr: number[]): number[] {
@@ -901,34 +871,6 @@ func largestSumAscending(arr []int) []int {
 
 func main() {
     fmt.Println(largestSumAscending([]int{1, 7, 3, 5, 9, 8, 6}))   // [1 3 5 9]
-}
-```
-
-```kotlin,editable
-class Solution {
-    fun largestSumAscending(arr: IntArray): List<Int> {
-        val n = arr.size
-        if (n == 0) return emptyList()
-        val dp = arr.copyOf()
-        val prev = IntArray(n) { -1 }
-        var endIndex = 0
-        for (i in 0 until n) {
-            for (j in 0 until i) {
-                if (arr[j] < arr[i] && dp[j] + arr[i] > dp[i]) {
-                    dp[i] = dp[j] + arr[i]; prev[i] = j
-                }
-            }
-            if (dp[i] > dp[endIndex]) endIndex = i
-        }
-        val result = mutableListOf<Int>()
-        var k = endIndex
-        while (k != -1) { result.add(0, arr[k]); k = prev[k] }
-        return result
-    }
-}
-
-fun main() {
-    println(Solution().largestSumAscending(intArrayOf(1, 7, 3, 5, 9, 8, 6)))   // [1, 3, 5, 9]
 }
 ```
 
